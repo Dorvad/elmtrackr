@@ -9,9 +9,10 @@ import { isOvernightShift } from "@/lib/shifts/overnight";
 interface ShiftRowProps {
   shift: Shift;
   settings: UserSettings;
+  animationIndex?: number;
 }
 
-export function ShiftRow({ shift, settings }: ShiftRowProps) {
+export function ShiftRow({ shift, settings, animationIndex = 0 }: ShiftRowProps) {
   const net = netMinutes(shift);
   const isActive = shift.end_time === null;
   const dateStr = new Date(shift.start_time).toISOString().slice(0, 10);
@@ -24,75 +25,90 @@ export function ShiftRow({ shift, settings }: ShiftRowProps) {
   const formatTime = (d: Date) =>
     d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  const formatDate = (d: Date) =>
-    d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  // Left stripe color
+  const stripeColor = isActive
+    ? "bg-emerald-400"
+    : isWeekend
+    ? "bg-violet-400"
+    : isOvernight
+    ? "bg-indigo-400"
+    : "bg-indigo-200";
+
+  const delay = Math.min(animationIndex * 0.05, 0.3);
 
   return (
     <Link
       href={`/shifts/${shift.id}`}
-      className="flex items-center gap-3 px-4 py-3.5 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-100 last:border-0"
+      className="flex items-center gap-0 overflow-hidden hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-100 last:border-0 animate-fade-in-up"
+      style={{ animationDelay: `${delay}s` }}
     >
-      {/* Date column */}
-      <div className="flex-shrink-0 w-12 text-center">
-        <p className="text-lg font-bold text-gray-900 leading-tight">
-          {startDate.getUTCDate()}
+      {/* Left color stripe */}
+      <div className={`w-1 self-stretch flex-shrink-0 ${stripeColor}`} />
+
+      {/* Date block */}
+      <div className="flex-shrink-0 w-14 text-center py-3.5 pl-3">
+        <p className="text-base font-extrabold text-gray-900 leading-none">
+          {String(startDate.getUTCDate()).padStart(2, "0")}
         </p>
-        <p className="text-xs text-gray-400">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mt-0.5">
           {startDate.toLocaleString("default", { weekday: "short" })}
         </p>
       </div>
 
       {/* Main info */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 py-3.5 px-2">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-sm font-medium text-gray-800">
+          <span className="text-sm font-semibold text-gray-800">
             {formatTime(startDate)}
-            {endDate ? ` – ${formatTime(endDate)}` : ""}
+            {endDate ? ` — ${formatTime(endDate)}` : ""}
           </span>
+        </div>
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           {isActive && (
-            <span className="rounded-full bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5">
-              Active
+            <span className="rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
+              Live
             </span>
           )}
           {isWeekend && (
-            <span className="rounded-full bg-orange-100 text-orange-700 text-xs font-semibold px-2 py-0.5">
+            <span className="rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
               Weekend
             </span>
           )}
           {isOvernight && (
-            <span className="rounded-full bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-0.5">
+            <span className="rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
               Overnight
             </span>
           )}
+          {shift.notes && (
+            <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
+              {shift.notes}
+            </span>
+          )}
         </div>
-        {shift.notes && (
-          <p className="mt-0.5 text-xs text-gray-400 truncate">{shift.notes}</p>
-        )}
-        {isOvernight && endDate && (
-          <p className="text-xs text-gray-400">
-            Ends {formatDate(endDate)}
-          </p>
-        )}
       </div>
 
       {/* Duration */}
-      <div className="flex-shrink-0 text-right">
+      <div className="flex-shrink-0 text-right py-3.5 pr-3">
         {isActive ? (
-          <span className="text-sm font-semibold text-green-600">—</span>
+          <span className="text-sm font-bold text-emerald-600">●</span>
         ) : net !== null ? (
           <>
-            <p className="text-sm font-semibold text-gray-800">
-              {formatMinutes(net)}
-            </p>
+            <p className="text-sm font-bold text-gray-800">{formatMinutes(net)}</p>
             {shift.break_minutes > 0 && (
-              <p className="text-xs text-gray-400">{shift.break_minutes}m break</p>
+              <p className="text-[10px] text-gray-400">{shift.break_minutes}m brk</p>
             )}
           </>
         ) : null}
       </div>
 
       {/* Chevron */}
-      <svg className="h-4 w-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+      <svg
+        className="h-3.5 w-3.5 text-gray-300 flex-shrink-0 mr-3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.5}
+        viewBox="0 0 24 24"
+      >
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
       </svg>
     </Link>

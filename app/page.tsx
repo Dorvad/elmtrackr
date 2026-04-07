@@ -16,20 +16,31 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { createClient } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
-  const { activeShift, loading: clockLoading, error: clockError, clockIn, clockOut, refresh: refreshActive } = useActiveShift();
-  const { shifts, loading: shiftsLoading, error: shiftsError, refresh: refreshShifts } = useShifts();
+  const {
+    activeShift,
+    loading: clockLoading,
+    error: clockError,
+    clockIn,
+    clockOut,
+    refresh: refreshActive,
+  } = useActiveShift();
+  const {
+    shifts,
+    loading: shiftsLoading,
+    error: shiftsError,
+    refresh: refreshShifts,
+  } = useShifts();
   const { settings, loading: settingsLoading } = useSettings();
   const { toast } = useToast();
   const supabase = createClient();
 
-  const loading = clockLoading || shiftsLoading || settingsLoading;
   const recentShifts = shifts.slice(0, 5);
 
   async function handleClockIn() {
     try {
       await clockIn();
       await refreshShifts();
-      toast("Clocked in", "success");
+      toast("Shift started", "success");
     } catch {
       toast("Failed to clock in", "error");
     }
@@ -39,7 +50,7 @@ export default function DashboardPage() {
     try {
       await clockOut();
       await refreshShifts();
-      toast("Clocked out", "success");
+      toast("Shift ended", "success");
     } catch {
       toast("Failed to clock out", "error");
     }
@@ -50,23 +61,34 @@ export default function DashboardPage() {
     window.location.href = "/auth/login";
   }
 
+  const now = new Date();
+  const greeting =
+    now.getHours() < 12 ? "Good morning" :
+    now.getHours() < 18 ? "Good afternoon" : "Good evening";
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">⏱</span>
-          <span className="font-bold text-gray-900">ElmTrackr</span>
+      <div className="px-4 pt-12 pb-4 flex items-center justify-between animate-fade-in">
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+            {greeting}
+          </p>
+          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight mt-0.5">
+            ElmTrackr
+          </h1>
         </div>
         <button
           onClick={handleSignOut}
-          className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+          className="h-9 w-9 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-200 transition-all"
         >
-          Sign out
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
         </button>
       </div>
 
-      <div className="max-w-md mx-auto px-4 pt-4 flex flex-col gap-6">
+      <div className="max-w-md mx-auto px-4 flex flex-col gap-5">
         {(clockError || shiftsError) && (
           <ErrorMessage
             message={clockError ?? shiftsError ?? "Unknown error"}
@@ -80,33 +102,41 @@ export default function DashboardPage() {
           onClockIn={handleClockIn}
           onClockOut={handleClockOut}
           loading={clockLoading}
+          dailyThresholdMinutes={settings?.daily_overtime_threshold_minutes ?? 480}
         />
+
+        {/* Loading skeleton */}
+        {(shiftsLoading || settingsLoading) && !shifts.length && (
+          <PageSpinner />
+        )}
 
         {/* Month summary */}
         {settings && !shiftsLoading && (
           <MonthSummary shifts={shifts} settings={settings} />
-        )}
-        {(shiftsLoading || settingsLoading) && !shifts.length && (
-          <PageSpinner />
         )}
 
         {/* Recent shifts */}
         {!shiftsLoading && shifts.length > 0 && settings && (
           <div>
             <div className="flex items-center justify-between px-1 mb-2">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                 Recent Shifts
               </h2>
               <Link
                 href="/shifts"
-                className="text-sm text-blue-600 font-medium hover:underline"
+                className="text-xs text-indigo-600 font-bold hover:text-indigo-700 transition-colors"
               >
-                View all
+                View all →
               </Link>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              {recentShifts.map((shift) => (
-                <ShiftRow key={shift.id} shift={shift} settings={settings} />
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              {recentShifts.map((shift, i) => (
+                <ShiftRow
+                  key={shift.id}
+                  shift={shift}
+                  settings={settings}
+                  animationIndex={i}
+                />
               ))}
             </div>
           </div>
@@ -115,11 +145,16 @@ export default function DashboardPage() {
         {/* Add shift manually */}
         <Link
           href="/shifts/new"
-          className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 py-4 text-sm font-medium text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
+          className={[
+            "flex items-center justify-center gap-2 rounded-2xl py-4",
+            "border-2 border-dashed border-gray-200 hover:border-indigo-300",
+            "text-sm font-semibold text-gray-400 hover:text-indigo-500",
+            "transition-all duration-200 animate-fade-in-up stagger-5",
+          ].join(" ")}
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
+          <span className="h-5 w-5 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-indigo-50">
+            +
+          </span>
           Add shift manually
         </Link>
       </div>

@@ -33,28 +33,34 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }, 3500);
   }, []);
 
-  const typeClasses: Record<ToastType, string> = {
-    success: "bg-green-600 text-white",
-    error: "bg-red-600 text-white",
-    info: "bg-gray-800 text-white",
+  const typeConfig: Record<ToastType, { bg: string; icon: string }> = {
+    success: { bg: "bg-emerald-600", icon: "✓" },
+    error:   { bg: "bg-red-500",     icon: "✕" },
+    info:    { bg: "bg-indigo-700",  icon: "·" },
   };
 
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-full max-w-sm px-4 pointer-events-none">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className={[
-              "rounded-xl px-4 py-3 text-sm font-medium shadow-lg",
-              "animate-fade-in-up pointer-events-auto",
-              typeClasses[t.type],
-            ].join(" ")}
-          >
-            {t.message}
-          </div>
-        ))}
+      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-full max-w-sm px-4 pointer-events-none">
+        {toasts.map((t) => {
+          const cfg = typeConfig[t.type];
+          return (
+            <div
+              key={t.id}
+              className={[
+                "flex items-center gap-3 rounded-2xl px-4 py-3 shadow-xl pointer-events-auto",
+                "toast-enter",
+                cfg.bg,
+              ].join(" ")}
+            >
+              <span className="h-5 w-5 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold text-white">
+                {cfg.icon}
+              </span>
+              <span className="text-sm font-semibold text-white">{t.message}</span>
+            </div>
+          );
+        })}
       </div>
     </ToastContext.Provider>
   );

@@ -42,7 +42,7 @@ export default function EditShiftPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-24">
+      <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
         <PageSpinner />
       </div>
     );
@@ -50,12 +50,12 @@ export default function EditShiftPage({
 
   if (!shift) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-24 flex items-center justify-center">
+      <div className="min-h-screen pb-28 flex items-center justify-center" style={{ background: "var(--color-surface)" }}>
         <div className="text-center px-6">
-          <p className="text-gray-500 text-sm">Shift not found.</p>
+          <p className="text-gray-400 text-sm font-medium">Shift not found.</p>
           <button
             onClick={() => router.push("/shifts")}
-            className="mt-3 text-blue-600 text-sm font-medium hover:underline"
+            className="mt-3 text-indigo-600 text-sm font-bold hover:underline"
           >
             Back to shifts
           </button>
@@ -65,33 +65,34 @@ export default function EditShiftPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+    <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
+      <div className="px-4 pt-12 pb-4 flex items-center gap-3 animate-fade-in">
         <button
           onClick={() => router.back()}
-          className="p-1 -ml-1 rounded-lg hover:bg-gray-100 transition-colors"
+          className="h-9 w-9 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-400 hover:text-gray-600 transition-all"
         >
-          <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-lg font-bold text-gray-900">Edit Shift</h1>
+        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Edit Shift</h1>
       </div>
 
-      <div className="max-w-md mx-auto px-4 pt-6">
-        <ShiftForm
-          initial={{
-            start_time: shift.start_time,
-            end_time: shift.end_time ?? "",
-            break_minutes: shift.break_minutes,
-            notes: shift.notes ?? "",
-          }}
-          onSubmit={handleSubmit}
-          onDelete={handleDelete}
-          submitLabel="Update Shift"
-          isActive={shift.end_time === null}
-        />
+      <div className="max-w-md mx-auto px-4 animate-fade-in-up stagger-1">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <ShiftForm
+            initial={{
+              start_time: shift.start_time,
+              end_time: shift.end_time ?? "",
+              break_minutes: shift.break_minutes,
+              notes: shift.notes ?? "",
+            }}
+            onSubmit={handleSubmit}
+            onDelete={handleDelete}
+            submitLabel="Update Shift"
+            isActive={shift.end_time === null}
+          />
+        </div>
       </div>
 
       <BottomNav />

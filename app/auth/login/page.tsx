@@ -25,12 +25,8 @@ export default function LoginPage() {
 
     try {
       if (mode === "sign_in") {
-        const { error: err } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
-        // Middleware will redirect to / on next request
         window.location.href = "/";
       } else {
         const { error: err } = await supabase.auth.signUp({
@@ -39,42 +35,71 @@ export default function LoginPage() {
           options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
         });
         if (err) throw err;
-        setSuccess(
-          "Check your email for a confirmation link, then come back to sign in."
-        );
+        setSuccess("Check your email for a confirmation link, then come back to sign in.");
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Authentication failed."
-      );
+      setError(err instanceof Error ? err.message : "Authentication failed.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        {/* Logo / title */}
-        <div className="text-center mb-8">
-          <div className="text-4xl mb-2">⏱</div>
-          <h1 className="text-2xl font-bold text-gray-900">ElmTrackr</h1>
-          <p className="text-sm text-gray-500 mt-1">Personal shift tracker</p>
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--color-surface)" }}>
+      {/* Top gradient hero */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 px-6 pt-20 pb-16 flex flex-col items-center">
+        {/* Ambient blobs */}
+        <div className="absolute -top-12 -left-12 w-56 h-56 rounded-full bg-indigo-600/30 blur-3xl pointer-events-none" />
+        <div className="absolute top-8 right-0 w-40 h-40 rounded-full bg-violet-500/20 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-32 h-32 rounded-full bg-blue-500/10 blur-2xl pointer-events-none" />
+
+        {/* Logo mark */}
+        <div className="relative mb-4 h-16 w-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shadow-xl animate-scale-in">
+          <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h1 className="relative text-3xl font-extrabold text-white tracking-tight animate-fade-in-up stagger-1">
+          ElmTrackr
+        </h1>
+        <p className="relative text-indigo-300 text-sm font-medium mt-1.5 animate-fade-in-up stagger-2">
+          Personal shift &amp; hours tracker
+        </p>
+
+        {/* Floating mini stat cards */}
+        <div className="relative flex gap-3 mt-8 animate-fade-in-up stagger-3">
+          {[
+            { label: "Hours/mo", value: "160h" },
+            { label: "Overtime", value: "12h" },
+            { label: "Shifts", value: "22" },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="rounded-2xl bg-white/10 border border-white/15 px-4 py-2.5 text-center backdrop-blur-sm"
+            >
+              <p className="text-white font-extrabold text-lg leading-none">{s.value}</p>
+              <p className="text-indigo-300 text-[10px] font-semibold mt-0.5 uppercase tracking-wide">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Auth card — slightly overlaps hero */}
+      <div className="flex-1 flex flex-col items-center px-4 -mt-5">
+        <div className="w-full max-w-sm bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/60 p-6 animate-fade-in-up stagger-4">
           {/* Mode toggle */}
-          <div className="flex rounded-xl bg-gray-100 p-0.5 mb-6">
+          <div className="flex rounded-xl bg-gray-100 p-1 mb-5">
             {(["sign_in", "sign_up"] as const).map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => { setMode(m); setError(null); setSuccess(null); }}
                 className={[
-                  "flex-1 rounded-[10px] py-2 text-sm font-semibold transition-colors",
+                  "flex-1 rounded-[10px] py-2 text-sm font-bold transition-all duration-200",
                   mode === m
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700",
+                    ? "bg-white text-indigo-700 shadow-sm"
+                    : "text-gray-400 hover:text-gray-600",
                 ].join(" ")}
               >
                 {m === "sign_in" ? "Sign In" : "Create Account"}
@@ -102,17 +127,17 @@ export default function LoginPage() {
             />
 
             {error && (
-              <p className="rounded-xl bg-red-50 border border-red-100 px-4 py-2.5 text-sm text-red-700">
+              <div className="rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700 font-medium">
                 {error}
-              </p>
+              </div>
             )}
             {success && (
-              <p className="rounded-xl bg-green-50 border border-green-100 px-4 py-2.5 text-sm text-green-700">
+              <div className="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700 font-medium">
                 {success}
-              </p>
+              </div>
             )}
 
-            <Button type="submit" loading={loading} fullWidth size="lg">
+            <Button type="submit" loading={loading} fullWidth size="lg" className="mt-1">
               {mode === "sign_in" ? "Sign In" : "Create Account"}
             </Button>
           </form>

@@ -26,25 +26,23 @@ export default function NewShiftPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+    <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
+      <div className="px-4 pt-12 pb-4 flex items-center gap-3 animate-fade-in">
         <button
           onClick={() => router.back()}
-          className="p-1 -ml-1 rounded-lg hover:bg-gray-100 transition-colors"
+          className="h-9 w-9 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-400 hover:text-gray-600 transition-all"
         >
-          <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-lg font-bold text-gray-900">New Shift</h1>
+        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">New Shift</h1>
       </div>
 
-      <div className="max-w-md mx-auto px-4 pt-6">
-        <ShiftForm
-          onSubmit={handleSubmit}
-          submitLabel="Create Shift"
-        />
+      <div className="max-w-md mx-auto px-4 animate-fade-in-up stagger-1">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <ShiftForm onSubmit={handleSubmit} submitLabel="Create Shift" />
+        </div>
       </div>
 
       <BottomNav />
