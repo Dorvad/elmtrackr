@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #f9fafb;
+}
+
+html,
+body {
+  background-color: var(--color-bg);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe area padding for devices with home indicator */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Toast fade-in animation */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.2s ease-out forwards;
+}
