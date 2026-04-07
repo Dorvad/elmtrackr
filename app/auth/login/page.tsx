@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState, FormEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, isMissingConfig } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -15,15 +15,17 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const supabase = createClient();
+  const missingConfig = isMissingConfig();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (missingConfig) return;
     setError(null);
     setSuccess(null);
     setLoading(true);
 
     try {
+      const supabase = createClient();
       if (mode === "sign_in") {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
@@ -107,6 +109,18 @@ export default function LoginPage() {
             ))}
           </div>
 
+          {/* Setup required banner */}
+          {missingConfig && (
+            <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 mb-2">
+              <p className="text-sm font-bold text-amber-800">Supabase not configured</p>
+              <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                Copy <code className="bg-amber-100 px-1 rounded font-mono">.env.local.example</code> to{" "}
+                <code className="bg-amber-100 px-1 rounded font-mono">.env.local</code> and add your
+                Supabase project URL and anon key, then restart the dev server.
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
               label="Email"
@@ -137,7 +151,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <Button type="submit" loading={loading} fullWidth size="lg" className="mt-1">
+            <Button type="submit" loading={loading} disabled={missingConfig} fullWidth size="lg" className="mt-1">
               {mode === "sign_in" ? "Sign In" : "Create Account"}
             </Button>
           </form>
