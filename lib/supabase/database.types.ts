@@ -43,6 +43,7 @@ export interface Database {
           daily_overtime_threshold_minutes: number;
           weekly_overtime_threshold_minutes: number;
           weekend_days: number[];
+          hourly_rate: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -53,6 +54,7 @@ export interface Database {
           daily_overtime_threshold_minutes?: number;
           weekly_overtime_threshold_minutes?: number;
           weekend_days?: number[];
+          hourly_rate?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -61,6 +63,7 @@ export interface Database {
           daily_overtime_threshold_minutes?: number;
           weekly_overtime_threshold_minutes?: number;
           weekend_days?: number[];
+          hourly_rate?: number | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -73,6 +76,7 @@ export interface Database {
           end_time: string | null;
           break_minutes: number;
           notes: string | null;
+          is_special_day: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -83,6 +87,7 @@ export interface Database {
           end_time?: string | null;
           break_minutes?: number;
           notes?: string | null;
+          is_special_day?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -91,6 +96,7 @@ export interface Database {
           end_time?: string | null;
           break_minutes?: number;
           notes?: string | null;
+          is_special_day?: boolean;
           updated_at?: string;
         };
         Relationships: [];

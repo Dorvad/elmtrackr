@@ -29,6 +29,7 @@ export default function EditShiftPage({
       end_time: data.end_time || null,
       break_minutes: data.break_minutes,
       notes: data.notes || null,
+      is_special_day: data.is_special_day,
     });
     toast("Shift updated", "success");
     router.push("/shifts");
@@ -86,6 +87,7 @@ export default function EditShiftPage({
               end_time: shift.end_time ?? "",
               break_minutes: shift.break_minutes,
               notes: shift.notes ?? "",
+              is_special_day: shift.is_special_day ?? false,
             }}
             onSubmit={handleSubmit}
             onDelete={handleDelete}

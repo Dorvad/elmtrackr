@@ -101,6 +101,38 @@ create or replace trigger on_auth_user_created
   for each row execute function public.handle_new_user();
 
 -- ============================================================
+-- Migrations: payroll support
+-- Run these ALTER TABLE statements after the initial schema.
+-- They are safe to run multiple times (IF NOT EXISTS guards).
+-- ============================================================
+
+do $$
+begin
+  -- Add hourly_rate to user_settings
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name   = 'user_settings'
+      and column_name  = 'hourly_rate'
+  ) then
+    alter table public.user_settings
+      add column hourly_rate numeric(10, 2) default null;
+  end if;
+
+  -- Add is_special_day to shifts (holiday / Shabbat override)
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name   = 'shifts'
+      and column_name  = 'is_special_day'
+  ) then
+    alter table public.shifts
+      add column is_special_day boolean not null default false;
+  end if;
+end
+$$;
+
+-- ============================================================
 -- Row Level Security
 -- ============================================================
 

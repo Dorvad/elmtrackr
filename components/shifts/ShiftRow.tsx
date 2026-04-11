@@ -5,6 +5,7 @@ import type { Shift, UserSettings } from "@/types";
 import { netMinutes, formatMinutes } from "@/lib/shifts/duration";
 import { isWeekendDate } from "@/lib/shifts/weekend";
 import { isOvernightShift } from "@/lib/shifts/overnight";
+import { calculateShiftPay, formatCurrency } from "@/lib/shifts/payroll";
 
 interface ShiftRowProps {
   shift: Shift;
@@ -18,6 +19,7 @@ export function ShiftRow({ shift, settings, animationIndex = 0 }: ShiftRowProps)
   const dateStr = new Date(shift.start_time).toISOString().slice(0, 10);
   const isWeekend = isWeekendDate(dateStr, settings.weekend_days);
   const isOvernight = isOvernightShift(shift);
+  const isSpecial = shift.is_special_day || isWeekend;
 
   const startDate = new Date(shift.start_time);
   const endDate = shift.end_time ? new Date(shift.end_time) : null;
@@ -25,10 +27,12 @@ export function ShiftRow({ shift, settings, animationIndex = 0 }: ShiftRowProps)
   const formatTime = (d: Date) =>
     d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
+  const pay = calculateShiftPay(shift, settings);
+
   // Left stripe color
   const stripeColor = isActive
     ? "bg-emerald-400"
-    : isWeekend
+    : isSpecial
     ? "bg-violet-400"
     : isOvernight
     ? "bg-indigo-400"
@@ -69,7 +73,12 @@ export function ShiftRow({ shift, settings, animationIndex = 0 }: ShiftRowProps)
               Live
             </span>
           )}
-          {isWeekend && (
+          {shift.is_special_day && (
+            <span className="rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
+              Holiday
+            </span>
+          )}
+          {isWeekend && !shift.is_special_day && (
             <span className="rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
               Weekend
             </span>
@@ -87,14 +96,17 @@ export function ShiftRow({ shift, settings, animationIndex = 0 }: ShiftRowProps)
         </div>
       </div>
 
-      {/* Duration */}
+      {/* Duration + pay */}
       <div className="flex-shrink-0 text-right py-3.5 pr-3">
         {isActive ? (
           <span className="text-sm font-bold text-emerald-600">●</span>
         ) : net !== null ? (
           <>
             <p className="text-sm font-bold text-gray-800">{formatMinutes(net)}</p>
-            {shift.break_minutes > 0 && (
+            {pay && (
+              <p className="text-[10px] font-bold text-indigo-500">{formatCurrency(pay.total_gross)}</p>
+            )}
+            {!pay && shift.break_minutes > 0 && (
               <p className="text-[10px] text-gray-400">{shift.break_minutes}m brk</p>
             )}
           </>

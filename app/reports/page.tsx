@@ -18,6 +18,7 @@ import { formatHoursDecimal, formatMinutes, netMinutes } from "@/lib/shifts/dura
 import { isWeekendDate } from "@/lib/shifts/weekend";
 import { isOvernightShift } from "@/lib/shifts/overnight";
 import { generateMonthlyCSV, downloadCSV } from "@/lib/shifts/csv";
+import { sumMonthlyPay, calculateShiftPay, formatCurrency } from "@/lib/shifts/payroll";
 import type { Shift, UserSettings } from "@/types";
 
 export default function ReportsPage() {
@@ -61,6 +62,10 @@ export default function ReportsPage() {
         { label: "Weekend",  value: report.weekend_minutes,  color: "bg-violet-500", dotColor: "#8b5cf6" },
       ]
     : [];
+
+  const monthPay = settings?.hourly_rate && monthShifts.length > 0
+    ? sumMonthlyPay(monthShifts.filter((s) => s.end_time !== null), settings)
+    : null;
 
   function handleExportCSV() {
     if (!settings || monthShifts.length === 0) return;
@@ -132,6 +137,32 @@ export default function ReportsPage() {
               <StatCard label="Weekend"  value={formatHoursDecimal(report.weekend_minutes, 1) + "h"}  variant="weekend"  stagger={4} />
             </div>
 
+            {/* Gross pay card */}
+            {monthPay && monthPay.total_gross > 0 && (
+              <div className="bg-white rounded-2xl border border-indigo-100 shadow-sm p-4 animate-fade-in-up">
+                <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">
+                  Gross Pay · Before Tax
+                </p>
+                <p className="text-3xl font-extrabold text-indigo-600 tracking-tight mb-3">
+                  {formatCurrency(monthPay.total_gross)}
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-xl bg-indigo-50 p-2.5 text-center">
+                    <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wide">Regular</p>
+                    <p className="text-sm font-extrabold text-indigo-700 mt-0.5">{formatCurrency(monthPay.regular_gross)}</p>
+                  </div>
+                  <div className="rounded-xl bg-amber-50 p-2.5 text-center">
+                    <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wide">Overtime</p>
+                    <p className="text-sm font-extrabold text-amber-700 mt-0.5">{formatCurrency(monthPay.overtime_gross)}</p>
+                  </div>
+                  <div className="rounded-xl bg-violet-50 p-2.5 text-center">
+                    <p className="text-[10px] text-violet-400 font-bold uppercase tracking-wide">Holiday</p>
+                    <p className="text-sm font-extrabold text-violet-700 mt-0.5">{formatCurrency(monthPay.special_gross)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Thresholds */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center justify-center gap-4 text-xs text-gray-400 font-medium animate-fade-in-up stagger-5">
               <span>Daily OT after <span className="text-gray-600 font-semibold">{formatMinutes(settings.daily_overtime_threshold_minutes)}</span></span>
@@ -168,11 +199,14 @@ function ShiftReportRow({ shift, settings, index }: { shift: Shift; settings: Us
   const dateStr = new Date(shift.start_time).toISOString().slice(0, 10);
   const isWeekend = isWeekendDate(dateStr, settings.weekend_days);
   const isOvernight = isOvernightShift(shift);
+  const isSpecial = shift.is_special_day || isWeekend;
 
   const formatTime = (iso: string) =>
     new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  const stripe = isWeekend ? "bg-violet-400" : isOvernight ? "bg-indigo-400" : "bg-indigo-200";
+  const stripe = isSpecial ? "bg-violet-400" : isOvernight ? "bg-indigo-400" : "bg-indigo-200";
+
+  const payBreakdown = settings.hourly_rate ? calculateShiftPay(shift, settings) : null;
 
   return (
     <div
@@ -194,14 +228,20 @@ function ShiftReportRow({ shift, settings, index }: { shift: Shift; settings: Us
               {shift.break_minutes > 0 ? ` · ${shift.break_minutes}m break` : ""}
             </p>
             <div className="flex gap-1 mt-1">
-              {isWeekend && <span className="rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold px-1.5 py-0.5">Weekend</span>}
+              {shift.is_special_day && <span className="rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold px-1.5 py-0.5">Holiday</span>}
+              {isWeekend && !shift.is_special_day && <span className="rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold px-1.5 py-0.5">Weekend</span>}
               {isOvernight && <span className="rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5">Overnight</span>}
             </div>
           </div>
           <div className="text-right flex-shrink-0">
             <p className="text-sm font-bold text-gray-800">{formatMinutes(net)}</p>
-            {otMins > 0 && (
+            {otMins > 0 && !isSpecial && (
               <p className="text-xs text-amber-500 font-bold">+{formatMinutes(otMins)} OT</p>
+            )}
+            {payBreakdown && (
+              <p className="text-xs font-bold text-indigo-500 mt-0.5">
+                {formatCurrency(payBreakdown.total_gross)}
+              </p>
             )}
           </div>
         </div>
@@ -209,3 +249,4 @@ function ShiftReportRow({ shift, settings, index }: { shift: Shift; settings: Us
     </div>
   );
 }
+

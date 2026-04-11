@@ -13,6 +13,7 @@ const DEFAULT_SETTINGS: Omit<
   daily_overtime_threshold_minutes: 480,   // 8h
   weekly_overtime_threshold_minutes: 2400, // 40h
   weekend_days: DEFAULT_WEEKEND_DAYS,
+  hourly_rate: null,
 };
 
 export interface UseSettingsReturn {
@@ -27,6 +28,7 @@ export interface UseSettingsReturn {
         | "daily_overtime_threshold_minutes"
         | "weekly_overtime_threshold_minutes"
         | "weekend_days"
+        | "hourly_rate"
       >
     >
   ) => Promise<void>;
@@ -80,6 +82,7 @@ export function useSettings(): UseSettingsReturn {
           | "daily_overtime_threshold_minutes"
           | "weekly_overtime_threshold_minutes"
           | "weekend_days"
+          | "hourly_rate"
         >
       >
     ) => {

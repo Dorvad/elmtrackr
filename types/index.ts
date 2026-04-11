@@ -14,6 +14,7 @@ export interface UserSettings {
   weekly_overtime_threshold_minutes: number;
   // Weekend days as ISO day numbers: 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
   weekend_days: number[];
+  hourly_rate: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +26,7 @@ export interface Shift {
   end_time: string | null; // null = active shift
   break_minutes: number;
   notes: string | null;
+  is_special_day: boolean; // holiday / Shabbat override — triggers 150/175/200% pay
   created_at: string;
   updated_at: string;
 }
@@ -80,4 +82,20 @@ export interface ShiftFormData {
   end_time: string;
   break_minutes: number;
   notes: string;
+  is_special_day: boolean;
+}
+
+// ── Payroll ──────────────────────────────────────────────────────────────────
+
+export interface PayBracket {
+  label: string;
+  minutes: number;
+  rate: number; // pay multiplier, e.g. 1.0, 1.25, 1.5
+  amount: number; // gross pay for this bracket (in currency units)
+}
+
+export interface ShiftPayBreakdown {
+  brackets: PayBracket[];
+  total_gross: number;
+  is_special: boolean; // true if weekend day or is_special_day flag set
 }

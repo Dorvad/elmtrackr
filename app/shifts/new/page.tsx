@@ -20,6 +20,7 @@ export default function NewShiftPage() {
       end_time: data.end_time || null,
       break_minutes: data.break_minutes,
       notes: data.notes || null,
+      is_special_day: data.is_special_day,
     });
     toast("Shift saved", "success");
     router.push("/shifts");

@@ -10,11 +10,11 @@ export interface UseShiftsReturn {
   error: string | null;
   refresh: () => Promise<void>;
   createShift: (
-    data: Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes">
+    data: Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes" | "is_special_day">
   ) => Promise<Shift>;
   updateShift: (
     id: string,
-    data: Partial<Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes">>
+    data: Partial<Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes" | "is_special_day">>
   ) => Promise<Shift>;
   deleteShift: (id: string) => Promise<void>;
 }
@@ -47,7 +47,7 @@ export function useShifts(): UseShiftsReturn {
 
   const createShift = useCallback(
     async (
-      data: Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes">
+      data: Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes" | "is_special_day">
     ): Promise<Shift> => {
       const { data: created, error: err } = await supabase
         .from("shifts")
@@ -56,6 +56,7 @@ export function useShifts(): UseShiftsReturn {
           end_time: data.end_time ?? null,
           break_minutes: data.break_minutes,
           notes: data.notes ?? null,
+          is_special_day: data.is_special_day ?? false,
           // user_id is set by RLS / auth context
           user_id: (await supabase.auth.getUser()).data.user!.id,
         })
@@ -72,7 +73,7 @@ export function useShifts(): UseShiftsReturn {
     async (
       id: string,
       data: Partial<
-        Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes">
+        Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes" | "is_special_day">
       >
     ): Promise<Shift> => {
       const { data: updated, error: err } = await supabase

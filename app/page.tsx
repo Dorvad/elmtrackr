@@ -14,6 +14,8 @@ import { PageSpinner } from "@/components/ui/Spinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { createClient } from "@/lib/supabase/client";
+import { sumMonthlyPay, formatCurrency } from "@/lib/shifts/payroll";
+import { filterShiftsByMonth } from "@/lib/shifts/aggregation";
 
 export default function DashboardPage() {
   const {
@@ -66,6 +68,13 @@ export default function DashboardPage() {
     now.getHours() < 12 ? "Good morning" :
     now.getHours() < 18 ? "Good afternoon" : "Good evening";
 
+  const thisMonthShifts = settings
+    ? filterShiftsByMonth(shifts, now.getUTCFullYear(), now.getUTCMonth() + 1)
+    : [];
+  const monthPay = settings?.hourly_rate
+    ? sumMonthlyPay(thisMonthShifts, settings)
+    : null;
+
   return (
     <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
       {/* Header */}
@@ -113,6 +122,43 @@ export default function DashboardPage() {
         {/* Month summary */}
         {settings && !shiftsLoading && (
           <MonthSummary shifts={shifts} settings={settings} />
+        )}
+
+        {/* Monthly gross pay widget */}
+        {monthPay && monthPay.total_gross > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-3">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+              This Month · Gross Pay
+            </p>
+            <div className="flex items-end gap-3">
+              <p className="text-3xl font-extrabold text-indigo-600 tracking-tight">
+                {formatCurrency(monthPay.total_gross)}
+              </p>
+              <p className="text-xs text-gray-400 mb-1 font-medium">before tax</p>
+            </div>
+            {(monthPay.overtime_gross > 0 || monthPay.special_gross > 0) && (
+              <div className="flex gap-3 mt-2">
+                {monthPay.regular_gross > 0 && (
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Regular</p>
+                    <p className="text-xs font-bold text-gray-700">{formatCurrency(monthPay.regular_gross)}</p>
+                  </div>
+                )}
+                {monthPay.overtime_gross > 0 && (
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Overtime</p>
+                    <p className="text-xs font-bold text-amber-600">{formatCurrency(monthPay.overtime_gross)}</p>
+                  </div>
+                )}
+                {monthPay.special_gross > 0 && (
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Holiday</p>
+                    <p className="text-xs font-bold text-violet-600">{formatCurrency(monthPay.special_gross)}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Recent shifts */}

@@ -46,6 +46,7 @@ export function ShiftForm({
     String(initial?.break_minutes ?? 0)
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [isSpecialDay, setIsSpecialDay] = useState(initial?.is_special_day ?? false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -70,6 +71,7 @@ export function ShiftForm({
         end_time: endIso ?? "",
         break_minutes: breakMins,
         notes,
+        is_special_day: isSpecialDay,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save shift.");
@@ -116,6 +118,42 @@ export function ShiftForm({
         onChange={(e) => setBreakMinutes(e.target.value)}
         hint="Total unpaid break time during this shift"
       />
+
+      {/* Holiday / Shabbat toggle */}
+      <button
+        type="button"
+        onClick={() => setIsSpecialDay((v) => !v)}
+        className={[
+          "flex items-center justify-between rounded-2xl border px-4 py-3.5 transition-all duration-150 text-left",
+          isSpecialDay
+            ? "bg-violet-50 border-violet-200"
+            : "bg-gray-50 border-gray-100 hover:border-gray-200",
+        ].join(" ")}
+      >
+        <div>
+          <p className={[
+            "text-sm font-semibold leading-none",
+            isSpecialDay ? "text-violet-700" : "text-gray-700",
+          ].join(" ")}>
+            Holiday / Shabbat
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            {isSpecialDay
+              ? "150%/175%/200% pay rates apply"
+              : "Mark to apply holiday pay rates"}
+          </p>
+        </div>
+        {/* Toggle pill */}
+        <div className={[
+          "relative flex-shrink-0 h-6 w-11 rounded-full transition-colors duration-200",
+          isSpecialDay ? "bg-violet-500" : "bg-gray-200",
+        ].join(" ")}>
+          <span className={[
+            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200",
+            isSpecialDay ? "translate-x-5" : "translate-x-0.5",
+          ].join(" ")} />
+        </div>
+      </button>
 
       <Textarea
         label="Notes (optional)"

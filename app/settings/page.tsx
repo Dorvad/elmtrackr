@@ -31,6 +31,7 @@ export default function SettingsPage() {
   const [dailyHours, setDailyHours] = useState("");
   const [weeklyHours, setWeeklyHours] = useState("");
   const [weekendDays, setWeekendDays] = useState<number[]>([]);
+  const [hourlyRate, setHourlyRate] = useState("");
   const [initialised, setInitialised] = useState(false);
 
   if (settings && !initialised) {
@@ -38,6 +39,7 @@ export default function SettingsPage() {
     setDailyHours(String(settings.daily_overtime_threshold_minutes / 60));
     setWeeklyHours(String(settings.weekly_overtime_threshold_minutes / 60));
     setWeekendDays(settings.weekend_days);
+    setHourlyRate(settings.hourly_rate != null ? String(settings.hourly_rate) : "");
     setInitialised(true);
   }
 
@@ -55,11 +57,14 @@ export default function SettingsPage() {
       const weeklyMins = Math.round(parseFloat(weeklyHours) * 60);
       if (isNaN(dailyMins) || dailyMins <= 0) throw new Error("Daily threshold must be a positive number.");
       if (isNaN(weeklyMins) || weeklyMins <= 0) throw new Error("Weekly threshold must be a positive number.");
+      const parsedRate = parseFloat(hourlyRate);
+      const rate = hourlyRate.trim() === "" ? null : isNaN(parsedRate) || parsedRate < 0 ? null : parsedRate;
       await saveSettings({
         timezone: timezone.trim() || "UTC",
         daily_overtime_threshold_minutes: dailyMins,
         weekly_overtime_threshold_minutes: weeklyMins,
         weekend_days: weekendDays,
+        hourly_rate: rate,
       });
       toast("Settings saved", "success");
     } catch (err) {
@@ -148,8 +153,28 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Timezone */}
+          {/* Payroll */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-3">
+            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+              Payroll
+            </h2>
+            <p className="text-xs text-gray-400 mb-4">
+              Set your hourly base rate to see gross pay calculations. Leave blank to disable.
+            </p>
+            <Input
+              label="Hourly base rate (₪)"
+              type="number"
+              min={0}
+              step={0.01}
+              placeholder="e.g. 45.00"
+              value={hourlyRate}
+              onChange={(e) => setHourlyRate(e.target.value)}
+              hint="Used for Israeli payroll: 100%/125%/150% weekday, 150%/175%/200% holiday"
+            />
+          </div>
+
+          {/* Timezone */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-4">
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
               Timezone
             </h2>
@@ -162,7 +187,7 @@ export default function SettingsPage() {
             />
           </div>
 
-          <Button type="submit" loading={saving} fullWidth size="lg" className="animate-fade-in-up stagger-4">
+          <Button type="submit" loading={saving} fullWidth size="lg" className="animate-fade-in-up stagger-5">
             Save Settings
           </Button>
         </form>
