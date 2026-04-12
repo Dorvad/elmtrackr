@@ -1,7 +1,9 @@
 -- ============================================================
--- ElmTrackr Schema
+-- ElmTrackr Schema  (idempotent — safe to re-run at any time)
 -- Run this in your Supabase SQL editor (Dashboard > SQL Editor)
 -- ============================================================
+
+-- ── Tables ────────────────────────────────────────────────────
 
 -- Profiles: mirrors auth.users, extended with display info
 create table if not exists public.profiles (
@@ -12,18 +14,15 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
--- User settings: per-user overtime + weekend config
+-- User settings: per-user overtime + weekend + payroll config
 create table if not exists public.user_settings (
   id                                 uuid primary key default gen_random_uuid(),
   user_id                            uuid not null unique references auth.users(id) on delete cascade,
   timezone                           text not null default 'UTC',
-  -- Daily overtime kicks in after this many minutes (default: 8 hours)
   daily_overtime_threshold_minutes   integer not null default 480,
-  -- Weekly overtime kicks in after this many minutes (default: 40 hours)
   weekly_overtime_threshold_minutes  integer not null default 2400,
-  -- ISO weekday numbers for weekend: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
-  -- Default: Friday (5) and Saturday (6)
   weekend_days                       integer[] not null default '{5,6}',
+  hourly_rate                        numeric(10, 2) default null,
   created_at                         timestamptz not null default now(),
   updated_at                         timestamptz not null default now()
 );
@@ -33,27 +32,45 @@ create table if not exists public.shifts (
   id             uuid primary key default gen_random_uuid(),
   user_id        uuid not null references auth.users(id) on delete cascade,
   start_time     timestamptz not null,
-  end_time       timestamptz,           -- null = currently active/clocked in
+  end_time       timestamptz,
   break_minutes  integer not null default 0 check (break_minutes >= 0),
   notes          text,
+  is_special_day boolean not null default false,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
-  -- Prevent break longer than shift duration (checked at app level too)
   constraint valid_time_range check (end_time is null or end_time > start_time)
 );
 
--- Index for fast per-user shift lookups by time range
+-- ── Columns added after initial deploy (idempotent) ───────────
+
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'hourly_rate'
+  ) then
+    alter table public.user_settings add column hourly_rate numeric(10, 2) default null;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'shifts' and column_name = 'is_special_day'
+  ) then
+    alter table public.shifts add column is_special_day boolean not null default false;
+  end if;
+end
+$$;
+
+-- ── Indexes ───────────────────────────────────────────────────
+
 create index if not exists shifts_user_id_start_time_idx
   on public.shifts (user_id, start_time desc);
 
--- Index for finding active shifts quickly
 create index if not exists shifts_active_idx
   on public.shifts (user_id, end_time)
   where end_time is null;
 
--- ============================================================
--- Auto-update updated_at timestamps
--- ============================================================
+-- ── Functions & Triggers ──────────────────────────────────────
 
 create or replace function public.handle_updated_at()
 returns trigger language plpgsql as $$
@@ -74,10 +91,6 @@ create or replace trigger user_settings_updated_at
 create or replace trigger shifts_updated_at
   before update on public.shifts
   for each row execute function public.handle_updated_at();
-
--- ============================================================
--- Auto-create profile + settings on new user signup
--- ============================================================
 
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -100,54 +113,36 @@ create or replace trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- ============================================================
--- Migrations: payroll support
--- Run these ALTER TABLE statements after the initial schema.
--- They are safe to run multiple times (IF NOT EXISTS guards).
--- ============================================================
-
-do $$
-begin
-  -- Add hourly_rate to user_settings
-  if not exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public'
-      and table_name   = 'user_settings'
-      and column_name  = 'hourly_rate'
-  ) then
-    alter table public.user_settings
-      add column hourly_rate numeric(10, 2) default null;
-  end if;
-
-  -- Add is_special_day to shifts (holiday / Shabbat override)
-  if not exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public'
-      and table_name   = 'shifts'
-      and column_name  = 'is_special_day'
-  ) then
-    alter table public.shifts
-      add column is_special_day boolean not null default false;
-  end if;
-end
-$$;
-
--- ============================================================
--- Row Level Security
--- ============================================================
+-- ── Row Level Security ────────────────────────────────────────
 
 alter table public.profiles      enable row level security;
 alter table public.user_settings enable row level security;
 alter table public.shifts        enable row level security;
 
--- Profiles: users can only read/update their own profile
+-- Drop all policies before recreating so this script is re-runnable
+do $$
+declare
+  pol record;
+begin
+  for pol in
+    select policyname, tablename
+    from pg_policies
+    where schemaname = 'public'
+      and tablename in ('profiles', 'user_settings', 'shifts')
+  loop
+    execute format('drop policy if exists %I on public.%I', pol.policyname, pol.tablename);
+  end loop;
+end
+$$;
+
+-- Profiles
 create policy "profiles_select_own" on public.profiles
   for select using (auth.uid() = id);
 
 create policy "profiles_update_own" on public.profiles
   for update using (auth.uid() = id);
 
--- User settings: full CRUD on own row only
+-- User settings
 create policy "settings_select_own" on public.user_settings
   for select using (auth.uid() = user_id);
 
@@ -160,7 +155,7 @@ create policy "settings_update_own" on public.user_settings
 create policy "settings_delete_own" on public.user_settings
   for delete using (auth.uid() = user_id);
 
--- Shifts: full CRUD on own shifts only
+-- Shifts
 create policy "shifts_select_own" on public.shifts
   for select using (auth.uid() = user_id);
 
