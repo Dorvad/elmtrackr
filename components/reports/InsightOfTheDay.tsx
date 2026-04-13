@@ -1,7 +1,25 @@
 "use client";
 
 import { useRef, useState } from "react";
+import type { ReactNode } from "react";
 import type { DailyInsight, InsightColor } from "@/lib/shifts/insights";
+
+/**
+ * Parse **bold** markers into <strong> spans.
+ * Anything wrapped in ** ** renders as bright white bold text.
+ */
+function parseBold(text: string): ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={i} className="text-white font-extrabold">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      part
+    )
+  );
+}
 
 interface InsightOfTheDayProps {
   insights: DailyInsight[];
@@ -100,7 +118,7 @@ export function InsightOfTheDay({ insights }: InsightOfTheDayProps) {
                 {insight.title}
               </p>
               <p className={`text-sm leading-snug ${c.subtext}`}>
-                {insight.text}
+                {parseBold(insight.text)}
               </p>
             </div>
           );

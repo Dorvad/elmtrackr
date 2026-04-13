@@ -196,84 +196,84 @@ function buildPool(
     {
       icon: "🎬",
       title: "Movie Marathon",
-      text: `Your ${Math.round(totalHours)}h this month equals ${Math.max(1, Math.floor(totalHours / AVG_MOVIE_HRS))} full movies — back to back, no bathroom breaks.`,
+      text: `Your **${Math.round(totalHours)}h** this month equals **${Math.max(1, Math.floor(totalHours / AVG_MOVIE_HRS))} full movies** — back to back, no bathroom breaks.`,
       color: "violet",
     },
     // 2 — Israeli national average
     {
       icon: "🇮🇱",
       title: "vs. Israeli Average",
-      text: `You averaged ${avgWeekHrs.toFixed(1)}h/week. The Israeli CBS average is ${AVG_WEEK_HRS}h/week — you're ${isAboveAvg ? "above the curve. Respect." : "keeping a healthy pace."}`,
+      text: `You averaged **${avgWeekHrs.toFixed(1)}h/week**. The Israeli CBS average is **${AVG_WEEK_HRS}h/week** — you're ${isAboveAvg ? "above the curve. Respect." : "keeping a healthy pace."}`,
       color: "indigo",
     },
     // 3 — Books
     {
       icon: "📚",
       title: "Book Club",
-      text: `${Math.round(totalHours)} hours of work = ${Math.max(1, Math.floor(totalHours / AVG_BOOK_HRS))} books cover to cover. Your to-read list doesn't stand a chance.`,
+      text: `**${Math.round(totalHours)} hours** of work = **${Math.max(1, Math.floor(totalHours / AVG_BOOK_HRS))} books** cover to cover. Your to-read list doesn't stand a chance.`,
       color: "amber",
     },
     // 4 — Road trip
     {
       icon: "🚗",
       title: "Road Trip",
-      text: `Your hours this month equal ${(totalHours / TEL_EILAT_HRS).toFixed(1)} drives from Tel Aviv to Eilat. Sand dunes and deadlines.`,
+      text: `Your hours this month equal **${(totalHours / TEL_EILAT_HRS).toFixed(1)} drives** from Tel Aviv to Eilat. Sand dunes and deadlines.`,
       color: "emerald",
     },
     // 5 — Coffee
     {
       icon: "☕",
       title: "Coffee Math",
-      text: `At 20 minutes per coffee ritual, your ${Math.round(totalHours)}h of work required roughly ${Math.round((totalHours * 60) / COFFEE_RITUAL_MIN)} cups of coffee to power through.`,
+      text: `Your **${Math.round(totalHours)}h** of work required roughly **${Math.round((totalHours * 60) / COFFEE_RITUAL_MIN)} cups of coffee** to power through.`,
       color: "amber",
     },
     // 6 — Beach days
     {
       icon: "🏖️",
       title: "Beach Days",
-      text: `You clocked ${shiftCount} shift${shiftCount !== 1 ? "s" : ""} this month. That's ${shiftCount} potential days at the beach you traded for work. Worth it?`,
+      text: `You clocked **${shiftCount} shift${shiftCount !== 1 ? "s" : ""}** this month — that's **${shiftCount} potential beach days** you traded for work. Worth it?`,
       color: "sky",
     },
     // 7 — Flights
     {
       icon: "✈️",
       title: "Airborne Hours",
-      text: `${Math.round(totalHours)}h worked = ${(totalHours / TLV_JFK_HRS).toFixed(1)} non-stop flights from Tel Aviv to New York. Jet lag optional.`,
+      text: `**${Math.round(totalHours)}h** worked = **${(totalHours / TLV_JFK_HRS).toFixed(1)} non-stop flights** from Tel Aviv to New York. Jet lag optional.`,
       color: "sky",
     },
     // 8 — Binge watch
     {
       icon: "📺",
       title: "Binge Watch",
-      text: `${Math.round(totalHours)}h of work = ${Math.max(1, Math.floor(totalHours / BREAKING_BAD_HRS))}× through Breaking Bad (${BREAKING_BAD_HRS}h). Better call it a month.`,
+      text: `**${Math.round(totalHours)}h** of work = **${Math.max(1, Math.floor(totalHours / BREAKING_BAD_HRS))}× through Breaking Bad** (${BREAKING_BAD_HRS}h total). Better call it a month.`,
       color: "violet",
     },
     // 9 — Standard workdays
     {
       icon: "📅",
       title: "Workday Counter",
-      text: `${Math.round(totalHours)}h equals ${(totalHours / AVG_WORKDAY_HRS).toFixed(1)} standard Israeli workdays (${AVG_WORKDAY_HRS}h). ${totalHours > AVG_WORKDAY_HRS * 21.5 ? "You put in extra — take a break. ☕" : "Solid, consistent effort."}`,
+      text: `**${Math.round(totalHours)}h** = **${(totalHours / AVG_WORKDAY_HRS).toFixed(1)} standard workdays** at ${AVG_WORKDAY_HRS}h each. ${totalHours > AVG_WORKDAY_HRS * 21.5 ? "You put in extra — take a break. ☕" : "Solid, consistent effort."}`,
       color: "indigo",
     },
     // 10 — Gamer vs worker
     {
       icon: "🎮",
       title: "Gamer vs. Worker",
-      text: `The average person games ~${AVG_GAMER_HRS}h/month. You worked ${Math.round(totalHours)}h — ${totalHours > AVG_GAMER_HRS ? `${Math.round(totalHours / AVG_GAMER_HRS * 10) / 10}× more time grinding IRL.` : "still saving time for side quests."}`,
+      text: `The average person games **~${AVG_GAMER_HRS}h/month**. You worked **${Math.round(totalHours)}h** — ${totalHours > AVG_GAMER_HRS ? `**${Math.round((totalHours / AVG_GAMER_HRS) * 10) / 10}× more** time grinding IRL.` : "still saving time for side quests."}`,
       color: "violet",
     },
     // 11 — Gym sessions
     {
       icon: "💪",
       title: "Gym Sessions",
-      text: `${Math.round(totalHours)}h of work = ${Math.floor(totalHours)} one-hour gym sessions you could've had. The real workout? Your dedication.`,
+      text: `**${Math.round(totalHours)}h** of work = **${Math.floor(totalHours)} one-hour gym sessions** you could've had. The real workout? Your dedication.`,
       color: "emerald",
     },
     // 12 — Steps equivalent (30 min walk ≈ 4,000 steps)
     {
       icon: "🚶",
       title: "Step Counter",
-      text: `If every work-hour were a 30-min walk, you'd have logged ${((totalHours * 2 * 4000) / 1000).toFixed(0)}k steps this month. That's a long stroll.`,
+      text: `If every work-hour were a 30-min walk, you'd have logged **${((totalHours * 2 * 4000) / 1000).toFixed(0)}k steps** this month. That's a very long stroll.`,
       color: "sky",
     },
     // 13 — Pizza (conditional on hourly rate)
@@ -282,7 +282,7 @@ function buildPool(
           {
             icon: "🍕",
             title: "Pizza Power",
-            text: `Your gross earnings this month could buy you ${Math.floor(totalGross / PIZZA_PRICE_ILS)} pizzas at ₪${PIZZA_PRICE_ILS} each. Dinner is sorted for months.`,
+            text: `Your gross earnings could buy you **${Math.floor(totalGross / PIZZA_PRICE_ILS)} pizzas** at **₪${PIZZA_PRICE_ILS}** each. Dinner is sorted for months.`,
             color: "rose" as InsightColor,
           },
         ]
@@ -293,7 +293,7 @@ function buildPool(
           {
             icon: "🌙",
             title: "Night Owl",
-            text: "You clocked some late-night shifts this month. While the city sleeps, you grind. Israel respects the hustle.",
+            text: `You clocked **late-night shifts** this month. While the city sleeps, you grind. **Israel respects the hustle.**`,
             color: "indigo" as InsightColor,
           },
         ]
