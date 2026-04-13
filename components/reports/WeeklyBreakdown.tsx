@@ -6,12 +6,14 @@ import { formatCurrency } from "@/lib/shifts/payroll";
 
 interface WeeklyBreakdownProps {
   weeks: WeekData[];
-  prevMonthLabel: string; // e.g. "March"
+  prevMonthLabel: string;
 }
 
 export function WeeklyBreakdown({ weeks, prevMonthLabel }: WeeklyBreakdownProps) {
   const maxMinutes = Math.max(...weeks.map((w) => w.minutes), 1);
   const hasPay = weeks.some((w) => w.pay !== null && w.pay > 0);
+  // Only show "vs Month" label if at least one week has prev data
+  const hasPrevData = weeks.some((w) => w.prevMonthMinutes > 0);
 
   return (
     <div>
@@ -19,14 +21,19 @@ export function WeeklyBreakdown({ weeks, prevMonthLabel }: WeeklyBreakdownProps)
         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
           Weekly Breakdown
         </h2>
-        <span className="text-[10px] text-gray-400 font-medium">
-          vs {prevMonthLabel}
-        </span>
+        {hasPrevData && (
+          <span className="text-[10px] text-gray-400 font-medium">
+            vs {prevMonthLabel}
+          </span>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
         {weeks.map((week, i) => {
-          const pct = (week.minutes / maxMinutes) * 100;
+          const pct = maxMinutes > 0 ? (week.minutes / maxMinutes) * 100 : 0;
+
+          // Only compute / show delta when there is real previous-month data
+          const showDelta = week.prevMonthMinutes > 0;
           const delta = week.minutes - week.prevMonthMinutes;
           const deltaMins = Math.abs(delta);
 
@@ -39,12 +46,17 @@ export function WeeklyBreakdown({ weeks, prevMonthLabel }: WeeklyBreakdownProps)
               {/* Row header */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-extrabold text-gray-700">{week.label}</span>
-                  <span className="text-[10px] text-gray-400 font-medium">days {week.dayRange}</span>
+                  <span className="text-xs font-extrabold text-gray-700">
+                    {week.label}
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-medium">
+                    days {week.dayRange}
+                  </span>
                 </div>
+
                 <div className="flex items-center gap-2">
-                  {/* Delta vs last month */}
-                  {week.prevMonthMinutes > 0 || week.minutes > 0 ? (
+                  {/* Delta — only rendered when prev month has data */}
+                  {showDelta && (
                     <span
                       className={[
                         "text-[10px] font-bold flex items-center gap-0.5",
@@ -58,9 +70,12 @@ export function WeeklyBreakdown({ weeks, prevMonthLabel }: WeeklyBreakdownProps)
                       {delta > 0 ? "↑" : delta < 0 ? "↓" : "—"}
                       {deltaMins > 0 && formatMinutes(deltaMins)}
                     </span>
-                  ) : null}
+                  )}
+
                   <span className="text-sm font-extrabold text-gray-800">
-                    {week.minutes > 0 ? formatHoursDecimal(week.minutes, 1) + "h" : "—"}
+                    {week.minutes > 0
+                      ? formatHoursDecimal(week.minutes, 1) + "h"
+                      : "—"}
                   </span>
                 </div>
               </div>

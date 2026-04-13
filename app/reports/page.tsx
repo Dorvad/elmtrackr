@@ -23,7 +23,7 @@ import {
 import {
   buildMonthInsights,
   buildWeeklyBreakdown,
-  getDailyInsight,
+  getDailyInsights,
 } from "@/lib/shifts/insights";
 import {
   formatHoursDecimal,
@@ -119,9 +119,9 @@ export default function ReportsPage() {
       ? buildWeeklyBreakdown(completedShifts, prevMonthShifts, settings)
       : null;
 
-  const dailyInsight =
+  const dailyInsights =
     settings && completedShifts.length > 0
-      ? getDailyInsight(completedShifts, settings, report?.total_minutes ?? 0)
+      ? getDailyInsights(completedShifts, settings, report?.total_minutes ?? 0)
       : null;
 
   const segments = report
@@ -337,8 +337,8 @@ export default function ReportsPage() {
               </div>
             )}
 
-            {/* ── Insight of the Day ─────────────────────── */}
-            {dailyInsight && <InsightOfTheDay insight={dailyInsight} />}
+            {/* ── Insights of the Day ────────────────────── */}
+            {dailyInsights && <InsightOfTheDay insights={dailyInsights} />}
 
             {/* ── 6 Quick stats ──────────────────────────── */}
             {insights && <QuickStats insights={insights} />}
