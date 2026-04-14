@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useActiveShift } from "@/hooks/useActiveShift";
 import { useShifts } from "@/hooks/useShifts";
 import { useSettings } from "@/hooks/useSettings";
+import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/components/ui/Toast";
 import { ClockWidget } from "@/components/dashboard/ClockWidget";
 import { MonthSummary } from "@/components/dashboard/MonthSummary";
@@ -33,6 +34,7 @@ export default function DashboardPage() {
     refresh: refreshShifts,
   } = useShifts();
   const { settings, loading: settingsLoading } = useSettings();
+  const { profile } = useProfile();
   const { toast } = useToast();
   const supabase = createClient();
 
@@ -64,9 +66,11 @@ export default function DashboardPage() {
   }
 
   const now = new Date();
-  const greeting =
+  const greetingBase =
     now.getHours() < 12 ? "Good morning" :
     now.getHours() < 18 ? "Good afternoon" : "Good evening";
+  const firstName = profile?.full_name?.trim().split(/\s+/)[0];
+  const greeting = firstName ? `${greetingBase}, ${firstName}` : greetingBase;
 
   const thisMonthShifts = settings
     ? filterShiftsByMonth(shifts, now.getUTCFullYear(), now.getUTCMonth() + 1)

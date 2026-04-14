@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, FormEvent } from "react";
 import { useSettings } from "@/hooks/useSettings";
+import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/components/ui/Toast";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageSpinner } from "@/components/ui/Spinner";
@@ -23,16 +24,20 @@ const WEEKDAYS = [
 
 export default function SettingsPage() {
   const { settings, loading, saveSettings } = useSettings();
+  const { profile, loading: profileLoading, updateProfile } = useProfile();
   const { toast } = useToast();
   const supabase = createClient();
 
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [timezone, setTimezone] = useState("");
   const [dailyHours, setDailyHours] = useState("");
   const [weeklyHours, setWeeklyHours] = useState("");
   const [weekendDays, setWeekendDays] = useState<number[]>([]);
   const [hourlyRate, setHourlyRate] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [initialised, setInitialised] = useState(false);
+  const [profileInitialised, setProfileInitialised] = useState(false);
 
   if (settings && !initialised) {
     setTimezone(settings.timezone);
@@ -41,6 +46,11 @@ export default function SettingsPage() {
     setWeekendDays(settings.weekend_days);
     setHourlyRate(settings.hourly_rate != null ? String(settings.hourly_rate) : "");
     setInitialised(true);
+  }
+
+  if (!profileLoading && !profileInitialised) {
+    setDisplayName(profile?.full_name ?? "");
+    setProfileInitialised(true);
   }
 
   function toggleWeekendDay(day: number) {
@@ -59,13 +69,19 @@ export default function SettingsPage() {
       if (isNaN(weeklyMins) || weeklyMins <= 0) throw new Error("Weekly threshold must be a positive number.");
       const parsedRate = parseFloat(hourlyRate);
       const rate = hourlyRate.trim() === "" ? null : isNaN(parsedRate) || parsedRate < 0 ? null : parsedRate;
-      await saveSettings({
-        timezone: timezone.trim() || "UTC",
-        daily_overtime_threshold_minutes: dailyMins,
-        weekly_overtime_threshold_minutes: weeklyMins,
-        weekend_days: weekendDays,
-        hourly_rate: rate,
-      });
+
+      await Promise.all([
+        saveSettings({
+          timezone: timezone.trim() || "UTC",
+          daily_overtime_threshold_minutes: dailyMins,
+          weekly_overtime_threshold_minutes: weeklyMins,
+          weekend_days: weekendDays,
+          hourly_rate: rate,
+        }),
+        updateProfile({
+          full_name: displayName.trim() || null,
+        }),
+      ]);
       toast("Settings saved", "success");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Failed to save", "error");
@@ -74,12 +90,28 @@ export default function SettingsPage() {
     }
   }
 
+  async function handlePasswordReset() {
+    setResetting(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const email = userData.user?.email;
+      if (!email) throw new Error("Could not retrieve your email address.");
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw new Error(error.message);
+      toast(`Reset link sent to ${email}`, "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to send reset email", "error");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut();
     window.location.href = "/auth/login";
   }
 
-  if (loading || !initialised) {
+  if (loading || profileLoading || !initialised || !profileInitialised) {
     return (
       <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
         <div className="px-4 pt-12 pb-4"><h1 className="text-2xl font-extrabold text-gray-900">Settings</h1></div>
@@ -97,8 +129,25 @@ export default function SettingsPage() {
 
       <div className="max-w-md mx-auto px-4">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Overtime thresholds */}
+          {/* Profile */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-1">
+            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+              Profile
+            </h2>
+            <p className="text-xs text-gray-400 mb-4">
+              Your name is used for the personal greeting on the home screen.
+            </p>
+            <Input
+              label="Display name"
+              placeholder="e.g. Avi"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              hint="First name or nickname — whatever you prefer"
+            />
+          </div>
+
+          {/* Overtime thresholds */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-2">
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
               Overtime Thresholds
             </h2>
@@ -191,6 +240,25 @@ export default function SettingsPage() {
             Save Settings
           </Button>
         </form>
+
+        {/* Security */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mt-4 animate-fade-in-up stagger-5">
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+            Security
+          </h2>
+          <p className="text-xs text-gray-400 mb-4">
+            We'll email you a link to reset your password.
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            fullWidth
+            loading={resetting}
+            onClick={handlePasswordReset}
+          >
+            Send Password Reset Email
+          </Button>
+        </div>
 
         <div className="mt-4 animate-fade-in-up stagger-5">
           <Button
