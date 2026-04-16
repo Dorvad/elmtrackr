@@ -10,6 +10,8 @@ export interface UseActiveShiftReturn {
   error: string | null;
   clockIn: () => Promise<void>;
   clockOut: () => Promise<void>;
+  /** Update the start time of the currently active shift. Timer keeps running. */
+  updateStartTime: (newStartIso: string) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -63,6 +65,25 @@ export function useActiveShift(): UseActiveShiftReturn {
     }
   }, [activeShift, refresh]);
 
+  const updateStartTime = useCallback(async (newStartIso: string) => {
+    if (!activeShift) throw new Error("No active shift to update.");
+    setLoading(true);
+    setError(null);
+    try {
+      const { error: err } = await supabase
+        .from("shifts")
+        .update({ start_time: newStartIso })
+        .eq("id", activeShift.id);
+      if (err) throw new Error(err.message);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Update failed.");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [activeShift, refresh]);
+
   const clockOut = useCallback(async () => {
     if (!activeShift) throw new Error("Not clocked in.");
     setLoading(true);
@@ -82,5 +103,5 @@ export function useActiveShift(): UseActiveShiftReturn {
     }
   }, [activeShift, refresh]);
 
-  return { activeShift, loading, error, clockIn, clockOut, refresh };
+  return { activeShift, loading, error, clockIn, clockOut, updateStartTime, refresh };
 }

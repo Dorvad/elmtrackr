@@ -8,6 +8,7 @@ interface ClockWidgetProps {
   activeShift: Shift | null;
   onClockIn: () => Promise<void>;
   onClockOut: () => Promise<void>;
+  onEditStartTime?: () => void;
   loading: boolean;
   dailyThresholdMinutes?: number;
 }
@@ -31,6 +32,7 @@ export function ClockWidget({
   activeShift,
   onClockIn,
   onClockOut,
+  onEditStartTime,
   loading,
   dailyThresholdMinutes = 480,
 }: ClockWidgetProps) {
@@ -145,11 +147,40 @@ export function ClockWidget({
       {/* Start time info */}
       {isClockedIn && (
         <div className="flex items-center gap-4 text-center">
-          <div>
+          {/* "Started" column — tappable when edit is available */}
+          <div className="flex flex-col items-center">
             <p className="text-xs text-indigo-400 font-medium uppercase tracking-wide">Started</p>
-            <p className="text-sm font-bold text-white mt-0.5">
-              {formatStartTime(activeShift!.start_time)}
-            </p>
+            {onEditStartTime ? (
+              <button
+                type="button"
+                onClick={onEditStartTime}
+                className="flex items-center gap-1 mt-0.5 group"
+                aria-label="Edit start time"
+              >
+                <span className="text-sm font-bold text-white group-hover:text-indigo-200 transition-colors">
+                  {formatStartTime(activeShift!.start_time)}
+                </span>
+                {/* Pencil icon */}
+                <svg
+                  className="h-3 w-3 text-indigo-400 group-hover:text-indigo-200 transition-colors flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z"
+                  />
+                </svg>
+              </button>
+            ) : (
+              <p className="text-sm font-bold text-white mt-0.5">
+                {formatStartTime(activeShift!.start_time)}
+              </p>
+            )}
           </div>
           <div className="h-8 w-px bg-white/10" />
           <div>

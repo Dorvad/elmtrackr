@@ -2,6 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useActiveShift } from "@/hooks/useActiveShift";
 import { useShifts } from "@/hooks/useShifts";
@@ -9,6 +10,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/components/ui/Toast";
 import { ClockWidget } from "@/components/dashboard/ClockWidget";
+import { EditStartTimeModal } from "@/components/dashboard/EditStartTimeModal";
 import { MonthSummary } from "@/components/dashboard/MonthSummary";
 import { ShiftRow } from "@/components/shifts/ShiftRow";
 import { PageSpinner } from "@/components/ui/Spinner";
@@ -25,6 +27,7 @@ export default function DashboardPage() {
     error: clockError,
     clockIn,
     clockOut,
+    updateStartTime,
     refresh: refreshActive,
   } = useActiveShift();
   const {
@@ -37,6 +40,8 @@ export default function DashboardPage() {
   const { profile } = useProfile();
   const { toast } = useToast();
   const supabase = createClient();
+
+  const [showEditStartModal, setShowEditStartModal] = useState(false);
 
   const recentShifts = shifts.slice(0, 5);
 
@@ -58,6 +63,12 @@ export default function DashboardPage() {
     } catch {
       toast("Failed to clock out", "error");
     }
+  }
+
+  async function handleEditStartTime(newStartIso: string) {
+    await updateStartTime(newStartIso);
+    await refreshShifts();
+    toast("Start time updated", "success");
   }
 
   async function handleSignOut() {
@@ -114,6 +125,7 @@ export default function DashboardPage() {
           activeShift={activeShift}
           onClockIn={handleClockIn}
           onClockOut={handleClockOut}
+          onEditStartTime={activeShift ? () => setShowEditStartModal(true) : undefined}
           loading={clockLoading}
           dailyThresholdMinutes={settings?.daily_overtime_threshold_minutes ?? 480}
         />
@@ -210,6 +222,16 @@ export default function DashboardPage() {
       </div>
 
       <BottomNav />
+
+      {/* Edit start time modal — rendered outside the scrollable container */}
+      {showEditStartModal && activeShift && (
+        <EditStartTimeModal
+          activeShift={activeShift}
+          settings={settings}
+          onSave={handleEditStartTime}
+          onClose={() => setShowEditStartModal(false)}
+        />
+      )}
     </div>
   );
 }

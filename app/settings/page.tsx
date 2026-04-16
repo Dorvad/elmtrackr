@@ -10,6 +10,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { PageSpinner } from "@/components/ui/Spinner";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { CountrySelect } from "@/components/ui/CountrySelect";
 import { createClient } from "@/lib/supabase/client";
 
 const WEEKDAYS = [
@@ -222,17 +223,15 @@ export default function SettingsPage() {
             />
           </div>
 
-          {/* Timezone */}
+          {/* Location */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-4">
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
-              Timezone
+              Location
             </h2>
-            <Input
-              label="IANA timezone"
-              placeholder="e.g. Asia/Riyadh, America/New_York"
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              hint="Used for display and reporting context"
+            <CountrySelect
+              timezone={timezone}
+              onTimezoneChange={setTimezone}
+              label="Country"
             />
           </div>
 
