@@ -255,7 +255,7 @@ export default function ReportsPage() {
 
         {/* Refunds tab */}
         {!loading && activeTab === "refunds" && (
-          <RefundReview shifts={shifts} />
+          <RefundReview shifts={shifts} settings={settings} />
         )}
 
         {!loading && activeTab === "hours" && !report && (

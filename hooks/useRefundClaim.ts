@@ -138,6 +138,28 @@ export function useRefundClaim(shiftId: string) {
   return { claim, loading, saving, error, saveClaim, deleteClaim, getReceiptUrl, reload: load };
 }
 
+// All claims for the current user, sorted by ride_at (used for analytics)
+export function useAllRefundClaims() {
+  const supabase = createClient();
+  const [claims, setClaims] = useState<RefundClaim[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const { data } = await supabase
+        .from("refund_claims")
+        .select("*")
+        .order("ride_at", { ascending: true });
+      setClaims((data as RefundClaim[]) ?? []);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  return { claims, loading };
+}
+
 // Lightweight hook for loading all claims for a given month (used in reports)
 export function useMonthlyRefundClaims(year: number, month: number) {
   const supabase = createClient();
