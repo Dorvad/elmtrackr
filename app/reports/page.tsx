@@ -179,7 +179,7 @@ export default function ReportsPage() {
         </h1>
       </div>
 
-      {/* Tab switcher */}
+      {/* Tab switcher — Travel Refunds tab only shown when feature is enabled */}
       <div className="mx-4 mb-3 bg-white rounded-2xl border border-gray-100 shadow-sm flex p-1 gap-1 animate-fade-in-up">
         <button
           onClick={() => setActiveTab("hours")}
@@ -192,17 +192,19 @@ export default function ReportsPage() {
         >
           Hours
         </button>
-        <button
-          onClick={() => setActiveTab("refunds")}
-          className={[
-            "flex-1 rounded-xl py-2 text-sm font-bold transition-all",
-            activeTab === "refunds"
-              ? "bg-indigo-600 text-white shadow-sm"
-              : "text-gray-500 hover:text-gray-700",
-          ].join(" ")}
-        >
-          Travel Refunds
-        </button>
+        {settings?.features_travel_refunds && (
+          <button
+            onClick={() => setActiveTab("refunds")}
+            className={[
+              "flex-1 rounded-xl py-2 text-sm font-bold transition-all",
+              activeTab === "refunds"
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-700",
+            ].join(" ")}
+          >
+            Travel Refunds
+          </button>
+        )}
       </div>
 
       {/* Month picker — only in hours tab */}
@@ -373,10 +375,14 @@ export default function ReportsPage() {
             )}
 
             {/* ── Insights of the Day ────────────────────── */}
-            {dailyInsights && <InsightOfTheDay insights={dailyInsights} />}
+            {settings?.features_insights && dailyInsights && (
+              <InsightOfTheDay insights={dailyInsights} />
+            )}
 
             {/* ── 6 Quick stats ──────────────────────────── */}
-            {insights && <QuickStats insights={insights} />}
+            {settings?.features_insights && insights && (
+              <QuickStats insights={insights} />
+            )}
 
             {/* ── Weekly breakdown ────────────────────────── */}
             {weeklyData && (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Shift } from "@/types";
+import type { ClockStyle } from "@/types";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 
 interface ClockWidgetProps {
@@ -11,6 +12,7 @@ interface ClockWidgetProps {
   onEditStartTime?: () => void;
   loading: boolean;
   dailyThresholdMinutes?: number;
+  clockStyle?: ClockStyle;
 }
 
 function formatHMS(totalSeconds: number): string {
@@ -35,10 +37,10 @@ export function ClockWidget({
   onEditStartTime,
   loading,
   dailyThresholdMinutes = 480,
+  clockStyle = "classic",
 }: ClockWidgetProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-  // Tick every second when clocked in
   useEffect(() => {
     if (!activeShift) { setElapsedSeconds(0); return; }
     const update = () => {
@@ -58,7 +60,6 @@ export function ClockWidget({
   const progress = isClockedIn
     ? Math.min(1, elapsedSeconds / dailyThresholdSeconds)
     : 0;
-
   const isOvertime = elapsedSeconds > dailyThresholdSeconds;
 
   async function handlePress() {
@@ -66,6 +67,27 @@ export function ClockWidget({
     else await onClockIn();
   }
 
+  if (clockStyle === "minimal") {
+    return <MinimalClock
+      isClockedIn={isClockedIn}
+      elapsedSeconds={elapsedSeconds}
+      isOvertime={isOvertime}
+      loading={loading}
+      onPress={handlePress}
+    />;
+  }
+
+  if (clockStyle === "focus") {
+    return <FocusClock
+      isClockedIn={isClockedIn}
+      elapsedSeconds={elapsedSeconds}
+      isOvertime={isOvertime}
+      loading={loading}
+      onPress={handlePress}
+    />;
+  }
+
+  // ── Classic style (original) ───────────────────────────────────────────────
   return (
     <div
       className={[
@@ -76,7 +98,6 @@ export function ClockWidget({
           : "bg-white shadow-sm border border-gray-100",
       ].join(" ")}
     >
-      {/* Ambient glow when active */}
       {isClockedIn && (
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-violet-600/20 blur-3xl" />
@@ -84,7 +105,6 @@ export function ClockWidget({
         </div>
       )}
 
-      {/* Status pill */}
       <div
         className={[
           "relative flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold tracking-wide uppercase",
@@ -102,7 +122,6 @@ export function ClockWidget({
         {isClockedIn ? "Shift Active" : "Not Clocked In"}
       </div>
 
-      {/* Progress ring + timer */}
       <div className="relative">
         <ProgressRing
           progress={progress}
@@ -115,7 +134,7 @@ export function ClockWidget({
             {isClockedIn ? (
               <>
                 <span
-                  key={Math.floor(elapsedSeconds / 60)} // re-animate on minute change
+                  key={Math.floor(elapsedSeconds / 60)}
                   className={[
                     "font-bold tabular-nums leading-none tracking-tight animate-ticker-in",
                     elapsedSeconds >= 3600 ? "text-3xl" : "text-4xl",
@@ -144,10 +163,8 @@ export function ClockWidget({
         </ProgressRing>
       </div>
 
-      {/* Start time info */}
       {isClockedIn && (
         <div className="flex items-center gap-4 text-center">
-          {/* "Started" column — tappable when edit is available */}
           <div className="flex flex-col items-center">
             <p className="text-xs text-indigo-400 font-medium uppercase tracking-wide">Started</p>
             {onEditStartTime ? (
@@ -160,7 +177,6 @@ export function ClockWidget({
                 <span className="text-sm font-bold text-white group-hover:text-indigo-200 transition-colors">
                   {formatStartTime(activeShift!.start_time)}
                 </span>
-                {/* Pencil icon */}
                 <svg
                   className="h-3 w-3 text-indigo-400 group-hover:text-indigo-200 transition-colors flex-shrink-0"
                   fill="none"
@@ -208,7 +224,6 @@ export function ClockWidget({
         </p>
       )}
 
-      {/* Action button */}
       <button
         onClick={handlePress}
         disabled={loading}
@@ -219,6 +234,145 @@ export function ClockWidget({
           isClockedIn
             ? "bg-white/15 text-white border border-white/25 hover:bg-white/20 focus-visible:ring-white/50"
             : "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 focus-visible:ring-indigo-500",
+        ].join(" ")}
+      >
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+            {isClockedIn ? "Clocking out…" : "Clocking in…"}
+          </span>
+        ) : isClockedIn ? (
+          "Clock Out"
+        ) : (
+          "Clock In"
+        )}
+      </button>
+    </div>
+  );
+}
+
+// ── Minimal style ─────────────────────────────────────────────────────────────
+
+function MinimalClock({
+  isClockedIn,
+  elapsedSeconds,
+  isOvertime,
+  loading,
+  onPress,
+}: {
+  isClockedIn: boolean;
+  elapsedSeconds: number;
+  isOvertime: boolean;
+  loading: boolean;
+  onPress: () => Promise<void>;
+}) {
+  return (
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col items-center gap-4 animate-scale-in">
+      <div className="flex items-center gap-2">
+        <span
+          className={[
+            "h-2 w-2 rounded-full",
+            isClockedIn ? "bg-emerald-400 animate-pulse" : "bg-gray-300",
+          ].join(" ")}
+        />
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+          {isClockedIn ? "Shift Active" : "Not Clocked In"}
+        </span>
+      </div>
+
+      <div className="flex flex-col items-center">
+        <span
+          key={isClockedIn ? Math.floor(elapsedSeconds / 60) : "idle"}
+          className={[
+            "text-5xl font-extrabold tabular-nums tracking-tight leading-none",
+            isClockedIn
+              ? isOvertime ? "text-amber-500" : "text-gray-900"
+              : "text-gray-300",
+          ].join(" ")}
+        >
+          {isClockedIn
+            ? formatHMS(elapsedSeconds)
+            : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        </span>
+        {isClockedIn && (
+          <span className={`text-xs font-semibold mt-1.5 uppercase tracking-widest ${isOvertime ? "text-amber-400" : "text-gray-400"}`}>
+            {isOvertime ? "overtime" : "elapsed"}
+          </span>
+        )}
+      </div>
+
+      <button
+        onClick={onPress}
+        disabled={loading}
+        className={[
+          "w-full rounded-2xl py-3.5 text-sm font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60",
+          isClockedIn
+            ? "bg-gray-900 text-white hover:bg-gray-800"
+            : "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 hover:bg-indigo-700",
+        ].join(" ")}
+      >
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
+            {isClockedIn ? "Clocking out…" : "Clocking in…"}
+          </span>
+        ) : isClockedIn ? (
+          "Clock Out"
+        ) : (
+          "Clock In"
+        )}
+      </button>
+    </div>
+  );
+}
+
+// ── Focus style ───────────────────────────────────────────────────────────────
+
+function FocusClock({
+  isClockedIn,
+  elapsedSeconds,
+  isOvertime,
+  loading,
+  onPress,
+}: {
+  isClockedIn: boolean;
+  elapsedSeconds: number;
+  isOvertime: boolean;
+  loading: boolean;
+  onPress: () => Promise<void>;
+}) {
+  return (
+    <div
+      className={[
+        "rounded-3xl p-6 flex flex-col items-center gap-6 animate-scale-in",
+        isClockedIn
+          ? "bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900"
+          : "bg-gray-950",
+      ].join(" ")}
+    >
+      <span
+        key={isClockedIn ? Math.floor(elapsedSeconds / 60) : "idle"}
+        className={[
+          "font-extrabold tabular-nums tracking-tighter leading-none",
+          elapsedSeconds >= 3600 ? "text-5xl" : "text-6xl",
+          isClockedIn
+            ? isOvertime ? "text-amber-300" : "text-white"
+            : "text-white/20",
+        ].join(" ")}
+      >
+        {isClockedIn
+          ? formatHMS(elapsedSeconds)
+          : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+      </span>
+
+      <button
+        onClick={onPress}
+        disabled={loading}
+        className={[
+          "w-full rounded-2xl py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60",
+          isClockedIn
+            ? "bg-white/15 text-white border border-white/20 hover:bg-white/20"
+            : "bg-white/10 text-white/60 border border-white/10 hover:bg-white/15 hover:text-white",
         ].join(" ")}
       >
         {loading ? (

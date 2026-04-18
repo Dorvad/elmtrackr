@@ -67,6 +67,61 @@ begin
       refund_action in ('no_ride_taken', 'remind_later', 'submitted')
     ) default null;
   end if;
+
+  -- Onboarding state
+  -- DEFAULT true so existing users are treated as already onboarded.
+  -- New users get false via the handle_new_user trigger below.
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'onboarding_completed'
+  ) then
+    alter table public.user_settings add column onboarding_completed boolean not null default true;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'onboarding_completed_at'
+  ) then
+    alter table public.user_settings add column onboarding_completed_at timestamptz default null;
+  end if;
+
+  -- Feature flags
+  -- Existing users: travel_refunds=true (they may have existing refund data),
+  -- insights=true, clock_styles=true, paid_projects=false.
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'features_travel_refunds'
+  ) then
+    alter table public.user_settings add column features_travel_refunds boolean not null default true;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'features_paid_projects'
+  ) then
+    alter table public.user_settings add column features_paid_projects boolean not null default false;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'features_insights'
+  ) then
+    alter table public.user_settings add column features_insights boolean not null default true;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'features_clock_styles'
+  ) then
+    alter table public.user_settings add column features_clock_styles boolean not null default true;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'clock_style'
+  ) then
+    alter table public.user_settings add column clock_style text not null default 'classic';
+  end if;
 end
 $$;
 
@@ -132,8 +187,24 @@ begin
     coalesce(new.raw_user_meta_data->>'full_name', null)
   );
 
-  insert into public.user_settings (user_id)
-  values (new.id);
+  -- New users start with onboarding incomplete and recommended feature defaults.
+  insert into public.user_settings (
+    user_id,
+    onboarding_completed,
+    features_travel_refunds,
+    features_paid_projects,
+    features_insights,
+    features_clock_styles,
+    clock_style
+  ) values (
+    new.id,
+    false,   -- must complete onboarding
+    false,   -- recommended default: off
+    false,
+    true,
+    true,
+    'classic'
+  );
 
   return new;
 end;

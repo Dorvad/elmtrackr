@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import { useShifts } from "@/hooks/useShifts";
+import { useSettings } from "@/hooks/useSettings";
 import { useToast } from "@/components/ui/Toast";
 import { ShiftForm } from "@/components/shifts/ShiftForm";
 import { RefundSection } from "@/components/shifts/RefundSection";
@@ -20,6 +21,7 @@ export default function EditShiftPage({
   const { id } = use(params);
   const router = useRouter();
   const { shifts, loading, updateShift, deleteShift } = useShifts();
+  const { settings } = useSettings();
   const { toast } = useToast();
 
   async function handleRefundAction(action: Shift["refund_action"]) {
@@ -100,7 +102,9 @@ export default function EditShiftPage({
             isActive={shift.end_time === null}
           />
         </div>
-        <RefundSection shift={shift} onActionChange={handleRefundAction} />
+        {settings?.features_travel_refunds && (
+          <RefundSection shift={shift} onActionChange={handleRefundAction} />
+        )}
       </div>
 
       <BottomNav />

@@ -95,7 +95,11 @@ export default function DashboardPage() {
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const isMonthEnd = now.getDate() >= daysInMonth - 4;
   const unresolvedRefunds = countUnresolvedRefunds(shifts);
-  const showRefundBanner = isMonthEnd && unresolvedRefunds > 0 && !refundBannerDismissed;
+  const showRefundBanner =
+    isMonthEnd &&
+    unresolvedRefunds > 0 &&
+    !refundBannerDismissed &&
+    (settings?.features_travel_refunds ?? false);
 
   return (
     <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
@@ -165,6 +169,7 @@ export default function DashboardPage() {
           onEditStartTime={activeShift ? () => setShowEditStartModal(true) : undefined}
           loading={clockLoading}
           dailyThresholdMinutes={settings?.daily_overtime_threshold_minutes ?? 480}
+          clockStyle={settings?.clock_style ?? "classic"}
         />
 
         {/* Loading skeleton */}
@@ -239,6 +244,27 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+        )}
+
+        {/* Projects shortcut — shown when paid_projects feature is on */}
+        {settings?.features_paid_projects && (
+          <Link
+            href="/projects"
+            className="flex items-center gap-3 rounded-2xl bg-white border border-gray-100 shadow-sm px-4 py-3.5 hover:border-violet-200 transition-all animate-fade-in-up stagger-4"
+          >
+            <div className="h-9 w-9 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+              <svg className="h-4.5 w-4.5 text-violet-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">Projects</p>
+              <p className="text-xs text-gray-400">Track shifts by project</p>
+            </div>
+            <svg className="h-4 w-4 text-gray-300" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
         )}
 
         {/* Add shift manually */}

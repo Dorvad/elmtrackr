@@ -15,6 +15,15 @@ export interface UserSettings {
   // Weekend days as ISO day numbers: 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
   weekend_days: number[];
   hourly_rate: number | null;
+  // Onboarding state
+  onboarding_completed: boolean;
+  onboarding_completed_at: string | null;
+  // Feature flags
+  features_travel_refunds: boolean;
+  features_paid_projects: boolean;
+  features_insights: boolean;
+  features_clock_styles: boolean;
+  clock_style: ClockStyle;
   created_at: string;
   updated_at: string;
 }
@@ -87,6 +96,8 @@ export interface WeeklyTotals {
   total_minutes: number;
   shifts: Shift[];
 }
+
+export type ClockStyle = "classic" | "minimal" | "focus";
 
 export type ClockStatus = "clocked_in" | "clocked_out";
 

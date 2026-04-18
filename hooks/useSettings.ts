@@ -10,28 +10,42 @@ const DEFAULT_SETTINGS: Omit<
   "id" | "user_id" | "created_at" | "updated_at"
 > = {
   timezone: "UTC",
-  daily_overtime_threshold_minutes: 480,   // 8h
-  weekly_overtime_threshold_minutes: 2400, // 40h
+  daily_overtime_threshold_minutes: 480,
+  weekly_overtime_threshold_minutes: 2400,
   weekend_days: DEFAULT_WEEKEND_DAYS,
   hourly_rate: null,
+  onboarding_completed: false,
+  onboarding_completed_at: null,
+  features_travel_refunds: false,
+  features_paid_projects: false,
+  features_insights: true,
+  features_clock_styles: true,
+  clock_style: "classic",
 };
+
+type SaveableSettings = Partial<
+  Pick<
+    UserSettings,
+    | "timezone"
+    | "daily_overtime_threshold_minutes"
+    | "weekly_overtime_threshold_minutes"
+    | "weekend_days"
+    | "hourly_rate"
+    | "onboarding_completed"
+    | "onboarding_completed_at"
+    | "features_travel_refunds"
+    | "features_paid_projects"
+    | "features_insights"
+    | "features_clock_styles"
+    | "clock_style"
+  >
+>;
 
 export interface UseSettingsReturn {
   settings: UserSettings | null;
   loading: boolean;
   error: string | null;
-  saveSettings: (
-    data: Partial<
-      Pick<
-        UserSettings,
-        | "timezone"
-        | "daily_overtime_threshold_minutes"
-        | "weekly_overtime_threshold_minutes"
-        | "weekend_days"
-        | "hourly_rate"
-      >
-    >
-  ) => Promise<void>;
+  saveSettings: (data: SaveableSettings) => Promise<void>;
 }
 
 export function useSettings(): UseSettingsReturn {
@@ -60,10 +74,10 @@ export function useSettings(): UseSettingsReturn {
       if (data) {
         setSettings(data as UserSettings);
       } else {
-        // Row not yet created — create it now with defaults
         const { data: created, error: insertErr } = await supabase
           .from("user_settings")
-          .insert({ user_id: userId, ...DEFAULT_SETTINGS })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .insert({ user_id: userId, ...DEFAULT_SETTINGS } as any)
           .select()
           .single();
         if (!insertErr && mounted) setSettings(created as UserSettings);
@@ -74,22 +88,12 @@ export function useSettings(): UseSettingsReturn {
   }, []);
 
   const saveSettings = useCallback(
-    async (
-      updates: Partial<
-        Pick<
-          UserSettings,
-          | "timezone"
-          | "daily_overtime_threshold_minutes"
-          | "weekly_overtime_threshold_minutes"
-          | "weekend_days"
-          | "hourly_rate"
-        >
-      >
-    ) => {
+    async (updates: SaveableSettings) => {
       if (!settings) return;
       const { data, error: err } = await supabase
         .from("user_settings")
-        .update(updates)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update(updates as any)
         .eq("id", settings.id)
         .select()
         .single();

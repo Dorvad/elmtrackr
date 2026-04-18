@@ -12,9 +12,10 @@ interface ShiftRowProps {
   shift: Shift;
   settings: UserSettings;
   animationIndex?: number;
+  showRefunds?: boolean;
 }
 
-export function ShiftRow({ shift, settings, animationIndex = 0 }: ShiftRowProps) {
+export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = true }: ShiftRowProps) {
   const net = netMinutes(shift);
   const isActive = shift.end_time === null;
   const dateStr = new Date(shift.start_time).toISOString().slice(0, 10);
@@ -96,12 +97,12 @@ export function ShiftRow({ shift, settings, animationIndex = 0 }: ShiftRowProps)
               {shift.notes}
             </span>
           )}
-          {refundPending && (
+          {showRefunds && refundPending && (
             <span className="rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
               Refund?
             </span>
           )}
-          {shift.refund_action === "submitted" && (
+          {showRefunds && shift.refund_action === "submitted" && (
             <span className="rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
               Refund ✓
             </span>

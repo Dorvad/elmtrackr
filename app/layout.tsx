@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
+import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
 
 export const metadata: Metadata = {
   title: "ElmTrackr",
@@ -40,7 +42,11 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-gray-50 min-h-screen antialiased font-sans">
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <Suspense fallback={null}>
+            <OnboardingGate>{children}</OnboardingGate>
+          </Suspense>
+        </ToastProvider>
       </body>
     </html>
   );
