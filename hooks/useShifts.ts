@@ -80,8 +80,8 @@ export function useShifts(): UseShiftsReturn {
         .from("shifts")
         .update({
           ...data,
-          end_time: data.end_time ?? null,
-          notes: data.notes ?? null,
+          ...("end_time" in data && { end_time: data.end_time ?? null }),
+          ...("notes" in data && { notes: data.notes ?? null }),
         })
         .eq("id", id)
         .select()
