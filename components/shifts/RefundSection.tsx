@@ -288,12 +288,12 @@ export function RefundSection({ shift, onActionChange }: Props) {
           {/* Receipt upload — prominent, at top */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-gray-600">
-              Receipt photo or PDF
+              Receipt photo
             </label>
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*,application/pdf"
+              accept="image/*"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0] ?? null;
@@ -338,7 +338,7 @@ export function RefundSection({ shift, onActionChange }: Props) {
               ) : receiptFile ? (
                 <span>📎 {receiptFile.name} — tap to replace</span>
               ) : (
-                "Tap to attach photo or PDF"
+                "Tap to attach a photo"
               )}
             </button>
             {receiptFile && !scanning && (
