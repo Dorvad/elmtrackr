@@ -19,6 +19,8 @@ export interface UserSettings {
   updated_at: string;
 }
 
+export type RefundAction = "no_ride_taken" | "remind_later" | "submitted" | null;
+
 export interface Shift {
   id: string;
   user_id: string;
@@ -27,6 +29,22 @@ export interface Shift {
   break_minutes: number;
   notes: string | null;
   is_special_day: boolean; // holiday / Shabbat override — triggers 150/175/200% pay
+  refund_action: RefundAction;
+  created_at: string;
+  updated_at: string;
+}
+
+export type RefundProvider = "Lime" | "Dott" | "Other";
+
+export interface RefundClaim {
+  id: string;
+  shift_id: string;
+  user_id: string;
+  provider: RefundProvider;
+  amount: number;
+  ride_at: string; // ISO 8601 — when the ride was taken
+  notes: string | null;
+  receipt_path: string | null; // Supabase Storage path
   created_at: string;
   updated_at: string;
 }

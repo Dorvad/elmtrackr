@@ -7,9 +7,10 @@ import { useRouter } from "next/navigation";
 import { useShifts } from "@/hooks/useShifts";
 import { useToast } from "@/components/ui/Toast";
 import { ShiftForm } from "@/components/shifts/ShiftForm";
+import { RefundSection } from "@/components/shifts/RefundSection";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageSpinner } from "@/components/ui/Spinner";
-import type { ShiftFormData } from "@/types";
+import type { Shift, ShiftFormData } from "@/types";
 
 export default function EditShiftPage({
   params,
@@ -20,6 +21,10 @@ export default function EditShiftPage({
   const router = useRouter();
   const { shifts, loading, updateShift, deleteShift } = useShifts();
   const { toast } = useToast();
+
+  async function handleRefundAction(action: Shift["refund_action"]) {
+    await updateShift(id, { refund_action: action });
+  }
 
   const shift = shifts.find((s) => s.id === id);
 
@@ -79,7 +84,7 @@ export default function EditShiftPage({
         <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Edit Shift</h1>
       </div>
 
-      <div className="max-w-md mx-auto px-4 animate-fade-in-up stagger-1">
+      <div className="max-w-md mx-auto px-4 flex flex-col gap-4 animate-fade-in-up stagger-1">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <ShiftForm
             initial={{
@@ -95,6 +100,7 @@ export default function EditShiftPage({
             isActive={shift.end_time === null}
           />
         </div>
+        <RefundSection shift={shift} onActionChange={handleRefundAction} />
       </div>
 
       <BottomNav />

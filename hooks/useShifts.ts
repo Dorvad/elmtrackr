@@ -14,7 +14,7 @@ export interface UseShiftsReturn {
   ) => Promise<Shift>;
   updateShift: (
     id: string,
-    data: Partial<Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes" | "is_special_day">>
+    data: Partial<Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes" | "is_special_day" | "refund_action">>
   ) => Promise<Shift>;
   deleteShift: (id: string) => Promise<void>;
 }
@@ -73,7 +73,7 @@ export function useShifts(): UseShiftsReturn {
     async (
       id: string,
       data: Partial<
-        Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes" | "is_special_day">
+        Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes" | "is_special_day" | "refund_action">
       >
     ): Promise<Shift> => {
       const { data: updated, error: err } = await supabase

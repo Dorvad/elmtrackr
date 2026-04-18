@@ -77,6 +77,7 @@ export interface Database {
           break_minutes: number;
           notes: string | null;
           is_special_day: boolean;
+          refund_action: "no_ride_taken" | "remind_later" | "submitted" | null;
           created_at: string;
           updated_at: string;
         };
@@ -88,6 +89,7 @@ export interface Database {
           break_minutes?: number;
           notes?: string | null;
           is_special_day?: boolean;
+          refund_action?: "no_ride_taken" | "remind_later" | "submitted" | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -97,6 +99,42 @@ export interface Database {
           break_minutes?: number;
           notes?: string | null;
           is_special_day?: boolean;
+          refund_action?: "no_ride_taken" | "remind_later" | "submitted" | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      refund_claims: {
+        Row: {
+          id: string;
+          shift_id: string;
+          user_id: string;
+          provider: string;
+          amount: number;
+          ride_at: string;
+          notes: string | null;
+          receipt_path: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          shift_id: string;
+          user_id: string;
+          provider: string;
+          amount: number;
+          ride_at: string;
+          notes?: string | null;
+          receipt_path?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          provider?: string;
+          amount?: number;
+          ride_at?: string;
+          notes?: string | null;
+          receipt_path?: string | null;
           updated_at?: string;
         };
         Relationships: [];

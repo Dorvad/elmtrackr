@@ -16,6 +16,7 @@ import { SegmentedBar, SegmentLegend } from "@/components/ui/SegmentedBar";
 import { QuickStats } from "@/components/reports/QuickStats";
 import { WeeklyBreakdown } from "@/components/reports/WeeklyBreakdown";
 import { InsightOfTheDay } from "@/components/reports/InsightOfTheDay";
+import { RefundReview } from "@/components/reports/RefundReview";
 import {
   filterShiftsByMonth,
   buildMonthlyReport,
@@ -48,6 +49,7 @@ export default function ReportsPage() {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getUTCFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getUTCMonth() + 1);
+  const [activeTab, setActiveTab] = useState<"hours" | "refunds">("hours");
 
   function prevMonth() {
     if (selectedMonth === 1) {
@@ -177,7 +179,34 @@ export default function ReportsPage() {
         </h1>
       </div>
 
-      {/* Month picker */}
+      {/* Tab switcher */}
+      <div className="mx-4 mb-3 bg-white rounded-2xl border border-gray-100 shadow-sm flex p-1 gap-1 animate-fade-in-up">
+        <button
+          onClick={() => setActiveTab("hours")}
+          className={[
+            "flex-1 rounded-xl py-2 text-sm font-bold transition-all",
+            activeTab === "hours"
+              ? "bg-indigo-600 text-white shadow-sm"
+              : "text-gray-500 hover:text-gray-700",
+          ].join(" ")}
+        >
+          Hours
+        </button>
+        <button
+          onClick={() => setActiveTab("refunds")}
+          className={[
+            "flex-1 rounded-xl py-2 text-sm font-bold transition-all",
+            activeTab === "refunds"
+              ? "bg-indigo-600 text-white shadow-sm"
+              : "text-gray-500 hover:text-gray-700",
+          ].join(" ")}
+        >
+          Travel Refunds
+        </button>
+      </div>
+
+      {/* Month picker — only in hours tab */}
+      {activeTab === "hours" && (
       <div className="mx-4 mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between px-3 py-2 animate-fade-in-up">
         <button
           onClick={prevMonth}
@@ -218,19 +247,25 @@ export default function ReportsPage() {
           </svg>
         </button>
       </div>
+      )}
 
       <div className="max-w-md mx-auto px-4 flex flex-col gap-4">
         {error && <ErrorMessage message={error} />}
         {loading && <PageSpinner />}
 
-        {!loading && !report && (
+        {/* Refunds tab */}
+        {!loading && activeTab === "refunds" && (
+          <RefundReview shifts={shifts} />
+        )}
+
+        {!loading && activeTab === "hours" && !report && (
           <EmptyState
             title="No completed shifts"
             description="Complete some shifts to see your report."
           />
         )}
 
-        {!loading && report && settings && (
+        {!loading && activeTab === "hours" && report && settings && (
           <>
             {/* ── Distribution ───────────────────────────── */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-1">

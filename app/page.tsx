@@ -19,6 +19,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { createClient } from "@/lib/supabase/client";
 import { sumMonthlyPay, formatCurrency } from "@/lib/shifts/payroll";
 import { filterShiftsByMonth } from "@/lib/shifts/aggregation";
+import { countUnresolvedRefunds } from "@/lib/shifts/refund";
 
 export default function DashboardPage() {
   const {
@@ -42,6 +43,7 @@ export default function DashboardPage() {
   const supabase = createClient();
 
   const [showEditStartModal, setShowEditStartModal] = useState(false);
+  const [refundBannerDismissed, setRefundBannerDismissed] = useState(false);
 
   const recentShifts = shifts.slice(0, 5);
 
@@ -90,6 +92,11 @@ export default function DashboardPage() {
     ? sumMonthlyPay(thisMonthShifts, settings)
     : null;
 
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const isMonthEnd = now.getDate() >= daysInMonth - 4;
+  const unresolvedRefunds = countUnresolvedRefunds(shifts);
+  const showRefundBanner = isMonthEnd && unresolvedRefunds > 0 && !refundBannerDismissed;
+
   return (
     <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
       {/* Header */}
@@ -118,6 +125,36 @@ export default function DashboardPage() {
             message={clockError ?? shiftsError ?? "Unknown error"}
             onRetry={() => { refreshActive(); refreshShifts(); }}
           />
+        )}
+
+        {/* Month-end refund reminder banner */}
+        {showRefundBanner && (
+          <div className="rounded-2xl bg-violet-50 border border-violet-200 px-4 py-3 flex items-start gap-3 animate-fade-in-up">
+            <div className="flex-1">
+              <p className="text-sm font-bold text-violet-800">
+                {unresolvedRefunds} travel refund{unresolvedRefunds > 1 ? "s" : ""} pending
+              </p>
+              <p className="text-xs text-violet-600 mt-0.5">
+                Month end is near — don't forget to file your transport claims.
+              </p>
+              <Link
+                href="/reports"
+                className="inline-block mt-2 text-xs font-bold text-violet-700 underline hover:text-violet-900"
+              >
+                Review refunds →
+              </Link>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRefundBannerDismissed(true)}
+              className="text-violet-400 hover:text-violet-600 mt-0.5 flex-shrink-0"
+              aria-label="Dismiss"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         )}
 
         {/* Clock widget */}

@@ -6,6 +6,7 @@ import { netMinutes, formatMinutes } from "@/lib/shifts/duration";
 import { isWeekendDate } from "@/lib/shifts/weekend";
 import { isOvernightShift } from "@/lib/shifts/overnight";
 import { calculateShiftPay, formatCurrency } from "@/lib/shifts/payroll";
+import { checkRefundEligibility } from "@/lib/shifts/refund";
 
 interface ShiftRowProps {
   shift: Shift;
@@ -28,6 +29,8 @@ export function ShiftRow({ shift, settings, animationIndex = 0 }: ShiftRowProps)
     d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   const pay = calculateShiftPay(shift, settings);
+  const refundEligible = checkRefundEligibility(shift).eligible;
+  const refundPending = refundEligible && shift.refund_action == null && !isActive;
 
   // Left stripe color
   const stripeColor = isActive
@@ -91,6 +94,16 @@ export function ShiftRow({ shift, settings, animationIndex = 0 }: ShiftRowProps)
           {shift.notes && (
             <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
               {shift.notes}
+            </span>
+          )}
+          {refundPending && (
+            <span className="rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
+              Refund?
+            </span>
+          )}
+          {shift.refund_action === "submitted" && (
+            <span className="rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
+              Refund ✓
             </span>
           )}
         </div>
