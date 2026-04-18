@@ -40,7 +40,6 @@ export function RefundSection({ shift, onActionChange }: Props) {
   );
   const [notes, setNotes] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [scanning, setScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formInitialised, setFormInitialised] = useState(false);
 
@@ -68,37 +67,6 @@ export function RefundSection({ shift, onActionChange }: Props) {
       );
     } catch {
       toast("Failed to save", "error");
-    }
-  }
-
-  async function handleFileChange(file: File) {
-    setReceiptFile(file);
-    setScanning(true);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/ocr-receipt", { method: "POST", body: form });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? "OCR failed");
-      }
-      const data: { amount: number | null; ride_date: string | null; ride_time: string | null } =
-        await res.json();
-
-      if (data.amount != null) setAmount(String(data.amount));
-      if (data.ride_date) {
-        const timeStr = data.ride_time ?? "00:00";
-        setRideAt(`${data.ride_date}T${timeStr}`);
-      }
-      if (data.amount != null || data.ride_date) {
-        toast("Receipt scanned — check details below", "success");
-      } else {
-        toast("Couldn't read receipt — fill in manually", "error");
-      }
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Scan failed", "error");
-    } finally {
-      setScanning(false);
     }
   }
 
@@ -209,7 +177,6 @@ export function RefundSection({ shift, onActionChange }: Props) {
         </div>
       )}
 
-      {/* Already resolved — show what was chosen, allow re-opening */}
       {shift.refund_action === "no_ride_taken" && (
         <button
           type="button"
@@ -251,6 +218,9 @@ export function RefundSection({ shift, onActionChange }: Props) {
               <p className="text-gray-400 text-xs">
                 {new Date(claim.ride_at).toLocaleString()}
               </p>
+              {claim.receipt_path && (
+                <p className="text-xs text-indigo-500 font-medium">Receipt attached</p>
+              )}
               {claim.notes && <p className="text-xs text-gray-500">{claim.notes}</p>}
               <div className="flex gap-2 mt-3">
                 <button
@@ -282,70 +252,33 @@ export function RefundSection({ shift, onActionChange }: Props) {
         </div>
       )}
 
-      {/* Claim form — receipt upload first, fields below */}
+      {/* Claim form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 mt-1">
-          {/* Receipt upload — prominent, at top */}
+          {/* Receipt upload — at top */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-gray-600">
-              Receipt photo
+              Receipt photo <span className="font-normal text-gray-400">(optional)</span>
             </label>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0] ?? null;
-                if (f) handleFileChange(f);
-              }}
+              onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={scanning}
               className={[
-                "w-full rounded-xl border-2 border-dashed py-4 text-sm transition-colors",
+                "w-full rounded-xl border-2 border-dashed py-3 text-sm transition-colors",
                 receiptFile
                   ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
                   : "border-gray-300 text-gray-500 hover:border-indigo-400 hover:text-indigo-600",
-                scanning ? "opacity-60 cursor-not-allowed" : "",
               ].join(" ")}
             >
-              {scanning ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg
-                    className="animate-spin h-4 w-4 text-indigo-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v8z"
-                    />
-                  </svg>
-                  Scanning receipt…
-                </span>
-              ) : receiptFile ? (
-                <span>📎 {receiptFile.name} — tap to replace</span>
-              ) : (
-                "Tap to attach a photo"
-              )}
+              {receiptFile ? `📎 ${receiptFile.name} — tap to replace` : "Tap to attach a photo"}
             </button>
-            {receiptFile && !scanning && (
-              <p className="text-[11px] text-gray-400 text-center">
-                Details auto-filled below — edit if needed
-              </p>
-            )}
           </div>
 
           {/* Provider */}
@@ -410,7 +343,7 @@ export function RefundSection({ shift, onActionChange }: Props) {
           <div className="flex gap-2 pt-1">
             <button
               type="submit"
-              disabled={saving || scanning}
+              disabled={saving}
               className="flex-1 rounded-xl bg-indigo-600 text-white text-sm font-bold py-2.5 hover:bg-indigo-700 disabled:opacity-60 transition-all"
             >
               {saving ? "Saving…" : "Save Claim"}

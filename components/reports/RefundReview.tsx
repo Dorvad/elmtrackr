@@ -7,6 +7,7 @@ import { checkRefundEligibility, getRefundStatus, shiftMonthKey } from "@/lib/sh
 import { useMonthlyRefundClaims } from "@/hooks/useRefundClaim";
 import { exportRefundPdf, ExportRow } from "@/lib/shifts/refund-export";
 import { useProfile } from "@/hooks/useProfile";
+import { createClient } from "@/lib/supabase/client";
 
 interface Props {
   shifts: Shift[];
@@ -49,17 +50,43 @@ function MonthSection({ monthKey, shifts }: { monthKey: string; shifts: Shift[] 
   async function handleExport() {
     setExporting(true);
     try {
-      const rows: ExportRow[] = submitted
+      const baseRows: ExportRow[] = submitted
         .map((s) => {
           const claim = claims.find((c) => c.shift_id === s.id);
           return claim ? { shift: s, claim } : null;
         })
         .filter((r): r is ExportRow => r !== null);
 
-      if (rows.length === 0) {
+      if (baseRows.length === 0) {
         alert("No submitted claims with receipt data to export.");
         return;
       }
+
+      // Fetch signed URLs and convert to data URLs for claims with a receipt
+      const supabase = createClient();
+      const rows: ExportRow[] = await Promise.all(
+        baseRows.map(async (row) => {
+          if (!row.claim.receipt_path) return row;
+          try {
+            const { data } = await supabase.storage
+              .from("refund-receipts")
+              .createSignedUrl(row.claim.receipt_path, 120);
+            if (!data?.signedUrl) return row;
+            const res = await fetch(data.signedUrl);
+            const blob = await res.blob();
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            return { ...row, receiptDataUrl: dataUrl };
+          } catch {
+            return row; // skip image on error, still export the row
+          }
+        })
+      );
+
       await exportRefundPdf(rows, year, month, profile?.full_name);
     } finally {
       setExporting(false);
