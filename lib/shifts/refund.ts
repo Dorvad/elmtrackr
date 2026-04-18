@@ -30,9 +30,11 @@ export function checkRefundEligibility(shift: Shift): RefundEligibility {
   const endHour = localHour(shift.end_time);
   const endMin = localMinute(shift.end_time);
 
-  // Ends after 23:30 on any day
-  if (endHour > 23 || (endHour === 23 && endMin >= 30)) {
-    reasons.push("Shift ended after 23:30");
+  // Ends between 23:30–23:59 or 00:00–09:59 (late night / early morning)
+  const isLateNight = endHour === 23 && endMin >= 30;
+  const isEarlyMorning = endHour < 10;
+  if (isLateNight || isEarlyMorning) {
+    reasons.push("Late night / early morning shift");
   }
 
   // Friday night: ends after 17:00 on Friday (day 5)
