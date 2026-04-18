@@ -89,12 +89,17 @@ export function RefundSection({ shift, onActionChange }: Props) {
         notes: notes.trim() || null,
         receiptFile,
       });
-      await onActionChange("submitted");
-      setShowForm(false);
-      toast("Refund claim saved", "success");
-    } catch {
-      toast("Failed to save claim", "error");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to save claim", "error");
+      return;
     }
+    try {
+      await onActionChange("submitted");
+    } catch {
+      // Claim is saved — status badge will sync on next reload
+    }
+    setShowForm(false);
+    toast("Refund claim saved", "success");
   }
 
   async function handleDelete() {

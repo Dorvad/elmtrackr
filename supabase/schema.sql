@@ -41,27 +41,6 @@ create table if not exists public.shifts (
   constraint valid_time_range check (end_time is null or end_time > start_time)
 );
 
--- Refund claims: one receipt per eligible shift
-create table if not exists public.refund_claims (
-  id            uuid primary key default gen_random_uuid(),
-  shift_id      uuid not null unique references public.shifts(id) on delete cascade,
-  user_id       uuid not null references auth.users(id) on delete cascade,
-  provider      text not null,
-  amount        numeric(10, 2) not null check (amount > 0),
-  ride_at       timestamptz not null,
-  notes         text,
-  receipt_path  text,
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
-);
-
-create index if not exists refund_claims_user_id_idx on public.refund_claims (user_id);
-create index if not exists refund_claims_shift_id_idx on public.refund_claims (shift_id);
-
-create or replace trigger refund_claims_updated_at
-  before update on public.refund_claims
-  for each row execute function public.handle_updated_at();
-
 -- ── Columns added after initial deploy (idempotent) ───────────
 
 do $$
@@ -120,6 +99,27 @@ create or replace trigger user_settings_updated_at
 
 create or replace trigger shifts_updated_at
   before update on public.shifts
+  for each row execute function public.handle_updated_at();
+
+-- Refund claims: one receipt per eligible shift
+create table if not exists public.refund_claims (
+  id            uuid primary key default gen_random_uuid(),
+  shift_id      uuid not null unique references public.shifts(id) on delete cascade,
+  user_id       uuid not null references auth.users(id) on delete cascade,
+  provider      text not null,
+  amount        numeric(10, 2) not null check (amount > 0),
+  ride_at       timestamptz not null,
+  notes         text,
+  receipt_path  text,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index if not exists refund_claims_user_id_idx on public.refund_claims (user_id);
+create index if not exists refund_claims_shift_id_idx on public.refund_claims (shift_id);
+
+create or replace trigger refund_claims_updated_at
+  before update on public.refund_claims
   for each row execute function public.handle_updated_at();
 
 create or replace function public.handle_new_user()
