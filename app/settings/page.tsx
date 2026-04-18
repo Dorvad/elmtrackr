@@ -11,6 +11,7 @@ import { PageSpinner } from "@/components/ui/Spinner";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { CountrySelect } from "@/components/ui/CountrySelect";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { createClient } from "@/lib/supabase/client";
 
 const WEEKDAYS = [
@@ -129,6 +130,14 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-md mx-auto px-4">
+        {/* Appearance — outside the form; theme is client-only state */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4 animate-fade-in-up stagger-1">
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+            Appearance
+          </h2>
+          <ThemeToggle />
+        </div>
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Profile */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-1">

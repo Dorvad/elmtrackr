@@ -29,6 +29,15 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        {/*
+          Runs before React hydration to apply the saved theme class
+          immediately, preventing a flash of the wrong theme on load.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('elmtrackr-theme');if(t==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})();`,
+          }}
+        />
       </head>
       <body className="bg-gray-50 min-h-screen antialiased font-sans">
         <ToastProvider>{children}</ToastProvider>

@@ -157,3 +157,111 @@ body {
 .clock-btn:active {
   transform: scale(0.97);
 }
+
+/* ============================================================
+   Dark mode
+   Implemented via the `dark` class on <html>.
+   Overrides Tailwind utility classes at a higher specificity
+   (unlayered CSS beats Tailwind's @layer utilities).
+   ============================================================ */
+
+/* ── Core tokens ─────────────────────────────────────────── */
+html.dark {
+  color-scheme: dark;
+  --color-surface: #0f172a;
+}
+
+html.dark body {
+  background-color: var(--color-surface);
+}
+
+/* ── Backgrounds ─────────────────────────────────────────── */
+/* Cards, panels, modals */
+html.dark .bg-white          { background-color: #1e2940; }
+/* Page-level alternates */
+html.dark .bg-gray-50         { background-color: #111827; }
+html.dark .bg-gray-100        { background-color: #1f2937; }
+html.dark .bg-gray-200        { background-color: #374151; }
+
+/* Hover overrides for interactive elements (weekday buttons, etc.) */
+html.dark .hover\:bg-gray-200:hover { background-color: #374151; }
+html.dark .hover\:bg-gray-100:hover { background-color: #2d3748; }
+
+/* Colored tinted panels (insight cards, stat cards, preview boxes) */
+html.dark .bg-indigo-50       { background-color: rgba(99,  102, 241, 0.12); }
+html.dark .bg-violet-50       { background-color: rgba(139,  92, 246, 0.12); }
+html.dark .bg-amber-50        { background-color: rgba(245, 158,  11, 0.10); }
+html.dark .bg-emerald-50      { background-color: rgba( 16, 185, 129, 0.10); }
+html.dark .bg-rose-50         { background-color: rgba(244,  63,  94, 0.10); }
+html.dark .bg-sky-50          { background-color: rgba( 14, 165, 233, 0.10); }
+
+/* Active nav pill */
+html.dark .bg-indigo-600\/10  { background-color: rgba(79, 70, 229, 0.20); }
+
+/* ── Borders ─────────────────────────────────────────────── */
+html.dark .border-gray-50     { border-color: rgba(255, 255, 255, 0.05); }
+html.dark .border-gray-100    { border-color: rgba(255, 255, 255, 0.08); }
+html.dark .border-gray-200    { border-color: rgba(255, 255, 255, 0.12); }
+html.dark .border-gray-300    { border-color: rgba(255, 255, 255, 0.18); }
+
+/* Colored panel borders */
+html.dark .border-indigo-100  { border-color: rgba(99,  102, 241, 0.22); }
+html.dark .border-violet-100  { border-color: rgba(139,  92, 246, 0.22); }
+html.dark .border-amber-100   { border-color: rgba(245, 158,  11, 0.22); }
+html.dark .border-emerald-100 { border-color: rgba( 16, 185, 129, 0.22); }
+html.dark .border-rose-100    { border-color: rgba(244,  63,  94, 0.22); }
+html.dark .border-sky-100     { border-color: rgba( 14, 165, 233, 0.22); }
+
+/* ── Text ────────────────────────────────────────────────── */
+/* Invert the gray scale so darkest becomes lightest */
+html.dark .text-gray-900      { color: #f1f5f9; }
+html.dark .text-gray-800      { color: #e2e8f0; }
+html.dark .text-gray-700      { color: #cbd5e1; }
+html.dark .text-gray-600      { color: #94a3b8; }
+html.dark .text-gray-500      { color: #94a3b8; }
+/* gray-400 is heavily used for labels — keep it readable */
+html.dark .text-gray-400      { color: #94a3b8; }
+html.dark .text-gray-300      { color: #64748b; }
+
+/* ── Divide (row separators in lists) ────────────────────── */
+html.dark .divide-gray-50 > * + *  { border-color: rgba(255, 255, 255, 0.05); }
+html.dark .divide-y > * + *        { border-top-color: rgba(255, 255, 255, 0.06); }
+
+/* ── Form controls ───────────────────────────────────────── */
+/* Catches Input, CountrySelect, datetime-local, textarea */
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea {
+  background-color: #162032;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #475569;
+}
+/* Select option background (browser-native) */
+html.dark select option {
+  background-color: #1e2940;
+  color: #f1f5f9;
+}
+/* Input focus ring stays indigo — no override needed */
+
+/* ── Bottom nav frosted glass ────────────────────────────── */
+html.dark .glass {
+  background: rgba(15, 23, 42, 0.88);
+}
+/* Bottom nav top border */
+html.dark nav .border-t {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Shadows ─────────────────────────────────────────────── */
+/* Soften box shadows in dark mode so they don't look harsh */
+html.dark .shadow-sm  { box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+html.dark .shadow-md  { box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+html.dark .shadow-lg  { box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+
+/* ── Misc ────────────────────────────────────────────────── */
+/* Inline SVG strokes used in some utility icons */
+html.dark .text-gray-400 svg { stroke: currentColor; }
