@@ -11,7 +11,7 @@ const PROVIDERS: RefundProvider[] = ["Lime", "Dott", "Other"];
 const STATUS_COLORS: Record<string, string> = {
   emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
   amber: "bg-amber-50 text-amber-700 border-amber-100",
-  violet: "bg-violet-50 text-violet-700 border-violet-100",
+  orange: "bg-orange-50 text-orange-700 border-orange-100",
   gray: "bg-gray-100 text-gray-500 border-gray-200",
 };
 
@@ -40,6 +40,7 @@ export function RefundSection({ shift, onActionChange }: Props) {
   );
   const [notes, setNotes] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [scanning, setScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formInitialised, setFormInitialised] = useState(false);
 
@@ -67,6 +68,37 @@ export function RefundSection({ shift, onActionChange }: Props) {
       );
     } catch {
       toast("Failed to save", "error");
+    }
+  }
+
+  async function handleFileChange(file: File) {
+    setReceiptFile(file);
+    setScanning(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/ocr-receipt", { method: "POST", body: form });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "OCR failed");
+      }
+      const data: { amount: number | null; ride_date: string | null; ride_time: string | null } =
+        await res.json();
+
+      if (data.amount != null) setAmount(String(data.amount));
+      if (data.ride_date) {
+        const timeStr = data.ride_time ?? "00:00";
+        setRideAt(`${data.ride_date}T${timeStr}`);
+      }
+      if (data.amount != null || data.ride_date) {
+        toast("Receipt scanned — check details below", "success");
+      } else {
+        toast("Couldn't read receipt — fill in manually", "error");
+      }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Scan failed", "error");
+    } finally {
+      setScanning(false);
     }
   }
 
@@ -116,7 +148,7 @@ export function RefundSection({ shift, onActionChange }: Props) {
     }
   }
 
-  const colorClass = STATUS_COLORS[status.color] ?? STATUS_COLORS.violet;
+  const colorClass = STATUS_COLORS[status.color] ?? STATUS_COLORS.orange;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
@@ -141,7 +173,7 @@ export function RefundSection({ shift, onActionChange }: Props) {
         {eligibility.reasons.map((r) => (
           <span
             key={r}
-            className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 text-xs font-medium border border-violet-100"
+            className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 text-xs font-medium border border-orange-100"
           >
             {r}
           </span>
@@ -250,9 +282,72 @@ export function RefundSection({ shift, onActionChange }: Props) {
         </div>
       )}
 
-      {/* Claim form */}
+      {/* Claim form — receipt upload first, fields below */}
       {showForm && (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 mt-1">
+          {/* Receipt upload — prominent, at top */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-semibold text-gray-600">
+              Receipt photo or PDF
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0] ?? null;
+                if (f) handleFileChange(f);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={scanning}
+              className={[
+                "w-full rounded-xl border-2 border-dashed py-4 text-sm transition-colors",
+                receiptFile
+                  ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
+                  : "border-gray-300 text-gray-500 hover:border-indigo-400 hover:text-indigo-600",
+                scanning ? "opacity-60 cursor-not-allowed" : "",
+              ].join(" ")}
+            >
+              {scanning ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg
+                    className="animate-spin h-4 w-4 text-indigo-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8z"
+                    />
+                  </svg>
+                  Scanning receipt…
+                </span>
+              ) : receiptFile ? (
+                <span>📎 {receiptFile.name} — tap to replace</span>
+              ) : (
+                "Tap to attach photo or PDF"
+              )}
+            </button>
+            {receiptFile && !scanning && (
+              <p className="text-[11px] text-gray-400 text-center">
+                Details auto-filled below — edit if needed
+              </p>
+            )}
+          </div>
+
           {/* Provider */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-gray-600">Provider</label>
@@ -312,31 +407,10 @@ export function RefundSection({ shift, onActionChange }: Props) {
             />
           </div>
 
-          {/* Receipt upload */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-gray-600">
-              Receipt photo (optional)
-            </label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,application/pdf"
-              className="hidden"
-              onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full rounded-xl border border-dashed border-gray-300 py-3 text-sm text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
-            >
-              {receiptFile ? receiptFile.name : "Tap to attach photo or PDF"}
-            </button>
-          </div>
-
           <div className="flex gap-2 pt-1">
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || scanning}
               className="flex-1 rounded-xl bg-indigo-600 text-white text-sm font-bold py-2.5 hover:bg-indigo-700 disabled:opacity-60 transition-all"
             >
               {saving ? "Saving…" : "Save Claim"}

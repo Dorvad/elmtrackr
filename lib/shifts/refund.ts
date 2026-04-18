@@ -75,7 +75,7 @@ export function getRefundStatus(shift: Shift): {
     case "remind_later":
       return { eligible: true, action: "remind_later", label: "Remind later", color: "amber" };
     default:
-      return { eligible: true, action: null, label: "Pending", color: "violet" };
+      return { eligible: true, action: null, label: "Pending", color: "orange" };
   }
 }
 

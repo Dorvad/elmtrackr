@@ -97,7 +97,7 @@ export function ShiftRow({ shift, settings, animationIndex = 0 }: ShiftRowProps)
             </span>
           )}
           {refundPending && (
-            <span className="rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
+            <span className="rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
               Refund?
             </span>
           )}
