@@ -149,8 +149,8 @@ export function ShiftForm({
           isSpecialDay ? "bg-violet-500" : "bg-gray-200",
         ].join(" ")}>
           <span className={[
-            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200",
-            isSpecialDay ? "translate-x-5" : "translate-x-0.5",
+            "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200",
+            isSpecialDay ? "translate-x-5" : "translate-x-0",
           ].join(" ")} />
         </div>
       </button>

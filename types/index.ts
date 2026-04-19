@@ -97,7 +97,7 @@ export interface WeeklyTotals {
   shifts: Shift[];
 }
 
-export type ClockStyle = "classic" | "minimal" | "focus";
+export type ClockStyle = "classic" | "minimal" | "focus" | "bold" | "night" | "retro";
 
 export type ClockStatus = "clocked_in" | "clocked_out";
 

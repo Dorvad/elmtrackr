@@ -67,6 +67,18 @@ export function ClockWidget({
     else await onClockIn();
   }
 
+  if (clockStyle === "bold") {
+    return <BoldClock isClockedIn={isClockedIn} elapsedSeconds={elapsedSeconds} isOvertime={isOvertime} loading={loading} onPress={handlePress} />;
+  }
+
+  if (clockStyle === "night") {
+    return <NightClock isClockedIn={isClockedIn} elapsedSeconds={elapsedSeconds} isOvertime={isOvertime} loading={loading} onPress={handlePress} />;
+  }
+
+  if (clockStyle === "retro") {
+    return <RetroClock isClockedIn={isClockedIn} elapsedSeconds={elapsedSeconds} isOvertime={isOvertime} loading={loading} onPress={handlePress} />;
+  }
+
   if (clockStyle === "minimal") {
     return <MinimalClock
       isClockedIn={isClockedIn}
@@ -353,7 +365,7 @@ function FocusClock({
       <span
         key={isClockedIn ? Math.floor(elapsedSeconds / 60) : "idle"}
         className={[
-          "font-extrabold tabular-nums tracking-tighter leading-none",
+          "font-extrabold tabular-nums tracking-tighter leading-none", // FocusClock
           elapsedSeconds >= 3600 ? "text-5xl" : "text-6xl",
           isClockedIn
             ? isOvertime ? "text-amber-300" : "text-white"
@@ -385,6 +397,150 @@ function FocusClock({
         ) : (
           "Clock In"
         )}
+      </button>
+    </div>
+  );
+}
+
+// ── Bold style ────────────────────────────────────────────────────────────────
+
+function BoldClock({
+  isClockedIn, elapsedSeconds, isOvertime, loading, onPress,
+}: { isClockedIn: boolean; elapsedSeconds: number; isOvertime: boolean; loading: boolean; onPress: () => Promise<void> }) {
+  return (
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 flex flex-col items-center gap-5 animate-scale-in">
+      <div className="flex items-center gap-2">
+        <span className={["h-2 w-2 rounded-full", isClockedIn ? "bg-emerald-400 animate-pulse" : "bg-gray-200"].join(" ")} />
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+          {isClockedIn ? "Shift Active" : "Not Clocked In"}
+        </span>
+      </div>
+      <span
+        key={isClockedIn ? Math.floor(elapsedSeconds / 60) : "idle"}
+        className={[
+          "font-black tabular-nums tracking-tighter leading-none",
+          elapsedSeconds >= 3600 ? "text-5xl" : "text-6xl",
+          isClockedIn ? (isOvertime ? "text-amber-500" : "text-gray-900") : "text-gray-200",
+        ].join(" ")}
+      >
+        {isClockedIn
+          ? formatHMS(elapsedSeconds)
+          : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+      </span>
+      {isClockedIn && (
+        <span className={`text-xs font-bold uppercase tracking-widest ${isOvertime ? "text-amber-400" : "text-gray-400"}`}>
+          {isOvertime ? "overtime" : "elapsed"}
+        </span>
+      )}
+      <button
+        onClick={onPress}
+        disabled={loading}
+        className={[
+          "w-full rounded-2xl py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60",
+          isClockedIn ? "bg-gray-900 text-white hover:bg-gray-800" : "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 hover:bg-indigo-700",
+        ].join(" ")}
+      >
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+            {isClockedIn ? "Clocking out…" : "Clocking in…"}
+          </span>
+        ) : isClockedIn ? "Clock Out" : "Clock In"}
+      </button>
+    </div>
+  );
+}
+
+// ── Night style ───────────────────────────────────────────────────────────────
+
+function NightClock({
+  isClockedIn, elapsedSeconds, isOvertime, loading, onPress,
+}: { isClockedIn: boolean; elapsedSeconds: number; isOvertime: boolean; loading: boolean; onPress: () => Promise<void> }) {
+  return (
+    <div className="bg-gray-950 rounded-3xl border border-gray-800 p-5 flex flex-col items-center gap-5 animate-scale-in">
+      <div className="flex items-center gap-2">
+        <span className={["h-1.5 w-1.5 rounded-full", isClockedIn ? "bg-cyan-400 animate-pulse" : "bg-gray-700"].join(" ")} />
+        <span className={`text-xs font-bold uppercase tracking-widest ${isClockedIn ? "text-cyan-700" : "text-gray-700"}`}>
+          {isClockedIn ? "Shift Active" : "Standby"}
+        </span>
+      </div>
+      <span
+        key={isClockedIn ? Math.floor(elapsedSeconds / 60) : "idle"}
+        className={[
+          "font-extrabold tabular-nums tracking-tight leading-none",
+          elapsedSeconds >= 3600 ? "text-4xl" : "text-5xl",
+          isClockedIn ? (isOvertime ? "text-amber-400" : "text-cyan-400") : "text-gray-800",
+        ].join(" ")}
+        style={isClockedIn ? {
+          textShadow: isOvertime ? "0 0 24px rgba(251,191,36,0.55)" : "0 0 24px rgba(34,211,238,0.5)",
+        } : undefined}
+      >
+        {isClockedIn
+          ? formatHMS(elapsedSeconds)
+          : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+      </span>
+      <button
+        onClick={onPress}
+        disabled={loading}
+        className={[
+          "w-full rounded-2xl py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60 border",
+          isClockedIn
+            ? "bg-cyan-950 text-cyan-300 border-cyan-900 hover:bg-cyan-900"
+            : "bg-gray-900 text-gray-500 border-gray-800 hover:text-gray-300 hover:border-gray-700",
+        ].join(" ")}
+      >
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+            {isClockedIn ? "Clocking out…" : "Clocking in…"}
+          </span>
+        ) : isClockedIn ? "Clock Out" : "Clock In"}
+      </button>
+    </div>
+  );
+}
+
+// ── Retro style ───────────────────────────────────────────────────────────────
+
+function RetroClock({
+  isClockedIn, elapsedSeconds, isOvertime, loading, onPress,
+}: { isClockedIn: boolean; elapsedSeconds: number; isOvertime: boolean; loading: boolean; onPress: () => Promise<void> }) {
+  return (
+    <div className="bg-gray-950 rounded-3xl border border-gray-800 p-5 flex flex-col items-center gap-4 animate-scale-in">
+      <div className="w-full bg-gray-900 rounded-2xl border border-gray-800 p-5 flex flex-col items-center gap-2">
+        <span
+          key={isClockedIn ? Math.floor(elapsedSeconds / 60) : "idle"}
+          className={[
+            "font-mono font-bold tabular-nums tracking-widest leading-none",
+            elapsedSeconds >= 3600 ? "text-4xl" : "text-5xl",
+            isClockedIn ? (isOvertime ? "text-red-400" : "text-amber-400") : "text-amber-950",
+          ].join(" ")}
+          style={isClockedIn ? {
+            textShadow: isOvertime ? "0 0 12px rgba(248,113,113,0.6)" : "0 0 12px rgba(251,191,36,0.45)",
+          } : undefined}
+        >
+          {isClockedIn ? formatHMS(elapsedSeconds) : "00:00"}
+        </span>
+        <span className={`text-[10px] font-mono tracking-[0.35em] uppercase ${isClockedIn ? (isOvertime ? "text-red-600" : "text-amber-700") : "text-amber-950"}`}>
+          {isClockedIn ? (isOvertime ? "overtime" : "elapsed") : "standby"}
+        </span>
+      </div>
+      <button
+        onClick={onPress}
+        disabled={loading}
+        className={[
+          "w-full rounded-2xl py-4 text-base font-mono font-bold tracking-widest uppercase transition-all active:scale-95 disabled:opacity-60 border",
+          isClockedIn
+            ? "bg-amber-950 text-amber-400 border-amber-900 hover:bg-amber-900"
+            : "bg-gray-900 text-amber-950 border-gray-800 hover:text-amber-800 hover:border-amber-950",
+        ].join(" ")}
+      >
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+            {isClockedIn ? "out…" : "in…"}
+          </span>
+        ) : isClockedIn ? "Clock Out" : "Clock In"}
       </button>
     </div>
   );

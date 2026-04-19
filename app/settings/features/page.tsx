@@ -24,8 +24,8 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
     >
       <span
         className={[
-          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200",
-          enabled ? "translate-x-5" : "translate-x-0.5",
+          "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200",
+          enabled ? "translate-x-5" : "translate-x-0",
         ].join(" ")}
       />
     </button>
@@ -35,7 +35,10 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
 const CLOCK_STYLES: { value: ClockStyle; label: string; desc: string }[] = [
   { value: "classic", label: "Classic", desc: "Progress ring with full stats" },
   { value: "minimal", label: "Minimal", desc: "Clean time display, no ring" },
-  { value: "focus",   label: "Focus",   desc: "Distraction-free, just the time" },
+  { value: "bold",    label: "Bold",    desc: "Extra-large time, no distractions" },
+  { value: "focus",   label: "Focus",   desc: "Dark card, distraction-free" },
+  { value: "night",   label: "Night",   desc: "Dark with cyan glow effect" },
+  { value: "retro",   label: "Retro",   desc: "Amber terminal glow display" },
 ];
 
 export default function FeaturesPage() {
@@ -140,7 +143,7 @@ export default function FeaturesPage() {
       ),
       iconColor: "bg-sky-100 text-sky-600",
       title: "Clock Styles",
-      desc: "Choose between Classic, Minimal, or Focus clock widget designs.",
+      desc: "Choose from 6 clock widget styles: Classic, Minimal, Bold, Focus, Night, and Retro.",
       value: clockStyles ?? true,
       onChange: setClockStyles,
     },

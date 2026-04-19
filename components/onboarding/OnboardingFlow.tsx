@@ -234,8 +234,8 @@ function FeatureToggleCard({
       >
         <span
           className={[
-            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200",
-            enabled ? "translate-x-5" : "translate-x-0.5",
+            "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200",
+            enabled ? "translate-x-5" : "translate-x-0",
           ].join(" ")}
         />
       </div>
@@ -365,13 +365,57 @@ const CLOCK_STYLE_OPTIONS: {
     ),
   },
   {
+    value: "bold",
+    label: "Bold",
+    desc: "Extra-large time, no distractions",
+    preview: (
+      <div className="flex flex-col items-center gap-1 py-3">
+        <span className="text-2xl font-black text-gray-900 tabular-nums tracking-tighter">1:23</span>
+        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">elapsed</span>
+      </div>
+    ),
+  },
+  {
     value: "focus",
     label: "Focus",
-    desc: "Distraction-free, just the time",
+    desc: "Dark card, distraction-free",
     preview: (
       <div className="flex flex-col items-center py-3">
         <div className="rounded-xl bg-indigo-950 px-4 py-2.5">
           <span className="text-base font-extrabold text-white tabular-nums">1:23</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    value: "night",
+    label: "Night",
+    desc: "Dark with cyan glow effect",
+    preview: (
+      <div className="flex flex-col items-center gap-1 py-3 bg-gray-950 rounded-lg mx-1">
+        <span
+          className="text-xl font-extrabold text-cyan-400 tabular-nums"
+          style={{ textShadow: "0 0 12px rgba(34,211,238,0.6)" }}
+        >
+          1:23
+        </span>
+        <span className="text-[9px] text-cyan-800 font-bold uppercase tracking-widest">active</span>
+      </div>
+    ),
+  },
+  {
+    value: "retro",
+    label: "Retro",
+    desc: "Amber terminal glow display",
+    preview: (
+      <div className="flex flex-col items-center py-3 bg-gray-950 rounded-lg mx-1">
+        <div className="bg-gray-900 rounded-lg px-3 py-1.5">
+          <span
+            className="text-xl font-mono font-bold text-amber-400 tabular-nums tracking-widest"
+            style={{ textShadow: "0 0 8px rgba(251,191,36,0.5)" }}
+          >
+            01:23
+          </span>
         </div>
       </div>
     ),
