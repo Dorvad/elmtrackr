@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
 
 export const metadata: Metadata = {
@@ -43,9 +44,11 @@ export default function RootLayout({
       </head>
       <body className="bg-gray-50 min-h-screen antialiased font-sans">
         <ToastProvider>
-          <Suspense fallback={null}>
-            <OnboardingGate>{children}</OnboardingGate>
-          </Suspense>
+          <SettingsProvider>
+            <Suspense fallback={null}>
+              <OnboardingGate>{children}</OnboardingGate>
+            </Suspense>
+          </SettingsProvider>
         </ToastProvider>
       </body>
     </html>

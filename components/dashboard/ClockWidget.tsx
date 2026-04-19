@@ -165,7 +165,7 @@ export function ClockWidget({
               </>
             ) : (
               <>
-                <span className="text-3xl font-bold text-gray-200">
+                <span className="text-3xl font-bold text-gray-200" suppressHydrationWarning>
                   {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
                 <span className="text-xs text-gray-400 font-medium mt-0.5">ready</span>
@@ -294,13 +294,13 @@ function MinimalClock({
 
       <div className="flex flex-col items-center">
         <span
-          key={isClockedIn ? Math.floor(elapsedSeconds / 60) : "idle"}
           className={[
             "text-5xl font-extrabold tabular-nums tracking-tight leading-none",
             isClockedIn
               ? isOvertime ? "text-amber-500" : "text-gray-900"
               : "text-gray-300",
           ].join(" ")}
+          suppressHydrationWarning
         >
           {isClockedIn
             ? formatHMS(elapsedSeconds)
@@ -363,14 +363,14 @@ function FocusClock({
       ].join(" ")}
     >
       <span
-        key={isClockedIn ? Math.floor(elapsedSeconds / 60) : "idle"}
         className={[
-          "font-extrabold tabular-nums tracking-tighter leading-none", // FocusClock
+          "font-extrabold tabular-nums tracking-tighter leading-none",
           elapsedSeconds >= 3600 ? "text-5xl" : "text-6xl",
           isClockedIn
             ? isOvertime ? "text-amber-300" : "text-white"
             : "text-white/20",
         ].join(" ")}
+        suppressHydrationWarning
       >
         {isClockedIn
           ? formatHMS(elapsedSeconds)
@@ -416,12 +416,12 @@ function BoldClock({
         </span>
       </div>
       <span
-        key={isClockedIn ? Math.floor(elapsedSeconds / 60) : "idle"}
         className={[
           "font-black tabular-nums tracking-tighter leading-none",
           elapsedSeconds >= 3600 ? "text-5xl" : "text-6xl",
           isClockedIn ? (isOvertime ? "text-amber-500" : "text-gray-900") : "text-gray-200",
         ].join(" ")}
+        suppressHydrationWarning
       >
         {isClockedIn
           ? formatHMS(elapsedSeconds)
@@ -465,7 +465,6 @@ function NightClock({
         </span>
       </div>
       <span
-        key={isClockedIn ? Math.floor(elapsedSeconds / 60) : "idle"}
         className={[
           "font-extrabold tabular-nums tracking-tight leading-none",
           elapsedSeconds >= 3600 ? "text-4xl" : "text-5xl",
@@ -474,6 +473,7 @@ function NightClock({
         style={isClockedIn ? {
           textShadow: isOvertime ? "0 0 24px rgba(251,191,36,0.55)" : "0 0 24px rgba(34,211,238,0.5)",
         } : undefined}
+        suppressHydrationWarning
       >
         {isClockedIn
           ? formatHMS(elapsedSeconds)
@@ -509,7 +509,6 @@ function RetroClock({
     <div className="bg-gray-950 rounded-3xl border border-gray-800 p-5 flex flex-col items-center gap-4 animate-scale-in">
       <div className="w-full bg-gray-900 rounded-2xl border border-gray-800 p-5 flex flex-col items-center gap-2">
         <span
-          key={isClockedIn ? Math.floor(elapsedSeconds / 60) : "idle"}
           className={[
             "font-mono font-bold tabular-nums tracking-widest leading-none",
             elapsedSeconds >= 3600 ? "text-4xl" : "text-5xl",

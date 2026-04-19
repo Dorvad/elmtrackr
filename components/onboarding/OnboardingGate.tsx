@@ -15,7 +15,8 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     if (settings.onboarding_completed) return;
     if (pathname.startsWith("/onboarding") || pathname.startsWith("/auth")) return;
     router.replace("/onboarding");
-  }, [settings, loading, pathname, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings, loading, pathname]);
 
   return <>{children}</>;
 }
