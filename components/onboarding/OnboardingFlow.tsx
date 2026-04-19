@@ -420,6 +420,74 @@ const CLOCK_STYLE_OPTIONS: {
       </div>
     ),
   },
+  {
+    value: "aurora",
+    label: "Aurora",
+    desc: "Rainbow gradient progress ring",
+    preview: (
+      <div className="flex flex-col items-center py-3">
+        <div className="relative" style={{ width: 56, height: 56 }}>
+          <svg width={56} height={56} viewBox="0 0 56 56" className="absolute inset-0">
+            <defs>
+              <linearGradient id="onb-aurora" x1="0" y1="0" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#6366f1" />
+                <stop offset="50%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#f97316" />
+              </linearGradient>
+            </defs>
+            <circle cx={28} cy={28} r={24} strokeWidth={5} stroke="#f1f5f9" fill="none" />
+            <circle cx={28} cy={28} r={24} strokeWidth={5} stroke="url(#onb-aurora)" fill="none"
+              strokeLinecap="round" strokeDasharray={150.8} strokeDashoffset={37.7}
+              transform="rotate(-90 28 28)" />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-[9px] font-bold" style={{ background: "linear-gradient(135deg,#6366f1,#ec4899)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>1:23</span>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    value: "pulse",
+    label: "Pulse",
+    desc: "Glowing concentric rings on dark",
+    preview: (
+      <div className="flex flex-col items-center py-3 bg-gray-950 rounded-lg mx-1">
+        <div className="relative" style={{ width: 52, height: 52 }}>
+          <div className="absolute inset-0 rounded-full border-2 border-cyan-400" style={{ boxShadow: "0 0 8px rgba(34,211,238,0.5)" }} />
+          <div className="absolute rounded-full border border-cyan-400" style={{ top: 8, left: 8, right: 8, bottom: 8, opacity: 0.6 }} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-[9px] font-bold text-cyan-400" style={{ textShadow: "0 0 8px rgba(34,211,238,0.6)" }}>1:23</span>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    value: "dial",
+    label: "Dial",
+    desc: "Analog kitchen timer with sweep",
+    preview: (
+      <div className="flex items-center justify-center py-3">
+        <svg width={52} height={52} viewBox="0 0 52 52">
+          <circle cx={26} cy={26} r={22} fill="white" stroke="#e5e7eb" strokeWidth={1} />
+          <path d="M 26 26 L 26 4 A 22 22 0 0 1 45 37 Z" fill="rgba(220,38,38,0.15)" />
+          {Array.from({ length: 12 }, (_, i) => {
+            const a = (i * 30 - 90) * Math.PI / 180;
+            return (
+              <line key={i}
+                x1={26 + Math.cos(a) * 17} y1={26 + Math.sin(a) * 17}
+                x2={26 + Math.cos(a) * 21} y2={26 + Math.sin(a) * 21}
+                stroke="#374151" strokeWidth="1.5" strokeLinecap="round"
+              />
+            );
+          })}
+          <line x1={26} y1={26} x2={43} y2={35} stroke="#dc2626" strokeWidth={2} strokeLinecap="round" />
+          <circle cx={26} cy={26} r={4} fill="#1f2937" />
+        </svg>
+      </div>
+    ),
+  },
 ];
 
 function ClockStyleScreen({

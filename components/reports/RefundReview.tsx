@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { Shift, UserSettings } from "@/types";
+import type { Shift, UserSettings, RefundClaim } from "@/types";
 import { checkRefundEligibility, getRefundStatus, shiftMonthKey } from "@/lib/shifts/refund";
-import { useMonthlyRefundClaims, useAllRefundClaims } from "@/hooks/useRefundClaim";
+import { useAllRefundClaims } from "@/hooks/useRefundClaim";
 import { exportRefundPdf, ExportRow } from "@/lib/shifts/refund-export";
 import { useProfile } from "@/hooks/useProfile";
 import { createClient } from "@/lib/supabase/client";
@@ -40,9 +40,17 @@ function StatPill({
   );
 }
 
-function MonthSection({ monthKey, shifts }: { monthKey: string; shifts: Shift[] }) {
+function MonthSection({ monthKey, shifts, allClaims, claimsLoading }: {
+  monthKey: string;
+  shifts: Shift[];
+  allClaims: RefundClaim[];
+  claimsLoading: boolean;
+}) {
   const [year, month] = monthKey.split("-").map(Number);
-  const { claims, loading } = useMonthlyRefundClaims(year, month);
+  const from = new Date(year, month - 1, 1).toISOString();
+  const to   = new Date(year, month,     1).toISOString();
+  const claims = allClaims.filter((c) => c.ride_at >= from && c.ride_at < to);
+  const loading = claimsLoading;
   const { profile } = useProfile();
   const [exporting, setExporting] = useState(false);
 
@@ -283,7 +291,7 @@ export function RefundReview({ shifts, settings }: Props) {
 
       {/* Per-month sections */}
       {months.map((key) => (
-        <MonthSection key={key} monthKey={key} shifts={shifts} />
+        <MonthSection key={key} monthKey={key} shifts={shifts} allClaims={allClaims} claimsLoading={claimsLoading} />
       ))}
     </div>
   );

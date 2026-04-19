@@ -39,6 +39,9 @@ const CLOCK_STYLES: { value: ClockStyle; label: string; desc: string }[] = [
   { value: "focus",   label: "Focus",   desc: "Dark card, distraction-free" },
   { value: "night",   label: "Night",   desc: "Dark with cyan glow effect" },
   { value: "retro",   label: "Retro",   desc: "Amber terminal glow display" },
+  { value: "aurora",  label: "Aurora",  desc: "Rainbow gradient progress ring" },
+  { value: "pulse",   label: "Pulse",   desc: "Glowing concentric rings on dark" },
+  { value: "dial",    label: "Dial",    desc: "Analog kitchen timer with sweep" },
 ];
 
 export default function FeaturesPage() {

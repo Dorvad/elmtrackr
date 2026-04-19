@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RefundClaim, RefundProvider } from "@/types";
 
@@ -13,7 +13,7 @@ export interface SaveClaimData {
 }
 
 export function useRefundClaim(shiftId: string) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [claim, setClaim] = useState<RefundClaim | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -140,7 +140,7 @@ export function useRefundClaim(shiftId: string) {
 
 // All claims for the current user, sorted by ride_at (used for analytics)
 export function useAllRefundClaims() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [claims, setClaims] = useState<RefundClaim[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -162,7 +162,7 @@ export function useAllRefundClaims() {
 
 // Lightweight hook for loading all claims for a given month (used in reports)
 export function useMonthlyRefundClaims(year: number, month: number) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [claims, setClaims] = useState<RefundClaim[]>([]);
   const [loading, setLoading] = useState(true);
 
