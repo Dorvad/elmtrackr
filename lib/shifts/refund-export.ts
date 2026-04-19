@@ -58,7 +58,7 @@ export async function exportRefundPdf(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.text(`Total claims: ${rows.length}`, margin, y);
-  doc.text(`Total amount: ₪${total.toFixed(2)}`, pageW - margin, y, { align: "right" });
+  doc.text(`Total amount: ILS ${total.toFixed(2)}`, pageW - margin, y, { align: "right" });
   y += 10;
 
   // Table header
@@ -89,7 +89,7 @@ export async function exportRefundPdf(
     doc.text(fmt(claim.ride_at), colX.date, y, { maxWidth: 28 });
     doc.text(shift.end_time ? fmt(shift.end_time) : "—", colX.shift, y, { maxWidth: 53 });
     doc.text(claim.provider, colX.provider, y, { maxWidth: 30 });
-    doc.text(`₪${claim.amount.toFixed(2)}`, colX.amount, y, { align: "right" });
+    doc.text(`ILS ${claim.amount.toFixed(2)}`, colX.amount, y, { align: "right" });
     y += 5;
 
     if (claim.notes) {
@@ -110,7 +110,7 @@ export async function exportRefundPdf(
   y += 2;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text(`Total: ₪${total.toFixed(2)}`, pageW - margin, y, { align: "right" });
+  doc.text(`Total: ILS ${total.toFixed(2)}`, pageW - margin, y, { align: "right" });
 
   // Generated timestamp
   y += 8;
@@ -140,7 +140,7 @@ export async function exportRefundPdf(
       doc.setFontSize(9);
       doc.setTextColor(60, 60, 80);
       doc.text(
-        `${i + 1}. ${claim.provider} · ₪${claim.amount.toFixed(2)} · ${fmt(claim.ride_at)}`,
+        `${i + 1}. ${claim.provider} · ILS ${claim.amount.toFixed(2)} · ${fmt(claim.ride_at)}`,
         margin,
         ry
       );
@@ -174,7 +174,7 @@ export async function exportRefundPdf(
           doc.setFontSize(9);
           doc.setTextColor(60, 60, 80);
           doc.text(
-            `${i + 1}. ${claim.provider} · ₪${claim.amount.toFixed(2)} · ${fmt(claim.ride_at)}`,
+            `${i + 1}. ${claim.provider} · ILS ${claim.amount.toFixed(2)} · ${fmt(claim.ride_at)}`,
             margin,
             ry
           );
