@@ -8,7 +8,7 @@ import type {
 import { netMinutes } from "./duration";
 import { splitShiftByDay } from "./overnight";
 import { annotateWeekendSegments, totalWeekendMinutes } from "./weekend";
-import { combinedOvertimeMinutes } from "./overtime";
+import { totalOvertimeFromWeeks } from "./overtime";
 
 /**
  * Group shifts into ISO weeks.
@@ -100,8 +100,10 @@ export function buildMonthlyReport(
     0
   );
 
-  const overtimeMinutes = combinedOvertimeMinutes(
-    completedShifts,
+  // combinedOvertimeMinutes operates on a single week — use totalOvertimeFromWeeks
+  // to apply the weekly threshold per week and sum the results correctly.
+  const overtimeMinutes = totalOvertimeFromWeeks(
+    weeks,
     settings.daily_overtime_threshold_minutes,
     settings.weekly_overtime_threshold_minutes
   );
