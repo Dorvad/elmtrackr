@@ -62,13 +62,14 @@ export async function exportRefundPdf(
   y += 10;
 
   // Table header
-  const colX = { date: margin, shift: margin + 30, provider: margin + 85, amount: pageW - margin };
+  const colX = { direction: margin, date: margin + 22, shift: margin + 52, provider: margin + 92, amount: pageW - margin };
   doc.setFillColor(245, 245, 250);
   doc.rect(margin, y - 4, pageW - margin * 2, 7, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
+  doc.text("Direction", colX.direction, y);
   doc.text("Ride date", colX.date, y);
-  doc.text("Shift end", colX.shift, y);
+  doc.text("Shift time", colX.shift, y);
   doc.text("Provider", colX.provider, y);
   doc.text("Amount", colX.amount, y, { align: "right" });
   y += 4;
@@ -86,9 +87,15 @@ export async function exportRefundPdf(
       y = margin;
     }
 
+    const dirLabel = claim.direction === "to_work" ? "→ To work" : "← From work";
+    const shiftTime = claim.direction === "to_work"
+      ? fmt(shift.start_time)
+      : (shift.end_time ? fmt(shift.end_time) : "—");
+
+    doc.text(dirLabel, colX.direction, y, { maxWidth: 20 });
     doc.text(fmt(claim.ride_at), colX.date, y, { maxWidth: 28 });
-    doc.text(shift.end_time ? fmt(shift.end_time) : "—", colX.shift, y, { maxWidth: 53 });
-    doc.text(claim.provider, colX.provider, y, { maxWidth: 30 });
+    doc.text(shiftTime, colX.shift, y, { maxWidth: 38 });
+    doc.text(claim.provider, colX.provider, y, { maxWidth: 28 });
     doc.text(`ILS ${claim.amount.toFixed(2)}`, colX.amount, y, { align: "right" });
     y += 5;
 
