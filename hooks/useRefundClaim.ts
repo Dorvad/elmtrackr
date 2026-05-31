@@ -71,7 +71,7 @@ export function useRefundClaim(shiftId: string) {
           receiptPath = await uploadReceipt(data.receiptFile, userId, direction);
         }
 
-        const base = {
+        const insertPayload = {
           shift_id:     shiftId,
           user_id:      userId,
           direction,
@@ -82,10 +82,18 @@ export function useRefundClaim(shiftId: string) {
           receipt_path: receiptPath,
         };
 
+        const updatePayload = {
+          provider:     data.provider,
+          amount:       data.amount,
+          ride_at:      data.ride_at,
+          notes:        data.notes ?? null,
+          receipt_path: receiptPath,
+        };
+
         if (existing) {
           const { data: updated, error: err } = await supabase
             .from("refund_claims")
-            .update(base)
+            .update(updatePayload)
             .eq("id", existing.id)
             .select()
             .single();
@@ -94,7 +102,7 @@ export function useRefundClaim(shiftId: string) {
         } else {
           const { data: created, error: err } = await supabase
             .from("refund_claims")
-            .insert(base)
+            .insert(insertPayload)
             .select()
             .single();
           if (err) throw new Error(err.message);
