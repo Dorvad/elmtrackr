@@ -68,11 +68,10 @@ function MonthSection({ monthKey, shifts, allClaims, claimsLoading }: {
     setExporting(true);
     try {
       const baseRows: ExportRow[] = submitted
-        .map((s) => {
-          const claim = claims.find((c) => c.shift_id === s.id);
-          return claim ? { shift: s, claim } : null;
-        })
-        .filter((r): r is ExportRow => r !== null);
+        .flatMap((s) => {
+          const shiftClaims = claims.filter((c) => c.shift_id === s.id);
+          return shiftClaims.map((claim) => ({ shift: s, claim }));
+        });
 
       if (baseRows.length === 0) {
         alert("No submitted claims with receipt data to export.");
@@ -139,9 +138,9 @@ function MonthSection({ monthKey, shifts, allClaims, claimsLoading }: {
         {/* Shift list */}
         <div className="flex flex-col divide-y divide-gray-50 -mx-1">
           {eligibleShifts.map((shift) => {
-            const status  = getRefundStatus(shift);
-            const claim   = claims.find((c) => c.shift_id === shift.id);
-            const endDate = shift.end_time ? new Date(shift.end_time) : null;
+            const status      = getRefundStatus(shift);
+            const shiftClaims = claims.filter((c) => c.shift_id === shift.id);
+            const startDate   = new Date(shift.start_time);
 
             const badgeClass =
               status.color === "emerald" ? "bg-emerald-100 text-emerald-700" :
@@ -150,32 +149,35 @@ function MonthSection({ monthKey, shifts, allClaims, claimsLoading }: {
                                            "bg-orange-100 text-orange-700";
 
             return (
-              <div key={shift.id} className="flex items-center gap-3 px-1 py-2.5">
+              <div key={shift.id} className="flex items-start gap-3 px-1 py-2.5">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-800 truncate">
-                    {endDate
-                      ? endDate.toLocaleDateString("en-US", {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                        })
-                      : "—"}
+                    {startDate.toLocaleDateString("en-US", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
                   </p>
-                  {claim && (
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {claim.provider} · ₪{claim.amount.toFixed(2)}
-                      {claim.receipt_path && (
-                        <span className="ml-1.5 text-indigo-400 font-medium">· receipt</span>
-                      )}
-                    </p>
+                  {shiftClaims.length === 0 ? null : (
+                    <div className="flex flex-col gap-0.5 mt-0.5">
+                      {shiftClaims.map((c) => (
+                        <p key={c.id} className="text-xs text-gray-400">
+                          {c.direction === "to_work" ? "→" : "←"}{" "}
+                          {c.provider} · ₪{c.amount.toFixed(2)}
+                          {c.receipt_path && (
+                            <span className="ml-1 text-indigo-400 font-medium">· receipt</span>
+                          )}
+                        </p>
+                      ))}
+                    </div>
                   )}
                 </div>
-                <span className={`rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide flex-shrink-0 ${badgeClass}`}>
+                <span className={`rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide flex-shrink-0 mt-0.5 ${badgeClass}`}>
                   {status.label || "Pending"}
                 </span>
                 <Link
                   href={`/shifts/${shift.id}`}
-                  className="text-xs text-indigo-500 font-semibold hover:text-indigo-700 flex-shrink-0"
+                  className="text-xs text-indigo-500 font-semibold hover:text-indigo-700 flex-shrink-0 mt-0.5"
                 >
                   View
                 </Link>

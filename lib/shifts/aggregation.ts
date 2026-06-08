@@ -8,7 +8,6 @@ import type {
 import { netMinutes } from "./duration";
 import { splitShiftByDay } from "./overnight";
 import { annotateWeekendSegments, totalWeekendMinutes } from "./weekend";
-import { totalOvertimeFromWeeks } from "./overtime";
 
 /**
  * Group shifts into ISO weeks.
@@ -45,6 +44,12 @@ function getMonday(date: Date): Date {
 /**
  * Build a full ShiftBreakdown for a single shift (handles overnight splits,
  * weekend annotation).
+ *
+ * The three output categories are mutually exclusive and sum to total_minutes:
+ *   regular_minutes + overtime_minutes + weekend_minutes === total_minutes
+ *
+ * Weekend minutes take priority: overtime is computed only from the weekday
+ * portion of the shift so that weekend hours are never double-counted.
  */
 export function buildShiftBreakdown(
   shift: Shift,
@@ -59,11 +64,12 @@ export function buildShiftBreakdown(
   const rawSegments = splitShiftByDay(shift);
   const segments = annotateWeekendSegments(rawSegments, settings.weekend_days);
   const weekendMins = totalWeekendMinutes(segments);
+  const weekdayMins = Math.max(0, net - weekendMins);
   const otMins = Math.max(
     0,
-    net - settings.daily_overtime_threshold_minutes
+    weekdayMins - settings.daily_overtime_threshold_minutes
   );
-  const regularMins = Math.max(0, net - otMins);
+  const regularMins = Math.max(0, weekdayMins - otMins);
 
   return {
     total_minutes: net,
@@ -100,15 +106,32 @@ export function buildMonthlyReport(
     0
   );
 
-  // combinedOvertimeMinutes operates on a single week — use totalOvertimeFromWeeks
-  // to apply the weekly threshold per week and sum the results correctly.
-  const overtimeMinutes = totalOvertimeFromWeeks(
-    weeks,
-    settings.daily_overtime_threshold_minutes,
-    settings.weekly_overtime_threshold_minutes
+  // Compute overtime from weekday-only minutes so that regular/overtime/weekend
+  // are mutually exclusive and sum to total_minutes.
+  // For each ISO week, apply both daily and weekly thresholds to the weekday
+  // portion of each shift (total - weekend minutes).
+  const breakdownById = new Map<string, ShiftBreakdown>(
+    completedShifts.map((s, i) => [s.id, shiftBreakdowns[i]])
   );
 
-  const regularMinutes = Math.max(0, totalMinutes - overtimeMinutes);
+  const overtimeMinutes = weeks.reduce((total, week) => {
+    const weekdayMinsPerShift = week.shifts.map((s) => {
+      const bd = breakdownById.get(s.id);
+      return bd ? Math.max(0, bd.total_minutes - bd.weekend_minutes) : 0;
+    });
+    const totalWeekdayMins = weekdayMinsPerShift.reduce((s, m) => s + m, 0);
+    const dailyOt = weekdayMinsPerShift.reduce(
+      (s, m) => s + Math.max(0, m - settings.daily_overtime_threshold_minutes),
+      0
+    );
+    const weeklyOt = Math.max(
+      0,
+      totalWeekdayMins - settings.weekly_overtime_threshold_minutes
+    );
+    return total + Math.max(dailyOt, weeklyOt);
+  }, 0);
+
+  const regularMinutes = Math.max(0, totalMinutes - overtimeMinutes - weekendMinutes);
 
   return {
     year,

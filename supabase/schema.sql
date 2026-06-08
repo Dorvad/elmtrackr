@@ -156,19 +156,38 @@ create or replace trigger shifts_updated_at
   before update on public.shifts
   for each row execute function public.handle_updated_at();
 
--- Refund claims: one receipt per eligible shift
+-- Refund claims: up to one receipt per direction (to_work / from_work) per shift
 create table if not exists public.refund_claims (
   id            uuid primary key default gen_random_uuid(),
-  shift_id      uuid not null unique references public.shifts(id) on delete cascade,
+  shift_id      uuid not null references public.shifts(id) on delete cascade,
   user_id       uuid not null references auth.users(id) on delete cascade,
+  direction     text not null default 'from_work' check (direction in ('to_work', 'from_work')),
   provider      text not null,
   amount        numeric(10, 2) not null check (amount > 0),
   ride_at       timestamptz not null,
   notes         text,
   receipt_path  text,
   created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
+  updated_at    timestamptz not null default now(),
+  unique (shift_id, direction)
 );
+
+-- Migration: add direction column and update unique constraint for existing deployments
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'refund_claims' and column_name = 'direction'
+  ) then
+    alter table public.refund_claims
+      add column direction text not null default 'from_work'
+      check (direction in ('to_work', 'from_work'));
+    alter table public.refund_claims
+      drop constraint if exists refund_claims_shift_id_key;
+    alter table public.refund_claims
+      add constraint refund_claims_shift_id_direction_key unique (shift_id, direction);
+  end if;
+end $$;
 
 create index if not exists refund_claims_user_id_idx on public.refund_claims (user_id);
 create index if not exists refund_claims_shift_id_idx on public.refund_claims (shift_id);

@@ -22,6 +22,34 @@ function localDay(iso: string): number {
   return localDate(iso).getDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
 }
 
+// Eligibility for the ride TO work — mirrors from-work logic but checks start_time
+export function checkToWorkEligibility(shift: Shift): RefundEligibility {
+  const reasons: string[] = [];
+  const startDay  = localDay(shift.start_time);
+  const startHour = localHour(shift.start_time);
+  const startMin  = localMinute(shift.start_time);
+
+  const isLateNight    = startHour === 23 && startMin >= 30;
+  const isEarlyMorning = startHour < 10;
+  if (isLateNight || isEarlyMorning) {
+    reasons.push("Late night / early morning start");
+  }
+
+  if (startDay === 5 && startHour >= 17) {
+    reasons.push("Friday night shift");
+  }
+
+  if (startDay === 6) {
+    reasons.push("Saturday shift");
+  }
+
+  if (shift.is_special_day) {
+    reasons.push("Holiday shift");
+  }
+
+  return { eligible: reasons.length > 0, reasons };
+}
+
 export function checkRefundEligibility(shift: Shift): RefundEligibility {
   if (!shift.end_time) return { eligible: false, reasons: [] };
 

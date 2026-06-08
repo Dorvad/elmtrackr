@@ -109,6 +109,7 @@ export interface Database {
           id: string;
           shift_id: string;
           user_id: string;
+          direction: "to_work" | "from_work";
           provider: string;
           amount: number;
           ride_at: string;
@@ -121,6 +122,7 @@ export interface Database {
           id?: string;
           shift_id: string;
           user_id: string;
+          direction?: "to_work" | "from_work";
           provider: string;
           amount: number;
           ride_at: string;
@@ -130,6 +132,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: {
+          direction?: "to_work" | "from_work";
           provider?: string;
           amount?: number;
           ride_at?: string;

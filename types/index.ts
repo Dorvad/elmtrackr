@@ -45,10 +45,13 @@ export interface Shift {
 
 export type RefundProvider = "Lime" | "Dott" | "Other";
 
+export type RefundDirection = "to_work" | "from_work";
+
 export interface RefundClaim {
   id: string;
   shift_id: string;
   user_id: string;
+  direction: RefundDirection;
   provider: RefundProvider;
   amount: number;
   ride_at: string; // ISO 8601 — when the ride was taken

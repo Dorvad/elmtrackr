@@ -1,5 +1,5 @@
 import type { Shift, UserSettings } from "@/types";
-import { netMinutes, formatHoursDecimal } from "./duration";
+import { formatHoursDecimal } from "./duration";
 import { buildShiftBreakdown } from "./aggregation";
 import { isOvernightShift } from "./overnight";
 
@@ -54,14 +54,13 @@ export function generateMonthlyCSV(
 
   const lines: string[] = [row(headers)];
 
-  for (const shift of completedShifts) {
-    const breakdown = buildShiftBreakdown(shift, settings);
-    const net = netMinutes(shift) ?? 0;
-    const otMins = Math.max(
-      0,
-      net - settings.daily_overtime_threshold_minutes
-    );
-    const regularMins = Math.max(0, net - otMins);
+  const allBreakdowns = completedShifts.map((s) =>
+    buildShiftBreakdown(s, settings)
+  );
+
+  for (let i = 0; i < completedShifts.length; i++) {
+    const shift = completedShifts[i];
+    const breakdown = allBreakdowns[i];
 
     lines.push(
       row([
@@ -70,7 +69,7 @@ export function generateMonthlyCSV(
         formatDatetime(shift.end_time),
         shift.break_minutes,
         formatHoursDecimal(breakdown.total_minutes),
-        formatHoursDecimal(regularMins),
+        formatHoursDecimal(breakdown.regular_minutes),
         formatHoursDecimal(breakdown.overtime_minutes),
         formatHoursDecimal(breakdown.weekend_minutes),
         isOvernightShift(shift) ? "Yes" : "No",
@@ -79,23 +78,11 @@ export function generateMonthlyCSV(
     );
   }
 
-  // Summary row
-  const totalNet = completedShifts.reduce(
-    (sum, s) => sum + (netMinutes(s) ?? 0),
-    0
-  );
-  const allBreakdowns = completedShifts.map((s) =>
-    buildShiftBreakdown(s, settings)
-  );
-  const totalWeekend = allBreakdowns.reduce(
-    (sum, b) => sum + b.weekend_minutes,
-    0
-  );
-  const totalOt = allBreakdowns.reduce(
-    (sum, b) => sum + b.overtime_minutes,
-    0
-  );
-  const totalRegular = Math.max(0, totalNet - totalOt);
+  // Summary row — regular + overtime + weekend === total (non-overlapping)
+  const totalNet = allBreakdowns.reduce((sum, b) => sum + b.total_minutes, 0);
+  const totalRegular = allBreakdowns.reduce((sum, b) => sum + b.regular_minutes, 0);
+  const totalOt = allBreakdowns.reduce((sum, b) => sum + b.overtime_minutes, 0);
+  const totalWeekend = allBreakdowns.reduce((sum, b) => sum + b.weekend_minutes, 0);
 
   lines.push(""); // blank separator
   lines.push(
