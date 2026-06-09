@@ -14,35 +14,35 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<Variant, string> = {
   primary: [
-    "bg-indigo-600 text-white shadow-md shadow-indigo-500/25",
-    "hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/30",
-    "active:bg-indigo-800 active:scale-[0.98]",
-    "disabled:bg-indigo-300 disabled:shadow-none",
+    "text-white shadow-[0_14px_26px_-10px_rgba(91,77,242,0.7)]",
+    "hover:shadow-[0_16px_30px_-10px_rgba(91,77,242,0.85)]",
+    "active:scale-[0.98]",
+    "disabled:opacity-50 disabled:shadow-none",
   ].join(" "),
   secondary: [
-    "bg-gray-100 text-gray-700 border border-gray-200",
-    "hover:bg-gray-150 hover:border-gray-300",
-    "active:bg-gray-200 active:scale-[0.98]",
+    "bg-white text-[var(--au-indigo)] border border-[var(--au-indigo)] border-opacity-30",
+    "hover:bg-[var(--au-surface-sub)] hover:border-opacity-60",
+    "active:scale-[0.98]",
     "disabled:bg-gray-50 disabled:text-gray-300 disabled:border-gray-100",
   ].join(" "),
   danger: [
     "bg-red-500 text-white shadow-md shadow-red-500/20",
     "hover:bg-red-600",
-    "active:bg-red-700 active:scale-[0.98]",
+    "active:scale-[0.98]",
     "disabled:bg-red-200 disabled:shadow-none",
   ].join(" "),
   ghost: [
-    "bg-transparent text-gray-500",
-    "hover:bg-gray-100 hover:text-gray-700",
-    "active:bg-gray-200 active:scale-[0.98]",
-    "disabled:text-gray-300",
+    "bg-transparent text-[var(--au-ink-2)]",
+    "hover:bg-[var(--au-surface-sub)] hover:text-[var(--au-ink)]",
+    "active:scale-[0.98]",
+    "disabled:text-[var(--au-faint)]",
   ].join(" "),
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: "px-3 py-1.5 text-sm rounded-xl",
-  md: "px-4 py-2.5 text-base rounded-xl",
-  lg: "px-6 py-3.5 text-base rounded-2xl",
+  sm: "px-3 py-1.5 text-sm rounded-2xl",
+  md: "px-4 py-2.5 text-base rounded-2xl",
+  lg: "px-6 py-3.5 text-base rounded-[18px]",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -55,18 +55,25 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       disabled,
       children,
       className = "",
+      style,
       ...props
     },
     ref
   ) => {
+    const isPrimary = variant === "primary";
     return (
       <button
         ref={ref}
         disabled={disabled || loading}
+        style={
+          isPrimary
+            ? { background: "var(--au-grad)", ...style }
+            : style
+        }
         className={[
           "inline-flex items-center justify-center gap-2 font-semibold",
           "transition-all duration-150 focus-visible:outline-none",
-          "focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
+          "focus-visible:ring-2 focus-visible:ring-[var(--au-indigo)] focus-visible:ring-offset-2",
           "disabled:cursor-not-allowed select-none",
           variantClasses[variant],
           sizeClasses[size],

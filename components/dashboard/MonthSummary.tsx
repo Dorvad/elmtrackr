@@ -23,48 +23,36 @@ export function MonthSummary({ shifts, settings }: MonthSummaryProps) {
   const monthName = now.toLocaleString("default", { month: "long" });
 
   const segments = [
-    {
-      label: "Regular",
-      value: report.regular_minutes,
-      color: "bg-indigo-500",
-      dotColor: "#4f46e5",
-    },
-    {
-      label: "Overtime",
-      value: report.overtime_minutes,
-      color: "bg-amber-400",
-      dotColor: "#f59e0b",
-    },
-    {
-      label: "Weekend",
-      value: report.weekend_minutes,
-      color: "bg-violet-500",
-      dotColor: "#8b5cf6",
-    },
+    { label: "Regular",  value: report.regular_minutes,  color: "bg-[#5B4DF2]", dotColor: "#5B4DF2" },
+    { label: "Overtime", value: report.overtime_minutes, color: "bg-[#FF9E7D]", dotColor: "#FF9E7D" },
+    { label: "Weekend",  value: report.weekend_minutes,  color: "bg-[#8B5CF6]", dotColor: "#8B5CF6" },
   ];
 
   return (
     <div className="flex flex-col gap-3">
       {/* Section header */}
       <div className="flex items-center justify-between px-1">
-        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+        <h2
+          className="text-xs font-bold uppercase"
+          style={{ color: "var(--au-faint)", letterSpacing: "0.16em" }}
+        >
           {monthName} Summary
         </h2>
-        <span className="text-xs text-gray-400 font-medium">
+        <span className="text-xs font-medium" style={{ color: "var(--au-faint)" }}>
           {report.shift_count} shift{report.shift_count !== 1 ? "s" : ""}
         </span>
       </div>
 
       {/* Distribution card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-1">
+      <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-1">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
+            <p className="text-xs font-bold uppercase mb-0.5" style={{ color: "var(--au-faint)", letterSpacing: "0.14em" }}>
               Hours Distribution
             </p>
-            <p className="text-2xl font-extrabold text-gray-900 mt-0.5 tracking-tight">
+            <p className="text-2xl font-extrabold tracking-tight" style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)" }}>
               {formatHoursDecimal(report.total_minutes, 1)}
-              <span className="text-base font-semibold text-gray-400 ml-1">h total</span>
+              <span className="text-base font-semibold ml-1" style={{ color: "var(--au-faint)" }}>h total</span>
             </p>
           </div>
         </div>
