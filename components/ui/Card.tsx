@@ -3,6 +3,7 @@ import { HTMLAttributes } from "react";
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   padding?: "sm" | "md" | "lg" | "none";
   glass?: boolean;
+  glow?: boolean;
 }
 
 const paddingClasses = {
@@ -16,14 +17,16 @@ export function Card({
   children,
   padding = "md",
   glass = false,
+  glow = false,
   className = "",
   ...props
 }: CardProps) {
   return (
     <div
       className={[
-        "rounded-2xl border border-gray-100 shadow-sm",
+        "rounded-3xl border border-white/80",
         glass ? "glass" : "bg-white",
+        glow ? "au-card-glow" : "au-card",
         paddingClasses[padding],
         className,
       ]

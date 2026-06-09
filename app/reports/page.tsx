@@ -52,254 +52,173 @@ export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<"hours" | "refunds">("hours");
 
   function prevMonth() {
-    if (selectedMonth === 1) {
-      setSelectedYear((y) => y - 1);
-      setSelectedMonth(12);
-    } else {
-      setSelectedMonth((m) => m - 1);
-    }
+    if (selectedMonth === 1) { setSelectedYear((y) => y - 1); setSelectedMonth(12); }
+    else setSelectedMonth((m) => m - 1);
   }
   function nextMonth() {
     const isCurrentOrFuture =
       selectedYear > now.getUTCFullYear() ||
-      (selectedYear === now.getUTCFullYear() &&
-        selectedMonth >= now.getUTCMonth() + 1);
+      (selectedYear === now.getUTCFullYear() && selectedMonth >= now.getUTCMonth() + 1);
     if (isCurrentOrFuture) return;
-    if (selectedMonth === 12) {
-      setSelectedYear((y) => y + 1);
-      setSelectedMonth(1);
-    } else {
-      setSelectedMonth((m) => m + 1);
-    }
+    if (selectedMonth === 12) { setSelectedYear((y) => y + 1); setSelectedMonth(1); }
+    else setSelectedMonth((m) => m + 1);
   }
 
   const isCurrentMonth =
-    selectedYear === now.getUTCFullYear() &&
-    selectedMonth === now.getUTCMonth() + 1;
+    selectedYear === now.getUTCFullYear() && selectedMonth === now.getUTCMonth() + 1;
 
-  const monthLabel = new Date(
-    Date.UTC(selectedYear, selectedMonth - 1, 1)
-  ).toLocaleString("default", { month: "long", year: "numeric" });
+  const monthLabel = new Date(Date.UTC(selectedYear, selectedMonth - 1, 1))
+    .toLocaleString("default", { month: "long", year: "numeric" });
 
-  // Previous month for comparisons
   const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
   const prevMonth2 = selectedMonth === 1 ? 12 : selectedMonth - 1;
-  const prevMonthLabel = new Date(
-    Date.UTC(prevYear, prevMonth2 - 1, 1)
-  ).toLocaleString("default", { month: "long" });
+  const prevMonthLabel = new Date(Date.UTC(prevYear, prevMonth2 - 1, 1))
+    .toLocaleString("default", { month: "long" });
 
   const loading = shiftsLoading || settingsLoading;
 
-  const monthShifts = settings
-    ? filterShiftsByMonth(shifts, selectedYear, selectedMonth)
-    : [];
+  const monthShifts = settings ? filterShiftsByMonth(shifts, selectedYear, selectedMonth) : [];
   const completedShifts = monthShifts.filter((s) => s.end_time !== null);
-
   const prevMonthShifts = settings
-    ? filterShiftsByMonth(shifts, prevYear, prevMonth2).filter(
-        (s) => s.end_time !== null
-      )
+    ? filterShiftsByMonth(shifts, prevYear, prevMonth2).filter((s) => s.end_time !== null)
     : [];
 
-  const report =
-    settings && completedShifts.length > 0
-      ? buildMonthlyReport(
-          selectedYear,
-          selectedMonth,
-          monthShifts,
-          settings
-        )
-      : null;
+  const report = settings && completedShifts.length > 0
+    ? buildMonthlyReport(selectedYear, selectedMonth, monthShifts, settings)
+    : null;
 
-  const insights =
-    settings && completedShifts.length > 0
-      ? buildMonthInsights(completedShifts, settings)
-      : null;
+  const insights = settings && completedShifts.length > 0
+    ? buildMonthInsights(completedShifts, settings)
+    : null;
 
-  const weeklyData =
-    settings && completedShifts.length > 0
-      ? buildWeeklyBreakdown(completedShifts, prevMonthShifts, settings)
-      : null;
+  const weeklyData = settings && completedShifts.length > 0
+    ? buildWeeklyBreakdown(completedShifts, prevMonthShifts, settings)
+    : null;
 
-  const dailyInsights =
-    settings && completedShifts.length > 0
-      ? getDailyInsights(completedShifts, settings, report?.total_minutes ?? 0)
-      : null;
+  const dailyInsights = settings && completedShifts.length > 0
+    ? getDailyInsights(completedShifts, settings, report?.total_minutes ?? 0)
+    : null;
 
   const segments = report
     ? [
-        {
-          label: "Regular",
-          value: report.regular_minutes,
-          color: "bg-indigo-500",
-          dotColor: "#4f46e5",
-        },
-        {
-          label: "Overtime",
-          value: report.overtime_minutes,
-          color: "bg-amber-400",
-          dotColor: "#f59e0b",
-        },
-        {
-          label: "Weekend",
-          value: report.weekend_minutes,
-          color: "bg-violet-500",
-          dotColor: "#8b5cf6",
-        },
+        { label: "Regular",  value: report.regular_minutes,  color: "bg-[#5B4DF2]", dotColor: "#5B4DF2" },
+        { label: "Overtime", value: report.overtime_minutes, color: "bg-[#FF9E7D]", dotColor: "#FF9E7D" },
+        { label: "Weekend",  value: report.weekend_minutes,  color: "bg-[#8B5CF6]", dotColor: "#8B5CF6" },
       ]
     : [];
 
-  const monthPay =
-    settings?.hourly_rate && completedShifts.length > 0
-      ? sumMonthlyPay(completedShifts, settings)
-      : null;
+  const monthPay = settings?.hourly_rate && completedShifts.length > 0
+    ? sumMonthlyPay(completedShifts, settings)
+    : null;
 
   function handleExportCSV() {
     if (!settings || monthShifts.length === 0) return;
-    const csv = generateMonthlyCSV(
-      monthShifts,
-      settings,
-      selectedYear,
-      selectedMonth
-    );
+    const csv = generateMonthlyCSV(monthShifts, settings, selectedYear, selectedMonth);
     const filename = `elmtrackr-${selectedYear}-${String(selectedMonth).padStart(2, "0")}.csv`;
     downloadCSV(csv, filename);
     toast("CSV exported", "success");
   }
 
   return (
-    <div
-      className="min-h-screen pb-28"
-      style={{ background: "var(--color-surface)" }}
-    >
+    <div className="min-h-screen pb-28" style={{ background: "var(--au-bg)" }}>
       {/* Header */}
-      <div className="px-4 pt-12 pb-4 animate-fade-in">
-        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+      <div className="px-5 pt-12 pb-4 animate-fade-in">
+        <h1
+          className="text-3xl font-bold tracking-tight"
+          style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)", letterSpacing: "-0.02em" }}
+        >
           Reports
         </h1>
       </div>
 
-      {/* Tab switcher — Travel Refunds tab only shown when feature is enabled */}
-      <div className="mx-4 mb-3 bg-white rounded-2xl border border-gray-100 shadow-sm flex p-1 gap-1 animate-fade-in-up">
+      {/* Tab switcher */}
+      <div
+        className="mx-4 mb-3 rounded-3xl flex p-1 gap-1 animate-fade-in-up border border-white/80 au-card bg-white"
+      >
         <button
           onClick={() => setActiveTab("hours")}
-          className={[
-            "flex-1 rounded-xl py-2 text-sm font-bold transition-all",
+          className="flex-1 rounded-2xl py-2 text-sm font-bold transition-all"
+          style={
             activeTab === "hours"
-              ? "bg-indigo-600 text-white shadow-sm"
-              : "text-gray-500 hover:text-gray-700",
-          ].join(" ")}
+              ? { background: "var(--au-grad)", color: "white", boxShadow: "0 6px 14px -6px rgba(91,77,242,0.5)" }
+              : { background: "transparent", color: "var(--au-faint)" }
+          }
         >
           Hours
         </button>
         {settings?.features_travel_refunds && (
           <button
             onClick={() => setActiveTab("refunds")}
-            className={[
-              "flex-1 rounded-xl py-2 text-sm font-bold transition-all",
+            className="flex-1 rounded-2xl py-2 text-sm font-bold transition-all"
+            style={
               activeTab === "refunds"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-gray-500 hover:text-gray-700",
-            ].join(" ")}
+                ? { background: "var(--au-grad)", color: "white", boxShadow: "0 6px 14px -6px rgba(91,77,242,0.5)" }
+                : { background: "transparent", color: "var(--au-faint)" }
+            }
           >
             Travel Refunds
           </button>
         )}
       </div>
 
-      {/* Month picker — only in hours tab */}
+      {/* Month picker */}
       {activeTab === "hours" && (
-      <div className="mx-4 mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between px-3 py-2 animate-fade-in-up">
-        <button
-          onClick={prevMonth}
-          className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors"
-        >
-          <svg
-            className="h-4 w-4 text-gray-500"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.5}
-            viewBox="0 0 24 24"
+        <div className="mx-4 mb-4 rounded-3xl flex items-center justify-between px-3 py-2.5 animate-fade-in-up border border-white/80 au-card bg-white">
+          <button
+            onClick={prevMonth}
+            className="h-8 w-8 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity"
+            style={{ background: "var(--au-surface-sub)" }}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-        <span className="text-sm font-bold text-gray-800">{monthLabel}</span>
-        <button
-          onClick={nextMonth}
-          disabled={isCurrentMonth}
-          className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <svg
-            className="h-4 w-4 text-gray-500"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.5}
-            viewBox="0 0 24 24"
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <span className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>{monthLabel}</span>
+          <button
+            onClick={nextMonth}
+            disabled={isCurrentMonth}
+            className="h-8 w-8 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
+            style={{ background: "var(--au-surface-sub)" }}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
-      </div>
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
       )}
 
       <div className="max-w-md mx-auto px-4 flex flex-col gap-4">
         {error && <ErrorMessage message={error} />}
         {loading && <PageSpinner />}
 
-        {/* Refunds tab */}
         {!loading && activeTab === "refunds" && (
           <RefundReview shifts={shifts} settings={settings} />
         )}
 
         {!loading && activeTab === "hours" && !report && (
-          <EmptyState
-            title="No completed shifts"
-            description="Complete some shifts to see your report."
-          />
+          <EmptyState title="No completed shifts" description="Complete some shifts to see your report." />
         )}
 
         {!loading && activeTab === "hours" && report && settings && (
           <>
-            {/* ── Distribution ───────────────────────────── */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-1">
+            {/* Hours distribution */}
+            <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-1">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
+                  <p className="text-xs font-bold uppercase mb-1" style={{ color: "var(--au-faint)", letterSpacing: "0.14em" }}>
                     Hours Distribution
                   </p>
-                  <p className="text-3xl font-extrabold text-gray-900 mt-0.5 tracking-tight">
+                  <p className="text-3xl font-extrabold tracking-tight" style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)", letterSpacing: "-0.02em" }}>
                     {formatHoursDecimal(report.total_minutes, 1)}
-                    <span className="text-base font-semibold text-gray-400 ml-1">
-                      h
-                    </span>
+                    <span className="text-base font-semibold ml-1" style={{ color: "var(--au-faint)" }}>h</span>
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {report.shift_count} shift
-                    {report.shift_count !== 1 ? "s" : ""}
+                  <p className="text-xs mt-0.5" style={{ color: "var(--au-faint)" }}>
+                    {report.shift_count} shift{report.shift_count !== 1 ? "s" : ""}
                   </p>
                 </div>
                 <Button variant="secondary" size="sm" onClick={handleExportCSV}>
-                  <svg
-                    className="h-3.5 w-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                    />
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   CSV
                 </Button>
@@ -308,127 +227,90 @@ export default function ReportsPage() {
               <SegmentLegend segments={segments} />
             </div>
 
-            {/* ── Summary stat grid ──────────────────────── */}
+            {/* Summary stat grid */}
             <div className="grid grid-cols-2 gap-3">
-              <StatCard
-                label="Total"
-                value={formatHoursDecimal(report.total_minutes, 1) + "h"}
-                variant="primary"
-                stagger={1}
-              />
-              <StatCard
-                label="Regular"
-                value={formatHoursDecimal(report.regular_minutes, 1) + "h"}
-                variant="default"
-                stagger={2}
-              />
-              <StatCard
-                label="Overtime"
-                value={formatHoursDecimal(report.overtime_minutes, 1) + "h"}
-                variant="overtime"
-                stagger={3}
-              />
-              <StatCard
-                label="Weekend"
-                value={formatHoursDecimal(report.weekend_minutes, 1) + "h"}
-                variant="weekend"
-                stagger={4}
-              />
+              <StatCard label="Total"    value={formatHoursDecimal(report.total_minutes, 1) + "h"}    variant="primary"  stagger={1} />
+              <StatCard label="Regular"  value={formatHoursDecimal(report.regular_minutes, 1) + "h"}  variant="default"  stagger={2} />
+              <StatCard label="Overtime" value={formatHoursDecimal(report.overtime_minutes, 1) + "h"} variant="overtime" stagger={3} />
+              <StatCard label="Weekend"  value={formatHoursDecimal(report.weekend_minutes, 1) + "h"}  variant="weekend"  stagger={4} />
             </div>
 
-            {/* ── Gross pay ──────────────────────────────── */}
+            {/* Gross pay */}
             {monthPay && monthPay.total_gross > 0 && (
-              <div className="bg-white rounded-2xl border border-indigo-100 shadow-sm p-4 animate-fade-in-up">
-                <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">
+              <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up">
+                <p className="text-xs font-bold uppercase mb-2" style={{ color: "var(--au-faint)", letterSpacing: "0.14em" }}>
                   Gross Pay · Before Tax
                 </p>
-                <p className="text-3xl font-extrabold text-indigo-600 tracking-tight mb-3">
+                <p
+                  className="text-3xl font-extrabold tracking-tight mb-3"
+                  style={{
+                    fontFamily: "var(--au-display)",
+                    background: "var(--au-grad-text)",
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    color: "transparent",
+                  }}
+                >
                   {formatCurrency(monthPay.total_gross)}
                 </p>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-xl bg-indigo-50 p-2.5 text-center">
-                    <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wide">
-                      Regular
-                    </p>
-                    <p className="text-sm font-extrabold text-indigo-700 mt-0.5">
-                      {formatCurrency(monthPay.regular_gross)}
-                    </p>
+                  <div className="rounded-2xl p-2.5 text-center" style={{ background: "var(--au-surface-sub)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-faint)" }}>Regular</p>
+                    <p className="text-sm font-extrabold" style={{ color: "var(--au-indigo)" }}>{formatCurrency(monthPay.regular_gross)}</p>
                   </div>
-                  <div className="rounded-xl bg-amber-50 p-2.5 text-center">
-                    <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wide">
-                      Overtime
-                    </p>
-                    <p className="text-sm font-extrabold text-amber-700 mt-0.5">
-                      {formatCurrency(monthPay.overtime_gross)}
-                    </p>
+                  <div className="rounded-2xl p-2.5 text-center" style={{ background: "var(--au-overtime-bg)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-overtime-ink)" }}>Overtime</p>
+                    <p className="text-sm font-extrabold" style={{ color: "var(--au-peach-deep)" }}>{formatCurrency(monthPay.overtime_gross)}</p>
                   </div>
-                  <div className="rounded-xl bg-violet-50 p-2.5 text-center">
-                    <p className="text-[10px] text-violet-400 font-bold uppercase tracking-wide">
-                      Holiday
-                    </p>
-                    <p className="text-sm font-extrabold text-violet-700 mt-0.5">
-                      {formatCurrency(monthPay.special_gross)}
-                    </p>
+                  <div className="rounded-2xl p-2.5 text-center" style={{ background: "var(--au-weekend-bg)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-plum)" }}>Holiday</p>
+                    <p className="text-sm font-extrabold" style={{ color: "var(--au-plum)" }}>{formatCurrency(monthPay.special_gross)}</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ── Insights of the Day ────────────────────── */}
+            {/* Insights */}
             {settings?.features_insights && dailyInsights && (
               <InsightOfTheDay insights={dailyInsights} />
             )}
 
-            {/* ── 6 Quick stats ──────────────────────────── */}
             {settings?.features_insights && insights && (
               <QuickStats insights={insights} />
             )}
 
-            {/* ── Weekly breakdown ────────────────────────── */}
             {weeklyData && (
-              <WeeklyBreakdown
-                weeks={weeklyData}
-                prevMonthLabel={prevMonthLabel}
-              />
+              <WeeklyBreakdown weeks={weeklyData} prevMonthLabel={prevMonthLabel} />
             )}
 
-            {/* ── Thresholds ─────────────────────────────── */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center justify-center gap-4 text-xs text-gray-400 font-medium animate-fade-in-up">
+            {/* Thresholds */}
+            <div className="rounded-3xl bg-white border border-white/80 au-card px-4 py-3 flex items-center justify-center gap-4 text-xs font-medium animate-fade-in-up" style={{ color: "var(--au-faint)" }}>
               <span>
                 Daily OT after{" "}
-                <span className="text-gray-600 font-semibold">
+                <span className="font-semibold" style={{ color: "var(--au-ink)" }}>
                   {formatMinutes(settings.daily_overtime_threshold_minutes)}
                 </span>
               </span>
-              <span className="h-3 w-px bg-gray-200" />
+              <span className="h-3 w-px" style={{ background: "var(--au-hair)" }} />
               <span>
                 Weekly OT after{" "}
-                <span className="text-gray-600 font-semibold">
+                <span className="font-semibold" style={{ color: "var(--au-ink)" }}>
                   {formatMinutes(settings.weekly_overtime_threshold_minutes)}
                 </span>
               </span>
             </div>
 
-            {/* ── Shift-by-shift breakdown ────────────────── */}
+            {/* Shift breakdown */}
             <div>
-              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 mb-2">
+              <h2 className="text-xs font-bold uppercase px-1 mb-2" style={{ color: "var(--au-faint)", letterSpacing: "0.16em" }}>
                 Shift Breakdown
               </h2>
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="rounded-3xl overflow-hidden bg-white border border-white/80 au-card">
                 {completedShifts
                   .slice()
-                  .sort(
-                    (a, b) =>
-                      new Date(a.start_time).getTime() -
-                      new Date(b.start_time).getTime()
-                  )
+                  .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
                   .map((shift, i) => (
-                    <ShiftReportRow
-                      key={shift.id}
-                      shift={shift}
-                      settings={settings}
-                      index={i}
-                    />
+                    <ShiftReportRow key={shift.id} shift={shift} settings={settings} index={i} />
                   ))}
               </div>
             </div>
@@ -441,17 +323,9 @@ export default function ReportsPage() {
   );
 }
 
-// ── Shift report row ───────────────────────────────────────────
+// ── Shift report row ─────────────────────────────────────────────────────────
 
-function ShiftReportRow({
-  shift,
-  settings,
-  index,
-}: {
-  shift: Shift;
-  settings: UserSettings;
-  index: number;
-}) {
+function ShiftReportRow({ shift, settings, index }: { shift: Shift; settings: UserSettings; index: number }) {
   const net = netMinutes(shift) ?? 0;
   const otMins = Math.max(0, net - settings.daily_overtime_threshold_minutes);
   const dateStr = new Date(shift.start_time).toISOString().slice(0, 10);
@@ -460,75 +334,49 @@ function ShiftReportRow({
   const isSpecial = shift.is_special_day || isWeekend;
 
   const formatTime = (iso: string) =>
-    new Date(iso).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  const stripe = isSpecial
-    ? "bg-violet-400"
-    : isOvernight
-    ? "bg-indigo-400"
-    : "bg-indigo-200";
+  const stripeColor = isSpecial ? "var(--au-plum)" : isOvernight ? "var(--au-indigo)" : "var(--au-indigo)";
+  const stripeOpacity = isSpecial ? 1 : isOvernight ? 0.8 : 0.35;
 
-  const payBreakdown = settings.hourly_rate
-    ? calculateShiftPay(shift, settings)
-    : null;
+  const payBreakdown = settings.hourly_rate ? calculateShiftPay(shift, settings) : null;
 
   return (
     <div
-      className="flex items-center gap-0 border-b border-gray-100 last:border-0 animate-fade-in-up"
-      style={{ animationDelay: `${index * 0.04}s` }}
+      className="flex items-center gap-0 border-b last:border-0 animate-fade-in-up"
+      style={{ borderBottomColor: "var(--au-hair)", animationDelay: `${index * 0.04}s` }}
     >
-      <div className={`w-1 self-stretch flex-shrink-0 ${stripe}`} />
+      <div className="w-1 self-stretch flex-shrink-0 rounded-l-sm" style={{ background: stripeColor, opacity: stripeOpacity }} />
       <div className="flex-1 px-3 py-3">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="text-sm font-bold text-gray-800">
-              {new Date(shift.start_time).toLocaleDateString([], {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              })}
+            <p className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>
+              {new Date(shift.start_time).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs mt-0.5" style={{ color: "var(--au-faint)" }}>
               {formatTime(shift.start_time)}
               {shift.end_time ? ` — ${formatTime(shift.end_time)}` : ""}
-              {shift.break_minutes > 0
-                ? ` · ${shift.break_minutes}m break`
-                : ""}
+              {shift.break_minutes > 0 ? ` · ${shift.break_minutes}m break` : ""}
             </p>
             <div className="flex gap-1 mt-1 flex-wrap">
               {shift.is_special_day && (
-                <span className="rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold px-1.5 py-0.5">
-                  Holiday
-                </span>
+                <span className="rounded-full text-[10px] font-bold px-1.5 py-0.5" style={{ background: "var(--au-weekend-bg)", color: "var(--au-plum)" }}>Holiday</span>
               )}
               {isWeekend && !shift.is_special_day && (
-                <span className="rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold px-1.5 py-0.5">
-                  Weekend
-                </span>
+                <span className="rounded-full text-[10px] font-bold px-1.5 py-0.5" style={{ background: "var(--au-weekend-bg)", color: "var(--au-plum)" }}>Weekend</span>
               )}
               {isOvernight && (
-                <span className="rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5">
-                  Overnight
-                </span>
+                <span className="rounded-full text-[10px] font-bold px-1.5 py-0.5" style={{ background: "var(--au-surface-sub)", color: "var(--au-indigo)" }}>Overnight</span>
               )}
             </div>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-sm font-bold text-gray-800">
-              {formatMinutes(net)}
-            </p>
+            <p className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>{formatMinutes(net)}</p>
             {otMins > 0 && !isSpecial && (
-              <p className="text-xs text-amber-500 font-bold">
-                +{formatMinutes(otMins)} OT
-              </p>
+              <p className="text-xs font-bold" style={{ color: "var(--au-peach-deep)" }}>+{formatMinutes(otMins)} OT</p>
             )}
             {payBreakdown && (
-              <p className="text-xs font-bold text-indigo-500 mt-0.5">
-                {formatCurrency(payBreakdown.total_gross)}
-              </p>
+              <p className="text-xs font-bold mt-0.5" style={{ color: "var(--au-indigo)" }}>{formatCurrency(payBreakdown.total_gross)}</p>
             )}
           </div>
         </div>

@@ -49,29 +49,37 @@ export default function ShiftsPage() {
     selectedYear === now.getUTCFullYear() && selectedMonth === now.getUTCMonth() + 1;
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
+    <div className="min-h-screen pb-28" style={{ background: "var(--au-bg)" }}>
       {/* Header */}
-      <div className="px-4 pt-12 pb-4 flex items-center justify-between animate-fade-in">
-        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Shifts</h1>
+      <div className="px-5 pt-12 pb-4 flex items-center justify-between animate-fade-in">
+        <h1
+          className="text-3xl font-bold tracking-tight"
+          style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)", letterSpacing: "-0.02em" }}
+        >
+          All shifts
+        </h1>
         <Link href="/shifts/new">
           <Button size="sm">+ New</Button>
         </Link>
       </div>
 
       {/* Month picker */}
-      <div className="mx-4 mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between px-3 py-2 animate-fade-in-up">
+      <div
+        className="mx-4 mb-4 rounded-3xl flex items-center justify-between px-3 py-2.5 animate-fade-in-up border border-white/80 au-card bg-white"
+      >
         <button
           onClick={prevMonth}
-          className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors"
+          className="h-8 w-8 rounded-xl flex items-center justify-center transition-colors hover:opacity-60"
+          style={{ background: "var(--au-surface-sub)" }}
         >
-          <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <div className="text-center">
-          <p className="text-sm font-bold text-gray-800">{monthLabel}</p>
+          <p className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>{monthLabel}</p>
           {totalMins > 0 && (
-            <p className="text-xs text-indigo-500 font-semibold mt-0.5">
+            <p className="text-xs font-semibold mt-0.5" style={{ color: "var(--au-indigo)" }}>
               {formatHoursDecimal(totalMins, 1)}h · {filtered.filter((s) => s.end_time).length} shifts
             </p>
           )}
@@ -79,9 +87,10 @@ export default function ShiftsPage() {
         <button
           onClick={nextMonth}
           disabled={isCurrentMonth}
-          className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="h-8 w-8 rounded-xl flex items-center justify-center transition-colors hover:opacity-60 disabled:opacity-20 disabled:cursor-not-allowed"
+          style={{ background: "var(--au-surface-sub)" }}
         >
-          <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
@@ -98,7 +107,7 @@ export default function ShiftsPage() {
           />
         )}
         {!loading && filtered.length > 0 && settings && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="rounded-3xl overflow-hidden border border-white/80 au-card bg-white">
             {filtered.map((shift, i) => (
               <ShiftRow
                 key={shift.id}
@@ -107,6 +116,29 @@ export default function ShiftsPage() {
                 animationIndex={i}
               />
             ))}
+          </div>
+        )}
+
+        {/* Add manually button */}
+        {!loading && (
+          <div className="mt-4">
+            <Link
+              href="/shifts/new"
+              className="flex items-center justify-center gap-2 rounded-3xl py-4 transition-all duration-200"
+              style={{
+                border: `1.5px dashed var(--au-hair)`,
+                background: "rgba(255,255,255,0.5)",
+                color: "var(--au-indigo)",
+              }}
+            >
+              <span
+                className="h-5 w-5 rounded-lg flex items-center justify-center text-xs font-bold"
+                style={{ background: "var(--au-surface-sub)", color: "var(--au-indigo)" }}
+              >
+                +
+              </span>
+              <span className="text-sm font-semibold">Add shift manually</span>
+            </Link>
           </div>
         )}
       </div>

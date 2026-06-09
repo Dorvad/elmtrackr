@@ -33,32 +33,40 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
   const refundEligible = checkRefundEligibility(shift).eligible;
   const refundPending = refundEligible && shift.refund_action == null && !isActive;
 
-  // Left stripe color
   const stripeColor = isActive
-    ? "bg-emerald-400"
+    ? "#10b981"
     : isSpecial
-    ? "bg-violet-400"
+    ? "var(--au-plum)"
     : isOvernight
-    ? "bg-indigo-400"
-    : "bg-indigo-200";
+    ? "var(--au-indigo)"
+    : "var(--au-indigo)";
+  const stripeOpacity = isActive ? 1 : isSpecial ? 1 : isOvernight ? 0.75 : 0.3;
 
   const delay = Math.min(animationIndex * 0.05, 0.3);
 
   return (
     <Link
       href={`/shifts/${shift.id}`}
-      className="flex items-center gap-0 overflow-hidden hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-100 last:border-0 animate-fade-in-up"
-      style={{ animationDelay: `${delay}s` }}
+      className="flex items-center gap-0 overflow-hidden transition-colors border-b last:border-0 animate-fade-in-up"
+      style={{
+        animationDelay: `${delay}s`,
+        borderBottomColor: "var(--au-hair)",
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = "var(--au-surface-sub)")}
+      onMouseLeave={e => (e.currentTarget.style.background = "")}
     >
       {/* Left color stripe */}
-      <div className={`w-1 self-stretch flex-shrink-0 ${stripeColor}`} />
+      <div
+        className="w-1 self-stretch flex-shrink-0"
+        style={{ background: stripeColor, opacity: stripeOpacity }}
+      />
 
       {/* Date block */}
       <div className="flex-shrink-0 w-14 text-center py-3.5 pl-3">
-        <p className="text-base font-extrabold text-gray-900 leading-none">
+        <p className="text-base font-extrabold leading-none" style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)" }}>
           {String(startDate.getUTCDate()).padStart(2, "0")}
         </p>
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mt-0.5">
+        <p className="text-[10px] font-semibold uppercase tracking-wide mt-0.5" style={{ color: "var(--au-faint)" }}>
           {startDate.toLocaleString("default", { weekday: "short" })}
         </p>
       </div>
@@ -66,44 +74,44 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
       {/* Main info */}
       <div className="flex-1 min-w-0 py-3.5 px-2">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-sm font-semibold text-gray-800">
+          <span className="text-sm font-semibold" style={{ color: "var(--au-ink)" }}>
             {formatTime(startDate)}
             {endDate ? ` — ${formatTime(endDate)}` : ""}
           </span>
         </div>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           {isActive && (
-            <span className="rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
+            <span className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide" style={{ background: "rgba(16,185,129,0.12)", color: "#10b981" }}>
               Live
             </span>
           )}
           {shift.is_special_day && (
-            <span className="rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
+            <span className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide" style={{ background: "var(--au-weekend-bg)", color: "var(--au-plum)" }}>
               Holiday
             </span>
           )}
           {isWeekend && !shift.is_special_day && (
-            <span className="rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
+            <span className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide" style={{ background: "var(--au-weekend-bg)", color: "var(--au-plum)" }}>
               Weekend
             </span>
           )}
           {isOvernight && (
-            <span className="rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
+            <span className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide" style={{ background: "var(--au-surface-sub)", color: "var(--au-indigo)" }}>
               Overnight
             </span>
           )}
           {shift.notes && (
-            <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
+            <span className="text-[10px] truncate max-w-[120px]" style={{ color: "var(--au-faint)" }}>
               {shift.notes}
             </span>
           )}
           {showRefunds && refundPending && (
-            <span className="rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
+            <span className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide" style={{ background: "var(--au-overtime-bg)", color: "var(--au-overtime-ink)" }}>
               Refund?
             </span>
           )}
           {showRefunds && shift.refund_action === "submitted" && (
-            <span className="rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
+            <span className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide" style={{ background: "rgba(16,185,129,0.12)", color: "#10b981" }}>
               Refund ✓
             </span>
           )}
@@ -113,15 +121,15 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
       {/* Duration + pay */}
       <div className="flex-shrink-0 text-right py-3.5 pr-3">
         {isActive ? (
-          <span className="text-sm font-bold text-emerald-600">●</span>
+          <span className="text-sm font-bold" style={{ color: "#10b981" }}>●</span>
         ) : net !== null ? (
           <>
-            <p className="text-sm font-bold text-gray-800">{formatMinutes(net)}</p>
+            <p className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>{formatMinutes(net)}</p>
             {pay && (
-              <p className="text-[10px] font-bold text-indigo-500">{formatCurrency(pay.total_gross)}</p>
+              <p className="text-[10px] font-bold" style={{ color: "var(--au-indigo)" }}>{formatCurrency(pay.total_gross)}</p>
             )}
             {!pay && shift.break_minutes > 0 && (
-              <p className="text-[10px] text-gray-400">{shift.break_minutes}m brk</p>
+              <p className="text-[10px]" style={{ color: "var(--au-faint)" }}>{shift.break_minutes}m brk</p>
             )}
           </>
         ) : null}
@@ -129,11 +137,12 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
 
       {/* Chevron */}
       <svg
-        className="h-3.5 w-3.5 text-gray-300 flex-shrink-0 mr-3"
+        className="h-3.5 w-3.5 flex-shrink-0 mr-3"
         fill="none"
         stroke="currentColor"
         strokeWidth={2.5}
         viewBox="0 0 24 24"
+        style={{ color: "var(--au-faint)" }}
       >
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
       </svg>

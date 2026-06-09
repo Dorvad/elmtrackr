@@ -115,8 +115,10 @@ export default function SettingsPage() {
 
   if (loading || profileLoading || !initialised || !profileInitialised) {
     return (
-      <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
-        <div className="px-4 pt-12 pb-4"><h1 className="text-2xl font-extrabold text-gray-900">Settings</h1></div>
+      <div className="min-h-screen pb-28" style={{ background: "var(--au-bg)" }}>
+        <div className="px-5 pt-12 pb-4">
+          <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)" }}>Settings</h1>
+        </div>
         <PageSpinner />
         <BottomNav />
       </div>
@@ -124,15 +126,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
-      <div className="px-4 pt-12 pb-4 animate-fade-in">
-        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Settings</h1>
+    <div className="min-h-screen pb-28" style={{ background: "var(--au-bg)" }}>
+      <div className="px-5 pt-12 pb-4 animate-fade-in">
+        <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)", letterSpacing: "-0.02em" }}>Settings</h1>
       </div>
 
       <div className="max-w-md mx-auto px-4">
-        {/* Appearance — outside the form; theme is client-only state */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4 animate-fade-in-up stagger-1">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+        {/* Appearance */}
+        <div className="rounded-3xl bg-white border border-white/80 au-card p-4 mb-4 animate-fade-in-up stagger-1">
+          <h2 className="text-xs font-bold uppercase mb-3" style={{ color: "var(--au-faint)", letterSpacing: "0.16em" }}>
             Appearance
           </h2>
           <ThemeToggle />
@@ -140,8 +142,8 @@ export default function SettingsPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Profile */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-1">
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+          <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-1">
+            <h2 className="text-xs font-bold uppercase mb-1">
               Profile
             </h2>
             <p className="text-xs text-gray-400 mb-4">
@@ -157,8 +159,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Overtime thresholds */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-2">
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-2">
+            <h2 className="text-xs font-bold uppercase mb-4">
               Overtime Thresholds
             </h2>
             <div className="flex flex-col gap-4">
@@ -186,8 +188,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Weekend days */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-2">
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+          <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-2">
+            <h2 className="text-xs font-bold uppercase mb-1">
               Weekend Days
             </h2>
             <p className="text-xs text-gray-400 mb-4">
@@ -213,8 +215,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Payroll */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-3">
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+          <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-3">
+            <h2 className="text-xs font-bold uppercase mb-1">
               Payroll
             </h2>
             <p className="text-xs text-gray-400 mb-4">
@@ -233,8 +235,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Location */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-in-up stagger-4">
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-4">
+            <h2 className="text-xs font-bold uppercase mb-4">
               Location
             </h2>
             <CountrySelect
@@ -250,7 +252,7 @@ export default function SettingsPage() {
         </form>
 
         {/* Features */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-4 animate-fade-in-up stagger-5">
+        <div className="rounded-3xl bg-white border border-white/80 au-card overflow-hidden mt-4 animate-fade-in-up stagger-5">
           <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-4 pt-4 mb-1">
             Features
           </h2>
@@ -293,8 +295,8 @@ export default function SettingsPage() {
         </div>
 
         {/* Security */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mt-4 animate-fade-in-up stagger-5">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+        <div className="rounded-3xl bg-white border border-white/80 au-card p-4 mt-4 animate-fade-in-up stagger-5">
+          <h2 className="text-xs font-bold uppercase mb-1">
             Security
           </h2>
           <p className="text-xs text-gray-400 mb-4">
