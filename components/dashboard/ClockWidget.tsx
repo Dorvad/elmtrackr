@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Shift } from "@/types";
 import type { ClockStyle } from "@/types";
 import { ProgressRing } from "@/components/ui/ProgressRing";
@@ -108,6 +108,8 @@ export function ClockWidget({
 }: ClockWidgetProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [phase, setPhase] = useState<Phase>(() => getPhase(new Date().getHours()));
+  const [bloom, setBloom] = useState(false);
+  const prevClockedRef = useRef(activeShift !== null);
 
   useEffect(() => {
     if (!activeShift) { setElapsedSeconds(0); return; }
@@ -129,6 +131,18 @@ export function ClockWidget({
     return () => clearInterval(id);
   }, []);
 
+  // Bloom on clock-in
+  useEffect(() => {
+    const isClockedIn = activeShift !== null;
+    if (!prevClockedRef.current && isClockedIn) {
+      setBloom(true);
+      const t = setTimeout(() => setBloom(false), 900);
+      prevClockedRef.current = isClockedIn;
+      return () => clearTimeout(t);
+    }
+    prevClockedRef.current = isClockedIn;
+  }, [activeShift]);
+
   const isClockedIn = activeShift !== null;
   const dailyThresholdSeconds = dailyThresholdMinutes * 60;
   const progress = isClockedIn ? Math.min(1, elapsedSeconds / dailyThresholdSeconds) : 0;
@@ -139,14 +153,14 @@ export function ClockWidget({
     else await onClockIn();
   }
 
-  const sharedProps = { isClockedIn, elapsedSeconds, isOvertime, loading, onPress: handlePress, phase };
+  const sharedProps = { isClockedIn, elapsedSeconds, isOvertime, loading, onPress: handlePress, phase, bloom };
 
   if (clockStyle === "bold") return <BoldClock {...sharedProps} />;
   if (clockStyle === "night") return <NightClock {...sharedProps} />;
   if (clockStyle === "retro") return <RetroClock {...sharedProps} />;
   if (clockStyle === "minimal") return <MinimalClock {...sharedProps} />;
   if (clockStyle === "focus") return <FocusClock {...sharedProps} />;
-  if (clockStyle === "aurora") return <AuroraClock {...sharedProps} progress={progress} />;
+  if (clockStyle === "aurora") return <AuroraClock {...sharedProps} progress={progress} bloom={bloom} />;
   if (clockStyle === "pulse") return <PulseClock {...sharedProps} />;
   if (clockStyle === "dial") return <DialClock {...sharedProps} progress={progress} />;
 
@@ -204,6 +218,19 @@ export function ClockWidget({
                 background: phaseGrad(phase),
                 filter: "blur(26px)",
                 opacity: 0.22,
+              }}
+            />
+          )}
+          {bloom && (
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: "50%",
+                border: `10px solid ${PHASE_STOPS[phase][1]}`,
+                animation: "auBloom 0.9s cubic-bezier(0.2,0.6,0.3,1) forwards",
+                pointerEvents: "none",
               }}
             />
           )}
@@ -393,6 +420,7 @@ interface SharedProps {
   loading: boolean;
   onPress: () => Promise<void>;
   phase: Phase;
+  bloom?: boolean;
 }
 
 // ── Minimal style ─────────────────────────────────────────────────────────────
@@ -559,7 +587,7 @@ function FocusClock({ isClockedIn, elapsedSeconds, loading, onPress, phase }: Sh
       </div>
       <div className="relative z-10 flex flex-col items-center gap-4 w-full">
         <div className="relative" style={{ width: 220, height: 220 }}>
-          {/* Concentric breathing rings */}
+          {/* Concentric breathing rings — staggered scale + opacity */}
           {[1, 0.74, 0.5].map((s, i) => (
             <div
               key={i}
@@ -571,10 +599,13 @@ function FocusClock({ isClockedIn, elapsedSeconds, loading, onPress, phase }: Sh
                 height: 220 * s,
                 transform: "translate(-50%, -50%)",
                 borderRadius: "50%",
-                border: `1.5px solid ${stops[1]}`,
-                opacity: 0.12 + i * 0.06,
-                animation: isClockedIn ? `auBreathe ${5 + i}s ease-in-out infinite` : "none",
-                animationDelay: `${i * 0.4}s`,
+                border: `${1.5 + i * 0.5}px solid ${stops[1]}`,
+                opacity: 0.14 + i * 0.1,
+                animation: isClockedIn
+                  ? `auBreathe ${5.4 - i * 0.5}s cubic-bezier(0.45,0,0.55,1) infinite`
+                  : "none",
+                animationDelay: `${i * 0.55}s`,
+                boxShadow: i === 2 && isClockedIn ? `0 0 24px rgba(${parseInt(stops[1].slice(1,3),16)},${parseInt(stops[1].slice(3,5),16)},${parseInt(stops[1].slice(5,7),16)},0.25)` : "none",
               }}
             />
           ))}
@@ -587,8 +618,8 @@ function FocusClock({ isClockedIn, elapsedSeconds, loading, onPress, phase }: Sh
               width: 120,
               height: 120,
               borderRadius: "50%",
-              background: `radial-gradient(circle, rgba(${parseInt(stops[0].slice(1, 3), 16)},${parseInt(stops[0].slice(3, 5), 16)},${parseInt(stops[0].slice(5, 7), 16)},0.18), transparent 70%)`,
-              animation: isClockedIn ? "auBreathe 5s ease-in-out infinite" : "none",
+              background: `radial-gradient(circle, rgba(${parseInt(stops[0].slice(1, 3), 16)},${parseInt(stops[0].slice(3, 5), 16)},${parseInt(stops[0].slice(5, 7), 16)},0.2), transparent 70%)`,
+              animation: isClockedIn ? "auBreathe 5s cubic-bezier(0.45,0,0.55,1) infinite" : "none",
             }}
           />
           <div
@@ -644,7 +675,7 @@ function FocusClock({ isClockedIn, elapsedSeconds, loading, onPress, phase }: Sh
 
 // ── Night style ───────────────────────────────────────────────────────────────
 
-function NightClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress }: SharedProps) {
+function NightClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress, bloom }: SharedProps) {
   const size = 220, stroke = 11, r = (size - stroke) / 2, c = 2 * Math.PI * r;
   const prog = isClockedIn ? Math.min(1, elapsedSeconds / (8 * 3600)) : 0;
   const target = c * (1 - prog);
@@ -652,6 +683,10 @@ function NightClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress 
     ? formatHMS(elapsedSeconds)
     : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const stars: [number, number][] = [[20, 30], [70, 16], [88, 44], [30, 78], [82, 80], [12, 60], [56, 90], [44, 12]];
+  // Comet position at arc tip
+  const cometAngle = -Math.PI / 2 + prog * 2 * Math.PI;
+  const cometX = size / 2 + r * Math.cos(cometAngle);
+  const cometY = size / 2 + r * Math.sin(cometAngle);
 
   return (
     <div
@@ -676,6 +711,19 @@ function NightClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress 
       ))}
 
       <div className="relative" style={{ width: size, height: size }}>
+        {bloom && (
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              border: "10px solid #7C7CFF",
+              animation: "auBloom 0.9s cubic-bezier(0.2,0.6,0.3,1) forwards",
+              pointerEvents: "none",
+            }}
+          />
+        )}
         <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
           <defs>
             <linearGradient id="ngt-g" x1="0" y1="0" x2="1" y2="1">
@@ -693,9 +741,26 @@ function NightClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress 
             strokeLinecap="round"
             strokeDasharray={c}
             strokeDashoffset={target}
-            style={{ filter: "drop-shadow(0 0 6px rgba(124,124,255,0.8))", transition: "stroke-dashoffset 1s cubic-bezier(0.3, 0.8, 0.3, 1)" }}
+            style={{ filter: "drop-shadow(0 0 8px rgba(124,124,255,0.9))", transition: "stroke-dashoffset 1s cubic-bezier(0.3, 0.8, 0.3, 1)" }}
           />
         </svg>
+        {/* Comet dot at arc tip */}
+        {prog > 0.008 && (
+          <div
+            style={{
+              position: "absolute",
+              left: cometX - 9,
+              top: cometY - 9,
+              width: 18,
+              height: 18,
+              borderRadius: 999,
+              background: "#fff",
+              boxShadow: "0 0 0 4px rgba(124,124,255,0.5), 0 0 18px rgba(124,124,255,0.9)",
+              transition: "all 1s cubic-bezier(0.3,0.8,0.3,1)",
+              pointerEvents: "none",
+            }}
+          />
+        )}
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
           <div className="text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "rgba(255,255,255,0.5)" }}>
             {isClockedIn ? "Night Shift" : "🌙 Late"}
@@ -746,7 +811,6 @@ function NightClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress 
 // ── Retro style ───────────────────────────────────────────────────────────────
 
 function FlipCard({ digit, phase }: { digit: string; phase: Phase }) {
-  const stops = PHASE_STOPS[phase];
   return (
     <div
       style={{
@@ -763,12 +827,20 @@ function FlipCard({ digit, phase }: { digit: string; phase: Phase }) {
       }}
     >
       <span
+        key={digit}
         className="tabular-nums"
-        style={{ fontFamily: "var(--au-display)", fontSize: 54, fontWeight: 600, color: "#F4F3FF", letterSpacing: "-0.02em" }}
+        style={{
+          fontFamily: "var(--au-display)",
+          fontSize: 54,
+          fontWeight: 600,
+          color: "#F4F3FF",
+          letterSpacing: "-0.02em",
+          animation: "auFlip 0.28s cubic-bezier(0.22,0.8,0.28,1)",
+        }}
       >
         {digit}
       </span>
-      <div style={{ position: "absolute", left: 0, right: 0, top: "50%", height: 2, background: "rgba(0,0,0,0.4)", transform: "translateY(-1px)" }} />
+      <div style={{ position: "absolute", left: 0, right: 0, top: "50%", height: 2, background: "rgba(0,0,0,0.45)", transform: "translateY(-1px)" }} />
       <div style={{ position: "absolute", left: -3, top: "50%", width: 6, height: 12, borderRadius: 3, background: "#15122B", transform: "translateY(-6px)" }} />
       <div style={{ position: "absolute", right: -3, top: "50%", width: 6, height: 12, borderRadius: 3, background: "#15122B", transform: "translateY(-6px)" }} />
     </div>
@@ -841,7 +913,7 @@ function RetroClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress,
 
 // ── Aurora style (gradient ring) ─────────────────────────────────────────────
 
-function AuroraClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress, phase, progress }: SharedProps & { progress: number }) {
+function AuroraClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress, phase, progress, bloom }: SharedProps & { progress: number }) {
   const size = 200, strokeWidth = 14, radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - Math.min(1, progress));
@@ -864,6 +936,19 @@ function AuroraClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress
         </div>
 
         <div className="relative" style={{ width: size, height: size }}>
+          {bloom && (
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: "50%",
+                border: `10px solid ${PHASE_STOPS[phase][1]}`,
+                animation: "auBloom 0.9s cubic-bezier(0.2,0.6,0.3,1) forwards",
+                pointerEvents: "none",
+              }}
+            />
+          )}
           <svg width={size} height={size} className="absolute inset-0">
             <defs>
               <linearGradient id={`au-ring-${phase}`} x1="0" y1="0" x2={size} y2={size} gradientUnits="userSpaceOnUse">
@@ -932,10 +1017,10 @@ function AuroraClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress
 
 // ── Pulse style ───────────────────────────────────────────────────────────────
 
-function PulseClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress, phase }: SharedProps) {
+function PulseClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress, phase, bloom }: SharedProps) {
   const stops = PHASE_STOPS[phase];
   const ringColor = isClockedIn ? (isOvertime ? "#FF9E7D" : stops[1]) : "#E2E0F2";
-  const glowColor = isClockedIn ? (isOvertime ? "rgba(255,158,125,0.45)" : "rgba(91,77,242,0.45)") : "transparent";
+  const glowColor = isClockedIn ? (isOvertime ? "rgba(255,158,125,0.5)" : "rgba(91,77,242,0.5)") : "transparent";
 
   return (
     <div className="rounded-3xl overflow-hidden relative animate-scale-in bg-white border border-white/80 au-card p-6 flex flex-col items-center gap-4">
@@ -945,30 +1030,74 @@ function PulseClock({ isClockedIn, elapsedSeconds, isOvertime, loading, onPress,
       </div>
       <div className="relative z-10 flex flex-col items-center gap-4 w-full">
         <div className="relative" style={{ width: 164, height: 164 }}>
+          {/* Sonar ping rings when active */}
+          {isClockedIn && [0, 1].map((i) => (
+            <div
+              key={`sonar-${i}`}
+              className="absolute rounded-full"
+              style={{
+                top: "50%",
+                left: "50%",
+                width: 60,
+                height: 60,
+                marginTop: -30,
+                marginLeft: -30,
+                border: `2px solid ${ringColor}`,
+                animation: `auSonar 2.8s ease-out infinite`,
+                animationDelay: `${i * 1.4}s`,
+                pointerEvents: "none",
+              }}
+            />
+          ))}
+          {/* Bloom ring on clock-in */}
+          {bloom && (
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                width: 80,
+                height: 80,
+                marginTop: -40,
+                marginLeft: -40,
+                borderRadius: "50%",
+                border: `8px solid ${ringColor}`,
+                animation: "auBloom 0.9s cubic-bezier(0.2,0.6,0.3,1) forwards",
+                pointerEvents: "none",
+              }}
+            />
+          )}
+          {/* Static concentric rings */}
           {[0, 1, 2].map((i) => (
             <div
               key={i}
               className="absolute rounded-full border transition-all duration-700"
               style={{
-                top: i * 16,
-                right: i * 16,
-                bottom: i * 16,
-                left: i * 16,
+                top: i * 20,
+                right: i * 20,
+                bottom: i * 20,
+                left: i * 20,
                 borderColor: ringColor,
-                opacity: 1 - i * 0.25,
-                animation: isClockedIn && i === 0 ? "auBreathe 2.5s ease-in-out infinite" : "none",
-                boxShadow: i === 0 && isClockedIn ? `0 0 20px ${glowColor}, 0 0 40px ${glowColor}` : "none",
+                opacity: 1 - i * 0.28,
+                animation: isClockedIn
+                  ? `auBreathe ${2.8 - i * 0.3}s ${i === 0 ? "cubic-bezier(0.4,0,0.2,1)" : "ease-in-out"} infinite`
+                  : "none",
+                animationDelay: `${i * 0.2}s`,
+                boxShadow: i < 2 && isClockedIn ? `0 0 ${28 - i * 10}px ${glowColor}, 0 0 ${56 - i * 20}px ${glowColor}` : "none",
               }}
             />
           ))}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
             <span
+              key={Math.floor(elapsedSeconds / 60)}
               className="font-bold tabular-nums leading-none"
               style={{
                 fontFamily: "var(--au-display)",
                 color: isClockedIn ? ringColor : "var(--au-faint)",
-                textShadow: isClockedIn ? `0 0 14px ${glowColor}` : "none",
+                textShadow: isClockedIn ? `0 0 18px ${glowColor}` : "none",
                 fontSize: elapsedSeconds >= 3600 ? 14 : 18,
+                animation: isClockedIn ? "auCountSettle 0.5s both" : "none",
               }}
               suppressHydrationWarning
             >
