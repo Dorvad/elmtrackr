@@ -17,74 +17,120 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 
 @Composable
-fun DashboardScreen() {
-    var isClockedIn by remember { mutableStateOf(false) }
+fun DashboardScreen(
+    viewModel: DashboardViewModel = viewModel(factory = DashboardViewModel.Factory),
+) {
+    val uiState by viewModel.uiState.collectAsState()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        when (val state = uiState) {
+            is DashboardUiState.Loading -> DashboardLoading()
+            is DashboardUiState.Ready -> DashboardReady(
+                state = state,
+                onClockIn = viewModel::clockIn,
+                onClockOut = { shiftId -> viewModel.clockOut(shiftId) },
+            )
+            is DashboardUiState.Error -> DashboardError(state.message)
+        }
+    }
+}
+
+@Composable
+private fun DashboardLoading() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun DashboardError(message: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "Error: $message", color = MaterialTheme.colorScheme.error)
+    }
+}
+
+@Composable
+private fun DashboardReady(
+    state: DashboardUiState.Ready,
+    onClockIn: () -> Unit,
+    onClockOut: (String) -> Unit,
+) {
+    val isClockedIn = state.activeShift != null
+    val report = state.monthlyReport
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp, vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "ElmTrackr",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = if (isClockedIn) "Currently clocked in" else "Track shifts, overtime & earnings",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        ClockButton(
+            isClockedIn = isClockedIn,
+            onToggle = {
+                if (isClockedIn) onClockOut(state.activeShift!!.id)
+                else onClockIn()
+            },
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Text(
+            text = "THIS MONTH",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = "ElmTrackr",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Track shifts, overtime & earnings",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
+            val hoursLabel = if (report != null)
+                ShiftDurationCalculator.formatMinutes(report.totalMinutes) else "—"
+            val otLabel = if (report != null)
+                ShiftDurationCalculator.formatMinutes(report.overtimeMinutes) else "—"
+            val shiftsLabel = report?.shiftCount?.toString() ?: "—"
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            ClockButton(
-                isClockedIn = isClockedIn,
-                onToggle = { isClockedIn = !isClockedIn },
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Text(
-                text = "THIS MONTH",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                StatCard(label = "Hours", value = "—", modifier = Modifier.weight(1f))
-                StatCard(label = "Overtime", value = "—", modifier = Modifier.weight(1f))
-                StatCard(label = "Shifts", value = "—", modifier = Modifier.weight(1f))
-            }
+            StatCard(label = "Hours",    value = hoursLabel,  modifier = Modifier.weight(1f))
+            StatCard(label = "Overtime", value = otLabel,     modifier = Modifier.weight(1f))
+            StatCard(label = "Shifts",   value = shiftsLabel, modifier = Modifier.weight(1f))
         }
     }
 }
@@ -95,10 +141,7 @@ private fun ClockButton(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier,
-    ) {
+    Box(contentAlignment = Alignment.Center, modifier = modifier) {
         Button(
             onClick = onToggle,
             shape = CircleShape,
@@ -126,11 +169,7 @@ private fun ClockButton(
 }
 
 @Composable
-private fun StatCard(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-) {
+private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
@@ -138,9 +177,7 @@ private fun StatCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -163,6 +200,6 @@ private fun StatCard(
 @Composable
 private fun DashboardScreenPreview() {
     ElmTrackrTheme {
-        DashboardScreen()
+        DashboardError("preview only")
     }
 }
