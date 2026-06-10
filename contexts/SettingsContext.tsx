@@ -168,8 +168,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [settings, supabase]
   );
 
+  const value = useMemo(
+    () => ({ settings, loading, error, saveSettings }),
+    [settings, loading, error, saveSettings]
+  );
+
   return (
-    <SettingsContext.Provider value={{ settings, loading, error, saveSettings }}>
+    <SettingsContext.Provider value={value}>
       {children}
     </SettingsContext.Provider>
   );

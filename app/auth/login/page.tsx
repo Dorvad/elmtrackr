@@ -1,7 +1,5 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useState, FormEvent } from "react";
 import { createClient, isMissingConfig } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";

@@ -45,6 +45,8 @@ const CLOCK_STYLES: { value: ClockStyle; label: string; desc: string }[] = [
   { value: "aurora",  label: "Aurora",   desc: "Rainbow gradient ring" },
   { value: "pulse",   label: "Pulse",    desc: "Glowing sonar rings" },
   { value: "dial",    label: "Dial",     desc: "Analog sweep hand" },
+  { value: "strand",  label: "Strand",   desc: "Fiber-optic strand fill" },
+  { value: "prism",   label: "Prism",    desc: "Triangle liquid rise" },
 ];
 
 export default function FeaturesPage() {
@@ -155,7 +157,7 @@ export default function FeaturesPage() {
       iconBg: "var(--au-surface-sub)",
       iconColor: "var(--au-indigo)",
       title: "Clock Styles",
-      desc: "Choose from 9 clock widget faces for your home screen.",
+      desc: "Choose from 11 clock widget faces for your home screen.",
       value: clockStyles ?? true,
       onChange: setClockStyles,
     },

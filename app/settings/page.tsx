@@ -1,7 +1,5 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useState, FormEvent } from "react";
 import { useSettings } from "@/hooks/useSettings";
 import { useProfile } from "@/hooks/useProfile";
