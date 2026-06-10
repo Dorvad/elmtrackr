@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { CountrySelect } from "@/components/ui/CountrySelect";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { Badge } from "@/components/ui/badge";
+import { ImageComparison } from "@/components/ui/image-comparison";
 import { createClient } from "@/lib/supabase/client";
 
 const WEEKDAYS = [
@@ -290,6 +292,67 @@ export default function SettingsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </a>
+        </div>
+
+        {/* Design Refresh — before/after comparison */}
+        <div className="mt-4 animate-fade-in-up" style={{ animationDelay: "0.22s" }}>
+          <p
+            className="text-xs font-bold uppercase px-1 mb-3"
+            style={{ color: "var(--au-faint)", letterSpacing: "0.16em" }}
+          >
+            Design Refresh
+          </p>
+          <div className="rounded-3xl bg-white border border-white/80 au-card overflow-hidden">
+            <div className="px-4 pt-4 pb-3">
+              <Badge variant="subtle" className="mb-2">What&rsquo;s New</Badge>
+              <h3
+                className="text-[17px] font-bold leading-snug mt-1"
+                style={{
+                  fontFamily: "var(--au-display)",
+                  color: "var(--au-ink)",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                The Aurora Redesign
+              </h3>
+              <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--au-ink-2)" }}>
+                Drag to compare the original look with the new Aurora visual overhaul.
+              </p>
+            </div>
+            <ImageComparison
+              beforeSrc="/screenshots/before.png"
+              afterSrc="/screenshots/after.jpg"
+              beforeAlt="Original elmtrackr design"
+              afterAlt="Aurora redesign"
+              width={1220}
+              height={2425}
+              containerHeight={380}
+            />
+            <div
+              className="px-4 py-2.5 flex items-center justify-between"
+              style={{ borderTop: "1px solid var(--au-hair)" }}
+            >
+              <span className="text-[11px] font-medium" style={{ color: "var(--au-faint)" }}>
+                Drag the handle left or right
+              </span>
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1 text-[11px] font-bold" style={{ color: "var(--au-ink-2)" }}>
+                  <span
+                    className="inline-block h-2 w-2 rounded-full"
+                    style={{ background: "rgba(0,0,0,0.28)" }}
+                  />
+                  Before
+                </span>
+                <span className="flex items-center gap-1 text-[11px] font-bold" style={{ color: "var(--au-indigo)" }}>
+                  <span
+                    className="inline-block h-2 w-2 rounded-full"
+                    style={{ background: "var(--au-grad)" }}
+                  />
+                  After
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Security */}
