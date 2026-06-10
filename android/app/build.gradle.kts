@@ -5,6 +5,11 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+val localPropsFile = rootProject.file("local.properties")
+val localProps = java.util.Properties().apply {
+    if (localPropsFile.exists()) load(localPropsFile.inputStream())
+}
+
 android {
     namespace = "com.elmtrackr.app"
     compileSdk = 35
@@ -15,6 +20,9 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
+
+        buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("supabase.anon.key", "")}\"")
 
         vectorDrawables {
             useSupportLibrary = true
@@ -42,11 +50,14 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/INDEX.LIST"
+            excludes += "/META-INF/io.netty.versions.properties"
         }
     }
 }
@@ -75,6 +86,9 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
+
+    implementation(libs.supabase.auth)
+    implementation(libs.ktor.client.okhttp)
 
     debugImplementation(libs.androidx.ui.tooling)
 

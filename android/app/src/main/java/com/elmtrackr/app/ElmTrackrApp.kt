@@ -3,11 +3,12 @@ package com.elmtrackr.app
 import android.app.Application
 import com.elmtrackr.app.data.local.ElmTrackrDatabase
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
-import com.elmtrackr.app.data.repository.LocalAuthRepository
 import com.elmtrackr.app.data.repository.LocalRefundsRepository
 import com.elmtrackr.app.data.repository.LocalReportsRepository
 import com.elmtrackr.app.data.repository.LocalSettingsRepository
 import com.elmtrackr.app.data.repository.LocalShiftsRepository
+import com.elmtrackr.app.data.repository.SupabaseAuthRepository
+import com.elmtrackr.app.domain.repository.AuthRepository
 
 class ElmTrackrApp : Application() {
 
@@ -31,7 +32,9 @@ class ElmTrackrApp : Application() {
         LocalRefundsRepository(database.refundClaimDao())
     }
 
-    val authRepository: LocalAuthRepository by lazy {
-        LocalAuthRepository(database.profileDao(), appPreferences)
+    // SupabaseAuthRepository self-checks BuildConfig: returns NotConfigured state
+    // gracefully when SUPABASE_URL / SUPABASE_ANON_KEY are absent (e.g. CI).
+    val authRepository: AuthRepository by lazy {
+        SupabaseAuthRepository(database.profileDao(), appPreferences)
     }
 }

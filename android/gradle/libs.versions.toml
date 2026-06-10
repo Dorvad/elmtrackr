@@ -11,6 +11,8 @@ navigationCompose = "2.8.5"
 room = "2.6.1"
 datastore = "1.1.1"
 coroutines = "1.8.1"
+supabase = "2.5.4"
+ktor = "2.3.12"
 junit = "4.13.2"
 androidxTestExtJunit = "1.2.1"
 androidxTestCore = "1.6.1"
@@ -35,6 +37,8 @@ androidx-room-testing = { group = "androidx.room", name = "room-testing", versio
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt", version.ref = "supabase" }
+ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExtJunit" }
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }

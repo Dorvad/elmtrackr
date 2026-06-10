@@ -9,10 +9,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.elmtrackr.app.ui.auth.AuthScreen
+import com.elmtrackr.app.ui.auth.AuthViewModel
 import com.elmtrackr.app.ui.dashboard.DashboardScreen
 import com.elmtrackr.app.ui.reports.ReportsScreen
 import com.elmtrackr.app.ui.settings.SettingsScreen
@@ -20,6 +23,7 @@ import com.elmtrackr.app.ui.shifts.ShiftsScreen
 
 @Composable
 fun AppNavGraph() {
+    val authViewModel: AuthViewModel = viewModel(factory = AuthViewModel.Factory)
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -39,7 +43,6 @@ fun AppNavGraph() {
                         selected = currentRoute == item.route,
                         onClick = {
                             navController.navigate(item.route) {
-                                // Pop back to the dashboard so back stack doesn't grow unboundedly.
                                 popUpTo(BottomNavItem.DASHBOARD.route) {
                                     saveState = true
                                 }
@@ -61,6 +64,7 @@ fun AppNavGraph() {
             composable(BottomNavItem.SHIFTS.route) { ShiftsScreen() }
             composable(BottomNavItem.REPORTS.route) { ReportsScreen() }
             composable(BottomNavItem.SETTINGS.route) { SettingsScreen() }
+            composable(BottomNavItem.ACCOUNT.route) { AuthScreen(viewModel = authViewModel) }
         }
     }
 }
