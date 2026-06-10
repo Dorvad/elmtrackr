@@ -34,7 +34,7 @@ class SupabaseAuthRepository(
         return c.auth.sessionStatus
             // Don't emit while the SDK is restoring a session from storage —
             // keeps the ViewModel in its Loading initial state until settled.
-            .filter { it !is SessionStatus.LoadingFromStorage }
+            .filter { it !is SessionStatus.Initializing }
             .map { status ->
                 when (status) {
                     is SessionStatus.Authenticated -> {
