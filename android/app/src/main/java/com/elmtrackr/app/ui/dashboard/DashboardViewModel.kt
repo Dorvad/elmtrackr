@@ -36,7 +36,7 @@ class DashboardViewModel(
             activeShift = activeShift,
             monthlyReport = report,
             settings = settings,
-        )
+        ) as DashboardUiState
     }.catch { e ->
         emit(DashboardUiState.Error(e.message ?: "Unknown error"))
     }.stateIn(
