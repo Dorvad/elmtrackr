@@ -29,7 +29,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.elmtrackr.app.domain.ShiftDurationCalculator
-import com.elmtrackr.app.domain.model.ShiftStats.MonthlyReport
+import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import java.time.Month
 

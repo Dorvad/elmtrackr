@@ -1,7 +1,7 @@
 package com.elmtrackr.app.ui.reports
 
-import com.elmtrackr.app.domain.model.ShiftStats.MonthlyReport
-import com.elmtrackr.app.domain.model.ShiftStats.WeeklyTotals
+import com.elmtrackr.app.domain.model.MonthlyReport
+import com.elmtrackr.app.domain.model.WeeklyTotals
 
 sealed interface ReportsUiState {
     data object Loading : ReportsUiState

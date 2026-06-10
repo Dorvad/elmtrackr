@@ -1,7 +1,7 @@
 package com.elmtrackr.app.ui.dashboard
 
 import com.elmtrackr.app.domain.model.Shift
-import com.elmtrackr.app.domain.model.ShiftStats.MonthlyReport
+import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.UserSettings
 
 sealed interface DashboardUiState {

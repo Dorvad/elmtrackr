@@ -5,8 +5,8 @@ import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.WeeklyBreakdownBuilder
-import com.elmtrackr.app.domain.model.ShiftStats.MonthlyReport
-import com.elmtrackr.app.domain.model.ShiftStats.WeeklyTotals
+import com.elmtrackr.app.domain.model.MonthlyReport
+import com.elmtrackr.app.domain.model.WeeklyTotals
 import com.elmtrackr.app.domain.repository.ReportsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

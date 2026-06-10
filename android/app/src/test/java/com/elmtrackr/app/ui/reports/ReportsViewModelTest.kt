@@ -1,7 +1,7 @@
 package com.elmtrackr.app.ui.reports
 
 import com.elmtrackr.app.fake.FakeReportsRepository
-import com.elmtrackr.app.domain.model.ShiftStats.MonthlyReport
+import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch

@@ -1,7 +1,7 @@
 package com.elmtrackr.app.fake
 
-import com.elmtrackr.app.domain.model.ShiftStats.MonthlyReport
-import com.elmtrackr.app.domain.model.ShiftStats.WeeklyTotals
+import com.elmtrackr.app.domain.model.MonthlyReport
+import com.elmtrackr.app.domain.model.WeeklyTotals
 import com.elmtrackr.app.domain.repository.ReportsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

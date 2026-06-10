@@ -4,7 +4,7 @@ import com.elmtrackr.app.fake.FakeReportsRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeShiftsRepository
 import com.elmtrackr.app.domain.model.Shift
-import com.elmtrackr.app.domain.model.ShiftStats.MonthlyReport
+import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
