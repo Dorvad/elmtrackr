@@ -1,0 +1,27 @@
+package com.elmtrackr.app.domain.repository
+
+import com.elmtrackr.app.domain.model.Shift
+import kotlinx.coroutines.flow.Flow
+
+interface ShiftsRepository {
+
+    fun observeShifts(userId: String): Flow<List<Shift>>
+
+    fun observeActiveShift(userId: String): Flow<Shift?>
+
+    suspend fun getShiftById(localId: String): Shift?
+
+    /** Creates a new shift with only a start time (clock-in). */
+    suspend fun clockIn(userId: String): Shift
+
+    /** Sets end time on an active shift (clock-out). */
+    suspend fun clockOut(localId: String, breakMinutes: Int = 0, notes: String? = null): Shift
+
+    suspend fun updateShift(shift: Shift): Shift
+
+    suspend fun deleteShift(localId: String)
+
+    fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>>
+
+    fun observePendingSyncShifts(): Flow<List<Shift>>
+}

@@ -1,0 +1,102 @@
+package com.elmtrackr.app.data.repository
+
+import com.elmtrackr.app.data.local.dao.ShiftDao
+import com.elmtrackr.app.data.local.entity.ShiftEntity
+import com.elmtrackr.app.data.local.entity.SyncStatus
+import com.elmtrackr.app.data.local.mapper.toDomain
+import com.elmtrackr.app.data.local.mapper.toEntity
+import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.repository.ShiftsRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import java.time.Instant
+import java.time.YearMonth
+import java.time.ZoneOffset
+import java.util.UUID
+
+class LocalShiftsRepository(private val shiftDao: ShiftDao) : ShiftsRepository {
+
+    override fun observeShifts(userId: String): Flow<List<Shift>> =
+        shiftDao.observeShifts(userId).map { entities -> entities.map { it.toDomain() } }
+
+    override fun observeActiveShift(userId: String): Flow<Shift?> =
+        shiftDao.observeActiveShift(userId).map { it?.toDomain() }
+
+    override suspend fun getShiftById(localId: String): Shift? =
+        shiftDao.getShiftById(localId)?.toDomain()
+
+    override suspend fun clockIn(userId: String): Shift {
+        val now = Instant.now().toEpochMilli()
+        val entity = ShiftEntity(
+            localId = UUID.randomUUID().toString(),
+            remoteId = null,
+            userId = userId,
+            startTime = now,
+            endTime = null,
+            breakMinutes = 0,
+            notes = null,
+            isSpecialDay = false,
+            refundAction = null,
+            createdAt = now,
+            updatedAt = now,
+            deletedAt = null,
+            syncStatus = SyncStatus.PENDING_CREATE,
+            lastSyncError = null,
+            lastSyncedAt = null,
+        )
+        shiftDao.insertShift(entity)
+        return entity.toDomain()
+    }
+
+    override suspend fun clockOut(localId: String, breakMinutes: Int, notes: String?): Shift {
+        val existing = shiftDao.getShiftById(localId)
+            ?: error("Shift $localId not found")
+        val now = Instant.now().toEpochMilli()
+        val newStatus = if (existing.syncStatus == SyncStatus.SYNCED)
+            SyncStatus.PENDING_UPDATE else existing.syncStatus
+        val updated = existing.copy(
+            endTime = now,
+            breakMinutes = breakMinutes,
+            notes = notes,
+            updatedAt = now,
+            syncStatus = newStatus,
+        )
+        shiftDao.updateShift(updated)
+        return updated.toDomain()
+    }
+
+    override suspend fun updateShift(shift: Shift): Shift {
+        val existing = shiftDao.getShiftById(shift.id)
+        val newStatus = if (existing?.syncStatus == SyncStatus.SYNCED)
+            SyncStatus.PENDING_UPDATE else existing?.syncStatus ?: SyncStatus.PENDING_UPDATE
+        val entity = shift.toEntity(
+            syncStatus = newStatus,
+            remoteId = existing?.remoteId,
+            lastSyncedAt = existing?.lastSyncedAt,
+        )
+        shiftDao.upsertShift(entity)
+        return entity.toDomain()
+    }
+
+    override suspend fun deleteShift(localId: String) {
+        val now = Instant.now().toEpochMilli()
+        shiftDao.softDeleteShift(
+            localId = localId,
+            deletedAt = now,
+            syncStatus = SyncStatus.PENDING_DELETE,
+            updatedAt = now,
+        )
+    }
+
+    override fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>> {
+        val ym = YearMonth.of(year, month)
+        val from = ym.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+        val to = ym.plusMonths(1).atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+        return shiftDao.observeShiftsByDateRange(userId, from, to).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override fun observePendingSyncShifts(): Flow<List<Shift>> =
+        shiftDao.observePendingSyncShifts().map { entities -> entities.map { it.toDomain() } }
+}
