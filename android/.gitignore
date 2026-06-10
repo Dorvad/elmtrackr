@@ -1,0 +1,17 @@
+# Gradle build outputs
+.gradle/
+build/
+app/build/
+
+# Local configuration (never commit)
+local.properties
+
+# Android Studio / IntelliJ project files
+*.iml
+.idea/
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
