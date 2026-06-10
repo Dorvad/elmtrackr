@@ -13,6 +13,8 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/android.yml'
+  # Allow triggering a build manually from the Actions tab without a code push.
+  workflow_dispatch:
 
 jobs:
   build:
@@ -69,7 +71,7 @@ jobs:
         with:
           # Download this from: Actions tab → select run → Artifacts section
           name: ElmTrackr-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/*.apk
           # Fail loudly if the APK was never produced.
           if-no-files-found: error
           retention-days: 30
