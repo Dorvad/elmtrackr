@@ -115,7 +115,7 @@ class SupabaseAuthRepository(
         id = id,
         email = email ?: "",
         fullName = runCatching {
-            userMetadata["full_name"]?.jsonPrimitive?.contentOrNull
+            userMetadata?.get("full_name")?.jsonPrimitive?.contentOrNull
         }.getOrNull(),
         createdAt = Instant.now(),
         updatedAt = Instant.now(),
