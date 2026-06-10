@@ -134,6 +134,16 @@ body {
   100% { transform: none; opacity: 1;                         }
 }
 
+@keyframes auStrandFlicker {
+  0%, 100% { opacity: 0.14; }
+  50%       { opacity: 0.35; }
+}
+
+@keyframes auPrismOrbit {
+  0%   { stroke-dashoffset: 0;    }
+  100% { stroke-dashoffset: -743; }
+}
+
 /* Existing keyframes (kept for compatibility) */
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(10px); }
@@ -153,11 +163,6 @@ body {
 @keyframes slide-in-right {
   from { opacity: 0; transform: translateX(12px); }
   to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes shimmer {
-  0%   { background-position: -200% center; }
-  100% { background-position:  200% center; }
 }
 
 @keyframes ring-fill {
@@ -245,8 +250,8 @@ body {
    ============================================================ */
 .glass {
   background: rgba(236, 238, 250, 0.82);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 /* ============================================================

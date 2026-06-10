@@ -20,6 +20,8 @@ export function ClockFaceThumbnail({ style }: { style: ClockStyle }) {
     case "aurora":  return <AuroraThumb />;
     case "pulse":   return <PulseThumb />;
     case "dial":    return <DialThumb />;
+    case "strand":  return <StrandThumb />;
+    case "prism":   return <PrismThumb />;
   }
 }
 
@@ -257,6 +259,70 @@ function DialThumb() {
       <line x1={cx} y1={cy} x2={cx + 28} y2={cy} stroke={G0} strokeWidth={2.5} strokeLinecap="round" />
       <circle cx={cx} cy={cy} r={4.5} fill={G0} />
       <text x={cx} y={cy + r + 18} textAnchor="middle" fontSize={11} fontWeight="700" fill="#181530" letterSpacing={-0.5}>2:34</text>
+    </svg>
+  );
+}
+
+// ── Strand ────────────────────────────────────────────────────────────────────
+// Fiber-optic vertical strands, left group lit at ~55%, right group dim
+function StrandThumb() {
+  const litXs  = [10, 19, 28, 37, 46];
+  const frontX = 55;
+  const dimXs  = [64, 73, 99, 108, 117, 126, 135, 144];
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <defs>
+        <linearGradient id="str-g" x1="0" y1="0" x2="0" y2="1">
+          <stop stopColor={G0} /><stop offset="0.5" stopColor={G1} /><stop offset="1" stopColor={G2} />
+        </linearGradient>
+        <filter id="str-glow"><feGaussianBlur stdDeviation="1.8" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+      </defs>
+      <rect width={W} height={H} rx={14} fill="white" />
+      {litXs.map((x) => (
+        <line key={x} x1={x} y1={8} x2={x} y2={112} stroke="url(#str-g)" strokeWidth={2} strokeLinecap="round" opacity={0.8} />
+      ))}
+      <line x1={frontX} y1={8} x2={frontX} y2={112} stroke={G1} strokeWidth={3} strokeLinecap="round" filter="url(#str-glow)" />
+      {dimXs.map((x) => (
+        <line key={x} x1={x} y1={8} x2={x} y2={112} stroke="#9B9AC4" strokeWidth={1.5} strokeLinecap="round" opacity={0.22} />
+      ))}
+      <text x={80} y={55} textAnchor="middle" fontSize={7} fontWeight="700" fill="#9B9AC4" letterSpacing={1}>ELAPSED</text>
+      <text x={80} y={70} textAnchor="middle" fontSize={16} fontWeight="700" fill="#181530" letterSpacing={-0.5}>2:34</text>
+    </svg>
+  );
+}
+
+// ── Prism ─────────────────────────────────────────────────────────────────────
+// Triangle with ~55% liquid fill rising from base
+function PrismThumb() {
+  const [ax, ay] = [80, 8];
+  const [bx, by] = [10, 112];
+  const [cx2, cy2] = [150, 112];
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <defs>
+        <linearGradient id="pr-g" x1="0" y1="0" x2="0" y2="1">
+          <stop stopColor={G0} stopOpacity={0.5} />
+          <stop offset="1" stopColor={G2} stopOpacity={0.55} />
+        </linearGradient>
+        <clipPath id="pr-th-clip">
+          <polygon points={`${ax},${ay} ${bx},${by} ${cx2},${cy2}`} />
+        </clipPath>
+        <filter id="pr-glow"><feGaussianBlur stdDeviation="1.5" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+      </defs>
+      <rect width={W} height={H} rx={14} fill="white" />
+      {/* Fill: 55% = clip from y=112-(55%*104)≈55 upward */}
+      <rect x={0} y={55} width={W} height={60} clipPath="url(#pr-th-clip)" fill="url(#pr-g)" />
+      {/* Triangle outline */}
+      <polygon points={`${ax},${ay} ${bx},${by} ${cx2},${cy2}`} stroke={G0} strokeWidth={1.5} strokeOpacity={0.5} />
+      {/* Orbiting segment hint */}
+      <polygon points={`${ax},${ay} ${bx},${by} ${cx2},${cy2}`} stroke={G1} strokeWidth={2.5} strokeLinecap="round"
+        strokeDasharray="30 270" strokeDashoffset={-40} filter="url(#pr-glow)" />
+      {/* Vertex dots */}
+      <circle cx={ax} cy={ay} r={3} fill={G0} filter="url(#pr-glow)" />
+      <circle cx={bx} cy={by} r={3} fill={G1} filter="url(#pr-glow)" />
+      <circle cx={cx2} cy={cy2} r={3} fill={G2} filter="url(#pr-glow)" />
+      {/* Time at centroid */}
+      <text x={80} y={86} textAnchor="middle" fontSize={12} fontWeight="700" fill="white" filter="url(#pr-glow)">2:34</text>
     </svg>
   );
 }
