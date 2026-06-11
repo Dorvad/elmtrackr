@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.shifts
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +57,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -63,6 +66,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.ui.design.ElmEmptyState
+import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.design.ElmSectionHeader
+import com.elmtrackr.app.ui.theme.AuroraFaint
+import com.elmtrackr.app.ui.theme.AuroraIndigo
+import com.elmtrackr.app.ui.theme.AuroraInk2
+import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import java.time.Instant
 import java.time.LocalDate
@@ -72,17 +82,17 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-private val dateFmt = DateTimeFormatter.ofPattern("EEE, d MMM")
+private val dateFmt     = DateTimeFormatter.ofPattern("EEE, d MMM")
 private val dateLongFmt = DateTimeFormatter.ofPattern("d MMM yyyy")
-private val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+private val timeFmt     = DateTimeFormatter.ofPattern("HH:mm")
 
 @Composable
 fun ShiftsScreen(
     viewModel: ShiftsViewModel = viewModel(factory = ShiftsViewModel.Factory),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val formTarget by viewModel.formTarget.collectAsState()
-    val formErrors by viewModel.formErrors.collectAsState()
+    val uiState            by viewModel.uiState.collectAsState()
+    val formTarget         by viewModel.formTarget.collectAsState()
+    val formErrors         by viewModel.formErrors.collectAsState()
     val featuresTravelRefunds by viewModel.featuresTravelRefunds.collectAsState()
 
     BackHandler(enabled = formTarget != null) { viewModel.closeForm() }
@@ -90,12 +100,12 @@ fun ShiftsScreen(
     if (formTarget != null) {
         ShiftFormContent(
             navState = formTarget!!,
-            errors = formErrors,
+            errors   = formErrors,
             featuresTravelRefunds = featuresTravelRefunds,
             onSave = { input ->
                 when (val t = formTarget!!) {
                     is ShiftFormNavState.Create -> viewModel.createShift(input)
-                    is ShiftFormNavState.Edit -> viewModel.saveEditedShift(t.shift.id, input)
+                    is ShiftFormNavState.Edit   -> viewModel.saveEditedShift(t.shift.id, input)
                 }
             },
             onDelete = { shiftId ->
@@ -110,59 +120,36 @@ fun ShiftsScreen(
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when (val state = uiState) {
             is ShiftsUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = AuroraIndigo)
             }
             is ShiftsUiState.Empty -> ShiftsEmptyContent(onAddShift = viewModel::showCreateForm)
             is ShiftsUiState.Ready -> ShiftsListContent(
-                state = state,
+                state      = state,
                 onAddShift = viewModel::showCreateForm,
                 onEditShift = viewModel::showEditForm,
             )
             is ShiftsUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "Error: ${state.message}",
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(16.dp),
-                )
+                Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
             }
         }
     }
 }
 
-// ---- List ----
+// ── List ──────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun ShiftsEmptyContent(onAddShift: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.align(Alignment.Center).padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.AccessTime,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-            )
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = "No shifts yet",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Medium,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "Clock in from Dashboard, or tap + to add manually",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        FloatingActionButton(
-            onClick = onAddShift,
+        ElmEmptyState(
+            icon     = Icons.Filled.AccessTime,
+            title    = "No shifts yet",
+            subtitle = "Clock in from Dashboard, or tap + to add manually",
+            modifier = Modifier.align(Alignment.Center),
+        )
+        ElmFab(
+            onClick  = onAddShift,
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "New shift")
-        }
+        )
     }
 }
 
@@ -174,101 +161,105 @@ private fun ShiftsListContent(
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier            = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             item { Spacer(Modifier.height(12.dp)) }
             items(state.shifts, key = { it.id }) { shift ->
                 ShiftRow(shift = shift, onClick = { onEditShift(shift.id) })
             }
-            item { Spacer(Modifier.height(80.dp)) }  // room for FAB
+            item { Spacer(Modifier.height(88.dp)) }
         }
-        FloatingActionButton(
-            onClick = onAddShift,
+        ElmFab(
+            onClick  = onAddShift,
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "New shift")
-        }
+        )
+    }
+}
+
+@Composable
+private fun ElmFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FloatingActionButton(
+        onClick            = onClick,
+        modifier           = modifier,
+        containerColor     = AuroraIndigo,
+        contentColor       = Color.White,
+        elevation          = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
+    ) {
+        Icon(Icons.Filled.Add, contentDescription = "New shift")
     }
 }
 
 @Composable
 private fun ShiftRow(shift: Shift, onClick: () -> Unit) {
-    val zone = ZoneId.systemDefault()
-    val dateText = shift.startTime.atZone(zone).format(dateFmt)
-    val startText = shift.startTime.atZone(zone).format(timeFmt)
-    val endText = shift.endTime?.atZone(zone)?.format(timeFmt) ?: "Active"
+    val zone         = ZoneId.systemDefault()
+    val dateText     = shift.startTime.atZone(zone).format(dateFmt)
+    val startText    = shift.startTime.atZone(zone).format(timeFmt)
+    val endText      = shift.endTime?.atZone(zone)?.format(timeFmt) ?: "Active"
     val durationText = if (shift.isCompleted)
         ShiftDurationCalculator.netMinutes(shift)?.let { ShiftDurationCalculator.formatMinutes(it) } ?: "—"
     else null
 
     Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        onClick   = onClick,
+        modifier  = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        shape     = RoundedCornerShape(14.dp),
+        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment     = Alignment.CenterVertically,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = dateText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
+                        text       = dateText,
+                        style      = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = MaterialTheme.colorScheme.onSurface,
                     )
                     if (shift.isSpecialDay) {
                         Text(
-                            text = " ★",
+                            text  = " ★",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.tertiary,
+                            color = AuroraPlum,
                         )
                     }
                 }
                 if (shift.isActive) {
-                    Text(
-                        text = "● Active",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    ActiveBadge()
                 } else if (durationText != null) {
                     Text(
-                        text = durationText,
-                        style = MaterialTheme.typography.bodyMedium,
+                        text       = durationText,
+                        style      = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color      = AuroraIndigo,
                     )
                 }
             }
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(3.dp))
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment     = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "$startText → $endText",
+                    text  = "$startText → $endText",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AuroraInk2,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (shift.breakMinutes > 0) {
                         Text(
-                            text = "break ${ShiftDurationCalculator.formatMinutes(shift.breakMinutes)}",
+                            text  = "break ${ShiftDurationCalculator.formatMinutes(shift.breakMinutes)}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = AuroraFaint,
                         )
                     }
                     if (!shift.notes.isNullOrBlank()) {
-                        Text(
-                            text = "📝",
-                            style = MaterialTheme.typography.labelSmall,
-                        )
+                        Text("📝", style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -276,7 +267,23 @@ private fun ShiftRow(shift: Shift, onClick: () -> Unit) {
     }
 }
 
-// ---- Form ----
+@Composable
+private fun ActiveBadge() {
+    Box(
+        modifier = Modifier
+            .background(AuroraIndigo.copy(alpha = 0.10f), RoundedCornerShape(50))
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+    ) {
+        Text(
+            text       = "● Active",
+            style      = MaterialTheme.typography.labelSmall,
+            color      = AuroraIndigo,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+// ── Form ──────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun ShiftFormContent(
@@ -287,36 +294,32 @@ private fun ShiftFormContent(
     onDelete: (shiftId: String) -> Unit,
     onClose: () -> Unit,
 ) {
-    val isEdit = navState is ShiftFormNavState.Edit
+    val isEdit       = navState is ShiftFormNavState.Edit
     val initialShift = (navState as? ShiftFormNavState.Edit)?.shift
-    val zone = ZoneId.systemDefault()
-    val now = Instant.now()
+    val zone         = ZoneId.systemDefault()
+    val now          = Instant.now()
 
     val defaultStart = initialShift?.startTime ?: now.minusSeconds(3600)
-    val defaultEnd = initialShift?.endTime ?: now
+    val defaultEnd   = initialShift?.endTime   ?: now
 
-    var startMillis by rememberSaveable { mutableStateOf(defaultStart.toEpochMilli()) }
-    var hasEndTime by rememberSaveable { mutableStateOf(initialShift?.isCompleted ?: true) }
-    var endMillis by rememberSaveable { mutableStateOf(defaultEnd.toEpochMilli()) }
-    var breakText by rememberSaveable { mutableStateOf((initialShift?.breakMinutes ?: 0).toString()) }
-    var notesText by rememberSaveable { mutableStateOf(initialShift?.notes ?: "") }
-    var isSpecialDay by rememberSaveable { mutableStateOf(initialShift?.isSpecialDay ?: false) }
-    var refundActionName by rememberSaveable { mutableStateOf<String?>(initialShift?.refundAction?.name) }
+    var startMillis       by rememberSaveable { mutableStateOf(defaultStart.toEpochMilli()) }
+    var hasEndTime        by rememberSaveable { mutableStateOf(initialShift?.isCompleted ?: true) }
+    var endMillis         by rememberSaveable { mutableStateOf(defaultEnd.toEpochMilli()) }
+    var breakText         by rememberSaveable { mutableStateOf((initialShift?.breakMinutes ?: 0).toString()) }
+    var notesText         by rememberSaveable { mutableStateOf(initialShift?.notes ?: "") }
+    var isSpecialDay      by rememberSaveable { mutableStateOf(initialShift?.isSpecialDay ?: false) }
+    var refundActionName  by rememberSaveable { mutableStateOf<String?>(initialShift?.refundAction?.name) }
 
     var showStartDatePicker by rememberSaveable { mutableStateOf(false) }
     var showStartTimePicker by rememberSaveable { mutableStateOf(false) }
-    var showEndDatePicker by rememberSaveable { mutableStateOf(false) }
-    var showEndTimePicker by rememberSaveable { mutableStateOf(false) }
-    var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
+    var showEndDatePicker   by rememberSaveable { mutableStateOf(false) }
+    var showEndTimePicker   by rememberSaveable { mutableStateOf(false) }
+    var showDeleteConfirm   by rememberSaveable { mutableStateOf(false) }
 
-    // Date/time picker dialogs
     if (showStartDatePicker) {
         DatePickerWrapper(
             currentMillis = startMillis,
-            onConfirm = { utcMidnight ->
-                startMillis = applyDate(startMillis, utcMidnight, zone)
-                showStartDatePicker = false
-            },
+            onConfirm = { utcMidnight -> startMillis = applyDate(startMillis, utcMidnight, zone); showStartDatePicker = false },
             onDismiss = { showStartDatePicker = false },
         )
     }
@@ -324,20 +327,14 @@ private fun ShiftFormContent(
         TimePickerWrapper(
             currentMillis = startMillis,
             zone = zone,
-            onConfirm = { h, m ->
-                startMillis = applyTime(startMillis, h, m, zone)
-                showStartTimePicker = false
-            },
+            onConfirm = { h, m -> startMillis = applyTime(startMillis, h, m, zone); showStartTimePicker = false },
             onDismiss = { showStartTimePicker = false },
         )
     }
     if (showEndDatePicker) {
         DatePickerWrapper(
             currentMillis = endMillis,
-            onConfirm = { utcMidnight ->
-                endMillis = applyDate(endMillis, utcMidnight, zone)
-                showEndDatePicker = false
-            },
+            onConfirm = { utcMidnight -> endMillis = applyDate(endMillis, utcMidnight, zone); showEndDatePicker = false },
             onDismiss = { showEndDatePicker = false },
         )
     }
@@ -345,10 +342,7 @@ private fun ShiftFormContent(
         TimePickerWrapper(
             currentMillis = endMillis,
             zone = zone,
-            onConfirm = { h, m ->
-                endMillis = applyTime(endMillis, h, m, zone)
-                showEndTimePicker = false
-            },
+            onConfirm = { h, m -> endMillis = applyTime(endMillis, h, m, zone); showEndTimePicker = false },
             onDismiss = { showEndTimePicker = false },
         )
     }
@@ -357,154 +351,134 @@ private fun ShiftFormContent(
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text("Delete shift?") },
-            text = { Text("This shift will be removed. The deletion will sync when online.") },
+            text  = { Text("This shift will be removed. The deletion will sync when online.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
                     onDelete((navState as ShiftFormNavState.Edit).shift.id)
                 }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
-            },
+            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") } },
         )
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-        ) {
-            // Header
+        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                modifier          = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onClose) {
-                    Icon(Icons.Filled.Close, contentDescription = "Close")
+                    Icon(Icons.Filled.Close, contentDescription = "Close", tint = AuroraInk2)
                 }
                 Text(
-                    text = if (isEdit) "Edit Shift" else "New Shift",
-                    style = MaterialTheme.typography.titleLarge,
+                    text       = if (isEdit) "Edit Shift" else "New Shift",
+                    style      = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f).padding(start = 4.dp),
+                    modifier   = Modifier.weight(1f).padding(start = 4.dp),
                 )
             }
-            HorizontalDivider()
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             Column(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                modifier            = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-
-                // Start date/time
-                FormSectionLabel("START TIME")
+                ElmSectionHeader("Start Time")
                 DateTimeRow(
-                    dateLabel = "Date",
-                    timeLabel = "Time",
-                    millis = startMillis,
-                    zone = zone,
+                    dateLabel = "Date", timeLabel = "Time",
+                    millis = startMillis, zone = zone,
                     onPickDate = { showStartDatePicker = true },
                     onPickTime = { showStartTimePicker = true },
                 )
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
-                // End date/time
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment     = Alignment.CenterVertically,
                 ) {
-                    FormSectionLabel("END TIME")
+                    ElmSectionHeader("End Time", modifier = Modifier.weight(1f))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = if (hasEndTime) "Set" else "Active / no end",
+                            text  = if (hasEndTime) "Set" else "Active / no end",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = AuroraInk2,
                         )
                         Switch(
-                            checked = hasEndTime,
+                            checked         = hasEndTime,
                             onCheckedChange = { hasEndTime = it },
-                            modifier = Modifier.padding(start = 8.dp),
+                            modifier        = Modifier.padding(start = 8.dp),
                         )
                     }
                 }
                 if (hasEndTime) {
                     DateTimeRow(
-                        dateLabel = "Date",
-                        timeLabel = "Time",
-                        millis = endMillis,
-                        zone = zone,
+                        dateLabel = "Date", timeLabel = "Time",
+                        millis = endMillis, zone = zone,
                         onPickDate = { showEndDatePicker = true },
                         onPickTime = { showEndTimePicker = true },
                     )
                 }
                 errors["endTime"]?.let { FieldError(it) }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
-                // Break
                 OutlinedTextField(
-                    value = breakText,
+                    value         = breakText,
                     onValueChange = { if (it.all { c -> c.isDigit() }) breakText = it },
-                    label = { Text("Break (minutes)") },
+                    label         = { Text("Break (minutes)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth(),
                 )
                 errors["breakMinutes"]?.let { FieldError(it) }
 
-                // Notes
                 OutlinedTextField(
-                    value = notesText,
+                    value         = notesText,
                     onValueChange = { notesText = it },
-                    label = { Text("Notes (optional)") },
-                    minLines = 2,
-                    maxLines = 4,
-                    modifier = Modifier.fillMaxWidth(),
+                    label         = { Text("Notes (optional)") },
+                    minLines      = 2,
+                    maxLines      = 4,
+                    modifier      = Modifier.fillMaxWidth(),
                 )
 
-                // Special day
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment     = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Special day", style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            text = "Weekend, holiday, or higher-rate day",
+                            text  = "Weekend, holiday, or higher-rate day",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = AuroraInk2,
                         )
                     }
                     Switch(checked = isSpecialDay, onCheckedChange = { isSpecialDay = it })
                 }
 
-                // Refund action (conditional)
                 if (featuresTravelRefunds) {
-                    FormSectionLabel("TRAVEL REFUND")
+                    ElmSectionHeader("Travel Refund")
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier              = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         RefundAction.entries.forEach { action ->
                             val label = when (action) {
                                 RefundAction.NO_RIDE_TAKEN -> "No ride"
-                                RefundAction.REMIND_LATER -> "Remind later"
-                                RefundAction.SUBMITTED -> "Submitted"
+                                RefundAction.REMIND_LATER  -> "Remind later"
+                                RefundAction.SUBMITTED     -> "Submitted"
                             }
                             FilterChip(
-                                selected = refundActionName == action.name,
-                                onClick = {
+                                selected  = refundActionName == action.name,
+                                onClick   = {
                                     refundActionName = if (refundActionName == action.name) null else action.name
                                 },
-                                label = { Text(label) },
-                                modifier = Modifier.weight(1f),
+                                label     = { Text(label) },
+                                modifier  = Modifier.weight(1f),
                             )
                         }
                     }
@@ -512,32 +486,27 @@ private fun ShiftFormContent(
 
                 Spacer(Modifier.height(8.dp))
 
-                // Save button
-                Button(
+                ElmGradientButton(
                     onClick = {
                         onSave(
                             ShiftFormInput(
-                                startTime = Instant.ofEpochMilli(startMillis),
-                                endTime = if (hasEndTime) Instant.ofEpochMilli(endMillis) else null,
+                                startTime    = Instant.ofEpochMilli(startMillis),
+                                endTime      = if (hasEndTime) Instant.ofEpochMilli(endMillis) else null,
                                 breakMinutes = breakText.toIntOrNull() ?: 0,
-                                notes = notesText,
+                                notes        = notesText,
                                 isSpecialDay = isSpecialDay,
                                 refundAction = refundActionName?.let { RefundAction.valueOf(it) },
                             )
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Save")
+                    Text("Save", fontWeight = FontWeight.SemiBold)
                 }
 
-                // Delete button (edit only)
                 if (isEdit) {
                     OutlinedButton(
                         onClick = { showDeleteConfirm = true },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
+                        colors  = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("Delete shift")
@@ -560,16 +529,13 @@ private fun DateTimeRow(
     onPickTime: () -> Unit,
 ) {
     val zdt = Instant.ofEpochMilli(millis).atZone(zone)
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
-            value = zdt.format(dateLongFmt),
+            value         = zdt.format(dateLongFmt),
             onValueChange = {},
-            readOnly = true,
-            label = { Text(dateLabel) },
-            trailingIcon = {
+            readOnly      = true,
+            label         = { Text(dateLabel) },
+            trailingIcon  = {
                 IconButton(onClick = onPickDate) {
                     Icon(Icons.Filled.CalendarToday, contentDescription = "Pick date", modifier = Modifier.size(18.dp))
                 }
@@ -577,11 +543,11 @@ private fun DateTimeRow(
             modifier = Modifier.weight(1.5f),
         )
         OutlinedTextField(
-            value = zdt.format(timeFmt),
+            value         = zdt.format(timeFmt),
             onValueChange = {},
-            readOnly = true,
-            label = { Text(timeLabel) },
-            trailingIcon = {
+            readOnly      = true,
+            label         = { Text(timeLabel) },
+            trailingIcon  = {
                 IconButton(onClick = onPickTime) {
                     Icon(Icons.Filled.Schedule, contentDescription = "Pick time", modifier = Modifier.size(18.dp))
                 }
@@ -592,48 +558,28 @@ private fun DateTimeRow(
 }
 
 @Composable
-private fun FormSectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.fillMaxWidth(),
-    )
-}
-
-@Composable
 private fun FieldError(message: String) {
     Text(
-        text = message,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.error,
+        text     = message,
+        style    = MaterialTheme.typography.bodySmall,
+        color    = MaterialTheme.colorScheme.error,
         modifier = Modifier.fillMaxWidth(),
     )
 }
-
-// ---- Date/Time picker dialogs ----
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DatePickerWrapper(
-    currentMillis: Long,
-    onConfirm: (Long) -> Unit,
-    onDismiss: () -> Unit,
-) {
+private fun DatePickerWrapper(currentMillis: Long, onConfirm: (Long) -> Unit, onDismiss: () -> Unit) {
     val initUtcMidnight = Instant.ofEpochMilli(currentMillis)
         .atZone(ZoneId.systemDefault()).toLocalDate()
         .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val state = rememberDatePickerState(initialSelectedDateMillis = initUtcMidnight)
     DatePickerDialog(
         onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                state.selectedDateMillis?.let { onConfirm(it) } ?: onDismiss()
-            }) { Text("OK") }
+        confirmButton    = {
+            TextButton(onClick = { state.selectedDateMillis?.let { onConfirm(it) } ?: onDismiss() }) { Text("OK") }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     ) {
         DatePicker(state = state)
     }
@@ -641,36 +587,21 @@ private fun DatePickerWrapper(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TimePickerWrapper(
-    currentMillis: Long,
-    zone: ZoneId,
-    onConfirm: (hour: Int, minute: Int) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val zdt = Instant.ofEpochMilli(currentMillis).atZone(zone)
-    val state = rememberTimePickerState(
-        initialHour = zdt.hour,
-        initialMinute = zdt.minute,
-        is24Hour = true,
-    )
+private fun TimePickerWrapper(currentMillis: Long, zone: ZoneId, onConfirm: (hour: Int, minute: Int) -> Unit, onDismiss: () -> Unit) {
+    val zdt   = Instant.ofEpochMilli(currentMillis).atZone(zone)
+    val state = rememberTimePickerState(initialHour = zdt.hour, initialMinute = zdt.minute, is24Hour = true)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select time") },
-        text = { TimePicker(state = state) },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text("OK") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
+        text  = { TimePicker(state = state) },
+        confirmButton = { TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text("OK") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
-// ---- Helpers ----
-
 private fun applyDate(currentMillis: Long, utcMidnightMillis: Long, zone: ZoneId): Long {
     val currentTime = Instant.ofEpochMilli(currentMillis).atZone(zone).toLocalTime()
-    val newDate = Instant.ofEpochMilli(utcMidnightMillis).atZone(ZoneOffset.UTC).toLocalDate()
+    val newDate     = Instant.ofEpochMilli(utcMidnightMillis).atZone(ZoneOffset.UTC).toLocalDate()
     return LocalDateTime.of(newDate, currentTime).atZone(zone).toInstant().toEpochMilli()
 }
 

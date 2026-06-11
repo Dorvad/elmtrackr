@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +49,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.ui.auth.AuthUiState
+import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.theme.AuroraFaint
+import com.elmtrackr.app.ui.theme.AuroraIndigo
+import com.elmtrackr.app.ui.theme.AuroraInk2
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import java.time.Instant
 
@@ -61,43 +67,35 @@ private fun supportedClockStyleOf(style: ClockStyle): ClockStyle =
     if (style in SUPPORTED_CLOCK_STYLES) style else ClockStyle.CLASSIC
 
 private val THEME_OPTIONS = listOf("system" to "System default", "light" to "Light", "dark" to "Dark")
-
-private val DAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+private val DAY_LABELS    = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
-    authState: AuthUiState? = null,
-    onSignOut: () -> Unit = {},
+    authState: AuthUiState?      = null,
+    onSignOut: () -> Unit        = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     LaunchedEffect(Unit) { viewModel.ensureSettingsExist() }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
-    ) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when (val state = uiState) {
             is SettingsUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = AuroraIndigo)
             }
-            is SettingsUiState.Ready -> SettingsContent(
-                state = state,
-                authState = authState,
-                onSave = viewModel::saveSettings,
-                onSignOut = onSignOut,
+            is SettingsUiState.Ready  -> SettingsContent(
+                state         = state,
+                authState     = authState,
+                onSave        = viewModel::saveSettings,
+                onSignOut     = onSignOut,
                 onFeatureFlag = viewModel::updateFeatureFlag,
                 onWeekendDays = viewModel::updateWeekendDays,
-                onTheme = viewModel::saveTheme,
-                onSync = viewModel::triggerSync,
+                onTheme       = viewModel::saveTheme,
+                onSync        = viewModel::triggerSync,
                 onResetPassword = viewModel::resetPassword,
             )
-            is SettingsUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Text(
-                    text = "Error: ${state.message}",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+            is SettingsUiState.Error  -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyLarge)
             }
         }
     }
@@ -115,53 +113,35 @@ private fun SettingsContent(
     onSync: () -> Unit,
     onResetPassword: () -> Unit,
 ) {
-    var displayName by remember(state.profile?.fullName) {
-        mutableStateOf(state.profile?.fullName ?: "")
-    }
-    var dailyOtText by remember(state.settings.dailyOvertimeThresholdMinutes) {
-        mutableStateOf(minutesToHours(state.settings.dailyOvertimeThresholdMinutes))
-    }
-    var weeklyOtText by remember(state.settings.weeklyOvertimeThresholdMinutes) {
-        mutableStateOf(minutesToHours(state.settings.weeklyOvertimeThresholdMinutes))
-    }
-    var hourlyRateText by remember(state.settings.hourlyRate) {
-        mutableStateOf(state.settings.hourlyRate?.toString() ?: "")
-    }
-    var timezone by remember(state.settings.timezone) {
-        mutableStateOf(state.settings.timezone)
-    }
-    var clockStyle by remember(state.settings.clockStyle) {
-        mutableStateOf(supportedClockStyleOf(state.settings.clockStyle))
-    }
+    var displayName   by remember(state.profile?.fullName)                       { mutableStateOf(state.profile?.fullName ?: "") }
+    var dailyOtText   by remember(state.settings.dailyOvertimeThresholdMinutes)  { mutableStateOf(minutesToHours(state.settings.dailyOvertimeThresholdMinutes)) }
+    var weeklyOtText  by remember(state.settings.weeklyOvertimeThresholdMinutes) { mutableStateOf(minutesToHours(state.settings.weeklyOvertimeThresholdMinutes)) }
+    var hourlyRateText by remember(state.settings.hourlyRate)                    { mutableStateOf(state.settings.hourlyRate?.toString() ?: "") }
+    var timezone      by remember(state.settings.timezone)                       { mutableStateOf(state.settings.timezone) }
+    var clockStyle    by remember(state.settings.clockStyle)                     { mutableStateOf(supportedClockStyleOf(state.settings.clockStyle)) }
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
+        modifier            = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        // ── 1. Profile ───────────────────────────────────────────────────────
+        item { Spacer(Modifier.height(16.dp)) }
+
         item {
-            Spacer(Modifier.height(16.dp))
             SettingsSectionCard("Profile") {
                 OutlinedTextField(
-                    value = displayName,
+                    value         = displayName,
                     onValueChange = { displayName = it },
-                    label = { Text("Display name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    label         = { Text("Display name") },
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth(),
                 )
                 state.profile?.let { profile ->
                     Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = profile.email,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Text(profile.email, style = MaterialTheme.typography.bodyMedium, color = AuroraInk2)
                 }
             }
         }
 
-        // ── 2. Appearance ────────────────────────────────────────────────────
         item {
             SettingsSectionCard("Appearance") {
                 ThemeDropdown(selected = state.selectedTheme, onSelect = onTheme)
@@ -172,94 +152,85 @@ private fun SettingsContent(
             }
         }
 
-        // ── 3. Overtime Thresholds ───────────────────────────────────────────
         item {
             SettingsSectionCard("Overtime Thresholds") {
                 HoursField(
-                    label = "Daily overtime (hours)",
-                    value = dailyOtText,
+                    label         = "Daily overtime (hours)",
+                    value         = dailyOtText,
                     onValueChange = { dailyOtText = it },
-                    error = state.validationErrors["dailyOt"],
+                    error         = state.validationErrors["dailyOt"],
                 )
                 Spacer(Modifier.height(8.dp))
                 HoursField(
-                    label = "Weekly overtime (hours)",
-                    value = weeklyOtText,
+                    label         = "Weekly overtime (hours)",
+                    value         = weeklyOtText,
                     onValueChange = { weeklyOtText = it },
-                    error = state.validationErrors["weeklyOt"],
+                    error         = state.validationErrors["weeklyOt"],
                 )
             }
         }
 
-        // ── 4. Weekend Days ──────────────────────────────────────────────────
         item {
             SettingsSectionCard("Weekend Days") {
-                WeekendDaysSelector(
-                    selected = state.settings.weekendDays,
-                    onChange = onWeekendDays,
-                )
+                WeekendDaysSelector(selected = state.settings.weekendDays, onChange = onWeekendDays)
             }
         }
 
-        // ── 5. Payroll ───────────────────────────────────────────────────────
         item {
             SettingsSectionCard("Payroll") {
                 HoursField(
-                    label = "Hourly rate",
-                    value = hourlyRateText,
+                    label         = "Hourly rate",
+                    value         = hourlyRateText,
                     onValueChange = { hourlyRateText = it },
-                    error = state.validationErrors["hourlyRate"],
+                    error         = state.validationErrors["hourlyRate"],
                 )
             }
         }
 
-        // ── 6. Location ──────────────────────────────────────────────────────
         item {
             SettingsSectionCard("Location") {
                 OutlinedTextField(
-                    value = timezone,
+                    value         = timezone,
                     onValueChange = { timezone = it },
-                    label = { Text("Timezone") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    label         = { Text("Timezone") },
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth(),
                 )
             }
         }
 
-        // ── 7. Features ──────────────────────────────────────────────────────
         item {
             SettingsSectionCard("Features") {
                 ToggleRow(
-                    title = "Travel Refunds",
-                    description = "Track and manage travel refund claims",
-                    checked = state.settings.featuresTravelRefunds,
+                    title         = "Travel Refunds",
+                    description   = "Track and manage travel refund claims",
+                    checked       = state.settings.featuresTravelRefunds,
                     onCheckedChange = { onFeatureFlag(FeatureFlag.TRAVEL_REFUNDS, it) },
                 )
                 ToggleRow(
-                    title = "Paid Projects",
-                    description = "Associate shifts with paid client projects",
-                    checked = state.settings.featuresPaidProjects,
+                    title         = "Paid Projects",
+                    description   = "Associate shifts with paid client projects",
+                    checked       = state.settings.featuresPaidProjects,
                     onCheckedChange = { onFeatureFlag(FeatureFlag.PAID_PROJECTS, it) },
                 )
                 ToggleRow(
-                    title = "Insights",
-                    description = "View trends and patterns in your work history",
-                    checked = state.settings.featuresInsights,
+                    title         = "Insights",
+                    description   = "View trends and patterns in your work history",
+                    checked       = state.settings.featuresInsights,
                     onCheckedChange = { onFeatureFlag(FeatureFlag.INSIGHTS, it) },
                 )
                 ToggleRow(
-                    title = "Clock Styles",
-                    description = "Choose from different clock display styles",
-                    checked = state.settings.featuresClockStyles,
+                    title         = "Clock Styles",
+                    description   = "Choose from different clock display styles",
+                    checked       = state.settings.featuresClockStyles,
                     onCheckedChange = { onFeatureFlag(FeatureFlag.CLOCK_STYLES, it) },
                 )
             }
         }
 
-        // ── 8. Save button ───────────────────────────────────────────────────
         item {
-            Button(
-                onClick = {
+            ElmGradientButton(
+                onClick  = {
                     onSave(
                         displayName,
                         dailyOtText.toDoubleOrNull() ?: 0.0,
@@ -269,24 +240,21 @@ private fun SettingsContent(
                         clockStyle,
                     )
                 },
-                enabled = !state.isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                enabled  = !state.isSaving,
+                modifier = Modifier.padding(vertical = 8.dp),
             ) {
-                Text(if (state.isSaving) "Saving…" else "Save Settings")
+                Text(if (state.isSaving) "Saving…" else "Save Settings", fontWeight = FontWeight.SemiBold)
             }
         }
 
-        // ── 9. Sync ──────────────────────────────────────────────────────────
         item {
             SettingsSectionCard("Sync") {
                 InfoRow("Pending changes", state.pendingCount.toString())
-                InfoRow("Last sync", state.lastSyncStatus ?: "Never")
+                InfoRow("Last sync",       state.lastSyncStatus ?: "Never")
                 Spacer(Modifier.height(8.dp))
                 OutlinedButton(
-                    onClick = onSync,
-                    enabled = !state.isSyncing,
+                    onClick  = onSync,
+                    enabled  = !state.isSyncing,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(if (state.isSyncing) "Syncing…" else "Sync Now")
@@ -294,14 +262,13 @@ private fun SettingsContent(
             }
         }
 
-        // ── 10. Account ──────────────────────────────────────────────────────
         if (authState != null) {
             item {
                 SettingsSectionCard("Account") {
                     AccountSection(
-                        authState = authState,
+                        authState       = authState,
                         onResetPassword = onResetPassword,
-                        onSignOut = onSignOut,
+                        onSignOut       = onSignOut,
                     )
                 }
             }
@@ -315,12 +282,17 @@ private fun SettingsContent(
 
 @Composable
 private fun SettingsSectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+    Card(
+        modifier  = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
+                text       = title,
+                style      = MaterialTheme.typography.titleSmall,
+                color      = AuroraIndigo,
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.height(12.dp))
@@ -329,54 +301,45 @@ private fun SettingsSectionCard(title: String, content: @Composable ColumnScope.
     }
 }
 
-// ── Theme dropdown ────────────────────────────────────────────────────────────
+// ── Theme / clock dropdowns ───────────────────────────────────────────────────
 
 @Composable
 private fun ThemeDropdown(selected: String, onSelect: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    val label = THEME_OPTIONS.firstOrNull { it.first == selected }?.second ?: selected
+    val label    = THEME_OPTIONS.firstOrNull { it.first == selected }?.second ?: selected
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
-            value = label,
+            value         = label,
             onValueChange = {},
-            readOnly = true,
-            label = { Text("Theme") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth(),
+            readOnly      = true,
+            label         = { Text("Theme") },
+            trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier      = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             THEME_OPTIONS.forEach { (value, display) ->
-                DropdownMenuItem(
-                    text = { Text(display) },
-                    onClick = { onSelect(value); expanded = false },
-                )
+                DropdownMenuItem(text = { Text(display) }, onClick = { onSelect(value); expanded = false })
             }
         }
     }
 }
-
-// ── Clock style dropdown ──────────────────────────────────────────────────────
 
 @Composable
 private fun ClockStyleDropdown(selected: ClockStyle, onSelect: (ClockStyle) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
-            value = selected.name.lowercase().replaceFirstChar { it.uppercase() },
+            value         = selected.name.lowercase().replaceFirstChar { it.uppercase() },
             onValueChange = {},
-            readOnly = true,
-            label = { Text("Clock style") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth(),
+            readOnly      = true,
+            label         = { Text("Clock style") },
+            trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier      = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             SUPPORTED_CLOCK_STYLES.forEach { style ->
                 DropdownMenuItem(
-                    text = { Text(style.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                    text    = { Text(style.name.lowercase().replaceFirstChar { it.uppercase() }) },
                     onClick = { onSelect(style); expanded = false },
                 )
             }
@@ -384,7 +347,7 @@ private fun ClockStyleDropdown(selected: ClockStyle, onSelect: (ClockStyle) -> U
     }
 }
 
-// ── Hours / decimal field ─────────────────────────────────────────────────────
+// ── Hours field ───────────────────────────────────────────────────────────────
 
 @Composable
 private fun HoursField(
@@ -394,46 +357,46 @@ private fun HoursField(
     error: String? = null,
 ) {
     OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
+        value          = value,
+        onValueChange  = onValueChange,
+        label          = { Text(label) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true,
-        isError = error != null,
+        singleLine     = true,
+        isError        = error != null,
         supportingText = error?.let { msg -> { Text(msg) } },
-        modifier = Modifier.fillMaxWidth(),
+        modifier       = Modifier.fillMaxWidth(),
     )
 }
 
-// ── Weekend days selector ─────────────────────────────────────────────────────
+// ── Weekend days ──────────────────────────────────────────────────────────────
 
 @Composable
 private fun WeekendDaysSelector(selected: List<Int>, onChange: (List<Int>) -> Unit) {
     Column {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             (0..3).forEach { day ->
                 FilterChip(
-                    selected = day in selected,
-                    onClick = {
-                        val updated = if (day in selected) selected.filter { it != day }
-                                      else (selected + day).sorted()
+                    selected  = day in selected,
+                    onClick   = {
+                        val updated = if (day in selected) selected.filter { it != day } else (selected + day).sorted()
                         onChange(updated)
                     },
-                    label = { Text(DAY_LABELS[day]) },
+                    label    = { Text(DAY_LABELS[day]) },
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
         Spacer(Modifier.height(4.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             (4..6).forEach { day ->
                 FilterChip(
-                    selected = day in selected,
-                    onClick = {
-                        val updated = if (day in selected) selected.filter { it != day }
-                                      else (selected + day).sorted()
+                    selected  = day in selected,
+                    onClick   = {
+                        val updated = if (day in selected) selected.filter { it != day } else (selected + day).sorted()
                         onChange(updated)
                     },
-                    label = { Text(DAY_LABELS[day]) },
+                    label    = { Text(DAY_LABELS[day]) },
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -450,18 +413,12 @@ private fun ToggleRow(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier          = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(description, style = MaterialTheme.typography.bodySmall, color = AuroraInk2)
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
@@ -472,14 +429,12 @@ private fun ToggleRow(
 @Composable
 private fun InfoRow(label: String, value: String) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier              = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment     = Alignment.CenterVertically,
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = AuroraIndigo)
     }
 }
 
@@ -493,57 +448,34 @@ private fun AccountSection(
 ) {
     when (authState) {
         is AuthUiState.NotConfigured -> Text(
-            text = "Running in local-only mode (Supabase not configured).",
+            text  = "Running in local-only mode (Supabase not configured).",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = AuroraInk2,
         )
-        is AuthUiState.Loading -> CircularProgressIndicator()
+        is AuthUiState.Loading -> CircularProgressIndicator(color = AuroraIndigo)
         is AuthUiState.SignedIn -> {
-            Text(
-                text = authState.profile.email,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(authState.profile.email, style = MaterialTheme.typography.bodyMedium, color = AuroraInk2)
             authState.profile.fullName?.let { name ->
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Text(name, style = MaterialTheme.typography.bodySmall, color = AuroraFaint)
             }
             Spacer(Modifier.height(12.dp))
-            OutlinedButton(
-                onClick = onResetPassword,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            OutlinedButton(onClick = onResetPassword, modifier = Modifier.fillMaxWidth()) {
                 Text("Reset password")
             }
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
-                onClick = onSignOut,
-                enabled = !authState.isLoading,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error,
-                ),
+                onClick  = onSignOut,
+                enabled  = !authState.isLoading,
+                colors   = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(if (authState.isLoading) "Signing out…" else "Sign out")
             }
         }
-        is AuthUiState.SignedOut -> Text(
-            text = "Not signed in.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        is AuthUiState.PasswordResetSent -> Text(
-            text = "Password reset email sent.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        is AuthUiState.SignedOut       -> Text("Not signed in.", style = MaterialTheme.typography.bodyMedium, color = AuroraInk2)
+        is AuthUiState.PasswordResetSent -> Text("Password reset email sent.", style = MaterialTheme.typography.bodyMedium, color = AuroraInk2)
     }
 }
-
-// ── Preview ───────────────────────────────────────────────────────────────────
 
 @Preview(showBackground = true)
 @Composable
@@ -551,20 +483,15 @@ private fun SettingsScreenPreview() {
     ElmTrackrTheme {
         SettingsContent(
             state = SettingsUiState.Ready(
-                settings = UserSettings(
-                    id = "s1",
-                    userId = "u1",
-                    createdAt = Instant.EPOCH,
-                    updatedAt = Instant.EPOCH,
-                ),
+                settings = UserSettings(id = "s1", userId = "u1", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH),
             ),
-            authState = AuthUiState.NotConfigured,
-            onSave = { _, _, _, _, _, _ -> },
-            onSignOut = {},
-            onFeatureFlag = { _, _ -> },
-            onWeekendDays = {},
-            onTheme = {},
-            onSync = {},
+            authState       = AuthUiState.NotConfigured,
+            onSave          = { _, _, _, _, _, _ -> },
+            onSignOut       = {},
+            onFeatureFlag   = { _, _ -> },
+            onWeekendDays   = {},
+            onTheme         = {},
+            onSync          = {},
             onResetPassword = {},
         )
     }
