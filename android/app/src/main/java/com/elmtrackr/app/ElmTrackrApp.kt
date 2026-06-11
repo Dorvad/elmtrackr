@@ -24,6 +24,7 @@ import com.elmtrackr.app.domain.repository.SyncRepository
 import com.elmtrackr.app.notification.ActiveShiftNotificationManager
 import com.elmtrackr.app.notification.LongShiftReminderWorker
 import com.elmtrackr.app.notification.NotificationChannels
+import com.elmtrackr.app.widget.ElmTrackrWidgetUpdater
 import com.elmtrackr.app.sync.SyncScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -108,6 +109,7 @@ class ElmTrackrApp : Application() {
                         cancelReminder()
                         updateDynamicShortcuts(clockedIn = false)
                     }
+                    ElmTrackrWidgetUpdater.update(this@ElmTrackrApp, shift)
                 }
         }
     }

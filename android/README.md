@@ -575,6 +575,52 @@ On Android 13+ (API 33), `POST_NOTIFICATIONS` is a runtime permission.
 - The `POST_NOTIFICATIONS` permission is declared in `AndroidManifest.xml` for
   forward compatibility; on API < 33 it is silently ignored by the system.
 
+### Home screen widget
+
+ElmTrackr includes a Jetpack Glance home screen widget optimised for Niagara
+Launcher's horizontal feed (primary size: 4×1 cells).
+
+| Property | Value |
+|---|---|
+| Library | Jetpack Glance 1.1.0 (`androidx.glance:glance-appwidget`) |
+| Primary size | 4×1 cells (250 dp wide, 50 dp tall) |
+| Resize | horizontal + vertical; min 2×1 |
+| State storage | `PreferencesGlanceStateDefinition` (DataStore Preferences) |
+| Update trigger | `ElmTrackrApp.startActiveShiftObserver()` → `ElmTrackrWidgetUpdater.update()` |
+| On-boot / fresh-place | `ElmTrackrWidgetReceiver.onUpdate()` re-reads Room and refreshes |
+
+**Widget states:**
+
+| State | Status text | Action button |
+|---|---|---|
+| Idle (not clocked in) | "Ready to clock in" + today's date | Clock In |
+| Active (shift running) | "Clocked in since HH:mm" + today's date | Clock Out |
+
+**Action behaviour:**
+
+- **Clock In** — calls `LocalShiftsRepository.clockIn()` directly (Room write,
+  sync queued, no network required). The active-shift observer in `ElmTrackrApp`
+  then updates both the notification and the widget state.
+- **Clock Out** — calls `LocalShiftsRepository.clockOut(shiftId)` via the shift ID
+  stored in the widget state. Same offline-first guarantee.
+- **Tap anywhere** — opens `MainActivity` (Dashboard).
+
+**Key classes:**
+
+| Class | Responsibility |
+|---|---|
+| `ElmTrackrWidget` | `GlanceAppWidget` — renders idle / active layout |
+| `ElmTrackrWidgetReceiver` | `GlanceAppWidgetReceiver` — handles `APPWIDGET_UPDATE` (boot, first placement) |
+| `ElmTrackrWidgetUpdater` | Suspending helper; maps `Shift?` → Glance state; calls `widget.update()` |
+| `WidgetStateMapper` | Pure function `Shift? → WidgetShiftState`; fully unit-tested without Android |
+| `ClockInWidgetAction` | `ActionCallback` — calls `shiftsRepository.clockIn()` |
+| `ClockOutWidgetAction` | `ActionCallback` — reads `SHIFT_ID_KEY` param, calls `clockOut()` |
+
+**Button corners:** `GlanceModifier.cornerRadius()` requires API 31+. The
+widget uses `ImageProvider(R.drawable.widget_button)` (a shape drawable with
+`<corners android:radius="20dp"/>`) for the pill background instead — works on
+all supported API levels (26+).
+
 ### App shortcuts
 
 **Static shortcut (always available):**
@@ -620,5 +666,6 @@ immediately for a fully headless shortcut experience.
 | ✅ 11 — Reports | Monthly summary, payroll estimate, weekly breakdown, CSV export, travel refund review |
 | ✅ 12 — Settings | Full settings form, feature toggles, theme, weekend days, sync section, account |
 | ✅ 13 — Native features | Active-shift notification, clock-out action, long-shift reminder, app shortcuts |
-| 14 — Refunds | CameraX receipt capture, refund claim management |
-| 15 — Polish | Visual redesign, animations, widget, headless shortcut clock-out |
+| ✅ 14 — Home screen widget | Jetpack Glance 4×1 widget: active shift status + Clock In / Clock Out actions |
+| 15 — Refunds | CameraX receipt capture, refund claim management |
+| 16 — Polish | Visual redesign, animations, headless shortcut clock-out |

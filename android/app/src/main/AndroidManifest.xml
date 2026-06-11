@@ -51,6 +51,18 @@
             </intent-filter>
         </receiver>
 
+        <!-- ElmTrackr home screen widget (Jetpack Glance 4×1 horizontal). -->
+        <receiver
+            android:name=".widget.ElmTrackrWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/elmtrackr_widget_info" />
+        </receiver>
+
     </application>
 
 </manifest>
