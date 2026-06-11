@@ -9,6 +9,8 @@ import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
 import com.elmtrackr.app.domain.repository.RefundsRepository
+import com.elmtrackr.app.sync.NoOpSyncTrigger
+import com.elmtrackr.app.sync.SyncTrigger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
@@ -16,6 +18,7 @@ import java.util.UUID
 
 class LocalRefundsRepository(
     private val refundClaimDao: RefundClaimDao,
+    private val syncTrigger: SyncTrigger = NoOpSyncTrigger,
 ) : RefundsRepository {
 
     override fun observeClaimsForUser(userId: String): Flow<List<RefundClaim>> =
@@ -55,6 +58,7 @@ class LocalRefundsRepository(
             lastSyncedAt = null,
         )
         refundClaimDao.insertClaim(entity)
+        syncTrigger.schedule()
         return entity.toDomain()
     }
 
@@ -68,6 +72,7 @@ class LocalRefundsRepository(
             lastSyncedAt = existing?.lastSyncedAt,
         )
         refundClaimDao.upsertClaim(entity)
+        syncTrigger.schedule()
         return entity.toDomain()
     }
 
@@ -79,6 +84,7 @@ class LocalRefundsRepository(
             syncStatus = SyncStatus.PENDING_DELETE,
             updatedAt = now,
         )
+        syncTrigger.schedule()
     }
 
     override fun observePendingSyncClaims(): Flow<List<RefundClaim>> =

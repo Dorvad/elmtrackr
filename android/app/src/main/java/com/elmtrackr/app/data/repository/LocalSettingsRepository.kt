@@ -6,12 +6,17 @@ import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.repository.SettingsRepository
+import com.elmtrackr.app.sync.NoOpSyncTrigger
+import com.elmtrackr.app.sync.SyncTrigger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.util.UUID
 
-class LocalSettingsRepository(private val settingsDao: SettingsDao) : SettingsRepository {
+class LocalSettingsRepository(
+    private val settingsDao: SettingsDao,
+    private val syncTrigger: SyncTrigger = NoOpSyncTrigger,
+) : SettingsRepository {
 
     override fun observeSettings(userId: String): Flow<UserSettings?> =
         settingsDao.observeSettings(userId).map { it?.toDomain() }
@@ -30,6 +35,7 @@ class LocalSettingsRepository(private val settingsDao: SettingsDao) : SettingsRe
                 lastSyncedAt = existing?.lastSyncedAt,
             )
         )
+        syncTrigger.schedule()
     }
 
     override suspend fun createDefaultSettings(userId: String): UserSettings {
@@ -41,6 +47,7 @@ class LocalSettingsRepository(private val settingsDao: SettingsDao) : SettingsRe
             updatedAt = now,
         )
         settingsDao.insertSettings(settings.toEntity(syncStatus = SyncStatus.PENDING_CREATE))
+        syncTrigger.schedule()
         return settings
     }
 }

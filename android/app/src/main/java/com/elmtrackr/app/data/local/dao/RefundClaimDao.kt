@@ -52,4 +52,29 @@ interface RefundClaimDao {
             "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE')"
     )
     fun observePendingSyncClaims(): Flow<List<RefundClaimEntity>>
+
+    @Query(
+        "SELECT * FROM refund_claims WHERE syncStatus IN " +
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')"
+    )
+    suspend fun getPendingSyncClaims(): List<RefundClaimEntity>
+
+    @Query(
+        "UPDATE refund_claims SET syncStatus = :syncStatus, remoteId = :remoteId, " +
+            "lastSyncedAt = :lastSyncedAt, lastSyncError = :lastSyncError " +
+            "WHERE localId = :localId"
+    )
+    suspend fun updateSyncState(
+        localId: String,
+        syncStatus: SyncStatus,
+        remoteId: String?,
+        lastSyncedAt: Long?,
+        lastSyncError: String?,
+    )
+
+    @Query("SELECT * FROM refund_claims WHERE userId = :userId AND deletedAt IS NULL")
+    suspend fun getAllClaimsForUser(userId: String): List<RefundClaimEntity>
+
+    @Query("SELECT * FROM refund_claims WHERE remoteId = :remoteId LIMIT 1")
+    suspend fun getClaimByRemoteId(remoteId: String): RefundClaimEntity?
 }

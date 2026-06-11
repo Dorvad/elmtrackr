@@ -54,6 +54,36 @@ interface ShiftDao {
     fun observePendingSyncShifts(): Flow<List<ShiftEntity>>
 
     @Query(
+        "SELECT * FROM shifts WHERE syncStatus IN " +
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')"
+    )
+    suspend fun getPendingSyncShifts(): List<ShiftEntity>
+
+    @Query(
+        "UPDATE shifts SET syncStatus = :syncStatus, remoteId = :remoteId, " +
+            "lastSyncedAt = :lastSyncedAt, lastSyncError = :lastSyncError " +
+            "WHERE localId = :localId"
+    )
+    suspend fun updateSyncState(
+        localId: String,
+        syncStatus: SyncStatus,
+        remoteId: String?,
+        lastSyncedAt: Long?,
+        lastSyncError: String?,
+    )
+
+    @Query("SELECT * FROM shifts WHERE userId = :userId AND deletedAt IS NULL")
+    suspend fun getAllShiftsForUser(userId: String): List<ShiftEntity>
+
+    @Query(
+        "SELECT * FROM shifts WHERE userId = :userId AND endTime IS NULL AND deletedAt IS NULL"
+    )
+    suspend fun getActiveShifts(userId: String): List<ShiftEntity>
+
+    @Query("SELECT * FROM shifts WHERE remoteId = :remoteId LIMIT 1")
+    suspend fun getShiftByRemoteId(remoteId: String): ShiftEntity?
+
+    @Query(
         "SELECT * FROM shifts WHERE userId = :userId " +
             "AND startTime >= :fromEpoch AND startTime < :toEpoch " +
             "AND deletedAt IS NULL ORDER BY startTime ASC"

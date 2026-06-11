@@ -90,7 +90,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     implementation(libs.supabase.auth)
+    implementation(libs.supabase.postgrest)
     implementation(libs.ktor.client.okhttp)
+    implementation(libs.androidx.work.runtime.ktx)
 
     debugImplementation(libs.androidx.ui.tooling)
 

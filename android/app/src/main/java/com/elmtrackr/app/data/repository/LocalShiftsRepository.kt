@@ -7,6 +7,8 @@ import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.repository.ShiftsRepository
+import com.elmtrackr.app.sync.NoOpSyncTrigger
+import com.elmtrackr.app.sync.SyncTrigger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
@@ -14,7 +16,10 @@ import java.time.YearMonth
 import java.time.ZoneOffset
 import java.util.UUID
 
-class LocalShiftsRepository(private val shiftDao: ShiftDao) : ShiftsRepository {
+class LocalShiftsRepository(
+    private val shiftDao: ShiftDao,
+    private val syncTrigger: SyncTrigger = NoOpSyncTrigger,
+) : ShiftsRepository {
 
     override fun observeShifts(userId: String): Flow<List<Shift>> =
         shiftDao.observeShifts(userId).map { entities -> entities.map { it.toDomain() } }
@@ -45,6 +50,7 @@ class LocalShiftsRepository(private val shiftDao: ShiftDao) : ShiftsRepository {
             lastSyncedAt = null,
         )
         shiftDao.insertShift(entity)
+        syncTrigger.schedule()
         return entity.toDomain()
     }
 
@@ -62,6 +68,7 @@ class LocalShiftsRepository(private val shiftDao: ShiftDao) : ShiftsRepository {
             syncStatus = newStatus,
         )
         shiftDao.updateShift(updated)
+        syncTrigger.schedule()
         return updated.toDomain()
     }
 
@@ -75,6 +82,7 @@ class LocalShiftsRepository(private val shiftDao: ShiftDao) : ShiftsRepository {
             lastSyncedAt = existing?.lastSyncedAt,
         )
         shiftDao.upsertShift(entity)
+        syncTrigger.schedule()
         return entity.toDomain()
     }
 
@@ -86,6 +94,7 @@ class LocalShiftsRepository(private val shiftDao: ShiftDao) : ShiftsRepository {
             syncStatus = SyncStatus.PENDING_DELETE,
             updatedAt = now,
         )
+        syncTrigger.schedule()
     }
 
     override fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>> {

@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.elmtrackr.app.data.local.entity.ProfileEntity
+import com.elmtrackr.app.data.local.entity.SyncStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -25,4 +26,26 @@ interface ProfileDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertProfile(profile: ProfileEntity)
+
+    @Query(
+        "SELECT * FROM profiles WHERE syncStatus IN " +
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')"
+    )
+    suspend fun getPendingSyncProfiles(): List<ProfileEntity>
+
+    @Query(
+        "UPDATE profiles SET syncStatus = :syncStatus, remoteId = :remoteId, " +
+            "lastSyncedAt = :lastSyncedAt, lastSyncError = :lastSyncError " +
+            "WHERE localId = :localId"
+    )
+    suspend fun updateSyncState(
+        localId: String,
+        syncStatus: SyncStatus,
+        remoteId: String?,
+        lastSyncedAt: Long?,
+        lastSyncError: String?,
+    )
+
+    @Query("SELECT * FROM profiles WHERE remoteId = :remoteId LIMIT 1")
+    suspend fun getProfileByRemoteId(remoteId: String): ProfileEntity?
 }

@@ -49,12 +49,82 @@ and fresh checkouts — the app builds and runs normally. The **Account** tab sh
 a "Auth not configured" message instead of a sign-in form. All local shift
 tracking continues to work without authentication.
 
-### Data sync note
+---
 
-Authentication is implemented in this phase; **data sync to Supabase is not yet
-implemented**. Shifts, settings, and refund claims are stored locally in Room.
-The `syncStatus` field on every entity tracks which records are pending upload
-for when sync is added.
+## Offline-first sync architecture
+
+ElmTrackr uses Room as the **single source of truth** and Supabase PostgREST as the
+**remote backend**. All writes go to Room first; sync to Supabase happens in the
+background via WorkManager.
+
+### Data flow
+
+```
+User action
+  │
+  ▼
+LocalXxxRepository          ← writes Room immediately, syncStatus = PENDING_*
+  │                           then calls SyncTrigger.schedule()
+  ▼
+SyncScheduler               ← enqueues a one-time SyncWorker (KEEP policy)
+  │
+  ▼
+SyncWorker (CoroutineWorker)
+  │
+  ▼
+SyncRepositoryImpl
+  ├── Push phase (in order: shifts → refund claims → settings → profiles)
+  │     PENDING_CREATE  → upsert to Supabase, set remoteId, mark SYNCED
+  │     PENDING_UPDATE  → upsert using existing remoteId, mark SYNCED
+  │     PENDING_DELETE  → delete from Supabase, mark SYNCED
+  │     FAILED          → retry (same as CREATE / UPDATE logic)
+  │     error           → mark FAILED, record lastSyncError
+  └── Pull phase (same order)
+        new remote record       → insert locally (SYNCED)
+        remote newer + SYNCED   → update local (SYNCED)
+        local has PENDING_*     → skip (local wins, remote overwritten on next push)
+        remote deleted + SYNCED → soft-delete locally
+```
+
+### Conflict strategy
+
+| Local state | Remote newer | Result |
+|---|---|---|
+| SYNCED | yes | Remote wins (updatedAt comparison) |
+| PENDING_* | any | **Local wins** — never discarded |
+| Both active shifts | pull active shift | Skip remote (duplicate guard) |
+
+### Key classes
+
+| Class | Responsibility |
+|---|---|
+| `SyncRepositoryImpl` | Orchestrates push + pull for all four entity types |
+| `SyncWorker` | `CoroutineWorker` that reads the current userId and calls `syncAll` |
+| `SyncScheduler` | `SyncTrigger` implementation; enqueues one-time and periodic work |
+| `SyncTrigger` | `fun interface` injected into local repos; `NoOpSyncTrigger` used in tests |
+| `RemoteXxxDataSource` | Interface over PostgREST table, Supabase implementations + fake for tests |
+| `RemoteMapper.kt` | Extension functions converting `ShiftEntity ↔ JsonObject` (no compiler plugin) |
+
+### Sync triggers
+
+- After every `clockIn`, `clockOut`, `updateShift`, `deleteShift` call
+- After every refund-claim or settings write
+- On app launch (periodic WorkManager task, 15-min interval, requires network)
+
+### CI / credential safety
+
+`SupabaseClientProvider.get()` returns `null` when `SUPABASE_URL` / `SUPABASE_ANON_KEY`
+are blank (the default on CI). `SyncRepositoryImpl` checks this at the top of `syncAll`
+and returns `SyncResult.NotConfigured` immediately — no network calls, no crashes.
+
+### Adding a new entity type to sync
+
+1. Add `PENDING_CREATE/UPDATE/DELETE`, `remoteId`, `lastSyncedAt`, `lastSyncError`, `syncStatus` fields to the Room entity (already done for all current entities).
+2. Add `getPendingSyncXxx()`, `updateSyncState(...)`, `getXxxByRemoteId(...)` to the DAO.
+3. Add to/from JSON mapping in `RemoteMapper.kt`.
+4. Create `RemoteXxxDataSource` interface + `SupabaseXxxDataSource` implementation.
+5. Wire push and pull in `SyncRepositoryImpl` (follow the existing pattern).
+6. Add the data source to `ElmTrackrApp`.
 
 ---
 
@@ -196,7 +266,7 @@ android/
 | ✅ 3 — Local persistence | Room DB, DataStore preferences, repository interfaces |
 | ✅ 4 — MVVM | ViewModels, StateFlow UI state, screen wiring |
 | ✅ 5 — Auth foundation | Supabase auth, deep links, Account tab, tests |
-| 6 — Data sync | Upload local data to Supabase once authenticated |
+| ✅ 6 — Data sync | Offline-first sync engine: Room + Supabase PostgREST + WorkManager |
 | 7 — Core screens | Shifts list/detail, new shift form, full payroll view |
 | 8 — Reports | Weekly chart, overtime breakdown, pay summary |
 | 9 — Refunds | Travel refund claims, CameraX receipt capture |

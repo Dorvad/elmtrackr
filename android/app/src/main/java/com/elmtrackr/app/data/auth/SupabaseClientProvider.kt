@@ -4,6 +4,7 @@ import com.elmtrackr.app.BuildConfig
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.postgrest.Postgrest
 
 /**
  * Lazily creates the Supabase client from BuildConfig fields.
@@ -29,5 +30,6 @@ object SupabaseClientProvider {
         supabaseKey = BuildConfig.SUPABASE_ANON_KEY,
     ) {
         install(Auth)
+        install(Postgrest)
     }
 }
