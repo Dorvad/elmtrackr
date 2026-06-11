@@ -1,5 +1,7 @@
 # Builds a debug APK from android/ and uploads it as a downloadable artifact.
-# No secrets required. No emulator. No Play Store publishing.
+# Supabase credentials are read from SUPABASE_URL / SUPABASE_ANON_KEY repo secrets
+# (optional — build succeeds without them, app shows "Auth not configured").
+# No emulator. No Play Store publishing.
 # Triggered only when Android sources or this workflow file change.
 
 name: Android CI
@@ -48,6 +50,25 @@ jobs:
           SDK_MGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDK_MGR" --licenses >/dev/null 2>&1 || true
           "$SDK_MGR" "platforms;android-35" "build-tools;35.0.0"
+
+      # ── Supabase credentials ─────────────────────────────────────────────
+      # If SUPABASE_URL and SUPABASE_ANON_KEY are configured as repo secrets
+      # the built APK will connect to Supabase. For fork pull requests and
+      # repos without secrets the step is a no-op; the app still builds and
+      # shows "Auth not configured" at runtime (expected CI behaviour).
+      - name: Write Supabase credentials to local.properties
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            printf 'supabase.url=%s\nsupabase.anon.key=%s\n' \
+              "$SUPABASE_URL" "$SUPABASE_ANON_KEY" \
+              > android/local.properties
+            echo "local.properties written — APK will connect to Supabase."
+          else
+            echo "Supabase secrets not set — APK will show 'Auth not configured'."
+          fi
 
       # ── Build ─────────────────────────────────────────────────────────────
       - name: Make gradlew executable

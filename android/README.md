@@ -31,6 +31,27 @@ elmtrackr/
 
 > `local.properties` is git-ignored. **Never commit real keys.**
 
+### GitHub Actions / CI builds (tablet downloads)
+
+APKs downloaded from the **Actions → ElmTrackr-debug** artifact will connect
+to Supabase only if the repo has secrets configured. Set them once in
+**GitHub → repo → Settings → Secrets and variables → Actions**:
+
+| Secret name | Value |
+|---|---|
+| `SUPABASE_URL` | Your project URL, e.g. `https://xxxx.supabase.co` |
+| `SUPABASE_ANON_KEY` | Your **anon / public** key (`eyJ…`) |
+
+The workflow writes these into `android/local.properties` at build time (the
+file is never committed). If the secrets are absent — fork pull requests,
+fresh forks, or repos without secrets — the build still succeeds and the APK
+shows "Auth not configured" on the Account tab.
+
+> **Security:** Only use the **anon / public** key in the Android app. Never
+> add the `service_role` key or any other privileged key — it would be
+> compiled into the APK, which is trivially extractable. Row-level security
+> (RLS) in Supabase ensures the anon key is safe to embed.
+
 ### Supabase dashboard configuration
 
 In your Supabase project → **Authentication → URL Configuration**, add:
@@ -180,14 +201,17 @@ Every push or pull request that touches `android/**` automatically:
 
 1. Spins up an `ubuntu-latest` runner with Android SDK pre-installed.
 2. Installs Android platform 35 + build tools 35.0.0.
-3. Runs `./gradlew :app:assembleDebug`.
-4. Runs `./gradlew testDebugUnitTest`.
-5. Uploads `app-debug.apk` as a downloadable artifact — **no secrets needed**.
+3. Writes `android/local.properties` from `SUPABASE_URL` / `SUPABASE_ANON_KEY` repo
+   secrets (skipped silently if the secrets are absent — fork PRs, unconfigured repos).
+4. Runs `./gradlew :app:assembleDebug`.
+5. Runs `./gradlew testDebugUnitTest`.
+6. Uploads `app-debug.apk` as a downloadable artifact.
 
-CI builds without `local.properties` — Supabase keys default to empty strings,
-`SupabaseClientProvider.isConfigured()` returns `false`, and the app shows the
-"not configured" state on the Account tab. Auth unit tests use `FakeAuthRepository`
-and never touch the network.
+When Supabase secrets are configured, the artifact APK connects to your Supabase
+project. When they are absent, `SupabaseClientProvider.isConfigured()` returns
+`false` and the app shows "Auth not configured" on the Account tab — all local
+shift tracking still works. Auth unit tests use `FakeAuthRepository` and never
+touch the network.
 
 Workflow file: [`.github/workflows/android.yml`](../.github/workflows/android.yml)
 
