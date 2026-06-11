@@ -72,6 +72,13 @@ class LocalShiftsRepository(
         return updated.toDomain()
     }
 
+    override suspend fun createManualShift(shift: Shift): Shift {
+        val entity = shift.toEntity(syncStatus = SyncStatus.PENDING_CREATE)
+        shiftDao.insertShift(entity)
+        syncTrigger.schedule()
+        return entity.toDomain()
+    }
+
     override suspend fun updateShift(shift: Shift): Shift {
         val existing = shiftDao.getShiftById(shift.id)
         val newStatus = if (existing?.syncStatus == SyncStatus.SYNCED)

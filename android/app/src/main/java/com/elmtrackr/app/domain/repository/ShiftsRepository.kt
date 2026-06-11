@@ -17,6 +17,9 @@ interface ShiftsRepository {
     /** Sets end time on an active shift (clock-out). */
     suspend fun clockOut(localId: String, breakMinutes: Int = 0, notes: String? = null): Shift
 
+    /** Creates a fully-specified manual shift entry (PENDING_CREATE sync status). */
+    suspend fun createManualShift(shift: Shift): Shift
+
     suspend fun updateShift(shift: Shift): Shift
 
     suspend fun deleteShift(localId: String)
@@ -25,3 +28,4 @@ interface ShiftsRepository {
 
     fun observePendingSyncShifts(): Flow<List<Shift>>
 }
+

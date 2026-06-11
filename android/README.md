@@ -266,7 +266,7 @@ AppNavGraph (auth-aware, no bottom nav)
   ├── onboarding     ← OnboardingScreen (full setup form; all fields below)
   └── main           ← MainScaffold (4-tab bottom nav)
         ├── dashboard  ← DashboardScreen  (clock in/out, month stats, sync badge)
-        ├── shifts     ← ShiftsScreen     (placeholder — not yet polished)
+        ├── shifts     ← ShiftsScreen     (shift history, create/edit/delete)
         ├── reports    ← ReportsScreen    (monthly report + month navigator)
         └── settings   ← SettingsScreen  (preferences + auth/sign-out section)
 ```
@@ -292,6 +292,7 @@ the navController, always clearing the back stack with `popUpTo(0)`.
 |---|---|
 | Dashboard | `DashboardViewModel` — active shift, monthly report, settings, pending sync count |
 | Reports | `ReportsViewModel` — monthly report + weekly totals, month navigator |
+| Shifts | `ShiftsViewModel` — full shift list, create/edit/delete with offline-first writes |
 | Settings | `SettingsViewModel` — user settings; auth section from `AuthViewModel` |
 | Auth | `AuthViewModel` — sign-in, sign-up, password reset, sign-out |
 | Onboarding | `OnboardingViewModel` — full setup form, writes all settings, marks onboarding complete |
@@ -382,9 +383,41 @@ Only three clock styles render natively. All other `ClockStyle` values fall back
 | `MINIMAL` | Large thin typography timer; circular IN / OUT button |
 | `AURORA` | Linear gradient card (primary → tertiary); frosted-glass buttons |
 
+### Shifts screen
+
+The `ShiftsScreen` (`ui/shifts/ShiftsScreen.kt`) is fully functional and offline-first:
+
+| Feature | Status |
+|---|---|
+| View all shifts (date, time range, duration, break, notes) | ✅ |
+| Active shift badge | ✅ |
+| Create a manual shift (date + time pickers) | ✅ offline-first (`PENDING_CREATE`) |
+| Edit an existing shift | ✅ offline-first (`PENDING_UPDATE`) |
+| Delete a shift | ✅ soft-delete (`PENDING_DELETE`) |
+| Break minutes, notes, special-day flag | ✅ |
+| Travel refund action (conditional on `featuresTravelRefunds` setting) | ✅ |
+| Validation: end time must be after start time; break ≥ 0 | ✅ |
+| Empty-state prompt with FAB | ✅ |
+| Back-press dismisses form | ✅ `BackHandler` |
+
+**Offline-first behaviour:**
+All writes go to Room immediately with the appropriate `PENDING_*` sync status.
+`SyncScheduler.schedule()` is called after every create, update, and delete so
+WorkManager picks up the change as soon as a network connection is available.
+
+**Date/time picking:**
+- `DatePickerWrapper` — Material 3 `DatePickerDialog` + `DatePicker`
+- `TimePickerWrapper` — Material 3 `TimePicker` inside an `AlertDialog`
+- Epoch-millis form state (`Long`) ensures `rememberSaveable` compatibility
+
+**Known limitations:**
+- Overnight shifts spanning midnight are supported, but the date column always
+  shows the shift's start date.
+- Reports integration (totals updated from the Shifts screen) is handled by the
+  existing `ReportsViewModel`/Room observe flows — no extra wiring needed.
+
 ### Placeholder screens
 
-- **Shifts** — scaffold only; list/detail UI will be added in the next phase.
 - **Reports** — monthly summary and month navigator are functional. Weekly chart is not yet implemented.
 
 ---
@@ -402,7 +435,7 @@ Only three clock styles render natively. All other `ClockStyle` values fall back
 | ✅ 7 — App shell | Auth-aware navigation, onboarding flow, 4-tab main shell, auth section in Settings |
 | ✅ 8 — Auth & Onboarding UI | Usable auth screen (logo, password toggle, validation); full onboarding form |
 | ✅ 9 — Dashboard | Live timer, 3 clock styles, edit start time, month summary, recent shifts, sync status |
-| 10 — Core screens | Shifts list/detail, new shift form, full payroll view |
-| 10 — Reports | Weekly chart, overtime breakdown, pay summary |
-| 11 — Refunds | Travel refund claims, CameraX receipt capture |
-| 12 — Notifications | WorkManager "forgot to clock out" reminder, Glance widget |
+| ✅ 10 — Shifts | Full shift history, create/edit/delete (offline-first), date+time pickers, validation |
+| 11 — Reports | Weekly chart, overtime breakdown, pay summary |
+| 12 — Refunds | Travel refund claims, CameraX receipt capture |
+| 13 — Notifications | WorkManager "forgot to clock out" reminder, Glance widget |

@@ -9,6 +9,7 @@ sealed interface ShiftsUiState {
     data class Ready(
         val shifts: List<Shift>,
         val activeShift: Shift?,
+        val featuresTravelRefunds: Boolean = false,
     ) : ShiftsUiState
 
     data class Error(val message: String) : ShiftsUiState
