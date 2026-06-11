@@ -276,8 +276,7 @@ AppNavGraph (auth-aware, no bottom nav)
 | Auth configured | Profile | Onboarding done | Route |
 |---|---|---|---|
 | any | — | — | `loading` (initial) |
-| no | — | yes | `main` |
-| no | — | no | `onboarding` |
+| no | — | any | `auth` (shows "not configured" message) |
 | yes | null | any | `auth` |
 | yes | set | yes | `main` |
 | yes | set | no | `onboarding` |

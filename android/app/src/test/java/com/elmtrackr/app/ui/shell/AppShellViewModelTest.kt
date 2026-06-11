@@ -32,22 +32,10 @@ class AppShellViewModelTest {
         updatedAt = Instant.EPOCH,
     )
 
-    @Test
-    fun `not configured + onboarding done → Main`() = runTest {
-        authRepo.configured = false
-        onboardingFlow.value = true
-
-        val vm = buildVm()
-        val states = mutableListOf<AppNavState>()
-        val job = launch { vm.navState.collect { states.add(it) } }
-        advanceUntilIdle()
-
-        assertEquals(AppNavState.Main, states.last())
-        job.cancel()
-    }
+    // ---- No config → always Auth ----
 
     @Test
-    fun `not configured + onboarding not done → Onboarding`() = runTest {
+    fun `no config + no onboarding → Auth (not-configured)`() = runTest {
         authRepo.configured = false
         onboardingFlow.value = false
 
@@ -56,12 +44,29 @@ class AppShellViewModelTest {
         val job = launch { vm.navState.collect { states.add(it) } }
         advanceUntilIdle()
 
-        assertEquals(AppNavState.Onboarding, states.last())
+        assertEquals(AppNavState.Auth, states.last())
         job.cancel()
     }
 
     @Test
-    fun `configured + signed out → Auth`() = runTest {
+    fun `no config + onboarding previously completed → still Auth, not Main`() = runTest {
+        // Previously completed onboarding must NOT bypass the auth gate when unconfigured.
+        authRepo.configured = false
+        onboardingFlow.value = true
+
+        val vm = buildVm()
+        val states = mutableListOf<AppNavState>()
+        val job = launch { vm.navState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        assertEquals(AppNavState.Auth, states.last())
+        job.cancel()
+    }
+
+    // ---- Configured, no session → Auth ----
+
+    @Test
+    fun `configured + no session → Auth`() = runTest {
         authRepo.configured = true
         authRepo.setProfile(null)
         onboardingFlow.value = false
@@ -75,23 +80,10 @@ class AppShellViewModelTest {
         job.cancel()
     }
 
-    @Test
-    fun `configured + signed in + onboarding done → Main`() = runTest {
-        authRepo.configured = true
-        authRepo.setProfile(testProfile())
-        onboardingFlow.value = true
-
-        val vm = buildVm()
-        val states = mutableListOf<AppNavState>()
-        val job = launch { vm.navState.collect { states.add(it) } }
-        advanceUntilIdle()
-
-        assertEquals(AppNavState.Main, states.last())
-        job.cancel()
-    }
+    // ---- Configured, session present ----
 
     @Test
-    fun `configured + signed in + onboarding not done → Onboarding`() = runTest {
+    fun `session exists + onboarding incomplete → Onboarding`() = runTest {
         authRepo.configured = true
         authRepo.setProfile(testProfile())
         onboardingFlow.value = false
@@ -106,7 +98,24 @@ class AppShellViewModelTest {
     }
 
     @Test
-    fun `sign out while onboarding done → Auth`() = runTest {
+    fun `session exists + onboarding complete → Main`() = runTest {
+        authRepo.configured = true
+        authRepo.setProfile(testProfile())
+        onboardingFlow.value = true
+
+        val vm = buildVm()
+        val states = mutableListOf<AppNavState>()
+        val job = launch { vm.navState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        assertEquals(AppNavState.Main, states.last())
+        job.cancel()
+    }
+
+    // ---- Sign out ----
+
+    @Test
+    fun `sign out returns to Auth and does not route back to Onboarding`() = runTest {
         authRepo.configured = true
         authRepo.setProfile(testProfile())
         onboardingFlow.value = true
@@ -118,10 +127,39 @@ class AppShellViewModelTest {
 
         assertEquals(AppNavState.Main, states.last())
 
+        // Sign out clears the profile; onboarding flag is still true
         authRepo.setProfile(null)
         advanceUntilIdle()
 
         assertEquals(AppNavState.Auth, states.last())
         job.cancel()
+    }
+
+    @Test
+    fun `sign out when onboarding incomplete also returns to Auth`() = runTest {
+        authRepo.configured = true
+        authRepo.setProfile(testProfile())
+        onboardingFlow.value = false
+
+        val vm = buildVm()
+        val states = mutableListOf<AppNavState>()
+        val job = launch { vm.navState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        assertEquals(AppNavState.Onboarding, states.last())
+
+        authRepo.setProfile(null)
+        advanceUntilIdle()
+
+        assertEquals(AppNavState.Auth, states.last())
+        job.cancel()
+    }
+
+    // ---- Initial state ----
+
+    @Test
+    fun `initial state is Loading before first emission`() {
+        val vm = buildVm()
+        assertEquals(AppNavState.Loading, vm.navState.value)
     }
 }

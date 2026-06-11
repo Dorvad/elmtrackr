@@ -24,8 +24,10 @@ class AppShellViewModel(
         onboardingCompletedFlow,
     ) { profile, onboardingCompleted ->
         when {
-            !authRepository.isConfigured() || profile != null ->
-                if (onboardingCompleted) AppNavState.Main else AppNavState.Onboarding
+            // No credentials → Auth screen (shows "not configured" state).
+            // Never bypass auth gate, even if onboarding was previously completed.
+            !authRepository.isConfigured() -> AppNavState.Auth
+            profile != null -> if (onboardingCompleted) AppNavState.Main else AppNavState.Onboarding
             else -> AppNavState.Auth
         }
     }.stateIn(
