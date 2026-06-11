@@ -27,6 +27,8 @@ import com.elmtrackr.app.ui.theme.AuroraFaint
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraInk2
 import com.elmtrackr.app.ui.theme.AuroraPeach
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 
 // ── Section header ────────────────────────────────────────────────────────────
 
@@ -36,11 +38,12 @@ fun ElmSectionHeader(
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text       = title.uppercase(),
-        style      = MaterialTheme.typography.labelMedium,
-        color      = AuroraIndigo,
-        fontWeight = FontWeight.SemiBold,
-        modifier   = modifier.fillMaxWidth(),
+        text          = title.uppercase(),
+        style         = MaterialTheme.typography.labelSmall,
+        color         = AuroraInk2,
+        fontWeight    = FontWeight.Bold,
+        letterSpacing = TextUnit(0.12f, TextUnitType.Em),
+        modifier      = modifier.fillMaxWidth(),
     )
 }
 

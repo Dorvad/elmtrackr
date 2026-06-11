@@ -5,13 +5,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
@@ -73,6 +77,7 @@ import com.elmtrackr.app.ui.theme.AuroraFaint
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraInk2
 import com.elmtrackr.app.ui.theme.AuroraPlum
+import com.elmtrackr.app.ui.theme.AuroraWeekendBg
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import java.time.Instant
 import java.time.LocalDate
@@ -82,9 +87,10 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-private val dateFmt     = DateTimeFormatter.ofPattern("EEE, d MMM")
-private val dateLongFmt = DateTimeFormatter.ofPattern("d MMM yyyy")
-private val timeFmt     = DateTimeFormatter.ofPattern("HH:mm")
+private val dateLongFmt  = DateTimeFormatter.ofPattern("d MMM yyyy")
+private val timeFmt      = DateTimeFormatter.ofPattern("HH:mm")
+private val dayNumFmt    = DateTimeFormatter.ofPattern("dd")
+private val weekdayFmt   = DateTimeFormatter.ofPattern("EEE")
 
 @Composable
 fun ShiftsScreen(
@@ -193,77 +199,128 @@ private fun ElmFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
 @Composable
 private fun ShiftRow(shift: Shift, onClick: () -> Unit) {
     val zone         = ZoneId.systemDefault()
-    val dateText     = shift.startTime.atZone(zone).format(dateFmt)
-    val startText    = shift.startTime.atZone(zone).format(timeFmt)
+    val zdt          = shift.startTime.atZone(zone)
+    val dayNumber    = zdt.format(dayNumFmt)
+    val weekday      = zdt.format(weekdayFmt).uppercase(Locale.getDefault())
+    val startText    = zdt.format(timeFmt)
     val endText      = shift.endTime?.atZone(zone)?.format(timeFmt) ?: "Active"
     val durationText = if (shift.isCompleted)
-        ShiftDurationCalculator.netMinutes(shift)?.let { ShiftDurationCalculator.formatMinutes(it) } ?: "—"
+        ShiftDurationCalculator.netMinutes(shift)?.let { ShiftDurationCalculator.formatMinutes(it) }
     else null
+
+    val stripeColor = when {
+        shift.isActive    -> Color(0xFF10B981)  // emerald active
+        shift.isSpecialDay -> AuroraPlum
+        else              -> AuroraIndigo.copy(alpha = 0.35f)
+    }
 
     Card(
         onClick   = onClick,
         modifier  = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-        shape     = RoundedCornerShape(14.dp),
+        shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text       = dateText,
-                        style      = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color      = MaterialTheme.colorScheme.onSurface,
-                    )
-                    if (shift.isSpecialDay) {
-                        Text(
-                            text  = " ★",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = AuroraPlum,
-                        )
-                    }
-                }
-                if (shift.isActive) {
-                    ActiveBadge()
-                } else if (durationText != null) {
-                    Text(
-                        text       = durationText,
-                        style      = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color      = AuroraIndigo,
-                    )
-                }
-            }
-            Spacer(Modifier.height(3.dp))
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically,
+        Row(
+            modifier          = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Left colour stripe
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(stripeColor)
+            )
+
+            // Date block
+            Column(
+                modifier            = Modifier
+                    .width(54.dp)
+                    .padding(vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text  = "$startText → $endText",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AuroraInk2,
+                    text       = dayNumber,
+                    style      = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color      = MaterialTheme.colorScheme.onSurface,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (shift.breakMinutes > 0) {
-                        Text(
-                            text  = "break ${ShiftDurationCalculator.formatMinutes(shift.breakMinutes)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = AuroraFaint,
-                        )
-                    }
-                    if (!shift.notes.isNullOrBlank()) {
-                        Text("📝", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    text       = weekday,
+                    style      = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = AuroraFaint,
+                )
+            }
+
+            // Main info
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 4.dp, top = 12.dp, bottom = 12.dp),
+            ) {
+                Text(
+                    text       = "$startText — $endText",
+                    style      = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = MaterialTheme.colorScheme.onSurface,
+                )
+                if (shift.isActive || shift.isSpecialDay || shift.breakMinutes > 0) {
+                    Spacer(Modifier.height(3.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (shift.isActive) {
+                            ActiveBadge()
+                        }
+                        if (shift.isSpecialDay) {
+                            SpecialBadge()
+                        }
+                        if (shift.breakMinutes > 0 && !shift.isActive) {
+                            Text(
+                                text  = "${shift.breakMinutes}m brk",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AuroraFaint,
+                            )
+                        }
                     }
                 }
             }
+
+            // Duration
+            if (durationText != null) {
+                Text(
+                    text       = durationText,
+                    style      = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color      = MaterialTheme.colorScheme.onSurface,
+                    modifier   = Modifier.padding(end = 4.dp),
+                )
+            }
+
+            // Chevron
+            Icon(
+                imageVector        = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint               = AuroraFaint,
+                modifier           = Modifier.size(18.dp).padding(end = 6.dp),
+            )
         }
+    }
+}
+
+@Composable
+private fun SpecialBadge() {
+    Box(
+        modifier = Modifier
+            .background(AuroraWeekendBg, RoundedCornerShape(50))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    ) {
+        Text(
+            text       = "Special",
+            style      = MaterialTheme.typography.labelSmall,
+            color      = AuroraPlum,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 

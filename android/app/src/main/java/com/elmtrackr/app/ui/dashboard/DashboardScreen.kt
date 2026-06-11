@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -72,6 +73,7 @@ import com.elmtrackr.app.ui.theme.AuroraPeach
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.AuroraSurface
 import com.elmtrackr.app.ui.theme.AuroraSurfaceSub
+import com.elmtrackr.app.ui.theme.AuroraWhite
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import kotlinx.coroutines.delay
 import java.time.Instant
@@ -81,9 +83,12 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val dateHeaderFmt = DateTimeFormatter.ofPattern("EEE, d MMM", Locale.getDefault())
 private val dateFormatter  = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())
 private val timeFormatter  = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+
+private val headerGradient = Brush.linearGradient(
+    colorStops = arrayOf(0f to AuroraIndigo, 0.5f to AuroraPlum, 1f to AuroraAqua),
+)
 
 @Composable
 fun DashboardScreen(
@@ -217,25 +222,55 @@ private fun DashboardHeader(
     pendingCount: Int,
     isRemoteConfigured: Boolean,
 ) {
-    val today = Instant.now().atZone(ZoneId.systemDefault()).format(dateHeaderFmt)
+    val hour = Instant.now().atZone(ZoneId.systemDefault()).hour
+    val greetingBase = when (hour) {
+        in 0..11 -> "Good morning"
+        in 12..17 -> "Good afternoon"
+        else     -> "Good evening"
+    }
+    val firstName = displayName?.trim()?.split(" ")?.firstOrNull()
+    val greeting  = if (firstName != null)
+        "${greetingBase.uppercase()} · ${firstName.uppercase()}"
+    else
+        greetingBase.uppercase()
+
     Row(
-        modifier            = Modifier.fillMaxWidth(),
+        modifier              = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment   = Alignment.CenterVertically,
+        verticalAlignment     = Alignment.CenterVertically,
     ) {
         Column {
             Text(
-                text       = today.uppercase(),
-                style      = MaterialTheme.typography.labelMedium,
-                color      = AuroraInk2,
-                fontWeight = FontWeight.Medium,
-            )
-            Text(
-                text       = if (displayName != null) "Hi, $displayName" else "ElmTrackr",
-                style      = MaterialTheme.typography.headlineMedium,
-                color      = MaterialTheme.colorScheme.onBackground,
+                text       = greeting,
+                style      = MaterialTheme.typography.labelSmall,
+                color      = AuroraFaint,
                 fontWeight = FontWeight.Bold,
             )
+            Spacer(Modifier.height(4.dp))
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .background(headerGradient, RoundedCornerShape(7.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector        = Icons.Filled.Bolt,
+                        contentDescription = null,
+                        tint               = AuroraWhite,
+                        modifier           = Modifier.size(14.dp),
+                    )
+                }
+                Text(
+                    text       = "elmtrackr",
+                    style      = MaterialTheme.typography.headlineMedium,
+                    color      = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
         ElmSyncPill(pendingCount = pendingCount, isRemoteConfigured = isRemoteConfigured)
     }
