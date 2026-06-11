@@ -357,10 +357,35 @@ Errors appear inline under the offending field. No network call is required.
 2. `markOnboardingCompleted()` calls `AppPreferencesRepository.setOnboardingCompleted(true)`, which writes to DataStore.
 3. `AppShellViewModel` observes the DataStore preference and emits `AppNavState.Main`, driving navigation.
 
+### Dashboard
+
+The `DashboardScreen` (`ui/dashboard/DashboardScreen.kt`) is fully functional:
+
+| Feature | Status |
+|---|---|
+| Greeting (display name or "ElmTrackr") | ✅ |
+| Clock In / Clock Out | ✅ offline-first |
+| Live elapsed timer (ticks every second) | ✅ `produceState` |
+| Edit active shift start time (TimePicker) | ✅ |
+| This month: hours, overtime, shift count | ✅ |
+| This month: gross pay (when hourly rate set) | ✅ |
+| Recent shifts list (last 5 completed) | ✅ |
+| Sync status indicator | ✅ |
+| 3 native clock styles | ✅ Classic / Minimal / Aurora |
+
+### Native clock styles
+
+Only three clock styles render natively. All other `ClockStyle` values fall back to Classic.
+
+| Style | Appearance |
+|---|---|
+| `CLASSIC` | Filled card with large timer; Clock In / Out buttons |
+| `MINIMAL` | Large thin typography timer; circular IN / OUT button |
+| `AURORA` | Linear gradient card (primary → tertiary); frosted-glass buttons |
+
 ### Placeholder screens
 
 - **Shifts** — scaffold only; list/detail UI will be added in the next phase.
-- **Dashboard** — clock in/out and monthly stats are functional. Charts and payroll detail are not yet implemented.
 - **Reports** — monthly summary and month navigator are functional. Weekly chart is not yet implemented.
 
 ---
@@ -377,7 +402,8 @@ Errors appear inline under the offending field. No network call is required.
 | ✅ 6 — Data sync | Offline-first sync engine: Room + Supabase PostgREST + WorkManager |
 | ✅ 7 — App shell | Auth-aware navigation, onboarding flow, 4-tab main shell, auth section in Settings |
 | ✅ 8 — Auth & Onboarding UI | Usable auth screen (logo, password toggle, validation); full onboarding form |
-| 9 — Core screens | Shifts list/detail, new shift form, full payroll view |
+| ✅ 9 — Dashboard | Live timer, 3 clock styles, edit start time, month summary, recent shifts, sync status |
+| 10 — Core screens | Shifts list/detail, new shift form, full payroll view |
 | 10 — Reports | Weekly chart, overtime breakdown, pay summary |
 | 11 — Refunds | Travel refund claims, CameraX receipt capture |
 | 12 — Notifications | WorkManager "forgot to clock out" reminder, Glance widget |

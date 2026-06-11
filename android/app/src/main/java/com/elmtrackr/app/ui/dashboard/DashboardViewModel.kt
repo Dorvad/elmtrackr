@@ -7,6 +7,10 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.domain.LOCAL_USER_ID
+import com.elmtrackr.app.domain.model.MonthlyReport
+import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.ReportsRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
@@ -17,6 +21,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 
@@ -25,21 +30,40 @@ class DashboardViewModel(
     private val settingsRepository: SettingsRepository,
     private val reportsRepository: ReportsRepository,
     private val syncRepository: SyncRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val today = LocalDate.now(ZoneOffset.UTC)
 
+    private data class RawData(
+        val activeShift: Shift?,
+        val report: MonthlyReport?,
+        val settings: UserSettings?,
+        val pendingCount: Int,
+        val allShifts: List<Shift>,
+    )
+
     val uiState: StateFlow<DashboardUiState> = combine(
-        shiftsRepository.observeActiveShift(LOCAL_USER_ID),
-        reportsRepository.observeMonthlyReport(LOCAL_USER_ID, today.year, today.monthValue),
-        settingsRepository.observeSettings(LOCAL_USER_ID),
-        syncRepository.observePendingCount(),
-    ) { activeShift, report, settings, pendingCount ->
+        combine(
+            shiftsRepository.observeActiveShift(LOCAL_USER_ID),
+            reportsRepository.observeMonthlyReport(LOCAL_USER_ID, today.year, today.monthValue),
+            settingsRepository.observeSettings(LOCAL_USER_ID),
+            syncRepository.observePendingCount(),
+            shiftsRepository.observeShifts(LOCAL_USER_ID),
+        ) { activeShift, report, settings, pendingCount, allShifts ->
+            RawData(activeShift, report, settings, pendingCount, allShifts)
+        },
+        authRepository.observeCurrentProfile(),
+    ) { raw, profile ->
         DashboardUiState.Ready(
-            activeShift = activeShift,
-            monthlyReport = report,
-            settings = settings,
-            pendingSyncCount = pendingCount,
+            activeShift = raw.activeShift,
+            monthlyReport = raw.report,
+            settings = raw.settings,
+            pendingSyncCount = raw.pendingCount,
+            recentShifts = raw.allShifts.filter { it.isCompleted }
+                .sortedByDescending { it.startTime }.take(5),
+            displayName = profile?.fullName,
+            isRemoteConfigured = authRepository.isConfigured(),
         ) as DashboardUiState
     }.catch { e ->
         emit(DashboardUiState.Error(e.message ?: "Unknown error"))
@@ -57,6 +81,14 @@ class DashboardViewModel(
         viewModelScope.launch { shiftsRepository.clockOut(shiftId) }
     }
 
+    fun editActiveShiftStartTime(shiftId: String, newStartTime: Instant) {
+        viewModelScope.launch {
+            val shift = shiftsRepository.getShiftById(shiftId) ?: return@launch
+            if (!shift.isActive) return@launch
+            shiftsRepository.updateShift(shift.copy(startTime = newStartTime, updatedAt = Instant.now()))
+        }
+    }
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -67,6 +99,7 @@ class DashboardViewModel(
                     app.settingsRepository,
                     app.reportsRepository,
                     app.syncRepository,
+                    app.authRepository,
                 )
             }
         }
