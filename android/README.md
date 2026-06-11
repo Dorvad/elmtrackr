@@ -293,7 +293,7 @@ the navController, always clearing the back stack with `popUpTo(0)`.
 | Dashboard | `DashboardViewModel` — active shift, monthly report, settings, pending sync count |
 | Reports | `ReportsViewModel` — monthly report + weekly totals, month navigator |
 | Shifts | `ShiftsViewModel` — full shift list, create/edit/delete with offline-first writes |
-| Settings | `SettingsViewModel` — user settings; auth section from `AuthViewModel` |
+| Settings | `SettingsViewModel` — full settings form, feature toggles, theme, sync, account |
 | Auth | `AuthViewModel` — sign-in, sign-up, password reset, sign-out |
 | Onboarding | `OnboardingViewModel` — full setup form, writes all settings, marks onboarding complete |
 
@@ -416,6 +416,54 @@ WorkManager picks up the change as soon as a network connection is available.
 - Reports integration (totals updated from the Shifts screen) is handled by the
   existing `ReportsViewModel`/Room observe flows — no extra wiring needed.
 
+### Settings screen
+
+The `SettingsScreen` (`ui/settings/SettingsScreen.kt`) is fully functional with offline-first writes:
+
+| Section | Feature | Status |
+|---|---|---|
+| Profile | Display name (editable), email (read-only) | ✅ |
+| Appearance | Theme dropdown (system/light/dark) | ✅ |
+| Appearance | Clock style dropdown (Classic/Minimal/Aurora) | ✅ feature-gated by `featuresClockStyles` |
+| Overtime Thresholds | Daily and weekly OT hours with inline validation | ✅ |
+| Weekend Days | 7 FilterChips in 4+3 layout (Sun–Sat) | ✅ saves immediately |
+| Payroll | Hourly rate (optional decimal) | ✅ |
+| Location | Timezone text field | ✅ |
+| Features | 4 toggle switches with descriptions | ✅ saves immediately |
+| Save Settings | Single button saves all text-field changes | ✅ |
+| Sync | Pending count, last sync status, Sync Now button | ✅ |
+| Account | Reset password + Sign out (when auth configured) | ✅ |
+
+**Save timing:**
+- Feature toggles (Travel Refunds, Paid Projects, Insights, Clock Styles) and weekend days call `SettingsViewModel` immediately on change — no button tap required.
+- All text-field sections (display name, OT thresholds, hourly rate, timezone, clock style) are batched and saved together when "Save Settings" is tapped.
+
+**Theme storage:**
+- Theme preference (system/light/dark) is stored in DataStore via `ThemePreferenceStore`, separate from `UserSettings` (which syncs to Supabase). Theme is local-only.
+
+**Sign out:**
+- The sign-out button is wired via `onSignOut` callback passed down from `MainScaffold`, which calls `AuthViewModel.signOut()`. The Settings screen itself has no auth ViewModel dependency.
+
+**Sync section:**
+- Shows live pending-change count from `SyncRepository.observePendingCount()`.
+- "Last sync" shows the status string from `SyncRepository.observeLastSyncStatus()` or "Never".
+- "Sync Now" triggers `SyncRepositoryImpl.syncAll()`. While syncing, the button shows "Syncing…" and is disabled.
+
+**Validation:**
+- Daily OT: must be > 0 and ≤ 24 h.
+- Weekly OT: must be > 0, ≤ 168 h, and ≥ daily OT.
+- Hourly rate: must be ≥ 0 when provided (null = not set).
+- Errors appear inline under the offending field via `supportingText`.
+
+**Clock styles:**
+Only three of eleven `ClockStyle` values render natively. The settings screen exposes only these three. Any unsupported value saved externally falls back to CLASSIC via `supportedClockStyleOf()`.
+
+**Known limitations:**
+- Timezone is a free-text field — no picker or validation against IANA zone names yet.
+- Theme change takes effect on next app start (no hot-reload).
+
+---
+
 ### Reports screen
 
 The `ReportsScreen` (`ui/reports/ReportsScreen.kt`) is fully functional and reads from local Room data:
@@ -472,6 +520,6 @@ When `featuresTravelRefunds` is enabled in Settings, the Reports screen shows a 
 | ✅ 9 — Dashboard | Live timer, 3 clock styles, edit start time, month summary, recent shifts, sync status |
 | ✅ 10 — Shifts | Full shift history, create/edit/delete (offline-first), date+time pickers, validation |
 | ✅ 11 — Reports | Monthly summary, payroll estimate, weekly breakdown, CSV export, travel refund review |
-| 12 — Settings | Full settings screen (currently uses stub/basic UI) |
+| ✅ 12 — Settings | Full settings form, feature toggles, theme, weekend days, sync section, account |
 | 13 — Refunds | CameraX receipt capture, refund claim management |
 | 14 — Notifications | WorkManager "forgot to clock out" reminder, Glance widget |
