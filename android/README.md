@@ -262,11 +262,11 @@ android/
 ```
 AppNavGraph (auth-aware, no bottom nav)
   ├── loading        ← CircularProgressIndicator while session resolves
-  ├── auth           ← AuthScreen (Supabase sign-in / sign-up / reset)
-  ├── onboarding     ← OnboardingScreen (hourly rate setup)
+  ├── auth           ← AuthScreen (sign-in / sign-up / reset; ElmTrackr logo + password toggle)
+  ├── onboarding     ← OnboardingScreen (full setup form; all fields below)
   └── main           ← MainScaffold (4-tab bottom nav)
         ├── dashboard  ← DashboardScreen  (clock in/out, month stats, sync badge)
-        ├── shifts     ← ShiftsScreen     (placeholder)
+        ├── shifts     ← ShiftsScreen     (placeholder — not yet polished)
         ├── reports    ← ReportsScreen    (monthly report + month navigator)
         └── settings   ← SettingsScreen  (preferences + auth/sign-out section)
 ```
@@ -295,11 +295,73 @@ the navController, always clearing the back stack with `popUpTo(0)`.
 | Reports | `ReportsViewModel` — monthly report + weekly totals, month navigator |
 | Settings | `SettingsViewModel` — user settings; auth section from `AuthViewModel` |
 | Auth | `AuthViewModel` — sign-in, sign-up, password reset, sign-out |
-| Onboarding | `OnboardingViewModel` — writes hourly rate + marks onboarding complete |
+| Onboarding | `OnboardingViewModel` — full setup form, writes all settings, marks onboarding complete |
+
+---
+
+## Auth screen
+
+The `AuthScreen` (`ui/auth/AuthScreen.kt`) handles three modes via `AuthMode` enum:
+
+| Mode | Shows |
+|---|---|
+| `SIGN_IN` | Email + password + sign-in button + links to sign-up / forgot |
+| `SIGN_UP` | Email + password (min 6 chars) + create account button |
+| `FORGOT_PASSWORD` | Email only + send-reset-email button |
+
+**Key behaviours:**
+- Displays the ElmTrackr logo/title at the top.
+- Password field has a show/hide toggle (Visibility icon).
+- Client-side validation: requires `@` in email, min 6-char password for sign-up.
+- `isError` + `supportingText` surfaces validation feedback under each field.
+- IME action on email → moves focus to password; IME Done on password → submits.
+- Button disabled while invalid or loading.
+- Server-side error message shown below the password field.
+- `AuthUiState.NotConfigured` → shows "Auth not configured" message (CI default).
+- `AuthUiState.Loading` → full-screen spinner (session initialising).
+- On successful sign-in/sign-up, `AppShellViewModel` drives navigation automatically.
+
+---
+
+## Onboarding screen
+
+The `OnboardingScreen` (`ui/onboarding/OnboardingScreen.kt`) is a single scrollable form.
+
+### Fields collected
+
+| Field | Default | Notes |
+|---|---|---|
+| Display name | `""` | Saved to `Profile.fullName` if a profile exists |
+| Timezone | Device timezone | Text field, editable |
+| Daily OT threshold | 8 h/day | Stepper (−/+), min 1 |
+| Weekly OT threshold | 40 h/week | Stepper (−/+), min 1 |
+| Weekend days | Fri + Sat | FilterChip row, multi-select |
+| Hourly rate | `null` | Optional decimal |
+| Travel refunds | off | Switch |
+| Paid projects | off | Switch |
+| Insights | on | Switch |
+| Clock styles | on | Switch |
+
+### Validation (client-side, before any DB write)
+
+- Daily OT hours > 0
+- Weekly OT hours > 0
+- Weekly OT hours ≥ daily OT hours
+- Hourly rate, if provided, must be positive
+
+Errors appear inline under the offending field. No network call is required.
+
+### How onboarding completion is stored
+
+1. `settingsRepository.saveSettings(...)` writes all fields to `UserSettings` in Room with `onboardingCompleted = true`.
+2. `markOnboardingCompleted()` calls `AppPreferencesRepository.setOnboardingCompleted(true)`, which writes to DataStore.
+3. `AppShellViewModel` observes the DataStore preference and emits `AppNavState.Main`, driving navigation.
 
 ### Placeholder screens
 
-- **Shifts** — scaffold only; will show shift list in the next phase.
+- **Shifts** — scaffold only; list/detail UI will be added in the next phase.
+- **Dashboard** — clock in/out and monthly stats are functional. Charts and payroll detail are not yet implemented.
+- **Reports** — monthly summary and month navigator are functional. Weekly chart is not yet implemented.
 
 ---
 
@@ -314,7 +376,8 @@ the navController, always clearing the back stack with `popUpTo(0)`.
 | ✅ 5 — Auth foundation | Supabase auth, deep links, Account tab, tests |
 | ✅ 6 — Data sync | Offline-first sync engine: Room + Supabase PostgREST + WorkManager |
 | ✅ 7 — App shell | Auth-aware navigation, onboarding flow, 4-tab main shell, auth section in Settings |
-| 8 — Core screens | Shifts list/detail, new shift form, full payroll view |
-| 9 — Reports | Weekly chart, overtime breakdown, pay summary |
-| 10 — Refunds | Travel refund claims, CameraX receipt capture |
-| 11 — Notifications | WorkManager "forgot to clock out" reminder, Glance widget |
+| ✅ 8 — Auth & Onboarding UI | Usable auth screen (logo, password toggle, validation); full onboarding form |
+| 9 — Core screens | Shifts list/detail, new shift form, full payroll view |
+| 10 — Reports | Weekly chart, overtime breakdown, pay summary |
+| 11 — Refunds | Travel refund claims, CameraX receipt capture |
+| 12 — Notifications | WorkManager "forgot to clock out" reminder, Glance widget |

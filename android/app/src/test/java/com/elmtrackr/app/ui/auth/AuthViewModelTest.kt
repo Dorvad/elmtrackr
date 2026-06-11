@@ -135,4 +135,34 @@ class AuthViewModelTest {
         assertTrue(states.last() is AuthUiState.SignedOut)
         job.cancel()
     }
+
+    @Test
+    fun `signUp success leads to SignedIn state`() = runTest {
+        val vm = buildVm()
+        val states = mutableListOf<AuthUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        vm.signUp("new@example.com", "password123")
+        advanceUntilIdle()
+
+        val signedIn = states.filterIsInstance<AuthUiState.SignedIn>().lastOrNull()
+        assertNotNull(signedIn)
+        assertEquals("new@example.com", signedIn!!.profile.email)
+        job.cancel()
+    }
+
+    @Test
+    fun `resetPassword error populates errorMessage in SignedOut`() = runTest {
+        repo.resetPasswordResult = AuthResult.Error("User not found")
+        val vm = buildVm()
+        val states = mutableListOf<AuthUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        vm.resetPassword("notfound@example.com")
+        advanceUntilIdle()
+
+        val signedOut = states.filterIsInstance<AuthUiState.SignedOut>().lastOrNull()
+        assertEquals("User not found", signedOut?.errorMessage)
+        job.cancel()
+    }
 }
