@@ -505,6 +505,104 @@ When `featuresTravelRefunds` is enabled in Settings, the Reports screen shows a 
 
 ---
 
+## Native Android features
+
+### Active-shift notification
+
+When the user clocks in, a persistent notification appears immediately in the
+status bar and notification shade.
+
+| Property | Value |
+|---|---|
+| Channel | `active_shift` (importance: LOW — no sound or heads-up) |
+| Title | "Clocked in" |
+| Content | "Since HH:mm" (start time, not live-ticking — saves battery) |
+| Style | Ongoing (cannot be swiped away while clocked in) |
+| Tap | Opens the app to the Dashboard |
+| Action button | "Clock Out" — clocks out without opening the app |
+
+The notification is managed by `ActiveShiftNotificationManager` and driven by
+`ElmTrackrApp.startActiveShiftObserver()`, which collects the Room
+`observeActiveShift` flow for the lifetime of the app process. It fires on clock-in
+and cancels itself automatically on clock-out.
+
+### Clock-out from notification
+
+Tapping "Clock Out" in the notification fires `ClockOutReceiver` (a
+`BroadcastReceiver`). The receiver:
+
+1. Calls `LocalShiftsRepository.clockOut(shiftId)` — writes to Room, sets endTime.
+2. `SyncTrigger.schedule()` is called inside `clockOut`, queuing a WorkManager sync job.
+3. Cancels the active-shift notification immediately.
+4. Cancels the long-shift reminder notification.
+5. **Never calls Supabase directly.**
+
+No app launch, no internet required. The shift is persisted offline and synced
+when a connection is next available.
+
+### Long-shift reminder
+
+When the user clocks in, `ElmTrackrApp` schedules `LongShiftReminderWorker` (a
+`CoroutineWorker`) with a delay equal to the user's daily overtime threshold
+(default: 480 minutes / 8 hours if settings are unavailable).
+
+When the worker fires, it checks:
+- Is the user still clocked in? If not, exits silently.
+- Has the shift exceeded the threshold? If not, exits silently.
+- If yes → shows one dismissible reminder notification ("You're still clocked in").
+
+The reminder uses a separate channel (`reminders`, importance: DEFAULT) so it
+produces a sound/heads-up. It is auto-dismissible. It will not repeat unless the
+user clocks out and back in again.
+
+When the user clocks out (any path — UI or notification action), the WorkManager
+job is cancelled via `cancelUniqueWork`.
+
+**Known limitation:** If the app process is killed and restarted mid-shift, the
+reminder is rescheduled from the current time rather than the original clock-in
+time. The worker verifies elapsed time at run time (using the shift's actual
+`startTime`), so it will still show correctly once it fires; only the delay
+resets.
+
+### Notification permission (Android 13+)
+
+On Android 13+ (API 33), `POST_NOTIFICATIONS` is a runtime permission.
+`MainActivity.onCreate()` requests it via the Activity Result API on first launch.
+
+- If granted: all notifications work normally.
+- If denied: the app continues to function. Clock-in/out work exactly the same.
+  Only the status-bar notification and reminder are suppressed.
+- The `POST_NOTIFICATIONS` permission is declared in `AndroidManifest.xml` for
+  forward compatibility; on API < 33 it is silently ignored by the system.
+
+### App shortcuts
+
+**Static shortcut (always available):**
+
+| Shortcut | Action |
+|---|---|
+| "New Shift" / "Log a Manual Shift" | Opens the app (navigate to Shifts tab) |
+
+Defined in `res/xml/shortcuts.xml`, registered via `<meta-data>` on `MainActivity`.
+
+**Dynamic shortcuts (updated when shift state changes):**
+
+| State | Shortcut shown |
+|---|---|
+| Clocked out | "Clock In" / "Clock In to ElmTrackr" |
+| Clocked in | "Clock Out" / "Clock Out of ElmTrackr" |
+
+Both dynamic shortcuts open the app to the Dashboard where the action can be
+completed. Managed by `ElmTrackrApp.updateDynamicShortcuts()`, called whenever
+the active-shift observer fires.
+
+**Known limitation:** The Clock Out dynamic shortcut opens the app rather than
+clocking out directly (no transparent-trampoline activity). A future phase can
+add a `ClockOutShortcutActivity` that calls `ClockOutReceiver` and finishes
+immediately for a fully headless shortcut experience.
+
+---
+
 ## Roadmap
 
 | Phase | What |
@@ -521,5 +619,6 @@ When `featuresTravelRefunds` is enabled in Settings, the Reports screen shows a 
 | ✅ 10 — Shifts | Full shift history, create/edit/delete (offline-first), date+time pickers, validation |
 | ✅ 11 — Reports | Monthly summary, payroll estimate, weekly breakdown, CSV export, travel refund review |
 | ✅ 12 — Settings | Full settings form, feature toggles, theme, weekend days, sync section, account |
-| 13 — Refunds | CameraX receipt capture, refund claim management |
-| 14 — Notifications | WorkManager "forgot to clock out" reminder, Glance widget |
+| ✅ 13 — Native features | Active-shift notification, clock-out action, long-shift reminder, app shortcuts |
+| 14 — Refunds | CameraX receipt capture, refund claim management |
+| 15 — Polish | Visual redesign, animations, widget, headless shortcut clock-out |

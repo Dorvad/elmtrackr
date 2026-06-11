@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required for notifications on Android 13+ (API 33+). Runtime-requested in MainActivity. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".ElmTrackrApp"
@@ -33,7 +35,21 @@
                     android:scheme="elmtrackr"
                     android:host="auth" />
             </intent-filter>
+
+            <!-- App shortcuts: static "New Manual Shift" + dynamic Clock In/Out -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
+
+        <!-- Handles "Clock Out" action from the active-shift notification. -->
+        <receiver
+            android:name=".notification.ClockOutReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.elmtrackr.app.ACTION_CLOCK_OUT" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ElmTrackr</string>
+    <string name="shortcut_new_shift_short">New Shift</string>
+    <string name="shortcut_new_shift_long">Log a Manual Shift</string>
+    <string name="shortcut_clock_in_short">Clock In</string>
+    <string name="shortcut_clock_in_long">Clock In to ElmTrackr</string>
+    <string name="shortcut_clock_out_short">Clock Out</string>
+    <string name="shortcut_clock_out_long">Clock Out of ElmTrackr</string>
 </resources>

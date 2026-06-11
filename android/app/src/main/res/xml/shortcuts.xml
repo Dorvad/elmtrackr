@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Static app shortcuts. Dynamic Clock In / Clock Out shortcuts are managed
+    programmatically by ElmTrackrApp based on active-shift state.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:shortcutId="new_manual_shift"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_new_shift_short"
+        android:shortcutLongLabel="@string/shortcut_new_shift_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.elmtrackr.app"
+            android:targetClass="com.elmtrackr.app.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+</shortcuts>
