@@ -10,6 +10,7 @@ import com.elmtrackr.app.domain.LOCAL_USER_ID
 import com.elmtrackr.app.domain.repository.ReportsRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
+import com.elmtrackr.app.domain.repository.SyncRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -23,6 +24,7 @@ class DashboardViewModel(
     private val shiftsRepository: ShiftsRepository,
     private val settingsRepository: SettingsRepository,
     private val reportsRepository: ReportsRepository,
+    private val syncRepository: SyncRepository,
 ) : ViewModel() {
 
     private val today = LocalDate.now(ZoneOffset.UTC)
@@ -31,11 +33,13 @@ class DashboardViewModel(
         shiftsRepository.observeActiveShift(LOCAL_USER_ID),
         reportsRepository.observeMonthlyReport(LOCAL_USER_ID, today.year, today.monthValue),
         settingsRepository.observeSettings(LOCAL_USER_ID),
-    ) { activeShift, report, settings ->
+        syncRepository.observePendingCount(),
+    ) { activeShift, report, settings, pendingCount ->
         DashboardUiState.Ready(
             activeShift = activeShift,
             monthlyReport = report,
             settings = settings,
+            pendingSyncCount = pendingCount,
         ) as DashboardUiState
     }.catch { e ->
         emit(DashboardUiState.Error(e.message ?: "Unknown error"))
@@ -58,7 +62,12 @@ class DashboardViewModel(
             initializer {
                 @Suppress("UNCHECKED_CAST")
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
-                DashboardViewModel(app.shiftsRepository, app.settingsRepository, app.reportsRepository)
+                DashboardViewModel(
+                    app.shiftsRepository,
+                    app.settingsRepository,
+                    app.reportsRepository,
+                    app.syncRepository,
+                )
             }
         }
     }

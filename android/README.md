@@ -257,6 +257,52 @@ android/
 
 ---
 
+## Navigation structure
+
+```
+AppNavGraph (auth-aware, no bottom nav)
+  ├── loading        ← CircularProgressIndicator while session resolves
+  ├── auth           ← AuthScreen (Supabase sign-in / sign-up / reset)
+  ├── onboarding     ← OnboardingScreen (hourly rate setup)
+  └── main           ← MainScaffold (4-tab bottom nav)
+        ├── dashboard  ← DashboardScreen  (clock in/out, month stats, sync badge)
+        ├── shifts     ← ShiftsScreen     (placeholder)
+        ├── reports    ← ReportsScreen    (monthly report + month navigator)
+        └── settings   ← SettingsScreen  (preferences + auth/sign-out section)
+```
+
+### Routing logic (`AppShellViewModel`)
+
+| Auth configured | Profile | Onboarding done | Route |
+|---|---|---|---|
+| any | — | — | `loading` (initial) |
+| no | — | yes | `main` |
+| no | — | no | `onboarding` |
+| yes | null | any | `auth` |
+| yes | set | yes | `main` |
+| yes | set | no | `onboarding` |
+
+`AppShellViewModel` combines `AuthRepository.observeCurrentProfile()` and
+`AppPreferencesRepository.preferences.map { it.onboardingCompleted }` into
+`StateFlow<AppNavState>`. `LaunchedEffect(navState)` in `AppNavGraph` drives
+the navController, always clearing the back stack with `popUpTo(0)`.
+
+### Screens wired to real data
+
+| Screen | Real ViewModel / data |
+|---|---|
+| Dashboard | `DashboardViewModel` — active shift, monthly report, settings, pending sync count |
+| Reports | `ReportsViewModel` — monthly report + weekly totals, month navigator |
+| Settings | `SettingsViewModel` — user settings; auth section from `AuthViewModel` |
+| Auth | `AuthViewModel` — sign-in, sign-up, password reset, sign-out |
+| Onboarding | `OnboardingViewModel` — writes hourly rate + marks onboarding complete |
+
+### Placeholder screens
+
+- **Shifts** — scaffold only; will show shift list in the next phase.
+
+---
+
 ## Roadmap
 
 | Phase | What |
@@ -267,7 +313,8 @@ android/
 | ✅ 4 — MVVM | ViewModels, StateFlow UI state, screen wiring |
 | ✅ 5 — Auth foundation | Supabase auth, deep links, Account tab, tests |
 | ✅ 6 — Data sync | Offline-first sync engine: Room + Supabase PostgREST + WorkManager |
-| 7 — Core screens | Shifts list/detail, new shift form, full payroll view |
-| 8 — Reports | Weekly chart, overtime breakdown, pay summary |
-| 9 — Refunds | Travel refund claims, CameraX receipt capture |
-| 10 — Notifications | WorkManager "forgot to clock out" reminder, Glance widget |
+| ✅ 7 — App shell | Auth-aware navigation, onboarding flow, 4-tab main shell, auth section in Settings |
+| 8 — Core screens | Shifts list/detail, new shift form, full payroll view |
+| 9 — Reports | Weekly chart, overtime breakdown, pay summary |
+| 10 — Refunds | Travel refund claims, CameraX receipt capture |
+| 11 — Notifications | WorkManager "forgot to clock out" reminder, Glance widget |

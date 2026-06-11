@@ -3,6 +3,7 @@ package com.elmtrackr.app.ui.dashboard
 import com.elmtrackr.app.fake.FakeReportsRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeShiftsRepository
+import com.elmtrackr.app.fake.FakeSyncRepository
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.UserSettings
@@ -27,8 +28,9 @@ class DashboardViewModelTest {
     private val shiftsRepo = FakeShiftsRepository()
     private val settingsRepo = FakeSettingsRepository()
     private val reportsRepo = FakeReportsRepository()
+    private val syncRepo = FakeSyncRepository()
 
-    private fun buildVm() = DashboardViewModel(shiftsRepo, settingsRepo, reportsRepo)
+    private fun buildVm() = DashboardViewModel(shiftsRepo, settingsRepo, reportsRepo, syncRepo)
 
     @Test
     fun `initial state is Loading`() {

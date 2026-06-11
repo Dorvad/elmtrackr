@@ -27,6 +27,16 @@ class ReportsViewModel(
     private val _selectedYear = MutableStateFlow(today.year)
     private val _selectedMonth = MutableStateFlow(today.monthValue)
 
+    val selectedYearMonth: StateFlow<Pair<Int, Int>> = combine(
+        _selectedYear,
+        _selectedMonth,
+    ) { year, month -> year to month }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = today.year to today.monthValue,
+        )
+
     val uiState: StateFlow<ReportsUiState> = combine(
         _selectedYear,
         _selectedMonth,

@@ -38,6 +38,7 @@ fun ReportsScreen(
     viewModel: ReportsViewModel = viewModel(factory = ReportsViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val selectedYearMonth by viewModel.selectedYearMonth.collectAsState()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -49,6 +50,8 @@ fun ReportsScreen(
                     CircularProgressIndicator()
                 }
                 is ReportsUiState.Empty -> ReportsEmpty(
+                    year = selectedYearMonth.first,
+                    month = selectedYearMonth.second,
                     onPrev = viewModel::previousMonth,
                     onNext = viewModel::nextMonth,
                 )
@@ -92,9 +95,9 @@ private fun MonthNavigator(
 }
 
 @Composable
-private fun ReportsEmpty(onPrev: () -> Unit, onNext: () -> Unit) {
+private fun ReportsEmpty(year: Int, month: Int, onPrev: () -> Unit, onNext: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        MonthNavigator(0, 1, onPrev, onNext)
+        MonthNavigator(year, month, onPrev, onNext)
         Spacer(Modifier.height(32.dp))
         Icon(
             imageVector = Icons.Filled.Analytics,
@@ -149,5 +152,5 @@ private fun ReportRow(label: String, value: String) {
 @Preview(showBackground = true)
 @Composable
 private fun ReportsScreenPreview() {
-    ElmTrackrTheme { ReportsEmpty({}, {}) }
+    ElmTrackrTheme { ReportsEmpty(2024, 6, {}, {}) }
 }

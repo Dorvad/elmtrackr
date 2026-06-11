@@ -111,6 +111,16 @@ private fun DashboardReady(
 
         Spacer(modifier = Modifier.weight(1f))
 
+        if (state.pendingSyncCount > 0) {
+            Text(
+                text = "↑ ${state.pendingSyncCount} change${if (state.pendingSyncCount == 1) "" else "s"} pending sync",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
         Text(
             text = "THIS MONTH",
             style = MaterialTheme.typography.labelSmall,
