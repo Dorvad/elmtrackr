@@ -416,9 +416,44 @@ WorkManager picks up the change as soon as a network connection is available.
 - Reports integration (totals updated from the Shifts screen) is handled by the
   existing `ReportsViewModel`/Room observe flows — no extra wiring needed.
 
-### Placeholder screens
+### Reports screen
 
-- **Reports** — monthly summary and month navigator are functional. Weekly chart is not yet implemented.
+The `ReportsScreen` (`ui/reports/ReportsScreen.kt`) is fully functional and reads from local Room data:
+
+| Feature | Status |
+|---|---|
+| Month navigation (prev/next) | ✅ next disabled at current month |
+| Total hours, regular, overtime, weekend/special | ✅ |
+| Completed shift count | ✅ |
+| Payroll estimate (total, regular, OT, special) | ✅ shown when hourly rate set |
+| "Set hourly rate in Settings" hint when no rate | ✅ |
+| Per-week breakdown for selected month | ✅ ISO Monday-anchored weeks |
+| CSV export via Android share sheet | ✅ `elmtrackr-YYYY-MM.csv` |
+| Travel refund review (unresolved shifts) | ✅ feature-gated by `featuresTravelRefunds` |
+| Empty state | ✅ |
+| Loading / error state | ✅ |
+
+**Monthly summary behaviour:**
+`ReportsViewModel` combines `ReportsRepository.observeMonthlyReport` (pre-aggregated by `MonthlyReportBuilder`) with `ShiftsRepository.observeShiftsByMonth` (raw shifts for payroll + weekly grouping). All data comes from Room — no network required.
+
+**Payroll estimate behaviour:**
+Calls `PayrollCalculator.sumMonthlyPay(completedShifts, settings)` from the ViewModel.
+Returns `null` when `UserSettings.hourlyRate` is null or zero.
+Uses Israeli payroll tiers (100/125/150% weekday, 150/175/200% Shabbat/holiday).
+
+**Weekly breakdown:**
+Computed from the selected month's completed shifts via `WeeklyBreakdownBuilder.groupByWeek()`.
+Shows ISO Monday-anchored week start date, total hours, and shift count.
+
+**CSV export behaviour:**
+- Columns: `Date, Start Time, End Time, Gross Min, Break Min, Net Min, Special Day, Notes[, Gross Pay]`
+- `Gross Pay` column added only when hourly rate is set
+- Filename: `elmtrackr-YYYY-MM.csv`
+- Export fires `Intent.ACTION_SEND` with `text/plain` — share sheet handles file routing (email, Drive, etc.)
+- Handles empty months safely (header-only CSV)
+
+**Travel refund review:**
+When `featuresTravelRefunds` is enabled in Settings, the Reports screen shows a section listing completed shifts with unresolved refund status (`null` or `REMIND_LATER`). Update the refund action from the Shifts tab.
 
 ---
 
@@ -436,6 +471,7 @@ WorkManager picks up the change as soon as a network connection is available.
 | ✅ 8 — Auth & Onboarding UI | Usable auth screen (logo, password toggle, validation); full onboarding form |
 | ✅ 9 — Dashboard | Live timer, 3 clock styles, edit start time, month summary, recent shifts, sync status |
 | ✅ 10 — Shifts | Full shift history, create/edit/delete (offline-first), date+time pickers, validation |
-| 11 — Reports | Weekly chart, overtime breakdown, pay summary |
-| 12 — Refunds | Travel refund claims, CameraX receipt capture |
-| 13 — Notifications | WorkManager "forgot to clock out" reminder, Glance widget |
+| ✅ 11 — Reports | Monthly summary, payroll estimate, weekly breakdown, CSV export, travel refund review |
+| 12 — Settings | Full settings screen (currently uses stub/basic UI) |
+| 13 — Refunds | CameraX receipt capture, refund claim management |
+| 14 — Notifications | WorkManager "forgot to clock out" reminder, Glance widget |
