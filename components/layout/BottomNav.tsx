@@ -14,7 +14,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 safe-area-pb" aria-label="Main navigation">
       <div
         className="border-t shadow-[0_-4px_24px_rgba(80,64,210,0.08)]"
         style={{
@@ -33,6 +33,7 @@ export function BottomNav() {
                 key={href}
                 href={href}
                 className="flex flex-1 flex-col items-center gap-1 py-2.5 relative"
+                aria-current={active ? "page" : undefined}
               >
                 {/* Gradient pill behind active icon */}
                 <span
@@ -49,7 +50,7 @@ export function BottomNav() {
                   <Icon active={active} />
                 </span>
                 <span
-                  className="text-[10.5px] font-semibold transition-colors duration-200"
+                  className="text-[11.5px] font-semibold transition-colors duration-200"
                   style={{ color: active ? "var(--au-indigo)" : "var(--au-faint)" }}
                 >
                   {label}

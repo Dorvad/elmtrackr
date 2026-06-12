@@ -34,7 +34,7 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
   const refundPending = refundEligible && shift.refund_action == null && !isActive;
 
   const stripeColor = isActive
-    ? "#10b981"
+    ? "var(--color-active)"
     : isSpecial
     ? "var(--au-plum)"
     : isOvernight
@@ -51,9 +51,10 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
       style={{
         animationDelay: `${delay}s`,
         borderBottomColor: "var(--au-hair)",
+        background: isActive ? "rgba(16,185,129,0.04)" : undefined,
       }}
       onMouseEnter={e => (e.currentTarget.style.background = "var(--au-surface-sub)")}
-      onMouseLeave={e => (e.currentTarget.style.background = "")}
+      onMouseLeave={e => (e.currentTarget.style.background = isActive ? "rgba(16,185,129,0.04)" : "")}
     >
       {/* Left color stripe */}
       <div
@@ -81,7 +82,14 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
         </div>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           {isActive && (
-            <span className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide" style={{ background: "rgba(16,185,129,0.12)", color: "#10b981" }}>
+            <span
+              className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide"
+              style={{
+                background: "rgba(16,185,129,0.12)",
+                color: "var(--color-active)",
+                animation: "auPulse 2s ease-in-out infinite",
+              }}
+            >
               Live
             </span>
           )}
@@ -111,7 +119,7 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
             </span>
           )}
           {showRefunds && shift.refund_action === "submitted" && (
-            <span className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide" style={{ background: "rgba(16,185,129,0.12)", color: "#10b981" }}>
+            <span className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide" style={{ background: "rgba(16,185,129,0.12)", color: "var(--color-active)" }}>
               Refund ✓
             </span>
           )}
@@ -121,7 +129,10 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
       {/* Duration + pay */}
       <div className="flex-shrink-0 text-right py-3.5 pr-3">
         {isActive ? (
-          <span className="text-sm font-bold" style={{ color: "#10b981" }}>●</span>
+          <span
+            className="text-sm font-bold"
+            style={{ color: "var(--color-active)", animation: "auPulse 2s ease-in-out infinite" }}
+          >●</span>
         ) : net !== null ? (
           <>
             <p className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>{formatMinutes(net)}</p>
