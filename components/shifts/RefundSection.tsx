@@ -10,12 +10,6 @@ import {
 import { useRefundClaim, type RefundDirection, type SaveClaimData } from "@/hooks/useRefundClaim";
 import { useToast } from "@/components/ui/Toast";
 
-// ── Ride rate config ──────────────────────────────────────────────────────────
-const RIDE_RATES: Record<"Lime" | "Dott", { unlock: number; km: number }> = {
-  Lime: { unlock: 5.0, km: 1.2 },
-  Dott: { unlock: 4.5, km: 1.1 },
-};
-
 function toLocalDateTimeInput(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -227,9 +221,9 @@ function RidingScene({ brand, isSelected }: { brand: ScooterBrand; isSelected: b
 
 // ── Provider card (scooter selection) ─────────────────────────────────────────
 function ScooterCard({
-  brand, isSelected, onClick, rate,
+  brand, isSelected, onClick,
 }: {
-  brand: ScooterBrand; isSelected: boolean; onClick: () => void; rate: string;
+  brand: ScooterBrand; isSelected: boolean; onClick: () => void;
 }) {
   const name        = brand === "lime" ? "Lime" : "Dott";
   const borderColor = isSelected ? (brand === "lime" ? "#3FC81E" : "#2E6FD6") : "transparent";
@@ -256,8 +250,6 @@ function ScooterCard({
           <div style={{ fontSize: 15, fontWeight: 800, color: "var(--au-ink)" }}>{name}</div>
           <div style={{ fontSize: 12, color: "var(--au-faint)", marginTop: 2 }}>Shared electric scooter</div>
         </div>
-        <span style={{ fontFamily: "var(--au-display)", fontSize: 12.5, fontWeight: 600,
-          color: "var(--au-ink-2)", whiteSpace: "nowrap" }}>{rate}</span>
         <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
           background: checkBg, border: `2px solid ${checkBorder}`, transition: "all .22s" }}>
@@ -269,53 +261,6 @@ function ScooterCard({
         </span>
       </div>
     </button>
-  );
-}
-
-// ── Distance stepper ──────────────────────────────────────────────────────────
-function DistanceStepper({
-  provider, distance, onChange,
-}: {
-  provider: "Lime" | "Dott"; distance: number; onChange: (d: number) => void;
-}) {
-  const rate  = RIDE_RATES[provider];
-  const total = rate.unlock + rate.km * distance;
-
-  return (
-    <div style={{ background: "var(--au-surface)", borderRadius: 18, padding: "13px 16px",
-      display: "flex", alignItems: "center", gap: 12,
-      boxShadow: "0 8px 24px -16px rgba(80,64,210,.22)" }}>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--au-ink)" }}>Trip distance</div>
-        <div style={{ fontSize: 11.5, color: "var(--au-faint)", marginTop: 2 }}>Door to clock-in</div>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <button type="button" aria-label="Decrease distance"
-          onClick={() => onChange(Math.max(0.4, parseFloat((distance - 0.4).toFixed(1))))}
-          style={{ width: 34, height: 34, borderRadius: 11, border: "1px solid var(--au-hair)",
-            background: "var(--au-surface-sub)", fontSize: 18, color: "var(--au-indigo)",
-            cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          −
-        </button>
-        <span className="tabular-nums"
-          style={{ fontFamily: "var(--au-display)", fontSize: 16, fontWeight: 700,
-            color: "var(--au-ink)", minWidth: 60, textAlign: "center", display: "inline-block" }}>
-          {distance.toFixed(1)} km
-        </span>
-        <button type="button" aria-label="Increase distance"
-          onClick={() => onChange(Math.min(20, parseFloat((distance + 0.4).toFixed(1))))}
-          style={{ width: 34, height: 34, borderRadius: 11, border: "1px solid var(--au-hair)",
-            background: "var(--au-surface-sub)", fontSize: 18, color: "var(--au-indigo)",
-            cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          +
-        </button>
-      </div>
-      <span className="tabular-nums"
-        style={{ fontFamily: "var(--au-display)", fontSize: 15, fontWeight: 700,
-          color: "var(--au-indigo)", minWidth: 54, textAlign: "right" }}>
-        ₪{total.toFixed(2)}
-      </span>
-    </div>
   );
 }
 
@@ -342,7 +287,6 @@ function ClaimCard({
   const { toast } = useToast();
   const [showForm, setShowForm]       = useState(false);
   const [provider, setProvider]       = useState<RefundProvider>("Lime");
-  const [distance, setDistance]       = useState(3.2);
   const [amount, setAmount]           = useState("");
   const [rideAt, setRideAt]           = useState(() => toLocalDateTimeInput(defaultTime));
   const [notes, setNotes]             = useState("");
@@ -351,16 +295,10 @@ function ClaimCard({
 
   useEffect(() => {
     if (!claim) return;
-    const p = claim.provider as RefundProvider;
-    setProvider(p);
+    setProvider(claim.provider as RefundProvider);
     setRideAt(toLocalDateTimeInput(claim.ride_at));
     setNotes(claim.notes ?? "");
-    if (p === "Lime" || p === "Dott") {
-      const raw = (claim.amount - RIDE_RATES[p].unlock) / RIDE_RATES[p].km;
-      setDistance(Math.max(0.4, Math.round(raw / 0.4) * 0.4));
-    } else {
-      setAmount(String(claim.amount));
-    }
+    setAmount(String(claim.amount));
   }, [claim]);
 
   async function handleActionClick(action: Shift["refund_action"]) {
@@ -380,15 +318,10 @@ function ClaimCard({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    let finalAmount: number;
-    if (provider === "Lime" || provider === "Dott") {
-      finalAmount = RIDE_RATES[provider].unlock + RIDE_RATES[provider].km * distance;
-    } else {
-      finalAmount = parseFloat(amount);
-      if (isNaN(finalAmount) || finalAmount <= 0) {
-        toast("Enter a valid amount", "error");
-        return;
-      }
+    const finalAmount = parseFloat(amount);
+    if (isNaN(finalAmount) || finalAmount <= 0) {
+      toast("Enter a valid amount", "error");
+      return;
     }
     if (!rideAt) { toast("Enter the ride date & time", "error"); return; }
     try {
@@ -409,7 +342,9 @@ function ClaimCard({
     try {
       await onDelete();
       if (onActionChange) { try { await onActionChange(null); } catch { /* ignore */ } }
-      setAmount(""); setNotes(""); setReceiptFile(null);
+      setAmount("");
+      setNotes("");
+      setReceiptFile(null);
       toast("Claim removed", "success");
     } catch {
       toast("Failed to remove claim", "error");
@@ -420,12 +355,11 @@ function ClaimCard({
 
   // Dynamic CTA label + style
   const ctaLabel = (() => {
-    if (provider === "Lime" || provider === "Dott") {
-      const total = RIDE_RATES[provider].unlock + RIDE_RATES[provider].km * distance;
-      return `Add ₪${total.toFixed(2)} ${provider} refund`;
-    }
     const amt = parseFloat(amount);
-    return isNaN(amt) || amt <= 0 ? "Save claim" : `Save ₪${amt.toFixed(2)} claim`;
+    if (isNaN(amt) || amt <= 0) return "Save claim";
+    if (provider === "Lime") return `Add ₪${amt.toFixed(2)} Lime refund`;
+    if (provider === "Dott") return `Add ₪${amt.toFixed(2)} Dott refund`;
+    return `Save ₪${amt.toFixed(2)} claim`;
   })();
   const ctaGradient = provider === "Lime"
     ? "linear-gradient(118deg,#1E8A0E,#3FC81E)"
@@ -584,9 +518,9 @@ function ClaimCard({
           {/* scooter cards */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <ScooterCard brand="lime" isSelected={provider === "Lime"}
-              onClick={() => setProvider("Lime")} rate="₪5.00 + ₪1.20/km" />
+              onClick={() => setProvider("Lime")} />
             <ScooterCard brand="dott" isSelected={provider === "Dott"}
-              onClick={() => setProvider("Dott")} rate="₪4.50 + ₪1.10/km" />
+              onClick={() => setProvider("Dott")} />
             <button type="button" onClick={() => setProvider("Other")}
               style={{
                 borderRadius: 13, padding: "10px 16px", fontSize: 14, fontWeight: 600,
@@ -599,19 +533,12 @@ function ClaimCard({
             </button>
           </div>
 
-          {/* distance stepper (Lime / Dott) */}
-          {(provider === "Lime" || provider === "Dott") && (
-            <DistanceStepper provider={provider} distance={distance} onChange={setDistance} />
-          )}
-
-          {/* manual amount (Other) */}
-          {provider === "Other" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              <label style={labelStyle}>Amount (₪)</label>
-              <input type="number" min={0.01} step={0.01} placeholder="e.g. 12.50"
-                value={amount} onChange={e => setAmount(e.target.value)} style={fieldStyle} />
-            </div>
-          )}
+          {/* amount — same field for all providers */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <label style={labelStyle}>Amount (₪)</label>
+            <input type="number" min={0.01} step={0.01} placeholder="e.g. 12.50"
+              value={amount} onChange={e => setAmount(e.target.value)} style={fieldStyle} />
+          </div>
 
           {/* ride date/time */}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
