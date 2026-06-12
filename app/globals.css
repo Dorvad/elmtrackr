@@ -141,7 +141,7 @@ body {
 
 @keyframes auPrismOrbit {
   0%   { stroke-dashoffset: 0;    }
-  100% { stroke-dashoffset: -743; }
+  100% { stroke-dashoffset: -755; }
 }
 
 /* Existing keyframes (kept for compatibility) */
