@@ -54,10 +54,13 @@ export function InsightOfTheDay({ insights }: InsightOfTheDayProps) {
     <div>
       {/* Section label */}
       <div className="flex items-center justify-between px-1 mb-2">
-        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+        <h2
+          className="text-xs font-bold uppercase tracking-widest"
+          style={{ color: "var(--au-faint)" }}
+        >
           Insights of the Day
         </h2>
-        <span className="text-[10px] text-gray-400 font-medium">
+        <span className="text-[10px] font-medium" style={{ color: "var(--au-faint)" }}>
           swipe · changes daily
         </span>
       </div>
@@ -143,8 +146,8 @@ export function InsightOfTheDay({ insights }: InsightOfTheDayProps) {
             className={[
               "h-1.5 rounded-full transition-all duration-300",
               i === activeIdx
-                ? "w-5 bg-indigo-500"
-                : "w-1.5 bg-gray-200 hover:bg-gray-300",
+                ? "w-5 bg-[var(--au-indigo)]"
+                : "w-1.5 bg-[var(--au-surface-sub)] hover:opacity-80",
             ].join(" ")}
           />
         ))}

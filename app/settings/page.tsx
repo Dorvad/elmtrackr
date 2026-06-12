@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import React, { useState, FormEvent } from "react";
 import { useSettings } from "@/hooks/useSettings";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/components/ui/Toast";
@@ -30,6 +30,7 @@ export default function SettingsPage() {
 
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [signOutState, setSignOutState] = useState<"idle" | "confirming">("idle");
   const [timezone, setTimezone] = useState("");
   const [dailyHours, setDailyHours] = useState("");
   const [weeklyHours, setWeeklyHours] = useState("");
@@ -54,8 +55,8 @@ export default function SettingsPage() {
   }
 
   function toggleWeekendDay(day: number) {
-    setWeekendDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    setWeekendDays((prev: number[]) =>
+      prev.includes(day) ? prev.filter((d: number) => d !== day) : [...prev, day]
     );
   }
 
@@ -107,15 +108,30 @@ export default function SettingsPage() {
   }
 
   async function handleSignOut() {
+    if (signOutState === "idle") {
+      setSignOutState("confirming");
+      setTimeout(() => setSignOutState("idle"), 4000);
+      return;
+    }
     await supabase.auth.signOut();
     window.location.href = "/auth/login";
   }
+
+  const sectionHeadingStyle = {
+    color: "var(--au-faint)" as const,
+    letterSpacing: "0.16em" as const,
+  };
 
   if (loading || profileLoading || !initialised || !profileInitialised) {
     return (
       <div className="min-h-screen pb-28" style={{ background: "var(--au-bg)" }}>
         <div className="px-5 pt-12 pb-4">
-          <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)" }}>Settings</h1>
+          <h1
+            className="text-3xl font-bold tracking-tight"
+            style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)", letterSpacing: "-0.02em" }}
+          >
+            Settings
+          </h1>
         </div>
         <PageSpinner />
         <BottomNav />
@@ -126,13 +142,18 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen pb-28" style={{ background: "var(--au-bg)" }}>
       <div className="px-5 pt-12 pb-4 animate-fade-in">
-        <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)", letterSpacing: "-0.02em" }}>Settings</h1>
+        <h1
+          className="text-3xl font-bold tracking-tight"
+          style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)", letterSpacing: "-0.02em" }}
+        >
+          Settings
+        </h1>
       </div>
 
       <div className="max-w-md mx-auto px-4">
         {/* Appearance */}
-        <div className="rounded-3xl bg-white border border-white/80 au-card p-4 mb-4 animate-fade-in-up stagger-1">
-          <h2 className="text-xs font-bold uppercase mb-3" style={{ color: "var(--au-faint)", letterSpacing: "0.16em" }}>
+        <div className="rounded-3xl border border-white/80 au-card p-4 mb-4 animate-fade-in-up stagger-1" style={{ background: "var(--au-surface)" }}>
+          <h2 className="text-xs font-bold uppercase mb-3" style={sectionHeadingStyle}>
             Appearance
           </h2>
           <ThemeToggle />
@@ -140,11 +161,11 @@ export default function SettingsPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Profile */}
-          <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-1">
-            <h2 className="text-xs font-bold uppercase mb-1">
+          <div className="rounded-3xl border border-white/80 au-card p-4 animate-fade-in-up stagger-1" style={{ background: "var(--au-surface)" }}>
+            <h2 className="text-xs font-bold uppercase mb-1" style={sectionHeadingStyle}>
               Profile
             </h2>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs mb-4" style={{ color: "var(--au-faint)" }}>
               Your name is used for the personal greeting on the home screen.
             </p>
             <Input
@@ -157,8 +178,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Overtime thresholds */}
-          <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-2">
-            <h2 className="text-xs font-bold uppercase mb-4">
+          <div className="rounded-3xl border border-white/80 au-card p-4 animate-fade-in-up stagger-2" style={{ background: "var(--au-surface)" }}>
+            <h2 className="text-xs font-bold uppercase mb-4" style={sectionHeadingStyle}>
               Overtime Thresholds
             </h2>
             <div className="flex flex-col gap-4">
@@ -186,11 +207,11 @@ export default function SettingsPage() {
           </div>
 
           {/* Weekend days */}
-          <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-2">
-            <h2 className="text-xs font-bold uppercase mb-1">
+          <div className="rounded-3xl border border-white/80 au-card p-4 animate-fade-in-up stagger-2" style={{ background: "var(--au-surface)" }}>
+            <h2 className="text-xs font-bold uppercase mb-1" style={sectionHeadingStyle}>
               Weekend Days
             </h2>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs mb-4" style={{ color: "var(--au-faint)" }}>
               Select which days count as weekend. Default: Friday &amp; Saturday.
             </p>
             <div className="flex gap-2 flex-wrap">
@@ -199,12 +220,19 @@ export default function SettingsPage() {
                   key={value}
                   type="button"
                   onClick={() => toggleWeekendDay(value)}
-                  className={[
-                    "rounded-xl px-3 py-2 text-sm font-bold transition-all duration-150",
+                  className="rounded-xl px-3 py-2 text-sm font-bold transition-all duration-150"
+                  style={
                     weekendDays.includes(value)
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25"
-                      : "bg-gray-100 text-gray-500 hover:bg-gray-200",
-                  ].join(" ")}
+                      ? {
+                          background: "var(--au-grad)",
+                          color: "white",
+                          boxShadow: "0 4px 12px -4px rgba(91,77,242,0.4)",
+                        }
+                      : {
+                          background: "var(--au-surface-sub)",
+                          color: "var(--au-faint)",
+                        }
+                  }
                 >
                   {label}
                 </button>
@@ -213,11 +241,11 @@ export default function SettingsPage() {
           </div>
 
           {/* Payroll */}
-          <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-3">
-            <h2 className="text-xs font-bold uppercase mb-1">
+          <div className="rounded-3xl border border-white/80 au-card p-4 animate-fade-in-up stagger-3" style={{ background: "var(--au-surface)" }}>
+            <h2 className="text-xs font-bold uppercase mb-1" style={sectionHeadingStyle}>
               Payroll
             </h2>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs mb-4" style={{ color: "var(--au-faint)" }}>
               Set your hourly base rate to see gross pay calculations. Leave blank to disable.
             </p>
             <Input
@@ -233,8 +261,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Location */}
-          <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-4">
-            <h2 className="text-xs font-bold uppercase mb-4">
+          <div className="rounded-3xl border border-white/80 au-card p-4 animate-fade-in-up stagger-4" style={{ background: "var(--au-surface)" }}>
+            <h2 className="text-xs font-bold uppercase mb-4" style={sectionHeadingStyle}>
               Location
             </h2>
             <CountrySelect
@@ -250,55 +278,76 @@ export default function SettingsPage() {
         </form>
 
         {/* Features */}
-        <div className="rounded-3xl bg-white border border-white/80 au-card overflow-hidden mt-4 animate-fade-in-up stagger-5">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-4 pt-4 mb-1">
+        <div
+          className="rounded-3xl border border-white/80 au-card overflow-hidden mt-4 animate-fade-in-up stagger-5"
+          style={{ background: "var(--au-surface)" }}
+        >
+          <h2
+            className="text-xs font-bold uppercase tracking-widest px-4 pt-4 mb-1"
+            style={sectionHeadingStyle}
+          >
             Features
           </h2>
-          <p className="text-xs text-gray-400 px-4 mb-3">
+          <p className="text-xs px-4 mb-3" style={{ color: "var(--au-faint)" }}>
             Enable or disable optional features to keep the app focused.
           </p>
           <a
             href="/settings/features"
-            className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-t border-gray-50 transition-colors"
+            className="flex items-center justify-between px-4 py-3 transition-colors"
+            style={{ borderTop: "1px solid var(--au-hair)" }}
+            onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = "var(--au-surface-sub)")}
+            onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = "")}
           >
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-xl bg-indigo-100 flex items-center justify-center">
-                <svg className="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <div
+                className="h-8 w-8 rounded-xl flex items-center justify-center"
+                style={{ background: "var(--au-surface-sub)" }}
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" style={{ color: "var(--au-indigo)" }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <span className="text-sm font-semibold text-gray-800">Manage Features</span>
+              <span className="text-sm font-semibold" style={{ color: "var(--au-ink)" }}>Manage Features</span>
             </div>
-            <svg className="h-4 w-4 text-gray-300" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-faint)" }}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </a>
           <a
             href="/onboarding?replay=true"
-            className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-t border-gray-50 transition-colors"
+            className="flex items-center justify-between px-4 py-3 transition-colors"
+            style={{ borderTop: "1px solid var(--au-hair)" }}
+            onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = "var(--au-surface-sub)")}
+            onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = "")}
           >
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center">
-                <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <div
+                className="h-8 w-8 rounded-xl flex items-center justify-center"
+                style={{ background: "var(--au-surface-sub)" }}
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" style={{ color: "var(--au-faint)" }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                 </svg>
               </div>
-              <span className="text-sm font-semibold text-gray-800">View onboarding again</span>
+              <span className="text-sm font-semibold" style={{ color: "var(--au-ink)" }}>View onboarding again</span>
             </div>
-            <svg className="h-4 w-4 text-gray-300" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-faint)" }}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </a>
         </div>
 
         {/* Security */}
-        <div className="rounded-3xl bg-white border border-white/80 au-card p-4 mt-4 animate-fade-in-up stagger-5">
-          <h2 className="text-xs font-bold uppercase mb-1">
+        <div
+          className="rounded-3xl border border-white/80 au-card p-4 mt-4 animate-fade-in-up stagger-5"
+          style={{ background: "var(--au-surface)" }}
+        >
+          <h2 className="text-xs font-bold uppercase mb-1" style={sectionHeadingStyle}>
             Security
           </h2>
-          <p className="text-xs text-gray-400 mb-4">
-            We'll email you a link to reset your password.
+          <p className="text-xs mb-4" style={{ color: "var(--au-faint)" }}>
+            We&apos;ll email you a link to reset your password.
           </p>
           <Button
             type="button"
@@ -317,9 +366,9 @@ export default function SettingsPage() {
             variant="ghost"
             fullWidth
             onClick={handleSignOut}
-            className="text-red-400 hover:text-red-600 hover:bg-red-50"
+            className={signOutState === "confirming" ? "text-red-500 bg-red-50 hover:bg-red-100" : "text-red-400 hover:text-red-600 hover:bg-red-50"}
           >
-            Sign Out
+            {signOutState === "confirming" ? "Tap again to confirm sign out" : "Sign Out"}
           </Button>
         </div>
       </div>

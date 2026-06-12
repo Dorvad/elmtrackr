@@ -23,9 +23,9 @@ export function MonthSummary({ shifts, settings }: MonthSummaryProps) {
   const monthName = now.toLocaleString("default", { month: "long" });
 
   const segments = [
-    { label: "Regular",  value: report.regular_minutes,  color: "bg-[#5B4DF2]", dotColor: "#5B4DF2" },
-    { label: "Overtime", value: report.overtime_minutes, color: "bg-[#FF9E7D]", dotColor: "#FF9E7D" },
-    { label: "Weekend",  value: report.weekend_minutes,  color: "bg-[#8B5CF6]", dotColor: "#8B5CF6" },
+    { label: "Regular",  value: report.regular_minutes,  color: "bg-[var(--au-indigo)]", dotColor: "var(--au-indigo)" },
+    { label: "Overtime", value: report.overtime_minutes, color: "bg-[var(--au-peach)]",  dotColor: "var(--au-peach)"  },
+    { label: "Weekend",  value: report.weekend_minutes,  color: "bg-[var(--au-plum)]",   dotColor: "var(--au-plum)"  },
   ];
 
   return (

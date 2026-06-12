@@ -101,9 +101,9 @@ export default function ReportsPage() {
 
   const segments = report
     ? [
-        { label: "Regular",  value: report.regular_minutes,  color: "bg-[#5B4DF2]", dotColor: "#5B4DF2" },
-        { label: "Overtime", value: report.overtime_minutes, color: "bg-[#FF9E7D]", dotColor: "#FF9E7D" },
-        { label: "Weekend",  value: report.weekend_minutes,  color: "bg-[#8B5CF6]", dotColor: "#8B5CF6" },
+        { label: "Regular",  value: report.regular_minutes,  color: "bg-[var(--au-indigo)]", dotColor: "var(--au-indigo)" },
+        { label: "Overtime", value: report.overtime_minutes, color: "bg-[var(--au-peach)]",  dotColor: "var(--au-peach)"  },
+        { label: "Weekend",  value: report.weekend_minutes,  color: "bg-[var(--au-plum)]",   dotColor: "var(--au-plum)"  },
       ]
     : [];
 
@@ -166,7 +166,8 @@ export default function ReportsPage() {
         <div className="mx-4 mb-4 rounded-3xl flex items-center justify-between px-3 py-2.5 animate-fade-in-up border border-white/80 au-card bg-white">
           <button
             onClick={prevMonth}
-            className="h-8 w-8 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity"
+            aria-label="Previous month"
+            className="h-9 w-9 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity"
             style={{ background: "var(--au-surface-sub)" }}
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
@@ -177,7 +178,9 @@ export default function ReportsPage() {
           <button
             onClick={nextMonth}
             disabled={isCurrentMonth}
-            className="h-8 w-8 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
+            aria-label="Next month"
+            title={isCurrentMonth ? "Current month" : undefined}
+            className="h-9 w-9 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: "var(--au-surface-sub)" }}
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
@@ -196,7 +199,7 @@ export default function ReportsPage() {
         )}
 
         {!loading && activeTab === "hours" && !report && (
-          <EmptyState title="No completed shifts" description="Complete some shifts to see your report." />
+          <EmptyState variant="reports" title="No completed shifts" description="Complete some shifts to see your report." />
         )}
 
         {!loading && activeTab === "hours" && report && settings && (
