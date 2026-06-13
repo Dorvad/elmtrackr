@@ -141,7 +141,7 @@ body {
 
 @keyframes auPrismOrbit {
   0%   { stroke-dashoffset: 0;    }
-  100% { stroke-dashoffset: -743; }
+  100% { stroke-dashoffset: -755; }
 }
 
 /* Existing keyframes (kept for compatibility) */
@@ -288,10 +288,55 @@ body {
 .au-screen { scrollbar-width: none; }
 
 /* ============================================================
+   Ride reimbursement scene keyframes
+   ============================================================ */
+@keyframes rideScrollX {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes rideScrollDash {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-52px); }
+}
+
+@keyframes rideDrift {
+  from { transform: translateX(320px); }
+  to   { transform: translateX(-80px); }
+}
+
+@keyframes rideSunPulse {
+  0%, 100% { transform: scale(1);    opacity: .85; }
+  50%       { transform: scale(1.12); opacity: 1;   }
+}
+
+@keyframes rideStreak {
+  0%   { transform: translateX(0);      opacity: 0;  }
+  15%  {                                opacity: .9; }
+  60%  {                                opacity: .6; }
+  100% { transform: translateX(-260px); opacity: 0;  }
+}
+
+@keyframes rideWheelSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rideBob {
+  0%, 100% { transform: translateX(-50%) translateY(0)   rotate(-1.2deg); }
+  50%       { transform: translateX(-50%) translateY(-9px) rotate(1deg);   }
+}
+
+@keyframes rideShadow {
+  0%, 100% { transform: translateX(-50%) scaleX(1);   opacity: .32; }
+  50%       { transform: translateX(-50%) scaleX(.78); opacity: .16; }
+}
+
+/* ============================================================
    Reduced motion
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   .au-mesh { animation: none !important; }
+  .ride-scene * { animation: none !important; }
 }
 
 /* ============================================================

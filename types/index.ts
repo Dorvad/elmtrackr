@@ -43,7 +43,7 @@ export interface Shift {
   updated_at: string;
 }
 
-export type RefundProvider = "Lime" | "Dott" | "Other";
+export type RefundProvider = "Lime" | "Dott" | "Bird" | "Taxi" | "Other";
 
 export type RefundDirection = "to_work" | "from_work";
 

@@ -1421,6 +1421,17 @@ const PrismClock = React.memo(function PrismClock({ isClockedIn, elapsedSeconds,
   const stops = PHASE_STOPS[phase];
   const clamped = Math.min(1, progress);
 
+  // Water-level fill: interpolate a horizontal slice of the triangle.
+  // Triangle points in SVG coords: A(150,8) B(6,192) C(294,192), viewBox 300×200.
+  // At fp=0 the polygon collapses to the base line; at fp=1 it fills the whole triangle.
+  const fp = isClockedIn ? clamped : 0;
+  const yWater = 192 - 184 * fp;
+  const xLeft  = 6   + 144 * fp;
+  const xRight = 294 - 144 * fp;
+  const yPct  = (yWater / 2).toFixed(2);
+  const xLPct = (xLeft  / 3).toFixed(2);
+  const xRPct = (xRight / 3).toFixed(2);
+
   return (
     <div className="rounded-3xl overflow-hidden relative animate-scale-in bg-white border border-white/80 au-card p-5 flex flex-col items-center gap-4">
       <div className="absolute inset-0 overflow-hidden rounded-3xl" style={{ zIndex: 0 }}>
@@ -1429,16 +1440,14 @@ const PrismClock = React.memo(function PrismClock({ isClockedIn, elapsedSeconds,
       </div>
       <div className="relative z-10 flex flex-col items-center gap-4 w-full">
         <div className="relative w-full" style={{ height: 200 }}>
-          {/* Rising liquid fill via CSS clip-path + scaleY */}
+          {/* Rising liquid fill — 4-point clip-path interpolates a horizontal water level */}
           <div style={{
             position: "absolute",
             inset: 0,
-            clipPath: "polygon(50% 4%, 2% 96%, 98% 96%)",
-            background: `linear-gradient(180deg, ${stops[0]} 0%, ${stops[1]} 50%, ${stops[2]} 100%)`,
-            transformOrigin: "50% 96%",
-            transform: `scaleY(${isClockedIn ? clamped : 0})`,
-            transition: "transform 1.2s cubic-bezier(0.3,0.8,0.3,1)",
-            opacity: 0.5,
+            clipPath: `polygon(${xLPct}% ${yPct}%, ${xRPct}% ${yPct}%, 98% 96%, 2% 96%)`,
+            background: `linear-gradient(180deg, ${stops[0]} 0%, ${stops[1]} 55%, ${stops[2]} 100%)`,
+            transition: "clip-path 1s ease",
+            opacity: 0.55,
             zIndex: 1,
           }} />
 
@@ -1457,11 +1466,20 @@ const PrismClock = React.memo(function PrismClock({ isClockedIn, elapsedSeconds,
             {/* Triangle outline */}
             <polygon points="150,8 6,192 294,192" fill="none"
               stroke={stops[0]} strokeWidth={1.5} strokeOpacity={0.4} />
-            {/* Orbiting luminous segment */}
+            {/* Water surface shimmer line */}
+            {fp > 0.005 && (
+              <line
+                x1={xLeft.toFixed(1)} y1={yWater.toFixed(1)}
+                x2={xRight.toFixed(1)} y2={yWater.toFixed(1)}
+                stroke="rgba(255,255,255,0.55)" strokeWidth={2}
+                style={{ filter: `drop-shadow(0 0 4px ${stops[1]})`, transition: "all 1s ease" }}
+              />
+            )}
+            {/* Orbiting luminous segment — perimeter ≈ 755px */}
             {isClockedIn && (
               <polygon points="150,8 6,192 294,192" fill="none"
                 stroke={`url(#pr-seg-${phase})`} strokeWidth={3} strokeLinecap="round"
-                strokeDasharray="70 673"
+                strokeDasharray="70 685"
                 style={{
                   animation: `auPrismOrbit ${isOvertime ? 3 : 6}s linear infinite`,
                   filter: `drop-shadow(0 0 5px ${stops[1]})`,

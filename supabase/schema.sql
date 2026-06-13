@@ -303,16 +303,23 @@ create policy "refund_claims_update_own" on public.refund_claims
 create policy "refund_claims_delete_own" on public.refund_claims
   for delete using (auth.uid() = user_id);
 
--- ── Storage bucket (run once in Dashboard or via CLI) ─────────
--- insert into storage.buckets (id, name, public)
--- values ('refund-receipts', 'refund-receipts', false)
--- on conflict (id) do nothing;
---
--- create policy "refund_receipts_select" on storage.objects
---   for select using (bucket_id = 'refund-receipts' and auth.uid()::text = (storage.foldername(name))[1]);
---
--- create policy "refund_receipts_insert" on storage.objects
---   for insert with check (bucket_id = 'refund-receipts' and auth.uid()::text = (storage.foldername(name))[1]);
---
--- create policy "refund_receipts_delete" on storage.objects
---   for delete using (bucket_id = 'refund-receipts' and auth.uid()::text = (storage.foldername(name))[1]);
+-- ── Storage bucket ────────────────────────────────────────────
+insert into storage.buckets (id, name, public)
+values ('refund-receipts', 'refund-receipts', false)
+on conflict (id) do nothing;
+
+drop policy if exists "refund_receipts_select" on storage.objects;
+create policy "refund_receipts_select" on storage.objects
+  for select using (bucket_id = 'refund-receipts' and auth.uid()::text = (storage.foldername(name))[1]);
+
+drop policy if exists "refund_receipts_insert" on storage.objects;
+create policy "refund_receipts_insert" on storage.objects
+  for insert with check (bucket_id = 'refund-receipts' and auth.uid()::text = (storage.foldername(name))[1]);
+
+drop policy if exists "refund_receipts_update" on storage.objects;
+create policy "refund_receipts_update" on storage.objects
+  for update using (bucket_id = 'refund-receipts' and auth.uid()::text = (storage.foldername(name))[1]);
+
+drop policy if exists "refund_receipts_delete" on storage.objects;
+create policy "refund_receipts_delete" on storage.objects
+  for delete using (bucket_id = 'refund-receipts' and auth.uid()::text = (storage.foldername(name))[1]);
