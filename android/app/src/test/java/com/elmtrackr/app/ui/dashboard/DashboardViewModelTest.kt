@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.dashboard
 
+import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeReportsRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
@@ -34,12 +35,13 @@ class DashboardViewModelTest {
     private val settingsRepo = FakeSettingsRepository()
     private val reportsRepo = FakeReportsRepository()
     private val syncRepo = FakeSyncRepository()
+    private val compensationRepo = FakeCompensationProfilesRepository()
     private val authRepo = FakeAuthRepository().apply {
         setProfile(Profile("u1", "test@test.com", null, Instant.EPOCH, Instant.EPOCH))
     }
 
     private fun buildVm() = DashboardViewModel(
-        shiftsRepo, settingsRepo, reportsRepo, syncRepo, authRepo,
+        shiftsRepo, settingsRepo, reportsRepo, syncRepo, authRepo, compensationRepo,
     )
 
     private fun defaultSettings() = UserSettings(

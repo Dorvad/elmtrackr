@@ -22,6 +22,8 @@ data class ShiftEntity(
     val notes: String?,
     val isSpecialDay: Boolean,
     val refundAction: String?,
+    val compensationProfileId: String? = null,
+    val compensationSnapshotJson: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

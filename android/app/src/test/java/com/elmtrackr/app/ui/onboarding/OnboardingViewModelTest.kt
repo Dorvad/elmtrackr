@@ -3,6 +3,7 @@ package com.elmtrackr.app.ui.onboarding
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.util.MainDispatcherRule
@@ -27,10 +28,12 @@ class OnboardingViewModelTest {
     private val authRepo = FakeAuthRepository().apply {
         setProfile(Profile("u1", "test@test.com", null, Instant.EPOCH, Instant.EPOCH))
     }
+    private val compensationRepo = FakeCompensationProfilesRepository()
     private var completionCalled = false
 
     private fun buildVm() = OnboardingViewModel(
         settingsRepository = settingsRepo,
+        compensationProfilesRepository = compensationRepo,
         markOnboardingCompleted = { completionCalled = true },
         authRepository = authRepo,
     )

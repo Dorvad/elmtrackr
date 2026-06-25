@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.PayrollCalculator
+import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -36,6 +38,7 @@ class DashboardViewModel(
     private val reportsRepository: ReportsRepository,
     private val syncRepository: SyncRepository,
     private val authRepository: AuthRepository,
+    private val compensationProfilesRepository: CompensationProfilesRepository,
 ) : ViewModel() {
 
     private val today = LocalDate.now(ZoneOffset.UTC)
@@ -45,30 +48,37 @@ class DashboardViewModel(
         val report: MonthlyReport?,
         val settings: UserSettings?,
         val pendingCount: Int,
-        /** Shifts for the current calendar month only — bounded query. */
         val monthShifts: List<Shift>,
-        /** The 5 most recent completed shifts — pre-limited at the DB layer. */
         val recentShifts: List<Shift>,
+        val profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
     )
 
     val uiState: StateFlow<DashboardUiState> = authRepository.observeCurrentProfile()
         .flatMapLatest { profile ->
             if (profile == null) return@flatMapLatest flowOf(DashboardUiState.Loading)
             combine(
-                shiftsRepository.observeActiveShift(profile.id),
-                reportsRepository.observeMonthlyReport(profile.id, today.year, today.monthValue),
-                settingsRepository.observeSettings(profile.id),
-                syncRepository.observePendingCount(profile.id),
-                shiftsRepository.observeShiftsByMonth(profile.id, today.year, today.monthValue),
-            ) { activeShift, report, settings, pendingCount, monthShifts ->
-                RawData(activeShift, report, settings, pendingCount, monthShifts, emptyList())
+                combine(
+                    shiftsRepository.observeActiveShift(profile.id),
+                    reportsRepository.observeMonthlyReport(profile.id, today.year, today.monthValue),
+                    settingsRepository.observeSettings(profile.id),
+                    syncRepository.observePendingCount(profile.id),
+                    shiftsRepository.observeShiftsByMonth(profile.id, today.year, today.monthValue),
+                ) { activeShift, report, settings, pendingCount, monthShifts ->
+                    RawData(activeShift, report, settings, pendingCount, monthShifts, emptyList(), emptyList())
+                },
+                compensationProfilesRepository.observeProfiles(profile.id),
+            ) { raw, profiles ->
+                raw.copy(profiles = profiles)
             }.combine(shiftsRepository.observeRecentCompletedShifts(profile.id, 5)) { raw, recentShifts ->
                 raw.copy(recentShifts = recentShifts)
             }.combine(flowOf(profile)) { raw, currentProfile ->
                 val completedMonthShifts = raw.monthShifts.filter { it.isCompleted }
                 val paySummary = raw.settings
-                    ?.takeIf { (it.hourlyRate ?: 0.0) > 0.0 }
-                    ?.let { PayrollCalculator.sumMonthlyPay(completedMonthShifts, it) }
+                    ?.takeIf { settings ->
+                        (settings.hourlyRate ?: 0.0) > 0.0 ||
+                            raw.profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
+                    }
+                    ?.let { PayrollCalculator.sumMonthlyPay(completedMonthShifts, it, raw.profiles) }
                 DashboardUiState.Ready(
                     activeShift = raw.activeShift,
                     monthlyReport = raw.report,
@@ -90,15 +100,30 @@ class DashboardViewModel(
         initialValue = DashboardUiState.Loading,
     )
 
+    init {
+        viewModelScope.launch {
+            authRepository.getCurrentProfile()?.id?.let { compensationProfilesRepository.ensureMigrated(it) }
+        }
+    }
+
     fun clockIn() {
         viewModelScope.launch {
             val userId = authRepository.getCurrentProfile()?.id ?: return@launch
-            shiftsRepository.clockIn(userId)
+            val settings = settingsRepository.getSettings(userId) ?: return@launch
+            compensationProfilesRepository.ensureMigrated(userId)
+            shiftsRepository.clockIn(userId, settings.defaultCompensationProfileId)
         }
     }
 
     fun clockOut(shiftId: String) {
-        viewModelScope.launch { shiftsRepository.clockOut(shiftId) }
+        viewModelScope.launch {
+            val userId = authRepository.getCurrentProfile()?.id ?: return@launch
+            val shift = shiftsRepository.getShiftById(shiftId) ?: return@launch
+            val settings = settingsRepository.getSettings(userId) ?: return@launch
+            val profiles = compensationProfilesRepository.getProfiles(userId)
+            val snapshot = ShiftCompensationHelper.buildClockOutSnapshot(shift, settings, profiles)
+            shiftsRepository.clockOut(shiftId, compensationSnapshot = snapshot)
+        }
     }
 
     fun editActiveShiftStartTime(shiftId: String, newStartTime: Instant) {
@@ -120,6 +145,7 @@ class DashboardViewModel(
                     app.reportsRepository,
                     app.syncRepository,
                     app.authRepository,
+                    app.compensationProfilesRepository,
                 )
             }
         }

@@ -67,6 +67,13 @@ class FakeShiftDao : ShiftDao {
 
     override fun observeShiftsByDateRange(userId: String, fromEpoch: Long, toEpoch: Long): Flow<List<ShiftEntity>> =
         _flow.map { it.filter { e -> e.userId == userId && e.startTime >= fromEpoch && e.startTime < toEpoch && e.deletedAt == null } }
+
+    override fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<ShiftEntity>> =
+        _flow.map {
+            it.filter { e -> e.userId == userId && e.endTime != null && e.deletedAt == null }
+                .sortedByDescending { e -> e.endTime }
+                .take(limit)
+        }
 }
 
 // ---- FakeRefundClaimDao ----
@@ -194,4 +201,68 @@ class FakeProfileDao : ProfileDao {
 
     override suspend fun getProfileByRemoteId(remoteId: String): ProfileEntity? =
         store.values.firstOrNull { it.remoteId == remoteId }
+}
+
+// ---- FakeCompensationProfileDao ----
+
+class FakeCompensationProfileDao : com.elmtrackr.app.data.local.dao.CompensationProfileDao {
+    private val store = mutableMapOf<String, com.elmtrackr.app.data.local.entity.CompensationProfileEntity>()
+    private val _flow = MutableStateFlow<List<com.elmtrackr.app.data.local.entity.CompensationProfileEntity>>(emptyList())
+
+    private fun refresh() { _flow.value = store.values.toList() }
+
+    override fun observeProfiles(userId: String): Flow<List<com.elmtrackr.app.data.local.entity.CompensationProfileEntity>> =
+        _flow.map { it.filter { e -> e.userId == userId && !e.isArchived && e.deletedAt == null } }
+
+    override suspend fun getByUser(userId: String): List<com.elmtrackr.app.data.local.entity.CompensationProfileEntity> =
+        store.values.filter { it.userId == userId && it.deletedAt == null }
+
+    override suspend fun getDefaultProfile(userId: String): com.elmtrackr.app.data.local.entity.CompensationProfileEntity? =
+        store.values.firstOrNull { it.userId == userId && it.isDefault && it.deletedAt == null }
+
+    override suspend fun getByLocalId(localId: String): com.elmtrackr.app.data.local.entity.CompensationProfileEntity? =
+        store[localId]
+
+    override suspend fun getById(userId: String, localId: String): com.elmtrackr.app.data.local.entity.CompensationProfileEntity? =
+        store[localId]?.takeIf { it.userId == userId }
+
+    override suspend fun getByRemoteId(remoteId: String): com.elmtrackr.app.data.local.entity.CompensationProfileEntity? =
+        store.values.firstOrNull { it.remoteId == remoteId }
+
+    override suspend fun getPendingSyncProfiles(userId: String): List<com.elmtrackr.app.data.local.entity.CompensationProfileEntity> =
+        store.values.filter {
+            it.userId == userId && it.syncStatus in listOf(
+                SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED,
+            )
+        }
+
+    override suspend fun insert(profile: com.elmtrackr.app.data.local.entity.CompensationProfileEntity) {
+        store[profile.localId] = profile
+        refresh()
+    }
+
+    override suspend fun update(profile: com.elmtrackr.app.data.local.entity.CompensationProfileEntity) {
+        store[profile.localId] = profile
+        refresh()
+    }
+
+    override suspend fun updateSyncState(
+        localId: String,
+        status: SyncStatus,
+        remoteId: String?,
+        syncedAt: Long?,
+        error: String?,
+    ) {
+        store[localId]?.let {
+            store[localId] = it.copy(syncStatus = status, remoteId = remoteId, lastSyncedAt = syncedAt, lastSyncError = error)
+        }
+        refresh()
+    }
+
+    override suspend fun clearDefaultForUser(userId: String) {
+        store.replaceAll { _, value ->
+            if (value.userId == userId) value.copy(isDefault = false) else value
+        }
+        refresh()
+    }
 }

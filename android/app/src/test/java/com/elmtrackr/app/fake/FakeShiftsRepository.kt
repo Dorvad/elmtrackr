@@ -1,5 +1,6 @@
 package com.elmtrackr.app.fake
 
+import com.elmtrackr.app.domain.model.CompensationSnapshot
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import kotlinx.coroutines.flow.Flow
@@ -27,24 +28,31 @@ class FakeShiftsRepository : ShiftsRepository {
     override suspend fun getShiftById(localId: String): Shift? =
         _shifts.value.firstOrNull { it.id == localId }
 
-    override suspend fun clockIn(userId: String): Shift {
+    override suspend fun clockIn(userId: String, compensationProfileId: String?): Shift {
         val shift = Shift(
             id = "fake-${_shifts.value.size}",
             userId = userId,
             startTime = Instant.parse("2024-01-08T09:00:00Z"),
             endTime = null,
+            compensationProfileId = compensationProfileId,
         )
         _shifts.value = _shifts.value + shift
         syncScheduledCount++
         return shift
     }
 
-    override suspend fun clockOut(localId: String, breakMinutes: Int, notes: String?): Shift {
+    override suspend fun clockOut(
+        localId: String,
+        breakMinutes: Int,
+        notes: String?,
+        compensationSnapshot: CompensationSnapshot?,
+    ): Shift {
         val shift = _shifts.value.first { it.id == localId }
         val updated = shift.copy(
             endTime = Instant.parse("2024-01-08T17:00:00Z"),
             breakMinutes = breakMinutes,
             notes = notes,
+            compensationSnapshot = compensationSnapshot,
         )
         _shifts.value = _shifts.value.map { if (it.id == localId) updated else it }
         syncScheduledCount++
@@ -69,6 +77,13 @@ class FakeShiftsRepository : ShiftsRepository {
     }
 
     override fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>> = _shifts
+
+    override fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<Shift>> =
+        _shifts.map { list ->
+            list.filter { it.userId == userId && it.isCompleted }
+                .sortedByDescending { it.endTime }
+                .take(limit)
+        }
 
     override fun observePendingSyncShifts(userId: String): Flow<List<Shift>> = flowOf(emptyList())
 }

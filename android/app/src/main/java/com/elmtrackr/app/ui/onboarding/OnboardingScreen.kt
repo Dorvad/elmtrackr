@@ -66,6 +66,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.domain.model.RegionCode
+import com.elmtrackr.app.domain.compensation.RegionPresets
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.ui.design.AppLogo
 import com.elmtrackr.app.ui.design.ElmGradientButton
@@ -74,7 +76,7 @@ import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import java.util.TimeZone
 
-private const val TOTAL_STEPS = 7
+private const val TOTAL_STEPS = 8
 private val DAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
 @Composable
@@ -87,6 +89,8 @@ fun OnboardingScreen(
     val initialSettings by viewModel.initialSettings.collectAsState()
     val initialProfile by viewModel.initialProfile.collectAsState()
     var step by rememberSaveable { mutableIntStateOf(1) }
+    var regionCode by rememberSaveable { mutableStateOf(RegionCode.IL) }
+    var currencyCode by rememberSaveable { mutableStateOf("ILS") }
     var displayName by rememberSaveable { mutableStateOf("") }
     var hourlyRateText by rememberSaveable { mutableStateOf("") }
     var currency by rememberSaveable { mutableStateOf(CurrencyCode.ILS) }
@@ -114,6 +118,8 @@ fun OnboardingScreen(
             weeklyOtText = (settings.weeklyOvertimeThresholdMinutes / 60.0).toEditableHours()
             weekendDays = settings.weekendDays
             timezone = settings.timezone
+            regionCode = settings.regionCode ?: regionCode
+            currencyCode = settings.currencyCode ?: settings.currency.name
             travelRefunds = settings.featuresTravelRefunds
             paidProjects = settings.featuresPaidProjects
             insights = settings.featuresInsights
@@ -171,24 +177,38 @@ fun OnboardingScreen(
                     Column(Modifier.widthIn(max = 460.dp).fillMaxWidth()) {
                         when (current) {
                             1 -> WelcomeStep(replay) { step = 2 }
-                            2 -> ProfileStep(
+                            2 -> RegionStep(
+                                regionCode = regionCode,
+                                currencyCode = currencyCode,
+                                timezone = timezone,
+                                onSelectRegion = { code ->
+                                    regionCode = code
+                                    RegionPresets.forRegion(code).let { preset ->
+                                        currencyCode = preset.currencyCode
+                                        timezone = preset.timezone
+                                    }
+                                },
+                                onBack = { step = 1 },
+                                onNext = { step = 3 },
+                            )
+                            3 -> ProfileStep(
                                 name = displayName,
                                 email = initialProfile?.email.orEmpty(),
                                 onNameChange = { displayName = it },
                                 showError = !profileValid && displayName.isNotEmpty(),
-                                onBack = { step = 1 },
-                                onNext = { if (profileValid) step = 3 },
+                                onBack = { step = 2 },
+                                onNext = { if (profileValid) step = 4 },
                             )
-                            3 -> PaySetupStep(
+                            4 -> PaySetupStep(
                                 hourlyRate = hourlyRateText,
                                 currency = currency,
                                 onHourlyRateChange = { hourlyRateText = it.decimalInput() },
-                                onCurrencyChange = { currency = it },
+                                onCurrencyChange = { currency = it; currencyCode = it.name },
                                 valid = payValid,
-                                onBack = { step = 2 },
-                                onNext = { if (payValid) step = 4 },
+                                onBack = { step = 3 },
+                                onNext = { if (payValid) step = 5 },
                             )
-                            4 -> WorkWeekStep(
+                            5 -> WorkWeekStep(
                                 weekendDays = weekendDays,
                                 dailyOt = dailyOtText,
                                 weeklyOt = weeklyOtText,
@@ -197,28 +217,31 @@ fun OnboardingScreen(
                                 onDailyOtChange = { dailyOtText = it.decimalInput() },
                                 onWeeklyOtChange = { weeklyOtText = it.decimalInput() },
                                 valid = workWeekValid,
-                                onBack = { step = 3 },
-                                onNext = { if (workWeekValid) step = 5 },
+                                onBack = { step = 4 },
+                                onNext = { if (workWeekValid) step = 6 },
                             )
-                            5 -> FeaturesStep(
+                            6 -> FeaturesStep(
                                 travelRefunds, paidProjects, insights, clockStyles,
                                 { travelRefunds = it }, { paidProjects = it }, { insights = it }, { clockStyles = it },
-                                onBack = { step = 4 }, onNext = { step = 6 },
+                                onBack = { step = 5 }, onNext = { step = 7 },
                             )
-                            6 -> ClockStyleStep(clockStyle, { clockStyle = it }, onBack = { step = 5 }, onNext = { step = 7 })
+                            7 -> ClockStyleStep(clockStyle, { clockStyle = it }, onBack = { step = 6 }, onNext = { step = 8 })
                             else -> ReviewStep(
                                 displayName = displayName.trim(),
                                 hourlyRate = hourlyRate,
                                 currency = currency,
+                                regionLabel = RegionPresets.forRegion(regionCode).label,
                                 weekendDays = weekendDays,
                                 clockStyle = clockStyle,
                                 enabledCount = listOf(travelRefunds, paidProjects, insights, clockStyles).count { it },
                                 error = (state as? OnboardingUiState.ValidationError)?.errors?.values?.firstOrNull(),
-                                onBack = { step = 6 },
+                                onBack = { step = 7 },
                                 onFinish = {
                                     viewModel.completeOnboarding(
                                         OnboardingInput(
                                             displayName = displayName.trim(),
+                                            regionCode = regionCode,
+                                            currencyCode = currencyCode,
                                             timezone = timezone,
                                             dailyOvertimeHours = dailyOt!!,
                                             weeklyOvertimeHours = weeklyOt!!,
@@ -285,12 +308,67 @@ internal fun OnboardingProgress(step: Int) {
 
 private fun stepTitle(step: Int): String = when (step) {
     1 -> "Welcome"
-    2 -> "Your profile"
-    3 -> "Pay preferences"
-    4 -> "Work week"
-    5 -> "Features"
-    6 -> "Clock face"
+    2 -> "Your region"
+    3 -> "Your profile"
+    4 -> "Pay preferences"
+    5 -> "Work week"
+    6 -> "Features"
+    7 -> "Clock face"
     else -> "Review"
+}
+
+@Composable
+internal fun RegionStep(
+    regionCode: RegionCode,
+    currencyCode: String,
+    timezone: String,
+    onSelectRegion: (RegionCode) -> Unit,
+    onBack: () -> Unit,
+    onNext: () -> Unit,
+) {
+    SetupHero(
+        Icons.Filled.Tune,
+        "Where do you work?",
+        "Choose a region preset to start with suggested compensation rules. You can customize everything later.",
+    )
+    SetupCard {
+        RegionPresets.all.forEach { preset ->
+            val selected = preset.regionCode == regionCode
+            Card(
+                onClick = { onSelectRegion(preset.regionCode) },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                shape = RoundedCornerShape(CornerRadius.Medium),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surface,
+                ),
+            ) {
+                Column(Modifier.padding(14.dp)) {
+                    Text(preset.label, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        preset.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Currency: $currencyCode · Timezone: $timezone",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "ElmTrackr provides estimated compensation only — not legal or payroll advice.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    Spacer(Modifier.height(18.dp))
+    NavRow(onBack, onNext)
 }
 
 @Composable
@@ -478,6 +556,7 @@ internal fun ReviewStep(
     displayName: String,
     hourlyRate: Double?,
     currency: CurrencyCode,
+    regionLabel: String,
     weekendDays: List<Int>,
     clockStyle: ClockStyle,
     enabledCount: Int,
@@ -495,6 +574,7 @@ internal fun ReviewStep(
         Spacer(Modifier.height(20.dp))
         SetupCard {
             ReviewRow("Name", displayName)
+            ReviewRow("Region", regionLabel)
             ReviewRow("Hourly salary", hourlyRate?.let { MoneyFormatter.format(it, currency) } ?: "Not set")
             ReviewRow("Weekend", weekendDays.joinToString(", ") { DAY_LABELS[it] })
             ReviewRow("Clock face", clockStyle.name.lowercase().replaceFirstChar(Char::uppercase))

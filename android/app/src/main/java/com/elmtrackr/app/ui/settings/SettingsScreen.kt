@@ -49,7 +49,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -105,6 +107,11 @@ fun SettingsScreen(
     onSignOut: () -> Unit        = {},
     onReplayOnboarding: () -> Unit = {},
 ) {
+    var showCompensation by rememberSaveable { mutableStateOf(false) }
+    if (showCompensation) {
+        CompensationSettingsScreen(onBack = { showCompensation = false })
+        return
+    }
     val uiState by viewModel.uiState.collectAsState()
     LaunchedEffect(Unit) { viewModel.ensureSettingsExist() }
 
@@ -132,6 +139,7 @@ fun SettingsScreen(
                 onSync        = viewModel::triggerSync,
                 onResetPassword = viewModel::resetPassword,
                 onReplayOnboarding = onReplayOnboarding,
+                onOpenCompensation = { showCompensation = true },
             )
             is SettingsUiState.Error  -> Box(
                 Modifier
@@ -159,6 +167,7 @@ private fun SettingsContent(
     onSync: () -> Unit,
     onResetPassword: () -> Unit,
     onReplayOnboarding: () -> Unit,
+    onOpenCompensation: () -> Unit = {},
 ) {
     var displayName   by remember(state.profile?.fullName)                       { mutableStateOf(state.profile?.fullName ?: "") }
     var dailyOtText   by remember(state.settings.dailyOvertimeThresholdMinutes)  { mutableStateOf(minutesToHours(state.settings.dailyOvertimeThresholdMinutes)) }
@@ -237,6 +246,16 @@ private fun SettingsContent(
 
         item {
             SettingsSectionCard("Payroll") {
+                OutlinedButton(onClick = onOpenCompensation, modifier = Modifier.fillMaxWidth()) {
+                    Text("Compensation rules")
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Configure region presets, overtime tiers, premiums, and currency for pay estimates.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
                 HoursField(
                     label         = "Hourly rate",
                     value         = hourlyRateText,

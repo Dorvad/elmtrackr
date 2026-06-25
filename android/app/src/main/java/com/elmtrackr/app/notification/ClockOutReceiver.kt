@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,7 +26,20 @@ class ClockOutReceiver : BroadcastReceiver() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val app = context.applicationContext as ElmTrackrApp
-                app.shiftsRepository.clockOut(shiftId)
+                val userId = app.currentUserProvider.currentUserId()
+                if (userId != null) {
+                    val shift = app.shiftsRepository.getShiftById(shiftId)
+                    val settings = app.settingsRepository.getSettings(userId)
+                    if (shift != null && settings != null) {
+                        val profiles = app.compensationProfilesRepository.getProfiles(userId)
+                        val snapshot = ShiftCompensationHelper.buildClockOutSnapshot(shift, settings, profiles)
+                        app.shiftsRepository.clockOut(shiftId, compensationSnapshot = snapshot)
+                    } else {
+                        app.shiftsRepository.clockOut(shiftId)
+                    }
+                } else {
+                    app.shiftsRepository.clockOut(shiftId)
+                }
                 val nm = ActiveShiftNotificationManager(context.applicationContext)
                 nm.cancelActiveShiftNotification()
                 nm.cancelReminderNotification()

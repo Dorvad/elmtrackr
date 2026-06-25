@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.data.repository.CompensationProfilesRepository
+import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,11 +20,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
+import java.util.UUID
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingViewModel(
     private val settingsRepository: SettingsRepository,
+    private val compensationProfilesRepository: CompensationProfilesRepository,
     private val markOnboardingCompleted: suspend () -> Unit,
     private val authRepository: AuthRepository,
 ) : ViewModel() {
@@ -52,6 +56,23 @@ class OnboardingViewModel(
                     ?: error("Sign in before completing onboarding")
                 val existing = settingsRepository.getSettings(profile.id)
                 val base = existing ?: settingsRepository.createDefaultSettings(profile.id)
+                val presetProfile = CompensationResolver.createFromPreset(
+                    userId = profile.id,
+                    regionCode = input.regionCode,
+                    currencyCode = input.currencyCode,
+                    timezone = input.timezone,
+                    baseHourlyRate = input.hourlyRate,
+                )
+                val compensationProfile = compensationProfilesRepository.upsertProfile(
+                    presetProfile.copy(
+                        id = UUID.randomUUID().toString(),
+                        rules = presetProfile.rules.copy(
+                            dailyStandardMinutes = (input.dailyOvertimeHours * 60).roundToInt(),
+                            weeklyStandardMinutes = (input.weeklyOvertimeHours * 60).roundToInt(),
+                            weekendDays = input.weekendDays,
+                        ),
+                    ),
+                )
                 val source = base.copy(
                     timezone = input.timezone,
                     dailyOvertimeThresholdMinutes = (input.dailyOvertimeHours * 60).roundToInt(),
@@ -59,6 +80,9 @@ class OnboardingViewModel(
                     weekendDays = input.weekendDays,
                     hourlyRate = input.hourlyRate,
                     currency = input.currency,
+                    regionCode = input.regionCode,
+                    currencyCode = input.currencyCode,
+                    defaultCompensationProfileId = compensationProfile.id,
                 )
                 settingsRepository.saveSettings(
                     source.copy(
@@ -70,7 +94,7 @@ class OnboardingViewModel(
                         onboardingCompleted = true,
                         onboardingCompletedAt = Instant.now(),
                         updatedAt = Instant.now(),
-                    )
+                    ),
                 )
                 if (input.displayName.isNotBlank()) {
                     authRepository.saveProfile(
@@ -117,6 +141,7 @@ class OnboardingViewModel(
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
                 OnboardingViewModel(
                     settingsRepository = app.settingsRepository,
+                    compensationProfilesRepository = app.compensationProfilesRepository,
                     markOnboardingCompleted = { app.appPreferences.setOnboardingCompleted(true) },
                     authRepository = app.authRepository,
                 )

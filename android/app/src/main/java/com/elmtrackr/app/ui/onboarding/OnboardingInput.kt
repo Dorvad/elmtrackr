@@ -3,9 +3,12 @@ package com.elmtrackr.app.ui.onboarding
 import java.util.TimeZone
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.domain.model.RegionCode
 
 data class OnboardingInput(
     val displayName: String = "",
+    val regionCode: RegionCode = RegionCode.IL,
+    val currencyCode: String = "ILS",
     val timezone: String = TimeZone.getDefault().id,
     val dailyOvertimeHours: Double = 8.0,
     val weeklyOvertimeHours: Double = 40.0,
