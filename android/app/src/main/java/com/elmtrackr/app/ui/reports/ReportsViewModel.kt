@@ -122,9 +122,9 @@ class ReportsViewModel(
                             }?.let { PayrollCalculator.sumMonthlyPay(completedShifts, it, profiles) }
                             val prevCompleted = inputs.previousShifts.filter { it.isCompleted }
                             val insights = settings.takeIf { it.featuresInsights }
-                                ?.let { ReportInsightsBuilder.build(completedShifts, it) }
+                                ?.let { ReportInsightsBuilder.build(completedShifts, it, profiles) }
                             val dailyInsights = settings.takeIf { it.featuresInsights }
-                                ?.let { DailyInsightsBuilder.build(completedShifts, it, safeReport.totalMinutes) }
+                                ?.let { DailyInsightsBuilder.build(completedShifts, it, safeReport.totalMinutes, profiles) }
                                 ?: emptyList()
                             ReportsUiState.Ready(
                                 year = year,
@@ -133,11 +133,13 @@ class ReportsViewModel(
                                 weeklyTotals = WeeklyBreakdownBuilder.groupByWeek(
                                     shifts = completedShifts,
                                     settings = settings,
+                                    profiles = profiles,
                                     prevMonthShifts = prevCompleted,
                                 ),
                                 paySummary = paySummary,
                                 rawShifts = completedShifts,
                                 settings = settings,
+                                profiles = profiles,
                                 featuresTravelRefunds = settings.featuresTravelRefunds,
                                 insights = insights,
                                 dailyInsights = dailyInsights,

@@ -72,9 +72,12 @@ class DashboardViewModel(
             }.combine(shiftsRepository.observeRecentCompletedShifts(profile.id, 5)) { raw, recentShifts ->
                 raw.copy(recentShifts = recentShifts)
             }.combine(flowOf(profile)) { raw, currentProfile ->
+                if (raw.settings == null) {
+                    DashboardUiState.Loading
+                } else {
                 val completedMonthShifts = raw.monthShifts.filter { it.isCompleted }
                 val paySummary = raw.settings
-                    ?.takeIf { settings ->
+                    .takeIf { settings ->
                         (settings.hourlyRate ?: 0.0) > 0.0 ||
                             raw.profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
                     }
@@ -83,14 +86,16 @@ class DashboardViewModel(
                     activeShift = raw.activeShift,
                     monthlyReport = raw.report,
                     settings = raw.settings,
+                    profiles = raw.profiles,
                     pendingSyncCount = raw.pendingCount,
                     recentShifts = raw.recentShifts,
                     displayName = currentProfile.fullName,
                     isRemoteConfigured = authRepository.isConfigured(),
-                    unresolvedRefundCount = if (raw.settings?.featuresTravelRefunds == true)
+                    unresolvedRefundCount = if (raw.settings.featuresTravelRefunds == true)
                         RefundPolicy.countUnresolved(raw.monthShifts) else 0,
                     paySummary = paySummary,
                 ) as DashboardUiState
+                }
             }
         }.catch { e ->
         emit(DashboardUiState.Error(e.message ?: "Unknown error"))
@@ -99,12 +104,6 @@ class DashboardViewModel(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = DashboardUiState.Loading,
     )
-
-    init {
-        viewModelScope.launch {
-            authRepository.getCurrentProfile()?.id?.let { compensationProfilesRepository.ensureMigrated(it) }
-        }
-    }
 
     fun clockIn() {
         viewModelScope.launch {

@@ -84,7 +84,8 @@ import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.OvernightShiftDetector
-import com.elmtrackr.app.domain.WeekendRules
+import com.elmtrackr.app.domain.compensation.CompensationResolver
+import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.model.ReceiptUpload
 import com.elmtrackr.app.domain.model.RefundAction
@@ -296,6 +297,7 @@ private fun ShiftsListContent(
                         ShiftRow(
                             shift = shift,
                             settings = state.settings,
+                            profiles = state.profiles,
                             showRefunds = state.featuresTravelRefunds,
                             grouped = true,
                             entranceIndex = index,
@@ -417,6 +419,7 @@ private fun formatHoursDecimal(minutes: Int): String = "%.1f".format(Locale.US, 
 internal fun ShiftRow(
     shift: Shift,
     settings: UserSettings?,
+    profiles: List<CompensationProfile> = emptyList(),
     showRefunds: Boolean,
     grouped: Boolean = false,
     entranceIndex: Int = 0,
@@ -432,9 +435,13 @@ internal fun ShiftRow(
         ShiftDurationCalculator.netMinutes(shift)?.let { ShiftDurationCalculator.formatMinutes(it) }
     else null
     val overnight = OvernightShiftDetector.isOvernight(shift)
-    val weekend = settings?.let { WeekendRules.isWeekendDate(zdt.toLocalDate().toString(), it.weekendDays) } == true
+    val weekend = settings?.let {
+        CompensationResolver.isWeekendShift(shift, it, profiles)
+    } == true
     val breakdown = settings?.takeIf { shift.isCompleted }?.let { com.elmtrackr.app.domain.MonthlyReportBuilder.buildShiftBreakdown(shift, it) }
-    val pay = settings?.hourlyRate?.takeIf { it > 0 }?.let { PayrollCalculator.calculateShiftPay(shift, requireNotNull(settings)) }
+    val pay = settings?.let { s ->
+        PayrollCalculator.calculateShiftPay(shift, s, profiles)
+    }
 
     val stripeColor = when {
         shift.isActive    -> AuroraAqua

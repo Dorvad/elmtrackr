@@ -1,5 +1,7 @@
 package com.elmtrackr.app.domain
 
+import com.elmtrackr.app.domain.compensation.CompensationResolver
+import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 
@@ -16,14 +18,22 @@ data class ReportInsights(
 )
 
 object ReportInsightsBuilder {
-    fun build(shifts: List<Shift>, settings: UserSettings): ReportInsights? {
+    fun build(
+        shifts: List<Shift>,
+        settings: UserSettings,
+        profiles: List<CompensationProfile> = emptyList(),
+    ): ReportInsights? {
         val completed = shifts.filter { it.isCompleted }
         if (completed.isEmpty()) return null
 
         val durations = completed.map { ShiftDurationCalculator.netMinutes(it) ?: 0 }
-        val overtimeCount = durations.count { it > settings.dailyOvertimeThresholdMinutes }
+        val overtimeCount = completed.count { shift ->
+            val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+            val threshold = resolved.rules.dailyStandardMinutes
+            (ShiftDurationCalculator.netMinutes(shift) ?: 0) > threshold
+        }
         val weekendCount = completed.count { shift ->
-            MonthlyReportBuilder.buildShiftBreakdown(shift, settings).weekendMinutes > 0
+            CompensationResolver.isWeekendShift(shift, settings, profiles) || shift.isSpecialDay
         }
         val total = durations.sum()
 
@@ -38,10 +48,11 @@ object ReportInsightsBuilder {
         var totalPay = 0.0
         var highestEarningShift: Shift? = null
         var highestEarningAmount: Double? = null
-        val hasPay = settings.hourlyRate?.let { it > 0 } == true
-        if (hasPay) {
-            for (shift in completed) {
-                val pay = PayrollCalculator.calculateShiftPay(shift, settings)?.totalGross ?: 0.0
+        var hasPay = false
+        for (shift in completed) {
+            val pay = PayrollCalculator.calculateShiftPay(shift, settings, profiles)?.totalGross
+            if (pay != null && pay > 0) {
+                hasPay = true
                 totalPay += pay
                 if (highestEarningAmount == null || pay > highestEarningAmount!!) {
                     highestEarningAmount = pay

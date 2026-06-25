@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.reports
 
 import com.elmtrackr.app.domain.PayrollCalculator
+import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.domain.model.Shift
@@ -21,6 +22,7 @@ sealed interface ReportsUiState {
         val paySummary: PayrollCalculator.MonthlyPaySummary? = null,
         val rawShifts: List<Shift> = emptyList(),
         val settings: UserSettings? = null,
+        val profiles: List<CompensationProfile> = emptyList(),
         val featuresTravelRefunds: Boolean = false,
         val insights: ReportInsights? = null,
         val dailyInsights: List<DailyInsight> = emptyList(),

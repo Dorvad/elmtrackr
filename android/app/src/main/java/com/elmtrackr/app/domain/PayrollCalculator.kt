@@ -153,7 +153,11 @@ object PayrollCalculator {
                 tiers += Tier("${(tier.multiplier * 100).toInt()}% — Overtime", cap, tier.multiplier)
             }
         }
-        if (tiers.size == 1 && net > rules.dailyStandardMinutes) {
+        if (
+            tiers.size == 1 &&
+            net > rules.dailyStandardMinutes &&
+            rules.dailyOvertimeTiers.isNotEmpty()
+        ) {
             tiers += Tier("150% — Overtime", Int.MAX_VALUE, 1.5)
         }
         return tiers

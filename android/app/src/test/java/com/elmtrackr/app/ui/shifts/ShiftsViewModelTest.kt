@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.shifts
 
+import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeCurrentUserProvider
 import com.elmtrackr.app.fake.FakeRefundsRepository
@@ -10,6 +11,7 @@ import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -32,6 +34,7 @@ class ShiftsViewModelTest {
 
     private val shiftsRepo = FakeShiftsRepository()
     private val settingsRepo = FakeSettingsRepository()
+    private val compensationRepo = FakeCompensationProfilesRepository()
     private val currentUser = FakeCurrentUserProvider()
     private val refundsRepo = FakeRefundsRepository()
     private val receiptStorage = FakeRefundReceiptStorage()
@@ -39,10 +42,23 @@ class ShiftsViewModelTest {
     private fun buildVm() = ShiftsViewModel(
         shiftsRepo,
         settingsRepo,
+        compensationRepo,
         currentUser,
         refundsRepo,
         receiptStorage,
     )
+
+    private fun seedSettings(userId: String = "u1") {
+        currentUser.setUserId(userId)
+        settingsRepo.setSettings(
+            UserSettings(
+                id = "settings",
+                userId = userId,
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            ),
+        )
+    }
 
     // ── UI state ────────────────────────────────────────────────────────────
 
@@ -98,6 +114,7 @@ class ShiftsViewModelTest {
 
     @Test
     fun `create manual shift writes locally and marks pending sync`() = runTest {
+        seedSettings()
         val vm = buildVm()
         val prevSync = shiftsRepo.syncScheduledCount
 
@@ -118,6 +135,7 @@ class ShiftsViewModelTest {
 
     @Test
     fun `create shift closes form on success`() = runTest {
+        seedSettings()
         val vm = buildVm()
         vm.showCreateForm()
         advanceUntilIdle()
@@ -140,6 +158,7 @@ class ShiftsViewModelTest {
 
     @Test
     fun `edit shift updates locally and marks pending sync`() = runTest {
+        seedSettings()
         val original = Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z"), breakMinutes = 0)
         shiftsRepo.setShifts(original)
         val vm = buildVm()
@@ -299,6 +318,7 @@ class ShiftsViewModelTest {
 
     @Test
     fun `sync scheduler called after create, update, and delete`() = runTest {
+        seedSettings()
         val vm = buildVm()
         val shift = Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z"))
         val start = shiftsRepo.syncScheduledCount

@@ -1,5 +1,6 @@
 package com.elmtrackr.app.domain
 
+import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import java.time.Instant
@@ -56,6 +57,7 @@ object DailyInsightsBuilder {
         completedShifts: List<Shift>,
         settings: UserSettings,
         totalMinutes: Int,
+        profiles: List<CompensationProfile> = emptyList(),
     ): List<DailyInsight> {
         val fallback = DailyInsight(
             icon  = "✨",
@@ -65,7 +67,7 @@ object DailyInsightsBuilder {
         )
         if (completedShifts.isEmpty() || totalMinutes == 0) return listOf(fallback)
 
-        val pool = buildPool(completedShifts, settings, totalMinutes)
+        val pool = buildPool(completedShifts, settings, totalMinutes, profiles)
         if (pool.isEmpty()) return listOf(fallback)
 
         val dayIndex = (Instant.now().toEpochMilli() / 86_400_000).toInt()
@@ -77,6 +79,7 @@ object DailyInsightsBuilder {
         shifts: List<Shift>,
         settings: UserSettings,
         totalMinutes: Int,
+        profiles: List<CompensationProfile>,
     ): List<DailyInsight> {
         val totalHours = totalMinutes / 60.0
         val shiftCount = shifts.size
@@ -165,9 +168,10 @@ object DailyInsightsBuilder {
             InsightColor.AMBER,
         )
 
-        val pizzas = if (settings.hourlyRate != null && settings.hourlyRate > 0) {
-            (PayrollCalculator.sumMonthlyPay(shifts, settings).totalGross / PIZZA_PRICE_ILS).roundToInt()
-        } else 0
+        val pizzas = run {
+            val gross = PayrollCalculator.sumMonthlyPay(shifts, settings, profiles).totalGross
+            if (gross > 0) (gross / PIZZA_PRICE_ILS).roundToInt() else 0
+        }
         if (pizzas > 0) pool += DailyInsight(
             "🍕", "Pizza Fund",
             "This month's earnings could buy you **$pizzas pizzas** at ₪${PIZZA_PRICE_ILS.roundToInt()} each. That's a lot of slices.",

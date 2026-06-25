@@ -1,5 +1,6 @@
 package com.elmtrackr.app.domain.compensation
 
+import com.elmtrackr.app.domain.WeekendRules
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CompensationSnapshot
 import com.elmtrackr.app.domain.model.RegionCode
@@ -8,6 +9,7 @@ import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.domain.model.UserSettings
 import java.time.Instant
+import java.time.ZoneOffset
 
 object CompensationResolver {
 
@@ -54,6 +56,17 @@ object CompensationResolver {
             stackingPolicy = preset.stackingPolicy,
             fromSnapshot = false,
         )
+    }
+
+    fun isWeekendShift(
+        shift: Shift,
+        settings: UserSettings,
+        profiles: List<CompensationProfile> = emptyList(),
+    ): Boolean {
+        val resolved = resolveShiftCompensation(shift, settings, profiles)
+        if (!resolved.rules.weekendEnabled) return false
+        val dateStr = shift.startTime.atOffset(ZoneOffset.UTC).toLocalDate().toString()
+        return WeekendRules.isWeekendDate(dateStr, resolved.rules.weekendDays)
     }
 
     fun resolveShiftCompensation(

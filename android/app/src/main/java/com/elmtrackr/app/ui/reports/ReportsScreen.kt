@@ -82,7 +82,8 @@ import com.elmtrackr.app.domain.OvernightShiftDetector
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.ShiftDurationCalculator
-import com.elmtrackr.app.domain.WeekendRules
+import com.elmtrackr.app.domain.compensation.CompensationResolver
+import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.RefundClaim
@@ -578,7 +579,7 @@ internal fun HoursReport(
         ) {
             state.rawShifts.sortedBy { it.startTime }.forEachIndexed { index, shift ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                ShiftReportRow(shift, settings)
+                ShiftReportRow(shift, settings, state.profiles)
             }
         }
     }
@@ -926,12 +927,19 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ShiftReportRow(shift: Shift, settings: UserSettings) {
+private fun ShiftReportRow(
+    shift: Shift,
+    settings: UserSettings,
+    profiles: List<CompensationProfile> = emptyList(),
+) {
     val breakdown = MonthlyReportBuilder.buildShiftBreakdown(shift, settings)
     val date = shift.startTime.atOffset(ZoneOffset.UTC).toLocalDate()
-    val weekend = WeekendRules.isWeekendDate(date.toString(), settings.weekendDays)
+    val weekend = CompensationResolver.isWeekendShift(shift, settings, profiles)
     val overnight = OvernightShiftDetector.isOvernight(shift)
-    val pay = settings.hourlyRate?.takeIf { it > 0 }?.let { PayrollCalculator.calculateShiftPay(shift, settings) }
+    val pay = PayrollCalculator.calculateShiftPay(shift, settings, profiles)
+    val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+    val otThreshold = resolved.rules.dailyStandardMinutes
+    val otMins = maxOf(0, (ShiftDurationCalculator.netMinutes(shift) ?: 0) - otThreshold)
 
     // Stripe color logic — matches web app
     val stripeColor = when {
@@ -988,16 +996,16 @@ private fun ShiftReportRow(shift: Shift, settings: UserSettings) {
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(ShiftDurationCalculator.formatMinutes(breakdown.totalMinutes), fontWeight = FontWeight.Bold)
-                    if (breakdown.overtimeMinutes > 0 && !shift.isSpecialDay && !weekend) {
+                    if (otMins > 0 && !shift.isSpecialDay && !weekend) {
                         Text(
-                            "+${ShiftDurationCalculator.formatMinutes(breakdown.overtimeMinutes)} OT",
+                            "+${ShiftDurationCalculator.formatMinutes(otMins)} OT",
                             style = MaterialTheme.typography.labelSmall,
                             color = AuroraPeach,
                         )
                     }
                     pay?.let {
                         Text(
-                            MoneyFormatter.format(it.totalGross, settings.currency),
+                            MoneyFormatter.format(it.totalGross, it.currencyCode),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = AuroraIndigo,
@@ -1028,7 +1036,7 @@ private fun RefundReview(
         ElmEmptyState(Icons.Filled.PictureAsPdf, "No eligible shifts yet", "Late-night, weekend, and holiday shifts can qualify for travel reimbursement.", Modifier.fillMaxWidth())
         return
     }
-    if (claims.isNotEmpty()) RefundAnalytics(claims, state.allShifts, state.settings)
+    if (claims.isNotEmpty()) RefundAnalytics(claims, state.allShifts, state.settings, state.profiles)
     val exportRows = submittedExportRows(state.allShifts, claims)
     if (exportRows.isNotEmpty()) {
         Spacer(Modifier.height(14.dp))
@@ -1102,10 +1110,18 @@ private fun RefundReview(
 }
 
 @Composable
-private fun RefundAnalytics(claims: List<RefundClaim>, shifts: List<Shift>, settings: UserSettings?) {
+private fun RefundAnalytics(
+    claims: List<RefundClaim>,
+    shifts: List<Shift>,
+    settings: UserSettings?,
+    profiles: List<CompensationProfile> = emptyList(),
+) {
     val total = claims.sumOf { it.amount }
     val currency = settings?.currency ?: CurrencyCode.ILS
-    val salary = if (settings?.hourlyRate?.let { it > 0 } == true) PayrollCalculator.sumMonthlyPay(shifts.filter { it.isCompleted }, settings).totalGross else null
+    val salary = settings?.let { s ->
+        val gross = PayrollCalculator.sumMonthlyPay(shifts.filter { it.isCompleted }, s, profiles).totalGross
+        gross.takeIf { it > 0 }
+    }
     Card(shape = RoundedCornerShape(CornerRadius.Large), colors = CardDefaults.cardColors(containerColor = AuroraIndigo)) {
         Column(Modifier.padding(18.dp)) {
             Text("TOTAL REFUNDED", style = MaterialTheme.typography.labelSmall, color = Color(0xffd8d3ff), fontWeight = FontWeight.Bold)

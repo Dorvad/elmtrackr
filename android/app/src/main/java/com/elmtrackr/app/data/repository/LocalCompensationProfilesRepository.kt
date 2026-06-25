@@ -57,6 +57,7 @@ class LocalCompensationProfilesRepository(
 
     override suspend fun ensureMigrated(userId: String): CompensationProfile? {
         val settings = settingsRepository.getSettings(userId) ?: return null
+        if (!settings.onboardingCompleted) return null
         val existing = getProfiles(userId).filter { !it.isArchived }
         if (existing.isNotEmpty()) return existing.firstOrNull { it.isDefault } ?: existing.first()
 

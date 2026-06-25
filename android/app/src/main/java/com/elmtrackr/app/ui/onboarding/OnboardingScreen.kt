@@ -107,10 +107,10 @@ fun OnboardingScreen(
 
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(initialSettings?.id, initialProfile?.id) {
+    LaunchedEffect(initialSettings?.id, initialProfile?.id, replay) {
         val settings = initialSettings ?: return@LaunchedEffect
         val profile = initialProfile ?: return@LaunchedEffect
-        if (!initializedFromSettings) {
+        if (!initializedFromSettings && step <= 2) {
             displayName = profile.fullName.orEmpty()
             hourlyRateText = settings.hourlyRate?.toString().orEmpty()
             currency = settings.currency

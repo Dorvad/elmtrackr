@@ -11,7 +11,8 @@ sealed interface DashboardUiState {
     data class Ready(
         val activeShift: Shift?,
         val monthlyReport: MonthlyReport?,
-        val settings: UserSettings?,
+        val settings: UserSettings,
+        val profiles: List<com.elmtrackr.app.domain.model.CompensationProfile> = emptyList(),
         val pendingSyncCount: Int = 0,
         val recentShifts: List<Shift> = emptyList(),
         val displayName: String? = null,

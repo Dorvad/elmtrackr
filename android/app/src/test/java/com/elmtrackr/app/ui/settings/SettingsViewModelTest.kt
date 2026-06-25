@@ -4,6 +4,7 @@ import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeSyncRepository
@@ -32,8 +33,9 @@ class SettingsViewModelTest {
         setProfile(Profile("u1", "test@example.com", null, Instant.EPOCH, Instant.EPOCH))
     }
     private val themeStore = FakeThemePreferenceStore()
+    private val compensationRepo = FakeCompensationProfilesRepository()
 
-    private fun buildVm() = SettingsViewModel(repo, syncRepo, authRepo, themeStore)
+    private fun buildVm() = SettingsViewModel(repo, syncRepo, authRepo, compensationRepo, themeStore)
 
     private fun defaultSettings() = UserSettings(
         id = "s1",
