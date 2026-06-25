@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Shift, UserSettings } from "@/types";
-import { calculateShiftPay, formatCurrency } from "@/lib/shifts/payroll";
+import type { Shift, UserSettings, CompensationProfile } from "@/types";
+import { calculateShiftPay } from "@/lib/shifts/payroll";
+import { formatCurrency } from "@/lib/compensation/currency";
 import { Button } from "@/components/ui/Button";
 
 interface EditStartTimeModalProps {
   activeShift: Shift;
   settings: UserSettings | null;
+  profiles?: CompensationProfile[];
   onSave: (newStartIso: string) => Promise<void>;
   onClose: () => void;
 }
@@ -42,6 +44,7 @@ function fmtElapsed(totalSeconds: number): string {
 export function EditStartTimeModal({
   activeShift,
   settings,
+  profiles,
   onSave,
   onClose,
 }: EditStartTimeModalProps) {
@@ -90,14 +93,17 @@ export function EditStartTimeModal({
     : null;
 
   // Pay estimate: simulate a completed shift ending right now.
-  let payPreview: number | null = null;
-  if (isValid && settings?.hourly_rate) {
+  let payPreview: { amount: number; currency: string } | null = null;
+  if (isValid && settings) {
     const simulated: Shift = {
       ...activeShift,
       start_time: parsed!.toISOString(),
       end_time: now.toISOString(),
     };
-    payPreview = calculateShiftPay(simulated, settings)?.total_gross ?? null;
+    const breakdown = calculateShiftPay(simulated, { settings, profiles });
+    if (breakdown) {
+      payPreview = { amount: breakdown.total_gross, currency: breakdown.currency_code };
+    }
   }
 
   // ── Max for datetime-local (prevents picking a future time) ────────────
@@ -226,7 +232,7 @@ export function EditStartTimeModal({
                       Est. earnings
                     </p>
                     <p className="text-base font-extrabold text-emerald-600 mt-0.5">
-                      {formatCurrency(payPreview)}
+                      {formatCurrency(payPreview.amount, payPreview.currency)}
                     </p>
                   </div>
                 )}

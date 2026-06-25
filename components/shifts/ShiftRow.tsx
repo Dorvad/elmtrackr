@@ -1,21 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import type { Shift, UserSettings } from "@/types";
+import type { Shift, UserSettings, CompensationProfile } from "@/types";
 import { netMinutes, formatMinutes } from "@/lib/shifts/duration";
 import { isWeekendDate } from "@/lib/shifts/weekend";
 import { isOvernightShift } from "@/lib/shifts/overnight";
-import { calculateShiftPay, formatCurrency } from "@/lib/shifts/payroll";
+import { calculateShiftPay } from "@/lib/shifts/payroll";
+import { formatCurrency } from "@/lib/compensation/currency";
 import { checkRefundEligibility } from "@/lib/shifts/refund";
 
 interface ShiftRowProps {
   shift: Shift;
   settings: UserSettings;
+  profiles?: CompensationProfile[];
   animationIndex?: number;
   showRefunds?: boolean;
 }
 
-export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = true }: ShiftRowProps) {
+export function ShiftRow({ shift, settings, profiles, animationIndex = 0, showRefunds = true }: ShiftRowProps) {
   const net = netMinutes(shift);
   const isActive = shift.end_time === null;
   const dateStr = new Date(shift.start_time).toISOString().slice(0, 10);
@@ -29,7 +31,7 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
   const formatTime = (d: Date) =>
     d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  const pay = calculateShiftPay(shift, settings);
+  const pay = calculateShiftPay(shift, { settings, profiles });
   const refundEligible = checkRefundEligibility(shift).eligible;
   const refundPending = refundEligible && shift.refund_action == null && !isActive;
 
@@ -126,7 +128,7 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
           <>
             <p className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>{formatMinutes(net)}</p>
             {pay && (
-              <p className="text-[10px] font-bold" style={{ color: "var(--au-indigo)" }}>{formatCurrency(pay.total_gross)}</p>
+              <p className="text-[10px] font-bold" style={{ color: "var(--au-indigo)" }}>{formatCurrency(pay.total_gross, pay.currency_code)}</p>
             )}
             {!pay && shift.break_minutes > 0 && (
               <p className="text-[10px]" style={{ color: "var(--au-faint)" }}>{shift.break_minutes}m brk</p>

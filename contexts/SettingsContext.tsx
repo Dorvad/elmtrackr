@@ -23,6 +23,9 @@ export type SaveableSettings = Partial<
     | "weekly_overtime_threshold_minutes"
     | "weekend_days"
     | "hourly_rate"
+    | "region_code"
+    | "currency_code"
+    | "default_compensation_profile_id"
     | "onboarding_completed"
     | "onboarding_completed_at"
     | "features_travel_refunds"
@@ -51,6 +54,9 @@ const DEFAULT_SETTINGS: Omit<
   weekly_overtime_threshold_minutes: 2400,
   weekend_days: DEFAULT_WEEKEND_DAYS,
   hourly_rate: null,
+  currency_code: null,
+  region_code: null,
+  default_compensation_profile_id: null,
   onboarding_completed: false,
   onboarding_completed_at: null,
   features_travel_refunds: false,

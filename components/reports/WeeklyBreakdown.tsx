@@ -2,14 +2,15 @@
 
 import type { WeekData } from "@/lib/shifts/insights";
 import { formatMinutes, formatHoursDecimal } from "@/lib/shifts/duration";
-import { formatCurrency } from "@/lib/shifts/payroll";
+import { formatCurrency } from "@/lib/compensation/currency";
 
 interface WeeklyBreakdownProps {
   weeks: WeekData[];
   prevMonthLabel: string;
+  currencyCode?: string;
 }
 
-export function WeeklyBreakdown({ weeks, prevMonthLabel }: WeeklyBreakdownProps) {
+export function WeeklyBreakdown({ weeks, prevMonthLabel, currencyCode = "USD" }: WeeklyBreakdownProps) {
   const maxMinutes = Math.max(...weeks.map((w) => w.minutes), 1);
   const hasPay = weeks.some((w) => w.pay !== null && w.pay > 0);
   // Only show "vs Month" label if at least one week has prev data
@@ -102,7 +103,7 @@ export function WeeklyBreakdown({ weeks, prevMonthLabel }: WeeklyBreakdownProps)
                   {week.pay !== null && week.pay > 0 && (
                     <div className="flex items-center gap-1 ml-auto">
                       <span className="text-[10px] text-indigo-500 font-bold">
-                        {formatCurrency(week.pay)}
+                        {formatCurrency(week.pay, currencyCode)}
                       </span>
                     </div>
                   )}

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useActiveShift } from "@/hooks/useActiveShift";
 import { useShifts } from "@/hooks/useShifts";
 import { useSettings } from "@/hooks/useSettings";
+import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/components/ui/Toast";
 import { ClockWidget } from "@/components/dashboard/ClockWidget";
@@ -17,7 +18,9 @@ import { PageSpinner } from "@/components/ui/Spinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { createClient } from "@/lib/supabase/client";
-import { sumMonthlyPay, formatCurrency } from "@/lib/shifts/payroll";
+import { sumMonthlyPay } from "@/lib/shifts/payroll";
+import { formatCurrency } from "@/lib/compensation/currency";
+import { COMPENSATION_ESTIMATE_NOTE } from "@/lib/compensation/constants";
 import { filterShiftsByMonth } from "@/lib/shifts/aggregation";
 import { countUnresolvedRefunds } from "@/lib/shifts/refund";
 
@@ -38,6 +41,7 @@ export default function DashboardPage() {
     refresh: refreshShifts,
   } = useShifts();
   const { settings, loading: settingsLoading } = useSettings();
+  const { profiles, defaultProfile } = useCompensationProfiles();
   const { profile } = useProfile();
   const { toast } = useToast();
   const supabase = createClient();
@@ -49,7 +53,7 @@ export default function DashboardPage() {
 
   async function handleClockIn() {
     try {
-      await clockIn();
+      await clockIn(defaultProfile?.id ?? settings?.default_compensation_profile_id);
       await refreshShifts();
       toast("Shift started", "success");
     } catch {
@@ -59,7 +63,9 @@ export default function DashboardPage() {
 
   async function handleClockOut() {
     try {
-      await clockOut();
+      await clockOut(
+        settings ? { settings, profiles } : undefined
+      );
       await refreshShifts();
       toast("Shift ended", "success");
     } catch {
@@ -88,9 +94,10 @@ export default function DashboardPage() {
   const thisMonthShifts = settings
     ? filterShiftsByMonth(shifts, now.getUTCFullYear(), now.getUTCMonth() + 1)
     : [];
-  const monthPay = settings?.hourly_rate
-    ? sumMonthlyPay(thisMonthShifts, settings)
+  const monthPay = settings
+    ? sumMonthlyPay(thisMonthShifts, { settings, profiles })
     : null;
+  const hasPayEstimate = monthPay && monthPay.total_gross > 0;
 
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const isMonthEnd = now.getDate() >= daysInMonth - 4;
@@ -216,15 +223,15 @@ export default function DashboardPage() {
         )}
 
         {/* Monthly gross pay */}
-        {monthPay && monthPay.total_gross > 0 && (
+        {hasPayEstimate && (
           <div className="rounded-3xl p-4 border border-white/80 au-card bg-white animate-fade-in-up stagger-3">
             <p
               className="text-xs font-bold uppercase mb-2"
               style={{ color: "var(--au-faint)", letterSpacing: "0.14em" }}
             >
-              This Month · Gross Pay
+              This Month · Estimated Gross
             </p>
-            <div className="flex items-end gap-3 mb-3">
+            <div className="flex items-end gap-3 mb-1">
               <p
                 className="text-3xl font-extrabold tracking-tight"
                 style={{
@@ -235,28 +242,28 @@ export default function DashboardPage() {
                   color: "transparent",
                 }}
               >
-                {formatCurrency(monthPay.total_gross)}
+                {formatCurrency(monthPay!.total_gross, monthPay!.currency_code)}
               </p>
-              <p className="text-xs mb-1 font-medium" style={{ color: "var(--au-faint)" }}>before tax</p>
             </div>
-            {(monthPay.overtime_gross > 0 || monthPay.special_gross > 0) && (
+            <p className="text-[10px] mb-3" style={{ color: "var(--au-faint)" }}>{COMPENSATION_ESTIMATE_NOTE}</p>
+            {(monthPay!.overtime_gross > 0 || monthPay!.special_gross > 0) && (
               <div className="flex gap-2">
-                {monthPay.regular_gross > 0 && (
+                {monthPay!.regular_gross > 0 && (
                   <div className="flex-1 rounded-[15px] p-2.5" style={{ background: "var(--au-surface-sub)" }}>
                     <p className="text-[9px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-faint)" }}>Regular</p>
-                    <p className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>{formatCurrency(monthPay.regular_gross)}</p>
+                    <p className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>{formatCurrency(monthPay!.regular_gross, monthPay!.currency_code)}</p>
                   </div>
                 )}
-                {monthPay.overtime_gross > 0 && (
+                {monthPay!.overtime_gross > 0 && (
                   <div className="flex-1 rounded-[15px] p-2.5" style={{ background: "var(--au-overtime-bg)" }}>
                     <p className="text-[9px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-overtime-ink)" }}>Overtime</p>
-                    <p className="text-sm font-bold" style={{ color: "var(--au-peach-deep)" }}>{formatCurrency(monthPay.overtime_gross)}</p>
+                    <p className="text-sm font-bold" style={{ color: "var(--au-peach-deep)" }}>{formatCurrency(monthPay!.overtime_gross, monthPay!.currency_code)}</p>
                   </div>
                 )}
-                {monthPay.special_gross > 0 && (
+                {monthPay!.special_gross > 0 && (
                   <div className="flex-1 rounded-[15px] p-2.5" style={{ background: "var(--au-weekend-bg)" }}>
                     <p className="text-[9px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-plum)" }}>Holiday</p>
-                    <p className="text-sm font-bold" style={{ color: "var(--au-plum)" }}>{formatCurrency(monthPay.special_gross)}</p>
+                    <p className="text-sm font-bold" style={{ color: "var(--au-plum)" }}>{formatCurrency(monthPay!.special_gross, monthPay!.currency_code)}</p>
                   </div>
                 )}
               </div>
@@ -288,6 +295,7 @@ export default function DashboardPage() {
                   key={shift.id}
                   shift={shift}
                   settings={settings}
+                  profiles={profiles}
                   animationIndex={i}
                 />
               ))}
@@ -345,6 +353,7 @@ export default function DashboardPage() {
         <EditStartTimeModal
           activeShift={activeShift}
           settings={settings}
+          profiles={profiles}
           onSave={handleEditStartTime}
           onClose={() => setShowEditStartModal(false)}
         />

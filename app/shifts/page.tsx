@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useShifts } from "@/hooks/useShifts";
 import { useSettings } from "@/hooks/useSettings";
+import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
 import { ShiftRow } from "@/components/shifts/ShiftRow";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageSpinner } from "@/components/ui/Spinner";
@@ -19,6 +20,7 @@ import { netMinutes } from "@/lib/shifts/duration";
 export default function ShiftsPage() {
   const { shifts, loading, error, refresh } = useShifts();
   const { settings } = useSettings();
+  const { profiles } = useCompensationProfiles();
 
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getUTCFullYear());
@@ -113,6 +115,7 @@ export default function ShiftsPage() {
                 key={shift.id}
                 shift={shift}
                 settings={settings}
+                profiles={profiles}
                 animationIndex={i}
               />
             ))}

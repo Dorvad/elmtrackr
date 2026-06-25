@@ -2,10 +2,11 @@
 
 import type { MonthInsights } from "@/lib/shifts/insights";
 import { formatMinutes } from "@/lib/shifts/duration";
-import { formatCurrency } from "@/lib/shifts/payroll";
+import { formatCurrency } from "@/lib/compensation/currency";
 
 interface QuickStatsProps {
   insights: MonthInsights;
+  currencyCode?: string;
 }
 
 interface StatItem {
@@ -17,7 +18,7 @@ interface StatItem {
   bg: string;     // tailwind bg color
 }
 
-export function QuickStats({ insights }: QuickStatsProps) {
+export function QuickStats({ insights, currencyCode = "USD" }: QuickStatsProps) {
   const {
     weekendShiftCount,
     overtimeShiftCount,
@@ -77,7 +78,7 @@ export function QuickStats({ insights }: QuickStatsProps) {
     {
       icon: "💰",
       label: "Avg Pay / Shift",
-      value: avgPayPerShift != null ? formatCurrency(avgPayPerShift) : "—",
+      value: avgPayPerShift != null ? formatCurrency(avgPayPerShift, currencyCode) : "—",
       sub: avgPayPerShift != null ? "per shift" : "set rate to unlock",
       accent: "text-indigo-700",
       bg: "bg-indigo-50 border-indigo-100",
@@ -85,7 +86,7 @@ export function QuickStats({ insights }: QuickStatsProps) {
     {
       icon: "🏆",
       label: "Best Shift",
-      value: highestEarningShift ? formatCurrency(highestEarningShift.amount) : "—",
+      value: highestEarningShift ? formatCurrency(highestEarningShift.amount, currencyCode) : "—",
       sub: bestDate ?? (highestEarningShift ? undefined : "set rate to unlock"),
       accent: "text-violet-700",
       bg: "bg-violet-50 border-violet-100",
