@@ -105,6 +105,16 @@ class DashboardViewModel(
         initialValue = DashboardUiState.Loading,
     )
 
+    init {
+        viewModelScope.launch {
+            val userId = authRepository.getCurrentProfile()?.id ?: return@launch
+            val settings = settingsRepository.getSettings(userId) ?: return@launch
+            if (settings.onboardingCompleted) {
+                compensationProfilesRepository.ensureMigrated(userId)
+            }
+        }
+    }
+
     fun clockIn() {
         viewModelScope.launch {
             val userId = authRepository.getCurrentProfile()?.id ?: return@launch

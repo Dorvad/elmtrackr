@@ -36,6 +36,7 @@ class CompensationSettingsViewModel(
 
     private val _isSaving = MutableStateFlow(false)
     private val _saveMessage = MutableStateFlow<String?>(null)
+    private val _bootstrapComplete = MutableStateFlow(false)
 
     val uiState: StateFlow<CompensationSettingsUiState> =
         authRepository.observeCurrentProfile().flatMapLatest { profile ->
@@ -45,12 +46,16 @@ class CompensationSettingsViewModel(
                 settingsRepository.observeSettings(profile.id),
                 _isSaving,
                 _saveMessage,
-            ) { profiles, settings, saving, message ->
+                _bootstrapComplete,
+            ) { profiles, settings, saving, message, bootstrapComplete ->
                 val defaultProfile = profiles.firstOrNull { it.isDefault } ?: profiles.firstOrNull()
-                if (defaultProfile == null || settings == null) {
-                    CompensationSettingsUiState.Loading
-                } else {
-                    CompensationSettingsUiState.Ready(
+                when {
+                    settings == null -> CompensationSettingsUiState.Loading
+                    defaultProfile == null && !bootstrapComplete -> CompensationSettingsUiState.Loading
+                    defaultProfile == null -> CompensationSettingsUiState.Error(
+                        "No compensation profile found. Sync from Settings or complete onboarding.",
+                    )
+                    else -> CompensationSettingsUiState.Ready(
                         profile = defaultProfile,
                         settings = settings,
                         presets = RegionPresets.all,
@@ -73,6 +78,7 @@ class CompensationSettingsViewModel(
         viewModelScope.launch {
             val userId = authRepository.getCurrentProfile()?.id ?: return@launch
             compensationProfilesRepository.ensureMigrated(userId)
+            _bootstrapComplete.value = true
         }
     }
 
