@@ -1,7 +1,6 @@
 "use client";
 
-import type { RefundClaim, Shift } from "@/types";
-import type { UserSettings } from "@/types";
+import type { RefundClaim, Shift, UserSettings, CompensationProfile } from "@/types";
 import { formatCurrency, fallbackCurrencyCode } from "@/lib/compensation/currency";
 import { calculateShiftPay } from "@/lib/shifts/payroll";
 
@@ -9,6 +8,7 @@ interface Props {
   claims: RefundClaim[];
   shifts: Shift[];
   settings?: UserSettings | null;
+  profiles?: CompensationProfile[];
 }
 
 const PROVIDER_STYLES: Record<string, { bar: string; text: string; bg: string; border: string; dot: string }> = {
@@ -23,7 +23,7 @@ function providerStyle(name: string) {
   return PROVIDER_STYLES[name] ?? { bar: "bg-indigo-400", text: "text-indigo-700", bg: "bg-indigo-50", border: "border-indigo-100", dot: "#818cf8" };
 }
 
-export function RefundAnalytics({ claims, shifts, settings }: Props) {
+export function RefundAnalytics({ claims, shifts, settings, profiles }: Props) {
   if (claims.length === 0) return null;
 
   // ── Core numbers ────────────────────────────────────────────────────────
@@ -81,7 +81,11 @@ export function RefundAnalytics({ claims, shifts, settings }: Props) {
   if (settings) {
     totalGross = shifts
       .filter((s) => s.end_time)
-      .reduce((sum, s) => sum + (calculateShiftPay(s, settings)?.total_gross ?? 0), 0);
+      .reduce(
+        (sum, s) =>
+          sum + (calculateShiftPay(s, { settings, profiles })?.total_gross ?? 0),
+        0
+      );
     if (totalGross <= 0) totalGross = null;
   }
 

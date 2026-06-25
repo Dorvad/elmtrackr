@@ -197,6 +197,8 @@ export function useCompensationProfiles(): UseCompensationProfilesReturn {
         .select("*")
         .eq("user_id", userId)
         .eq("is_archived", false)
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: true })
         .limit(1);
 
       if (existing && existing.length > 0) {

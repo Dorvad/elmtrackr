@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSettings } from "@/hooks/useSettings";
 import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
+import { useToast } from "@/components/ui/Toast";
 import type { ClockStyle, RegionCode } from "@/types";
 import {
   CURRENCY_OPTIONS,
@@ -29,7 +30,8 @@ const TOTAL = 6;
 
 export function OnboardingFlow({ replay = false }: { replay?: boolean }) {
   const { settings, saveSettings } = useSettings();
-  const { createFromPreset } = useCompensationProfiles();
+  const { createFromPreset, defaultProfile, updateProfile } = useCompensationProfiles();
+  const { toast } = useToast();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [regionCode, setRegionCode] = useState<RegionCode>("IL");
@@ -56,20 +58,46 @@ export function OnboardingFlow({ replay = false }: { replay?: boolean }) {
     }
   }
 
-  async function saveRegionAndContinue() {
+  async function saveRegionAndContinue(overrides?: {
+    regionCode?: RegionCode;
+    currencyCode?: string;
+    timezone?: string;
+  }) {
+    const code = overrides?.regionCode ?? regionCode;
+    const curr = overrides?.currencyCode ?? currencyCode;
+    const tz = overrides?.timezone ?? timezone;
+    const preset = REGION_PRESETS.find((p) => p.regionCode === code);
+
     setSaving(true);
     try {
-      const profile = await createFromPreset(regionCode, {
-        currencyCode,
-        timezone,
-      });
+      let profileId: string;
+      if (replay && defaultProfile) {
+        const updated = await updateProfile(defaultProfile.id, {
+          region_code: code,
+          currency_code: curr,
+          timezone: tz,
+          rules_json: preset?.rules ?? defaultProfile.rules_json,
+        });
+        profileId = updated.id;
+      } else {
+        const profile = await createFromPreset(code, {
+          currencyCode: curr,
+          timezone: tz,
+        });
+        profileId = profile.id;
+      }
       await saveSettings({
-        region_code: regionCode,
-        currency_code: currencyCode,
-        timezone,
-        default_compensation_profile_id: profile.id,
+        region_code: code,
+        currency_code: curr,
+        timezone: tz,
+        default_compensation_profile_id: profileId,
       });
       next();
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : "Failed to save region settings",
+        "error"
+      );
     } finally {
       setSaving(false);
     }
@@ -124,8 +152,12 @@ export function OnboardingFlow({ replay = false }: { replay?: boolean }) {
             onTimezoneChange={setTimezone}
             onContinue={saveRegionAndContinue}
             onManual={() => {
-              selectRegion("CUSTOM");
-              saveRegionAndContinue();
+              const custom = REGION_PRESETS.find((p) => p.regionCode === "CUSTOM");
+              saveRegionAndContinue({
+                regionCode: "CUSTOM",
+                currencyCode: custom?.currencyCode ?? "USD",
+                timezone: custom?.timezone ?? "UTC",
+              });
             }}
             onBack={prev}
             saving={saving}

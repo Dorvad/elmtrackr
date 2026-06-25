@@ -19,15 +19,18 @@ export default function NewShiftPage() {
   const { toast } = useToast();
 
   async function handleSubmit(data: ShiftFormData) {
-    await createShift({
-      start_time: data.start_time,
-      end_time: data.end_time || null,
-      break_minutes: data.break_minutes,
-      notes: data.notes || null,
-      is_special_day: data.is_special_day,
-      compensation_profile_id:
-        data.compensation_profile_id ?? defaultProfile?.id ?? settings?.default_compensation_profile_id ?? null,
-    });
+    await createShift(
+      {
+        start_time: data.start_time,
+        end_time: data.end_time || null,
+        break_minutes: data.break_minutes,
+        notes: data.notes || null,
+        is_special_day: data.is_special_day,
+        compensation_profile_id:
+          data.compensation_profile_id ?? defaultProfile?.id ?? settings?.default_compensation_profile_id ?? null,
+      },
+      settings ? { settings, profiles } : undefined
+    );
     toast("Shift saved", "success");
     router.push("/shifts");
   }

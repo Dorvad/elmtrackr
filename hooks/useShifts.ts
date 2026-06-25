@@ -22,7 +22,8 @@ export interface UseShiftsReturn {
       | "notes"
       | "is_special_day"
       | "compensation_profile_id"
-    >
+    >,
+    options?: { settings?: UserSettings; profiles?: CompensationProfile[] }
   ) => Promise<Shift>;
   updateShift: (
     id: string,
@@ -95,8 +96,18 @@ export function useShifts(): UseShiftsReturn {
         | "notes"
         | "is_special_day"
         | "compensation_profile_id"
-      >
+      >,
+      options?: { settings?: UserSettings; profiles?: CompensationProfile[] }
     ): Promise<Shift> => {
+      let snapshot: Shift["compensation_snapshot_json"] | undefined;
+      if (data.end_time && options?.settings) {
+        snapshot = buildSnapshotForShift(
+          data as Shift,
+          options.settings,
+          options.profiles ?? []
+        );
+      }
+
       const { data: created, error: err } = await supabase
         .from("shifts")
         .insert({
@@ -106,6 +117,10 @@ export function useShifts(): UseShiftsReturn {
           notes: data.notes ?? null,
           is_special_day: data.is_special_day ?? false,
           compensation_profile_id: data.compensation_profile_id ?? null,
+          ...(snapshot && {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            compensation_snapshot_json: snapshot as any,
+          }),
           user_id: (await supabase.auth.getUser()).data.user!.id,
         })
         .select()
@@ -136,19 +151,25 @@ export function useShifts(): UseShiftsReturn {
       options?: { settings?: UserSettings; profiles?: CompensationProfile[] }
     ): Promise<Shift> => {
       let snapshotUpdate = data.compensation_snapshot_json;
-
-      if (
+      const existing = shifts.find((s) => s.id === id);
+      const payAffectingKeys = [
+        "start_time",
+        "end_time",
+        "break_minutes",
+        "is_special_day",
+        "compensation_profile_id",
+      ] as const;
+      const shouldRebuildSnapshot =
         options?.settings &&
-        options.profiles &&
-        "end_time" in data &&
-        data.end_time
-      ) {
-        const existing = shifts.find((s) => s.id === id);
+        existing?.end_time &&
+        payAffectingKeys.some((key) => key in data);
+
+      if (shouldRebuildSnapshot) {
         const merged = { ...existing, ...data } as Shift;
         snapshotUpdate = buildSnapshotForShift(
           merged,
-          options.settings,
-          options.profiles
+          options.settings!,
+          options.profiles ?? []
         ) ?? null;
       }
 

@@ -79,7 +79,11 @@ function buildTiersFromRules(
     }
   }
 
-  if (tiers.length === 1 && net > rules.regular.dailyStandardMinutes) {
+  if (
+    tiers.length === 1 &&
+    net > rules.regular.dailyStandardMinutes &&
+    rules.overtime.dailyTiers.length > 0
+  ) {
     tiers.push({
       label: "150% — Overtime",
       capMinutes: Infinity,

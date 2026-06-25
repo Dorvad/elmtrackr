@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useSettings } from "@/hooks/useSettings";
+import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/components/ui/Toast";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -24,6 +25,8 @@ const WEEKDAYS = [
 
 export default function SettingsPage() {
   const { settings, loading, saveSettings } = useSettings();
+  const { defaultProfile, updateProfile: updateCompensationProfile } =
+    useCompensationProfiles();
   const { profile, loading: profileLoading, updateProfile } = useProfile();
   const { toast } = useToast();
   const supabase = createClient();
@@ -70,18 +73,45 @@ export default function SettingsPage() {
       const parsedRate = parseFloat(hourlyRate);
       const rate = hourlyRate.trim() === "" ? null : isNaN(parsedRate) || parsedRate < 0 ? null : parsedRate;
 
-      await Promise.all([
-        saveSettings({
-          timezone: timezone.trim() || "UTC",
-          daily_overtime_threshold_minutes: dailyMins,
-          weekly_overtime_threshold_minutes: weeklyMins,
-          weekend_days: weekendDays,
-          hourly_rate: rate,
-        }),
+      const settingsPayload = {
+        timezone: timezone.trim() || "UTC",
+        daily_overtime_threshold_minutes: dailyMins,
+        weekly_overtime_threshold_minutes: weeklyMins,
+        weekend_days: weekendDays,
+        hourly_rate: rate,
+      };
+
+      const saves: Promise<unknown>[] = [
         updateProfile({
           full_name: displayName.trim() || null,
         }),
-      ]);
+      ];
+
+      if (defaultProfile) {
+        saves.push(
+          updateCompensationProfile(defaultProfile.id, {
+            timezone: settingsPayload.timezone,
+            base_hourly_rate: rate,
+            rules_json: {
+              ...defaultProfile.rules_json,
+              regular: {
+                ...defaultProfile.rules_json.regular,
+                dailyStandardMinutes: dailyMins,
+                weeklyStandardMinutes: weeklyMins,
+                weekendDays: weekendDays,
+              },
+              weekend: {
+                ...defaultProfile.rules_json.weekend,
+                days: weekendDays,
+              },
+            },
+          })
+        );
+      } else {
+        saves.push(saveSettings(settingsPayload));
+      }
+
+      await Promise.all(saves);
       toast("Settings saved", "success");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Failed to save", "error");

@@ -109,8 +109,8 @@ export function useActiveShift(): UseActiveShiftReturn {
         const endTime = new Date().toISOString();
         let snapshot = null;
 
-        if (options?.settings && options.profiles) {
-          const profilesMap = new Map(options.profiles.map((p) => [p.id, p]));
+        if (options?.settings) {
+          const profilesMap = new Map((options.profiles ?? []).map((p) => [p.id, p]));
           const resolved = resolveShiftCompensation(
             { ...activeShift, end_time: endTime },
             options.settings,
