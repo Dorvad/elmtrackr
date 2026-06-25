@@ -17,7 +17,9 @@ fun ShiftEntity.toDomain(): Shift = Shift(
     isSpecialDay = isSpecialDay,
     refundAction = refundAction?.let { RefundAction.valueOf(it.uppercase()) },
     compensationProfileId = compensationProfileId,
-    compensationSnapshot = compensationSnapshotJson?.let { CompensationRulesCodec.decodeSnapshot(it) },
+    compensationSnapshot = compensationSnapshotJson
+        ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+        ?.let { CompensationRulesCodec.decodeSnapshot(it) },
     createdAt = Instant.ofEpochMilli(createdAt),
     updatedAt = Instant.ofEpochMilli(updatedAt),
 )

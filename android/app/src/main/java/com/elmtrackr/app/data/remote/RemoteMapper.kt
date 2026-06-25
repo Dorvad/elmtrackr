@@ -7,8 +7,10 @@ import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.buildJsonArray
@@ -34,6 +36,22 @@ private fun JsonObject.requireInstantMillis(key: String): Long =
 private fun epochIso(value: Long): String = Instant.ofEpochMilli(value).toString()
 private fun JsonObject.intArray(key: String): List<Int> =
     (this[key] as? JsonArray)?.mapNotNull { it.jsonPrimitive.intOrNull } ?: emptyList()
+
+/** Supabase jsonb null must not become the literal string "null" in Room. */
+private fun JsonElement?.toNullableStoredJson(): String? = when (this) {
+    null, is JsonNull -> null
+    is JsonPrimitive -> content.takeUnless { it.equals("null", ignoreCase = true) }
+    else -> toString()
+}
+
+private fun JsonElement?.toStoredJsonObject(default: String = "{}"): String = when (this) {
+    null, is JsonNull -> default
+    is JsonObject -> toString()
+    is JsonPrimitive -> content
+        .takeUnless { it.isBlank() || it.equals("null", ignoreCase = true) }
+        ?: default
+    else -> toString()
+}
 
 // ---- ShiftEntity ↔ JsonObject ----
 
@@ -70,7 +88,7 @@ fun JsonObject.toShiftEntity(existingLocalId: String? = null): ShiftEntity {
         isSpecialDay = bool("is_special_day"),
         refundAction = str("refund_action")?.uppercase(),
         compensationProfileId = str("compensation_profile_id"),
-        compensationSnapshotJson = this["compensation_snapshot_json"]?.toString(),
+        compensationSnapshotJson = this["compensation_snapshot_json"].toNullableStoredJson(),
         createdAt = requireInstantMillis("created_at"),
         updatedAt = requireInstantMillis("updated_at"),
         deletedAt = null,
@@ -234,10 +252,7 @@ fun CompensationProfileEntity.toRemoteJson(overrideId: String? = null): JsonObje
 fun JsonObject.toCompensationProfileEntity(existingLocalId: String? = null): CompensationProfileEntity {
     val remoteId = requireStr("id")
     val rulesJsonValue = this["rules_json"]
-    val rulesJson = when (rulesJsonValue) {
-        is JsonObject -> rulesJsonValue.toString()
-        else -> rulesJsonValue?.jsonPrimitive?.content ?: "{}"
-    }
+    val rulesJson = rulesJsonValue.toStoredJsonObject()
     return CompensationProfileEntity(
         localId = existingLocalId ?: remoteId,
         remoteId = remoteId,

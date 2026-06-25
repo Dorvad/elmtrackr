@@ -64,7 +64,11 @@ object CompensationRulesCodec {
         })
     }.toString()
 
-    fun decode(json: String): CompensationRules = decode(JSONObject(json))
+    fun decode(json: String): CompensationRules {
+        if (json.isBlank() || json.equals("null", ignoreCase = true)) return CompensationRules()
+        return runCatching { decode(JSONObject(json)) }
+            .getOrElse { CompensationRules() }
+    }
 
     fun decode(obj: JSONObject): CompensationRules {
         val regular = obj.optJSONObject("regular") ?: JSONObject()
@@ -123,12 +127,17 @@ object CompensationRulesCodec {
         put("calculated_at", snapshot.calculatedAt.toString())
     }.toString()
 
-    fun decodeSnapshot(json: String): CompensationSnapshot {
-        val obj = JSONObject(json)
+    fun decodeSnapshot(json: String): CompensationSnapshot? {
+        if (json.isBlank() || json.equals("null", ignoreCase = true)) return null
+        return runCatching { decodeSnapshotObject(JSONObject(json)) }.getOrNull()
+    }
+
+    private fun decodeSnapshotObject(obj: JSONObject): CompensationSnapshot {
         val rulesObj = obj.opt("rules_json")
         val rules = when (rulesObj) {
             is JSONObject -> decode(rulesObj)
             is String -> decode(rulesObj)
+            JSONObject.NULL -> RegionPresets.forRegion(RegionCode.IL).rules
             else -> RegionPresets.forRegion(RegionCode.IL).rules
         }
         return CompensationSnapshot(

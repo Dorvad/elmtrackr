@@ -4,8 +4,11 @@ import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -88,5 +91,21 @@ class RemoteMapperTest {
 
         assertFalse("currency" in oldSchemaJson)
         assertEquals("EUR", oldSchemaJson.toUserSettingsEntity(fallbackCurrency = "EUR").currency)
+    }
+
+    @Test
+    fun `shift pull maps null compensation snapshot to absent local value`() {
+        val json = buildJsonObject {
+            put("id", "remote")
+            put("user_id", "user")
+            put("start_time", "2026-06-21T12:34:56Z")
+            put("break_minutes", 0)
+            put("is_special_day", false)
+            put("compensation_snapshot_json", JsonNull)
+            put("created_at", "2026-06-21T12:34:56Z")
+            put("updated_at", "2026-06-21T12:34:56Z")
+        }
+
+        assertEquals(null, json.toShiftEntity().compensationSnapshotJson)
     }
 }
