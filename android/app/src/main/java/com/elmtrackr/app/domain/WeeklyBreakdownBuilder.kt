@@ -1,5 +1,7 @@
 package com.elmtrackr.app.domain
 
+import com.elmtrackr.app.domain.compensation.CompensationResolver
+import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.model.WeeklyTotals
@@ -33,9 +35,13 @@ object WeeklyBreakdownBuilder {
     fun groupByWeek(
         shifts: List<Shift>,
         settings: UserSettings? = null,
+        profiles: List<CompensationProfile> = emptyList(),
         prevMonthShifts: List<Shift> = emptyList(),
     ): List<WeeklyTotals> {
-        val hasPay = settings?.hourlyRate?.let { it > 0 } == true
+        val hasPay = settings?.let { s ->
+            (s.hourlyRate ?: 0.0) > 0.0 ||
+                profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
+        } == true
 
         data class Bucket(
             val shiftList: MutableList<Shift> = mutableListOf(),
@@ -54,9 +60,11 @@ object WeeklyBreakdownBuilder {
             b.shiftList += shift
             b.totalMin += mins
             if (settings != null) {
-                b.overtimeMin += maxOf(0, mins - settings.dailyOvertimeThresholdMinutes)
+                val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+                val threshold = resolved.rules.dailyStandardMinutes
+                b.overtimeMin += maxOf(0, mins - threshold)
                 if (hasPay) {
-                    b.pay += PayrollCalculator.calculateShiftPay(shift, settings)?.totalGross ?: 0.0
+                    b.pay += PayrollCalculator.calculateShiftPay(shift, settings, profiles)?.totalGross ?: 0.0
                 }
             }
             val date = shift.startTime.atOffset(ZoneOffset.UTC).toLocalDate().toString()

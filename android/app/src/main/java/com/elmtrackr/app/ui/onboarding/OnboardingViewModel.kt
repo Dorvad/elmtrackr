@@ -63,16 +63,33 @@ class OnboardingViewModel(
                     timezone = input.timezone,
                     baseHourlyRate = input.hourlyRate,
                 )
-                val compensationProfile = compensationProfilesRepository.upsertProfile(
-                    presetProfile.copy(
-                        id = UUID.randomUUID().toString(),
-                        rules = presetProfile.rules.copy(
-                            dailyStandardMinutes = (input.dailyOvertimeHours * 60).roundToInt(),
-                            weeklyStandardMinutes = (input.weeklyOvertimeHours * 60).roundToInt(),
-                            weekendDays = input.weekendDays,
-                        ),
-                    ),
+                val mergedRules = presetProfile.rules.copy(
+                    dailyStandardMinutes = (input.dailyOvertimeHours * 60).roundToInt(),
+                    weeklyStandardMinutes = (input.weeklyOvertimeHours * 60).roundToInt(),
+                    weekendDays = input.weekendDays,
                 )
+                val existingProfiles = compensationProfilesRepository.getProfiles(profile.id)
+                val existingDefault = existingProfiles.firstOrNull { it.isDefault }
+                    ?: existingProfiles.firstOrNull()
+                val compensationProfile = if (input.preserveExisting && existingDefault != null) {
+                    compensationProfilesRepository.upsertProfile(
+                        existingDefault.copy(
+                            regionCode = input.regionCode,
+                            currencyCode = input.currencyCode,
+                            timezone = input.timezone,
+                            baseHourlyRate = input.hourlyRate,
+                            rules = mergedRules,
+                            isDefault = true,
+                        ),
+                    )
+                } else {
+                    compensationProfilesRepository.upsertProfile(
+                        presetProfile.copy(
+                            id = UUID.randomUUID().toString(),
+                            rules = mergedRules,
+                        ),
+                    )
+                }
                 val source = base.copy(
                     timezone = input.timezone,
                     dailyOvertimeThresholdMinutes = (input.dailyOvertimeHours * 60).roundToInt(),

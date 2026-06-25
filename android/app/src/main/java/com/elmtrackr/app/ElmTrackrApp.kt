@@ -115,7 +115,10 @@ class ElmTrackrApp : Application() {
         SupabaseAuthRepository(database.profileDao(), appPreferences) { userId ->
             legacyDataAdopter.adoptFor(userId)
             applicationScope.launch {
-                compensationProfilesRepository.ensureMigrated(userId)
+                val settings = settingsRepository.getSettings(userId)
+                if (settings?.onboardingCompleted == true) {
+                    compensationProfilesRepository.ensureMigrated(userId)
+                }
                 syncRepository.syncAll(userId)
             }
         }

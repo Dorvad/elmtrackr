@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.data.repository.CompensationProfilesRepository
+import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Profile
@@ -33,6 +35,7 @@ class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val syncRepository: SyncRepository,
     private val authRepository: AuthRepository,
+    private val compensationProfilesRepository: CompensationProfilesRepository,
     private val themeStore: ThemePreferenceStore,
 ) : ViewModel() {
 
@@ -110,17 +113,32 @@ class SettingsViewModel(
                 ?: run { _isSaving.value = false; return@launch }
             val existing = settingsRepository.getSettings(currentProfile.id)
                 ?: run { _isSaving.value = false; return@launch }
-            settingsRepository.saveSettings(
-                existing.copy(
-                    dailyOvertimeThresholdMinutes = (dailyOtHours * 60).roundToInt(),
-                    weeklyOvertimeThresholdMinutes = (weeklyOtHours * 60).roundToInt(),
-                    hourlyRate = hourlyRate,
-                    timezone = timezone.trim(),
-                    clockStyle = clockStyle,
-                    currency = currency,
-                    updatedAt = Instant.now(),
-                )
+            val savedSettings = existing.copy(
+                dailyOvertimeThresholdMinutes = (dailyOtHours * 60).roundToInt(),
+                weeklyOvertimeThresholdMinutes = (weeklyOtHours * 60).roundToInt(),
+                hourlyRate = hourlyRate,
+                timezone = timezone.trim(),
+                clockStyle = clockStyle,
+                currency = currency,
+                updatedAt = Instant.now(),
             )
+            settingsRepository.saveSettings(savedSettings)
+            val profiles = compensationProfilesRepository.getProfiles(currentProfile.id)
+            val defaultProfile = profiles.firstOrNull { it.isDefault } ?: profiles.firstOrNull()
+            if (defaultProfile != null) {
+                val updatedProfile = defaultProfile.copy(
+                    baseHourlyRate = hourlyRate,
+                    timezone = timezone.trim(),
+                    rules = defaultProfile.rules.copy(
+                        dailyStandardMinutes = (dailyOtHours * 60).roundToInt(),
+                        weeklyStandardMinutes = (weeklyOtHours * 60).roundToInt(),
+                    ),
+                )
+                val savedProfile = compensationProfilesRepository.upsertProfile(updatedProfile)
+                settingsRepository.saveSettings(
+                    savedSettings.apply(CompensationResolver.profileToLegacySettingsUpdates(savedProfile)),
+                )
+            }
             val existingProfile = currentProfile
             if (existingProfile.fullName != displayName.trim().ifBlank { null }) {
                 val newName = displayName.trim().ifBlank { null }
@@ -151,7 +169,19 @@ class SettingsViewModel(
         viewModelScope.launch {
             val userId = authRepository.getCurrentProfile()?.id ?: return@launch
             val existing = settingsRepository.getSettings(userId) ?: return@launch
-            settingsRepository.saveSettings(existing.copy(weekendDays = days, updatedAt = Instant.now()))
+            val savedSettings = existing.copy(weekendDays = days, updatedAt = Instant.now())
+            settingsRepository.saveSettings(savedSettings)
+            val profiles = compensationProfilesRepository.getProfiles(userId)
+            val defaultProfile = profiles.firstOrNull { it.isDefault } ?: profiles.firstOrNull()
+            if (defaultProfile != null) {
+                val updatedProfile = defaultProfile.copy(
+                    rules = defaultProfile.rules.copy(weekendDays = days),
+                )
+                val savedProfile = compensationProfilesRepository.upsertProfile(updatedProfile)
+                settingsRepository.saveSettings(
+                    savedSettings.apply(CompensationResolver.profileToLegacySettingsUpdates(savedProfile)),
+                )
+            }
         }
     }
 
@@ -210,6 +240,7 @@ class SettingsViewModel(
                     settingsRepository = app.settingsRepository,
                     syncRepository = app.syncRepository,
                     authRepository = app.authRepository,
+                    compensationProfilesRepository = app.compensationProfilesRepository,
                     themeStore = AppThemePreferenceStore(app.appPreferences),
                 )
             }

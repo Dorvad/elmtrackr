@@ -152,6 +152,41 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `replay onboarding updates existing compensation profile instead of duplicating`() = runTest {
+        val existingProfile = com.elmtrackr.app.domain.compensation.CompensationResolver.createFromPreset(
+            userId = "u1",
+            regionCode = com.elmtrackr.app.domain.model.RegionCode.IL,
+            baseHourlyRate = 30.0,
+        ).copy(id = "profile-1")
+        compensationRepo.setProfiles(existingProfile)
+        settingsRepo.setSettings(
+            UserSettings(
+                id = "settings",
+                userId = "u1",
+                hourlyRate = 30.0,
+                defaultCompensationProfileId = "profile-1",
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            ),
+        )
+        val vm = buildVm()
+
+        vm.completeOnboarding(
+            validInput(hourlyRate = 80.0).copy(
+                regionCode = com.elmtrackr.app.domain.model.RegionCode.US,
+                preserveExisting = true,
+            ),
+        )
+        advanceUntilIdle()
+
+        val profiles = compensationRepo.getProfiles("u1")
+        assertEquals(1, profiles.size)
+        assertEquals("profile-1", profiles.first().id)
+        assertEquals(com.elmtrackr.app.domain.model.RegionCode.US, profiles.first().regionCode)
+        assertEquals(80.0, profiles.first().baseHourlyRate)
+    }
+
+    @Test
     fun `replay onboarding updates core work preferences`() = runTest {
         settingsRepo.setSettings(
             UserSettings(id = "settings", userId = "u1", hourlyRate = 30.0, createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)

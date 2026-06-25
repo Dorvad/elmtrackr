@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.data.repository.CompensationProfilesRepository
+import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.model.ReceiptUpload
@@ -40,6 +42,7 @@ import java.util.UUID
 class ShiftsViewModel(
     private val shiftsRepository: ShiftsRepository,
     private val settingsRepository: SettingsRepository,
+    private val compensationProfilesRepository: CompensationProfilesRepository,
     private val currentUserProvider: CurrentUserProvider,
     private val refundsRepository: RefundsRepository,
     private val refundReceiptStorage: RefundReceiptStorage? = null,
@@ -80,13 +83,15 @@ class ShiftsViewModel(
                 },
                 shiftsRepository.observeActiveShift(userId),
                 settingsRepository.observeSettings(userId),
-            ) { shifts, activeShift, settings ->
+                compensationProfilesRepository.observeProfiles(userId),
+            ) { shifts, activeShift, settings, profiles ->
                 if (shifts.isEmpty()) ShiftsUiState.Empty
                 else ShiftsUiState.Ready(
                     shifts = shifts,
                     activeShift = activeShift,
                     featuresTravelRefunds = settings?.featuresTravelRefunds ?: false,
                     settings = settings,
+                    profiles = profiles,
                 )
             }
         }.catch { e ->
@@ -129,8 +134,11 @@ class ShiftsViewModel(
         if (errors.isNotEmpty()) { _formErrors.value = errors; return }
         viewModelScope.launch {
             val userId = currentUserProvider.currentUserId() ?: return@launch
+            val settings = settingsRepository.getSettings(userId) ?: return@launch
+            compensationProfilesRepository.ensureMigrated(userId)
+            val profiles = compensationProfilesRepository.getProfiles(userId)
             val now = Instant.now()
-            val shift = Shift(
+            var shift = Shift(
                 id = UUID.randomUUID().toString(),
                 userId = userId,
                 startTime = input.startTime,
@@ -139,9 +147,17 @@ class ShiftsViewModel(
                 notes = input.notes.ifBlank { null },
                 isSpecialDay = input.isSpecialDay,
                 refundAction = input.refundAction,
+                compensationProfileId = settings.defaultCompensationProfileId,
                 createdAt = now,
                 updatedAt = now,
             )
+            if (shift.isCompleted) {
+                shift = shift.copy(
+                    compensationSnapshot = ShiftCompensationHelper.buildClockOutSnapshot(
+                        shift, settings, profiles,
+                    ),
+                )
+            }
             shiftsRepository.createManualShift(shift)
             closeForm()
         }
@@ -151,18 +167,34 @@ class ShiftsViewModel(
         val errors = validate(input)
         if (errors.isNotEmpty()) { _formErrors.value = errors; return }
         viewModelScope.launch {
+            val userId = currentUserProvider.currentUserId() ?: return@launch
+            val settings = settingsRepository.getSettings(userId) ?: return@launch
+            val profiles = compensationProfilesRepository.getProfiles(userId)
             val existing = shiftsRepository.getShiftById(shiftId) ?: return@launch
-            shiftsRepository.updateShift(
-                existing.copy(
-                    startTime = input.startTime,
-                    endTime = input.endTime,
-                    breakMinutes = input.breakMinutes,
-                    notes = input.notes.ifBlank { null },
-                    isSpecialDay = input.isSpecialDay,
-                    refundAction = existing.refundAction,
-                    updatedAt = Instant.now(),
-                )
+            val updated = existing.copy(
+                startTime = input.startTime,
+                endTime = input.endTime,
+                breakMinutes = input.breakMinutes,
+                notes = input.notes.ifBlank { null },
+                isSpecialDay = input.isSpecialDay,
+                refundAction = existing.refundAction,
+                updatedAt = Instant.now(),
             )
+            val payAffecting = updated.startTime != existing.startTime ||
+                updated.endTime != existing.endTime ||
+                updated.breakMinutes != existing.breakMinutes ||
+                updated.isSpecialDay != existing.isSpecialDay ||
+                updated.compensationProfileId != existing.compensationProfileId
+            val finalShift = if (updated.isCompleted && payAffecting) {
+                updated.copy(
+                    compensationSnapshot = ShiftCompensationHelper.buildClockOutSnapshot(
+                        updated, settings, profiles,
+                    ),
+                )
+            } else {
+                updated
+            }
+            shiftsRepository.updateShift(finalShift)
             closeForm()
         }
     }
@@ -316,6 +348,7 @@ class ShiftsViewModel(
                 ShiftsViewModel(
                     app.shiftsRepository,
                     app.settingsRepository,
+                    app.compensationProfilesRepository,
                     app.currentUserProvider,
                     app.refundsRepository,
                     app.refundReceiptStorage,

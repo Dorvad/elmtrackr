@@ -1,5 +1,9 @@
 package com.elmtrackr.app.domain
 
+import com.elmtrackr.app.domain.compensation.RegionPresets
+import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.RegionCode
+import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import org.junit.Assert.assertEquals
@@ -115,6 +119,32 @@ class PayrollCalculatorTest {
     }
 
     // ── Special tier short (under 2 + 2h) ────────────────────────────────────
+
+    @Test
+    fun `GB weekly-only profile does not apply erroneous daily OT fallback`() {
+        val gbPreset = RegionPresets.forRegion(RegionCode.GB)
+        val profile = CompensationProfile(
+            id = "gb1",
+            userId = "u1",
+            name = "UK",
+            regionCode = RegionCode.GB,
+            currencyCode = "GBP",
+            timezone = "Europe/London",
+            baseHourlyRate = 15.0,
+            rules = gbPreset.rules,
+            stackingPolicy = gbPreset.stackingPolicy,
+            isDefault = true,
+        )
+        val settings = defaultSettings.copy(
+            defaultCompensationProfileId = "gb1",
+            hourlyRate = 15.0,
+        )
+        val s = shift("2024-01-08T08:00:00Z", "2024-01-08T18:00:00Z")
+        val bd = PayrollCalculator.calculateShiftPay(s, settings, listOf(profile))!!
+        assertEquals(1, bd.brackets.size)
+        assertEquals(1.0, bd.brackets[0].rate, 0.0)
+        assertNear(120.0, bd.totalGross)
+    }
 
     @Test
     fun `calculateShiftPay - 3h Shabbat shift creates two special brackets`() {
