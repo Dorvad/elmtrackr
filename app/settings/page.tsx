@@ -212,23 +212,41 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Payroll */}
+          {/* Compensation */}
+          <div className="rounded-3xl bg-white border border-white/80 au-card overflow-hidden animate-fade-in-up stagger-3">
+            <a
+              href="/settings/compensation"
+              className="flex items-center justify-between px-4 py-4 hover:bg-gray-50 transition-colors"
+            >
+              <div>
+                <h2 className="text-xs font-bold uppercase mb-1">Compensation Rules</h2>
+                <p className="text-xs text-gray-400">
+                  Edit pay estimation rules, rates, and regional presets
+                </p>
+              </div>
+              <svg className="h-4 w-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+
+          {/* Payroll (legacy quick access) */}
           <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up stagger-3">
             <h2 className="text-xs font-bold uppercase mb-1">
-              Payroll
+              Base Rate
             </h2>
             <p className="text-xs text-gray-400 mb-4">
-              Set your hourly base rate to see gross pay calculations. Leave blank to disable.
+              Set your hourly base rate to see estimated gross pay. Also editable in Compensation Rules.
             </p>
             <Input
-              label="Hourly base rate (₪)"
+              label="Hourly base rate"
               type="number"
               min={0}
               step={0.01}
               placeholder="e.g. 45.00"
               value={hourlyRate}
               onChange={(e) => setHourlyRate(e.target.value)}
-              hint="Used for Israeli payroll: 100%/125%/150% weekday, 150%/175%/200% holiday"
+              hint="Used for estimated compensation based on your profile rules"
             />
           </div>
 

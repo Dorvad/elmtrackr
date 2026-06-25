@@ -4,6 +4,7 @@ import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
+import { CompensationBootstrap } from "@/components/compensation/CompensationBootstrap";
 
 export const metadata: Metadata = {
   title: "ElmTrackr",
@@ -51,6 +52,7 @@ export default function RootLayout({
       <body className="min-h-screen antialiased" style={{ fontFamily: "var(--au-font)", background: "var(--au-bg)", color: "var(--au-ink)" }}>
         <ToastProvider>
           <SettingsProvider>
+            <CompensationBootstrap />
             <Suspense fallback={null}>
               <OnboardingGate>{children}</OnboardingGate>
             </Suspense>

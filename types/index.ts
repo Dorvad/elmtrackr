@@ -6,6 +6,98 @@ export interface Profile {
   updated_at: string;
 }
 
+export type RegionCode = "IL" | "US" | "GB" | "EU" | "CUSTOM";
+
+export type StackingPolicy = "highest_only" | "additive";
+
+export interface CompensationRules {
+  regular: {
+    dailyStandardMinutes: number;
+    weeklyStandardMinutes: number;
+    weekendDays: number[];
+    paidBreaks: boolean;
+    autoDeductBreakMinutes: number | null;
+    minimumShiftMinutes: number | null;
+    rounding: {
+      enabled: boolean;
+      incrementMinutes: number;
+      direction: "nearest" | "up" | "down";
+    };
+  };
+  overtime: {
+    enabled: boolean;
+    dailyTiers: Array<{
+      afterMinutes: number;
+      multiplier: number;
+    }>;
+    weeklyTiers: Array<{
+      afterMinutes: number;
+      multiplier: number;
+    }>;
+  };
+  weekend: {
+    enabled: boolean;
+    days: number[];
+    multiplier: number;
+    stacking: StackingPolicy;
+  };
+  holiday: {
+    enabled: boolean;
+    manualSpecialDayEnabled: boolean;
+    multiplier: number;
+    stacking: StackingPolicy;
+    /** Optional tiered holiday rates (e.g. Israeli 150/175/200%). */
+    tiers?: Array<{
+      afterMinutes: number;
+      multiplier: number;
+    }>;
+  };
+  night: {
+    enabled: boolean;
+    startTime: string;
+    endTime: string;
+    multiplier: number;
+    applyTo: "minutes_inside_window" | "entire_shift";
+    stacking: StackingPolicy;
+  };
+  deductions: {
+    enabled: boolean;
+    mode: "none" | "percentage" | "fixed";
+    percentage: number;
+    fixedAmount: number;
+  };
+}
+
+export interface CompensationProfile {
+  id: string;
+  user_id: string;
+  name: string;
+  region_code: RegionCode;
+  currency_code: string;
+  timezone: string;
+  base_hourly_rate: number | null;
+  rules_json: CompensationRules;
+  stacking_policy: StackingPolicy;
+  effective_from: string;
+  effective_until: string | null;
+  is_default: boolean;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompensationSnapshot {
+  profile_id: string;
+  profile_name: string;
+  region_code: RegionCode;
+  currency_code: string;
+  timezone: string;
+  base_hourly_rate: number | null;
+  rules_json: CompensationRules;
+  stacking_policy: StackingPolicy;
+  calculated_at: string;
+}
+
 export interface UserSettings {
   id: string;
   user_id: string;
@@ -15,6 +107,9 @@ export interface UserSettings {
   // Weekend days as ISO day numbers: 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
   weekend_days: number[];
   hourly_rate: number | null;
+  currency_code: string | null;
+  region_code: RegionCode | null;
+  default_compensation_profile_id: string | null;
   // Onboarding state
   onboarding_completed: boolean;
   onboarding_completed_at: string | null;
@@ -37,8 +132,10 @@ export interface Shift {
   end_time: string | null; // null = active shift
   break_minutes: number;
   notes: string | null;
-  is_special_day: boolean; // holiday / Shabbat override — triggers 150/175/200% pay
+  is_special_day: boolean; // holiday / Shabbat override — triggers premium pay tiers
   refund_action: RefundAction;
+  compensation_profile_id: string | null;
+  compensation_snapshot_json: CompensationSnapshot | null;
   created_at: string;
   updated_at: string;
 }
@@ -115,6 +212,7 @@ export interface ShiftFormData {
   break_minutes: number;
   notes: string;
   is_special_day: boolean;
+  compensation_profile_id?: string | null;
 }
 
 // ── Payroll ──────────────────────────────────────────────────────────────────
@@ -126,8 +224,34 @@ export interface PayBracket {
   amount: number; // gross pay for this bracket (in currency units)
 }
 
+export interface PaySegment {
+  label: string;
+  minutes: number;
+  rate: number;
+  amount: number;
+  category: "regular" | "overtime" | "weekend" | "holiday" | "night";
+}
+
 export interface ShiftPayBreakdown {
   brackets: PayBracket[];
+  segments: PaySegment[];
   total_gross: number;
-  is_special: boolean; // true if weekend day or is_special_day flag set
+  regular_gross: number;
+  overtime_gross: number;
+  weekend_gross: number;
+  holiday_gross: number;
+  night_gross: number;
+  deductions_gross: number;
+  net_gross: number;
+  regular_minutes: number;
+  overtime_minutes: number;
+  weekend_minutes: number;
+  holiday_minutes: number;
+  night_minutes: number;
+  total_minutes: number;
+  is_special: boolean;
+  profile_id: string | null;
+  profile_name: string | null;
+  currency_code: string;
+  disclaimer: string;
 }

@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Shift } from "@/types";
+import type { Shift, UserSettings, CompensationProfile } from "@/types";
+import {
+  buildCompensationSnapshot,
+  resolveShiftCompensation,
+} from "@/lib/compensation/profile";
 
 export interface UseShiftsReturn {
   shifts: Shift[];
@@ -10,13 +14,49 @@ export interface UseShiftsReturn {
   error: string | null;
   refresh: () => Promise<void>;
   createShift: (
-    data: Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes" | "is_special_day">
+    data: Pick<
+      Shift,
+      | "start_time"
+      | "end_time"
+      | "break_minutes"
+      | "notes"
+      | "is_special_day"
+      | "compensation_profile_id"
+    >
   ) => Promise<Shift>;
   updateShift: (
     id: string,
-    data: Partial<Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes" | "is_special_day" | "refund_action">>
+    data: Partial<
+      Pick<
+        Shift,
+        | "start_time"
+        | "end_time"
+        | "break_minutes"
+        | "notes"
+        | "is_special_day"
+        | "refund_action"
+        | "compensation_profile_id"
+        | "compensation_snapshot_json"
+      >
+    >,
+    options?: { settings?: UserSettings; profiles?: CompensationProfile[] }
   ) => Promise<Shift>;
   deleteShift: (id: string) => Promise<void>;
+}
+
+function buildSnapshotForShift(
+  shift: Pick<Shift, "start_time" | "end_time" | "compensation_profile_id" | "compensation_snapshot_json">,
+  settings: UserSettings,
+  profiles: CompensationProfile[]
+): Shift["compensation_snapshot_json"] | undefined {
+  if (!shift.end_time) return undefined;
+  const profilesMap = new Map(profiles.map((p) => [p.id, p]));
+  const resolved = resolveShiftCompensation(
+    shift as Shift,
+    settings,
+    profilesMap
+  );
+  return buildCompensationSnapshot(resolved);
 }
 
 export function useShifts(): UseShiftsReturn {
@@ -39,7 +79,7 @@ export function useShifts(): UseShiftsReturn {
       setShifts((data as Shift[]) ?? []);
     }
     setLoading(false);
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     refresh();
@@ -47,7 +87,15 @@ export function useShifts(): UseShiftsReturn {
 
   const createShift = useCallback(
     async (
-      data: Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes" | "is_special_day">
+      data: Pick<
+        Shift,
+        | "start_time"
+        | "end_time"
+        | "break_minutes"
+        | "notes"
+        | "is_special_day"
+        | "compensation_profile_id"
+      >
     ): Promise<Shift> => {
       const { data: created, error: err } = await supabase
         .from("shifts")
@@ -57,7 +105,7 @@ export function useShifts(): UseShiftsReturn {
           break_minutes: data.break_minutes,
           notes: data.notes ?? null,
           is_special_day: data.is_special_day ?? false,
-          // user_id is set by RLS / auth context
+          compensation_profile_id: data.compensation_profile_id ?? null,
           user_id: (await supabase.auth.getUser()).data.user!.id,
         })
         .select()
@@ -66,22 +114,54 @@ export function useShifts(): UseShiftsReturn {
       await refresh();
       return created as Shift;
     },
-    [refresh]
+    [refresh, supabase]
   );
 
   const updateShift = useCallback(
     async (
       id: string,
       data: Partial<
-        Pick<Shift, "start_time" | "end_time" | "break_minutes" | "notes" | "is_special_day" | "refund_action">
-      >
+        Pick<
+          Shift,
+          | "start_time"
+          | "end_time"
+          | "break_minutes"
+          | "notes"
+          | "is_special_day"
+          | "refund_action"
+          | "compensation_profile_id"
+          | "compensation_snapshot_json"
+        >
+      >,
+      options?: { settings?: UserSettings; profiles?: CompensationProfile[] }
     ): Promise<Shift> => {
+      let snapshotUpdate = data.compensation_snapshot_json;
+
+      if (
+        options?.settings &&
+        options.profiles &&
+        "end_time" in data &&
+        data.end_time
+      ) {
+        const existing = shifts.find((s) => s.id === id);
+        const merged = { ...existing, ...data } as Shift;
+        snapshotUpdate = buildSnapshotForShift(
+          merged,
+          options.settings,
+          options.profiles
+        ) ?? null;
+      }
+
       const { data: updated, error: err } = await supabase
         .from("shifts")
         .update({
           ...data,
           ...("end_time" in data && { end_time: data.end_time ?? null }),
           ...("notes" in data && { notes: data.notes ?? null }),
+          ...(snapshotUpdate !== undefined && {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            compensation_snapshot_json: snapshotUpdate as any,
+          }),
         })
         .eq("id", id)
         .select()
@@ -90,7 +170,7 @@ export function useShifts(): UseShiftsReturn {
       await refresh();
       return updated as Shift;
     },
-    [refresh]
+    [refresh, shifts, supabase]
   );
 
   const deleteShift = useCallback(
@@ -102,7 +182,7 @@ export function useShifts(): UseShiftsReturn {
       if (err) throw new Error(err.message);
       await refresh();
     },
-    [refresh]
+    [supabase, refresh]
   );
 
   return { shifts, loading, error, refresh, createShift, updateShift, deleteShift };

@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useRouter } from "next/navigation";
 import { useShifts } from "@/hooks/useShifts";
+import { useSettings } from "@/hooks/useSettings";
+import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
 import { useToast } from "@/components/ui/Toast";
 import { ShiftForm } from "@/components/shifts/ShiftForm";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -12,6 +14,8 @@ import type { ShiftFormData } from "@/types";
 export default function NewShiftPage() {
   const router = useRouter();
   const { createShift } = useShifts();
+  const { settings } = useSettings();
+  const { profiles, defaultProfile } = useCompensationProfiles();
   const { toast } = useToast();
 
   async function handleSubmit(data: ShiftFormData) {
@@ -21,6 +25,8 @@ export default function NewShiftPage() {
       break_minutes: data.break_minutes,
       notes: data.notes || null,
       is_special_day: data.is_special_day,
+      compensation_profile_id:
+        data.compensation_profile_id ?? defaultProfile?.id ?? settings?.default_compensation_profile_id ?? null,
     });
     toast("Shift saved", "success");
     router.push("/shifts");
@@ -42,7 +48,12 @@ export default function NewShiftPage() {
 
       <div className="max-w-md mx-auto px-4 animate-fade-in-up stagger-1">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <ShiftForm onSubmit={handleSubmit} submitLabel="Create Shift" />
+          <ShiftForm
+            profiles={profiles}
+            defaultProfileId={defaultProfile?.id ?? settings?.default_compensation_profile_id}
+            onSubmit={handleSubmit}
+            submitLabel="Create Shift"
+          />
         </div>
       </div>
 
