@@ -1,5 +1,7 @@
 # ElmTrackr — Native Android App
 
+> CI debug APKs pick up `SUPABASE_URL` and `SUPABASE_ANON_KEY` from GitHub Actions secrets at build time.
+
 > **Implementation status (2026-06-21):** Authenticated user identity, one-time
 > legacy-data adoption, account-isolated offline sync, current Supabase wire
 > formats, auth callbacks, live theme selection, shift month navigation, basic
