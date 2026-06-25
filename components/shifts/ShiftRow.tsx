@@ -6,6 +6,7 @@ import { netMinutes, formatMinutes } from "@/lib/shifts/duration";
 import { isWeekendDate } from "@/lib/shifts/weekend";
 import { isOvernightShift } from "@/lib/shifts/overnight";
 import { calculateShiftPay } from "@/lib/shifts/payroll";
+import { resolveShiftCompensation } from "@/lib/compensation/profile";
 import { formatCurrency } from "@/lib/compensation/currency";
 import { checkRefundEligibility } from "@/lib/shifts/refund";
 
@@ -21,7 +22,15 @@ export function ShiftRow({ shift, settings, profiles, animationIndex = 0, showRe
   const net = netMinutes(shift);
   const isActive = shift.end_time === null;
   const dateStr = new Date(shift.start_time).toISOString().slice(0, 10);
-  const isWeekend = isWeekendDate(dateStr, settings.weekend_days);
+  const resolved = resolveShiftCompensation(
+    shift,
+    settings,
+    new Map((profiles ?? []).map((p) => [p.id, p]))
+  );
+  const weekendDays = resolved.rules_json.regular.weekendDays;
+  const isWeekend =
+    resolved.rules_json.weekend.enabled &&
+    isWeekendDate(dateStr, weekendDays);
   const isOvernight = isOvernightShift(shift);
   const isSpecial = shift.is_special_day || isWeekend;
 

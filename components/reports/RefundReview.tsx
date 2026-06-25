@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { Shift, UserSettings, RefundClaim } from "@/types";
+import type { Shift, UserSettings, RefundClaim, CompensationProfile } from "@/types";
 import { checkRefundEligibility, getRefundStatus, shiftMonthKey } from "@/lib/shifts/refund";
 import { useAllRefundClaims } from "@/hooks/useRefundClaim";
 import { exportRefundPdf, ExportRow } from "@/lib/shifts/refund-export";
@@ -13,6 +13,7 @@ import { RefundAnalytics } from "./RefundAnalytics";
 interface Props {
   shifts: Shift[];
   settings?: UserSettings | null;
+  profiles?: CompensationProfile[];
 }
 
 function monthLabel(key: string): string {
@@ -234,7 +235,7 @@ function MonthSection({ monthKey, shifts, allClaims, claimsLoading }: {
   );
 }
 
-export function RefundReview({ shifts, settings }: Props) {
+export function RefundReview({ shifts, settings, profiles }: Props) {
   const { claims: allClaims, loading: claimsLoading } = useAllRefundClaims();
 
   const seen = new Set<string>();
@@ -262,7 +263,7 @@ export function RefundReview({ shifts, settings }: Props) {
 
       {/* Analytics section — shown once claims are loaded */}
       {!claimsLoading && allClaims.length > 0 && (
-        <RefundAnalytics claims={allClaims} shifts={shifts} settings={settings} />
+        <RefundAnalytics claims={allClaims} shifts={shifts} settings={settings} profiles={profiles} />
       )}
 
       {/* Divider before per-month breakdown */}

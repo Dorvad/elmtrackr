@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import Link from "next/link";
 import { useSettings } from "@/hooks/useSettings";
 import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
@@ -17,6 +17,7 @@ import {
   CURRENCY_OPTIONS,
   REGION_PRESETS,
   TIMEZONE_OPTIONS,
+  getPresetByRegion,
 } from "@/lib/compensation/presets";
 import { formatCurrency } from "@/lib/compensation/currency";
 import type { CompensationRules, RegionCode, StackingPolicy } from "@/types";
@@ -33,11 +34,16 @@ const WEEKDAYS = [
 
 export default function CompensationSettingsPage() {
   const { settings, loading: settingsLoading } = useSettings();
-  const { defaultProfile, loading: profilesLoading, updateProfile } =
-    useCompensationProfiles();
+  const {
+    defaultProfile,
+    loading: profilesLoading,
+    updateProfile,
+    ensureMigrated,
+  } = useCompensationProfiles();
   const { toast } = useToast();
 
   const [saving, setSaving] = useState(false);
+  const [migrating, setMigrating] = useState(false);
   const [name, setName] = useState("");
   const [regionCode, setRegionCode] = useState<RegionCode>("IL");
   const [currencyCode, setCurrencyCode] = useState("ILS");
@@ -47,7 +53,22 @@ export default function CompensationSettingsPage() {
   const [rules, setRules] = useState<CompensationRules | null>(null);
   const [initialised, setInitialised] = useState(false);
 
-  if (defaultProfile && !initialised) {
+  useEffect(() => {
+    if (!settingsLoading && settings && !profilesLoading && !defaultProfile) {
+      setMigrating(true);
+      ensureMigrated(settings)
+        .catch((err) => {
+          toast(
+            err instanceof Error ? err.message : "Could not load compensation profile",
+            "error"
+          );
+        })
+        .finally(() => setMigrating(false));
+    }
+  }, [settingsLoading, settings, profilesLoading, defaultProfile, ensureMigrated, toast]);
+
+  useEffect(() => {
+    if (!defaultProfile || initialised) return;
     setName(defaultProfile.name);
     setRegionCode(defaultProfile.region_code);
     setCurrencyCode(defaultProfile.currency_code);
@@ -60,6 +81,25 @@ export default function CompensationSettingsPage() {
     setStackingPolicy(defaultProfile.stacking_policy);
     setRules(defaultProfile.rules_json);
     setInitialised(true);
+  }, [defaultProfile, initialised]);
+
+  function handleRegionChange(code: RegionCode) {
+    const preset = getPresetByRegion(code);
+    const weekendDays = rules?.regular.weekendDays ?? preset.rules.regular.weekendDays;
+    setRegionCode(code);
+    setCurrencyCode(preset.currencyCode);
+    setTimezone(preset.timezone);
+    setRules({
+      ...preset.rules,
+      regular: {
+        ...preset.rules.regular,
+        weekendDays,
+      },
+      weekend: {
+        ...preset.rules.weekend,
+        days: weekendDays,
+      },
+    });
   }
 
   function updateRules(updater: (r: CompensationRules) => CompensationRules) {
@@ -109,9 +149,52 @@ export default function CompensationSettingsPage() {
     }
   }
 
-  const loading = settingsLoading || profilesLoading;
+  const loading = settingsLoading || profilesLoading || migrating;
 
-  if (loading || !initialised || !rules) {
+  if (loading) {
+    return (
+      <div className="min-h-screen pb-28" style={{ background: "var(--au-bg)" }}>
+        <div className="px-5 pt-12 pb-4">
+          <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)" }}>
+            Compensation Rules
+          </h1>
+        </div>
+        <PageSpinner />
+        <BottomNav />
+      </div>
+    );
+  }
+
+  if (!defaultProfile || !rules) {
+    return (
+      <div className="min-h-screen pb-28" style={{ background: "var(--au-bg)" }}>
+        <div className="px-5 pt-12 pb-4 flex items-center gap-3">
+          <Link
+            href="/settings"
+            className="h-9 w-9 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-400 hover:text-gray-600 transition-all"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </Link>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--au-display)", color: "var(--au-ink)" }}>
+            Compensation Rules
+          </h1>
+        </div>
+        <div className="max-w-md mx-auto px-4">
+          <div className="rounded-3xl bg-white border border-white/80 au-card p-5 text-sm text-gray-600">
+            <p>No compensation profile is available yet. Complete onboarding or revisit setup from Settings.</p>
+            <Link href="/onboarding" className="inline-block mt-4 text-indigo-600 font-semibold">
+              Open onboarding
+            </Link>
+          </div>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  if (!initialised) {
     return (
       <div className="min-h-screen pb-28" style={{ background: "var(--au-bg)" }}>
         <div className="px-5 pt-12 pb-4">
@@ -158,7 +241,7 @@ export default function CompensationSettingsPage() {
                 <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Region preset</label>
                 <select
                   value={regionCode}
-                  onChange={(e) => setRegionCode(e.target.value as RegionCode)}
+                  onChange={(e) => handleRegionChange(e.target.value as RegionCode)}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm"
                 >
                   {REGION_PRESETS.map((p) => (

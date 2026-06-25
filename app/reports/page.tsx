@@ -39,6 +39,7 @@ import {
   sumMonthlyPay,
   calculateShiftPay,
 } from "@/lib/shifts/payroll";
+import { resolveShiftCompensation } from "@/lib/compensation/profile";
 import { formatCurrency } from "@/lib/compensation/currency";
 import { COMPENSATION_DISCLAIMER, COMPENSATION_ESTIMATE_NOTE } from "@/lib/compensation/constants";
 import type { Shift, UserSettings, CompensationProfile } from "@/types";
@@ -91,15 +92,15 @@ export default function ReportsPage() {
     : null;
 
   const insights = settings && completedShifts.length > 0
-    ? buildMonthInsights(completedShifts, settings)
+    ? buildMonthInsights(completedShifts, settings, profiles)
     : null;
 
   const weeklyData = settings && completedShifts.length > 0
-    ? buildWeeklyBreakdown(completedShifts, prevMonthShifts, settings)
+    ? buildWeeklyBreakdown(completedShifts, prevMonthShifts, settings, profiles)
     : null;
 
   const dailyInsights = settings && completedShifts.length > 0
-    ? getDailyInsights(completedShifts, settings, report?.total_minutes ?? 0)
+    ? getDailyInsights(completedShifts, settings, report?.total_minutes ?? 0, profiles)
     : null;
 
   const segments = report
@@ -196,7 +197,7 @@ export default function ReportsPage() {
         {loading && <PageSpinner />}
 
         {!loading && activeTab === "refunds" && (
-          <RefundReview shifts={shifts} settings={settings} />
+          <RefundReview shifts={shifts} settings={settings} profiles={profiles} />
         )}
 
         {!loading && activeTab === "hours" && !report && (
@@ -361,9 +362,18 @@ function ShiftReportRow({
   index: number;
 }) {
   const net = netMinutes(shift) ?? 0;
-  const otMins = Math.max(0, net - settings.daily_overtime_threshold_minutes);
+  const resolved = resolveShiftCompensation(
+    shift,
+    settings,
+    new Map(profiles.map((p) => [p.id, p]))
+  );
+  const threshold = resolved.rules_json.regular.dailyStandardMinutes;
+  const weekendDays = resolved.rules_json.regular.weekendDays;
+  const otMins = Math.max(0, net - threshold);
   const dateStr = new Date(shift.start_time).toISOString().slice(0, 10);
-  const isWeekend = isWeekendDate(dateStr, settings.weekend_days);
+  const isWeekend =
+    resolved.rules_json.weekend.enabled &&
+    isWeekendDate(dateStr, weekendDays);
   const isOvernight = isOvernightShift(shift);
   const isSpecial = shift.is_special_day || isWeekend;
 

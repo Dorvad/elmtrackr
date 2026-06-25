@@ -53,9 +53,7 @@ export function profileToResolved(profile: CompensationProfile): ResolvedCompens
 
 /** Build a virtual profile from legacy user_settings fields. */
 export function legacySettingsToResolved(settings: UserSettings): ResolvedCompensation {
-  const regionCode: RegionCode =
-    settings.region_code ??
-    (settings.timezone === "Asia/Jerusalem" ? "IL" : "CUSTOM");
+  const regionCode: RegionCode = settings.region_code ?? "IL";
   const preset = getPresetByRegion(regionCode);
   const rules: CompensationRules = {
     ...preset.rules,

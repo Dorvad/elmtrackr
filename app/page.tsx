@@ -41,7 +41,7 @@ export default function DashboardPage() {
     refresh: refreshShifts,
   } = useShifts();
   const { settings, loading: settingsLoading } = useSettings();
-  const { profiles, defaultProfile } = useCompensationProfiles();
+  const { profiles, defaultProfile, loading: profilesLoading } = useCompensationProfiles();
   const { profile } = useProfile();
   const { toast } = useToast();
   const supabase = createClient();
@@ -62,10 +62,16 @@ export default function DashboardPage() {
   }
 
   async function handleClockOut() {
+    if (!settings) {
+      toast("Settings not loaded yet", "error");
+      return;
+    }
+    if (profilesLoading) {
+      toast("Loading compensation rules…", "error");
+      return;
+    }
     try {
-      await clockOut(
-        settings ? { settings, profiles } : undefined
-      );
+      await clockOut({ settings, profiles });
       await refreshShifts();
       toast("Shift ended", "success");
     } catch {

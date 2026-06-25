@@ -10,7 +10,7 @@ export function CompensationBootstrap() {
   const { ensureMigrated } = useCompensationProfiles();
 
   useEffect(() => {
-    if (!loading && settings) {
+    if (!loading && settings?.onboarding_completed) {
       ensureMigrated(settings).catch(() => {});
     }
   }, [loading, settings, ensureMigrated]);
