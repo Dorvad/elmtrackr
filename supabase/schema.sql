@@ -1,6 +1,9 @@
 -- ============================================================
 -- ElmTrackr Schema  (idempotent — safe to re-run at any time)
 -- Run this in your Supabase SQL editor (Dashboard > SQL Editor)
+--
+-- If you only need compensation globalization, you can instead run:
+--   supabase/migrations/20250625000000_compensation_profiles.sql
 -- ============================================================
 
 -- ── Tables ────────────────────────────────────────────────────

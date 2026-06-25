@@ -8,6 +8,7 @@ import {
   createProfileFromPreset,
   profileToLegacySettingsUpdates,
 } from "@/lib/compensation/profile";
+import { formatSupabaseError } from "@/lib/supabase/schema-errors";
 import type { UserSettings } from "@/types";
 
 export interface UseCompensationProfilesReturn {
@@ -72,7 +73,7 @@ export function useCompensationProfiles(): UseCompensationProfilesReturn {
       .order("created_at", { ascending: true });
 
     if (err) {
-      setError(err.message);
+      setError(formatSupabaseError(err.message));
       setProfiles([]);
     } else {
       setProfiles((data ?? []).map((r) => parseProfile(r as Record<string, unknown>)));
@@ -115,7 +116,7 @@ export function useCompensationProfiles(): UseCompensationProfilesReturn {
         .insert(payload as any)
         .select()
         .single();
-      if (err) throw new Error(err.message);
+      if (err) throw new Error(formatSupabaseError(err.message));
 
       const profile = parseProfile(data as Record<string, unknown>);
       const legacyUpdates = profileToLegacySettingsUpdates(profile);
@@ -167,7 +168,7 @@ export function useCompensationProfiles(): UseCompensationProfilesReturn {
         .eq("id", id)
         .select()
         .single();
-      if (err) throw new Error(err.message);
+      if (err) throw new Error(formatSupabaseError(err.message));
 
       const profile = parseProfile(data as Record<string, unknown>);
 
@@ -215,6 +216,7 @@ export function useCompensationProfiles(): UseCompensationProfilesReturn {
         .single();
       if (err) {
         console.warn("Compensation profile migration failed:", err.message);
+        setError(formatSupabaseError(err.message));
         return null;
       }
 
