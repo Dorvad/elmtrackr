@@ -20,6 +20,7 @@ import { netMinutes } from "@/lib/shifts/duration";
 export default function ShiftsPage() {
   const { shifts, loading, error, refresh } = useShifts();
   const { settings } = useSettings();
+  const { profiles } = useCompensationProfiles();
 
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getUTCFullYear());
@@ -114,6 +115,7 @@ export default function ShiftsPage() {
                 key={shift.id}
                 shift={shift}
                 settings={settings}
+                profiles={profiles}
                 animationIndex={i}
               />
             ))}
