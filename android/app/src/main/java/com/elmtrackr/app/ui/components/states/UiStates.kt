@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.theme.Spacing
 
 @Composable
@@ -75,7 +75,9 @@ fun EmptyState(
 @Composable
 fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.fillMaxSize().padding(Spacing.xl),
+        modifier = modifier
+            .fillMaxSize()
+            .padding(Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -94,6 +96,8 @@ fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifi
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(Spacing.lg))
-        Button(onClick = onRetry) { Text("Retry") }
+        ElmGradientButton(onClick = onRetry, compact = true) {
+            Text("Try again", fontWeight = FontWeight.SemiBold)
+        }
     }
 }

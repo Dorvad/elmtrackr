@@ -13,4 +13,8 @@ object CornerRadius {
     val Small  = 12.dp
     val Medium = 16.dp
     val Large  = 24.dp
+    /** Web `rounded-2xl` — primary buttons */
+    val Button = 18.dp
+    /** Bottom-nav active icon pill */
+    val NavPill = 13.dp
 }

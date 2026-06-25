@@ -91,6 +91,7 @@ import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.model.WeeklyTotals
 import com.elmtrackr.app.ui.components.states.ErrorState
+import com.elmtrackr.app.ui.design.AuroraScreen
 import com.elmtrackr.app.ui.design.ElmEmptyState
 import com.elmtrackr.app.ui.design.ElmStatCard
 import com.elmtrackr.app.ui.design.ElmStatVariant
@@ -173,40 +174,29 @@ fun ReportsScreen(
         ReceiptPreviewDialog(receiptUrl = url, onDismiss = { receiptPreviewUrl = null })
     }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            Column(
-                modifier = Modifier
-                    .widthIn(max = 448.dp)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = Spacing.md, vertical = Spacing.md),
-            ) {
-                Text("Reports", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(14.dp))
-                ReportTabs(
-                    selected = effectiveTab,
-                    refundsEnabled = refundsEnabled,
-                    onSelect = { activeTab = it },
-                )
-                Spacer(Modifier.height(12.dp))
-                if (effectiveTab == ReportTab.HOURS) {
-                    MonthNavigator(
-                        selectedYearMonth.first,
-                        selectedYearMonth.second,
-                        viewModel::previousMonth,
-                        viewModel::nextMonth,
-                        canGoNext,
-                    )
-                    Spacer(Modifier.height(14.dp))
-                }
+    AuroraScreen {
+        Text(
+            "Reports",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.auroraEnter(),
+        )
+        ReportTabs(
+            selected = effectiveTab,
+            refundsEnabled = refundsEnabled,
+            onSelect = { activeTab = it },
+        )
+        if (effectiveTab == ReportTab.HOURS) {
+            MonthNavigator(
+                selectedYearMonth.first,
+                selectedYearMonth.second,
+                viewModel::previousMonth,
+                viewModel::nextMonth,
+                canGoNext,
+            )
+        }
 
-                // Avoid AnimatedContent inside verticalScroll — it can measure 0 height and
-                // collapse the report sections below the tabs (web uses plain conditional render).
-                when (val state = uiState) {
+        when (val state = uiState) {
                     ReportsUiState.Loading -> ReportsSkeleton()
                     ReportsUiState.Empty -> ReportsEmptyContent()
                     is ReportsUiState.Error -> ErrorState(
@@ -251,9 +241,6 @@ fun ReportsScreen(
                         }
                     }
                 }
-                Spacer(Modifier.height(18.dp))
-            }
-        }
     }
 }
 

@@ -30,11 +30,12 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.theme.AuroraFaint
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraInk2
-import com.elmtrackr.app.ui.theme.AuroraPlum
-import com.elmtrackr.app.ui.theme.AuroraWhite
-import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraOvertimeBg
 import com.elmtrackr.app.ui.theme.AuroraOvertimeInk
+import com.elmtrackr.app.ui.theme.AuroraPlum
+import com.elmtrackr.app.ui.theme.AuroraSurfaceSub
+import com.elmtrackr.app.ui.theme.AuroraWhite
+import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraPeachDeep
 import com.elmtrackr.app.ui.theme.AuroraWeekendBg
 import androidx.compose.ui.unit.TextUnit
@@ -50,7 +51,7 @@ fun ElmSectionHeader(
     Text(
         text          = title.uppercase(),
         style         = MaterialTheme.typography.labelSmall,
-        color         = MaterialTheme.colorScheme.onSurfaceVariant,
+        color         = AuroraInk2,
         fontWeight    = FontWeight.Bold,
         letterSpacing = TextUnit(0.16f, TextUnitType.Em),
         modifier      = modifier,
@@ -66,18 +67,33 @@ fun ElmSyncPill(
     modifier: Modifier = Modifier,
 ) {
     val (label, color, bg) = when {
-        !isRemoteConfigured -> Triple("Offline mode", MaterialTheme.colorScheme.onSurfaceVariant, Color.Transparent)
-        pendingCount > 0    -> Triple("↑ $pendingCount pending", MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer)
-        else                -> Triple(
+        !isRemoteConfigured -> Triple(
+            "Offline",
+            AuroraInk2,
+            AuroraSurfaceSub,
+        )
+        pendingCount > 0 -> Triple(
+            "↑ $pendingCount pending",
+            AuroraOvertimeInk,
+            AuroraOvertimeBg,
+        )
+        else -> Triple(
             "✓ Synced",
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.primaryContainer,
+            AuroraIndigo,
+            Color(0xFFE8E5FF),
         )
     }
     Box(
         modifier = modifier
+            .shadow(
+                elevation = if (pendingCount > 0) 4.dp else 2.dp,
+                shape = RoundedCornerShape(50),
+                ambientColor = AuroraIndigo.copy(alpha = 0.08f),
+                spotColor = AuroraIndigo.copy(alpha = 0.2f),
+            )
             .background(bg, RoundedCornerShape(50))
-            .padding(horizontal = 10.dp, vertical = 3.dp),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), RoundedCornerShape(50))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
     ) {
         Text(
             text  = label,

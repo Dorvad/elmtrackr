@@ -36,6 +36,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
@@ -90,12 +91,14 @@ import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.ui.components.motion.LiveClockTimer
 import com.elmtrackr.app.ui.components.motion.activeShiftPulse
 import com.elmtrackr.app.ui.components.states.ErrorState
+import com.elmtrackr.app.ui.design.AuroraScreen
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmCard
 import com.elmtrackr.app.ui.design.ElmCardPadded
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.design.ElmStatCard
 import com.elmtrackr.app.ui.design.ElmStatVariant
+import com.elmtrackr.app.ui.design.ElmSyncPill
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraFaint
@@ -201,23 +204,14 @@ private fun DashboardReady(
     val clockStyle = state.settings?.clockStyle?.toSupportedOrDefault()
         ?: SupportedClockStyle.CLASSIC
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 448.dp)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(top = 48.dp, bottom = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    AuroraScreen {
             DashboardHeader(
                 displayName = state.displayName,
+                pendingSyncCount = state.pendingSyncCount,
+                isRemoteConfigured = state.isRemoteConfigured,
             )
 
             if (state.recentShifts.isEmpty() && activeShift == null) {
-                Spacer(Modifier.height(16.dp))
                 FirstRunWelcomeCard(onClockIn = handleClockIn)
             }
 
@@ -226,7 +220,6 @@ private fun DashboardReady(
                 LocalDate.now().dayOfMonth >= LocalDate.now().lengthOfMonth() - 4
 
             if (showRefundBanner) {
-                Spacer(Modifier.height(16.dp))
                 RefundReminderBanner(
                     count = state.unresolvedRefundCount,
                     onDismiss = { refundBannerDismissed = true },
@@ -237,9 +230,6 @@ private fun DashboardReady(
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
-
-            // â”€â”€ Clock card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             val dailyOtMinutes = state.settings?.dailyOvertimeThresholdMinutes ?: (8 * 60)
 
             Box(modifier = Modifier.fillMaxWidth().auroraEnter(index = 1)) {
@@ -294,9 +284,6 @@ private fun DashboardReady(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-
-            // â”€â”€ Month summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MonthSummarySection(
                 report      = state.monthlyReport,
                 paySummary  = state.paySummary,
@@ -307,16 +294,10 @@ private fun DashboardReady(
                 modifier    = Modifier.auroraEnter(index = 2),
             )
 
-            Spacer(Modifier.height(16.dp))
-
-            // â”€â”€ Recent shifts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             RecentShiftsSection(
                 recentShifts = state.recentShifts,
                 modifier = Modifier.auroraEnter(index = 3),
             )
-
-            Spacer(Modifier.height(32.dp))
-        }
     }
 }
 
@@ -325,6 +306,8 @@ private fun DashboardReady(
 @Composable
 private fun DashboardHeader(
     displayName: String?,
+    pendingSyncCount: Int,
+    isRemoteConfigured: Boolean,
 ) {
     val hour = Instant.now().atZone(ZoneId.systemDefault()).hour
     val greetingBase = when (hour) {
@@ -334,20 +317,20 @@ private fun DashboardHeader(
     }
     val firstName = displayName?.trim()?.split(" ")?.firstOrNull()
     val greeting  = if (firstName != null)
-        "${greetingBase.uppercase()} - ${firstName.uppercase()}"
+        "${greetingBase.uppercase()} · ${firstName.uppercase()}"
     else
         greetingBase.uppercase()
 
     Row(
         modifier              = Modifier.fillMaxWidth().auroraEnter(),
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment     = Alignment.Top,
     ) {
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text       = greeting,
                 style      = MaterialTheme.typography.labelSmall,
-                color      = MaterialTheme.colorScheme.onSurfaceVariant,
+                color      = AuroraFaint,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.height(4.dp))
@@ -358,7 +341,13 @@ private fun DashboardHeader(
                 Box(
                     modifier = Modifier
                         .size(22.dp)
-                        .background(headerGradient, RoundedCornerShape(CornerRadius.Small)),
+                        .shadow(
+                            elevation = 6.dp,
+                            shape = RoundedCornerShape(7.dp),
+                            ambientColor = AuroraIndigo.copy(alpha = 0.15f),
+                            spotColor = AuroraIndigo.copy(alpha = 0.7f),
+                        )
+                        .background(headerGradient, RoundedCornerShape(7.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -376,6 +365,10 @@ private fun DashboardHeader(
                 )
             }
         }
+        ElmSyncPill(
+            pendingCount = pendingSyncCount,
+            isRemoteConfigured = isRemoteConfigured,
+        )
     }
 }
 
@@ -386,12 +379,10 @@ private fun RefundReminderBanner(
     onReviewRefunds: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(CornerRadius.Large)
-    Card(
-        modifier = modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), shape),
-        shape = shape,
-        colors = CardDefaults.cardColors(containerColor = AuroraWeekendBg),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ElmCard(
+        modifier = modifier,
+        cornerRadius = CornerRadius.Large,
+        containerColor = AuroraWeekendBg,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -432,10 +423,9 @@ private fun RefundReminderBanner(
 
 @Composable
 private fun FirstRunWelcomeCard(onClockIn: () -> Unit) {
-    Card(
+    ElmCard(
         modifier = Modifier.fillMaxWidth().auroraEnter(index = 1),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Welcome to ElmTrackr", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -468,12 +458,7 @@ private fun ClassicClockCard(
     val progressColor = if (isOvertime) AuroraPeach else AuroraIndigo
     val trackColor = MaterialTheme.colorScheme.outlineVariant
 
-    Card(
-        modifier  = Modifier.fillMaxWidth(),
-        shape     = RoundedCornerShape(CornerRadius.Large),
-        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
+    ElmCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier            = Modifier.fillMaxWidth().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

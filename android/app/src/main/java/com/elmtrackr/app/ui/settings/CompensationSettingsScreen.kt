@@ -51,7 +51,8 @@ import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.ui.components.states.ErrorState
-import com.elmtrackr.app.ui.design.ElmCard
+import com.elmtrackr.app.ui.design.AuroraListScreen
+import com.elmtrackr.app.ui.design.ElmCardPadded
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.theme.Spacing
@@ -67,12 +68,13 @@ fun CompensationSettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     LaunchedEffect(Unit) { viewModel.ensureLoaded() }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    AuroraListScreen {
         when (val state = uiState) {
             is CompensationSettingsUiState.Loading -> BoxCentered { CircularProgressIndicator() }
-            is CompensationSettingsUiState.Error -> BoxCentered {
-                ErrorState(message = state.message, onRetry = viewModel::ensureLoaded)
-            }
+            is CompensationSettingsUiState.Error -> ErrorState(
+                message = state.message,
+                onRetry = viewModel::ensureLoaded,
+            )
             is CompensationSettingsUiState.Ready -> CompensationSettingsContent(
                 state = state,
                 onBack = onBack,
@@ -120,10 +122,9 @@ private fun CompensationSettingsContent(
 
     LazyColumn(
         modifier = Modifier
-            .widthIn(max = 448.dp)
             .fillMaxWidth()
             .fillMaxSize()
-            .padding(horizontal = Spacing.md),
+            .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         item {
@@ -141,7 +142,7 @@ private fun CompensationSettingsContent(
         }
 
         item {
-            ElmCard {
+            ElmCardPadded {
                 Text(COMPENSATION_PROFILE_HELPER, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
                 Text(COMPENSATION_DISCLAIMER, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -149,7 +150,7 @@ private fun CompensationSettingsContent(
         }
 
         item {
-            ElmCard {
+            ElmCardPadded {
                 ElmSectionHeader("Profile")
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
@@ -195,7 +196,7 @@ private fun CompensationSettingsContent(
         }
 
         item {
-            ElmCard {
+            ElmCardPadded {
                 ElmSectionHeader("Work week")
                 Spacer(Modifier.height(12.dp))
                 HoursField("Daily standard (hours)", rules.dailyStandardMinutes) {
@@ -225,7 +226,7 @@ private fun CompensationSettingsContent(
         }
 
         item {
-            ElmCard {
+            ElmCardPadded {
                 ElmSectionHeader("Premiums")
                 Spacer(Modifier.height(8.dp))
                 ToggleRow("Overtime", rules.overtimeEnabled) { rules = rules.copy(overtimeEnabled = it) }

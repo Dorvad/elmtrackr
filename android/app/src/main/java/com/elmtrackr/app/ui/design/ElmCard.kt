@@ -21,6 +21,7 @@ import com.elmtrackr.app.ui.theme.AuroraIndigo
 fun ElmCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 24.dp,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
@@ -36,7 +37,7 @@ fun ElmCard(
             )
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
         shape     = shape,
-        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors    = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         content   = content,
     )

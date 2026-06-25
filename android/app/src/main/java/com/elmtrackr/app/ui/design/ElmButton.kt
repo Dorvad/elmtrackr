@@ -30,7 +30,7 @@ private val auroraGradient = Brush.linearGradient(
     ),
 )
 
-private val buttonShape = RoundedCornerShape(CornerRadius.Medium)
+private val buttonShape = RoundedCornerShape(CornerRadius.Button)
 
 @Composable
 fun ElmGradientButton(

@@ -95,6 +95,8 @@ import com.elmtrackr.app.domain.model.RefundProvider
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import androidx.compose.foundation.border
+import com.elmtrackr.app.ui.components.states.ErrorState
+import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.ElmCard
 import com.elmtrackr.app.ui.design.ElmDashedButton
 import com.elmtrackr.app.ui.theme.AuroraSurfaceSub
@@ -172,75 +174,56 @@ fun ShiftsScreen(
         return
     }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            when (val state = uiState) {
-                is ShiftsUiState.Loading -> Column(
-                    Modifier
-                        .widthIn(max = 448.dp)
-                        .fillMaxWidth()
-                        .padding(Spacing.md),
-                ) {
-                    ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
-                    ShiftsSkeleton()
-                }
-                is ShiftsUiState.Empty -> Column(
-                    Modifier
-                        .widthIn(max = 448.dp)
-                        .fillMaxWidth()
-                        .fillMaxSize()
-                        .padding(horizontal = Spacing.md),
-                ) {
-                    ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
-                    ShiftsMonthCard(
-                        month = selectedMonth,
-                        shifts = emptyList(),
-                        onPrevious = viewModel::previousMonth,
-                        onNext = viewModel::nextMonth,
-                    )
-                    Spacer(Modifier.height(Spacing.md))
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        ElmEmptyState(
-                            icon = Icons.Filled.AccessTime,
-                            title = "No shifts this month",
-                            subtitle = "Clock in from the home screen or add a shift manually.",
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    ElmDashedButton(
-                        label = "Add shift manually",
-                        onClick = viewModel::showCreateForm,
-                        modifier = Modifier.padding(bottom = Spacing.xl),
-                    )
-                }
-                is ShiftsUiState.Ready -> Box(
-                    Modifier
-                        .widthIn(max = 448.dp)
-                        .fillMaxWidth()
-                        .fillMaxSize(),
-                ) {
-                    ShiftsListContent(
-                        state = state,
-                        selectedMonth = selectedMonth,
-                        onPreviousMonth = viewModel::previousMonth,
-                        onNextMonth = viewModel::nextMonth,
-                        onAddShift = viewModel::showCreateForm,
-                        onEditShift = viewModel::showEditForm,
-                    )
-                }
-                is ShiftsUiState.Error -> Box(
-                    Modifier
-                        .widthIn(max = 448.dp)
-                        .fillMaxWidth()
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
-                }
+    AuroraListScreen {
+        when (val state = uiState) {
+            is ShiftsUiState.Loading -> Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.screenH),
+            ) {
+                ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
+                ShiftsSkeleton()
             }
+            is ShiftsUiState.Empty -> Column(
+                Modifier
+                    .fillMaxWidth()
+                    .fillMaxSize()
+                    .padding(horizontal = Spacing.screenH),
+            ) {
+                ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
+                ShiftsMonthCard(
+                    month = selectedMonth,
+                    shifts = emptyList(),
+                    onPrevious = viewModel::previousMonth,
+                    onNext = viewModel::nextMonth,
+                )
+                Spacer(Modifier.height(Spacing.md))
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    ElmEmptyState(
+                        icon = Icons.Filled.AccessTime,
+                        title = "No shifts this month",
+                        subtitle = "Clock in from the home screen or add a shift manually.",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                ElmDashedButton(
+                    label = "Add shift manually",
+                    onClick = viewModel::showCreateForm,
+                    modifier = Modifier.padding(bottom = Spacing.xl),
+                )
+            }
+            is ShiftsUiState.Ready -> ShiftsListContent(
+                state = state,
+                selectedMonth = selectedMonth,
+                onPreviousMonth = viewModel::previousMonth,
+                onNextMonth = viewModel::nextMonth,
+                onAddShift = viewModel::showCreateForm,
+                onEditShift = viewModel::showEditForm,
+            )
+            is ShiftsUiState.Error -> ErrorState(
+                message = state.message,
+                onRetry = {},
+            )
         }
     }
 }
@@ -275,7 +258,7 @@ private fun ShiftsListContent(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = Spacing.md),
+            .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         item { ShiftsPageHeader(onAddShift = onAddShift) }

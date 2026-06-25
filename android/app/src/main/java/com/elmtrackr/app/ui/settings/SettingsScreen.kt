@@ -76,6 +76,7 @@ import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.components.states.ErrorState
+import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.components.states.LoadingState
 import androidx.compose.foundation.layout.widthIn
 import com.elmtrackr.app.ui.design.ElmCard
@@ -115,20 +116,18 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     LaunchedEffect(Unit) { viewModel.ensureSettingsExist() }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-            when (val state = uiState) {
-                is SettingsUiState.Loading -> Column(
-                    Modifier
-                        .widthIn(max = 448.dp)
-                        .fillMaxWidth()
-                        .padding(Spacing.md),
-                ) {
-                    Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(Spacing.md))
-                    SettingsSkeleton()
-                }
-                is SettingsUiState.Ready -> SettingsContent(
+    AuroraListScreen {
+        when (val state = uiState) {
+            is SettingsUiState.Loading -> Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.screenH),
+            ) {
+                Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = Spacing.lg))
+                Spacer(Modifier.height(Spacing.md))
+                SettingsSkeleton()
+            }
+            is SettingsUiState.Ready -> SettingsContent(
                 state         = state,
                 authState     = authState,
                 onSave        = viewModel::saveSettings,
@@ -141,16 +140,10 @@ fun SettingsScreen(
                 onReplayOnboarding = onReplayOnboarding,
                 onOpenCompensation = { showCompensation = true },
             )
-            is SettingsUiState.Error  -> Box(
-                Modifier
-                    .widthIn(max = 448.dp)
-                    .fillMaxWidth()
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                ErrorState(message = state.message, onRetry = viewModel::ensureSettingsExist)
-            }
-            }
+            is SettingsUiState.Error -> ErrorState(
+                message = state.message,
+                onRetry = viewModel::ensureSettingsExist,
+            )
         }
     }
 }
@@ -179,10 +172,9 @@ private fun SettingsContent(
 
     LazyColumn(
         modifier = Modifier
-            .widthIn(max = 448.dp)
             .fillMaxWidth()
             .fillMaxSize()
-            .padding(horizontal = Spacing.md),
+            .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         item { Spacer(Modifier.height(Spacing.lg)) }

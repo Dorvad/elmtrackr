@@ -54,7 +54,9 @@ import com.elmtrackr.app.ui.shifts.ShiftsScreen
 import com.elmtrackr.app.ui.onboarding.OnboardingScreen
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraFaint
+import com.elmtrackr.app.ui.theme.AuroraHair
 import com.elmtrackr.app.ui.theme.AuroraIndigo
+import com.elmtrackr.app.ui.theme.AuroraLavender
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraMotion
@@ -158,93 +160,103 @@ private fun ElmBottomNav(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.background.copy(alpha = 0.90f),
-        shadowElevation = 12.dp,
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            HorizontalDivider(
-                color     = MaterialTheme.colorScheme.outlineVariant,
-                thickness = 1.dp,
-            )
-            Row(
-                modifier = Modifier
-                    .widthIn(max = 448.dp)
-                    .fillMaxWidth()
-                    .align(Alignment.CenterHorizontally)
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+  val navShape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+  Surface(
+    color = AuroraLavender.copy(alpha = 0.92f),
+    shadowElevation = 0.dp,
+    modifier = Modifier
+      .fillMaxWidth()
+      .shadow(
+        elevation = 16.dp,
+        shape = navShape,
+        clip = false,
+        ambientColor = AuroraIndigo.copy(alpha = 0.06f),
+        spotColor = AuroraIndigo.copy(alpha = 0.08f),
+      ),
+  ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+      HorizontalDivider(
+        color = AuroraHair,
+        thickness = 1.dp,
+      )
+      Row(
+        modifier = Modifier
+          .widthIn(max = 448.dp)
+          .fillMaxWidth()
+          .align(Alignment.CenterHorizontally)
+          .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+      ) {
+        BottomNavItem.entries.forEach { item ->
+          val selected = currentRoute == item.route
+          val interactionSource = remember { MutableInteractionSource() }
+          val pillAlpha by animateFloatAsState(
+            targetValue = if (selected) 1f else 0f,
+            animationSpec = tween(
+              durationMillis = if (selected) 250 else 150,
+              easing = AuroraEaseOut,
+            ),
+            label = "bottom-nav-pill-alpha",
+          )
+          val pillScale by animateFloatAsState(
+            targetValue = if (selected) 1f else 0.9f,
+            animationSpec = tween(
+              durationMillis = if (selected) 250 else 150,
+              easing = AuroraEaseOut,
+            ),
+            label = "bottom-nav-pill-scale",
+          )
+          Column(
+            modifier = Modifier
+              .weight(1f)
+              .auroraPressScale(interactionSource)
+              .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+              ) { onNavigate(item.route) }
+              .padding(vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+          ) {
+            Box(
+              modifier = Modifier.size(width = 48.dp, height = 32.dp),
+              contentAlignment = Alignment.Center,
             ) {
-                BottomNavItem.entries.forEach { item ->
-                    val selected = currentRoute == item.route
-                    val interactionSource = remember { MutableInteractionSource() }
-                    val pillAlpha by animateFloatAsState(
-                        targetValue = if (selected) 1f else 0f,
-                        animationSpec = tween(
-                            durationMillis = if (selected) 250 else 150,
-                            easing = AuroraEaseOut,
-                        ),
-                        label = "bottom-nav-pill-alpha",
-                    )
-                    val pillScale by animateFloatAsState(
-                        targetValue = if (selected) 1f else 0.9f,
-                        animationSpec = tween(
-                            durationMillis = if (selected) 250 else 150,
-                            easing = AuroraEaseOut,
-                        ),
-                        label = "bottom-nav-pill-scale",
-                    )
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .auroraPressScale(interactionSource)
-                            .clickable(
-                                interactionSource = interactionSource,
-                                indication = null,
-                            ) { onNavigate(item.route) }
-                            .padding(vertical = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier.size(width = 48.dp, height = 32.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(width = 48.dp, height = 32.dp)
-                                    .graphicsLayer {
-                                        alpha = pillAlpha
-                                        scaleX = pillScale
-                                        scaleY = pillScale
-                                    }
-                                    .shadow(
-                                        elevation = 8.dp,
-                                        shape = RoundedCornerShape(CornerRadius.Small),
-                                        ambientColor = AuroraIndigo.copy(alpha = 0.2f),
-                                        spotColor = AuroraIndigo.copy(alpha = 0.6f),
-                                    )
-                                    .background(navGradient, RoundedCornerShape(CornerRadius.Small)),
-                            )
-                            Icon(
-                                imageVector        = item.icon,
-                                contentDescription = item.label,
-                                tint               = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier           = Modifier.size(20.dp),
-                            )
-                        }
-                        Text(
-                            text       = item.label,
-                            fontSize   = 11.5.sp,
-                            lineHeight = 14.sp,
-                            color      = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
+              Box(
+                modifier = Modifier
+                  .size(width = 48.dp, height = 32.dp)
+                  .graphicsLayer {
+                    alpha = pillAlpha
+                    scaleX = pillScale
+                    scaleY = pillScale
+                  }
+                  .shadow(
+                    elevation = 8.dp,
+                    shape = RoundedCornerShape(CornerRadius.NavPill),
+                    ambientColor = AuroraIndigo.copy(alpha = 0.2f),
+                    spotColor = AuroraIndigo.copy(alpha = 0.6f),
+                  )
+                  .background(navGradient, RoundedCornerShape(CornerRadius.NavPill)),
+              )
+              Icon(
+                imageVector = item.icon,
+                contentDescription = item.label,
+                tint = if (selected) Color.White else AuroraFaint,
+                modifier = Modifier.size(20.dp),
+              )
             }
+            Text(
+              text = item.label,
+              fontSize = 10.5.sp,
+              lineHeight = 14.sp,
+              color = if (selected) AuroraIndigo else AuroraFaint,
+              fontWeight = FontWeight.SemiBold,
+            )
+          }
         }
+      }
     }
+  }
 }
 
 private fun navEnterTransition(forward: Boolean) =

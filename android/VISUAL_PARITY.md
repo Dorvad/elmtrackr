@@ -31,13 +31,11 @@ with original ElmTrackr web design".
 
 | Element | Web | Android | Status |
 |---|---|---|---|
-| Display font | Bricolage Grotesque | System default | gap — no custom font |
-| Body font | Hanken Grotesk | System default | gap — no custom font |
+| Display font | Bricolage Grotesque | `res/font/bricolage_grotesque.ttf` | ✓ |
+| Body font | Hanken Grotesk | `res/font/hanken_grotesk.ttf` | ✓ |
 | Greeting | `text-xs uppercase tracking-widest AuroraFaint` | `labelSmall Bold AuroraFaint` | ✓ |
 | App title | `text-3xl font-bold tracking-tight` | `headlineMedium Bold` | ✓ |
 | Section header | `text-xs font-bold uppercase tracking-widest AuroraInk2` | `labelSmall SemiBold AuroraInk2` | ✓ |
-
-Custom fonts remain a known gap vs. the web build.
 
 ## Components
 
@@ -53,14 +51,14 @@ Custom fonts remain a known gap vs. the web build.
 | Property | Web | Android | Status |
 |---|---|---|---|
 | Primary | `background: var(--au-grad)` gradient | `ElmGradientButton` | ✓ |
-| Border radius | `rounded-2xl` = 18dp | 14dp | small gap |
-| Shadow | `shadow-[0_14px_26px_-10px_rgba(91,77,242,0.7)]` | none | skip |
+| Border radius | `rounded-2xl` = 18dp | 18dp (`CornerRadius.Button`) | ✓ |
+| Shadow | `shadow-[0_14px_26px_-10px_rgba(91,77,242,0.7)]` | `shadow()` indigo spotColor | ✓ |
 
 ### Bottom Nav
 | Property | Web | Android | Status |
 |---|---|---|---|
 | Active pill | gradient `var(--au-grad)` | custom gradient pill | ✓ |
-| Background | `rgba(236,238,250,0.85)` + blur | `AuroraLavender` (no blur) | partial |
+| Background | `rgba(236,238,250,0.85)` + blur | `AuroraLavender` 92% + upward shadow | partial |
 | Active icon | white on gradient | white on gradient pill | ✓ |
 | Inactive | `AuroraFaint` icon + label | `AuroraFaint` | ✓ |
 | Top divider | `border-t var(--au-hair)` | `HorizontalDivider AuroraHair` | ✓ |
@@ -88,8 +86,6 @@ Custom fonts remain a known gap vs. the web build.
 | Adaptive | — | mipmap-anydpi-v26 + gradient bg drawable | ✓ |
 
 ## Known Gaps (not blocking)
-- Custom fonts (Bricolage Grotesque display, Hanken Grotesk body)
-- Card border `border-white/80`
-- Button box shadows
-- Aurora mesh animated background
-- Backdrop blur on bottom nav (Android doesn't support per-element blur without custom rendering)
+- Card border `border-white/80` (subtle; hairline outline used instead)
+- Aurora mesh animated background on dashboard
+- True backdrop blur on bottom nav (approximated with translucent fill + shadow)

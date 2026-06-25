@@ -9,4 +9,6 @@ object Spacing {
     val lg = 24.dp
     val xl = 32.dp
     val xxl = 48.dp
+    /** Web `px-5` horizontal screen gutter */
+    val screenH = 20.dp
 }

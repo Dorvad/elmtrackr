@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -74,6 +75,7 @@ import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.settings.WatchFacePreview
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
+import com.elmtrackr.app.ui.theme.Spacing
 import java.util.TimeZone
 
 private const val TOTAL_STEPS = 8
@@ -156,7 +158,11 @@ fun OnboardingScreen(
             ),
         ) {
             Column(
-                Modifier.fillMaxSize().verticalScroll(scrollState).padding(horizontal = 20.dp, vertical = 24.dp),
+                Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = Spacing.screenH, vertical = Spacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 OnboardingProgress(step)
