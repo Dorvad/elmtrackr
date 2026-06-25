@@ -20,6 +20,7 @@ import {
   getPresetByRegion,
 } from "@/lib/compensation/presets";
 import { formatCurrency } from "@/lib/compensation/currency";
+import { isCompensationSchemaMissingError } from "@/lib/supabase/schema-errors";
 import type { CompensationRules, RegionCode, StackingPolicy } from "@/types";
 
 const WEEKDAYS = [
@@ -37,6 +38,7 @@ export default function CompensationSettingsPage() {
   const {
     defaultProfile,
     loading: profilesLoading,
+    error: profilesError,
     updateProfile,
     ensureMigrated,
   } = useCompensationProfiles();
@@ -166,6 +168,9 @@ export default function CompensationSettingsPage() {
   }
 
   if (!defaultProfile || !rules) {
+    const schemaMissing =
+      profilesError != null && isCompensationSchemaMissingError(profilesError);
+
     return (
       <div className="min-h-screen pb-28" style={{ background: "var(--au-bg)" }}>
         <div className="px-5 pt-12 pb-4 flex items-center gap-3">
@@ -183,10 +188,22 @@ export default function CompensationSettingsPage() {
         </div>
         <div className="max-w-md mx-auto px-4">
           <div className="rounded-3xl bg-white border border-white/80 au-card p-5 text-sm text-gray-600">
-            <p>No compensation profile is available yet. Complete onboarding or revisit setup from Settings.</p>
-            <Link href="/onboarding" className="inline-block mt-4 text-indigo-600 font-semibold">
-              Open onboarding
-            </Link>
+            {schemaMissing ? (
+              <>
+                <p className="font-semibold text-gray-800 mb-2">Database setup required</p>
+                <p>{profilesError}</p>
+                <p className="mt-3 text-xs text-gray-500">
+                  File to run: <code className="font-mono">supabase/migrations/20250625000000_compensation_profiles.sql</code>
+                </p>
+              </>
+            ) : (
+              <>
+                <p>No compensation profile is available yet. Complete onboarding or revisit setup from Settings.</p>
+                <Link href="/onboarding" className="inline-block mt-4 text-indigo-600 font-semibold">
+                  Open onboarding
+                </Link>
+              </>
+            )}
           </div>
         </div>
         <BottomNav />
