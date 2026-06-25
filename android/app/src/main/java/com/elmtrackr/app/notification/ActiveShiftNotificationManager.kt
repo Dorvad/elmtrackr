@@ -51,13 +51,15 @@ class ActiveShiftNotificationManager(private val context: Context) {
 
         val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_ACTIVE_SHIFT)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Clocked in")
-            .setContentText("Since ${formatStartTime(shift.startTime)}")
+            .setContentTitle(context.getString(R.string.notif_active_shift_title))
+            .setContentText(context.getString(R.string.notif_active_shift_text, formatStartTime(shift.startTime)))
             .setContentIntent(tapIntent)
             .setOngoing(true)
             .setAutoCancel(false)
-            .setShowWhen(false)
-            .addAction(0, "Clock Out", clockOutPendingIntent)
+            .setWhen(shift.startTime.toEpochMilli())
+            .setUsesChronometer(true)   // counts up by default — no setChronometerCountsDown needed
+            .setShowWhen(true)
+            .addAction(0, context.getString(R.string.notif_clock_out_action), clockOutPendingIntent)
             .build()
 
         @Suppress("MissingPermission")
@@ -88,11 +90,11 @@ class ActiveShiftNotificationManager(private val context: Context) {
 
         val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_REMINDERS)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("You're still clocked in")
-            .setContentText("Since ${formatStartTime(shift.startTime)}. Tap to review.")
+            .setContentTitle(context.getString(R.string.notif_reminder_title))
+            .setContentText(context.getString(R.string.notif_reminder_text, formatStartTime(shift.startTime)))
             .setContentIntent(tapIntent)
             .setAutoCancel(true)
-            .addAction(0, "Clock Out", clockOutPendingIntent)
+            .addAction(0, context.getString(R.string.notif_clock_out_action), clockOutPendingIntent)
             .build()
 
         @Suppress("MissingPermission")

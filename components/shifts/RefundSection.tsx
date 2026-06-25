@@ -10,7 +10,7 @@ import {
 import { useRefundClaim, type RefundDirection, type SaveClaimData } from "@/hooks/useRefundClaim";
 import { useToast } from "@/components/ui/Toast";
 
-const PROVIDERS: RefundProvider[] = ["Lime", "Dott", "Other"];
+const PROVIDERS: RefundProvider[] = ["Lime", "Dott", "Bird", "Taxi", "Other"];
 
 function toLocalDateTimeInput(iso: string): string {
   const d   = new Date(iso);

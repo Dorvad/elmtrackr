@@ -18,6 +18,7 @@ data class UserSettingsEntity(
     /** Comma-separated JS-day integers, e.g. "5,6" = Fri + Sat */
     val weekendDays: String,
     val hourlyRate: Double?,
+    val currency: String = "ILS",
     val onboardingCompleted: Boolean,
     val onboardingCompletedAt: Long?,
     val featuresTravelRefunds: Boolean,

@@ -5,7 +5,6 @@ import androidx.glance.GlanceId
 import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import com.elmtrackr.app.ElmTrackrApp
-import com.elmtrackr.app.domain.LOCAL_USER_ID
 
 class ClockInWidgetAction : ActionCallback {
 
@@ -15,6 +14,7 @@ class ClockInWidgetAction : ActionCallback {
         parameters: ActionParameters,
     ) {
         val app = context.applicationContext as ElmTrackrApp
-        app.shiftsRepository.clockIn(LOCAL_USER_ID)
+        val userId = app.currentUserProvider.currentUserId() ?: return
+        app.shiftsRepository.clockIn(userId)
     }
 }

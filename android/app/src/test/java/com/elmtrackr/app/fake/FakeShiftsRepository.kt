@@ -70,5 +70,5 @@ class FakeShiftsRepository : ShiftsRepository {
 
     override fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>> = _shifts
 
-    override fun observePendingSyncShifts(): Flow<List<Shift>> = flowOf(emptyList())
+    override fun observePendingSyncShifts(userId: String): Flow<List<Shift>> = flowOf(emptyList())
 }

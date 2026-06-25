@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface SyncRepository {
 
-    fun observePendingCount(): Flow<Int>
+    fun observePendingCount(userId: String): Flow<Int>
 
     fun observeLastSyncStatus(): Flow<String?>
 

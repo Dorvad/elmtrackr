@@ -28,10 +28,18 @@ data class ShiftBreakdown(
     val segments: List<DaySegment>,
 )
 
-/** All shifts in an ISO Monday-anchored week. */
+/**
+ * Totals for a calendar-week bucket (days 1–7, 8–14, 15–21, 22+).
+ * weekStart is still the ISO date of the Monday but is kept for compatibility.
+ */
 data class WeeklyTotals(
-    val weekStart: String,     // YYYY-MM-DD (always a Monday)
+    val weekStart: String,          // YYYY-MM-DD label (first shift day in bucket)
+    val label: String,              // "Week 1" … "Week 4"
+    val dayRange: String,           // "1–7", "8–14", "15–21", "22+"
     val totalMinutes: Int,
+    val overtimeMinutes: Int = 0,
+    val pay: Double? = null,
+    val prevMonthMinutes: Int = 0,
     val shifts: List<Shift>,
 )
 

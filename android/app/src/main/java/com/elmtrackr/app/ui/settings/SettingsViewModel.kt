@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
-import com.elmtrackr.app.domain.LOCAL_USER_ID
 import com.elmtrackr.app.domain.model.ClockStyle
+import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.repository.AuthRepository
@@ -18,13 +18,17 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
 import kotlin.math.roundToInt
 
 enum class FeatureFlag { TRAVEL_REFUNDS, PAID_PROJECTS, INSIGHTS, CLOCK_STYLES }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val syncRepository: SyncRepository,
@@ -50,12 +54,17 @@ class SettingsViewModel(
         val validationErrors: Map<String, String>,
     )
 
-    val uiState: StateFlow<SettingsUiState> = combine(
-        combine(
-            settingsRepository.observeSettings(LOCAL_USER_ID),
-            syncRepository.observePendingCount(),
+    private val coreData = authRepository.observeCurrentProfile().flatMapLatest { profile ->
+        if (profile == null) flowOf(CoreData(null, 0, null))
+        else combine(
+            settingsRepository.observeSettings(profile.id),
+            syncRepository.observePendingCount(profile.id),
             syncRepository.observeLastSyncStatus(),
-        ) { settings, pending, lastSync -> CoreData(settings, pending, lastSync) },
+        ) { settings, pending, lastSync -> CoreData(settings, pending, lastSync) }
+    }
+
+    val uiState: StateFlow<SettingsUiState> = combine(
+        coreData,
         combine(
             authRepository.observeCurrentProfile(),
             themeStore.observeTheme(),
@@ -90,13 +99,16 @@ class SettingsViewModel(
         hourlyRate: Double?,
         timezone: String,
         clockStyle: ClockStyle,
+        currency: CurrencyCode = CurrencyCode.ILS,
     ) {
         val errors = validate(dailyOtHours, weeklyOtHours, hourlyRate)
         if (errors.isNotEmpty()) { _validationErrors.value = errors; return }
         _validationErrors.value = emptyMap()
         viewModelScope.launch {
             _isSaving.value = true
-            val existing = settingsRepository.getSettings(LOCAL_USER_ID)
+            val currentProfile = authRepository.getCurrentProfile()
+                ?: run { _isSaving.value = false; return@launch }
+            val existing = settingsRepository.getSettings(currentProfile.id)
                 ?: run { _isSaving.value = false; return@launch }
             settingsRepository.saveSettings(
                 existing.copy(
@@ -105,18 +117,17 @@ class SettingsViewModel(
                     hourlyRate = hourlyRate,
                     timezone = timezone.trim(),
                     clockStyle = clockStyle,
+                    currency = currency,
                     updatedAt = Instant.now(),
                 )
             )
-            val existingProfile = authRepository.getCurrentProfile()
-            if (existingProfile != null) {
+            val existingProfile = currentProfile
+            if (existingProfile.fullName != displayName.trim().ifBlank { null }) {
                 val newName = displayName.trim().ifBlank { null }
-                if (newName != existingProfile.fullName) {
-                    authRepository.saveProfile(
-                        existingProfile.copy(fullName = newName, updatedAt = Instant.now()),
-                        LOCAL_USER_ID,
-                    )
-                }
+                authRepository.saveProfile(
+                    existingProfile.copy(fullName = newName, updatedAt = Instant.now()),
+                    existingProfile.id,
+                )
             }
             _isSaving.value = false
         }
@@ -124,7 +135,8 @@ class SettingsViewModel(
 
     fun updateFeatureFlag(feature: FeatureFlag, enabled: Boolean) {
         viewModelScope.launch {
-            val existing = settingsRepository.getSettings(LOCAL_USER_ID) ?: return@launch
+            val userId = authRepository.getCurrentProfile()?.id ?: return@launch
+            val existing = settingsRepository.getSettings(userId) ?: return@launch
             val updated = when (feature) {
                 FeatureFlag.TRAVEL_REFUNDS -> existing.copy(featuresTravelRefunds = enabled)
                 FeatureFlag.PAID_PROJECTS -> existing.copy(featuresPaidProjects = enabled)
@@ -137,7 +149,8 @@ class SettingsViewModel(
 
     fun updateWeekendDays(days: List<Int>) {
         viewModelScope.launch {
-            val existing = settingsRepository.getSettings(LOCAL_USER_ID) ?: return@launch
+            val userId = authRepository.getCurrentProfile()?.id ?: return@launch
+            val existing = settingsRepository.getSettings(userId) ?: return@launch
             settingsRepository.saveSettings(existing.copy(weekendDays = days, updatedAt = Instant.now()))
         }
     }
@@ -149,7 +162,8 @@ class SettingsViewModel(
     fun triggerSync() {
         viewModelScope.launch {
             _isSyncing.value = true
-            syncRepository.syncAll(LOCAL_USER_ID)
+            val userId = authRepository.getCurrentProfile()?.id
+            if (userId != null) syncRepository.syncAll(userId)
             _isSyncing.value = false
         }
     }
@@ -163,8 +177,9 @@ class SettingsViewModel(
 
     fun ensureSettingsExist() {
         viewModelScope.launch {
-            if (settingsRepository.getSettings(LOCAL_USER_ID) == null) {
-                settingsRepository.createDefaultSettings(LOCAL_USER_ID)
+            val userId = authRepository.getCurrentProfile()?.id ?: return@launch
+            if (settingsRepository.getSettings(userId) == null) {
+                settingsRepository.createDefaultSettings(userId)
             }
         }
     }

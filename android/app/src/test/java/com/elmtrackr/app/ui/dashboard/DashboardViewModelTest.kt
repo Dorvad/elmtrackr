@@ -20,6 +20,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
+import java.time.DayOfWeek
+import java.time.YearMonth
+import java.time.ZoneOffset
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DashboardViewModelTest {
@@ -31,7 +34,9 @@ class DashboardViewModelTest {
     private val settingsRepo = FakeSettingsRepository()
     private val reportsRepo = FakeReportsRepository()
     private val syncRepo = FakeSyncRepository()
-    private val authRepo = FakeAuthRepository()
+    private val authRepo = FakeAuthRepository().apply {
+        setProfile(Profile("u1", "test@test.com", null, Instant.EPOCH, Instant.EPOCH))
+    }
 
     private fun buildVm() = DashboardViewModel(
         shiftsRepo, settingsRepo, reportsRepo, syncRepo, authRepo,
@@ -266,6 +271,29 @@ class DashboardViewModelTest {
 
         val ready = collected.filterIsInstance<DashboardUiState.Ready>().lastOrNull()
         assertEquals(3, ready?.pendingSyncCount)
+        job.cancel()
+    }
+
+    @Test
+    fun `pay summary applies overtime tiers instead of flat hourly rate`() = runTest {
+        val month = YearMonth.now(ZoneOffset.UTC)
+        var date = month.atDay(1)
+        while (date.dayOfWeek != DayOfWeek.MONDAY) date = date.plusDays(1)
+        val start = date.atTime(8, 0).toInstant(ZoneOffset.UTC)
+        shiftsRepo.setShifts(
+            Shift("paid", "u1", startTime = start, endTime = start.plusSeconds(10 * 3600L)),
+        )
+        settingsRepo.setSettings(defaultSettings().copy(hourlyRate = 100.0))
+
+        val vm = buildVm()
+        val collected = mutableListOf<DashboardUiState>()
+        val job = launch { vm.uiState.collect { collected.add(it) } }
+        advanceUntilIdle()
+
+        val pay = collected.filterIsInstance<DashboardUiState.Ready>().last().paySummary
+        assertEquals(1050.0, pay?.totalGross ?: 0.0, 0.001)
+        assertEquals(800.0, pay?.regularGross ?: 0.0, 0.001)
+        assertEquals(250.0, pay?.overtimeGross ?: 0.0, 0.001)
         job.cancel()
     }
 }

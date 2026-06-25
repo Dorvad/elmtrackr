@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.design
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -26,7 +30,13 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.theme.AuroraFaint
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraInk2
-import com.elmtrackr.app.ui.theme.AuroraPeach
+import com.elmtrackr.app.ui.theme.AuroraPlum
+import com.elmtrackr.app.ui.theme.AuroraWhite
+import com.elmtrackr.app.ui.theme.AuroraAqua
+import com.elmtrackr.app.ui.theme.AuroraOvertimeBg
+import com.elmtrackr.app.ui.theme.AuroraOvertimeInk
+import com.elmtrackr.app.ui.theme.AuroraPeachDeep
+import com.elmtrackr.app.ui.theme.AuroraWeekendBg
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 
@@ -40,10 +50,10 @@ fun ElmSectionHeader(
     Text(
         text          = title.uppercase(),
         style         = MaterialTheme.typography.labelSmall,
-        color         = AuroraInk2,
+        color         = MaterialTheme.colorScheme.onSurfaceVariant,
         fontWeight    = FontWeight.Bold,
-        letterSpacing = TextUnit(0.12f, TextUnitType.Em),
-        modifier      = modifier.fillMaxWidth(),
+        letterSpacing = TextUnit(0.16f, TextUnitType.Em),
+        modifier      = modifier,
     )
 }
 
@@ -56,9 +66,13 @@ fun ElmSyncPill(
     modifier: Modifier = Modifier,
 ) {
     val (label, color, bg) = when {
-        !isRemoteConfigured -> Triple("Offline mode", AuroraInk2, Color.Transparent)
-        pendingCount > 0    -> Triple("↑ $pendingCount pending", AuroraPeach, AuroraPeach.copy(alpha = 0.12f))
-        else                -> Triple("✓ Synced", AuroraIndigo, AuroraIndigo.copy(alpha = 0.10f))
+        !isRemoteConfigured -> Triple("Offline mode", MaterialTheme.colorScheme.onSurfaceVariant, Color.Transparent)
+        pendingCount > 0    -> Triple("↑ $pendingCount pending", MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer)
+        else                -> Triple(
+            "✓ Synced",
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.primaryContainer,
+        )
     }
     Box(
         modifier = modifier
@@ -81,34 +95,72 @@ fun ElmStatCard(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = AuroraIndigo,
+    sub: String? = null,
+    variant: ElmStatVariant = ElmStatVariant.DEFAULT,
 ) {
-    ElmCard(modifier = modifier) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+    val shape = RoundedCornerShape(CornerRadius.Large)
+    val gradient = Brush.linearGradient(
+        colorStops = arrayOf(0f to AuroraIndigo, 0.42f to AuroraPlum, 1f to AuroraAqua),
+    )
+    val background = when (variant) {
+        ElmStatVariant.DEFAULT -> MaterialTheme.colorScheme.surface
+        ElmStatVariant.PRIMARY -> Color.Transparent
+        ElmStatVariant.OVERTIME -> AuroraOvertimeBg
+        ElmStatVariant.WEEKEND -> AuroraWeekendBg
+    }
+    val labelColor = when (variant) {
+        ElmStatVariant.DEFAULT -> MaterialTheme.colorScheme.onSurfaceVariant
+        ElmStatVariant.PRIMARY -> AuroraWhite.copy(alpha = 0.8f)
+        ElmStatVariant.OVERTIME -> AuroraOvertimeInk
+        ElmStatVariant.WEEKEND -> AuroraPlum
+    }
+    val statColor = when (variant) {
+        ElmStatVariant.DEFAULT -> MaterialTheme.colorScheme.onSurface
+        ElmStatVariant.PRIMARY -> AuroraWhite
+        ElmStatVariant.OVERTIME -> AuroraPeachDeep
+        ElmStatVariant.WEEKEND -> AuroraPlum
+    }
+    val surfaceModifier = modifier
+        .shadow(
+            elevation = 8.dp,
+            shape = shape,
+            clip = false,
+            ambientColor = AuroraIndigo.copy(alpha = 0.05f),
+            spotColor = AuroraIndigo.copy(alpha = if (variant == ElmStatVariant.PRIMARY) 0.55f else 0.34f),
+        )
+        .then(
+            if (variant == ElmStatVariant.PRIMARY) Modifier.background(gradient, shape)
+            else Modifier.background(background, shape),
+        )
+        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+
+    Box(modifier = surfaceModifier) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(
+                text       = label.uppercase(),
+                style      = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color      = labelColor,
+                maxLines   = 1,
+                letterSpacing = TextUnit(0.08f, TextUnitType.Em),
+            )
+            Spacer(Modifier.height(4.dp))
             Text(
                 text       = value,
-                style      = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color      = valueColor,
-                textAlign  = TextAlign.Center,
+                style      = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color      = statColor,
                 maxLines   = 1,
             )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text      = label,
-                style     = MaterialTheme.typography.labelSmall,
-                color     = AuroraInk2,
-                textAlign = TextAlign.Center,
-                maxLines  = 1,
-            )
+            sub?.let {
+                Spacer(Modifier.height(2.dp))
+                Text(text = it, style = MaterialTheme.typography.bodySmall, color = labelColor)
+            }
         }
     }
 }
+
+enum class ElmStatVariant { DEFAULT, PRIMARY, OVERTIME, WEEKEND }
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 
@@ -126,14 +178,14 @@ fun ElmEmptyState(
         Box(
             modifier = Modifier
                 .size(72.dp)
-                .background(AuroraIndigo.copy(alpha = 0.08f), RoundedCornerShape(24.dp)),
+                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(CornerRadius.Large)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector     = icon,
                 contentDescription = null,
                 modifier        = Modifier.size(36.dp),
-                tint            = AuroraIndigo.copy(alpha = 0.6f),
+                tint            = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
         Spacer(Modifier.height(20.dp))
@@ -148,7 +200,7 @@ fun ElmEmptyState(
         Text(
             text      = subtitle,
             style     = MaterialTheme.typography.bodyMedium,
-            color     = AuroraInk2,
+            color     = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
     }
@@ -159,6 +211,6 @@ fun ElmEmptyState(
 @Composable
 fun ElmLoadingState(modifier: Modifier = Modifier) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = AuroraIndigo)
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
     }
 }

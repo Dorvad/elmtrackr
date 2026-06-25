@@ -1,6 +1,5 @@
 package com.elmtrackr.app.ui.auth
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,13 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -43,7 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -54,20 +50,13 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.elmtrackr.app.ui.design.AppLogo
 import com.elmtrackr.app.ui.design.ElmGradientButton
-import com.elmtrackr.app.ui.theme.AuroraAqua
-import com.elmtrackr.app.ui.theme.AuroraFaint
-import com.elmtrackr.app.ui.theme.AuroraIndigo
-import com.elmtrackr.app.ui.theme.AuroraInk2
-import com.elmtrackr.app.ui.theme.AuroraPlum
+import com.elmtrackr.app.ui.design.auroraEnter
 
 private const val MIN_PASSWORD_LENGTH = 6
 
 private enum class AuthMode { SIGN_IN, SIGN_UP, FORGOT_PASSWORD }
-
-private val boltGradient = Brush.linearGradient(
-    colorStops = arrayOf(0f to AuroraIndigo, 0.5f to AuroraPlum, 1f to AuroraAqua),
-)
 
 @Composable
 fun AuthScreen(
@@ -81,7 +70,7 @@ fun AuthScreen(
     ) {
         when (val s = state) {
             is AuthUiState.Loading       -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = AuroraIndigo)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
             is AuthUiState.NotConfigured -> NotConfiguredContent()
             is AuthUiState.SignedIn      -> SignedInContent(
@@ -100,6 +89,10 @@ fun AuthScreen(
             is AuthUiState.PasswordResetSent -> PasswordResetSentContent(
                 onBack = viewModel::dismissPasswordReset,
             )
+            is AuthUiState.SignUpConfirmation -> SignUpConfirmationContent(
+                email = s.email,
+                onBack = viewModel::dismissSignUpConfirmation,
+            )
         }
     }
 }
@@ -108,19 +101,10 @@ fun AuthScreen(
 
 @Composable
 private fun AuroraBoltLogo() {
-    Box(
-        modifier         = Modifier
-            .size(56.dp)
-            .background(boltGradient, RoundedCornerShape(16.dp)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector        = Icons.Filled.Bolt,
-            contentDescription = null,
-            tint               = Color.White,
-            modifier           = Modifier.size(32.dp),
-        )
-    }
+    AppLogo(
+        modifier = Modifier.size(56.dp),
+        cornerRadius = 16.dp,
+    )
 }
 
 // ── Not configured ────────────────────────────────────────────────────────────
@@ -135,7 +119,7 @@ private fun NotConfiguredContent() {
             Icon(
                 imageVector        = Icons.Filled.AccountCircle,
                 contentDescription = null,
-                tint               = AuroraFaint,
+                tint               = MaterialTheme.colorScheme.outline,
                 modifier           = Modifier.size(64.dp),
             )
             Spacer(Modifier.height(16.dp))
@@ -148,7 +132,7 @@ private fun NotConfiguredContent() {
             Text(
                 text      = "Add SUPABASE_URL and SUPABASE_ANON_KEY to local.properties to enable sign-in.",
                 style     = MaterialTheme.typography.bodyMedium,
-                color     = AuroraInk2,
+                color     = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
         }
@@ -183,7 +167,7 @@ private fun SignedInContent(
                 Text(
                     text  = profile.email,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = AuroraInk2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(Modifier.height(32.dp))
@@ -202,7 +186,7 @@ private fun SignedInContent(
 // ── Signed out form ───────────────────────────────────────────────────────────
 
 @Composable
-private fun SignedOutContent(
+internal fun SignedOutContent(
     isLoading: Boolean,
     errorMessage: String?,
     onSignIn: (email: String, password: String) -> Unit,
@@ -234,7 +218,8 @@ private fun SignedOutContent(
                 .widthIn(max = 480.dp)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 48.dp),
+                .padding(horizontal = 24.dp, vertical = 48.dp)
+                .auroraEnter(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Brand header
@@ -250,7 +235,7 @@ private fun SignedOutContent(
             Text(
                 text      = "Track shifts, overtime & earnings",
                 style     = MaterialTheme.typography.bodyMedium,
-                color     = AuroraInk2,
+                color     = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
 
@@ -273,7 +258,7 @@ private fun SignedOutContent(
                 value        = email,
                 onValueChange = { email = it; onClearError() },
                 label        = { Text("Email") },
-                leadingIcon  = { Icon(Icons.Filled.Email, contentDescription = null, tint = AuroraFaint) },
+                leadingIcon  = { Icon(Icons.Filled.Email, contentDescription = null, tint = MaterialTheme.colorScheme.outline) },
                 isError      = emailError != null,
                 supportingText = emailError?.let { { Text(it) } },
                 keyboardOptions = KeyboardOptions(
@@ -305,7 +290,7 @@ private fun SignedOutContent(
                             Icon(
                                 imageVector        = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                                 contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                tint               = AuroraFaint,
+                                tint               = MaterialTheme.colorScheme.outline,
                             )
                         }
                     },
@@ -375,20 +360,20 @@ private fun SignedOutContent(
             when (mode) {
                 AuthMode.SIGN_IN -> {
                     TextButton(onClick = { mode = AuthMode.SIGN_UP; onClearError() }) {
-                        Text("Don't have an account? Sign up", color = AuroraIndigo)
+                        Text("Don't have an account? Sign up", color = MaterialTheme.colorScheme.primary)
                     }
                     TextButton(onClick = { mode = AuthMode.FORGOT_PASSWORD; onClearError() }) {
-                        Text("Forgot password?", color = AuroraInk2)
+                        Text("Forgot password?", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 AuthMode.SIGN_UP -> {
                     TextButton(onClick = { mode = AuthMode.SIGN_IN; onClearError() }) {
-                        Text("Already have an account? Sign in", color = AuroraIndigo)
+                        Text("Already have an account? Sign in", color = MaterialTheme.colorScheme.primary)
                     }
                 }
                 AuthMode.FORGOT_PASSWORD -> {
                     TextButton(onClick = { mode = AuthMode.SIGN_IN; onClearError() }) {
-                        Text("Back to sign in", color = AuroraIndigo)
+                        Text("Back to sign in", color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -420,11 +405,34 @@ private fun PasswordResetSentContent(onBack: () -> Unit) {
             Text(
                 text      = "A password reset link has been sent to your email address.",
                 style     = MaterialTheme.typography.bodyMedium,
-                color     = AuroraInk2,
+                color     = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(24.dp))
-            TextButton(onClick = onBack) { Text("Back to sign in", color = AuroraIndigo) }
+            TextButton(onClick = onBack) { Text("Back to sign in", color = MaterialTheme.colorScheme.primary) }
+        }
+    }
+}
+
+@Composable
+private fun SignUpConfirmationContent(email: String, onBack: () -> Unit) {
+    Box(Modifier.fillMaxSize(), Alignment.Center) {
+        Column(
+            Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            AuroraBoltLogo()
+            Spacer(Modifier.height(20.dp))
+            Text("Confirm your email", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "We sent a confirmation link to $email. Open it, then return here to sign in.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(24.dp))
+            TextButton(onClick = onBack) { Text("Back to sign in", color = MaterialTheme.colorScheme.primary) }
         }
     }
 }

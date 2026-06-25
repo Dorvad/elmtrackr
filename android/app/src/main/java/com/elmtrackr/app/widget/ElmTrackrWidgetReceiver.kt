@@ -4,7 +4,6 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import com.elmtrackr.app.ElmTrackrApp
-import com.elmtrackr.app.domain.LOCAL_USER_ID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,7 +25,8 @@ class ElmTrackrWidgetReceiver : GlanceAppWidgetReceiver() {
         scope.launch {
             try {
                 val app = context.applicationContext as ElmTrackrApp
-                val shift = app.shiftsRepository.observeActiveShift(LOCAL_USER_ID).firstOrNull()
+                val userId = app.currentUserProvider.currentUserId() ?: return@launch
+                val shift = app.shiftsRepository.observeActiveShift(userId).firstOrNull()
                 ElmTrackrWidgetUpdater.update(context, shift)
             } catch (_: Exception) {
                 // Widget update is non-critical; fall back to empty state.

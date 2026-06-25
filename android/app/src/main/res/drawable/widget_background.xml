@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Rounded dark surface used as the widget container background. -->
+<!-- Widget background: purple-to-teal gradient matching the ElmTrackr Aurora palette. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#CC1C1B1F" />
-    <corners android:radius="16dp" />
+    <gradient
+        android:startColor="#6047D7"
+        android:endColor="#3DC9F0"
+        android:angle="0"
+        android:type="linear" />
+    <corners android:radius="20dp" />
 </shape>

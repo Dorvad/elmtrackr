@@ -113,6 +113,9 @@ class LocalShiftsRepository(
         }
     }
 
-    override fun observePendingSyncShifts(): Flow<List<Shift>> =
-        shiftDao.observePendingSyncShifts().map { entities -> entities.map { it.toDomain() } }
+    override fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<Shift>> =
+        shiftDao.observeRecentCompletedShifts(userId, limit).map { entities -> entities.map { it.toDomain() } }
+
+    override fun observePendingSyncShifts(userId: String): Flow<List<Shift>> =
+        shiftDao.observePendingSyncShifts(userId).map { entities -> entities.map { it.toDomain() } }
 }

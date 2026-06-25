@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Small mint-green circle used as the status indicator dot next to CLOCKED IN/OUT text. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#5CF0A0" />
+</shape>

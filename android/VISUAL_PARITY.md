@@ -1,5 +1,9 @@
 # Visual Parity: Android ↔ ElmTrackr Web
 
+> This audit was written against the web snapshot at the Android branch point.
+> The current default web branch contains later UX changes. Treat this document
+> as a token/component baseline, not a claim of complete current parity.
+
 Audit of differences between the native Android app and the original
 ElmTrackr web/PWA. Changes applied in commit "Align native Android UI
 with original ElmTrackr web design".

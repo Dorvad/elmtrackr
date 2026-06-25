@@ -16,6 +16,7 @@ import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -158,7 +159,7 @@ class SyncRepositoryImplTest {
 
         assertTrue(result is SyncResult.PartialSuccess)
         assertEquals(SyncStatus.FAILED, shiftDao.getShiftById("local-1")?.syncStatus)
-        assertEquals("network error", shiftDao.getShiftById("local-1")?.lastSyncError)
+        assertEquals("Network unavailable.", shiftDao.getShiftById("local-1")?.lastSyncError)
     }
 
     // ---- Pull: new remote record ----
@@ -208,7 +209,7 @@ class SyncRepositoryImplTest {
     // ---- Conflict: keep local pending changes ----
 
     @Test
-    fun `pull does not overwrite local shift with pending changes`() = runTest {
+    fun `successful push keeps local changes when subsequent pull is stale`() = runTest {
         val entity = shift(remoteId = "remote-1", syncStatus = SyncStatus.PENDING_UPDATE, updatedAt = now - 1000)
         shiftDao.insertShift(entity)
 
@@ -227,7 +228,7 @@ class SyncRepositoryImplTest {
         // Local should still have original break_minutes (0), not remote's 30
         val local = shiftDao.getShiftById("local-1")
         assertEquals(0, local?.breakMinutes)
-        assertEquals(SyncStatus.PENDING_UPDATE, local?.syncStatus)
+        assertEquals(SyncStatus.SYNCED, local?.syncStatus)
     }
 
     // ---- No duplicate active shift ----
@@ -261,5 +262,17 @@ class SyncRepositoryImplTest {
     fun `returns Success when no pending items and no remote items`() = runTest {
         val result = buildRepo().syncAll("user-1")
         assertEquals(SyncResult.Success, result)
+    }
+
+    @Test
+    fun `sync only pushes pending records owned by requested user`() = runTest {
+        shiftDao.insertShift(shift(localId = "mine", userId = "user-1"))
+        shiftDao.insertShift(shift(localId = "theirs", userId = "user-2"))
+
+        buildRepo().syncAll("user-1")
+
+        assertEquals(1, remoteShifts.upserted.size)
+        assertEquals("user-1", remoteShifts.upserted.single()["user_id"]?.jsonPrimitive?.content)
+        assertEquals(SyncStatus.PENDING_CREATE, shiftDao.getShiftById("theirs")?.syncStatus)
     }
 }

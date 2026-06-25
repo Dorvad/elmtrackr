@@ -3,6 +3,7 @@ package com.elmtrackr.app.data.local.mapper
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import com.elmtrackr.app.domain.model.ClockStyle
+import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.UserSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -16,6 +17,7 @@ class UserSettingsMapperTest {
         weekendDays: String = "5,6",
         clockStyle: String = "CLASSIC",
         hourlyRate: Double? = 60.0,
+        currency: String = "ILS",
         onboardingCompleted: Boolean = false,
     ) = UserSettingsEntity(
         localId = "cfg-1",
@@ -26,6 +28,7 @@ class UserSettingsMapperTest {
         weeklyOvertimeThresholdMinutes = 2400,
         weekendDays = weekendDays,
         hourlyRate = hourlyRate,
+        currency = currency,
         onboardingCompleted = onboardingCompleted,
         onboardingCompletedAt = null,
         featuresTravelRefunds = false,
@@ -84,6 +87,13 @@ class UserSettingsMapperTest {
             updatedAt = Instant.EPOCH,
         )
         assertEquals("PRISM", domain.toEntity().clockStyle)
+    }
+
+    @Test
+    fun `currency round-trips through local entity`() {
+        val domain = entity(currency = "EUR").toDomain()
+        assertEquals(CurrencyCode.EUR, domain.currency)
+        assertEquals("EUR", domain.toEntity().currency)
     }
 
     @Test

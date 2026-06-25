@@ -8,7 +8,7 @@ enum class RefundAction {
 }
 
 enum class RefundProvider {
-    LIME, DOTT, OTHER
+    LIME, DOTT, BIRD, TAXI, OTHER
 }
 
 enum class RefundDirection {

@@ -1,6 +1,8 @@
 package com.elmtrackr.app.ui.onboarding
 
 import com.elmtrackr.app.domain.model.Profile
+import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.util.MainDispatcherRule
@@ -22,7 +24,9 @@ class OnboardingViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val settingsRepo = FakeSettingsRepository()
-    private val authRepo = FakeAuthRepository()
+    private val authRepo = FakeAuthRepository().apply {
+        setProfile(Profile("u1", "test@test.com", null, Instant.EPOCH, Instant.EPOCH))
+    }
     private var completionCalled = false
 
     private fun buildVm() = OnboardingViewModel(
@@ -35,11 +39,11 @@ class OnboardingViewModelTest {
         dailyOT: Int = 8,
         weeklyOT: Int = 40,
         hourlyRate: Double? = null,
-        displayName: String = "",
+        displayName: String = "Test User",
     ) = OnboardingInput(
         displayName = displayName,
-        dailyOvertimeHours = dailyOT,
-        weeklyOvertimeHours = weeklyOT,
+        dailyOvertimeHours = dailyOT.toDouble(),
+        weeklyOvertimeHours = weeklyOT.toDouble(),
         hourlyRate = hourlyRate,
     )
 
@@ -92,6 +96,15 @@ class OnboardingViewModelTest {
         assertNotNull((state as OnboardingUiState.ValidationError).errors["hourlyRate"])
     }
 
+    @Test
+    fun `blank display name returns validation error`() {
+        val vm = buildVm()
+        vm.completeOnboarding(validInput(displayName = ""))
+
+        val state = vm.uiState.value as OnboardingUiState.ValidationError
+        assertNotNull(state.errors["displayName"])
+    }
+
     // ---- Save flow ----
 
     @Test
@@ -124,7 +137,7 @@ class OnboardingViewModelTest {
     fun `valid input saves hourly rate and weekend days`() = runTest {
         val vm = buildVm()
         vm.completeOnboarding(
-            validInput(hourlyRate = 55.0).copy(weekendDays = listOf(5, 6))
+            validInput(hourlyRate = 55.0).copy(weekendDays = listOf(5, 6), currency = CurrencyCode.EUR)
         )
         advanceUntilIdle()
 
@@ -132,6 +145,29 @@ class OnboardingViewModelTest {
         assertNotNull(saved)
         assertEquals(55.0, saved!!.hourlyRate)
         assertEquals(listOf(5, 6), saved.weekendDays)
+        assertEquals(CurrencyCode.EUR, saved.currency)
+    }
+
+    @Test
+    fun `replay onboarding updates core work preferences`() = runTest {
+        settingsRepo.setSettings(
+            UserSettings(id = "settings", userId = "u1", hourlyRate = 30.0, createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+        )
+        val vm = buildVm()
+
+        vm.completeOnboarding(
+            validInput(hourlyRate = 80.0).copy(
+                weekendDays = listOf(0, 6),
+                currency = CurrencyCode.USD,
+                preserveExisting = true,
+            )
+        )
+        advanceUntilIdle()
+
+        val saved = settingsRepo.getSettings("u1")!!
+        assertEquals(80.0, saved.hourlyRate)
+        assertEquals(listOf(0, 6), saved.weekendDays)
+        assertEquals(CurrencyCode.USD, saved.currency)
     }
 
     @Test
@@ -169,12 +205,14 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `display name not required — completes without profile if not signed in`() = runTest {
+    fun `onboarding requires an authenticated profile`() = runTest {
         authRepo.setProfile(null)
         val vm = buildVm()
         vm.completeOnboarding(validInput(displayName = "Alice"))
         advanceUntilIdle()
 
-        assertEquals(OnboardingUiState.Completed, vm.uiState.value)
+        val state = vm.uiState.value
+        assertTrue(state is OnboardingUiState.ValidationError)
+        assertNotNull((state as OnboardingUiState.ValidationError).errors["save"])
     }
 }

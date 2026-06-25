@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.dashboard
 
+import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -15,6 +16,8 @@ sealed interface DashboardUiState {
         val recentShifts: List<Shift> = emptyList(),
         val displayName: String? = null,
         val isRemoteConfigured: Boolean = true,
+        val unresolvedRefundCount: Int = 0,
+        val paySummary: PayrollCalculator.MonthlyPaySummary? = null,
     ) : DashboardUiState
 
     data class Error(val message: String) : DashboardUiState

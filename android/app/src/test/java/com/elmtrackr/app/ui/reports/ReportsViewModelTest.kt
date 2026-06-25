@@ -2,7 +2,9 @@ package com.elmtrackr.app.ui.reports
 
 import com.elmtrackr.app.fake.FakeReportsRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
+import com.elmtrackr.app.fake.FakeCurrentUserProvider
 import com.elmtrackr.app.fake.FakeShiftsRepository
+import com.elmtrackr.app.fake.FakeRefundsRepository
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -30,7 +32,18 @@ class ReportsViewModelTest {
     private val shiftsRepo = FakeShiftsRepository()
     private val settingsRepo = FakeSettingsRepository()
 
-    private fun buildVm() = ReportsViewModel(reportsRepo, shiftsRepo, settingsRepo)
+    private fun buildVm(ensureSettings: Boolean = true): ReportsViewModel {
+        if (ensureSettings) {
+            settingsRepo.setSettings(UserSettings(id = "s", userId = "u1"))
+        }
+        return ReportsViewModel(
+            reportsRepo,
+            shiftsRepo,
+            settingsRepo,
+            FakeCurrentUserProvider(),
+            FakeRefundsRepository(),
+        )
+    }
 
     private fun reportWith(shiftCount: Int, totalMinutes: Int = 0) =
         MonthlyReport(2024, 1, totalMinutes, totalMinutes, 0, 0, shiftCount, emptyList())
@@ -46,12 +59,27 @@ class ReportsViewModelTest {
     // ── UI state ──────────────────────────────────────────────────────────
 
     @Test
-    fun `initial state is Loading`() {
-        assertEquals(ReportsUiState.Loading, buildVm().uiState.value)
+    fun `initial state is Loading`() = runTest {
+        settingsRepo.setSettings(null)
+        assertEquals(ReportsUiState.Loading, buildVm(ensureSettings = false).uiState.value)
     }
 
     @Test
-    fun `empty state when report has no shifts`() = runTest {
+    fun `stays loading until settings are available`() = runTest {
+        settingsRepo.setSettings(null)
+        val vm = buildVm(ensureSettings = false)
+        val states = mutableListOf<ReportsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        reportsRepo.setReport(reportWith(shiftCount = 1))
+        advanceUntilIdle()
+
+        assertTrue(states.all { it is ReportsUiState.Loading })
+        job.cancel()
+    }
+
+    @Test
+    fun `ready state remains available for refunds when report has no shifts`() = runTest {
         val vm = buildVm()
         val states = mutableListOf<ReportsUiState>()
         val job = launch { vm.uiState.collect { states.add(it) } }
@@ -59,7 +87,7 @@ class ReportsViewModelTest {
         reportsRepo.setReport(reportWith(shiftCount = 0))
         advanceUntilIdle()
 
-        assertTrue(states.any { it is ReportsUiState.Empty })
+        assertTrue(states.any { it is ReportsUiState.Ready && it.report.shiftCount == 0 })
         job.cancel()
     }
 
@@ -227,22 +255,24 @@ class ReportsViewModelTest {
         val csv = vm.buildCsvContent(listOf(completedShift()), settings = null)
         assertTrue(csv.lines().first().contains("Date"))
         assertTrue(csv.lines().first().contains("Start Time"))
-        assertTrue(csv.lines().first().contains("Net Min"))
+        assertTrue(csv.lines().first().contains("Total Hours"))
     }
 
     @Test
-    fun `csv includes gross pay column when hourly rate set`() {
+    fun `csv matches web columns regardless of hourly rate`() {
         val vm = buildVm()
         val settings = UserSettings(id = "s", userId = "u1", hourlyRate = 50.0)
         val csv = vm.buildCsvContent(listOf(completedShift()), settings)
-        assertTrue(csv.lines().first().contains("Gross Pay"))
+        assertTrue(csv.lines().first().contains("Regular Hours"))
+        assertFalse(csv.lines().first().contains("Gross Pay"))
     }
 
     @Test
-    fun `csv omits pay column when no hourly rate`() {
+    fun `csv includes overnight and notes columns`() {
         val vm = buildVm()
         val csv = vm.buildCsvContent(listOf(completedShift()), settings = null)
-        assertFalse(csv.lines().first().contains("Gross Pay"))
+        assertTrue(csv.lines().first().contains("Overnight"))
+        assertTrue(csv.lines().first().contains("Notes"))
     }
 
     @Test
@@ -250,16 +280,16 @@ class ReportsViewModelTest {
         val vm = buildVm()
         val shifts = listOf(completedShift("s1"), completedShift("s2"))
         val csv = vm.buildCsvContent(shifts, settings = null)
-        val dataRows = csv.lines().drop(1).filter { it.isNotBlank() }
-        assertEquals(2, dataRows.size)
+        val shiftRows = csv.lines().drop(1).takeWhile { it.isNotBlank() }
+        assertEquals(2, shiftRows.size)
     }
 
     @Test
     fun `csv is empty except header when shifts list is empty`() {
         val vm = buildVm()
         val csv = vm.buildCsvContent(emptyList(), settings = null)
-        val dataRows = csv.lines().drop(1).filter { it.isNotBlank() }
-        assertEquals(0, dataRows.size)
+        val shiftRows = csv.lines().drop(1).takeWhile { it.isNotBlank() }
+        assertEquals(0, shiftRows.size)
     }
 
     @Test
@@ -298,5 +328,15 @@ class ReportsViewModelTest {
         assertTrue("Row should contain date: $dataRow", dataRow.contains("2024-01-08"))
         assertTrue("Row should contain start time: $dataRow", dataRow.contains("09:00"))
         assertTrue("Row should contain end time: $dataRow", dataRow.contains("17:00"))
+    }
+
+    @Test
+    fun `retry bumps refresh nonce without changing selected month`() = runTest {
+        val vm = buildVm()
+        advanceUntilIdle()
+        val before = vm.selectedYearMonth.value
+        vm.retry()
+        advanceUntilIdle()
+        assertEquals(before, vm.selectedYearMonth.value)
     }
 }

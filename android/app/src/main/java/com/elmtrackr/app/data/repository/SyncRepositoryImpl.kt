@@ -36,12 +36,17 @@ class SyncRepositoryImpl(
     private val remoteProfile: RemoteProfileDataSource?,
 ) : SyncRepository {
 
+    private fun JsonObject.timestampMillis(key: String): Long =
+        this[key]?.jsonPrimitive?.content?.let { value ->
+            value.toLongOrNull() ?: runCatching { Instant.parse(value).toEpochMilli() }.getOrDefault(0L)
+        } ?: 0L
+
     private val _lastSyncStatus = MutableStateFlow<String?>(null)
 
-    override fun observePendingCount(): Flow<Int> =
+    override fun observePendingCount(userId: String): Flow<Int> =
         combine(
-            shiftDao.observePendingSyncShifts(),
-            refundClaimDao.observePendingSyncClaims(),
+            shiftDao.observePendingSyncShifts(userId),
+            refundClaimDao.observePendingSyncClaims(userId),
         ) { shifts, claims -> shifts.size + claims.size }
 
     override fun observeLastSyncStatus(): Flow<String?> = _lastSyncStatus
@@ -51,17 +56,19 @@ class SyncRepositoryImpl(
 
         val errors = mutableListOf<SyncItemError>()
 
-        // Push in dependency order: shifts before claims (claims reference shift remoteId)
-        errors += pushShifts(userId)
-        errors += pushRefundClaims(userId)
-        errors += pushSettings(userId)
-        errors += pushProfiles(userId)
-
-        // Pull phase
+        // Reconcile remote IDs before pushing. This is required when Android first
+        // connects to an account that already has web-created settings/profile data.
         errors += pullShifts(userId)
         errors += pullRefundClaims(userId)
         errors += pullSettings(userId)
         errors += pullProfiles(userId)
+
+        // Push in dependency order: shifts before claims (claims reference shift remoteId).
+        // Pending local records remain authoritative during the pull phase above.
+        errors += pushShifts(userId)
+        errors += pushRefundClaims(userId)
+        errors += pushSettings(userId)
+        errors += pushProfiles(userId)
 
         _lastSyncStatus.value = if (errors.isEmpty()) "success" else "partial:${errors.size}"
 
@@ -72,7 +79,7 @@ class SyncRepositoryImpl(
 
     private suspend fun pushShifts(userId: String): List<SyncItemError> {
         val errors = mutableListOf<SyncItemError>()
-        val pending = shiftDao.getPendingSyncShifts()
+        val pending = shiftDao.getPendingSyncShifts(userId)
         val now = Instant.now().toEpochMilli()
 
         for (entity in pending) {
@@ -89,7 +96,7 @@ class SyncRepositoryImpl(
                     }
                 }
             }.onFailure { e ->
-                val msg = e.message ?: "unknown error"
+                val msg = SyncErrorMapper.messageFor(e)
                 errors += SyncItemError("shift", entity.localId, msg)
                 shiftDao.updateSyncState(entity.localId, SyncStatus.FAILED, entity.remoteId, entity.lastSyncedAt, msg)
             }
@@ -99,7 +106,7 @@ class SyncRepositoryImpl(
 
     private suspend fun pushRefundClaims(userId: String): List<SyncItemError> {
         val errors = mutableListOf<SyncItemError>()
-        val pending = refundClaimDao.getPendingSyncClaims()
+        val pending = refundClaimDao.getPendingSyncClaims(userId)
         val now = Instant.now().toEpochMilli()
 
         for (entity in pending) {
@@ -118,7 +125,7 @@ class SyncRepositoryImpl(
                     }
                 }
             }.onFailure { e ->
-                val msg = e.message ?: "unknown error"
+                val msg = SyncErrorMapper.messageFor(e)
                 errors += SyncItemError("refund_claim", entity.localId, msg)
                 refundClaimDao.updateSyncState(entity.localId, SyncStatus.FAILED, entity.remoteId, entity.lastSyncedAt, msg)
             }
@@ -128,16 +135,23 @@ class SyncRepositoryImpl(
 
     private suspend fun pushSettings(userId: String): List<SyncItemError> {
         val errors = mutableListOf<SyncItemError>()
-        val pending = settingsDao.getPendingSyncSettings()
+        val pending = settingsDao.getPendingSyncSettings(userId)
         val now = Instant.now().toEpochMilli()
 
         for (entity in pending) {
             runCatching {
                 val remoteId = entity.remoteId ?: UUID.randomUUID().toString()
-                remoteSettings!!.upsert(entity.toRemoteJson(overrideId = remoteId))
+                runCatching {
+                    remoteSettings!!.upsert(entity.toRemoteJson(overrideId = remoteId))
+                }.recoverCatching { error ->
+                    if (!error.isMissingCurrencyColumn()) throw error
+                    remoteSettings!!.upsert(
+                        entity.toRemoteJson(overrideId = remoteId, includeCurrency = false),
+                    )
+                }.getOrThrow()
                 settingsDao.updateSyncState(entity.localId, SyncStatus.SYNCED, remoteId, now, null)
             }.onFailure { e ->
-                val msg = e.message ?: "unknown error"
+                val msg = SyncErrorMapper.messageFor(e)
                 errors += SyncItemError("settings", entity.localId, msg)
                 settingsDao.updateSyncState(entity.localId, SyncStatus.FAILED, entity.remoteId, entity.lastSyncedAt, msg)
             }
@@ -147,7 +161,7 @@ class SyncRepositoryImpl(
 
     private suspend fun pushProfiles(userId: String): List<SyncItemError> {
         val errors = mutableListOf<SyncItemError>()
-        val pending = profileDao.getPendingSyncProfiles()
+        val pending = profileDao.getPendingSyncProfiles(userId)
         val now = Instant.now().toEpochMilli()
 
         for (entity in pending) {
@@ -155,7 +169,7 @@ class SyncRepositoryImpl(
                 remoteProfile!!.upsert(entity.toRemoteJson())
                 profileDao.updateSyncState(entity.localId, SyncStatus.SYNCED, entity.remoteId ?: entity.localId, now, null)
             }.onFailure { e ->
-                val msg = e.message ?: "unknown error"
+                val msg = SyncErrorMapper.messageFor(e)
                 errors += SyncItemError("profile", entity.localId, msg)
                 profileDao.updateSyncState(entity.localId, SyncStatus.FAILED, entity.remoteId, entity.lastSyncedAt, msg)
             }
@@ -168,15 +182,14 @@ class SyncRepositoryImpl(
     private suspend fun pullShifts(userId: String): List<SyncItemError> {
         val errors = mutableListOf<SyncItemError>()
         val remoteItems: List<JsonObject> = runCatching { remoteShifts!!.fetchAll(userId) }
-            .getOrElse { e -> return listOf(SyncItemError("shift_pull", userId, e.message ?: "fetch failed")) }
+            .getOrElse { e -> return listOf(SyncItemError("shift_pull", userId, SyncErrorMapper.messageFor(e))) }
 
         val activeLocalShifts = shiftDao.getActiveShifts(userId)
 
         for (remote in remoteItems) {
             runCatching {
                 val remoteId = remote["id"]?.jsonPrimitive?.content ?: return@runCatching
-                val remoteUpdatedAt = remote["updated_at"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
-                val remoteDeletedAt = remote["deleted_at"]?.jsonPrimitive?.content?.toLongOrNull()
+                val remoteUpdatedAt = remote.timestampMillis("updated_at")
                 val local = shiftDao.getShiftByRemoteId(remoteId)
 
                 when {
@@ -190,16 +203,14 @@ class SyncRepositoryImpl(
                     }
                     local.syncStatus == SyncStatus.SYNCED -> {
                         // No local pending changes — apply remote if it's newer or deleted
-                        if (remoteDeletedAt != null) {
-                            shiftDao.softDeleteShift(local.localId, remoteDeletedAt, SyncStatus.SYNCED, remoteDeletedAt)
-                        } else if (remoteUpdatedAt > local.updatedAt) {
+                        if (remoteUpdatedAt > local.updatedAt) {
                             shiftDao.upsertShift(remote.toShiftEntity(existingLocalId = local.localId))
                         }
                     }
                     // else: local has pending changes — keep local, remote will be overwritten on next push
                 }
             }.onFailure { e ->
-                errors += SyncItemError("shift_pull", remote["id"]?.jsonPrimitive?.content ?: "?", e.message ?: "map error")
+                errors += SyncItemError("shift_pull", remote["id"]?.jsonPrimitive?.content ?: "?", SyncErrorMapper.messageFor(e))
             }
         }
         return errors
@@ -208,13 +219,12 @@ class SyncRepositoryImpl(
     private suspend fun pullRefundClaims(userId: String): List<SyncItemError> {
         val errors = mutableListOf<SyncItemError>()
         val remoteItems: List<JsonObject> = runCatching { remoteRefunds!!.fetchAll(userId) }
-            .getOrElse { e -> return listOf(SyncItemError("claim_pull", userId, e.message ?: "fetch failed")) }
+            .getOrElse { e -> return listOf(SyncItemError("claim_pull", userId, SyncErrorMapper.messageFor(e))) }
 
         for (remote in remoteItems) {
             runCatching {
                 val remoteId = remote["id"]?.jsonPrimitive?.content ?: return@runCatching
-                val remoteUpdatedAt = remote["updated_at"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
-                val remoteDeletedAt = remote["deleted_at"]?.jsonPrimitive?.content?.toLongOrNull()
+                val remoteUpdatedAt = remote.timestampMillis("updated_at")
                 val local = refundClaimDao.getClaimByRemoteId(remoteId)
 
                 val shiftRemoteId = remote["shift_id"]?.jsonPrimitive?.content ?: return@runCatching
@@ -226,15 +236,13 @@ class SyncRepositoryImpl(
                         refundClaimDao.upsertClaim(remote.toRefundClaimEntity(shiftLocalId = shiftLocalId))
                     }
                     local.syncStatus == SyncStatus.SYNCED -> {
-                        if (remoteDeletedAt != null) {
-                            refundClaimDao.softDeleteClaim(local.localId, remoteDeletedAt, SyncStatus.SYNCED, remoteDeletedAt)
-                        } else if (remoteUpdatedAt > local.updatedAt) {
+                        if (remoteUpdatedAt > local.updatedAt) {
                             refundClaimDao.upsertClaim(remote.toRefundClaimEntity(shiftLocalId = shiftLocalId, existingLocalId = local.localId))
                         }
                     }
                 }
             }.onFailure { e ->
-                errors += SyncItemError("claim_pull", remote["id"]?.jsonPrimitive?.content ?: "?", e.message ?: "map error")
+                errors += SyncItemError("claim_pull", remote["id"]?.jsonPrimitive?.content ?: "?", SyncErrorMapper.messageFor(e))
             }
         }
         return errors
@@ -243,21 +251,34 @@ class SyncRepositoryImpl(
     private suspend fun pullSettings(userId: String): List<SyncItemError> {
         val errors = mutableListOf<SyncItemError>()
         val remoteItems: List<JsonObject> = runCatching { remoteSettings!!.fetchAll(userId) }
-            .getOrElse { e -> return listOf(SyncItemError("settings_pull", userId, e.message ?: "fetch failed")) }
+            .getOrElse { e -> return listOf(SyncItemError("settings_pull", userId, SyncErrorMapper.messageFor(e))) }
 
         for (remote in remoteItems) {
             runCatching {
                 val remoteId = remote["id"]?.jsonPrimitive?.content ?: return@runCatching
-                val remoteUpdatedAt = remote["updated_at"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+                val remoteUpdatedAt = remote.timestampMillis("updated_at")
                 val local = settingsDao.getSettingsByRemoteId(remoteId)
+                    ?: settingsDao.getSettings(userId)
 
                 when {
                     local == null -> settingsDao.upsertSettings(remote.toUserSettingsEntity())
                     local.syncStatus == SyncStatus.SYNCED && remoteUpdatedAt > local.updatedAt ->
-                        settingsDao.upsertSettings(remote.toUserSettingsEntity(existingLocalId = local.localId))
+                        settingsDao.upsertSettings(
+                            remote.toUserSettingsEntity(
+                                existingLocalId = local.localId,
+                                fallbackCurrency = local.currency,
+                            )
+                        )
+                    local.remoteId == null -> settingsDao.updateSyncState(
+                        local.localId,
+                        local.syncStatus,
+                        remoteId,
+                        local.lastSyncedAt,
+                        local.lastSyncError,
+                    )
                 }
             }.onFailure { e ->
-                errors += SyncItemError("settings_pull", remote["id"]?.jsonPrimitive?.content ?: "?", e.message ?: "map error")
+                errors += SyncItemError("settings_pull", remote["id"]?.jsonPrimitive?.content ?: "?", SyncErrorMapper.messageFor(e))
             }
         }
         return errors
@@ -266,12 +287,12 @@ class SyncRepositoryImpl(
     private suspend fun pullProfiles(userId: String): List<SyncItemError> {
         val errors = mutableListOf<SyncItemError>()
         val remoteItems: List<JsonObject> = runCatching { remoteProfile!!.fetchAll(userId) }
-            .getOrElse { e -> return listOf(SyncItemError("profile_pull", userId, e.message ?: "fetch failed")) }
+            .getOrElse { e -> return listOf(SyncItemError("profile_pull", userId, SyncErrorMapper.messageFor(e))) }
 
         for (remote in remoteItems) {
             runCatching {
                 val remoteId = remote["id"]?.jsonPrimitive?.content ?: return@runCatching
-                val remoteUpdatedAt = remote["updated_at"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+                val remoteUpdatedAt = remote.timestampMillis("updated_at")
                 val local = profileDao.getProfileByRemoteId(remoteId)
 
                 when {
@@ -280,9 +301,16 @@ class SyncRepositoryImpl(
                         profileDao.upsertProfile(remote.toProfileEntity(userId = userId, existingLocalId = local.localId))
                 }
             }.onFailure { e ->
-                errors += SyncItemError("profile_pull", remote["id"]?.jsonPrimitive?.content ?: "?", e.message ?: "map error")
+                errors += SyncItemError("profile_pull", remote["id"]?.jsonPrimitive?.content ?: "?", SyncErrorMapper.messageFor(e))
             }
         }
         return errors
     }
 }
+
+private fun Throwable.isMissingCurrencyColumn(): Boolean = generateSequence(this) { it.cause }
+    .mapNotNull(Throwable::message)
+    .any { message ->
+        message.contains("currency", ignoreCase = true) &&
+            (message.contains("column", ignoreCase = true) || message.contains("schema cache", ignoreCase = true))
+    }

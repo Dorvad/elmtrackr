@@ -3,6 +3,7 @@ package com.elmtrackr.app.data.local.mapper
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import com.elmtrackr.app.domain.model.ClockStyle
+import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.UserSettings
 import java.time.Instant
 
@@ -15,6 +16,7 @@ fun UserSettingsEntity.toDomain(): UserSettings = UserSettings(
     weekendDays = if (weekendDays.isBlank()) emptyList()
                   else weekendDays.split(",").map { it.trim().toInt() },
     hourlyRate = hourlyRate,
+    currency = CurrencyCode.from(currency),
     onboardingCompleted = onboardingCompleted,
     onboardingCompletedAt = onboardingCompletedAt?.let { Instant.ofEpochMilli(it) },
     featuresTravelRefunds = featuresTravelRefunds,
@@ -41,6 +43,7 @@ fun UserSettings.toEntity(
     weeklyOvertimeThresholdMinutes = weeklyOvertimeThresholdMinutes,
     weekendDays = weekendDays.joinToString(","),
     hourlyRate = hourlyRate,
+    currency = currency.name,
     onboardingCompleted = onboardingCompleted,
     onboardingCompletedAt = onboardingCompletedAt?.toEpochMilli(),
     featuresTravelRefunds = featuresTravelRefunds,

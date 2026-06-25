@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface RefundClaimDao {
 
+    @Query("UPDATE refund_claims SET userId = :userId WHERE userId = 'local-user'")
+    suspend fun adoptLegacyUser(userId: String)
+
     @Query(
         "SELECT * FROM refund_claims WHERE userId = :userId AND deletedAt IS NULL " +
             "ORDER BY rideAt DESC"
@@ -48,16 +51,16 @@ interface RefundClaimDao {
     )
 
     @Query(
-        "SELECT * FROM refund_claims WHERE syncStatus IN " +
+        "SELECT * FROM refund_claims WHERE userId = :userId AND syncStatus IN " +
             "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE')"
     )
-    fun observePendingSyncClaims(): Flow<List<RefundClaimEntity>>
+    fun observePendingSyncClaims(userId: String): Flow<List<RefundClaimEntity>>
 
     @Query(
-        "SELECT * FROM refund_claims WHERE syncStatus IN " +
+        "SELECT * FROM refund_claims WHERE userId = :userId AND syncStatus IN " +
             "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')"
     )
-    suspend fun getPendingSyncClaims(): List<RefundClaimEntity>
+    suspend fun getPendingSyncClaims(userId: String): List<RefundClaimEntity>
 
     @Query(
         "UPDATE refund_claims SET syncStatus = :syncStatus, remoteId = :remoteId, " +

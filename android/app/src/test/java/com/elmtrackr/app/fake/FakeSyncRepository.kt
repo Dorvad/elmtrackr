@@ -15,7 +15,7 @@ class FakeSyncRepository : SyncRepository {
 
     fun setPendingCount(count: Int) { _pendingCount.value = count }
 
-    override fun observePendingCount(): Flow<Int> = _pendingCount
+    override fun observePendingCount(userId: String): Flow<Int> = _pendingCount
 
     override fun observeLastSyncStatus(): Flow<String?> = _lastSyncStatus
 

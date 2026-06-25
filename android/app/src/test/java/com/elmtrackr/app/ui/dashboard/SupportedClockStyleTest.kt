@@ -22,16 +22,11 @@ class SupportedClockStyleTest {
     }
 
     @Test
-    fun `unsupported styles fall back to CLASSIC`() {
-        val unsupported = listOf(
-            ClockStyle.FOCUS, ClockStyle.BOLD, ClockStyle.NIGHT,
-            ClockStyle.RETRO, ClockStyle.PULSE, ClockStyle.DIAL,
-            ClockStyle.STRAND, ClockStyle.PRISM,
-        )
-        unsupported.forEach { style ->
+    fun `every persisted style maps to its native renderer`() {
+        ClockStyle.entries.forEach { style ->
             assertEquals(
-                "Expected CLASSIC fallback for $style",
-                SupportedClockStyle.CLASSIC,
+                "Expected a matching native renderer for $style",
+                SupportedClockStyle.valueOf(style.name),
                 style.toSupportedOrDefault(),
             )
         }

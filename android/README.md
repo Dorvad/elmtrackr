@@ -1,5 +1,14 @@
 # ElmTrackr — Native Android App
 
+> **Implementation status (2026-06-21):** Authenticated user identity, one-time
+> legacy-data adoption, account-isolated offline sync, current Supabase wire
+> formats, auth callbacks, live theme selection, shift month navigation, basic
+> insights, refund claim editing, and debug/release verification are implemented.
+> Remaining parity work is intentionally tracked as separate deliverables:
+> receipt capture/storage and refund PDF export, eight additional native clock
+> renderers, advanced motion, staged onboarding, fuller weekly
+> comparisons, and emulator/device instrumentation.
+
 Native Kotlin + Jetpack Compose app that lives in this directory alongside the
 Next.js web app. The two share the same Supabase backend but have completely
 separate codebases. **No WebView, no Capacitor.**

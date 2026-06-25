@@ -18,6 +18,7 @@ data class UserSettings(
     val weeklyOvertimeThresholdMinutes: Int = DEFAULT_WEEKLY_OT_MINUTES,
     val weekendDays: List<Int> = DEFAULT_WEEKEND_DAYS,
     val hourlyRate: Double? = null,
+    val currency: CurrencyCode = CurrencyCode.ILS,
     val onboardingCompleted: Boolean = false,
     val onboardingCompletedAt: Instant? = null,
     val featuresTravelRefunds: Boolean = false,

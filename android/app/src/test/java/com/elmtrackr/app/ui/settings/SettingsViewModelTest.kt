@@ -1,7 +1,7 @@
 package com.elmtrackr.app.ui.settings
 
-import com.elmtrackr.app.domain.LOCAL_USER_ID
 import com.elmtrackr.app.domain.model.ClockStyle
+import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.fake.FakeAuthRepository
@@ -28,7 +28,9 @@ class SettingsViewModelTest {
 
     private val repo = FakeSettingsRepository()
     private val syncRepo = FakeSyncRepository()
-    private val authRepo = FakeAuthRepository()
+    private val authRepo = FakeAuthRepository().apply {
+        setProfile(Profile("u1", "test@example.com", null, Instant.EPOCH, Instant.EPOCH))
+    }
     private val themeStore = FakeThemePreferenceStore()
 
     private fun buildVm() = SettingsViewModel(repo, syncRepo, authRepo, themeStore)
@@ -73,7 +75,7 @@ class SettingsViewModelTest {
 
         val ready = states.filterIsInstance<SettingsUiState.Ready>().lastOrNull()
         assertNotNull(ready)
-        assertEquals(LOCAL_USER_ID, ready!!.settings.userId)
+        assertEquals("u1", ready!!.settings.userId)
         job.cancel()
     }
 
@@ -115,6 +117,18 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(null, repo.getSettings("u1")?.hourlyRate)
+    }
+
+    @Test
+    fun `saveSettings updates currency`() = runTest {
+        val vm = buildVm()
+        repo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        vm.saveSettings("", 8.0, 40.0, 50.0, "UTC", ClockStyle.CLASSIC, CurrencyCode.EUR)
+        advanceUntilIdle()
+
+        assertEquals(CurrencyCode.EUR, repo.getSettings("u1")?.currency)
     }
 
     @Test

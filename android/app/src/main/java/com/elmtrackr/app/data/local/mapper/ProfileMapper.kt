@@ -22,7 +22,7 @@ fun Profile.toEntity(
     lastSyncedAt: Long? = null,
 ): ProfileEntity = ProfileEntity(
     localId = id,
-    remoteId = remoteId,
+    remoteId = remoteId ?: id,
     userId = userId,
     email = email,
     fullName = fullName,

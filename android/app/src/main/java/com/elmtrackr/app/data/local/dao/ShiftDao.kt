@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ShiftDao {
 
+    @Query("UPDATE shifts SET userId = :userId WHERE userId = 'local-user'")
+    suspend fun adoptLegacyUser(userId: String)
+
     @Query(
         "SELECT * FROM shifts WHERE userId = :userId AND deletedAt IS NULL " +
             "ORDER BY startTime DESC"
@@ -48,16 +51,16 @@ interface ShiftDao {
     )
 
     @Query(
-        "SELECT * FROM shifts WHERE syncStatus IN " +
+        "SELECT * FROM shifts WHERE userId = :userId AND syncStatus IN " +
             "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE')"
     )
-    fun observePendingSyncShifts(): Flow<List<ShiftEntity>>
+    fun observePendingSyncShifts(userId: String): Flow<List<ShiftEntity>>
 
     @Query(
-        "SELECT * FROM shifts WHERE syncStatus IN " +
+        "SELECT * FROM shifts WHERE userId = :userId AND syncStatus IN " +
             "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')"
     )
-    suspend fun getPendingSyncShifts(): List<ShiftEntity>
+    suspend fun getPendingSyncShifts(userId: String): List<ShiftEntity>
 
     @Query(
         "UPDATE shifts SET syncStatus = :syncStatus, remoteId = :remoteId, " +
@@ -82,6 +85,13 @@ interface ShiftDao {
 
     @Query("SELECT * FROM shifts WHERE remoteId = :remoteId LIMIT 1")
     suspend fun getShiftByRemoteId(remoteId: String): ShiftEntity?
+
+    @Query(
+        "SELECT * FROM shifts WHERE userId = :userId " +
+            "AND endTime IS NOT NULL AND deletedAt IS NULL " +
+            "ORDER BY startTime DESC LIMIT :limit"
+    )
+    fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<ShiftEntity>>
 
     @Query(
         "SELECT * FROM shifts WHERE userId = :userId " +

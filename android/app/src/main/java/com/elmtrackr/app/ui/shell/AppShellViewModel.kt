@@ -7,34 +7,37 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.domain.repository.AuthRepository
-import kotlinx.coroutines.flow.Flow
+import com.elmtrackr.app.domain.repository.SettingsRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AppShellViewModel(
     private val authRepository: AuthRepository,
-    onboardingCompletedFlow: Flow<Boolean>,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
-    val navState: StateFlow<AppNavState> = combine(
-        authRepository.observeCurrentProfile(),
-        onboardingCompletedFlow,
-    ) { profile, onboardingCompleted ->
-        when {
-            // No credentials → Auth screen (shows "not configured" state).
-            // Never bypass auth gate, even if onboarding was previously completed.
-            !authRepository.isConfigured() -> AppNavState.Auth
-            profile != null -> if (onboardingCompleted) AppNavState.Main else AppNavState.Onboarding
-            else -> AppNavState.Auth
+    val navState: StateFlow<AppNavState> = authRepository.observeCurrentProfile()
+        .flatMapLatest { profile ->
+            when {
+                !authRepository.isConfigured() -> flowOf(AppNavState.Auth)
+                profile == null -> flowOf(AppNavState.Auth)
+                else -> settingsRepository.observeSettings(profile.id).map { settings ->
+                    if (settings?.onboardingCompleted == true) AppNavState.Main
+                    else AppNavState.Onboarding
+                }
+            }
         }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = AppNavState.Loading,
-    )
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = AppNavState.Loading,
+        )
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
@@ -43,7 +46,7 @@ class AppShellViewModel(
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
                 AppShellViewModel(
                     authRepository = app.authRepository,
-                    onboardingCompletedFlow = app.appPreferences.preferences.map { it.onboardingCompleted },
+                    settingsRepository = app.settingsRepository,
                 )
             }
         }

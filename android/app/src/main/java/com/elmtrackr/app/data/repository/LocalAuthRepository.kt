@@ -10,6 +10,7 @@ import com.elmtrackr.app.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.map
  * Offline-only auth used when Supabase is not configured.
  * Operations that require a remote service return [AuthResult.NotConfigured].
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class LocalAuthRepository(
     private val profileDao: ProfileDao,
     private val appPrefs: AppPreferencesRepository,

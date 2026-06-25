@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ProfileDao {
 
+    @Query("UPDATE profiles SET userId = :userId WHERE userId = 'local-user'")
+    suspend fun adoptLegacyUser(userId: String)
+
     @Query("SELECT * FROM profiles WHERE userId = :userId AND deletedAt IS NULL LIMIT 1")
     fun observeProfile(userId: String): Flow<ProfileEntity?>
 
@@ -28,10 +31,10 @@ interface ProfileDao {
     suspend fun upsertProfile(profile: ProfileEntity)
 
     @Query(
-        "SELECT * FROM profiles WHERE syncStatus IN " +
+        "SELECT * FROM profiles WHERE userId = :userId AND syncStatus IN " +
             "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')"
     )
-    suspend fun getPendingSyncProfiles(): List<ProfileEntity>
+    suspend fun getPendingSyncProfiles(userId: String): List<ProfileEntity>
 
     @Query(
         "UPDATE profiles SET syncStatus = :syncStatus, remoteId = :remoteId, " +

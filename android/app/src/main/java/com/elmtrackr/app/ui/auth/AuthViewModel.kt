@@ -23,22 +23,24 @@ class AuthViewModel(
     private val _isLoading = MutableStateFlow(false)
     private val _error = MutableStateFlow<String?>(null)
     private val _passwordResetSent = MutableStateFlow(false)
+    private val _signUpEmail = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<AuthUiState> = combine(
         combine(authRepository.observeCurrentProfile(), _isLoading) { p, l -> p to l },
-        combine(_error, _passwordResetSent) { e, r -> e to r },
-    ) { (profile, isLoading), (error, resetSent) ->
+        combine(_error, _passwordResetSent, _signUpEmail) { e, r, signup -> Triple(e, r, signup) },
+    ) { (profile, isLoading), (error, resetSent, signupEmail) ->
         when {
             !authRepository.isConfigured() -> AuthUiState.NotConfigured
             resetSent -> AuthUiState.PasswordResetSent
             profile != null -> AuthUiState.SignedIn(profile = profile, isLoading = isLoading)
+            signupEmail != null -> AuthUiState.SignUpConfirmation(signupEmail)
             else -> AuthUiState.SignedOut(isLoading = isLoading, errorMessage = error)
         }
-    }.catch { e ->
-        emit(AuthUiState.SignedOut(errorMessage = e.message))
+    }.catch {
+        emit(AuthUiState.SignedOut(errorMessage = "Unable to check your session. Please try again."))
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.Eagerly,
+        started = SharingStarted.WhileSubscribed(5_000),
         initialValue = AuthUiState.Loading,
     )
 
@@ -47,7 +49,7 @@ class AuthViewModel(
             _isLoading.value = true
             _error.value = null
             when (val result = authRepository.signIn(email, password)) {
-                is AuthResult.Success -> Unit
+                is AuthResult.Success -> Unit // profile flow drives navigation to SignedIn
                 is AuthResult.NotConfigured -> _error.value = "Supabase is not configured"
                 is AuthResult.Error -> _error.value = result.message
             }
@@ -60,7 +62,7 @@ class AuthViewModel(
             _isLoading.value = true
             _error.value = null
             when (val result = authRepository.signUp(email, password)) {
-                is AuthResult.Success -> Unit
+                is AuthResult.Success -> _signUpEmail.value = email.trim() // show "check your email"
                 is AuthResult.NotConfigured -> _error.value = "Supabase is not configured"
                 is AuthResult.Error -> _error.value = result.message
             }
@@ -92,6 +94,10 @@ class AuthViewModel(
 
     fun dismissPasswordReset() {
         _passwordResetSent.value = false
+    }
+
+    fun dismissSignUpConfirmation() {
+        _signUpEmail.value = null
     }
 
     fun clearError() {

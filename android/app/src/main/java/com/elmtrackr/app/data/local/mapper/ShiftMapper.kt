@@ -14,7 +14,7 @@ fun ShiftEntity.toDomain(): Shift = Shift(
     breakMinutes = breakMinutes,
     notes = notes,
     isSpecialDay = isSpecialDay,
-    refundAction = refundAction?.let { RefundAction.valueOf(it) },
+    refundAction = refundAction?.let { RefundAction.valueOf(it.uppercase()) },
     createdAt = Instant.ofEpochMilli(createdAt),
     updatedAt = Instant.ofEpochMilli(updatedAt),
 )

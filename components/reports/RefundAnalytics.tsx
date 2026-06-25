@@ -13,6 +13,8 @@ interface Props {
 const PROVIDER_STYLES: Record<string, { bar: string; text: string; bg: string; border: string; dot: string }> = {
   Lime:  { bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", dot: "#10b981" },
   Dott:  { bar: "bg-orange-500",  text: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-100",  dot: "#f97316" },
+  Bird:  { bar: "bg-sky-500",     text: "text-sky-700",     bg: "bg-sky-50",     border: "border-sky-100",     dot: "#0ea5e9" },
+  Taxi:  { bar: "bg-amber-400",   text: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100",   dot: "#fbbf24" },
   Other: { bar: "bg-slate-400",   text: "text-slate-600",   bg: "bg-slate-50",   border: "border-slate-100",   dot: "#94a3b8" },
 };
 

@@ -64,6 +64,7 @@ class ShiftMapperTest {
     @Test
     fun `toDomain deserialises refundAction correctly`() {
         assertEquals(RefundAction.SUBMITTED, entity(refundAction = "SUBMITTED").toDomain().refundAction)
+        assertEquals(RefundAction.SUBMITTED, entity(refundAction = "submitted").toDomain().refundAction)
         assertNull(entity(refundAction = null).toDomain().refundAction)
     }
 

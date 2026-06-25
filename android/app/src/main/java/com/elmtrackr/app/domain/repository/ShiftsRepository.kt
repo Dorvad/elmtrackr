@@ -26,6 +26,8 @@ interface ShiftsRepository {
 
     fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>>
 
-    fun observePendingSyncShifts(): Flow<List<Shift>>
+    fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<Shift>>
+
+    fun observePendingSyncShifts(userId: String): Flow<List<Shift>>
 }
 

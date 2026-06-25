@@ -1,7 +1,13 @@
 package com.elmtrackr.app.data.repository
 
 import com.elmtrackr.app.data.auth.SupabaseClientProvider
+import com.elmtrackr.app.data.auth.AuthCallbackParser
+import com.elmtrackr.app.data.auth.AuthCallbackPayload
+import com.elmtrackr.app.data.auth.AuthErrorMapper
+import com.elmtrackr.app.data.auth.AuthOperation
 import com.elmtrackr.app.data.local.dao.ProfileDao
+import com.elmtrackr.app.data.local.entity.SyncStatus
+import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.domain.model.AuthResult
@@ -12,8 +18,12 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.contentOrNull
@@ -23,40 +33,69 @@ import java.time.Instant
 class SupabaseAuthRepository(
     private val profileDao: ProfileDao,
     private val appPrefs: AppPreferencesRepository,
+    private val onAuthenticated: suspend (String) -> Unit = {},
 ) : AuthRepository {
+
+    private companion object {
+        const val AUTH_CALLBACK = "elmtrackr://auth/callback"
+    }
 
     private val client: SupabaseClient? = SupabaseClientProvider.get()
 
     override fun isConfigured(): Boolean = client != null
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun observeCurrentProfile(): Flow<Profile?> {
         val c = client ?: return flowOf(null)
         return c.auth.sessionStatus
             // Don't emit while the SDK is restoring a session from storage —
             // keeps the ViewModel in its Loading initial state until settled.
             .filter { it !is SessionStatus.Initializing }
-            .map { status ->
+            .flatMapLatest { status ->
                 when (status) {
                     is SessionStatus.Authenticated -> {
-                        val user = status.session.user ?: return@map null
-                        val profile = user.toProfile()
-                        // Persist locally for offline profile display
-                        runCatching {
-                            profileDao.upsertProfile(profile.toEntity(userId = profile.id))
-                            appPrefs.setLastActiveUserId(profile.id)
+                        val user = status.session.user ?: return@flatMapLatest flowOf(null)
+                        val authProfile = user.toProfile()
+                        flow {
+                            runCatching {
+                                onAuthenticated(authProfile.id)
+                                if (profileDao.getProfile(authProfile.id) == null) {
+                                    profileDao.upsertProfile(
+                                        authProfile.toEntity(
+                                            userId = authProfile.id,
+                                            syncStatus = SyncStatus.SYNCED,
+                                            remoteId = authProfile.id,
+                                            lastSyncedAt = Instant.now().toEpochMilli(),
+                                        ),
+                                    )
+                                }
+                                appPrefs.setLastActiveUserId(authProfile.id)
+                            }
+                            emitAll(
+                                profileDao.observeProfile(authProfile.id).map { localProfile ->
+                                    localProfile?.toDomain() ?: authProfile
+                                },
+                            )
                         }
-                        profile
                     }
-                    else -> null
+                    else -> flowOf(null)
                 }
             }
     }
 
-    override suspend fun getCurrentProfile(): Profile? =
-        client?.auth?.currentUserOrNull()?.toProfile()
+    override suspend fun getCurrentProfile(): Profile? {
+        val authProfile = client?.auth?.currentUserOrNull()?.toProfile() ?: return null
+        return profileDao.getProfile(authProfile.id)?.toDomain() ?: authProfile
+    }
 
     override suspend fun saveProfile(profile: Profile, userId: String) {
-        profileDao.upsertProfile(profile.toEntity(userId = userId))
+        profileDao.upsertProfile(
+            profile.toEntity(
+                userId = userId,
+                syncStatus = SyncStatus.PENDING_UPDATE,
+                remoteId = userId,
+            ),
+        )
     }
 
     override suspend fun signIn(email: String, password: String): AuthResult {
@@ -68,20 +107,20 @@ class SupabaseAuthRepository(
             }
             AuthResult.Success
         } catch (e: Exception) {
-            AuthResult.Error(e.message ?: "Sign in failed")
+            AuthResult.Error(AuthErrorMapper.messageFor(e, AuthOperation.SIGN_IN))
         }
     }
 
     override suspend fun signUp(email: String, password: String): AuthResult {
         val c = client ?: return AuthResult.NotConfigured
         return try {
-            c.auth.signUpWith(Email) {
+            c.auth.signUpWith(Email, redirectUrl = AUTH_CALLBACK) {
                 this.email = email
                 this.password = password
             }
             AuthResult.Success
         } catch (e: Exception) {
-            AuthResult.Error(e.message ?: "Sign up failed")
+            AuthResult.Error(AuthErrorMapper.messageFor(e, AuthOperation.SIGN_UP))
         }
     }
 
@@ -97,18 +136,19 @@ class SupabaseAuthRepository(
     override suspend fun resetPassword(email: String): AuthResult {
         val c = client ?: return AuthResult.NotConfigured
         return try {
-            c.auth.resetPasswordForEmail(email)
+            c.auth.resetPasswordForEmail(email, redirectUrl = AUTH_CALLBACK)
             AuthResult.Success
         } catch (e: Exception) {
-            AuthResult.Error(e.message ?: "Password reset failed")
+            AuthResult.Error(AuthErrorMapper.messageFor(e, AuthOperation.PASSWORD_RESET))
         }
     }
 
     override suspend fun handleDeepLink(uriString: String) {
-        // TODO: Parse fragment from deep-link URI and import the session.
-        // Fragment format: access_token=...&refresh_token=...&type=...
-        // This will be wired up fully when the email-confirmation / OAuth
-        // flows are tested end-to-end.
+        val c = client ?: return
+        when (val payload = AuthCallbackParser.parse(uriString)) {
+            is AuthCallbackPayload.Code -> c.auth.exchangeCodeForSession(payload.value)
+            is AuthCallbackPayload.Tokens -> c.auth.importAuthToken(payload.accessToken, payload.refreshToken)
+        }
     }
 
     private fun UserInfo.toProfile(): Profile = Profile(

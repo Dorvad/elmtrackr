@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 val Context.appPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(
@@ -20,6 +21,7 @@ object AppPreferenceKeys {
     val LAST_ACTIVE_USER_ID = stringPreferencesKey("last_active_user_id")
     val DEVICE_ID = stringPreferencesKey("device_id")
     val LAST_SYNC_STATUS = stringPreferencesKey("last_sync_status")
+    val LEGACY_DATA_ADOPTED = booleanPreferencesKey("legacy_data_adopted")
 }
 
 data class AppPreferenceValues(
@@ -28,6 +30,7 @@ data class AppPreferenceValues(
     val lastActiveUserId: String? = null,
     val deviceId: String? = null,
     val lastSyncStatus: String? = null,
+    val legacyDataAdopted: Boolean = false,
 )
 
 class AppPreferencesRepository(private val context: Context) {
@@ -40,6 +43,7 @@ class AppPreferencesRepository(private val context: Context) {
                 lastActiveUserId = prefs[AppPreferenceKeys.LAST_ACTIVE_USER_ID],
                 deviceId = prefs[AppPreferenceKeys.DEVICE_ID],
                 lastSyncStatus = prefs[AppPreferenceKeys.LAST_SYNC_STATUS],
+                legacyDataAdopted = prefs[AppPreferenceKeys.LEGACY_DATA_ADOPTED] ?: false,
             )
         }
 
@@ -67,5 +71,11 @@ class AppPreferencesRepository(private val context: Context) {
             if (status != null) it[AppPreferenceKeys.LAST_SYNC_STATUS] = status
             else it.remove(AppPreferenceKeys.LAST_SYNC_STATUS)
         }
+    }
+
+    suspend fun currentPreferences(): AppPreferenceValues = preferences.first()
+
+    suspend fun setLegacyDataAdopted(adopted: Boolean) {
+        context.appPreferencesDataStore.edit { it[AppPreferenceKeys.LEGACY_DATA_ADOPTED] = adopted }
     }
 }

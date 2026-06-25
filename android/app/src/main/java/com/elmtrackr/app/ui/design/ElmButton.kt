@@ -3,13 +3,18 @@ package com.elmtrackr.app.ui.design
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -25,15 +30,17 @@ private val auroraGradient = Brush.linearGradient(
     ),
 )
 
-private val buttonShape = RoundedCornerShape(14.dp)
+private val buttonShape = RoundedCornerShape(CornerRadius.Medium)
 
 @Composable
 fun ElmGradientButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    compact: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Button(
         onClick       = onClick,
         enabled       = enabled,
@@ -44,9 +51,28 @@ fun ElmGradientButton(
             disabledContainerColor = Color.Transparent,
             disabledContentColor   = Color.White.copy(alpha = 0.4f),
         ),
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+        contentPadding = if (compact) {
+            PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+        } else {
+            PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+        },
+        interactionSource = interactionSource,
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp,
+            disabledElevation = 0.dp,
+        ),
         modifier = modifier
-            .fillMaxWidth()
+            .then(if (compact) Modifier else Modifier.fillMaxWidth())
+            .heightIn(min = if (compact) 36.dp else 52.dp)
+            .auroraPressScale(interactionSource)
+            .shadow(
+                elevation = if (enabled) 10.dp else 0.dp,
+                shape = buttonShape,
+                clip = false,
+                ambientColor = AuroraIndigo.copy(alpha = 0.22f),
+                spotColor = AuroraIndigo.copy(alpha = 0.7f),
+            )
             .background(
                 brush  = if (enabled) auroraGradient else Brush.linearGradient(
                     listOf(AuroraIndigo.copy(alpha = 0.4f), AuroraAqua.copy(alpha = 0.4f))
@@ -65,6 +91,7 @@ fun ElmOutlinedButton(
     enabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     OutlinedButton(
         onClick  = onClick,
         enabled  = enabled,
@@ -74,7 +101,11 @@ fun ElmOutlinedButton(
             disabledContentColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
         ),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
-        modifier = modifier.fillMaxWidth(),
+        interactionSource = interactionSource,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .auroraPressScale(interactionSource),
     ) {
         content()
     }

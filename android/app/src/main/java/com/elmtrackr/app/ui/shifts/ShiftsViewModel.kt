@@ -6,8 +6,16 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
-import com.elmtrackr.app.domain.LOCAL_USER_ID
+import com.elmtrackr.app.domain.CurrentUserProvider
+import com.elmtrackr.app.domain.RefundPolicy
+import com.elmtrackr.app.domain.model.ReceiptUpload
+import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.model.RefundClaim
+import com.elmtrackr.app.domain.model.RefundDirection
+import com.elmtrackr.app.domain.model.RefundProvider
+import com.elmtrackr.app.domain.repository.RefundsRepository
+import com.elmtrackr.app.domain.repository.RefundReceiptStorage
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,15 +24,25 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
+import java.time.YearMonth
 import java.util.UUID
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ShiftsViewModel(
     private val shiftsRepository: ShiftsRepository,
     private val settingsRepository: SettingsRepository,
+    private val currentUserProvider: CurrentUserProvider,
+    private val refundsRepository: RefundsRepository,
+    private val refundReceiptStorage: RefundReceiptStorage? = null,
 ) : ViewModel() {
 
     private val _formTarget = MutableStateFlow<ShiftFormNavState?>(null)
@@ -33,30 +51,59 @@ class ShiftsViewModel(
     private val _formErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     val formErrors: StateFlow<Map<String, String>> = _formErrors.asStateFlow()
 
-    val featuresTravelRefunds: StateFlow<Boolean> = settingsRepository
-        .observeSettings(LOCAL_USER_ID)
+    private val _refundNotice = MutableStateFlow<String?>(null)
+    val refundNotice: StateFlow<String?> = _refundNotice.asStateFlow()
+
+    val refundClaims: StateFlow<List<RefundClaim>> = _formTarget
+        .flatMapLatest { target ->
+            val shiftId = (target as? ShiftFormNavState.Edit)?.shift?.id
+            if (shiftId == null) flowOf(emptyList()) else refundsRepository.observeClaimsForShift(shiftId)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _selectedMonth = MutableStateFlow(YearMonth.now())
+    val selectedMonth: StateFlow<YearMonth> = _selectedMonth.asStateFlow()
+
+    val featuresTravelRefunds: StateFlow<Boolean> = currentUserProvider.userId
+        .filterNotNull()
+        .flatMapLatest { settingsRepository.observeSettings(it) }
         .map { it?.featuresTravelRefunds ?: false }
         .catch { emit(false) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    val uiState: StateFlow<ShiftsUiState> = combine(
-        shiftsRepository.observeShifts(LOCAL_USER_ID),
-        shiftsRepository.observeActiveShift(LOCAL_USER_ID),
-        settingsRepository.observeSettings(LOCAL_USER_ID),
-    ) { shifts, activeShift, settings ->
-        if (shifts.isEmpty()) ShiftsUiState.Empty
-        else ShiftsUiState.Ready(
-            shifts = shifts,
-            activeShift = activeShift,
-            featuresTravelRefunds = settings?.featuresTravelRefunds ?: false,
-        )
-    }.catch { e ->
+    val uiState: StateFlow<ShiftsUiState> = currentUserProvider.userId
+        .filterNotNull()
+        .flatMapLatest { userId ->
+            combine(
+                _selectedMonth.flatMapLatest { month ->
+                    shiftsRepository.observeShiftsByMonth(userId, month.year, month.monthValue)
+                },
+                shiftsRepository.observeActiveShift(userId),
+                settingsRepository.observeSettings(userId),
+            ) { shifts, activeShift, settings ->
+                if (shifts.isEmpty()) ShiftsUiState.Empty
+                else ShiftsUiState.Ready(
+                    shifts = shifts,
+                    activeShift = activeShift,
+                    featuresTravelRefunds = settings?.featuresTravelRefunds ?: false,
+                    settings = settings,
+                )
+            }
+        }.catch { e ->
         emit(ShiftsUiState.Error(e.message ?: "Unknown error"))
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = ShiftsUiState.Loading,
     )
+
+    fun previousMonth() { _selectedMonth.value = _selectedMonth.value.minusMonths(1) }
+
+    fun nextMonth() {
+        if (_selectedMonth.value < YearMonth.now()) {
+            _selectedMonth.value = _selectedMonth.value.plusMonths(1)
+        }
+    }
 
     fun showCreateForm() {
         _formErrors.value = emptyMap()
@@ -74,16 +121,18 @@ class ShiftsViewModel(
     fun closeForm() {
         _formTarget.value = null
         _formErrors.value = emptyMap()
+        _refundNotice.value = null
     }
 
     fun createShift(input: ShiftFormInput) {
         val errors = validate(input)
         if (errors.isNotEmpty()) { _formErrors.value = errors; return }
         viewModelScope.launch {
+            val userId = currentUserProvider.currentUserId() ?: return@launch
             val now = Instant.now()
             val shift = Shift(
                 id = UUID.randomUUID().toString(),
-                userId = LOCAL_USER_ID,
+                userId = userId,
                 startTime = input.startTime,
                 endTime = input.endTime,
                 breakMinutes = input.breakMinutes,
@@ -110,7 +159,7 @@ class ShiftsViewModel(
                     breakMinutes = input.breakMinutes,
                     notes = input.notes.ifBlank { null },
                     isSpecialDay = input.isSpecialDay,
-                    refundAction = input.refundAction,
+                    refundAction = existing.refundAction,
                     updatedAt = Instant.now(),
                 )
             )
@@ -120,6 +169,132 @@ class ShiftsViewModel(
 
     fun deleteShift(shiftId: String) {
         viewModelScope.launch { shiftsRepository.deleteShift(shiftId) }
+    }
+
+    fun saveRefundClaim(
+        shiftId: String,
+        direction: RefundDirection,
+        provider: RefundProvider,
+        amount: Double,
+        rideAt: Instant,
+        notes: String,
+        receipt: ReceiptUpload?,
+        onComplete: (Boolean) -> Unit = {},
+    ) {
+        if (amount <= 0) {
+            _formErrors.value = mapOf("refund" to "Enter a valid refund amount")
+            onComplete(false)
+            return
+        }
+        viewModelScope.launch {
+            _formErrors.value = _formErrors.value - "refund"
+            _refundNotice.value = null
+            val shift = shiftsRepository.getShiftById(shiftId)
+            if (shift == null) {
+                _formErrors.value = mapOf("refund" to "Shift not found")
+                onComplete(false)
+                return@launch
+            }
+            val eligibility = when (direction) {
+                RefundDirection.TO_WORK -> RefundPolicy.checkToWorkEligibility(shift)
+                RefundDirection.FROM_WORK -> RefundPolicy.checkFromWorkEligibility(shift)
+            }
+            if (!eligibility.eligible) {
+                _formErrors.value = mapOf("refund" to "This ride is not eligible for a travel refund")
+                onComplete(false)
+                return@launch
+            }
+            val existing = refundsRepository.observeClaimsForShift(shiftId).first()
+                .firstOrNull { it.direction == direction }
+            val userId = currentUserProvider.currentUserId()
+            if (userId == null) {
+                _formErrors.value = mapOf("refund" to "Sign in before saving a claim")
+                onComplete(false)
+                return@launch
+            }
+            val oldReceiptPath = existing?.receiptPath
+            val receiptPath = if (receipt != null) {
+                val storage = refundReceiptStorage
+                val uploaded = storage?.let {
+                    runCatching { it.upload(userId, shiftId, direction, receipt) }.getOrNull()
+                }
+                if (uploaded == null) {
+                    _refundNotice.value = "Claim saved without the new receipt. Receipt upload is unavailable; you can attach it later."
+                    oldReceiptPath
+                } else uploaded
+            } else oldReceiptPath
+
+            runCatching {
+                if (existing == null) {
+                    refundsRepository.addClaim(
+                        shiftLocalId = shiftId,
+                        userId = userId,
+                        direction = direction,
+                        provider = provider,
+                        amount = amount,
+                        notes = notes.ifBlank { null },
+                        rideAt = rideAt,
+                        receiptPath = receiptPath,
+                    )
+                } else {
+                    refundsRepository.updateClaim(
+                        existing.copy(
+                            provider = provider,
+                            amount = amount,
+                            rideAt = rideAt,
+                            notes = notes.ifBlank { null },
+                            receiptPath = receiptPath,
+                            updatedAt = Instant.now(),
+                        ),
+                    )
+                }
+                if (oldReceiptPath != null && oldReceiptPath != receiptPath) {
+                    runCatching { refundReceiptStorage?.delete(oldReceiptPath) }
+                }
+                updateShiftRefundAction(shift, RefundAction.SUBMITTED)
+            }.onSuccess {
+                _formErrors.value = _formErrors.value - "refund"
+                onComplete(true)
+            }.onFailure {
+                _formErrors.value = mapOf("refund" to (it.message ?: "Unable to save the refund claim"))
+                onComplete(false)
+            }
+        }
+    }
+
+    fun deleteRefundClaim(claimId: String) {
+        viewModelScope.launch {
+            val claim = refundsRepository.getClaimById(claimId) ?: return@launch
+            refundsRepository.deleteClaim(claimId)
+            claim.receiptPath?.let { path -> runCatching { refundReceiptStorage?.delete(path) } }
+            val remaining = refundsRepository.observeClaimsForShift(claim.shiftId).first()
+            val shift = shiftsRepository.getShiftById(claim.shiftId)
+            if (shift != null) {
+                updateShiftRefundAction(
+                    shift,
+                    if (remaining.isEmpty()) null else RefundAction.SUBMITTED,
+                )
+            }
+        }
+    }
+
+    fun updateRefundAction(shiftId: String, action: RefundAction?) {
+        viewModelScope.launch {
+            val shift = shiftsRepository.getShiftById(shiftId) ?: return@launch
+            updateShiftRefundAction(shift, action)
+        }
+    }
+
+    suspend fun receiptUrl(path: String): String? =
+        refundReceiptStorage?.let { storage -> runCatching { storage.createSignedUrl(path) }.getOrNull() }
+
+    private suspend fun updateShiftRefundAction(shift: Shift, action: RefundAction?) {
+        val updated = shift.copy(refundAction = action, updatedAt = Instant.now())
+        shiftsRepository.updateShift(updated)
+        val target = _formTarget.value
+        if (target is ShiftFormNavState.Edit && target.shift.id == shift.id) {
+            _formTarget.value = ShiftFormNavState.Edit(updated)
+        }
     }
 
     internal fun validate(input: ShiftFormInput): Map<String, String> {
@@ -138,7 +313,13 @@ class ShiftsViewModel(
             initializer {
                 @Suppress("UNCHECKED_CAST")
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
-                ShiftsViewModel(app.shiftsRepository, app.settingsRepository)
+                ShiftsViewModel(
+                    app.shiftsRepository,
+                    app.settingsRepository,
+                    app.currentUserProvider,
+                    app.refundsRepository,
+                    app.refundReceiptStorage,
+                )
             }
         }
     }

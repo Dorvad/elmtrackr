@@ -37,6 +37,8 @@ class LocalRefundsRepository(
         provider: RefundProvider,
         amount: Double,
         notes: String?,
+        rideAt: Instant,
+        receiptPath: String?,
     ): RefundClaim {
         val now = Instant.now().toEpochMilli()
         val entity = RefundClaimEntity(
@@ -47,9 +49,9 @@ class LocalRefundsRepository(
             direction = direction.name,
             provider = provider.name,
             amount = amount,
-            rideAt = now,
+            rideAt = rideAt.toEpochMilli(),
             notes = notes,
-            receiptPath = null,
+            receiptPath = receiptPath,
             createdAt = now,
             updatedAt = now,
             deletedAt = null,
@@ -87,6 +89,6 @@ class LocalRefundsRepository(
         syncTrigger.schedule()
     }
 
-    override fun observePendingSyncClaims(): Flow<List<RefundClaim>> =
-        refundClaimDao.observePendingSyncClaims().map { entities -> entities.map { it.toDomain() } }
+    override fun observePendingSyncClaims(userId: String): Flow<List<RefundClaim>> =
+        refundClaimDao.observePendingSyncClaims(userId).map { entities -> entities.map { it.toDomain() } }
 }

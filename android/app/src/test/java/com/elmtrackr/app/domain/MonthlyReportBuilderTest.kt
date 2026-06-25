@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
 
 class MonthlyReportBuilderTest {
 
@@ -134,8 +135,11 @@ class MonthlyReportBuilderTest {
         // 5 shifts × 10h = 3000 min; weekly threshold = 2400 → weekly OT = 600
         // Each shift: 600 min net, daily threshold 480 → dailyOT = 120 per shift × 5 = 600
         // max(daily=600, weekly=600) = 600 (same in this case)
-        val shifts = (1..5).map { i ->
-            shift("s$i", "2024-01-0${7 + i}T08:00:00Z", "2024-01-0${7 + i}T18:00:00Z")
+        val workDays = listOf(8, 9, 10, 11, 14) // Mon-Thu + Sun in one ISO week
+        val shifts = workDays.mapIndexed { index, day ->
+            val date = LocalDate.of(2024, 1, day)
+            val i = index + 1
+            shift("s$i", "${date}T08:00:00Z", "${date}T18:00:00Z")
         }
         val report = MonthlyReportBuilder.buildMonthlyReport(2024, 1, shifts, settings)
         assertEquals(3000, report.totalMinutes)
@@ -171,27 +175,43 @@ class MonthlyReportBuilderTest {
     // ── WeeklyBreakdownBuilder ────────────────────────────────────────────────
 
     @Test
-    fun `groupByWeek - two shifts in same week share one entry`() {
+    fun `groupByWeek - always returns 4 buckets`() {
         val shifts = listOf(
-            shift("s1", "2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z"),  // Mon
-            shift("s2", "2024-01-09T09:00:00Z", "2024-01-09T17:00:00Z"),  // Tue
+            shift("s1", "2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z"),  // day 8 → bucket 1
+            shift("s2", "2024-01-09T09:00:00Z", "2024-01-09T17:00:00Z"),  // day 9 → bucket 1
         )
         val weeks = WeeklyBreakdownBuilder.groupByWeek(shifts)
-        assertEquals(1, weeks.size)
-        assertEquals("2024-01-08", weeks[0].weekStart)
-        assertEquals(960, weeks[0].totalMinutes)
+        assertEquals(4, weeks.size)
     }
 
     @Test
-    fun `getMondayUtc - Sunday rolls back to previous Monday`() {
-        // 2024-01-07 is a Sunday; Monday of that week is 2024-01-01
-        val sunday = Instant.parse("2024-01-07T12:00:00Z")
-        assertEquals("2024-01-01", WeeklyBreakdownBuilder.getMondayUtc(sunday))
+    fun `groupByWeek - two shifts on days 8-14 accumulate in bucket 1`() {
+        val shifts = listOf(
+            shift("s1", "2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z"),  // day 8
+            shift("s2", "2024-01-09T09:00:00Z", "2024-01-09T17:00:00Z"),  // day 9
+        )
+        val weeks = WeeklyBreakdownBuilder.groupByWeek(shifts)
+        assertEquals(960, weeks[1].totalMinutes)  // bucket 1 = days 8–14
+        assertEquals(0, weeks[0].totalMinutes)     // bucket 0 = days 1–7, empty
     }
 
     @Test
-    fun `getMondayUtc - Monday stays on same day`() {
-        val monday = Instant.parse("2024-01-08T12:00:00Z")
-        assertEquals("2024-01-08", WeeklyBreakdownBuilder.getMondayUtc(monday))
+    fun `groupByWeek - shift on day 1 lands in bucket 0`() {
+        val shifts = listOf(
+            shift("s1", "2024-01-01T09:00:00Z", "2024-01-01T17:00:00Z"),  // day 1
+        )
+        val weeks = WeeklyBreakdownBuilder.groupByWeek(shifts)
+        assertEquals(480, weeks[0].totalMinutes)
+        assertEquals("1–7", weeks[0].dayRange)
+    }
+
+    @Test
+    fun `groupByWeek - shift on day 25 lands in bucket 3`() {
+        val shifts = listOf(
+            shift("s1", "2024-01-25T09:00:00Z", "2024-01-25T17:00:00Z"),  // day 25
+        )
+        val weeks = WeeklyBreakdownBuilder.groupByWeek(shifts)
+        assertEquals(480, weeks[3].totalMinutes)
+        assertEquals("22+", weeks[3].dayRange)
     }
 }

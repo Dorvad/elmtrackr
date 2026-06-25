@@ -4,6 +4,7 @@ import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 
 interface RefundsRepository {
 
@@ -20,11 +21,13 @@ interface RefundsRepository {
         provider: RefundProvider,
         amount: Double,
         notes: String? = null,
+        rideAt: Instant = Instant.now(),
+        receiptPath: String? = null,
     ): RefundClaim
 
     suspend fun updateClaim(claim: RefundClaim): RefundClaim
 
     suspend fun deleteClaim(localId: String)
 
-    fun observePendingSyncClaims(): Flow<List<RefundClaim>>
+    fun observePendingSyncClaims(userId: String): Flow<List<RefundClaim>>
 }

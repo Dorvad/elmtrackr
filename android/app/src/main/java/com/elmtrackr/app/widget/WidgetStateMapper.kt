@@ -13,21 +13,27 @@ object WidgetStateMapper {
 
     fun map(shift: Shift?, pendingCount: Int = 0): WidgetShiftState {
         val zone = ZoneId.systemDefault()
-        val dateLabel = Instant.now().atZone(zone).format(dateFormatter)
+        val now = Instant.now().atZone(zone)
+        val dateLabel = now.format(dateFormatter)
         return if (shift != null && shift.isActive) {
+            val startFormatted = shift.startTime.atZone(zone).format(timeFormatter)
             WidgetShiftState(
                 isActive = true,
                 shiftId = shift.id,
-                startTimeLabel = shift.startTime.atZone(zone).format(timeFormatter),
+                startTimeLabel = startFormatted,
                 dateLabel = dateLabel,
+                lastPunchLabel = "Today $startFormatted",
                 pendingCount = pendingCount,
             )
         } else {
+            // Use current time as the best approximation of when the shift ended.
+            val nowFormatted = now.format(timeFormatter)
             WidgetShiftState(
                 isActive = false,
                 shiftId = "",
-                startTimeLabel = "",
+                startTimeLabel = nowFormatted,
                 dateLabel = dateLabel,
+                lastPunchLabel = "Today $nowFormatted",
                 pendingCount = pendingCount,
             )
         }

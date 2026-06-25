@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface SettingsDao {
 
+    @Query("UPDATE user_settings SET userId = :userId WHERE userId = 'local-user'")
+    suspend fun adoptLegacyUser(userId: String)
+
     @Query("SELECT * FROM user_settings WHERE userId = :userId AND deletedAt IS NULL LIMIT 1")
     fun observeSettings(userId: String): Flow<UserSettingsEntity?>
 
@@ -28,10 +31,10 @@ interface SettingsDao {
     suspend fun upsertSettings(settings: UserSettingsEntity)
 
     @Query(
-        "SELECT * FROM user_settings WHERE syncStatus IN " +
+        "SELECT * FROM user_settings WHERE userId = :userId AND syncStatus IN " +
             "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')"
     )
-    suspend fun getPendingSyncSettings(): List<UserSettingsEntity>
+    suspend fun getPendingSyncSettings(userId: String): List<UserSettingsEntity>
 
     @Query(
         "UPDATE user_settings SET syncStatus = :syncStatus, remoteId = :remoteId, " +

@@ -2,12 +2,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
     <!-- Required for notifications on Android 13+ (API 33+). Runtime-requested in MainActivity. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+
     <application
         android:name=".ElmTrackrApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -36,12 +41,25 @@
                     android:host="auth" />
             </intent-filter>
 
-            <!-- App shortcuts: static "New Manual Shift" + dynamic Clock In/Out -->
+            <!-- App shortcuts: static "New Manual Shift" + dynamic Clock Out while clocked in. -->
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
 
+
+        <activity
+            android:name=".shortcuts.HeadlessTrampolineActivity"
+            android:theme="@android:style/Theme.NoDisplay"
+            android:exported="false" />
+
+        <receiver
+            android:name=".shortcuts.HeadlessClockOutReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.elmtrackr.ACTION_HEADLESS_CLOCK_OUT" />
+            </intent-filter>
+        </receiver>
         <!-- Handles "Clock Out" action from the active-shift notification. -->
         <receiver
             android:name=".notification.ClockOutReceiver"
@@ -51,7 +69,7 @@
             </intent-filter>
         </receiver>
 
-        <!-- ElmTrackr home screen widget (Jetpack Glance 4×1 horizontal). -->
+        <!-- ElmTrackr home screen widget (Jetpack Glance 4Ã—1 horizontal). -->
         <receiver
             android:name=".widget.ElmTrackrWidgetReceiver"
             android:exported="true">
@@ -63,6 +81,17 @@
                 android:resource="@xml/elmtrackr_widget_info" />
         </receiver>
 
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/export_paths" />
+        </provider>
+
     </application>
 
 </manifest>
+

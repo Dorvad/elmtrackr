@@ -15,6 +15,7 @@ object ElmTrackrWidgetUpdater {
     val KEY_SHIFT_ID = stringPreferencesKey("widget_shift_id")
     val KEY_START_TIME_LABEL = stringPreferencesKey("widget_start_time_label")
     val KEY_DATE_LABEL = stringPreferencesKey("widget_date_label")
+    val KEY_LAST_PUNCH_LABEL = stringPreferencesKey("widget_last_punch_label")
     val KEY_PENDING_COUNT = intPreferencesKey("widget_pending_count")
 
     suspend fun update(context: Context, shift: Shift?, pendingCount: Int = 0) {
@@ -28,6 +29,7 @@ object ElmTrackrWidgetUpdater {
                     this[KEY_SHIFT_ID] = state.shiftId
                     this[KEY_START_TIME_LABEL] = state.startTimeLabel
                     this[KEY_DATE_LABEL] = state.dateLabel
+                    this[KEY_LAST_PUNCH_LABEL] = state.lastPunchLabel
                     this[KEY_PENDING_COUNT] = state.pendingCount
                 }
             }

@@ -21,6 +21,11 @@ class FakeShiftDao : ShiftDao {
 
     private fun refresh() { _flow.value = store.values.toList() }
 
+    override suspend fun adoptLegacyUser(userId: String) {
+        store.replaceAll { _, value -> if (value.userId == "local-user") value.copy(userId = userId) else value }
+        refresh()
+    }
+
     override fun observeShifts(userId: String): Flow<List<ShiftEntity>> =
         _flow.map { it.filter { e -> e.userId == userId && e.deletedAt == null } }
 
@@ -40,11 +45,11 @@ class FakeShiftDao : ShiftDao {
         refresh()
     }
 
-    override fun observePendingSyncShifts(): Flow<List<ShiftEntity>> =
-        _flow.map { it.filter { e -> e.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE) } }
+    override fun observePendingSyncShifts(userId: String): Flow<List<ShiftEntity>> =
+        _flow.map { it.filter { e -> e.userId == userId && e.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE) } }
 
-    override suspend fun getPendingSyncShifts(): List<ShiftEntity> =
-        store.values.filter { it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
+    override suspend fun getPendingSyncShifts(userId: String): List<ShiftEntity> =
+        store.values.filter { it.userId == userId && it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
 
     override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) {
         store[localId]?.let { store[localId] = it.copy(syncStatus = syncStatus, remoteId = remoteId, lastSyncedAt = lastSyncedAt, lastSyncError = lastSyncError) }
@@ -72,6 +77,11 @@ class FakeRefundClaimDao : RefundClaimDao {
 
     private fun refresh() { _flow.value = store.values.toList() }
 
+    override suspend fun adoptLegacyUser(userId: String) {
+        store.replaceAll { _, value -> if (value.userId == "local-user") value.copy(userId = userId) else value }
+        refresh()
+    }
+
     override fun observeClaimsForUser(userId: String): Flow<List<RefundClaimEntity>> =
         _flow.map { it.filter { e -> e.userId == userId && e.deletedAt == null } }
 
@@ -91,11 +101,11 @@ class FakeRefundClaimDao : RefundClaimDao {
         refresh()
     }
 
-    override fun observePendingSyncClaims(): Flow<List<RefundClaimEntity>> =
-        _flow.map { it.filter { e -> e.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE) } }
+    override fun observePendingSyncClaims(userId: String): Flow<List<RefundClaimEntity>> =
+        _flow.map { it.filter { e -> e.userId == userId && e.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE) } }
 
-    override suspend fun getPendingSyncClaims(): List<RefundClaimEntity> =
-        store.values.filter { it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
+    override suspend fun getPendingSyncClaims(userId: String): List<RefundClaimEntity> =
+        store.values.filter { it.userId == userId && it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
 
     override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) {
         store[localId]?.let { store[localId] = it.copy(syncStatus = syncStatus, remoteId = remoteId, lastSyncedAt = lastSyncedAt, lastSyncError = lastSyncError) }
@@ -117,6 +127,11 @@ class FakeSettingsDao : SettingsDao {
 
     private fun refresh() { _flow.value = store.values.toList() }
 
+    override suspend fun adoptLegacyUser(userId: String) {
+        store.replaceAll { _, value -> if (value.userId == "local-user") value.copy(userId = userId) else value }
+        refresh()
+    }
+
     override fun observeSettings(userId: String): Flow<UserSettingsEntity?> =
         _flow.map { it.firstOrNull { e -> e.userId == userId && e.deletedAt == null } }
 
@@ -129,8 +144,8 @@ class FakeSettingsDao : SettingsDao {
 
     override suspend fun upsertSettings(settings: UserSettingsEntity) { store[settings.localId] = settings; refresh() }
 
-    override suspend fun getPendingSyncSettings(): List<UserSettingsEntity> =
-        store.values.filter { it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
+    override suspend fun getPendingSyncSettings(userId: String): List<UserSettingsEntity> =
+        store.values.filter { it.userId == userId && it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
 
     override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) {
         store[localId]?.let { store[localId] = it.copy(syncStatus = syncStatus, remoteId = remoteId, lastSyncedAt = lastSyncedAt, lastSyncError = lastSyncError) }
@@ -152,6 +167,11 @@ class FakeProfileDao : ProfileDao {
 
     private fun refresh() { _flow.value = store.values.toList() }
 
+    override suspend fun adoptLegacyUser(userId: String) {
+        store.replaceAll { _, value -> if (value.userId == "local-user") value.copy(userId = userId) else value }
+        refresh()
+    }
+
     override fun observeProfile(userId: String): Flow<ProfileEntity?> =
         _flow.map { it.firstOrNull { e -> e.userId == userId && e.deletedAt == null } }
 
@@ -164,8 +184,8 @@ class FakeProfileDao : ProfileDao {
 
     override suspend fun upsertProfile(profile: ProfileEntity) { store[profile.localId] = profile; refresh() }
 
-    override suspend fun getPendingSyncProfiles(): List<ProfileEntity> =
-        store.values.filter { it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
+    override suspend fun getPendingSyncProfiles(userId: String): List<ProfileEntity> =
+        store.values.filter { it.userId == userId && it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
 
     override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) {
         store[localId]?.let { store[localId] = it.copy(syncStatus = syncStatus, remoteId = remoteId, lastSyncedAt = lastSyncedAt, lastSyncError = lastSyncError) }

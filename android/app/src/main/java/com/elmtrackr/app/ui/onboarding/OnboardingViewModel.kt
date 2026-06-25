@@ -6,15 +6,21 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
-import com.elmtrackr.app.domain.LOCAL_USER_ID
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
+import kotlin.math.roundToInt
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingViewModel(
     private val settingsRepository: SettingsRepository,
     private val markOnboardingCompleted: suspend () -> Unit,
@@ -23,6 +29,15 @@ class OnboardingViewModel(
 
     private val _uiState = MutableStateFlow<OnboardingUiState>(OnboardingUiState.Welcome)
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
+
+    val initialSettings = authRepository.observeCurrentProfile()
+        .flatMapLatest { profile ->
+            if (profile == null) flowOf(null) else settingsRepository.observeSettings(profile.id)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val initialProfile = authRepository.observeCurrentProfile()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun completeOnboarding(input: OnboardingInput) {
         val errors = validate(input)
@@ -33,31 +48,35 @@ class OnboardingViewModel(
         viewModelScope.launch {
             _uiState.value = OnboardingUiState.Saving
             try {
-                val base = settingsRepository.createDefaultSettings(LOCAL_USER_ID)
+                val profile = authRepository.getCurrentProfile()
+                    ?: error("Sign in before completing onboarding")
+                val existing = settingsRepository.getSettings(profile.id)
+                val base = existing ?: settingsRepository.createDefaultSettings(profile.id)
+                val source = base.copy(
+                    timezone = input.timezone,
+                    dailyOvertimeThresholdMinutes = (input.dailyOvertimeHours * 60).roundToInt(),
+                    weeklyOvertimeThresholdMinutes = (input.weeklyOvertimeHours * 60).roundToInt(),
+                    weekendDays = input.weekendDays,
+                    hourlyRate = input.hourlyRate,
+                    currency = input.currency,
+                )
                 settingsRepository.saveSettings(
-                    base.copy(
-                        timezone = input.timezone,
-                        dailyOvertimeThresholdMinutes = input.dailyOvertimeHours * 60,
-                        weeklyOvertimeThresholdMinutes = input.weeklyOvertimeHours * 60,
-                        weekendDays = input.weekendDays,
-                        hourlyRate = input.hourlyRate,
+                    source.copy(
                         featuresTravelRefunds = input.featuresTravelRefunds,
                         featuresPaidProjects = input.featuresPaidProjects,
                         featuresInsights = input.featuresInsights,
                         featuresClockStyles = input.featuresClockStyles,
+                        clockStyle = input.clockStyle,
                         onboardingCompleted = true,
                         onboardingCompletedAt = Instant.now(),
                         updatedAt = Instant.now(),
                     )
                 )
                 if (input.displayName.isNotBlank()) {
-                    val profile = authRepository.getCurrentProfile()
-                    if (profile != null) {
-                        authRepository.saveProfile(
-                            profile.copy(fullName = input.displayName),
-                            profile.id,
-                        )
-                    }
+                    authRepository.saveProfile(
+                        profile.copy(fullName = input.displayName),
+                        profile.id,
+                    )
                 }
                 markOnboardingCompleted()
                 _uiState.value = OnboardingUiState.Completed
@@ -71,6 +90,9 @@ class OnboardingViewModel(
 
     private fun validate(input: OnboardingInput): Map<String, String> {
         val errors = mutableMapOf<String, String>()
+        if (input.displayName.isBlank()) {
+            errors["displayName"] = "Enter the name you want shown in the app"
+        }
         if (input.dailyOvertimeHours <= 0) {
             errors["dailyOT"] = "Daily overtime threshold must be at least 1 hour"
         }
@@ -81,6 +103,9 @@ class OnboardingViewModel(
         }
         if (input.hourlyRate != null && input.hourlyRate <= 0) {
             errors["hourlyRate"] = "Hourly rate must be a positive number"
+        }
+        if (input.weekendDays.isEmpty()) {
+            errors["weekendDays"] = "Select at least one weekend day"
         }
         return errors
     }

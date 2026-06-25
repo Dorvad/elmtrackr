@@ -2,9 +2,10 @@ package com.elmtrackr.app.ui.shell
 
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.fake.FakeAuthRepository
+import com.elmtrackr.app.fake.FakeSettingsRepository
+import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -20,9 +21,19 @@ class AppShellViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val authRepo = FakeAuthRepository()
-    private val onboardingFlow = MutableStateFlow(false)
+    private val settingsRepo = FakeSettingsRepository()
 
-    private fun buildVm() = AppShellViewModel(authRepo, onboardingFlow)
+    private fun buildVm() = AppShellViewModel(authRepo, settingsRepo)
+
+    private fun setOnboarding(completed: Boolean) {
+        settingsRepo.setSettings(
+            UserSettings(
+                id = "settings-1",
+                userId = "user-1",
+                onboardingCompleted = completed,
+            ),
+        )
+    }
 
     private fun testProfile() = Profile(
         id = "user-1",
@@ -37,7 +48,6 @@ class AppShellViewModelTest {
     @Test
     fun `no config + no onboarding → Auth (not-configured)`() = runTest {
         authRepo.configured = false
-        onboardingFlow.value = false
 
         val vm = buildVm()
         val states = mutableListOf<AppNavState>()
@@ -52,7 +62,6 @@ class AppShellViewModelTest {
     fun `no config + onboarding previously completed → still Auth, not Main`() = runTest {
         // Previously completed onboarding must NOT bypass the auth gate when unconfigured.
         authRepo.configured = false
-        onboardingFlow.value = true
 
         val vm = buildVm()
         val states = mutableListOf<AppNavState>()
@@ -69,7 +78,6 @@ class AppShellViewModelTest {
     fun `configured + no session → Auth`() = runTest {
         authRepo.configured = true
         authRepo.setProfile(null)
-        onboardingFlow.value = false
 
         val vm = buildVm()
         val states = mutableListOf<AppNavState>()
@@ -86,7 +94,7 @@ class AppShellViewModelTest {
     fun `session exists + onboarding incomplete → Onboarding`() = runTest {
         authRepo.configured = true
         authRepo.setProfile(testProfile())
-        onboardingFlow.value = false
+        setOnboarding(false)
 
         val vm = buildVm()
         val states = mutableListOf<AppNavState>()
@@ -101,7 +109,7 @@ class AppShellViewModelTest {
     fun `session exists + onboarding complete → Main`() = runTest {
         authRepo.configured = true
         authRepo.setProfile(testProfile())
-        onboardingFlow.value = true
+        setOnboarding(true)
 
         val vm = buildVm()
         val states = mutableListOf<AppNavState>()
@@ -118,7 +126,7 @@ class AppShellViewModelTest {
     fun `sign out returns to Auth and does not route back to Onboarding`() = runTest {
         authRepo.configured = true
         authRepo.setProfile(testProfile())
-        onboardingFlow.value = true
+        setOnboarding(true)
 
         val vm = buildVm()
         val states = mutableListOf<AppNavState>()
@@ -139,7 +147,7 @@ class AppShellViewModelTest {
     fun `sign out when onboarding incomplete also returns to Auth`() = runTest {
         authRepo.configured = true
         authRepo.setProfile(testProfile())
-        onboardingFlow.value = false
+        setOnboarding(false)
 
         val vm = buildVm()
         val states = mutableListOf<AppNavState>()

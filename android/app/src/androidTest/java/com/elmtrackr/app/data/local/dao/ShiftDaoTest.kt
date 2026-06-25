@@ -97,7 +97,7 @@ class ShiftDaoTest {
         dao.insertShift(shift("s1", syncStatus = SyncStatus.PENDING_CREATE))
         dao.insertShift(shift("s2", syncStatus = SyncStatus.SYNCED))
         dao.insertShift(shift("s3", syncStatus = SyncStatus.PENDING_UPDATE))
-        val pending = dao.observePendingSyncShifts().first()
+        val pending = dao.observePendingSyncShifts("u1").first()
         val ids = pending.map { it.localId }
         assertTrue(ids.contains("s1"))
         assertTrue(ids.contains("s3"))

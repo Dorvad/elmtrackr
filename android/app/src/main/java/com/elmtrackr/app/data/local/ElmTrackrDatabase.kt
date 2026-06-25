@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.elmtrackr.app.data.local.converter.Converters
 import com.elmtrackr.app.data.local.dao.ProfileDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
@@ -22,7 +24,7 @@ import com.elmtrackr.app.data.local.entity.UserSettingsEntity
         ProfileEntity::class,
         RefundClaimEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -42,7 +44,15 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     context.applicationContext,
                     ElmTrackrDatabase::class.java,
                     "elmtrackr.db",
-                ).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2)
+                    .build()
+                    .also { INSTANCE = it }
             }
+
+        internal val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE user_settings ADD COLUMN currency TEXT NOT NULL DEFAULT 'ILS'")
+            }
+        }
     }
 }

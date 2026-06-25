@@ -6,10 +6,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
-import com.elmtrackr.app.domain.LOCAL_USER_ID
+import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.ReportsRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
@@ -19,12 +20,16 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DashboardViewModel(
     private val shiftsRepository: ShiftsRepository,
     private val settingsRepository: SettingsRepository,
@@ -40,32 +45,44 @@ class DashboardViewModel(
         val report: MonthlyReport?,
         val settings: UserSettings?,
         val pendingCount: Int,
-        val allShifts: List<Shift>,
+        /** Shifts for the current calendar month only — bounded query. */
+        val monthShifts: List<Shift>,
+        /** The 5 most recent completed shifts — pre-limited at the DB layer. */
+        val recentShifts: List<Shift>,
     )
 
-    val uiState: StateFlow<DashboardUiState> = combine(
-        combine(
-            shiftsRepository.observeActiveShift(LOCAL_USER_ID),
-            reportsRepository.observeMonthlyReport(LOCAL_USER_ID, today.year, today.monthValue),
-            settingsRepository.observeSettings(LOCAL_USER_ID),
-            syncRepository.observePendingCount(),
-            shiftsRepository.observeShifts(LOCAL_USER_ID),
-        ) { activeShift, report, settings, pendingCount, allShifts ->
-            RawData(activeShift, report, settings, pendingCount, allShifts)
-        },
-        authRepository.observeCurrentProfile(),
-    ) { raw, profile ->
-        DashboardUiState.Ready(
-            activeShift = raw.activeShift,
-            monthlyReport = raw.report,
-            settings = raw.settings,
-            pendingSyncCount = raw.pendingCount,
-            recentShifts = raw.allShifts.filter { it.isCompleted }
-                .sortedByDescending { it.startTime }.take(5),
-            displayName = profile?.fullName,
-            isRemoteConfigured = authRepository.isConfigured(),
-        ) as DashboardUiState
-    }.catch { e ->
+    val uiState: StateFlow<DashboardUiState> = authRepository.observeCurrentProfile()
+        .flatMapLatest { profile ->
+            if (profile == null) return@flatMapLatest flowOf(DashboardUiState.Loading)
+            combine(
+                shiftsRepository.observeActiveShift(profile.id),
+                reportsRepository.observeMonthlyReport(profile.id, today.year, today.monthValue),
+                settingsRepository.observeSettings(profile.id),
+                syncRepository.observePendingCount(profile.id),
+                shiftsRepository.observeShiftsByMonth(profile.id, today.year, today.monthValue),
+            ) { activeShift, report, settings, pendingCount, monthShifts ->
+                RawData(activeShift, report, settings, pendingCount, monthShifts, emptyList())
+            }.combine(shiftsRepository.observeRecentCompletedShifts(profile.id, 5)) { raw, recentShifts ->
+                raw.copy(recentShifts = recentShifts)
+            }.combine(flowOf(profile)) { raw, currentProfile ->
+                val completedMonthShifts = raw.monthShifts.filter { it.isCompleted }
+                val paySummary = raw.settings
+                    ?.takeIf { (it.hourlyRate ?: 0.0) > 0.0 }
+                    ?.let { PayrollCalculator.sumMonthlyPay(completedMonthShifts, it) }
+                DashboardUiState.Ready(
+                    activeShift = raw.activeShift,
+                    monthlyReport = raw.report,
+                    settings = raw.settings,
+                    pendingSyncCount = raw.pendingCount,
+                    recentShifts = raw.recentShifts,
+                    displayName = currentProfile.fullName,
+                    isRemoteConfigured = authRepository.isConfigured(),
+                    unresolvedRefundCount = if (raw.settings?.featuresTravelRefunds == true)
+                        RefundPolicy.countUnresolved(raw.monthShifts) else 0,
+                    paySummary = paySummary,
+                ) as DashboardUiState
+            }
+        }.catch { e ->
         emit(DashboardUiState.Error(e.message ?: "Unknown error"))
     }.stateIn(
         scope = viewModelScope,
@@ -74,7 +91,10 @@ class DashboardViewModel(
     )
 
     fun clockIn() {
-        viewModelScope.launch { shiftsRepository.clockIn(LOCAL_USER_ID) }
+        viewModelScope.launch {
+            val userId = authRepository.getCurrentProfile()?.id ?: return@launch
+            shiftsRepository.clockIn(userId)
+        }
     }
 
     fun clockOut(shiftId: String) {

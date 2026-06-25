@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.elmtrackr.app.ElmTrackrApp
-import com.elmtrackr.app.domain.LOCAL_USER_ID
 import kotlinx.coroutines.flow.firstOrNull
 
 /**
@@ -24,11 +23,12 @@ class LongShiftReminderWorker(
 
     override suspend fun doWork(): Result {
         val app = applicationContext as ElmTrackrApp
+        val userId = app.currentUserProvider.currentUserId() ?: return Result.success()
         val activeShift = app.shiftsRepository
-            .observeActiveShift(LOCAL_USER_ID)
+            .observeActiveShift(userId)
             .firstOrNull() ?: return Result.success()
 
-        val settings = app.settingsRepository.getSettings(LOCAL_USER_ID)
+        val settings = app.settingsRepository.getSettings(userId)
         val thresholdMinutes = settings?.dailyOvertimeThresholdMinutes?.toLong()
             ?: FALLBACK_THRESHOLD_MINUTES
 
