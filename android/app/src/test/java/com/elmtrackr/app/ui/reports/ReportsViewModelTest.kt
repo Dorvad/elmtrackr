@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.reports
 
+import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeReportsRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeCurrentUserProvider
@@ -42,6 +43,7 @@ class ReportsViewModelTest {
             settingsRepo,
             FakeCurrentUserProvider(),
             FakeRefundsRepository(),
+            FakeCompensationProfilesRepository(),
         )
     }
 

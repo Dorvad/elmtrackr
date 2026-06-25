@@ -24,7 +24,7 @@ class WidgetStateMapperTest {
         val state = WidgetStateMapper.map(null)
         assertFalse(state.isActive)
         assertEquals("", state.shiftId)
-        assertEquals("", state.startTimeLabel)
+        assertTrue(state.startTimeLabel.matches(Regex("\\d{2}:\\d{2}")))
     }
 
     @Test
@@ -33,7 +33,7 @@ class WidgetStateMapperTest {
         val state = WidgetStateMapper.map(shift)
         assertFalse(state.isActive)
         assertEquals("", state.shiftId)
-        assertEquals("", state.startTimeLabel)
+        assertTrue(state.startTimeLabel.matches(Regex("\\d{2}:\\d{2}")))
     }
 
     @Test

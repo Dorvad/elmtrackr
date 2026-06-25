@@ -8,12 +8,14 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.DailyInsightsBuilder
+import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.OvernightShiftDetector
 import com.elmtrackr.app.domain.WeeklyBreakdownBuilder
 import com.elmtrackr.app.domain.ReportInsightsBuilder
+import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.repository.ReportsRepository
@@ -42,6 +44,7 @@ class ReportsViewModel(
     private val settingsRepository: SettingsRepository,
     private val currentUserProvider: CurrentUserProvider,
     private val refundsRepository: RefundsRepository,
+    private val compensationProfilesRepository: CompensationProfilesRepository,
     private val refundReceiptStorage: RefundReceiptStorage? = null,
 ) : ViewModel() {
 
@@ -49,6 +52,15 @@ class ReportsViewModel(
     private val _selectedYear = MutableStateFlow(today.year)
     private val _selectedMonth = MutableStateFlow(today.monthValue)
     private val _refreshNonce = MutableStateFlow(0)
+
+    private data class ReportInputs(
+        val report: MonthlyReport?,
+        val shifts: List<Shift>,
+        val settings: UserSettings?,
+        val previousShifts: List<Shift>,
+        val allShifts: List<Shift>,
+        val claims: List<com.elmtrackr.app.domain.model.RefundClaim>,
+    )
 
     val selectedYearMonth: StateFlow<Pair<Int, Int>> = combine(
         _selectedYear,
@@ -81,55 +93,64 @@ class ReportsViewModel(
                     refundsRepository.observeClaimsForUser(userId),
                 ) { allShifts, claims -> allShifts to claims }
                 combine(
-                reportsRepository.observeMonthlyReport(userId, year, month),
-                shiftsRepository.observeShiftsByMonth(userId, year, month),
-                settingsRepository.observeSettings(userId),
-                shiftsRepository.observeShiftsByMonth(userId, previous.year, previous.monthValue),
-                refundData,
-            ) { report, shifts, settings, previousShifts, (allShifts, claims) ->
-                val completedShifts = shifts.filter { it.isCompleted }
-                when {
-                    settings == null -> ReportsUiState.Loading
-                    else -> {
-                        val safeReport = report ?: MonthlyReportBuilder.buildMonthlyReport(
-                            year = year,
-                            month = month,
-                            shifts = shifts,
-                            settings = settings,
-                        )
-                        val paySummary = settings.hourlyRate?.takeIf { it > 0 }?.let {
-                            PayrollCalculator.sumMonthlyPay(completedShifts, settings)
-                        }
-                        val prevCompleted = previousShifts.filter { it.isCompleted }
-                        val insights = settings.takeIf { it.featuresInsights }
-                            ?.let { ReportInsightsBuilder.build(completedShifts, it) }
-                        val dailyInsights = settings.takeIf { it.featuresInsights }
-                            ?.let { DailyInsightsBuilder.build(completedShifts, it, safeReport.totalMinutes) }
-                            ?: emptyList()
-                        ReportsUiState.Ready(
-                            year = year,
-                            month = month,
-                            report = safeReport,
-                            weeklyTotals = WeeklyBreakdownBuilder.groupByWeek(
-                                shifts = completedShifts,
+                    combine(
+                        reportsRepository.observeMonthlyReport(userId, year, month),
+                        shiftsRepository.observeShiftsByMonth(userId, year, month),
+                        settingsRepository.observeSettings(userId),
+                        shiftsRepository.observeShiftsByMonth(userId, previous.year, previous.monthValue),
+                        refundData,
+                    ) { report, shifts, settings, previousShifts, refundPair ->
+                        val (allShifts, claims) = refundPair
+                        ReportInputs(report, shifts, settings, previousShifts, allShifts, claims)
+                    },
+                    compensationProfilesRepository.observeProfiles(userId),
+                ) { inputs, profiles ->
+                    val completedShifts = inputs.shifts.filter { it.isCompleted }
+                    when {
+                        inputs.settings == null -> ReportsUiState.Loading
+                        else -> {
+                            val settings = inputs.settings
+                            val safeReport = inputs.report ?: MonthlyReportBuilder.buildMonthlyReport(
+                                year = year,
+                                month = month,
+                                shifts = inputs.shifts,
                                 settings = settings,
-                                prevMonthShifts = prevCompleted,
-                            ),
-                            paySummary = paySummary,
-                            rawShifts = completedShifts,
-                            settings = settings,
-                            featuresTravelRefunds = settings.featuresTravelRefunds,
-                            insights = insights,
-                            dailyInsights = dailyInsights,
-                            previousMonthMinutes = prevCompleted.sumOf {
-                                ShiftDurationCalculator.netMinutes(it) ?: 0
-                            },
-                            allShifts = allShifts,
-                            refundClaims = claims,
-                        )
+                            )
+                            val paySummary = settings.takeIf {
+                                (it.hourlyRate ?: 0.0) > 0.0 ||
+                                    profiles.any { p -> (p.baseHourlyRate ?: 0.0) > 0.0 }
+                            }?.let { PayrollCalculator.sumMonthlyPay(completedShifts, it, profiles) }
+                            val prevCompleted = inputs.previousShifts.filter { it.isCompleted }
+                            val insights = settings.takeIf { it.featuresInsights }
+                                ?.let { ReportInsightsBuilder.build(completedShifts, it) }
+                            val dailyInsights = settings.takeIf { it.featuresInsights }
+                                ?.let { DailyInsightsBuilder.build(completedShifts, it, safeReport.totalMinutes) }
+                                ?: emptyList()
+                            ReportsUiState.Ready(
+                                year = year,
+                                month = month,
+                                report = safeReport,
+                                weeklyTotals = WeeklyBreakdownBuilder.groupByWeek(
+                                    shifts = completedShifts,
+                                    settings = settings,
+                                    prevMonthShifts = prevCompleted,
+                                ),
+                                paySummary = paySummary,
+                                rawShifts = completedShifts,
+                                settings = settings,
+                                featuresTravelRefunds = settings.featuresTravelRefunds,
+                                insights = insights,
+                                dailyInsights = dailyInsights,
+                                previousMonthMinutes = prevCompleted.sumOf {
+                                    ShiftDurationCalculator.netMinutes(it) ?: 0
+                                },
+                                allShifts = inputs.allShifts,
+                                refundClaims = inputs.claims,
+                            )
+                        }
                     }
                 }
-            } }
+            }
         }
         .catch { e -> emit(ReportsUiState.Error(e.message ?: "Unknown error")) }
         .stateIn(
@@ -225,6 +246,7 @@ class ReportsViewModel(
                     app.settingsRepository,
                     app.currentUserProvider,
                     app.refundsRepository,
+                    app.compensationProfilesRepository,
                     app.refundReceiptStorage,
                 )
             }

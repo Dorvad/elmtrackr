@@ -1,5 +1,6 @@
 package com.elmtrackr.app.domain.repository
 
+import com.elmtrackr.app.domain.model.CompensationSnapshot
 import com.elmtrackr.app.domain.model.Shift
 import kotlinx.coroutines.flow.Flow
 
@@ -12,10 +13,15 @@ interface ShiftsRepository {
     suspend fun getShiftById(localId: String): Shift?
 
     /** Creates a new shift with only a start time (clock-in). */
-    suspend fun clockIn(userId: String): Shift
+    suspend fun clockIn(userId: String, compensationProfileId: String? = null): Shift
 
     /** Sets end time on an active shift (clock-out). */
-    suspend fun clockOut(localId: String, breakMinutes: Int = 0, notes: String? = null): Shift
+    suspend fun clockOut(
+        localId: String,
+        breakMinutes: Int = 0,
+        notes: String? = null,
+        compensationSnapshot: CompensationSnapshot? = null,
+    ): Shift
 
     /** Creates a fully-specified manual shift entry (PENDING_CREATE sync status). */
     suspend fun createManualShift(shift: Shift): Shift

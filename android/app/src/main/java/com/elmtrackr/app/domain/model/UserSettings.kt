@@ -19,6 +19,9 @@ data class UserSettings(
     val weekendDays: List<Int> = DEFAULT_WEEKEND_DAYS,
     val hourlyRate: Double? = null,
     val currency: CurrencyCode = CurrencyCode.ILS,
+    val regionCode: RegionCode? = null,
+    val currencyCode: String? = null,
+    val defaultCompensationProfileId: String? = null,
     val onboardingCompleted: Boolean = false,
     val onboardingCompletedAt: Instant? = null,
     val featuresTravelRefunds: Boolean = false,
@@ -34,4 +37,26 @@ data class UserSettings(
         const val DEFAULT_WEEKLY_OT_MINUTES = 2400  // 40 hours
         val DEFAULT_WEEKEND_DAYS = listOf(5, 6)     // Friday + Saturday
     }
+
+    data class Updates(
+        val hourlyRate: Double? = null,
+        val timezone: String? = null,
+        val regionCode: RegionCode? = null,
+        val currencyCode: String? = null,
+        val defaultCompensationProfileId: String? = null,
+        val dailyOvertimeThresholdMinutes: Int? = null,
+        val weeklyOvertimeThresholdMinutes: Int? = null,
+        val weekendDays: List<Int>? = null,
+    )
+
+    fun apply(updates: Updates): UserSettings = copy(
+        hourlyRate = updates.hourlyRate ?: hourlyRate,
+        timezone = updates.timezone ?: timezone,
+        regionCode = updates.regionCode ?: regionCode,
+        currencyCode = updates.currencyCode ?: currencyCode,
+        defaultCompensationProfileId = updates.defaultCompensationProfileId ?: defaultCompensationProfileId,
+        dailyOvertimeThresholdMinutes = updates.dailyOvertimeThresholdMinutes ?: dailyOvertimeThresholdMinutes,
+        weeklyOvertimeThresholdMinutes = updates.weeklyOvertimeThresholdMinutes ?: weeklyOvertimeThresholdMinutes,
+        weekendDays = updates.weekendDays ?: weekendDays,
+    )
 }

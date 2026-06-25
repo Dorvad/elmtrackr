@@ -5,6 +5,8 @@ import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
+import com.elmtrackr.app.domain.compensation.CompensationRulesCodec
+import com.elmtrackr.app.domain.model.CompensationSnapshot
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.sync.NoOpSyncTrigger
@@ -30,7 +32,7 @@ class LocalShiftsRepository(
     override suspend fun getShiftById(localId: String): Shift? =
         shiftDao.getShiftById(localId)?.toDomain()
 
-    override suspend fun clockIn(userId: String): Shift {
+    override suspend fun clockIn(userId: String, compensationProfileId: String?): Shift {
         val now = Instant.now().toEpochMilli()
         val entity = ShiftEntity(
             localId = UUID.randomUUID().toString(),
@@ -42,6 +44,8 @@ class LocalShiftsRepository(
             notes = null,
             isSpecialDay = false,
             refundAction = null,
+            compensationProfileId = compensationProfileId,
+            compensationSnapshotJson = null,
             createdAt = now,
             updatedAt = now,
             deletedAt = null,
@@ -54,7 +58,12 @@ class LocalShiftsRepository(
         return entity.toDomain()
     }
 
-    override suspend fun clockOut(localId: String, breakMinutes: Int, notes: String?): Shift {
+    override suspend fun clockOut(
+        localId: String,
+        breakMinutes: Int,
+        notes: String?,
+        compensationSnapshot: CompensationSnapshot?,
+    ): Shift {
         val existing = shiftDao.getShiftById(localId)
             ?: error("Shift $localId not found")
         val now = Instant.now().toEpochMilli()
@@ -64,6 +73,7 @@ class LocalShiftsRepository(
             endTime = now,
             breakMinutes = breakMinutes,
             notes = notes,
+            compensationSnapshotJson = compensationSnapshot?.let { CompensationRulesCodec.encodeSnapshot(it) },
             updatedAt = now,
             syncStatus = newStatus,
         )

@@ -12,5 +12,16 @@ data class PayBracket(
 data class ShiftPayBreakdown(
     val brackets: List<PayBracket>,
     val totalGross: Double,
-    val isSpecial: Boolean,    // true = weekend or special-day tiers applied
+    val regularGross: Double = 0.0,
+    val overtimeGross: Double = 0.0,
+    val weekendGross: Double = 0.0,
+    val holidayGross: Double = 0.0,
+    val nightGross: Double = 0.0,
+    val deductionsGross: Double = 0.0,
+    val netGross: Double = totalGross,
+    val isSpecial: Boolean,
+    val profileId: String? = null,
+    val profileName: String? = null,
+    val currencyCode: String = "USD",
+    val disclaimer: String = "",
 )

@@ -300,7 +300,10 @@ private fun DashboardReady(
             MonthSummarySection(
                 report      = state.monthlyReport,
                 paySummary  = state.paySummary,
-                currency    = state.settings?.currency ?: CurrencyCode.ILS,
+                currencyCode = state.paySummary?.currencyCode
+                    ?: state.settings?.currencyCode
+                    ?: state.settings?.currency?.name
+                    ?: "ILS",
                 modifier    = Modifier.auroraEnter(index = 2),
             )
 
@@ -874,7 +877,7 @@ private fun ExpressiveClockCard(
 private fun MonthSummarySection(
     report: MonthlyReport?,
     paySummary: PayrollCalculator.MonthlyPaySummary?,
-    currency: CurrencyCode,
+    currencyCode: String,
     modifier: Modifier = Modifier,
 ) {
     val totalMinutes = report?.totalMinutes ?: 0
@@ -982,7 +985,7 @@ private fun MonthSummarySection(
                     Spacer(Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
-                            text = MoneyFormatter.format(pay.totalGross, currency),
+                            text = MoneyFormatter.format(pay.totalGross, currencyCode),
                             style = MaterialTheme.typography.headlineLarge,
                             color = AuroraWhite,
                             fontWeight = FontWeight.ExtraBold,
@@ -1001,13 +1004,13 @@ private fun MonthSummarySection(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             if (pay.regularGross > 0.0) {
-                                PaySummaryCell("Regular", pay.regularGross, currency, Modifier.weight(1f))
+                                PaySummaryCell("Regular", pay.regularGross, currencyCode, Modifier.weight(1f))
                             }
                             if (pay.overtimeGross > 0.0) {
-                                PaySummaryCell("Overtime", pay.overtimeGross, currency, Modifier.weight(1f))
+                                PaySummaryCell("Overtime", pay.overtimeGross, currencyCode, Modifier.weight(1f))
                             }
                             if (pay.specialGross > 0.0) {
-                                PaySummaryCell("Holiday", pay.specialGross, currency, Modifier.weight(1f))
+                                PaySummaryCell("Holiday", pay.specialGross, currencyCode, Modifier.weight(1f))
                             }
                         }
                     }
@@ -1018,7 +1021,7 @@ private fun MonthSummarySection(
 }
 
 @Composable
-private fun PaySummaryCell(label: String, amount: Double, currency: CurrencyCode, modifier: Modifier = Modifier) {
+private fun PaySummaryCell(label: String, amount: Double, currencyCode: String, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .background(AuroraWhite.copy(alpha = 0.15f), RoundedCornerShape(CornerRadius.Medium))
@@ -1031,7 +1034,7 @@ private fun PaySummaryCell(label: String, amount: Double, currency: CurrencyCode
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = MoneyFormatter.format(amount, currency),
+            text = MoneyFormatter.format(amount, currencyCode),
             style = MaterialTheme.typography.bodyMedium,
             color = AuroraWhite,
             fontWeight = FontWeight.Bold,

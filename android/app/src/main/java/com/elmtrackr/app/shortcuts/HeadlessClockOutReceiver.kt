@@ -7,6 +7,7 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.MainActivity
 import com.elmtrackr.app.R
 import com.elmtrackr.app.notification.ActiveShiftNotificationManager
@@ -26,8 +27,15 @@ class HeadlessClockOutReceiver : BroadcastReceiver() {
                 val app = context.applicationContext as ElmTrackrApp
                 val userId = app.currentUserProvider.currentUserId()
                 val activeShift = userId?.let { app.shiftsRepository.observeActiveShift(it).first() }
-                if (activeShift != null) {
-                    app.shiftsRepository.clockOut(activeShift.id)
+                if (activeShift != null && userId != null) {
+                    val settings = app.settingsRepository.getSettings(userId)
+                    if (settings != null) {
+                        val profiles = app.compensationProfilesRepository.getProfiles(userId)
+                        val snapshot = ShiftCompensationHelper.buildClockOutSnapshot(activeShift, settings, profiles)
+                        app.shiftsRepository.clockOut(activeShift.id, compensationSnapshot = snapshot)
+                    } else {
+                        app.shiftsRepository.clockOut(activeShift.id)
+                    }
                     ActiveShiftNotificationManager(context.applicationContext).cancelActiveShiftNotification()
                     showShortcutNotification(context, "Clocked out", "Your shift has been ended.")
                     app.refreshDynamicShortcuts()

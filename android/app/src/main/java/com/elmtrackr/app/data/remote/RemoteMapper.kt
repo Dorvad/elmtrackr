@@ -1,10 +1,12 @@
 package com.elmtrackr.app.data.remote
 
+import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
 import com.elmtrackr.app.data.local.entity.ProfileEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
@@ -35,7 +37,10 @@ private fun JsonObject.intArray(key: String): List<Int> =
 
 // ---- ShiftEntity ↔ JsonObject ----
 
-fun ShiftEntity.toRemoteJson(overrideId: String? = null): JsonObject = buildJsonObject {
+fun ShiftEntity.toRemoteJson(
+    overrideId: String? = null,
+    compensationProfileRemoteId: String? = compensationProfileId,
+): JsonObject = buildJsonObject {
     put("id", overrideId ?: remoteId ?: error("No remote id for shift $localId"))
     put("user_id", userId)
     put("start_time", epochIso(startTime))
@@ -44,6 +49,10 @@ fun ShiftEntity.toRemoteJson(overrideId: String? = null): JsonObject = buildJson
     notes?.let { put("notes", it) }
     put("is_special_day", isSpecialDay)
     refundAction?.let { put("refund_action", it.lowercase()) }
+    compensationProfileRemoteId?.let { put("compensation_profile_id", it) }
+    compensationSnapshotJson?.let {
+        put("compensation_snapshot_json", Json.parseToJsonElement(it))
+    }
     put("created_at", epochIso(createdAt))
     put("updated_at", epochIso(updatedAt))
 }
@@ -60,6 +69,8 @@ fun JsonObject.toShiftEntity(existingLocalId: String? = null): ShiftEntity {
         notes = str("notes"),
         isSpecialDay = bool("is_special_day"),
         refundAction = str("refund_action")?.uppercase(),
+        compensationProfileId = str("compensation_profile_id"),
+        compensationSnapshotJson = this["compensation_snapshot_json"]?.toString(),
         createdAt = requireInstantMillis("created_at"),
         updatedAt = requireInstantMillis("updated_at"),
         deletedAt = null,
@@ -113,6 +124,7 @@ fun JsonObject.toRefundClaimEntity(shiftLocalId: String, existingLocalId: String
 fun UserSettingsEntity.toRemoteJson(
     overrideId: String? = null,
     includeCurrency: Boolean = true,
+    defaultCompensationProfileRemoteId: String? = defaultCompensationProfileId,
 ): JsonObject = buildJsonObject {
     put("id", overrideId ?: remoteId ?: error("No remote id for settings $localId"))
     put("user_id", userId)
@@ -124,6 +136,9 @@ fun UserSettingsEntity.toRemoteJson(
     })
     hourlyRate?.let { put("hourly_rate", it) }
     if (includeCurrency) put("currency", currency)
+    regionCode?.let { put("region_code", it) }
+    currencyCode?.let { put("currency_code", it) }
+    defaultCompensationProfileRemoteId?.let { put("default_compensation_profile_id", it) }
     put("onboarding_completed", onboardingCompleted)
     onboardingCompletedAt?.let { put("onboarding_completed_at", epochIso(it)) }
     put("features_travel_refunds", featuresTravelRefunds)
@@ -149,7 +164,10 @@ fun JsonObject.toUserSettingsEntity(
         weeklyOvertimeThresholdMinutes = int("weekly_overtime_threshold_minutes"),
         weekendDays = intArray("weekend_days").ifEmpty { listOf(5, 6) }.joinToString(","),
         hourlyRate = dbl("hourly_rate"),
-        currency = (str("currency") ?: fallbackCurrency ?: "ILS").uppercase(),
+        currency = (str("currency_code") ?: str("currency") ?: fallbackCurrency ?: "ILS").uppercase(),
+        regionCode = str("region_code"),
+        currencyCode = str("currency_code") ?: str("currency"),
+        defaultCompensationProfileId = str("default_compensation_profile_id"),
         onboardingCompleted = bool("onboarding_completed"),
         onboardingCompletedAt = instantMillis("onboarding_completed_at"),
         featuresTravelRefunds = bool("features_travel_refunds"),
@@ -184,6 +202,57 @@ fun JsonObject.toProfileEntity(userId: String, existingLocalId: String? = null):
         userId = userId,
         email = str("email") ?: "",
         fullName = str("full_name"),
+        createdAt = requireInstantMillis("created_at"),
+        updatedAt = requireInstantMillis("updated_at"),
+        deletedAt = null,
+        syncStatus = SyncStatus.SYNCED,
+        lastSyncError = null,
+        lastSyncedAt = Instant.now().toEpochMilli(),
+    )
+}
+
+// ---- CompensationProfileEntity ↔ JsonObject ----
+
+fun CompensationProfileEntity.toRemoteJson(overrideId: String? = null): JsonObject = buildJsonObject {
+    put("id", overrideId ?: remoteId ?: error("No remote id for compensation profile $localId"))
+    put("user_id", userId)
+    put("name", name)
+    put("region_code", regionCode)
+    put("currency_code", currencyCode)
+    put("timezone", timezone)
+    baseHourlyRate?.let { put("base_hourly_rate", it) }
+    put("rules_json", Json.parseToJsonElement(rulesJson))
+    put("stacking_policy", stackingPolicy)
+    put("effective_from", epochIso(effectiveFrom))
+    effectiveUntil?.let { put("effective_until", epochIso(it)) }
+    put("is_default", isDefault)
+    put("is_archived", isArchived)
+    put("created_at", epochIso(createdAt))
+    put("updated_at", epochIso(updatedAt))
+}
+
+fun JsonObject.toCompensationProfileEntity(existingLocalId: String? = null): CompensationProfileEntity {
+    val remoteId = requireStr("id")
+    val rulesJsonValue = this["rules_json"]
+    val rulesJson = when (rulesJsonValue) {
+        is JsonObject -> rulesJsonValue.toString()
+        else -> rulesJsonValue?.jsonPrimitive?.content ?: "{}"
+    }
+    return CompensationProfileEntity(
+        localId = existingLocalId ?: remoteId,
+        remoteId = remoteId,
+        userId = requireStr("user_id"),
+        name = requireStr("name"),
+        regionCode = requireStr("region_code"),
+        currencyCode = requireStr("currency_code"),
+        timezone = str("timezone") ?: "UTC",
+        baseHourlyRate = dbl("base_hourly_rate"),
+        rulesJson = rulesJson,
+        stackingPolicy = str("stacking_policy") ?: "highest_only",
+        effectiveFrom = requireInstantMillis("effective_from"),
+        effectiveUntil = instantMillis("effective_until"),
+        isDefault = bool("is_default"),
+        isArchived = bool("is_archived"),
         createdAt = requireInstantMillis("created_at"),
         updatedAt = requireInstantMillis("updated_at"),
         deletedAt = null,

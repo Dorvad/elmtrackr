@@ -15,6 +15,8 @@ data class Shift(
     val notes: String? = null,
     val isSpecialDay: Boolean = false,
     val refundAction: RefundAction? = null,
+    val compensationProfileId: String? = null,
+    val compensationSnapshot: com.elmtrackr.app.domain.model.CompensationSnapshot? = null,
     val createdAt: Instant = Instant.EPOCH,
     val updatedAt: Instant = Instant.EPOCH,
 ) {

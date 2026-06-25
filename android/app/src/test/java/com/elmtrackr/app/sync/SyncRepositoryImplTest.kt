@@ -4,6 +4,7 @@ import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.repository.SyncRepositoryImpl
 import com.elmtrackr.app.domain.model.SyncResult
+import com.elmtrackr.app.fake.FakeCompensationProfileDao
 import com.elmtrackr.app.fake.FakeProfileDao
 import com.elmtrackr.app.fake.FakeRefundClaimDao
 import com.elmtrackr.app.fake.FakeRemoteProfileDataSource
@@ -36,6 +37,7 @@ class SyncRepositoryImplTest {
     private val refundDao = FakeRefundClaimDao()
     private val settingsDao = FakeSettingsDao()
     private val profileDao = FakeProfileDao()
+    private val compensationProfileDao = FakeCompensationProfileDao()
     private val remoteShifts = FakeRemoteShiftsDataSource()
     private val remoteRefunds = FakeRemoteRefundsDataSource()
     private val remoteSettings = FakeRemoteSettingsDataSource()
@@ -46,10 +48,12 @@ class SyncRepositoryImplTest {
         refundClaimDao = refundDao,
         settingsDao = settingsDao,
         profileDao = profileDao,
+        compensationProfileDao = compensationProfileDao,
         remoteShifts = if (configured) remoteShifts else null,
         remoteRefunds = if (configured) remoteRefunds else null,
         remoteSettings = if (configured) remoteSettings else null,
         remoteProfile = if (configured) remoteProfile else null,
+        remoteCompensationProfiles = null,
     )
 
     private val now = Instant.now().toEpochMilli()

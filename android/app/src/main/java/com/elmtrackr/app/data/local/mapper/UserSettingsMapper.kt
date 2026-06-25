@@ -4,6 +4,7 @@ import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.UserSettings
 import java.time.Instant
 
@@ -17,6 +18,9 @@ fun UserSettingsEntity.toDomain(): UserSettings = UserSettings(
                   else weekendDays.split(",").map { it.trim().toInt() },
     hourlyRate = hourlyRate,
     currency = CurrencyCode.from(currency),
+    regionCode = regionCode?.let { runCatching { RegionCode.valueOf(it) }.getOrNull() },
+    currencyCode = currencyCode,
+    defaultCompensationProfileId = defaultCompensationProfileId,
     onboardingCompleted = onboardingCompleted,
     onboardingCompletedAt = onboardingCompletedAt?.let { Instant.ofEpochMilli(it) },
     featuresTravelRefunds = featuresTravelRefunds,
@@ -44,6 +48,9 @@ fun UserSettings.toEntity(
     weekendDays = weekendDays.joinToString(","),
     hourlyRate = hourlyRate,
     currency = currency.name,
+    regionCode = regionCode?.name,
+    currencyCode = currencyCode ?: currency.name,
+    defaultCompensationProfileId = defaultCompensationProfileId,
     onboardingCompleted = onboardingCompleted,
     onboardingCompletedAt = onboardingCompletedAt?.toEpochMilli(),
     featuresTravelRefunds = featuresTravelRefunds,
