@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Handle deep link when activity is already running (singleTask)
+        setIntent(intent)
         intent.data?.toString()?.let { handleDeepLink(it) }
     }
 

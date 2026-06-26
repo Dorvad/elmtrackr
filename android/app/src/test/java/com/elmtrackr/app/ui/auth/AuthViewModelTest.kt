@@ -165,4 +165,37 @@ class AuthViewModelTest {
         assertEquals("User not found", signedOut?.errorMessage)
         job.cancel()
     }
+
+    @Test
+    fun `password recovery required emits PasswordRecovery`() = runTest {
+        repo.setProfile(
+            Profile("user-1", "test@example.com", null, Instant.EPOCH, Instant.EPOCH),
+        )
+        repo.setPasswordRecoveryRequired(true)
+        val vm = buildVm()
+        val states = mutableListOf<AuthUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        assertTrue(states.last() is AuthUiState.PasswordRecovery)
+        job.cancel()
+    }
+
+    @Test
+    fun `updatePassword success clears recovery state`() = runTest {
+        repo.setProfile(
+            Profile("user-1", "test@example.com", null, Instant.EPOCH, Instant.EPOCH),
+        )
+        repo.setPasswordRecoveryRequired(true)
+        val vm = buildVm()
+        val states = mutableListOf<AuthUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        vm.updatePassword("newpassword123")
+        advanceUntilIdle()
+
+        assertTrue(states.last() is AuthUiState.SignedIn)
+        job.cancel()
+    }
 }

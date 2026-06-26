@@ -11,6 +11,7 @@ import com.elmtrackr.app.domain.repository.SettingsRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -22,17 +23,22 @@ class AppShellViewModel(
     private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
-    val navState: StateFlow<AppNavState> = authRepository.observeCurrentProfile()
-        .flatMapLatest { profile ->
-            when {
-                !authRepository.isConfigured() -> flowOf(AppNavState.Auth)
-                profile == null -> flowOf(AppNavState.Auth)
-                else -> settingsRepository.observeSettings(profile.id).map { settings ->
-                    if (settings?.onboardingCompleted == true) AppNavState.Main
-                    else AppNavState.Onboarding
-                }
+    val navState: StateFlow<AppNavState> = combine(
+        authRepository.observePasswordRecoveryRequired(),
+        authRepository.observeCurrentProfile(),
+    ) { recoveryRequired, profile ->
+        recoveryRequired to profile
+    }.flatMapLatest { (recoveryRequired, profile) ->
+        when {
+            !authRepository.isConfigured() -> flowOf(AppNavState.Auth)
+            recoveryRequired -> flowOf(AppNavState.Auth)
+            profile == null -> flowOf(AppNavState.Auth)
+            else -> settingsRepository.observeSettings(profile.id).map { settings ->
+                if (settings?.onboardingCompleted == true) AppNavState.Main
+                else AppNavState.Onboarding
             }
         }
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

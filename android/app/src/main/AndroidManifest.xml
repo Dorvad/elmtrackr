@@ -29,9 +29,9 @@
             </intent-filter>
 
             <!-- Deep-link handler for Supabase auth callbacks.
-                 Redirect URL to configure in Supabase dashboard:
+                 Redirect URLs to configure in Supabase dashboard:
                  elmtrackr://auth/callback
-                 Handles: email confirmation, password reset, magic link, OAuth. -->
+                 elmtrackr://auth/reset-password -->
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

@@ -170,4 +170,20 @@ class AppShellViewModelTest {
         val vm = buildVm()
         assertEquals(AppNavState.Loading, vm.navState.value)
     }
+
+    @Test
+    fun `password recovery keeps user on Auth even with session`() = runTest {
+        authRepo.configured = true
+        authRepo.setProfile(testProfile())
+        authRepo.setPasswordRecoveryRequired(true)
+        setOnboarding(true)
+
+        val vm = buildVm()
+        val states = mutableListOf<AppNavState>()
+        val job = launch { vm.navState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        assertEquals(AppNavState.Auth, states.last())
+        job.cancel()
+    }
 }

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { CountrySelect } from "@/components/ui/CountrySelect";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { createClient } from "@/lib/supabase/client";
+import { getPasswordResetRedirectUrl } from "@/lib/supabase/auth-redirects";
 
 const WEEKDAYS = [
   { label: "Sun", value: 0 },
@@ -126,7 +127,9 @@ export default function SettingsPage() {
       const { data: userData } = await supabase.auth.getUser();
       const email = userData.user?.email;
       if (!email) throw new Error("Could not retrieve your email address.");
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: getPasswordResetRedirectUrl(),
+      });
       if (error) throw new Error(error.message);
       toast(`Reset link sent to ${email}`, "success");
     } catch (err) {

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
+import com.elmtrackr.app.domain.model.AuthResult
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Profile
@@ -42,6 +43,7 @@ class SettingsViewModel(
     private val _isSaving = MutableStateFlow(false)
     private val _isSyncing = MutableStateFlow(false)
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+    private val _passwordResetFeedback = MutableStateFlow<String?>(null)
 
     private data class CoreData(
         val settings: UserSettings?,
@@ -55,6 +57,7 @@ class SettingsViewModel(
         val isSaving: Boolean,
         val isSyncing: Boolean,
         val validationErrors: Map<String, String>,
+        val passwordResetFeedback: String?,
     )
 
     private val coreData = authRepository.observeCurrentProfile().flatMapLatest { profile ->
@@ -66,15 +69,24 @@ class SettingsViewModel(
         ) { settings, pending, lastSync -> CoreData(settings, pending, lastSync) }
     }
 
-    val uiState: StateFlow<SettingsUiState> = combine(
-        coreData,
+    private val extras = combine(
         combine(
             authRepository.observeCurrentProfile(),
             themeStore.observeTheme(),
             _isSaving,
+        ) { profile, theme, saving -> Triple(profile, theme, saving) },
+        combine(
             _isSyncing,
             _validationErrors,
-        ) { profile, theme, saving, syncing, errors -> Extras(profile, theme, saving, syncing, errors) },
+            _passwordResetFeedback,
+        ) { syncing, errors, resetFeedback -> Triple(syncing, errors, resetFeedback) },
+    ) { (profile, theme, saving), (syncing, errors, resetFeedback) ->
+        Extras(profile, theme, saving, syncing, errors, resetFeedback)
+    }
+
+    val uiState: StateFlow<SettingsUiState> = combine(
+        coreData,
+        extras,
     ) { core, extras ->
         if (core.settings == null) SettingsUiState.Loading
         else SettingsUiState.Ready(
@@ -86,6 +98,7 @@ class SettingsViewModel(
             isSaving = extras.isSaving,
             isSyncing = extras.isSyncing,
             validationErrors = extras.validationErrors,
+            passwordResetFeedback = extras.passwordResetFeedback,
         )
     }.catch { e ->
         emit(SettingsUiState.Error(e.message ?: "Unknown error"))
@@ -201,8 +214,19 @@ class SettingsViewModel(
     fun resetPassword() {
         viewModelScope.launch {
             val profile = authRepository.getCurrentProfile() ?: return@launch
-            authRepository.resetPassword(profile.email)
+            when (val result = authRepository.resetPassword(profile.email)) {
+                is AuthResult.Success ->
+                    _passwordResetFeedback.value = "Reset link sent to ${profile.email}. Check your inbox."
+                is AuthResult.NotConfigured ->
+                    _passwordResetFeedback.value = "Supabase is not configured."
+                is AuthResult.Error ->
+                    _passwordResetFeedback.value = result.message
+            }
         }
+    }
+
+    fun clearPasswordResetFeedback() {
+        _passwordResetFeedback.value = null
     }
 
     fun ensureSettingsExist() {

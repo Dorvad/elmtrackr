@@ -15,6 +15,7 @@ sealed interface SettingsUiState {
         val isSaving: Boolean = false,
         val isSyncing: Boolean = false,
         val validationErrors: Map<String, String> = emptyMap(),
+        val passwordResetFeedback: String? = null,
     ) : SettingsUiState
 
     data class Error(val message: String) : SettingsUiState

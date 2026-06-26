@@ -24,6 +24,12 @@ sealed interface AuthUiState {
     /** Password-reset email was sent successfully. */
     data object PasswordResetSent : AuthUiState
 
+    /** Recovery link opened — user must choose a new password. */
+    data class PasswordRecovery(
+        val isLoading: Boolean = false,
+        val errorMessage: String? = null,
+    ) : AuthUiState
+
     /** Sign-up succeeded but the Supabase project requires email confirmation. */
     data class SignUpConfirmation(val email: String) : AuthUiState
 }

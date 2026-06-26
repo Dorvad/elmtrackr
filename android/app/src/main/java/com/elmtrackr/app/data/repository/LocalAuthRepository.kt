@@ -8,6 +8,10 @@ import com.elmtrackr.app.domain.model.AuthResult
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,7 +28,14 @@ class LocalAuthRepository(
     private val appPrefs: AppPreferencesRepository,
 ) : AuthRepository {
 
+    private val _passwordRecoveryRequired = MutableStateFlow(false)
+    private val _deepLinkErrors = MutableSharedFlow<String>(extraBufferCapacity = 1)
+
+    override val deepLinkErrors: SharedFlow<String> = _deepLinkErrors.asSharedFlow()
+
     override fun isConfigured(): Boolean = false
+
+    override fun observePasswordRecoveryRequired(): Flow<Boolean> = _passwordRecoveryRequired
 
     override fun observeCurrentProfile(): Flow<Profile?> =
         appPrefs.preferences
@@ -54,6 +65,13 @@ class LocalAuthRepository(
 
     override suspend fun resetPassword(email: String): AuthResult =
         AuthResult.NotConfigured
+
+    override suspend fun updatePassword(newPassword: String): AuthResult =
+        AuthResult.NotConfigured
+
+    override suspend fun clearPasswordRecoveryRequired() {
+        _passwordRecoveryRequired.value = false
+    }
 
     override suspend fun handleDeepLink(uriString: String) {
         // No-op for offline repository
