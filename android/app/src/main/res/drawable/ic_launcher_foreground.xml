@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ElmTrackr adaptive icon foreground.
+    108dp canvas; 18dp safe-zone insets (active area: 72×72dp centred at 54,54).
+    White horseshoe arc (open at bottom) + white lightning bolt.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!--
+        Horseshoe ring: outer radius 30, inner radius 22, centre (54,54).
+        Arc spans ~280° — open at the bottom (lower 80°).
+        Endpoints at t=135° (lower-left) and t=45° (lower-right).
+        Outer: (32.8, 75.2) → clockwise via top → (75.2, 75.2)
+        Inner: (69.6, 69.6) → counter-clockwise via top → (38.4, 69.6)
+    -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 32.8,75.2
+            A 30,30 0 1,1 75.2,75.2
+            L 69.6,69.6
+            A 22,22 0 1,0 38.4,69.6
+            Z" />
+
+    <!--
+        Lightning bolt centred at approximately (57, 47).
+        Scaled from the standard 24×24 ElmTrackr bolt path.
+    -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 61,31 L 47,50 L 56,50 L 55,63 L 69,44 L 60,44 Z" />
+
+</vector>

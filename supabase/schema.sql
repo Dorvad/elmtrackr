@@ -1,6 +1,9 @@
 -- ============================================================
 -- ElmTrackr Schema  (idempotent — safe to re-run at any time)
 -- Run this in your Supabase SQL editor (Dashboard > SQL Editor)
+--
+-- If you only need compensation globalization, you can instead run:
+--   supabase/migrations/20250625000000_compensation_profiles.sql
 -- ============================================================
 
 -- ── Tables ────────────────────────────────────────────────────
@@ -23,6 +26,10 @@ create table if not exists public.user_settings (
   weekly_overtime_threshold_minutes  integer not null default 2400,
   weekend_days                       integer[] not null default '{5,6}',
   hourly_rate                        numeric(10, 2) default null,
+  currency                           text not null default 'ILS',
+  region_code                        text default null,
+  currency_code                      text default null,
+  default_compensation_profile_id    uuid default null,
   created_at                         timestamptz not null default now(),
   updated_at                         timestamptz not null default now()
 );
@@ -36,6 +43,8 @@ create table if not exists public.shifts (
   break_minutes  integer not null default 0 check (break_minutes >= 0),
   notes          text,
   is_special_day boolean not null default false,
+  compensation_profile_id uuid default null,
+  compensation_snapshot_json jsonb default null,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
   constraint valid_time_range check (end_time is null or end_time > start_time)
@@ -189,6 +198,110 @@ begin
   end if;
 end $$;
 
+do $$ begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'currency'
+  ) then
+    alter table public.user_settings add column currency text not null default 'ILS';
+  end if;
+end $$;
+
+-- Compensation globalization columns
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'region_code'
+  ) then
+    alter table public.user_settings add column region_code text default null;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'currency_code'
+  ) then
+    alter table public.user_settings add column currency_code text default null;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'default_compensation_profile_id'
+  ) then
+    alter table public.user_settings add column default_compensation_profile_id uuid default null;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'shifts' and column_name = 'compensation_profile_id'
+  ) then
+    alter table public.shifts add column compensation_profile_id uuid default null;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'shifts' and column_name = 'compensation_snapshot_json'
+  ) then
+    alter table public.shifts add column compensation_snapshot_json jsonb default null;
+  end if;
+end $$;
+
+-- Compensation profiles: user-configured pay estimation rules
+create table if not exists public.compensation_profiles (
+  id                uuid primary key default gen_random_uuid(),
+  user_id           uuid not null references auth.users(id) on delete cascade,
+  name              text not null,
+  region_code       text not null,
+  currency_code     text not null,
+  timezone          text not null,
+  base_hourly_rate  numeric(10, 2) default null,
+  rules_json        jsonb not null,
+  stacking_policy   text not null default 'highest_only'
+                    check (stacking_policy in ('highest_only', 'additive')),
+  effective_from    timestamptz not null default now(),
+  effective_until   timestamptz,
+  is_default        boolean not null default false,
+  is_archived       boolean not null default false,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+
+create index if not exists compensation_profiles_user_id_idx
+  on public.compensation_profiles (user_id);
+
+create or replace trigger compensation_profiles_updated_at
+  before update on public.compensation_profiles
+  for each row execute function public.handle_updated_at();
+
+-- FK from user_settings to compensation_profiles (added after table exists)
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.table_constraints
+    where constraint_name = 'user_settings_default_compensation_profile_id_fkey'
+  ) then
+    alter table public.user_settings
+      add constraint user_settings_default_compensation_profile_id_fkey
+      foreign key (default_compensation_profile_id)
+      references public.compensation_profiles(id) on delete set null;
+  end if;
+exception when others then null;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.table_constraints
+    where constraint_name = 'shifts_compensation_profile_id_fkey'
+  ) then
+    alter table public.shifts
+      add constraint shifts_compensation_profile_id_fkey
+      foreign key (compensation_profile_id)
+      references public.compensation_profiles(id) on delete set null;
+  end if;
+exception when others then null;
+end $$;
+
 create index if not exists refund_claims_user_id_idx on public.refund_claims (user_id);
 create index if not exists refund_claims_shift_id_idx on public.refund_claims (shift_id);
 
@@ -248,7 +361,7 @@ begin
     select policyname, tablename
     from pg_policies
     where schemaname = 'public'
-      and tablename in ('profiles', 'user_settings', 'shifts', 'refund_claims')
+      and tablename in ('profiles', 'user_settings', 'shifts', 'refund_claims', 'compensation_profiles')
   loop
     execute format('drop policy if exists %I on public.%I', pol.policyname, pol.tablename);
   end loop;
@@ -256,10 +369,14 @@ end
 $$;
 
 alter table public.refund_claims enable row level security;
+alter table public.compensation_profiles enable row level security;
 
 -- Profiles
 create policy "profiles_select_own" on public.profiles
   for select using (auth.uid() = id);
+
+create policy "profiles_insert_own" on public.profiles
+  for insert with check (auth.uid() = id);
 
 create policy "profiles_update_own" on public.profiles
   for update using (auth.uid() = id);
@@ -303,10 +420,31 @@ create policy "refund_claims_update_own" on public.refund_claims
 create policy "refund_claims_delete_own" on public.refund_claims
   for delete using (auth.uid() = user_id);
 
--- ── Storage bucket ────────────────────────────────────────────
-insert into storage.buckets (id, name, public)
-values ('refund-receipts', 'refund-receipts', false)
-on conflict (id) do nothing;
+-- Compensation profiles
+create policy "compensation_profiles_select_own" on public.compensation_profiles
+  for select using (auth.uid() = user_id);
+
+create policy "compensation_profiles_insert_own" on public.compensation_profiles
+  for insert with check (auth.uid() = user_id);
+
+create policy "compensation_profiles_update_own" on public.compensation_profiles
+  for update using (auth.uid() = user_id);
+
+create policy "compensation_profiles_delete_own" on public.compensation_profiles
+  for delete using (auth.uid() = user_id);
+
+-- ── Storage bucket (run once in Dashboard or via CLI) ─────────
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'refund-receipts',
+  'refund-receipts',
+  false,
+  10485760,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+) on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "refund_receipts_select" on storage.objects;
 create policy "refund_receipts_select" on storage.objects

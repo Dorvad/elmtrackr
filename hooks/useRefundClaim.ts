@@ -68,12 +68,7 @@ export function useRefundClaim(shiftId: string) {
 
         let receiptPath = existing?.receipt_path ?? null;
         if (data.receiptFile) {
-          try {
-            receiptPath = await uploadReceipt(data.receiptFile, userId, direction);
-          } catch (uploadErr) {
-            // Storage bucket may not exist yet — save claim without receipt rather than blocking
-            console.warn("Receipt upload failed (bucket may not exist):", uploadErr);
-          }
+          receiptPath = await uploadReceipt(data.receiptFile, userId, direction);
         }
 
         const insertPayload = {

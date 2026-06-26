@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Window theme used before Compose renders. NoActionBar prevents a
+        native action bar from flashing on top of the Compose Scaffold.
+        android:Theme.Material.Light.NoActionBar is built into the platform
+        (API 21+) and requires no extra library dependency.
+    -->
+    <style name="Theme.ElmTrackr" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

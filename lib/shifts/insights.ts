@@ -3,10 +3,22 @@
  * rotating "Insights of the Day" carousel (4 cards, changes daily).
  */
 
-import type { Shift, UserSettings } from "@/types";
+import type { CompensationProfile, Shift, UserSettings } from "@/types";
+import { resolveShiftCompensation } from "@/lib/compensation/profile";
 import { netMinutes } from "./duration";
 import { isWeekendDate } from "./weekend";
-import { calculateShiftPay } from "./payroll";
+import { calculateShiftPay, type PayCalculationContext } from "./payroll";
+
+function profilesMap(profiles?: CompensationProfile[]) {
+  return new Map((profiles ?? []).map((p) => [p.id, p]));
+}
+
+function payContext(
+  settings: UserSettings,
+  profiles?: CompensationProfile[]
+): PayCalculationContext {
+  return { settings, profiles };
+}
 
 // ── Israeli / real-world context ──────────────────────────────
 const AVG_WORKDAY_HRS   = 8.5;    // CBS Israel average
@@ -77,16 +89,28 @@ export interface DailyInsight {
 
 export function buildMonthInsights(
   completedShifts: Shift[],
-  settings: UserSettings
+  settings: UserSettings,
+  profiles?: CompensationProfile[]
 ): MonthInsights {
+  const byProfile = profilesMap(profiles);
+  const ctx = payContext(settings, profiles);
+
   const weekendShiftCount = completedShifts.filter((s) => {
     const dateStr = new Date(s.start_time).toISOString().slice(0, 10);
-    return s.is_special_day || isWeekendDate(dateStr, settings.weekend_days);
+    const resolved = resolveShiftCompensation(s, settings, byProfile);
+    const weekendDays = resolved.rules_json.regular.weekendDays;
+    const weekendEnabled = resolved.rules_json.weekend.enabled;
+    return (
+      s.is_special_day ||
+      (weekendEnabled && isWeekendDate(dateStr, weekendDays))
+    );
   }).length;
 
-  const overtimeShiftCount = completedShifts.filter(
-    (s) => (netMinutes(s) ?? 0) > settings.daily_overtime_threshold_minutes
-  ).length;
+  const overtimeShiftCount = completedShifts.filter((s) => {
+    const resolved = resolveShiftCompensation(s, settings, byProfile);
+    const threshold = resolved.rules_json.regular.dailyStandardMinutes;
+    return (netMinutes(s) ?? 0) > threshold;
+  }).length;
 
   const avgShiftMinutes =
     completedShifts.length > 0
@@ -99,7 +123,7 @@ export function buildMonthInsights(
   let hasPay = false;
 
   for (const s of completedShifts) {
-    const pay = calculateShiftPay(s, settings);
+    const pay = calculateShiftPay(s, ctx);
     if (pay) {
       hasPay = true;
       totalPay += pay.total_gross;
@@ -150,9 +174,12 @@ const MAX_SHIFT_MIN = 24 * 60;
 export function buildWeeklyBreakdown(
   completedShifts: Shift[],
   prevCompletedShifts: Shift[],
-  settings: UserSettings
+  settings: UserSettings,
+  profiles?: CompensationProfile[]
 ): WeekData[] {
-  const hasPay = !!settings.hourly_rate;
+  const byProfile = profilesMap(profiles);
+  const ctx = payContext(settings, profiles);
+  const hasPay = completedShifts.some((s) => calculateShiftPay(s, ctx) !== null);
 
   const weeks: WeekData[] = [0, 1, 2, 3].map((i) => ({
     label: `Week ${i + 1}`,
@@ -166,13 +193,12 @@ export function buildWeeklyBreakdown(
   for (const shift of completedShifts) {
     const wi = weekBucket(shift);
     const mins = Math.min(netMinutes(shift) ?? 0, MAX_SHIFT_MIN);
+    const resolved = resolveShiftCompensation(shift, settings, byProfile);
+    const threshold = resolved.rules_json.regular.dailyStandardMinutes;
     weeks[wi].minutes += mins;
-    weeks[wi].overtimeMinutes += Math.max(
-      0,
-      mins - settings.daily_overtime_threshold_minutes
-    );
+    weeks[wi].overtimeMinutes += Math.max(0, mins - threshold);
     if (hasPay) {
-      weeks[wi].pay! += calculateShiftPay(shift, settings)?.total_gross ?? 0;
+      weeks[wi].pay! += calculateShiftPay(shift, ctx)?.total_gross ?? 0;
     }
   }
 
@@ -193,20 +219,20 @@ export function buildWeeklyBreakdown(
 function buildPool(
   completedShifts: Shift[],
   settings: UserSettings,
-  totalMinutes: number
+  totalMinutes: number,
+  profiles?: CompensationProfile[]
 ): DailyInsight[] {
   if (completedShifts.length === 0) return [];
 
   const totalHours = totalMinutes / 60;
   const shiftCount = completedShifts.length;
   const avgWeekHrs = totalHours / 4.33;
-  const hasRate    = !!settings.hourly_rate;
-  const totalGross = hasRate
-    ? completedShifts.reduce(
-        (sum, s) => sum + (calculateShiftPay(s, settings)?.total_gross ?? 0),
-        0
-      )
-    : 0;
+  const ctx = payContext(settings, profiles);
+  const totalGross = completedShifts.reduce(
+    (sum, s) => sum + (calculateShiftPay(s, ctx)?.total_gross ?? 0),
+    0
+  );
+  const hasRate = totalGross > 0;
 
   const isAboveAvg = avgWeekHrs >= AVG_WEEK_HRS;
   const hasNight   = completedShifts.some((s) => {
@@ -505,7 +531,8 @@ function buildPool(
 export function getDailyInsights(
   completedShifts: Shift[],
   settings: UserSettings,
-  totalMinutes: number
+  totalMinutes: number,
+  profiles?: CompensationProfile[]
 ): DailyInsight[] {
   const fallback: DailyInsight = {
     icon: "✨",
@@ -514,7 +541,7 @@ export function getDailyInsights(
     color: "indigo",
   };
 
-  const pool = buildPool(completedShifts, settings, totalMinutes);
+  const pool = buildPool(completedShifts, settings, totalMinutes, profiles);
   if (pool.length === 0) return [fallback];
 
   const dayIndex = Math.floor(Date.now() / 86_400_000);

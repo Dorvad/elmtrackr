@@ -3,7 +3,7 @@ export function Spinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   return (
     <span
       className={[
-        "inline-block animate-spin rounded-full border-2 border-[var(--au-hair)] border-t-[var(--au-indigo)]",
+        "inline-block animate-spin rounded-full border-2 border-gray-200 border-t-blue-600",
         sizeClasses[size],
       ].join(" ")}
     />

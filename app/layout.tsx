@@ -4,6 +4,7 @@ import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
+import { CompensationBootstrap } from "@/components/compensation/CompensationBootstrap";
 
 export const metadata: Metadata = {
   title: "ElmTrackr",
@@ -19,7 +20,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   themeColor: "#5B4DF2",
 };
 
@@ -44,13 +44,14 @@ export default function RootLayout({
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('elmtrackr-theme');if(t==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('elmtrackr-theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d){document.documentElement.classList.add('dark')}}catch(e){}})();`,
           }}
         />
       </head>
       <body className="min-h-screen antialiased" style={{ fontFamily: "var(--au-font)", background: "var(--au-bg)", color: "var(--au-ink)" }}>
         <ToastProvider>
           <SettingsProvider>
+            <CompensationBootstrap />
             <Suspense fallback={null}>
               <OnboardingGate>{children}</OnboardingGate>
             </Suspense>

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useActiveShift } from "@/hooks/useActiveShift";
 import { useShifts } from "@/hooks/useShifts";
 import { useSettings } from "@/hooks/useSettings";
+import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/components/ui/Toast";
 import { ClockWidget } from "@/components/dashboard/ClockWidget";
@@ -16,7 +17,10 @@ import { ShiftRow } from "@/components/shifts/ShiftRow";
 import { PageSpinner } from "@/components/ui/Spinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { sumMonthlyPay, formatCurrency } from "@/lib/shifts/payroll";
+import { createClient } from "@/lib/supabase/client";
+import { sumMonthlyPay } from "@/lib/shifts/payroll";
+import { formatCurrency } from "@/lib/compensation/currency";
+import { COMPENSATION_ESTIMATE_NOTE } from "@/lib/compensation/constants";
 import { filterShiftsByMonth } from "@/lib/shifts/aggregation";
 import { countUnresolvedRefunds } from "@/lib/shifts/refund";
 
@@ -37,8 +41,10 @@ export default function DashboardPage() {
     refresh: refreshShifts,
   } = useShifts();
   const { settings, loading: settingsLoading } = useSettings();
+  const { profiles, defaultProfile, loading: profilesLoading } = useCompensationProfiles();
   const { profile } = useProfile();
   const { toast } = useToast();
+  const supabase = createClient();
 
   const [showEditStartModal, setShowEditStartModal] = useState(false);
   const [refundBannerDismissed, setRefundBannerDismissed] = useState(false);
@@ -47,42 +53,28 @@ export default function DashboardPage() {
 
   async function handleClockIn() {
     try {
-      navigator.vibrate?.([20, 10, 40]);
-      await clockIn();
+      await clockIn(defaultProfile?.id ?? settings?.default_compensation_profile_id);
       await refreshShifts();
       toast("Shift started", "success");
     } catch {
-      navigator.vibrate?.([80, 30, 80]);
       toast("Failed to clock in", "error");
     }
   }
 
   async function handleClockOut() {
-    const shiftSnapshot = activeShift;
+    if (!settings) {
+      toast("Settings not loaded yet", "error");
+      return;
+    }
+    if (profilesLoading) {
+      toast("Loading compensation rules…", "error");
+      return;
+    }
     try {
-      navigator.vibrate?.([60]);
-      await clockOut();
+      await clockOut({ settings, profiles });
       await refreshShifts();
-
-      if (shiftSnapshot?.start_time) {
-        const started = new Date(shiftSnapshot.start_time);
-        const totalMs = Date.now() - started.getTime();
-        const breakMs = (shiftSnapshot.break_minutes ?? 0) * 60 * 1000;
-        const netMs = Math.max(0, totalMs - breakMs);
-        const netMins = Math.round(netMs / 60000);
-        const hrs = Math.floor(netMins / 60);
-        const mins = netMins % 60;
-        const duration = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
-
-        const payLine = settings?.hourly_rate
-          ? ` · ≈ ${formatCurrency(netMins / 60 * settings.hourly_rate)}`
-          : "";
-        toast(`${duration} shift complete${payLine}`, "success");
-      } else {
-        toast("Shift ended", "success");
-      }
+      toast("Shift ended", "success");
     } catch {
-      navigator.vibrate?.([80, 30, 80]);
       toast("Failed to clock out", "error");
     }
   }
@@ -91,6 +83,11 @@ export default function DashboardPage() {
     await updateStartTime(newStartIso);
     await refreshShifts();
     toast("Start time updated", "success");
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    window.location.href = "/auth/login";
   }
 
   const now = new Date();
@@ -103,9 +100,10 @@ export default function DashboardPage() {
   const thisMonthShifts = settings
     ? filterShiftsByMonth(shifts, now.getUTCFullYear(), now.getUTCMonth() + 1)
     : [];
-  const monthPay = settings?.hourly_rate
-    ? sumMonthlyPay(thisMonthShifts, settings)
+  const monthPay = settings
+    ? sumMonthlyPay(thisMonthShifts, { settings, profiles })
     : null;
+  const hasPayEstimate = monthPay && monthPay.total_gross > 0;
 
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const isMonthEnd = now.getDate() >= daysInMonth - 4;
@@ -121,36 +119,51 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen pb-28" style={{ background: "var(--au-bg)" }}>
       {/* Header */}
-      <div className="px-5 pt-12 pb-4 animate-fade-in">
-        <p
-          className="text-xs font-bold uppercase tracking-widest"
-          style={{ color: "var(--au-faint)", letterSpacing: "0.16em" }}
-        >
-          {greeting}
-        </p>
-        <h1
-          className="text-3xl font-bold mt-1 flex items-center gap-2"
-          style={{
-            fontFamily: "var(--au-display)",
-            color: "var(--au-ink)",
-            letterSpacing: "-0.03em",
-          }}
-        >
-          <span
-            className="inline-flex items-center justify-center rounded-[7px] flex-shrink-0"
+      <div className="px-5 pt-12 pb-4 flex items-center justify-between animate-fade-in">
+        <div>
+          <p
+            className="text-xs font-bold uppercase tracking-widest"
+            style={{ color: "var(--au-faint)", letterSpacing: "0.16em" }}
+          >
+            {greeting}
+          </p>
+          <h1
+            className="text-3xl font-bold mt-1 flex items-center gap-2"
             style={{
-              width: 22,
-              height: 22,
-              background: "var(--au-grad)",
-              boxShadow: "0 6px 14px -6px rgba(91,77,242,0.7)",
+              fontFamily: "var(--au-display)",
+              color: "var(--au-ink)",
+              letterSpacing: "-0.03em",
             }}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
-            </svg>
-          </span>
-          elmtrackr
-        </h1>
+            <span
+              className="inline-flex items-center justify-center rounded-[7px] flex-shrink-0"
+              style={{
+                width: 22,
+                height: 22,
+                background: "var(--au-grad)",
+                boxShadow: "0 6px 14px -6px rgba(91,77,242,0.7)",
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
+              </svg>
+            </span>
+            elmtrackr
+          </h1>
+        </div>
+        <button
+          onClick={handleSignOut}
+          className="h-10 w-10 rounded-full flex items-center justify-center transition-all"
+          style={{
+            background: "white",
+            boxShadow: "0 6px 16px -8px rgba(40,30,90,0.25)",
+            color: "var(--au-ink-2)",
+          }}
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3M16 17l5-5-5-5M21 12H9" />
+          </svg>
+        </button>
       </div>
 
       <div className="max-w-md mx-auto px-4 flex flex-col gap-4">
@@ -165,19 +178,19 @@ export default function DashboardPage() {
         {showRefundBanner && (
           <div
             className="rounded-3xl px-4 py-3 flex items-start gap-3 animate-fade-in-up border border-white/80 au-card"
-            style={{ background: "var(--au-overtime-bg)" }}
+            style={{ background: "var(--au-weekend-bg)" }}
           >
             <div className="flex-1">
-              <p className="text-sm font-bold" style={{ color: "var(--au-peach-deep)" }}>
+              <p className="text-sm font-bold" style={{ color: "var(--au-plum)" }}>
                 {unresolvedRefunds} travel refund{unresolvedRefunds > 1 ? "s" : ""} pending
               </p>
               <p className="text-xs mt-0.5" style={{ color: "var(--au-ink-2)" }}>
-                Month end is near — don&apos;t forget to file your transport claims.
+                Month end is near — don't forget to file your transport claims.
               </p>
               <Link
                 href="/reports"
                 className="inline-block mt-2 text-xs font-bold underline hover:opacity-80"
-                style={{ color: "var(--au-peach-deep)" }}
+                style={{ color: "var(--au-plum)" }}
               >
                 Review refunds →
               </Link>
@@ -187,7 +200,7 @@ export default function DashboardPage() {
               onClick={() => setRefundBannerDismissed(true)}
               className="mt-0.5 flex-shrink-0 hover:opacity-60 transition-opacity"
               aria-label="Dismiss"
-              style={{ color: "var(--au-peach-deep)" }}
+              style={{ color: "var(--au-plum)" }}
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -216,44 +229,47 @@ export default function DashboardPage() {
         )}
 
         {/* Monthly gross pay */}
-        {monthPay && monthPay.total_gross > 0 && (
-          <div
-            className="rounded-3xl p-4 au-card animate-fade-in-up stagger-3"
-            style={{ background: "var(--au-grad)" }}
-          >
+        {hasPayEstimate && (
+          <div className="rounded-3xl p-4 border border-white/80 au-card bg-white animate-fade-in-up stagger-3">
             <p
               className="text-xs font-bold uppercase mb-2"
-              style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "0.14em" }}
+              style={{ color: "var(--au-faint)", letterSpacing: "0.14em" }}
             >
-              This Month · Gross Pay
+              This Month · Estimated Gross
             </p>
-            <div className="flex items-end gap-3 mb-3">
+            <div className="flex items-end gap-3 mb-1">
               <p
-                className="text-3xl font-extrabold tracking-tight text-white"
-                style={{ fontFamily: "var(--au-display)" }}
+                className="text-3xl font-extrabold tracking-tight"
+                style={{
+                  fontFamily: "var(--au-display)",
+                  background: "var(--au-grad-text)",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  color: "transparent",
+                }}
               >
-                {formatCurrency(monthPay.total_gross)}
+                {formatCurrency(monthPay!.total_gross, monthPay!.currency_code)}
               </p>
-              <p className="text-xs mb-1 font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>before tax</p>
             </div>
-            {(monthPay.overtime_gross > 0 || monthPay.special_gross > 0) && (
+            <p className="text-[10px] mb-3" style={{ color: "var(--au-faint)" }}>{COMPENSATION_ESTIMATE_NOTE}</p>
+            {(monthPay!.overtime_gross > 0 || monthPay!.special_gross > 0) && (
               <div className="flex gap-2">
-                {monthPay.regular_gross > 0 && (
-                  <div className="flex-1 rounded-[15px] p-2.5" style={{ background: "rgba(255,255,255,0.15)" }}>
-                    <p className="text-[9px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>Regular</p>
-                    <p className="text-sm font-bold text-white">{formatCurrency(monthPay.regular_gross)}</p>
+                {monthPay!.regular_gross > 0 && (
+                  <div className="flex-1 rounded-[15px] p-2.5" style={{ background: "var(--au-surface-sub)" }}>
+                    <p className="text-[9px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-faint)" }}>Regular</p>
+                    <p className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>{formatCurrency(monthPay!.regular_gross, monthPay!.currency_code)}</p>
                   </div>
                 )}
-                {monthPay.overtime_gross > 0 && (
-                  <div className="flex-1 rounded-[15px] p-2.5" style={{ background: "rgba(255,255,255,0.15)" }}>
-                    <p className="text-[9px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>Overtime</p>
-                    <p className="text-sm font-bold text-white">{formatCurrency(monthPay.overtime_gross)}</p>
+                {monthPay!.overtime_gross > 0 && (
+                  <div className="flex-1 rounded-[15px] p-2.5" style={{ background: "var(--au-overtime-bg)" }}>
+                    <p className="text-[9px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-overtime-ink)" }}>Overtime</p>
+                    <p className="text-sm font-bold" style={{ color: "var(--au-peach-deep)" }}>{formatCurrency(monthPay!.overtime_gross, monthPay!.currency_code)}</p>
                   </div>
                 )}
-                {monthPay.special_gross > 0 && (
-                  <div className="flex-1 rounded-[15px] p-2.5" style={{ background: "rgba(255,255,255,0.15)" }}>
-                    <p className="text-[9px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>Holiday</p>
-                    <p className="text-sm font-bold text-white">{formatCurrency(monthPay.special_gross)}</p>
+                {monthPay!.special_gross > 0 && (
+                  <div className="flex-1 rounded-[15px] p-2.5" style={{ background: "var(--au-weekend-bg)" }}>
+                    <p className="text-[9px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-plum)" }}>Holiday</p>
+                    <p className="text-sm font-bold" style={{ color: "var(--au-plum)" }}>{formatCurrency(monthPay!.special_gross, monthPay!.currency_code)}</p>
                   </div>
                 )}
               </div>
@@ -285,6 +301,7 @@ export default function DashboardPage() {
                   key={shift.id}
                   shift={shift}
                   settings={settings}
+                  profiles={profiles}
                   animationIndex={i}
                 />
               ))}
@@ -316,6 +333,24 @@ export default function DashboardPage() {
           </Link>
         )}
 
+        {/* Add shift manually */}
+        <Link
+          href="/shifts/new"
+          className="flex items-center justify-center gap-2 rounded-3xl py-4 transition-all duration-200 animate-fade-in-up stagger-5"
+          style={{
+            border: `1.5px dashed var(--au-hair)`,
+            background: "rgba(255,255,255,0.5)",
+            color: "var(--au-indigo)",
+          }}
+        >
+          <span
+            className="h-5 w-5 rounded-lg flex items-center justify-center text-xs font-bold"
+            style={{ background: "var(--au-surface-sub)", color: "var(--au-indigo)" }}
+          >
+            +
+          </span>
+          <span className="text-sm font-semibold">Add shift manually</span>
+        </Link>
       </div>
 
       <BottomNav />
@@ -324,6 +359,7 @@ export default function DashboardPage() {
         <EditStartTimeModal
           activeShift={activeShift}
           settings={settings}
+          profiles={profiles}
           onSave={handleEditStartTime}
           onClose={() => setShowEditStartModal(false)}
         />

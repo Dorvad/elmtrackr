@@ -1,11 +1,22 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import Link from "next/link";
+import { useState, FormEvent, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient, isMissingConfig } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"sign_in" | "sign_up">("sign_in");
@@ -14,6 +25,13 @@ export default function LoginPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const missingConfig = isMissingConfig();
+  const callbackError = searchParams.get("error");
+  const callbackErrorMessage =
+    callbackError === "auth_callback_failed"
+      ? "That sign-in link is invalid or has expired. Try signing in again or request a new confirmation email."
+      : callbackError
+        ? "Authentication failed. Please try again."
+        : null;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -137,6 +155,24 @@ export default function LoginPage() {
               required
               minLength={6}
             />
+
+            {mode === "sign_in" && (
+              <div className="text-right -mt-2">
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-sm font-semibold"
+                  style={{ color: "var(--au-indigo)" }}
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            )}
+
+            {callbackErrorMessage && !error && (
+              <div className="rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700 font-medium">
+                {callbackErrorMessage}
+              </div>
+            )}
 
             {error && (
               <div className="rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700 font-medium">

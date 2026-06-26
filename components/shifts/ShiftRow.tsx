@@ -1,25 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import type { Shift, UserSettings } from "@/types";
+import type { Shift, UserSettings, CompensationProfile } from "@/types";
 import { netMinutes, formatMinutes } from "@/lib/shifts/duration";
 import { isWeekendDate } from "@/lib/shifts/weekend";
 import { isOvernightShift } from "@/lib/shifts/overnight";
-import { calculateShiftPay, formatCurrency } from "@/lib/shifts/payroll";
+import { calculateShiftPay } from "@/lib/shifts/payroll";
+import { resolveShiftCompensation } from "@/lib/compensation/profile";
+import { formatCurrency } from "@/lib/compensation/currency";
 import { checkRefundEligibility } from "@/lib/shifts/refund";
 
 interface ShiftRowProps {
   shift: Shift;
   settings: UserSettings;
+  profiles?: CompensationProfile[];
   animationIndex?: number;
   showRefunds?: boolean;
 }
 
-export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = true }: ShiftRowProps) {
+export function ShiftRow({ shift, settings, profiles, animationIndex = 0, showRefunds = true }: ShiftRowProps) {
   const net = netMinutes(shift);
   const isActive = shift.end_time === null;
   const dateStr = new Date(shift.start_time).toISOString().slice(0, 10);
-  const isWeekend = isWeekendDate(dateStr, settings.weekend_days);
+  const resolved = resolveShiftCompensation(
+    shift,
+    settings,
+    new Map((profiles ?? []).map((p) => [p.id, p]))
+  );
+  const weekendDays = resolved.rules_json.regular.weekendDays;
+  const isWeekend =
+    resolved.rules_json.weekend.enabled &&
+    isWeekendDate(dateStr, weekendDays);
   const isOvernight = isOvernightShift(shift);
   const isSpecial = shift.is_special_day || isWeekend;
 
@@ -29,12 +40,12 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
   const formatTime = (d: Date) =>
     d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  const pay = calculateShiftPay(shift, settings);
+  const pay = calculateShiftPay(shift, { settings, profiles });
   const refundEligible = checkRefundEligibility(shift).eligible;
   const refundPending = refundEligible && shift.refund_action == null && !isActive;
 
   const stripeColor = isActive
-    ? "var(--color-active)"
+    ? "#10b981"
     : isSpecial
     ? "var(--au-plum)"
     : isOvernight
@@ -51,10 +62,9 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
       style={{
         animationDelay: `${delay}s`,
         borderBottomColor: "var(--au-hair)",
-        background: isActive ? "rgba(16,185,129,0.04)" : undefined,
       }}
       onMouseEnter={e => (e.currentTarget.style.background = "var(--au-surface-sub)")}
-      onMouseLeave={e => (e.currentTarget.style.background = isActive ? "rgba(16,185,129,0.04)" : "")}
+      onMouseLeave={e => (e.currentTarget.style.background = "")}
     >
       {/* Left color stripe */}
       <div
@@ -82,14 +92,7 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
         </div>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           {isActive && (
-            <span
-              className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide"
-              style={{
-                background: "rgba(16,185,129,0.12)",
-                color: "var(--color-active)",
-                animation: "auPulse 2s ease-in-out infinite",
-              }}
-            >
+            <span className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide" style={{ background: "rgba(16,185,129,0.12)", color: "#10b981" }}>
               Live
             </span>
           )}
@@ -119,7 +122,7 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
             </span>
           )}
           {showRefunds && shift.refund_action === "submitted" && (
-            <span className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide" style={{ background: "rgba(16,185,129,0.12)", color: "var(--color-active)" }}>
+            <span className="rounded-full text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide" style={{ background: "rgba(16,185,129,0.12)", color: "#10b981" }}>
               Refund ✓
             </span>
           )}
@@ -129,15 +132,12 @@ export function ShiftRow({ shift, settings, animationIndex = 0, showRefunds = tr
       {/* Duration + pay */}
       <div className="flex-shrink-0 text-right py-3.5 pr-3">
         {isActive ? (
-          <span
-            className="text-sm font-bold"
-            style={{ color: "var(--color-active)", animation: "auPulse 2s ease-in-out infinite" }}
-          >●</span>
+          <span className="text-sm font-bold" style={{ color: "#10b981" }}>●</span>
         ) : net !== null ? (
           <>
             <p className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>{formatMinutes(net)}</p>
             {pay && (
-              <p className="text-[10px] font-bold" style={{ color: "var(--au-indigo)" }}>{formatCurrency(pay.total_gross)}</p>
+              <p className="text-[10px] font-bold" style={{ color: "var(--au-indigo)" }}>{formatCurrency(pay.total_gross, pay.currency_code)}</p>
             )}
             {!pay && shift.break_minutes > 0 && (
               <p className="text-[10px]" style={{ color: "var(--au-faint)" }}>{shift.break_minutes}m brk</p>

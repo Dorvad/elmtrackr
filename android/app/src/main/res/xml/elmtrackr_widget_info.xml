@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Widget metadata for ElmTrackrWidget.
+    Primary size: 4×1 horizontal (optimised for Niagara Launcher and similar horizontal feeds).
+    Minimum resize: 2 cells wide × 1 cell tall.
+    updatePeriodMillis = 0 — the widget is updated via the active-shift observer in ElmTrackrApp;
+    system-triggered updates (e.g. after device restart) are handled in ElmTrackrWidgetReceiver.onUpdate.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="50dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1"
+    android:maxResizeWidth="720dp"
+    android:maxResizeHeight="200dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="50dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/widget_loading" />

@@ -141,7 +141,7 @@ body {
 
 @keyframes auPrismOrbit {
   0%   { stroke-dashoffset: 0;    }
-  100% { stroke-dashoffset: -755; }
+  100% { stroke-dashoffset: -743; }
 }
 
 /* Existing keyframes (kept for compatibility) */
@@ -288,55 +288,10 @@ body {
 .au-screen { scrollbar-width: none; }
 
 /* ============================================================
-   Ride reimbursement scene keyframes
-   ============================================================ */
-@keyframes rideScrollX {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-
-@keyframes rideScrollDash {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-52px); }
-}
-
-@keyframes rideDrift {
-  from { transform: translateX(320px); }
-  to   { transform: translateX(-80px); }
-}
-
-@keyframes rideSunPulse {
-  0%, 100% { transform: scale(1);    opacity: .85; }
-  50%       { transform: scale(1.12); opacity: 1;   }
-}
-
-@keyframes rideStreak {
-  0%   { transform: translateX(0);      opacity: 0;  }
-  15%  {                                opacity: .9; }
-  60%  {                                opacity: .6; }
-  100% { transform: translateX(-260px); opacity: 0;  }
-}
-
-@keyframes rideWheelSpin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes rideBob {
-  0%, 100% { transform: translateX(-50%) translateY(0)   rotate(-1.2deg); }
-  50%       { transform: translateX(-50%) translateY(-9px) rotate(1deg);   }
-}
-
-@keyframes rideShadow {
-  0%, 100% { transform: translateX(-50%) scaleX(1);   opacity: .32; }
-  50%       { transform: translateX(-50%) scaleX(.78); opacity: .16; }
-}
-
-/* ============================================================
    Reduced motion
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   .au-mesh { animation: none !important; }
-  .ride-scene * { animation: none !important; }
 }
 
 /* ============================================================
@@ -346,14 +301,19 @@ body {
 /* ── Core tokens ─────────────────────────────────────────── */
 html.dark {
   color-scheme: dark;
-  --color-surface: #0f172a;
-  --au-bg: #0f172a;
-  --au-surface: #1e2940;
-  --au-surface-sub: #162032;
-  --au-ink: #f1f5f9;
-  --au-ink-2: #94a3b8;
-  --au-faint: #64748b;
-  --au-hair: rgba(255, 255, 255, 0.06);
+  --color-surface: #0b1020;
+  --color-card: #151d2e;
+  --au-bg: #0b1020;
+  --au-surface: #151d2e;
+  --au-surface-sub: #202a3d;
+  --au-ink: #f5f3ff;
+  --au-ink-2: #c8d1e0;
+  --au-faint: #a4b0c3;
+  --au-hair: rgba(255, 255, 255, 0.08);
+  --au-overtime-bg: #3a2618;
+  --au-overtime-ink: #ffb48a;
+  --au-weekend-bg: #2a2240;
+  --au-peach-deep: #ff9e7d;
 }
 
 html.dark body {
@@ -398,7 +358,7 @@ html.dark .text-gray-700      { color: #cbd5e1; }
 html.dark .text-gray-600      { color: #94a3b8; }
 html.dark .text-gray-500      { color: #94a3b8; }
 html.dark .text-gray-400      { color: #94a3b8; }
-html.dark .text-gray-300      { color: #64748b; }
+html.dark .text-gray-300      { color: #94a3b8; }
 
 /* ── Divide ──────────────────────────────────────────────── */
 html.dark .divide-gray-50 > * + *  { border-color: rgba(255, 255, 255, 0.05); }
@@ -414,7 +374,7 @@ html.dark textarea {
 }
 html.dark input::placeholder,
 html.dark textarea::placeholder {
-  color: #475569;
+  color: #94a3b8;
 }
 html.dark select option {
   background-color: #1e2940;
@@ -431,4 +391,10 @@ html.dark .shadow-sm  { box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
 html.dark .shadow-md  { box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
 html.dark .shadow-lg  { box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
 html.dark .au-card    { box-shadow: 0 8px 24px -12px rgba(0,0,0,0.6); }
-html.dark .au-card-glow { box-shadow: 0 16px 40px -16px rgba(0,0,0,0.7); }
+html.dark .hover\:text-gray-600:hover { color: #cbd5e1; }
+html.dark .border-white\/80 { border-color: rgba(255, 255, 255, 0.12); }
+
+/* ── Aurora components ───────────────────────────────────── */
+html.dark .au-nav-bar {
+  background: rgba(21, 29, 46, 0.94);
+}

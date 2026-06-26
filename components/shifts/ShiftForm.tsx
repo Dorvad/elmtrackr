@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import type { ShiftFormData } from "@/types";
+import type { ShiftFormData, CompensationProfile } from "@/types";
 import { validateShiftTimes } from "@/lib/shifts/duration";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/Button";
 
 interface ShiftFormProps {
   initial?: Partial<ShiftFormData>;
+  profiles?: CompensationProfile[];
+  defaultProfileId?: string | null;
   onSubmit: (data: ShiftFormData) => Promise<void>;
   onDelete?: () => Promise<void>;
   submitLabel?: string;
-  isActive?: boolean; // editing an in-progress shift
+  isActive?: boolean;
 }
 
 function toLocalDatetimeValue(iso: string): string {
@@ -29,6 +31,8 @@ function toISO(localValue: string): string {
 
 export function ShiftForm({
   initial,
+  profiles = [],
+  defaultProfileId,
   onSubmit,
   onDelete,
   submitLabel = "Save Shift",
@@ -47,6 +51,9 @@ export function ShiftForm({
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [isSpecialDay, setIsSpecialDay] = useState(initial?.is_special_day ?? false);
+  const [profileId, setProfileId] = useState(
+    initial?.compensation_profile_id ?? defaultProfileId ?? ""
+  );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -72,6 +79,7 @@ export function ShiftForm({
         break_minutes: breakMins,
         notes,
         is_special_day: isSpecialDay,
+        compensation_profile_id: profileId || defaultProfileId || null,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save shift.");
@@ -139,8 +147,8 @@ export function ShiftForm({
           </p>
           <p className="text-xs text-gray-400 mt-1">
             {isSpecialDay
-              ? "150%/175%/200% pay rates apply"
-              : "Mark to apply holiday pay rates"}
+              ? "Premium holiday rates apply per your compensation profile"
+              : "Mark to apply holiday / special day premium rates"}
           </p>
         </div>
         {/* Toggle pill */}
@@ -154,6 +162,25 @@ export function ShiftForm({
           ].join(" ")} />
         </div>
       </button>
+
+      {profiles.length > 1 && (
+        <div>
+          <label className="text-xs font-semibold text-gray-600 mb-1.5 block">
+            Compensation profile
+          </label>
+          <select
+            value={profileId}
+            onChange={(e) => setProfileId(e.target.value)}
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm"
+          >
+            {profiles.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.currency_code})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <Textarea
         label="Notes (optional)"

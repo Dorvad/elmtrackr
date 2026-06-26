@@ -8,10 +8,10 @@ interface StatCardProps {
 
 const variantStyles = {
   default: {
-    wrap: "bg-white border border-white/80 au-card",
-    label: "text-[var(--au-faint)]",
+    wrap: "bg-[var(--au-surface)] border border-[color:var(--au-hair)] au-card",
+    label: "text-[var(--au-ink-2)]",
     value: "text-[var(--au-ink)]",
-    sub: "text-[var(--au-faint)]",
+    sub: "text-[var(--au-ink-2)]",
   },
   primary: {
     wrap: "border-0",
@@ -20,13 +20,13 @@ const variantStyles = {
     sub: "text-white/70",
   },
   overtime: {
-    wrap: "border border-white/80 au-card",
+    wrap: "border border-[color:var(--au-hair)] au-card",
     label: "",
     value: "",
     sub: "",
   },
   weekend: {
-    wrap: "border border-white/80 au-card",
+    wrap: "border border-[color:var(--au-hair)] au-card",
     label: "",
     value: "",
     sub: "",

@@ -2,9 +2,11 @@
 
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useShifts } from "@/hooks/useShifts";
 import { useSettings } from "@/hooks/useSettings";
+import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
 import { useToast } from "@/components/ui/Toast";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageSpinner } from "@/components/ui/Spinner";
@@ -37,13 +39,16 @@ import { generateMonthlyCSV, downloadCSV } from "@/lib/shifts/csv";
 import {
   sumMonthlyPay,
   calculateShiftPay,
-  formatCurrency,
 } from "@/lib/shifts/payroll";
-import type { Shift, UserSettings } from "@/types";
+import { resolveShiftCompensation } from "@/lib/compensation/profile";
+import { formatCurrency } from "@/lib/compensation/currency";
+import { COMPENSATION_DISCLAIMER, COMPENSATION_ESTIMATE_NOTE } from "@/lib/compensation/constants";
+import type { Shift, UserSettings, CompensationProfile } from "@/types";
 
 export default function ReportsPage() {
-  const { shifts, loading: shiftsLoading, error } = useShifts();
+  const { shifts, loading: shiftsLoading, error, refresh } = useShifts();
   const { settings, loading: settingsLoading } = useSettings();
+  const { profiles } = useCompensationProfiles();
   const { toast } = useToast();
 
   const now = new Date();
@@ -88,28 +93,29 @@ export default function ReportsPage() {
     : null;
 
   const insights = settings && completedShifts.length > 0
-    ? buildMonthInsights(completedShifts, settings)
+    ? buildMonthInsights(completedShifts, settings, profiles)
     : null;
 
   const weeklyData = settings && completedShifts.length > 0
-    ? buildWeeklyBreakdown(completedShifts, prevMonthShifts, settings)
+    ? buildWeeklyBreakdown(completedShifts, prevMonthShifts, settings, profiles)
     : null;
 
   const dailyInsights = settings && completedShifts.length > 0
-    ? getDailyInsights(completedShifts, settings, report?.total_minutes ?? 0)
+    ? getDailyInsights(completedShifts, settings, report?.total_minutes ?? 0, profiles)
     : null;
 
   const segments = report
     ? [
-        { label: "Regular",  value: report.regular_minutes,  color: "bg-[var(--au-indigo)]", dotColor: "var(--au-indigo)" },
-        { label: "Overtime", value: report.overtime_minutes, color: "bg-[var(--au-peach)]",  dotColor: "var(--au-peach)"  },
-        { label: "Weekend",  value: report.weekend_minutes,  color: "bg-[var(--au-plum)]",   dotColor: "var(--au-plum)"  },
+        { label: "Regular",  value: report.regular_minutes,  color: "bg-[#5B4DF2]", dotColor: "#5B4DF2" },
+        { label: "Overtime", value: report.overtime_minutes, color: "bg-[#FF9E7D]", dotColor: "#FF9E7D" },
+        { label: "Weekend",  value: report.weekend_minutes,  color: "bg-[#8B5CF6]", dotColor: "#8B5CF6" },
       ]
     : [];
 
-  const monthPay = settings?.hourly_rate && completedShifts.length > 0
-    ? sumMonthlyPay(completedShifts, settings)
+  const monthPay = settings && completedShifts.length > 0
+    ? sumMonthlyPay(completedShifts, { settings, profiles })
     : null;
+  const hasPayEstimate = monthPay && monthPay.total_gross > 0;
 
   function handleExportCSV() {
     if (!settings || monthShifts.length === 0) return;
@@ -167,7 +173,7 @@ export default function ReportsPage() {
           <button
             onClick={prevMonth}
             aria-label="Previous month"
-            className="h-9 w-9 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity"
+            className="h-11 w-11 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity"
             style={{ background: "var(--au-surface-sub)" }}
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
@@ -177,10 +183,9 @@ export default function ReportsPage() {
           <span className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>{monthLabel}</span>
           <button
             onClick={nextMonth}
-            disabled={isCurrentMonth}
             aria-label="Next month"
-            title={isCurrentMonth ? "Current month" : undefined}
-            className="h-9 w-9 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={isCurrentMonth}
+            className="h-11 w-11 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
             style={{ background: "var(--au-surface-sub)" }}
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
@@ -191,15 +196,15 @@ export default function ReportsPage() {
       )}
 
       <div className="max-w-md mx-auto px-4 flex flex-col gap-4">
-        {error && <ErrorMessage message={error} />}
+        {error && <ErrorMessage message={error} onRetry={refresh} />}
         {loading && <PageSpinner />}
 
         {!loading && activeTab === "refunds" && (
-          <RefundReview shifts={shifts} settings={settings} />
+          <RefundReview shifts={shifts} settings={settings} profiles={profiles} />
         )}
 
         {!loading && activeTab === "hours" && !report && (
-          <EmptyState variant="reports" title="No completed shifts" description="Complete some shifts to see your report." />
+          <EmptyState title="No completed shifts" description="Complete some shifts to see your report." />
         )}
 
         {!loading && activeTab === "hours" && report && settings && (
@@ -238,14 +243,14 @@ export default function ReportsPage() {
               <StatCard label="Weekend"  value={formatHoursDecimal(report.weekend_minutes, 1) + "h"}  variant="weekend"  stagger={4} />
             </div>
 
-            {/* Gross pay */}
-            {monthPay && monthPay.total_gross > 0 && (
+            {/* Estimated gross compensation */}
+            {hasPayEstimate && (
               <div className="rounded-3xl bg-white border border-white/80 au-card p-4 animate-fade-in-up">
                 <p className="text-xs font-bold uppercase mb-2" style={{ color: "var(--au-faint)", letterSpacing: "0.14em" }}>
-                  Gross Pay · Before Tax
+                  Estimated Gross Compensation
                 </p>
                 <p
-                  className="text-3xl font-extrabold tracking-tight mb-3"
+                  className="text-3xl font-extrabold tracking-tight mb-1"
                   style={{
                     fontFamily: "var(--au-display)",
                     background: "var(--au-grad-text)",
@@ -254,22 +259,42 @@ export default function ReportsPage() {
                     color: "transparent",
                   }}
                 >
-                  {formatCurrency(monthPay.total_gross)}
+                  {formatCurrency(monthPay!.total_gross, monthPay!.currency_code)}
                 </p>
+                <p className="text-[10px] mb-3" style={{ color: "var(--au-faint)" }}>{COMPENSATION_ESTIMATE_NOTE}</p>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-2xl p-2.5 text-center" style={{ background: "var(--au-surface-sub)" }}>
                     <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-faint)" }}>Regular</p>
-                    <p className="text-sm font-extrabold" style={{ color: "var(--au-indigo)" }}>{formatCurrency(monthPay.regular_gross)}</p>
+                    <p className="text-sm font-extrabold" style={{ color: "var(--au-indigo)" }}>{formatCurrency(monthPay!.regular_gross, monthPay!.currency_code)}</p>
                   </div>
                   <div className="rounded-2xl p-2.5 text-center" style={{ background: "var(--au-overtime-bg)" }}>
                     <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-overtime-ink)" }}>Overtime</p>
-                    <p className="text-sm font-extrabold" style={{ color: "var(--au-peach-deep)" }}>{formatCurrency(monthPay.overtime_gross)}</p>
+                    <p className="text-sm font-extrabold" style={{ color: "var(--au-peach-deep)" }}>{formatCurrency(monthPay!.overtime_gross, monthPay!.currency_code)}</p>
                   </div>
                   <div className="rounded-2xl p-2.5 text-center" style={{ background: "var(--au-weekend-bg)" }}>
                     <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-plum)" }}>Holiday</p>
-                    <p className="text-sm font-extrabold" style={{ color: "var(--au-plum)" }}>{formatCurrency(monthPay.special_gross)}</p>
+                    <p className="text-sm font-extrabold" style={{ color: "var(--au-plum)" }}>{formatCurrency(monthPay!.special_gross, monthPay!.currency_code)}</p>
                   </div>
                 </div>
+                {monthPay!.night_gross > 0 && (
+                  <div className="mt-2 rounded-2xl p-2.5 text-center" style={{ background: "var(--au-surface-sub)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--au-faint)" }}>Night</p>
+                    <p className="text-sm font-extrabold" style={{ color: "var(--au-indigo)" }}>{formatCurrency(monthPay!.night_gross, monthPay!.currency_code)}</p>
+                  </div>
+                )}
+                {monthPay!.deductions_gross > 0 && (
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--au-hair)" }}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span style={{ color: "var(--au-faint)" }}>Est. deductions</span>
+                      <span className="font-bold" style={{ color: "var(--au-ink)" }}>-{formatCurrency(monthPay!.deductions_gross, monthPay!.currency_code)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-semibold" style={{ color: "var(--au-ink)" }}>Est. net</span>
+                      <span className="font-extrabold" style={{ color: "var(--au-indigo)" }}>{formatCurrency(monthPay!.net_gross, monthPay!.currency_code)}</span>
+                    </div>
+                  </div>
+                )}
+                <p className="text-[10px] mt-3 leading-relaxed" style={{ color: "var(--au-faint)" }}>{COMPENSATION_DISCLAIMER}</p>
               </div>
             )}
 
@@ -279,11 +304,11 @@ export default function ReportsPage() {
             )}
 
             {settings?.features_insights && insights && (
-              <QuickStats insights={insights} />
+              <QuickStats insights={insights} currencyCode={monthPay?.currency_code} />
             )}
 
             {weeklyData && (
-              <WeeklyBreakdown weeks={weeklyData} prevMonthLabel={prevMonthLabel} />
+              <WeeklyBreakdown weeks={weeklyData} prevMonthLabel={prevMonthLabel} currencyCode={monthPay?.currency_code} />
             )}
 
             {/* Thresholds */}
@@ -313,7 +338,7 @@ export default function ReportsPage() {
                   .slice()
                   .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
                   .map((shift, i) => (
-                    <ShiftReportRow key={shift.id} shift={shift} settings={settings} index={i} />
+                    <ShiftReportRow key={shift.id} shift={shift} settings={settings} profiles={profiles} index={i} />
                   ))}
               </div>
             </div>
@@ -328,11 +353,30 @@ export default function ReportsPage() {
 
 // ── Shift report row ─────────────────────────────────────────────────────────
 
-function ShiftReportRow({ shift, settings, index }: { shift: Shift; settings: UserSettings; index: number }) {
+function ShiftReportRow({
+  shift,
+  settings,
+  profiles,
+  index,
+}: {
+  shift: Shift;
+  settings: UserSettings;
+  profiles: CompensationProfile[];
+  index: number;
+}) {
   const net = netMinutes(shift) ?? 0;
-  const otMins = Math.max(0, net - settings.daily_overtime_threshold_minutes);
+  const resolved = resolveShiftCompensation(
+    shift,
+    settings,
+    new Map(profiles.map((p) => [p.id, p]))
+  );
+  const threshold = resolved.rules_json.regular.dailyStandardMinutes;
+  const weekendDays = resolved.rules_json.regular.weekendDays;
+  const otMins = Math.max(0, net - threshold);
   const dateStr = new Date(shift.start_time).toISOString().slice(0, 10);
-  const isWeekend = isWeekendDate(dateStr, settings.weekend_days);
+  const isWeekend =
+    resolved.rules_json.weekend.enabled &&
+    isWeekendDate(dateStr, weekendDays);
   const isOvernight = isOvernightShift(shift);
   const isSpecial = shift.is_special_day || isWeekend;
 
@@ -342,11 +386,12 @@ function ShiftReportRow({ shift, settings, index }: { shift: Shift; settings: Us
   const stripeColor = isSpecial ? "var(--au-plum)" : isOvernight ? "var(--au-indigo)" : "var(--au-indigo)";
   const stripeOpacity = isSpecial ? 1 : isOvernight ? 0.8 : 0.35;
 
-  const payBreakdown = settings.hourly_rate ? calculateShiftPay(shift, settings) : null;
+  const payBreakdown = calculateShiftPay(shift, { settings, profiles });
 
   return (
-    <div
-      className="flex items-center gap-0 border-b last:border-0 animate-fade-in-up"
+    <Link
+      href={`/shifts/${shift.id}`}
+      className="flex items-center gap-0 border-b last:border-0 animate-fade-in-up hover:opacity-90 transition-opacity"
       style={{ borderBottomColor: "var(--au-hair)", animationDelay: `${index * 0.04}s` }}
     >
       <div className="w-1 self-stretch flex-shrink-0 rounded-l-sm" style={{ background: stripeColor, opacity: stripeOpacity }} />
@@ -379,11 +424,11 @@ function ShiftReportRow({ shift, settings, index }: { shift: Shift; settings: Us
               <p className="text-xs font-bold" style={{ color: "var(--au-peach-deep)" }}>+{formatMinutes(otMins)} OT</p>
             )}
             {payBreakdown && (
-              <p className="text-xs font-bold mt-0.5" style={{ color: "var(--au-indigo)" }}>{formatCurrency(payBreakdown.total_gross)}</p>
+              <p className="text-xs font-bold mt-0.5" style={{ color: "var(--au-indigo)" }}>{formatCurrency(payBreakdown.total_gross, payBreakdown.currency_code)}</p>
             )}
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

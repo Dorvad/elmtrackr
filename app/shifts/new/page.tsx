@@ -4,30 +4,38 @@ export const dynamic = "force-dynamic";
 
 import { useRouter } from "next/navigation";
 import { useShifts } from "@/hooks/useShifts";
+import { useSettings } from "@/hooks/useSettings";
+import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
 import { useToast } from "@/components/ui/Toast";
 import { ShiftForm } from "@/components/shifts/ShiftForm";
-import { BottomNav } from "@/components/layout/BottomNav";
 import type { ShiftFormData } from "@/types";
 
 export default function NewShiftPage() {
   const router = useRouter();
   const { createShift } = useShifts();
+  const { settings } = useSettings();
+  const { profiles, defaultProfile } = useCompensationProfiles();
   const { toast } = useToast();
 
   async function handleSubmit(data: ShiftFormData) {
-    await createShift({
-      start_time: data.start_time,
-      end_time: data.end_time || null,
-      break_minutes: data.break_minutes,
-      notes: data.notes || null,
-      is_special_day: data.is_special_day,
-    });
+    await createShift(
+      {
+        start_time: data.start_time,
+        end_time: data.end_time || null,
+        break_minutes: data.break_minutes,
+        notes: data.notes || null,
+        is_special_day: data.is_special_day,
+        compensation_profile_id:
+          data.compensation_profile_id ?? defaultProfile?.id ?? settings?.default_compensation_profile_id ?? null,
+      },
+      settings ? { settings, profiles } : undefined
+    );
     toast("Shift saved", "success");
     router.push("/shifts");
   }
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
+    <div className="min-h-screen pb-8" style={{ background: "var(--au-bg)" }}>
       <div className="px-4 pt-12 pb-4 flex items-center gap-3 animate-fade-in">
         <button
           onClick={() => router.back()}
@@ -42,11 +50,14 @@ export default function NewShiftPage() {
 
       <div className="max-w-md mx-auto px-4 animate-fade-in-up stagger-1">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <ShiftForm onSubmit={handleSubmit} submitLabel="Create Shift" />
+          <ShiftForm
+            profiles={profiles}
+            defaultProfileId={defaultProfile?.id ?? settings?.default_compensation_profile_id}
+            onSubmit={handleSubmit}
+            submitLabel="Create Shift"
+          />
         </div>
       </div>
-
-      <BottomNav />
     </div>
   );
 }

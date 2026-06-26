@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSettings } from "@/hooks/useSettings";
-import type { ClockStyle } from "@/types";
+import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
+import { useToast } from "@/components/ui/Toast";
+import type { ClockStyle, RegionCode } from "@/types";
+import {
+  CURRENCY_OPTIONS,
+  REGION_PRESETS,
+  TIMEZONE_OPTIONS,
+} from "@/lib/compensation/presets";
 
 interface FeatureSelection {
   travel_refunds: boolean;
@@ -19,12 +26,17 @@ const INITIAL_FEATURES: FeatureSelection = {
   clock_styles: true,
 };
 
-const TOTAL = 5;
+const TOTAL = 6;
 
 export function OnboardingFlow({ replay = false }: { replay?: boolean }) {
   const { settings, saveSettings } = useSettings();
+  const { createFromPreset, defaultProfile, updateProfile } = useCompensationProfiles();
+  const { toast } = useToast();
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [regionCode, setRegionCode] = useState<RegionCode>("IL");
+  const [currencyCode, setCurrencyCode] = useState("ILS");
+  const [timezone, setTimezone] = useState("Asia/Jerusalem");
   const [features, setFeatures] = useState<FeatureSelection>(() => ({
     travel_refunds: settings?.features_travel_refunds ?? INITIAL_FEATURES.travel_refunds,
     paid_projects: settings?.features_paid_projects ?? INITIAL_FEATURES.paid_projects,
@@ -36,6 +48,60 @@ export function OnboardingFlow({ replay = false }: { replay?: boolean }) {
 
   function next() { setStep((s) => Math.min(s + 1, TOTAL)); }
   function prev() { setStep((s) => Math.max(s - 1, 1)); }
+
+  function selectRegion(code: RegionCode) {
+    const preset = REGION_PRESETS.find((p) => p.regionCode === code);
+    if (preset) {
+      setRegionCode(code);
+      setCurrencyCode(preset.currencyCode);
+      setTimezone(preset.timezone);
+    }
+  }
+
+  async function saveRegionAndContinue(overrides?: {
+    regionCode?: RegionCode;
+    currencyCode?: string;
+    timezone?: string;
+  }) {
+    const code = overrides?.regionCode ?? regionCode;
+    const curr = overrides?.currencyCode ?? currencyCode;
+    const tz = overrides?.timezone ?? timezone;
+    const preset = REGION_PRESETS.find((p) => p.regionCode === code);
+
+    setSaving(true);
+    try {
+      let profileId: string;
+      if (replay && defaultProfile) {
+        const updated = await updateProfile(defaultProfile.id, {
+          region_code: code,
+          currency_code: curr,
+          timezone: tz,
+          rules_json: preset?.rules ?? defaultProfile.rules_json,
+        });
+        profileId = updated.id;
+      } else {
+        const profile = await createFromPreset(code, {
+          currencyCode: curr,
+          timezone: tz,
+        });
+        profileId = profile.id;
+      }
+      await saveSettings({
+        region_code: code,
+        currency_code: curr,
+        timezone: tz,
+        default_compensation_profile_id: profileId,
+      });
+      next();
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : "Failed to save region settings",
+        "error"
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function finish() {
     setSaving(true);
@@ -76,8 +142,29 @@ export function OnboardingFlow({ replay = false }: { replay?: boolean }) {
         )}
 
         {step === 1 && <WelcomeScreen onNext={next} replay={replay} />}
-        {step === 2 && <HowItWorksScreen onNext={next} onBack={prev} />}
-        {step === 3 && (
+        {step === 2 && (
+          <RegionScreen
+            regionCode={regionCode}
+            currencyCode={currencyCode}
+            timezone={timezone}
+            onSelectRegion={selectRegion}
+            onCurrencyChange={setCurrencyCode}
+            onTimezoneChange={setTimezone}
+            onContinue={saveRegionAndContinue}
+            onManual={() => {
+              const custom = REGION_PRESETS.find((p) => p.regionCode === "CUSTOM");
+              saveRegionAndContinue({
+                regionCode: "CUSTOM",
+                currencyCode: custom?.currencyCode ?? "USD",
+                timezone: custom?.timezone ?? "UTC",
+              });
+            }}
+            onBack={prev}
+            saving={saving}
+          />
+        )}
+        {step === 3 && <HowItWorksScreen onNext={next} onBack={prev} />}
+        {step === 4 && (
           <FeaturesScreen
             features={features}
             onChange={setFeatures}
@@ -85,7 +172,7 @@ export function OnboardingFlow({ replay = false }: { replay?: boolean }) {
             onBack={prev}
           />
         )}
-        {step === 4 && (
+        {step === 5 && (
           <ClockStyleScreen
             selected={clockStyle}
             onChange={setClockStyle}
@@ -93,7 +180,7 @@ export function OnboardingFlow({ replay = false }: { replay?: boolean }) {
             onBack={prev}
           />
         )}
-        {step === 5 && (
+        {step === 6 && (
           <DoneScreen features={features} onFinish={finish} saving={saving} />
         )}
       </div>
@@ -130,7 +217,114 @@ function WelcomeScreen({ onNext, replay }: { onNext: () => void; replay: boolean
   );
 }
 
-// ── Screen 2: How it works ────────────────────────────────────────────────────
+// ── Screen 2: Region selection ────────────────────────────────────────────────
+
+function RegionScreen({
+  regionCode,
+  currencyCode,
+  timezone,
+  onSelectRegion,
+  onCurrencyChange,
+  onTimezoneChange,
+  onContinue,
+  onManual,
+  onBack,
+  saving,
+}: {
+  regionCode: RegionCode;
+  currencyCode: string;
+  timezone: string;
+  onSelectRegion: (code: RegionCode) => void;
+  onCurrencyChange: (code: string) => void;
+  onTimezoneChange: (tz: string) => void;
+  onContinue: () => void;
+  onManual: () => void;
+  onBack: () => void;
+  saving: boolean;
+}) {
+  return (
+    <div className="animate-fade-in-up">
+      <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight mb-1">
+        Choose your region
+      </h2>
+      <p className="text-sm text-gray-400 mb-5">
+        We&apos;ll use this to suggest a starting compensation setup. You can edit all rules later.
+      </p>
+
+      <div className="flex flex-col gap-2 mb-5">
+        {REGION_PRESETS.map((preset) => (
+          <button
+            key={preset.regionCode}
+            type="button"
+            onClick={() => onSelectRegion(preset.regionCode)}
+            className={[
+              "w-full text-left rounded-2xl border p-4 transition-all",
+              regionCode === preset.regionCode
+                ? "bg-indigo-50 border-indigo-300 shadow-sm"
+                : "bg-white border-gray-100 hover:border-gray-200",
+            ].join(" ")}
+          >
+            <p className="text-sm font-bold text-gray-900">{preset.label}</p>
+            <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{preset.description}</p>
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-5 flex flex-col gap-3">
+        <div>
+          <label className="text-xs font-semibold text-gray-500 mb-1 block">Currency</label>
+          <select
+            value={currencyCode}
+            onChange={(e) => onCurrencyChange(e.target.value)}
+            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+          >
+            {CURRENCY_OPTIONS.map((c) => (
+              <option key={c.code} value={c.code}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-gray-500 mb-1 block">Timezone</label>
+          <select
+            value={timezone}
+            onChange={(e) => onTimezoneChange(e.target.value)}
+            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+          >
+            {TIMEZONE_OPTIONS.map((tz) => (
+              <option key={tz.value} value={tz.value}>{tz.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onContinue}
+        disabled={saving}
+        className="w-full rounded-2xl bg-indigo-600 text-white font-bold text-sm py-4 shadow-lg shadow-indigo-500/25 hover:bg-indigo-700 disabled:opacity-60 active:scale-[0.98] transition-all mb-3"
+      >
+        {saving ? "Setting up…" : "Continue"}
+      </button>
+      <button
+        type="button"
+        onClick={onManual}
+        disabled={saving}
+        className="w-full rounded-2xl bg-gray-100 text-gray-600 font-bold text-sm py-3 hover:bg-gray-200 transition-all mb-3"
+      >
+        Set up manually
+      </button>
+      <button
+        type="button"
+        onClick={onBack}
+        className="w-full text-sm text-gray-400 font-medium py-2"
+      >
+        Back
+      </button>
+    </div>
+  );
+}
+
+// ── Screen 3: How it works ────────────────────────────────────────────────────
 
 function HowItWorksScreen({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const items = [
@@ -161,8 +355,8 @@ function HowItWorksScreen({ onNext, onBack }: { onNext: () => void; onBack: () =
         </svg>
       ),
       color: "bg-amber-100 text-amber-600",
-      title: "Know Your Pay",
-      desc: "Automatic gross pay with Israeli overtime and holiday rates.",
+      title: "Estimate Your Pay",
+      desc: "Gross pay estimates based on your compensation profile — not legal payroll advice.",
     },
   ];
 
@@ -191,7 +385,7 @@ function HowItWorksScreen({ onNext, onBack }: { onNext: () => void; onBack: () =
   );
 }
 
-// ── Screen 3: Feature selection ───────────────────────────────────────────────
+// ── Screen 4: Feature selection ───────────────────────────────────────────────
 
 function FeatureToggleCard({
   icon,
@@ -329,7 +523,7 @@ function FeaturesScreen({
   );
 }
 
-// ── Screen 4: Clock Style ─────────────────────────────────────────────────────
+// ── Screen 5: Clock Style ─────────────────────────────────────────────────────
 
 const CLOCK_STYLE_OPTIONS: {
   value: ClockStyle;
@@ -548,7 +742,7 @@ function ClockStyleScreen({
   );
 }
 
-// ── Screen 5: Done ────────────────────────────────────────────────────────────
+// ── Screen 6: Done ────────────────────────────────────────────────────────────
 
 function DoneScreen({
   features,
@@ -573,9 +767,9 @@ function DoneScreen({
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
-      <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight mb-2">You're all set!</h2>
+      <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight mb-2">You&apos;re all set!</h2>
       <p className="text-sm text-gray-400 mb-6">
-        ElmTrackr is ready to go. Here's what's enabled:
+        ElmTrackr is ready to go. Here&apos;s what&apos;s enabled:
       </p>
 
       {enabledFeatures.length > 0 ? (

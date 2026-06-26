@@ -1,20 +1,21 @@
 "use client";
 
-import type { RefundClaim, Shift } from "@/types";
-import type { UserSettings } from "@/types";
-import { calculateShiftPay, formatCurrency } from "@/lib/shifts/payroll";
+import type { RefundClaim, Shift, UserSettings, CompensationProfile } from "@/types";
+import { formatCurrency, fallbackCurrencyCode } from "@/lib/compensation/currency";
+import { calculateShiftPay } from "@/lib/shifts/payroll";
 
 interface Props {
   claims: RefundClaim[];
   shifts: Shift[];
   settings?: UserSettings | null;
+  profiles?: CompensationProfile[];
 }
 
 const PROVIDER_STYLES: Record<string, { bar: string; text: string; bg: string; border: string; dot: string }> = {
   Lime:  { bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", dot: "#10b981" },
   Dott:  { bar: "bg-orange-500",  text: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-100",  dot: "#f97316" },
-  Bird:  { bar: "bg-sky-400",     text: "text-sky-700",     bg: "bg-sky-50",     border: "border-sky-100",     dot: "#00A3FF" },
-  Taxi:  { bar: "bg-yellow-400",  text: "text-yellow-700",  bg: "bg-yellow-50",  border: "border-yellow-200",  dot: "#D4A000" },
+  Bird:  { bar: "bg-sky-500",     text: "text-sky-700",     bg: "bg-sky-50",     border: "border-sky-100",     dot: "#0ea5e9" },
+  Taxi:  { bar: "bg-amber-400",   text: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100",   dot: "#fbbf24" },
   Other: { bar: "bg-slate-400",   text: "text-slate-600",   bg: "bg-slate-50",   border: "border-slate-100",   dot: "#94a3b8" },
 };
 
@@ -22,7 +23,7 @@ function providerStyle(name: string) {
   return PROVIDER_STYLES[name] ?? { bar: "bg-indigo-400", text: "text-indigo-700", bg: "bg-indigo-50", border: "border-indigo-100", dot: "#818cf8" };
 }
 
-export function RefundAnalytics({ claims, shifts, settings }: Props) {
+export function RefundAnalytics({ claims, shifts, settings, profiles }: Props) {
   if (claims.length === 0) return null;
 
   // ── Core numbers ────────────────────────────────────────────────────────
@@ -73,12 +74,19 @@ export function RefundAnalytics({ claims, shifts, settings }: Props) {
   });
   const maxTrend = Math.max(...trend.map((m) => m.amount), 1);
 
-  // ── Salary + refunds ─────────────────────────────────────────────────────
+  const currencyCode = fallbackCurrencyCode(settings?.region_code, settings?.timezone);
+
+  // ── Salary + refunds (separate from gross — refunds shown additively) ──
   let totalGross: number | null = null;
-  if (settings?.hourly_rate) {
+  if (settings) {
     totalGross = shifts
       .filter((s) => s.end_time)
-      .reduce((sum, s) => sum + (calculateShiftPay(s, settings)?.total_gross ?? 0), 0);
+      .reduce(
+        (sum, s) =>
+          sum + (calculateShiftPay(s, { settings, profiles })?.total_gross ?? 0),
+        0
+      );
+    if (totalGross <= 0) totalGross = null;
   }
 
   return (
@@ -88,7 +96,7 @@ export function RefundAnalytics({ claims, shifts, settings }: Props) {
       <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-700 p-5 shadow-lg shadow-indigo-500/20 animate-fade-in-up">
         <p className="text-xs font-bold text-indigo-200 uppercase tracking-widest">Total Refunded</p>
         <p className="text-4xl font-extrabold text-white mt-1 tracking-tight">
-          {formatCurrency(totalAmount)}
+          {formatCurrency(totalAmount, currencyCode)}
         </p>
         <p className="text-sm text-indigo-200 mt-1 font-medium">
           {claims.length} ride{claims.length !== 1 ? "s" : ""} · {activeMonths} month{activeMonths !== 1 ? "s" : ""}
@@ -101,16 +109,16 @@ export function RefundAnalytics({ claims, shifts, settings }: Props) {
               Total compensation (salary + refunds)
             </p>
             <p className="text-2xl font-extrabold text-white tracking-tight mb-3">
-              {formatCurrency(totalGross + totalAmount)}
+              {formatCurrency(totalGross + totalAmount, currencyCode)}
             </p>
             <div className="flex gap-2">
               <div className="flex-1 rounded-xl bg-white/10 px-3 py-2.5 text-center">
                 <p className="text-[10px] text-indigo-200 font-bold uppercase tracking-wide">Salary</p>
-                <p className="text-sm font-extrabold text-white mt-0.5">{formatCurrency(totalGross)}</p>
+                <p className="text-sm font-extrabold text-white mt-0.5">{formatCurrency(totalGross, currencyCode)}</p>
               </div>
               <div className="flex-1 rounded-xl bg-white/10 px-3 py-2.5 text-center">
                 <p className="text-[10px] text-indigo-200 font-bold uppercase tracking-wide">Refunds</p>
-                <p className="text-sm font-extrabold text-white mt-0.5">{formatCurrency(totalAmount)}</p>
+                <p className="text-sm font-extrabold text-white mt-0.5">{formatCurrency(totalAmount, currencyCode)}</p>
               </div>
               <div className="flex-1 rounded-xl bg-white/15 px-3 py-2.5 text-center border border-white/20">
                 <p className="text-[10px] text-indigo-100 font-bold uppercase tracking-wide">Refund %</p>
@@ -141,7 +149,7 @@ export function RefundAnalytics({ claims, shifts, settings }: Props) {
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className={`text-sm font-extrabold ${s.text}`}>{formatCurrency(total)}</span>
+                    <span className={`text-sm font-extrabold ${s.text}`}>{formatCurrency(total, currencyCode)}</span>
                     <span className="text-xs text-gray-400 ml-1.5">{pct.toFixed(0)}%</span>
                   </div>
                 </div>
@@ -162,17 +170,17 @@ export function RefundAnalytics({ claims, shifts, settings }: Props) {
         {[
           {
             icon: "⌀", label: "Avg per ride",
-            value: formatCurrency(avgAmount), sub: "per claim",
+            value: formatCurrency(avgAmount, currencyCode), sub: "per claim",
             bg: "bg-emerald-50 border-emerald-100", text: "text-emerald-700", sub2: "text-emerald-400",
           },
           {
             icon: "↑", label: "Largest ride",
-            value: formatCurrency(maxClaim), sub: "single claim",
+            value: formatCurrency(maxClaim, currencyCode), sub: "single claim",
             bg: "bg-indigo-50 border-indigo-100", text: "text-indigo-700", sub2: "text-indigo-400",
           },
           {
             icon: "★", label: "Best month",
-            value: formatCurrency(bestAmt), sub: bestLabel ?? "—",
+            value: formatCurrency(bestAmt, currencyCode), sub: bestLabel ?? "—",
             bg: "bg-orange-50 border-orange-100", text: "text-orange-700", sub2: "text-orange-400",
           },
           {
@@ -219,7 +227,7 @@ export function RefundAnalytics({ claims, shifts, settings }: Props) {
           <div className="flex justify-between mt-3 pt-2.5 border-t border-gray-50">
             <span className="text-[10px] text-gray-400">6-month window</span>
             <span className="text-[10px] font-semibold text-indigo-500">
-              {formatCurrency(trend.reduce((s, m) => s + m.amount, 0))} total
+              {formatCurrency(trend.reduce((s, m) => s + m.amount, 0), currencyCode)} total
             </span>
           </div>
         )}

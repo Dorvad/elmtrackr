@@ -1,0 +1,21 @@
+# Copy this file to local.properties (git-ignored) and fill in your values.
+# Without these keys the app builds fine but shows "Auth not configured" on the Account tab.
+
+# Your Supabase project URL (e.g. https://xxxx.supabase.co)
+supabase.url=
+
+# Your Supabase anon/public key
+supabase.anon.key=
+
+# --- Supabase dashboard configuration ---
+# In your Supabase project → Authentication → URL Configuration, add:
+#
+#   Redirect URLs:
+#     elmtrackr://auth/callback
+#     elmtrackr://auth/reset-password
+#
+# This URL is used for:
+#   - Email confirmation links
+#   - Password reset links
+#   - Magic link sign-in (if enabled)
+#   - OAuth provider callbacks (if added later)

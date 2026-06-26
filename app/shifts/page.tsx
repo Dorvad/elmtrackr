@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useShifts } from "@/hooks/useShifts";
 import { useSettings } from "@/hooks/useSettings";
+import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
 import { ShiftRow } from "@/components/shifts/ShiftRow";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageSpinner } from "@/components/ui/Spinner";
@@ -19,6 +20,7 @@ import { netMinutes } from "@/lib/shifts/duration";
 export default function ShiftsPage() {
   const { shifts, loading, error, refresh } = useShifts();
   const { settings } = useSettings();
+  const { profiles } = useCompensationProfiles();
 
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getUTCFullYear());
@@ -70,7 +72,7 @@ export default function ShiftsPage() {
         <button
           onClick={prevMonth}
           aria-label="Previous month"
-          className="h-9 w-9 rounded-xl flex items-center justify-center transition-colors hover:opacity-60"
+          className="h-11 w-11 rounded-xl flex items-center justify-center transition-colors hover:opacity-60"
           style={{ background: "var(--au-surface-sub)" }}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
@@ -87,10 +89,9 @@ export default function ShiftsPage() {
         </div>
         <button
           onClick={nextMonth}
-          disabled={isCurrentMonth}
           aria-label="Next month"
-          title={isCurrentMonth ? "Current month" : undefined}
-          className="h-9 w-9 rounded-xl flex items-center justify-center transition-colors hover:opacity-60 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={isCurrentMonth}
+          className="h-11 w-11 rounded-xl flex items-center justify-center transition-colors hover:opacity-60 disabled:opacity-20 disabled:cursor-not-allowed"
           style={{ background: "var(--au-surface-sub)" }}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
@@ -104,7 +105,6 @@ export default function ShiftsPage() {
         {loading && <PageSpinner />}
         {!loading && !error && filtered.length === 0 && (
           <EmptyState
-            variant="shifts"
             title="No shifts this month"
             description="Clock in from the home screen or add a shift manually."
             action={<Link href="/shifts/new"><Button size="sm">Add shift</Button></Link>}
@@ -117,6 +117,7 @@ export default function ShiftsPage() {
                 key={shift.id}
                 shift={shift}
                 settings={settings}
+                profiles={profiles}
                 animationIndex={i}
               />
             ))}

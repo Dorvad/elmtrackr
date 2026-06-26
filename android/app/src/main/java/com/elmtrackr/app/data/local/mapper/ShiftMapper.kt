@@ -1,0 +1,51 @@
+package com.elmtrackr.app.data.local.mapper
+
+import com.elmtrackr.app.data.local.entity.ShiftEntity
+import com.elmtrackr.app.data.local.entity.SyncStatus
+import com.elmtrackr.app.domain.compensation.CompensationRulesCodec
+import com.elmtrackr.app.domain.model.RefundAction
+import com.elmtrackr.app.domain.model.Shift
+import java.time.Instant
+
+fun ShiftEntity.toDomain(): Shift = Shift(
+    id = localId,
+    userId = userId,
+    startTime = Instant.ofEpochMilli(startTime),
+    endTime = endTime?.let { Instant.ofEpochMilli(it) },
+    breakMinutes = breakMinutes,
+    notes = notes,
+    isSpecialDay = isSpecialDay,
+    refundAction = refundAction?.let { RefundAction.valueOf(it.uppercase()) },
+    compensationProfileId = compensationProfileId,
+    compensationSnapshot = compensationSnapshotJson
+        ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+        ?.let { CompensationRulesCodec.decodeSnapshot(it) },
+    createdAt = Instant.ofEpochMilli(createdAt),
+    updatedAt = Instant.ofEpochMilli(updatedAt),
+)
+
+fun Shift.toEntity(
+    syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    remoteId: String? = null,
+    deletedAt: Long? = null,
+    lastSyncError: String? = null,
+    lastSyncedAt: Long? = null,
+): ShiftEntity = ShiftEntity(
+    localId = id,
+    remoteId = remoteId,
+    userId = userId,
+    startTime = startTime.toEpochMilli(),
+    endTime = endTime?.toEpochMilli(),
+    breakMinutes = breakMinutes,
+    notes = notes,
+    isSpecialDay = isSpecialDay,
+    refundAction = refundAction?.name,
+    compensationProfileId = compensationProfileId,
+    compensationSnapshotJson = compensationSnapshot?.let { CompensationRulesCodec.encodeSnapshot(it) },
+    createdAt = createdAt.toEpochMilli(),
+    updatedAt = updatedAt.toEpochMilli(),
+    deletedAt = deletedAt,
+    syncStatus = syncStatus,
+    lastSyncError = lastSyncError,
+    lastSyncedAt = lastSyncedAt,
+)

@@ -6,10 +6,10 @@ import { use } from "react";
 import { useRouter } from "next/navigation";
 import { useShifts } from "@/hooks/useShifts";
 import { useSettings } from "@/hooks/useSettings";
+import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
 import { useToast } from "@/components/ui/Toast";
 import { ShiftForm } from "@/components/shifts/ShiftForm";
 import { RefundSection } from "@/components/shifts/RefundSection";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { PageSpinner } from "@/components/ui/Spinner";
 import type { Shift, ShiftFormData } from "@/types";
 
@@ -22,6 +22,7 @@ export default function EditShiftPage({
   const router = useRouter();
   const { shifts, loading, updateShift, deleteShift } = useShifts();
   const { settings } = useSettings();
+  const { profiles, defaultProfile } = useCompensationProfiles();
   const { toast } = useToast();
 
   async function handleRefundAction(action: Shift["refund_action"]) {
@@ -31,13 +32,18 @@ export default function EditShiftPage({
   const shift = shifts.find((s) => s.id === id);
 
   async function handleSubmit(data: ShiftFormData) {
-    await updateShift(id, {
-      start_time: data.start_time,
-      end_time: data.end_time || null,
-      break_minutes: data.break_minutes,
-      notes: data.notes || null,
-      is_special_day: data.is_special_day,
-    });
+    await updateShift(
+      id,
+      {
+        start_time: data.start_time,
+        end_time: data.end_time || null,
+        break_minutes: data.break_minutes,
+        notes: data.notes || null,
+        is_special_day: data.is_special_day,
+        compensation_profile_id: data.compensation_profile_id ?? null,
+      },
+      settings ? { settings, profiles } : undefined
+    );
     toast("Shift updated", "success");
     router.push("/shifts");
   }
@@ -50,7 +56,7 @@ export default function EditShiftPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
+      <div className="min-h-screen pb-8" style={{ background: "var(--au-bg)" }}>
         <PageSpinner />
       </div>
     );
@@ -95,7 +101,10 @@ export default function EditShiftPage({
               break_minutes: shift.break_minutes,
               notes: shift.notes ?? "",
               is_special_day: shift.is_special_day ?? false,
+              compensation_profile_id: shift.compensation_profile_id,
             }}
+            profiles={profiles}
+            defaultProfileId={defaultProfile?.id}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
             submitLabel="Update Shift"
@@ -106,8 +115,6 @@ export default function EditShiftPage({
           <RefundSection shift={shift} onActionChange={handleRefundAction} />
         )}
       </div>
-
-      <BottomNav />
     </div>
   );
 }

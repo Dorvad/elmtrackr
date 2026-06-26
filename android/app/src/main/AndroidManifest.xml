@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Required for notifications on Android 13+ (API 33+). Runtime-requested in MainActivity. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+
+    <application
+        android:name=".ElmTrackrApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ElmTrackr">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Deep-link handler for Supabase auth callbacks.
+                 Redirect URLs to configure in Supabase dashboard:
+                 elmtrackr://auth/callback
+                 elmtrackr://auth/reset-password -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="elmtrackr"
+                    android:host="auth" />
+            </intent-filter>
+
+            <!-- App shortcuts: static "New Manual Shift" + dynamic Clock Out while clocked in. -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
+
+        <activity
+            android:name=".shortcuts.HeadlessTrampolineActivity"
+            android:theme="@android:style/Theme.NoDisplay"
+            android:exported="false" />
+
+        <receiver
+            android:name=".shortcuts.HeadlessClockOutReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.elmtrackr.ACTION_HEADLESS_CLOCK_OUT" />
+            </intent-filter>
+        </receiver>
+        <!-- Handles "Clock Out" action from the active-shift notification. -->
+        <receiver
+            android:name=".notification.ClockOutReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.elmtrackr.app.ACTION_CLOCK_OUT" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ElmTrackr home screen widget (Jetpack Glance 4Ã—1 horizontal). -->
+        <receiver
+            android:name=".widget.ElmTrackrWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/elmtrackr_widget_info" />
+        </receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/export_paths" />
+        </provider>
+
+    </application>
+
+</manifest>
+
