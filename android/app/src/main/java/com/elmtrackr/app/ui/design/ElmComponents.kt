@@ -27,17 +27,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.elmtrackr.app.ui.theme.AuroraFaint
-import com.elmtrackr.app.ui.theme.AuroraIndigo
-import com.elmtrackr.app.ui.theme.AuroraInk2
-import com.elmtrackr.app.ui.theme.AuroraOvertimeBg
-import com.elmtrackr.app.ui.theme.AuroraOvertimeInk
-import com.elmtrackr.app.ui.theme.AuroraPlum
-import com.elmtrackr.app.ui.theme.AuroraSurfaceSub
-import com.elmtrackr.app.ui.theme.AuroraWhite
 import com.elmtrackr.app.ui.theme.AuroraAqua
+import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeachDeep
-import com.elmtrackr.app.ui.theme.AuroraWeekendBg
+import com.elmtrackr.app.ui.theme.AuroraPlum
+import com.elmtrackr.app.ui.theme.AuroraWhite
+import com.elmtrackr.app.ui.theme.auroraOvertimeBackground
+import com.elmtrackr.app.ui.theme.auroraOvertimeInk
+import com.elmtrackr.app.ui.theme.auroraSecondaryText
+import com.elmtrackr.app.ui.theme.auroraSyncedPillBackground
+import com.elmtrackr.app.ui.theme.auroraSurfaceSub
+import com.elmtrackr.app.ui.theme.auroraWeekendBackground
+import com.elmtrackr.app.ui.theme.auroraWeekendInk
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 
@@ -51,7 +52,7 @@ fun ElmSectionHeader(
     Text(
         text          = title.uppercase(),
         style         = MaterialTheme.typography.labelSmall,
-        color         = AuroraInk2,
+        color         = auroraSecondaryText(),
         fontWeight    = FontWeight.Bold,
         letterSpacing = TextUnit(0.16f, TextUnitType.Em),
         modifier      = modifier,
@@ -69,18 +70,18 @@ fun ElmSyncPill(
     val (label, color, bg) = when {
         !isRemoteConfigured -> Triple(
             "Offline",
-            AuroraInk2,
-            AuroraSurfaceSub,
+            auroraSecondaryText(),
+            auroraSurfaceSub(),
         )
         pendingCount > 0 -> Triple(
             "↑ $pendingCount pending",
-            AuroraOvertimeInk,
-            AuroraOvertimeBg,
+            auroraOvertimeInk(),
+            auroraOvertimeBackground(),
         )
         else -> Triple(
             "✓ Synced",
-            AuroraIndigo,
-            Color(0xFFE8E5FF),
+            MaterialTheme.colorScheme.primary,
+            auroraSyncedPillBackground(),
         )
     }
     Box(
@@ -121,20 +122,20 @@ fun ElmStatCard(
     val background = when (variant) {
         ElmStatVariant.DEFAULT -> MaterialTheme.colorScheme.surface
         ElmStatVariant.PRIMARY -> Color.Transparent
-        ElmStatVariant.OVERTIME -> AuroraOvertimeBg
-        ElmStatVariant.WEEKEND -> AuroraWeekendBg
+        ElmStatVariant.OVERTIME -> auroraOvertimeBackground()
+        ElmStatVariant.WEEKEND -> auroraWeekendBackground()
     }
     val labelColor = when (variant) {
         ElmStatVariant.DEFAULT -> MaterialTheme.colorScheme.onSurfaceVariant
         ElmStatVariant.PRIMARY -> AuroraWhite.copy(alpha = 0.8f)
-        ElmStatVariant.OVERTIME -> AuroraOvertimeInk
-        ElmStatVariant.WEEKEND -> AuroraPlum
+        ElmStatVariant.OVERTIME -> auroraOvertimeInk()
+        ElmStatVariant.WEEKEND -> auroraWeekendInk()
     }
     val statColor = when (variant) {
         ElmStatVariant.DEFAULT -> MaterialTheme.colorScheme.onSurface
         ElmStatVariant.PRIMARY -> AuroraWhite
         ElmStatVariant.OVERTIME -> AuroraPeachDeep
-        ElmStatVariant.WEEKEND -> AuroraPlum
+        ElmStatVariant.WEEKEND -> auroraWeekendInk()
     }
     val surfaceModifier = modifier
         .shadow(

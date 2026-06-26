@@ -99,7 +99,7 @@ import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.ElmCard
 import com.elmtrackr.app.ui.design.ElmDashedButton
-import com.elmtrackr.app.ui.theme.AuroraSurfaceSub
+import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import com.elmtrackr.app.ui.design.ElmEmptyState
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmSectionHeader
@@ -222,7 +222,7 @@ fun ShiftsScreen(
             )
             is ShiftsUiState.Error -> ErrorState(
                 message = state.message,
-                onRetry = {},
+                onRetry = viewModel::retry,
             )
         }
     }
@@ -360,7 +360,7 @@ internal fun ShiftsMonthCard(
                 onClick = onPrevious,
                 modifier = Modifier
                     .size(32.dp)
-                    .background(AuroraSurfaceSub, RoundedCornerShape(CornerRadius.Small)),
+                    .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
             ) {
                 Icon(Icons.Filled.ChevronLeft, "Previous month", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -384,7 +384,7 @@ internal fun ShiftsMonthCard(
                 enabled = canGoNext,
                 modifier = Modifier
                     .size(32.dp)
-                    .background(AuroraSurfaceSub, RoundedCornerShape(CornerRadius.Small)),
+                    .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
             ) {
                 Icon(
                     Icons.Filled.ChevronRight,

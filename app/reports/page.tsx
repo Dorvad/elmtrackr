@@ -45,7 +45,7 @@ import { COMPENSATION_DISCLAIMER, COMPENSATION_ESTIMATE_NOTE } from "@/lib/compe
 import type { Shift, UserSettings, CompensationProfile } from "@/types";
 
 export default function ReportsPage() {
-  const { shifts, loading: shiftsLoading, error } = useShifts();
+  const { shifts, loading: shiftsLoading, error, refresh } = useShifts();
   const { settings, loading: settingsLoading } = useSettings();
   const { profiles } = useCompensationProfiles();
   const { toast } = useToast();
@@ -193,7 +193,7 @@ export default function ReportsPage() {
       )}
 
       <div className="max-w-md mx-auto px-4 flex flex-col gap-4">
-        {error && <ErrorMessage message={error} />}
+        {error && <ErrorMessage message={error} onRetry={refresh} />}
         {loading && <PageSpinner />}
 
         {!loading && activeTab === "refunds" && (

@@ -36,7 +36,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import com.elmtrackr.app.ui.theme.AuroraIndigo
-import com.elmtrackr.app.ui.theme.AuroraSurfaceSub
+import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
@@ -608,7 +608,7 @@ private fun WeekendDayChip(
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(CornerRadius.Small)
-    val background = if (selected) AuroraIndigo else AuroraSurfaceSub
+    val background = if (selected) AuroraIndigo else auroraSurfaceSub()
     val textColor = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
     Text(
         text = label,
