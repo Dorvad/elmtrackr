@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -166,6 +167,7 @@ private fun ElmBottomNav(
     shadowElevation = 0.dp,
     modifier = Modifier
       .fillMaxWidth()
+      .navigationBarsPadding()
       .shadow(
         elevation = 16.dp,
         shape = navShape,
