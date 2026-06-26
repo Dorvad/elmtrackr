@@ -72,6 +72,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.CornerRadius as GeometryCornerRadius
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -273,7 +274,10 @@ private fun DashboardReady(
                     SupportedClockStyle.PULSE,
                     SupportedClockStyle.DIAL,
                     SupportedClockStyle.STRAND,
-                    SupportedClockStyle.PRISM -> ExpressiveClockCard(
+                    SupportedClockStyle.PRISM,
+                    SupportedClockStyle.SAND,
+                    SupportedClockStyle.BLOCKS,
+                    SupportedClockStyle.ORBIT -> ExpressiveClockCard(
                         style = renderStyle,
                         activeShift = activeShift,
                         elapsedSeconds = elapsedSeconds,
@@ -751,6 +755,9 @@ private fun ExpressiveClockCard(
                     SupportedClockStyle.PULSE -> if (running) "SHIFT ACTIVE" else "READY"
                     SupportedClockStyle.DIAL, SupportedClockStyle.PRISM -> if (running) "ELAPSED" else "READY"
                     SupportedClockStyle.STRAND -> if (running) "WORKDAY" else "READY"
+                    SupportedClockStyle.SAND -> if (running) "TIME FLOWING" else "READY"
+                    SupportedClockStyle.BLOCKS -> if (running) "WORKDAY" else "READY"
+                    SupportedClockStyle.ORBIT -> if (running) "IN ORBIT" else "READY"
                     else -> ""
                 },
                 style = MaterialTheme.typography.labelSmall,
@@ -826,6 +833,112 @@ private fun ExpressiveClockCard(
                             drawCircle(accent.copy(alpha = .55f + pulse * .45f), 4.dp.toPx(), top)
                             drawCircle(AuroraPlum.copy(alpha = .55f + pulse * .45f), 4.dp.toPx(), left)
                             drawCircle(AuroraAqua.copy(alpha = .55f + pulse * .45f), 4.dp.toPx(), right)
+                        }
+                        SupportedClockStyle.SAND -> {
+                            val top = 10.dp.toPx()
+                            val bottom = size.height - 10.dp.toPx()
+                            val mid = size.height / 2f
+                            val bulbW = size.width * 0.44f
+                            val neck = size.width * 0.12f
+                            val glass = Path().apply {
+                                moveTo(center.x - bulbW / 2f, top)
+                                quadraticTo(center.x, top - 8.dp.toPx(), center.x + bulbW / 2f, top)
+                                lineTo(center.x + neck / 2f, mid - 2.dp.toPx())
+                                lineTo(center.x + bulbW / 2f, bottom)
+                                quadraticTo(center.x, bottom + 8.dp.toPx(), center.x - bulbW / 2f, bottom)
+                                lineTo(center.x - neck / 2f, mid + 2.dp.toPx())
+                                close()
+                            }
+                            drawPath(glass, faceTrack.copy(alpha = 0.55f), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
+                            if (running) {
+                                val topFillHeight = (mid - top - 10.dp.toPx()) * (1f - progress)
+                                if (topFillHeight > 2.dp.toPx()) {
+                                    val topSand = Path().apply {
+                                        moveTo(center.x - bulbW / 2f + 10.dp.toPx(), top + 6.dp.toPx())
+                                        lineTo(center.x + bulbW / 2f - 10.dp.toPx(), top + 6.dp.toPx())
+                                        lineTo(center.x + neck / 2f - 2.dp.toPx(), top + 6.dp.toPx() + topFillHeight)
+                                        lineTo(center.x - neck / 2f + 2.dp.toPx(), top + 6.dp.toPx() + topFillHeight)
+                                        close()
+                                    }
+                                    drawPath(topSand, Brush.verticalGradient(listOf(accent, accent.copy(alpha = 0.55f))))
+                                }
+                                val bottomFillHeight = (bottom - mid - 10.dp.toPx()) * progress
+                                if (bottomFillHeight > 2.dp.toPx()) {
+                                    val bottomSand = Path().apply {
+                                        moveTo(center.x - neck / 2f + 2.dp.toPx(), bottom - 6.dp.toPx() - bottomFillHeight)
+                                        lineTo(center.x + neck / 2f - 2.dp.toPx(), bottom - 6.dp.toPx() - bottomFillHeight)
+                                        lineTo(center.x + bulbW / 2f - 10.dp.toPx(), bottom - 6.dp.toPx())
+                                        lineTo(center.x - bulbW / 2f + 10.dp.toPx(), bottom - 6.dp.toPx())
+                                        close()
+                                    }
+                                    drawPath(bottomSand, Brush.verticalGradient(listOf(accent.copy(alpha = 0.55f), accent)))
+                                }
+                                repeat(3) { index ->
+                                    val phase = (pulse + index / 3f) % 1f
+                                    drawCircle(
+                                        accent.copy(alpha = 0.25f + phase * 0.45f),
+                                        2.dp.toPx(),
+                                        Offset(center.x + (index - 1) * 4.dp.toPx(), mid + (phase - 0.5f) * 10.dp.toPx()),
+                                    )
+                                }
+                            }
+                        }
+                        SupportedClockStyle.BLOCKS -> {
+                            val blockCount = 8
+                            val gap = 5.dp.toPx()
+                            val blockW = (size.width - gap * (blockCount - 1)) / blockCount
+                            val blockH = 30.dp.toPx()
+                            val baseY = size.height - blockH - 6.dp.toPx()
+                            val filled = (progress * blockCount).toInt()
+                            val partial = progress * blockCount - filled
+                            repeat(blockCount) { index ->
+                                val x = index * (blockW + gap)
+                                val isFilled = index < filled
+                                val isCurrent = index == filled && running
+                                val color = when {
+                                    isFilled -> accent
+                                    isCurrent -> accent.copy(alpha = 0.35f + pulse * 0.35f)
+                                    else -> foreground.copy(alpha = 0.12f)
+                                }
+                                val height = if (isCurrent) blockH * (0.5f + partial * 0.5f) else blockH
+                                drawRoundRect(
+                                    color = color,
+                                    topLeft = Offset(x, baseY + blockH - height),
+                                    size = Size(blockW, height),
+                                    cornerRadius = GeometryCornerRadius(4.dp.toPx(), 4.dp.toPx()),
+                                )
+                            }
+                        }
+                        SupportedClockStyle.ORBIT -> {
+                            val radius = 58.dp.toPx()
+                            drawCircle(
+                                faceTrack.copy(alpha = 0.65f),
+                                radius,
+                                center,
+                                style = Stroke(
+                                    1.5.dp.toPx(),
+                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 12f)),
+                                ),
+                            )
+                            if (running && progress > 0f) {
+                                drawArc(
+                                    color = accent.copy(alpha = 0.22f),
+                                    startAngle = -90f,
+                                    sweepAngle = progress * 360f,
+                                    useCenter = false,
+                                    topLeft = Offset(center.x - radius, center.y - radius),
+                                    size = Size(radius * 2, radius * 2),
+                                    style = Stroke(4.dp.toPx(), cap = StrokeCap.Round),
+                                )
+                            }
+                            val angle = Math.toRadians((progress * 360.0 - 90.0))
+                            val satX = center.x + kotlin.math.cos(angle).toFloat() * radius
+                            val satY = center.y + kotlin.math.sin(angle).toFloat() * radius
+                            if (running) {
+                                drawCircle(accent.copy(alpha = 0.12f + pulse * 0.12f), 16.dp.toPx(), Offset(satX, satY))
+                            }
+                            drawCircle(accent, 6.dp.toPx(), Offset(satX, satY))
+                            drawCircle(Color.White, 2.dp.toPx(), Offset(satX, satY))
                         }
                         else -> Unit
                     }

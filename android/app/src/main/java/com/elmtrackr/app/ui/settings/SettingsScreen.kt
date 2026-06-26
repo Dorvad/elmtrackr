@@ -74,6 +74,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
@@ -707,6 +708,59 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
                     val path = Path().apply { moveTo(center.x, 3f); lineTo(8f, size.height - 4f); lineTo(size.width - 8f, size.height - 4f); close() }
                     drawPath(path, accent.copy(alpha = .65f), style = Stroke(2.5f))
                 }
+                ClockStyle.SAND -> {
+                    val top = 8.dp.toPx()
+                    val bottom = size.height - 8.dp.toPx()
+                    val mid = size.height / 2f
+                    val bulbW = size.width * 0.5f
+                    val neck = size.width * 0.14f
+                    val glass = Path().apply {
+                        moveTo(center.x - bulbW / 2f, top)
+                        lineTo(center.x + bulbW / 2f, top)
+                        lineTo(center.x + neck / 2f, mid)
+                        lineTo(center.x + bulbW / 2f, bottom)
+                        lineTo(center.x - bulbW / 2f, bottom)
+                        lineTo(center.x - neck / 2f, mid)
+                        close()
+                    }
+                    drawPath(glass, accent.copy(alpha = .35f), style = Stroke(2f))
+                    val fillH = (bottom - mid) * 0.55f
+                    val bottomSand = Path().apply {
+                        moveTo(center.x - neck / 2f, bottom - fillH)
+                        lineTo(center.x + neck / 2f, bottom - fillH)
+                        lineTo(center.x + bulbW / 2f - 6.dp.toPx(), bottom - 4.dp.toPx())
+                        lineTo(center.x - bulbW / 2f + 6.dp.toPx(), bottom - 4.dp.toPx())
+                        close()
+                    }
+                    drawPath(bottomSand, accent.copy(alpha = .55f))
+                    repeat(2) { i ->
+                        drawCircle(accent.copy(alpha = .4f + pulse * .3f), 1.5f, Offset(center.x, mid + (i - 0.5f) * 4.dp.toPx()))
+                    }
+                }
+                ClockStyle.BLOCKS -> {
+                    val blockCount = 8
+                    val gap = 3.dp.toPx()
+                    val blockW = (size.width - gap * (blockCount - 1)) / blockCount
+                    val baseY = size.height - 14.dp.toPx()
+                    repeat(blockCount) { index ->
+                        val x = index * (blockW + gap)
+                        val lit = index < 5
+                        drawRoundRect(
+                            if (lit) accent else accent.copy(alpha = .15f),
+                            Offset(x, baseY),
+                            Size(blockW, 10.dp.toPx()),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx(), 3.dp.toPx()),
+                        )
+                    }
+                }
+                ClockStyle.ORBIT -> {
+                    val radius = size.minDimension * .34f
+                    drawCircle(accent.copy(alpha = .2f), radius, center, style = Stroke(2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 8f))))
+                    val angle = Math.toRadians(45.0)
+                    val sat = Offset(center.x + kotlin.math.cos(angle).toFloat() * radius, center.y + kotlin.math.sin(angle).toFloat() * radius)
+                    drawCircle(accent.copy(alpha = .2f), 8.dp.toPx(), sat)
+                    drawCircle(accent, 4.dp.toPx(), sat)
+                }
                 else -> Unit
             }
         }
@@ -731,6 +785,9 @@ private fun watchFaceDescription(style: ClockStyle): String = when (style) {
     ClockStyle.DIAL -> "Analog timer"
     ClockStyle.STRAND -> "Linear progress"
     ClockStyle.PRISM -> "Rising spectrum"
+    ClockStyle.SAND -> "Flowing hourglass"
+    ClockStyle.BLOCKS -> "Hour-by-hour blocks"
+    ClockStyle.ORBIT -> "Orbiting satellite"
 }
 
 @Composable
