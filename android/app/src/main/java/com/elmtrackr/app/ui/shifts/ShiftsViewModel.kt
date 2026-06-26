@@ -65,6 +65,7 @@ class ShiftsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _selectedMonth = MutableStateFlow(YearMonth.now())
+    private val _refreshNonce = MutableStateFlow(0)
     val selectedMonth: StateFlow<YearMonth> = _selectedMonth.asStateFlow()
 
     val featuresTravelRefunds: StateFlow<Boolean> = currentUserProvider.userId
@@ -74,7 +75,9 @@ class ShiftsViewModel(
         .catch { emit(false) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    val uiState: StateFlow<ShiftsUiState> = currentUserProvider.userId
+    val uiState: StateFlow<ShiftsUiState> = _refreshNonce
+        .flatMapLatest {
+            currentUserProvider.userId
         .filterNotNull()
         .flatMapLatest { userId ->
             combine(
@@ -94,6 +97,7 @@ class ShiftsViewModel(
                     profiles = profiles,
                 )
             }
+        }
         }.catch { e ->
         emit(ShiftsUiState.Error(e.message ?: "Unknown error"))
     }.stateIn(
@@ -108,6 +112,10 @@ class ShiftsViewModel(
         if (_selectedMonth.value < YearMonth.now()) {
             _selectedMonth.value = _selectedMonth.value.plusMonths(1)
         }
+    }
+
+    fun retry() {
+        _refreshNonce.value++
     }
 
     fun showCreateForm() {

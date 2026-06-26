@@ -18,6 +18,7 @@ import com.elmtrackr.app.domain.repository.ReportsRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.SyncRepository
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -42,6 +43,7 @@ class DashboardViewModel(
 ) : ViewModel() {
 
     private val today = LocalDate.now(ZoneOffset.UTC)
+    private val _refreshNonce = MutableStateFlow(0)
 
     private data class RawData(
         val activeShift: Shift?,
@@ -53,8 +55,9 @@ class DashboardViewModel(
         val profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
     )
 
-    val uiState: StateFlow<DashboardUiState> = authRepository.observeCurrentProfile()
-        .flatMapLatest { profile ->
+    val uiState: StateFlow<DashboardUiState> = _refreshNonce
+        .flatMapLatest {
+            authRepository.observeCurrentProfile().flatMapLatest { profile ->
             if (profile == null) return@flatMapLatest flowOf(DashboardUiState.Loading)
             combine(
                 combine(
@@ -97,7 +100,9 @@ class DashboardViewModel(
                 ) as DashboardUiState
                 }
             }
-        }.catch { e ->
+        }
+        }
+        .catch { e ->
         emit(DashboardUiState.Error(e.message ?: "Unknown error"))
     }.stateIn(
         scope = viewModelScope,
@@ -141,6 +146,10 @@ class DashboardViewModel(
             if (!shift.isActive) return@launch
             shiftsRepository.updateShift(shift.copy(startTime = newStartTime, updatedAt = Instant.now()))
         }
+    }
+
+    fun retry() {
+        _refreshNonce.value++
     }
 
     companion object {

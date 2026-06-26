@@ -106,11 +106,11 @@ import com.elmtrackr.app.ui.theme.AuroraAquaDeep
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeach
 import com.elmtrackr.app.ui.theme.AuroraPlum
-import com.elmtrackr.app.ui.theme.AuroraSurfaceSub
 import com.elmtrackr.app.ui.theme.AuroraHair
-import com.elmtrackr.app.ui.theme.AuroraOvertimeBg
 import com.elmtrackr.app.ui.theme.AuroraPeachDeep
-import com.elmtrackr.app.ui.theme.AuroraWeekendBg
+import com.elmtrackr.app.ui.theme.auroraOvertimeBackground
+import com.elmtrackr.app.ui.theme.auroraSurfaceSub
+import com.elmtrackr.app.ui.theme.auroraWeekendBackground
 import java.time.Month
 import java.time.YearMonth
 import java.time.ZoneOffset
@@ -317,7 +317,7 @@ private fun MonthNavigator(year: Int, month: Int, onPrev: () -> Unit, onNext: ()
                 onClick = onPrev,
                 modifier = Modifier
                     .size(32.dp)
-                    .background(AuroraSurfaceSub, RoundedCornerShape(CornerRadius.Small)),
+                    .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
             ) {
                 Icon(Icons.Filled.ChevronLeft, "Previous month", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -333,7 +333,7 @@ private fun MonthNavigator(year: Int, month: Int, onPrev: () -> Unit, onNext: ()
                 enabled = canGoNext,
                 modifier = Modifier
                     .size(32.dp)
-                    .background(AuroraSurfaceSub, RoundedCornerShape(CornerRadius.Small)),
+                    .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
             ) {
                 Icon(
                     Icons.Filled.ChevronRight,
@@ -425,9 +425,9 @@ internal fun HoursReport(
                 PayCell("Regular", pay.regularGross, currency, AuroraIndigo,
                     MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
                 PayCell("Overtime", pay.overtimeGross, currency, AuroraPeachDeep,
-                    AuroraOvertimeBg, Modifier.weight(1f))
+                    auroraOvertimeBackground(), Modifier.weight(1f))
                 PayCell("Holiday", pay.specialGross, currency, AuroraPlum,
-                    AuroraWeekendBg, Modifier.weight(1f))
+                    auroraWeekendBackground(), Modifier.weight(1f))
             }
         }
     }
@@ -451,7 +451,7 @@ internal fun HoursReport(
                 value = insights.weekendShiftCount.toString(),
                 sub = if (insights.weekendShiftCount == 1) "shift" else "shifts",
                 accentColor = AuroraPlum,
-                bgColor = AuroraWeekendBg,
+                bgColor = auroraWeekendBackground(),
                 modifier = Modifier.weight(1f),
             )
             InsightStatCard(
@@ -474,7 +474,7 @@ internal fun HoursReport(
                 value = insights.overtimeShiftCount.toString(),
                 sub = if (insights.overtimeShiftCount == 1) "shift" else "shifts",
                 accentColor = AuroraPeachDeep,
-                bgColor = AuroraOvertimeBg,
+                bgColor = auroraOvertimeBackground(),
                 modifier = Modifier.weight(1f),
             )
             InsightStatCard(
@@ -507,7 +507,7 @@ internal fun HoursReport(
                     ?.format(DateTimeFormatter.ofPattern("MMM d"))
                     ?: if (insights.highestEarningAmount == null) "set rate to unlock" else null,
                 accentColor = AuroraPlum,
-                bgColor = AuroraWeekendBg,
+                bgColor = auroraWeekendBackground(),
                 modifier = Modifier.weight(1f),
             )
         }
@@ -1257,7 +1257,7 @@ private fun OtThresholdLine(prefix: String, value: String) {
 
 @Composable
 private fun ShiftTagPill(label: String, weekendStyle: Boolean) {
-    val bg = if (weekendStyle) AuroraWeekendBg else MaterialTheme.colorScheme.surfaceVariant
+    val bg = if (weekendStyle) auroraWeekendBackground() else MaterialTheme.colorScheme.surfaceVariant
     val fg = if (weekendStyle) AuroraPlum else AuroraIndigo
     Text(
         label,

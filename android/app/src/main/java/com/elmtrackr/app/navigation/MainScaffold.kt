@@ -54,11 +54,13 @@ import com.elmtrackr.app.ui.settings.SettingsScreen
 import com.elmtrackr.app.ui.shifts.ShiftsScreen
 import com.elmtrackr.app.ui.onboarding.OnboardingScreen
 import com.elmtrackr.app.ui.theme.AuroraAqua
-import com.elmtrackr.app.ui.theme.AuroraFaint
 import com.elmtrackr.app.ui.theme.AuroraHair
 import com.elmtrackr.app.ui.theme.AuroraIndigo
-import com.elmtrackr.app.ui.theme.AuroraLavender
 import com.elmtrackr.app.ui.theme.AuroraPlum
+import com.elmtrackr.app.ui.theme.auroraNavBarBackground
+import com.elmtrackr.app.ui.theme.auroraNavSelectedLabel
+import com.elmtrackr.app.ui.theme.auroraNavUnselectedIcon
+import com.elmtrackr.app.ui.theme.auroraNavUnselectedLabel
 import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraMotion
 import com.elmtrackr.app.ui.design.auroraPressScale
@@ -163,7 +165,7 @@ private fun ElmBottomNav(
 ) {
   val navShape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
   Surface(
-    color = AuroraLavender.copy(alpha = 0.92f),
+    color = auroraNavBarBackground(),
     shadowElevation = 0.dp,
     modifier = Modifier
       .fillMaxWidth()
@@ -243,7 +245,7 @@ private fun ElmBottomNav(
               Icon(
                 imageVector = item.icon,
                 contentDescription = item.label,
-                tint = if (selected) Color.White else AuroraFaint,
+                tint = if (selected) Color.White else auroraNavUnselectedIcon(),
                 modifier = Modifier.size(20.dp),
               )
             }
@@ -251,7 +253,7 @@ private fun ElmBottomNav(
               text = item.label,
               fontSize = 10.5.sp,
               lineHeight = 14.sp,
-              color = if (selected) AuroraIndigo else AuroraFaint,
+              color = if (selected) auroraNavSelectedLabel() else auroraNavUnselectedLabel(),
               fontWeight = FontWeight.SemiBold,
             )
           }

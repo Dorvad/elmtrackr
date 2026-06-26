@@ -101,7 +101,9 @@ import com.elmtrackr.app.ui.design.ElmStatVariant
 import com.elmtrackr.app.ui.design.ElmSyncPill
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.theme.AuroraAqua
-import com.elmtrackr.app.ui.theme.AuroraFaint
+import com.elmtrackr.app.ui.theme.auroraSecondaryText
+import com.elmtrackr.app.ui.theme.auroraWeekendBackground
+import com.elmtrackr.app.ui.theme.auroraWeekendInk
 import com.elmtrackr.app.ui.theme.AuroraHair
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraInk2
@@ -151,7 +153,7 @@ fun DashboardScreen(
                 onEditStartTime = viewModel::editActiveShiftStartTime,
                 onNavigateToReports = onNavigateToReports,
             )
-            is DashboardUiState.Error  -> ErrorState(message = state.message, onRetry = { })
+            is DashboardUiState.Error  -> ErrorState(message = state.message, onRetry = viewModel::retry)
         }
     }
 }
@@ -330,7 +332,7 @@ private fun DashboardHeader(
             Text(
                 text       = greeting,
                 style      = MaterialTheme.typography.labelSmall,
-                color      = AuroraFaint,
+                color      = auroraSecondaryText(),
                 fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.height(4.dp))
@@ -382,7 +384,7 @@ private fun RefundReminderBanner(
     ElmCard(
         modifier = modifier,
         cornerRadius = CornerRadius.Large,
-        containerColor = AuroraWeekendBg,
+        containerColor = auroraWeekendBackground(),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -393,12 +395,12 @@ private fun RefundReminderBanner(
                     "$count travel refund${if (count == 1) "" else "s"} pending",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = AuroraPlum,
+                    color = auroraWeekendInk(),
                 )
                 Text(
                     "Month end is near — don't forget to file your transport claims.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = AuroraInk2,
+                    color = auroraSecondaryText(),
                     modifier = Modifier.padding(top = 2.dp),
                 )
                 TextButton(
@@ -410,7 +412,7 @@ private fun RefundReminderBanner(
                         "Review refunds →",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = AuroraPlum,
+                        color = auroraWeekendInk(),
                     )
                 }
             }
@@ -1156,7 +1158,7 @@ private fun RecentShiftRow(
                         Text(
                             text  = " Special",
                             style = MaterialTheme.typography.labelSmall,
-                            color = AuroraPlum,
+                            color = auroraWeekendInk(),
                         )
                     }
                 }
