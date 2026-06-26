@@ -81,10 +81,12 @@ fun MainScaffold(authViewModel: AuthViewModel) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute      = navBackStackEntry?.destination?.route
     val authState         by authViewModel.uiState.collectAsState()
+    var hideBottomBar     by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
+            if (!hideBottomBar) {
             ElmBottomNav(
                 currentRoute = currentRoute,
                 onNavigate   = { route ->
@@ -95,6 +97,7 @@ fun MainScaffold(authViewModel: AuthViewModel) {
                     }
                 },
             )
+            }
         },
     ) { innerPadding ->
         NavHost(
@@ -133,6 +136,7 @@ fun MainScaffold(authViewModel: AuthViewModel) {
                 ShiftsScreen(
                     pendingEditShiftId = pendingShiftEditId,
                     onPendingEditConsumed = { pendingShiftEditId = null },
+                    onFormVisibilityChanged = { hideBottomBar = it },
                 )
             }
             composable(BottomNavItem.REPORTS.route) {

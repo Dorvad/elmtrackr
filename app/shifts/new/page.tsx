@@ -8,7 +8,6 @@ import { useSettings } from "@/hooks/useSettings";
 import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
 import { useToast } from "@/components/ui/Toast";
 import { ShiftForm } from "@/components/shifts/ShiftForm";
-import { BottomNav } from "@/components/layout/BottomNav";
 import type { ShiftFormData } from "@/types";
 
 export default function NewShiftPage() {
@@ -36,7 +35,7 @@ export default function NewShiftPage() {
   }
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
+    <div className="min-h-screen pb-8" style={{ background: "var(--au-bg)" }}>
       <div className="px-4 pt-12 pb-4 flex items-center gap-3 animate-fade-in">
         <button
           onClick={() => router.back()}
@@ -59,8 +58,6 @@ export default function NewShiftPage() {
           />
         </div>
       </div>
-
-      <BottomNav />
     </div>
   );
 }

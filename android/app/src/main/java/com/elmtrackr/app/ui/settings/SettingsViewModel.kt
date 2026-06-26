@@ -31,6 +31,13 @@ import kotlin.math.roundToInt
 
 enum class FeatureFlag { TRAVEL_REFUNDS, PAID_PROJECTS, INSIGHTS, CLOCK_STYLES }
 
+data class SettingsFeatureFlags(
+    val travelRefunds: Boolean,
+    val paidProjects: Boolean,
+    val insights: Boolean,
+    val clockStyles: Boolean,
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
@@ -116,6 +123,7 @@ class SettingsViewModel(
         timezone: String,
         clockStyle: ClockStyle,
         currency: CurrencyCode = CurrencyCode.ILS,
+        featureFlags: SettingsFeatureFlags? = null,
     ) {
         val errors = validate(dailyOtHours, weeklyOtHours, hourlyRate)
         if (errors.isNotEmpty()) { _validationErrors.value = errors; return }
@@ -126,6 +134,12 @@ class SettingsViewModel(
                 ?: run { _isSaving.value = false; return@launch }
             val existing = settingsRepository.getSettings(currentProfile.id)
                 ?: run { _isSaving.value = false; return@launch }
+            val flags = featureFlags ?: SettingsFeatureFlags(
+                travelRefunds = existing.featuresTravelRefunds,
+                paidProjects = existing.featuresPaidProjects,
+                insights = existing.featuresInsights,
+                clockStyles = existing.featuresClockStyles,
+            )
             val savedSettings = existing.copy(
                 dailyOvertimeThresholdMinutes = (dailyOtHours * 60).roundToInt(),
                 weeklyOvertimeThresholdMinutes = (weeklyOtHours * 60).roundToInt(),
@@ -133,6 +147,10 @@ class SettingsViewModel(
                 timezone = timezone.trim(),
                 clockStyle = clockStyle,
                 currency = currency,
+                featuresTravelRefunds = flags.travelRefunds,
+                featuresPaidProjects = flags.paidProjects,
+                featuresInsights = flags.insights,
+                featuresClockStyles = flags.clockStyles,
                 updatedAt = Instant.now(),
             )
             settingsRepository.saveSettings(savedSettings)

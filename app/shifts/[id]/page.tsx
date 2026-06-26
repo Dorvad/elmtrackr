@@ -10,7 +10,6 @@ import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
 import { useToast } from "@/components/ui/Toast";
 import { ShiftForm } from "@/components/shifts/ShiftForm";
 import { RefundSection } from "@/components/shifts/RefundSection";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { PageSpinner } from "@/components/ui/Spinner";
 import type { Shift, ShiftFormData } from "@/types";
 
@@ -57,7 +56,7 @@ export default function EditShiftPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen pb-28" style={{ background: "var(--color-surface)" }}>
+      <div className="min-h-screen pb-8" style={{ background: "var(--au-bg)" }}>
         <PageSpinner />
       </div>
     );
@@ -116,8 +115,6 @@ export default function EditShiftPage({
           <RefundSection shift={shift} onActionChange={handleRefundAction} />
         )}
       </div>
-
-      <BottomNav />
     </div>
   );
 }

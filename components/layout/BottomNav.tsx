@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { shouldShowBottomNav } from "@/lib/navigation";
 
 const navItems = [
   { href: "/", label: "Home", icon: HomeIcon },
@@ -12,6 +13,10 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname();
+
+  if (!shouldShowBottomNav(pathname)) {
+    return null;
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 safe-area-pb" aria-label="Main navigation">

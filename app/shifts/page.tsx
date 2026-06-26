@@ -71,7 +71,8 @@ export default function ShiftsPage() {
       >
         <button
           onClick={prevMonth}
-          className="h-8 w-8 rounded-xl flex items-center justify-center transition-colors hover:opacity-60"
+          aria-label="Previous month"
+          className="h-11 w-11 rounded-xl flex items-center justify-center transition-colors hover:opacity-60"
           style={{ background: "var(--au-surface-sub)" }}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
@@ -88,8 +89,9 @@ export default function ShiftsPage() {
         </div>
         <button
           onClick={nextMonth}
+          aria-label="Next month"
           disabled={isCurrentMonth}
-          className="h-8 w-8 rounded-xl flex items-center justify-center transition-colors hover:opacity-60 disabled:opacity-20 disabled:cursor-not-allowed"
+          className="h-11 w-11 rounded-xl flex items-center justify-center transition-colors hover:opacity-60 disabled:opacity-20 disabled:cursor-not-allowed"
           style={{ background: "var(--au-surface-sub)" }}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>

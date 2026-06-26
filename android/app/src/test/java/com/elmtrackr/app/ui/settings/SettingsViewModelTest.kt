@@ -134,6 +134,42 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `saveSettings persists feature flags`() = runTest {
+        val vm = buildVm()
+        repo.setSettings(
+            defaultSettings().copy(
+                featuresTravelRefunds = false,
+                featuresPaidProjects = false,
+                featuresInsights = false,
+                featuresClockStyles = true,
+            ),
+        )
+        advanceUntilIdle()
+
+        vm.saveSettings(
+            "",
+            8.0,
+            40.0,
+            null,
+            "UTC",
+            ClockStyle.CLASSIC,
+            featureFlags = SettingsFeatureFlags(
+                travelRefunds = true,
+                paidProjects = true,
+                insights = true,
+                clockStyles = false,
+            ),
+        )
+        advanceUntilIdle()
+
+        val saved = repo.getSettings("u1")
+        assertEquals(true, saved?.featuresTravelRefunds)
+        assertEquals(true, saved?.featuresPaidProjects)
+        assertEquals(true, saved?.featuresInsights)
+        assertEquals(false, saved?.featuresClockStyles)
+    }
+
+    @Test
     fun `saveSettings updates display name in profile`() = runTest {
         val vm = buildVm()
         repo.setSettings(defaultSettings())

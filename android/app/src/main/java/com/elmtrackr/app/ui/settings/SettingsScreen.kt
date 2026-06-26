@@ -132,7 +132,6 @@ fun SettingsScreen(
                 authState     = authState,
                 onSave        = viewModel::saveSettings,
                 onSignOut     = onSignOut,
-                onFeatureFlag = viewModel::updateFeatureFlag,
                 onWeekendDays = viewModel::updateWeekendDays,
                 onTheme       = viewModel::saveTheme,
                 onSync        = viewModel::triggerSync,
@@ -152,9 +151,8 @@ fun SettingsScreen(
 private fun SettingsContent(
     state: SettingsUiState.Ready,
     authState: AuthUiState?,
-    onSave: (String, Double, Double, Double?, String, ClockStyle, CurrencyCode) -> Unit,
+    onSave: (String, Double, Double, Double?, String, ClockStyle, CurrencyCode, SettingsFeatureFlags) -> Unit,
     onSignOut: () -> Unit,
-    onFeatureFlag: (FeatureFlag, Boolean) -> Unit,
     onWeekendDays: (List<Int>) -> Unit,
     onTheme: (String) -> Unit,
     onSync: () -> Unit,
@@ -169,6 +167,10 @@ private fun SettingsContent(
     var timezone      by remember(state.settings.timezone)                       { mutableStateOf(state.settings.timezone) }
     var clockStyle    by remember(state.settings.clockStyle)                     { mutableStateOf(supportedClockStyleOf(state.settings.clockStyle)) }
     var currency      by remember(state.settings.currency)                       { mutableStateOf(state.settings.currency) }
+    var travelRefunds by remember(state.settings.featuresTravelRefunds)          { mutableStateOf(state.settings.featuresTravelRefunds) }
+    var paidProjects  by remember(state.settings.featuresPaidProjects)           { mutableStateOf(state.settings.featuresPaidProjects) }
+    var insights      by remember(state.settings.featuresInsights)               { mutableStateOf(state.settings.featuresInsights) }
+    var clockStyles   by remember(state.settings.featuresClockStyles)            { mutableStateOf(state.settings.featuresClockStyles) }
 
     LazyColumn(
         modifier = Modifier
@@ -270,8 +272,14 @@ private fun SettingsContent(
                 ToggleRow(
                     title         = "Travel Refunds",
                     description   = "Track and manage travel refund claims",
-                    checked       = state.settings.featuresTravelRefunds,
-                    onCheckedChange = { onFeatureFlag(FeatureFlag.TRAVEL_REFUNDS, it) },
+                    checked       = travelRefunds,
+                    onCheckedChange = { travelRefunds = it },
+                )
+                ToggleRow(
+                    title         = "Paid Projects",
+                    description   = "Track billable work by project",
+                    checked       = paidProjects,
+                    onCheckedChange = { paidProjects = it },
                 )
                 ToggleRow(
                     title         = "Tip Calculator",
@@ -283,14 +291,14 @@ private fun SettingsContent(
                 ToggleRow(
                     title         = "Insights",
                     description   = "View trends and patterns in your work history",
-                    checked       = state.settings.featuresInsights,
-                    onCheckedChange = { onFeatureFlag(FeatureFlag.INSIGHTS, it) },
+                    checked       = insights,
+                    onCheckedChange = { insights = it },
                 )
                 ToggleRow(
                     title         = "Clock Styles",
                     description   = "Choose from different clock display styles",
-                    checked       = state.settings.featuresClockStyles,
-                    onCheckedChange = { onFeatureFlag(FeatureFlag.CLOCK_STYLES, it) },
+                    checked       = clockStyles,
+                    onCheckedChange = { clockStyles = it },
                 )
             }
         }
@@ -306,6 +314,12 @@ private fun SettingsContent(
                         timezone,
                         clockStyle,
                         currency,
+                        SettingsFeatureFlags(
+                            travelRefunds = travelRefunds,
+                            paidProjects = paidProjects,
+                            insights = insights,
+                            clockStyles = clockStyles,
+                        ),
                     )
                 },
                 enabled  = !state.isSaving,
@@ -747,9 +761,8 @@ private fun SettingsScreenPreview() {
                 settings = UserSettings(id = "s1", userId = "u1", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH),
             ),
             authState       = AuthUiState.NotConfigured,
-            onSave          = { _, _, _, _, _, _, _ -> },
+            onSave          = { _, _, _, _, _, _, _, _ -> },
             onSignOut       = {},
-            onFeatureFlag   = { _, _ -> },
             onWeekendDays   = {},
             onTheme         = {},
             onSync          = {},

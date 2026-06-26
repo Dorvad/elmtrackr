@@ -2,6 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useShifts } from "@/hooks/useShifts";
 import { useSettings } from "@/hooks/useSettings";
@@ -171,7 +172,8 @@ export default function ReportsPage() {
         <div className="mx-4 mb-4 rounded-3xl flex items-center justify-between px-3 py-2.5 animate-fade-in-up border border-white/80 au-card bg-white">
           <button
             onClick={prevMonth}
-            className="h-8 w-8 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity"
+            aria-label="Previous month"
+            className="h-11 w-11 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity"
             style={{ background: "var(--au-surface-sub)" }}
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
@@ -181,8 +183,9 @@ export default function ReportsPage() {
           <span className="text-sm font-bold" style={{ color: "var(--au-ink)" }}>{monthLabel}</span>
           <button
             onClick={nextMonth}
+            aria-label="Next month"
             disabled={isCurrentMonth}
-            className="h-8 w-8 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
+            className="h-11 w-11 rounded-xl flex items-center justify-center hover:opacity-60 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
             style={{ background: "var(--au-surface-sub)" }}
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" style={{ color: "var(--au-ink-2)" }}>
@@ -386,8 +389,9 @@ function ShiftReportRow({
   const payBreakdown = calculateShiftPay(shift, { settings, profiles });
 
   return (
-    <div
-      className="flex items-center gap-0 border-b last:border-0 animate-fade-in-up"
+    <Link
+      href={`/shifts/${shift.id}`}
+      className="flex items-center gap-0 border-b last:border-0 animate-fade-in-up hover:opacity-90 transition-opacity"
       style={{ borderBottomColor: "var(--au-hair)", animationDelay: `${index * 0.04}s` }}
     >
       <div className="w-1 self-stretch flex-shrink-0 rounded-l-sm" style={{ background: stripeColor, opacity: stripeOpacity }} />
@@ -425,6 +429,6 @@ function ShiftReportRow({
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

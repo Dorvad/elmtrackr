@@ -137,12 +137,17 @@ fun ShiftsScreen(
     viewModel: ShiftsViewModel = viewModel(factory = ShiftsViewModel.Factory),
     pendingEditShiftId: String? = null,
     onPendingEditConsumed: () -> Unit = {},
+    onFormVisibilityChanged: (Boolean) -> Unit = {},
 ) {
     val uiState            by viewModel.uiState.collectAsState()
     val formTarget         by viewModel.formTarget.collectAsState()
     val formErrors         by viewModel.formErrors.collectAsState()
     val featuresTravelRefunds by viewModel.featuresTravelRefunds.collectAsState()
     val selectedMonth       by viewModel.selectedMonth.collectAsState()
+
+    LaunchedEffect(formTarget) {
+        onFormVisibilityChanged(formTarget != null)
+    }
 
     LaunchedEffect(pendingEditShiftId) {
         pendingEditShiftId?.let { shiftId ->
