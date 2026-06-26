@@ -13,6 +13,9 @@ import { CountrySelect } from "@/components/ui/CountrySelect";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { createClient } from "@/lib/supabase/client";
 import { getPasswordResetRedirectUrl } from "@/lib/supabase/auth-redirects";
+import { deleteOwnAccount } from "@/lib/account/deleteAccount";
+import { LEGAL_CONTACT_EMAIL } from "@/lib/legal/content";
+import Link from "next/link";
 
 const WEEKDAYS = [
   { label: "Sun", value: 0 },
@@ -34,6 +37,8 @@ export default function SettingsPage() {
 
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [timezone, setTimezone] = useState("");
   const [dailyHours, setDailyHours] = useState("");
   const [weeklyHours, setWeeklyHours] = useState("");
@@ -142,6 +147,19 @@ export default function SettingsPage() {
   async function handleSignOut() {
     await supabase.auth.signOut();
     window.location.href = "/auth/login";
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteOwnAccount(supabase);
+      window.location.href = "/auth/login";
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to delete account", "error");
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   if (loading || profileLoading || !initialised || !profileInitialised) {
@@ -361,6 +379,92 @@ export default function SettingsPage() {
             Send Password Reset Email
           </Button>
         </div>
+
+        {/* About & Legal */}
+        <div className="rounded-3xl bg-white border border-white/80 au-card overflow-hidden mt-4 animate-fade-in-up stagger-5">
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-4 pt-4 mb-1">
+            About &amp; Legal
+          </h2>
+          <p className="text-xs text-gray-400 px-4 mb-3">
+            ElmTrackr v1.0.1
+          </p>
+          <Link
+            href="/privacy"
+            className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-t border-gray-50 transition-colors"
+          >
+            <span className="text-sm font-semibold text-gray-800">Privacy Policy</span>
+            <svg className="h-4 w-4 text-gray-300" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+          <Link
+            href="/terms"
+            className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-t border-gray-50 transition-colors"
+          >
+            <span className="text-sm font-semibold text-gray-800">Terms of Service</span>
+            <svg className="h-4 w-4 text-gray-300" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+          <p className="text-xs text-gray-400 px-4 py-3 border-t border-gray-50">
+            Support:{" "}
+            <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="font-semibold text-indigo-600">
+              {LEGAL_CONTACT_EMAIL}
+            </a>
+          </p>
+        </div>
+
+        {/* Account */}
+        <div className="rounded-3xl bg-white border border-white/80 au-card p-4 mt-4 animate-fade-in-up stagger-5">
+          <h2 className="text-xs font-bold uppercase mb-1">
+            Account
+          </h2>
+          <p className="text-xs text-gray-400 mb-4">
+            Permanently delete your cloud account, shifts, settings, refund claims, and receipt photos.
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            fullWidth
+            loading={deleting}
+            onClick={() => setShowDeleteConfirm(true)}
+            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+          >
+            Delete Account
+          </Button>
+        </div>
+
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
+            <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Delete account?</h3>
+              <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                This permanently deletes your cloud account, shifts, settings, refund claims, and receipt photos.
+                This cannot be undone.
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button
+                  type="button"
+                  fullWidth
+                  loading={deleting}
+                  onClick={handleDeleteAccount}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Delete account
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  fullWidth
+                  disabled={deleting}
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 animate-fade-in-up stagger-5">
           <Button

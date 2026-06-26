@@ -6,6 +6,7 @@ internal enum class AuthOperation {
     PASSWORD_RESET,
     PASSWORD_RECOVERY,
     UPDATE_PASSWORD,
+    DELETE_ACCOUNT,
 }
 
 /** Converts SDK failures into messages that are safe to render in the UI. */
@@ -51,6 +52,7 @@ internal object AuthErrorMapper {
                 AuthOperation.PASSWORD_RESET -> "Unable to send the reset email. Please try again."
                 AuthOperation.PASSWORD_RECOVERY -> "That reset link is invalid or has expired."
                 AuthOperation.UPDATE_PASSWORD -> "Unable to update your password. Please try again."
+                AuthOperation.DELETE_ACCOUNT -> "Unable to delete your account. Check your connection and try again."
             }
         }
     }

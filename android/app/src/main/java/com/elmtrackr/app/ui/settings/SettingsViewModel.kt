@@ -52,6 +52,8 @@ class SettingsViewModel(
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     private val _passwordResetFeedback = MutableStateFlow<String?>(null)
     private val _saveFeedback = MutableStateFlow<SettingsSaveFeedback?>(null)
+    private val _isDeletingAccount = MutableStateFlow(false)
+    private val _accountActionFeedback = MutableStateFlow<String?>(null)
 
     private data class CoreData(
         val settings: UserSettings?,
@@ -67,6 +69,8 @@ class SettingsViewModel(
         val validationErrors: Map<String, String>,
         val passwordResetFeedback: String?,
         val saveFeedback: SettingsSaveFeedback?,
+        val isDeletingAccount: Boolean,
+        val accountActionFeedback: String?,
     )
 
     private val coreData = authRepository.observeCurrentProfile().flatMapLatest { profile ->
@@ -85,15 +89,35 @@ class SettingsViewModel(
             _isSaving,
         ) { profile, theme, saving -> Triple(profile, theme, saving) },
         combine(
-            _isSyncing,
-            _validationErrors,
-            _passwordResetFeedback,
-            _saveFeedback,
-        ) { syncing, errors, resetFeedback, saveFeedback ->
-            Quad(syncing, errors, resetFeedback, saveFeedback)
+            combine(
+                _isSyncing,
+                _validationErrors,
+                _passwordResetFeedback,
+            ) { syncing, errors, resetFeedback ->
+                Triple(syncing, errors, resetFeedback)
+            },
+            combine(
+                _saveFeedback,
+                _isDeletingAccount,
+                _accountActionFeedback,
+            ) { saveFeedback, deleting, accountFeedback ->
+                Triple(saveFeedback, deleting, accountFeedback)
+            },
+        ) { (syncing, errors, resetFeedback), (saveFeedback, deleting, accountFeedback) ->
+            AccountExtras(syncing, errors, resetFeedback, saveFeedback, deleting, accountFeedback)
         },
-    ) { (profile, theme, saving), (syncing, errors, resetFeedback, saveFeedback) ->
-        Extras(profile, theme, saving, syncing, errors, resetFeedback, saveFeedback)
+    ) { (profile, theme, saving), account ->
+        Extras(
+            profile,
+            theme,
+            saving,
+            account.syncing,
+            account.errors,
+            account.resetFeedback,
+            account.saveFeedback,
+            account.deleting,
+            account.accountFeedback,
+        )
     }
 
     val uiState: StateFlow<SettingsUiState> = combine(
@@ -112,6 +136,8 @@ class SettingsViewModel(
             validationErrors = extras.validationErrors,
             passwordResetFeedback = extras.passwordResetFeedback,
             saveFeedback = extras.saveFeedback,
+            isDeletingAccount = extras.isDeletingAccount,
+            accountActionFeedback = extras.accountActionFeedback,
         )
     }.catch { e ->
         emit(SettingsUiState.Error(e.message ?: "Unknown error"))
@@ -207,6 +233,34 @@ class SettingsViewModel(
     fun clearSaveFeedback() {
         _saveFeedback.value = null
     }
+
+    fun clearAccountActionFeedback() {
+        _accountActionFeedback.value = null
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _isDeletingAccount.value = true
+            when (val result = authRepository.deleteAccount()) {
+                is AuthResult.Success ->
+                    _accountActionFeedback.value = "Account deleted"
+                is AuthResult.NotConfigured ->
+                    _accountActionFeedback.value = "Local data cleared"
+                is AuthResult.Error ->
+                    _accountActionFeedback.value = result.message
+            }
+            _isDeletingAccount.value = false
+        }
+    }
+
+    private data class AccountExtras(
+        val syncing: Boolean,
+        val errors: Map<String, String>,
+        val resetFeedback: String?,
+        val saveFeedback: SettingsSaveFeedback?,
+        val deleting: Boolean,
+        val accountFeedback: String?,
+    )
 
     private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 

@@ -58,7 +58,6 @@ export default function FeaturesPage() {
   const router = useRouter();
 
   const [travelRefunds, setTravelRefunds] = useState<boolean | null>(null);
-  const [paidProjects,  setPaidProjects]  = useState<boolean | null>(null);
   const [insights,      setInsights]      = useState<boolean | null>(null);
   const [clockStyles,   setClockStyles]   = useState<boolean | null>(null);
   const [clockStyle,    setClockStyle]    = useState<ClockStyle | null>(null);
@@ -67,7 +66,6 @@ export default function FeaturesPage() {
 
   if (settings && !initialised) {
     setTravelRefunds(settings.features_travel_refunds);
-    setPaidProjects(settings.features_paid_projects);
     setInsights(settings.features_insights);
     setClockStyles(settings.features_clock_styles);
     setClockStyle(settings.clock_style);
@@ -79,7 +77,7 @@ export default function FeaturesPage() {
     try {
       await saveSettings({
         features_travel_refunds: travelRefunds ?? false,
-        features_paid_projects:  paidProjects  ?? false,
+        features_paid_projects:  false,
         features_insights:       insights      ?? true,
         features_clock_styles:   clockStyles   ?? true,
         clock_style:             clockStyle    ?? "classic",
@@ -123,20 +121,6 @@ export default function FeaturesPage() {
       onChange: setTravelRefunds,
     },
     {
-      key: "paidProjects" as const,
-      icon: (
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
-        </svg>
-      ),
-      iconBg: "var(--au-weekend-bg)",
-      iconColor: "var(--au-plum)",
-      title: "Paid Projects",
-      desc: "Organize shifts by project or client and track earnings per project.",
-      value: paidProjects ?? false,
-      onChange: setPaidProjects,
-    },
-    {
       key: "insights" as const,
       icon: (
         <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -160,7 +144,7 @@ export default function FeaturesPage() {
       iconBg: "var(--au-surface-sub)",
       iconColor: "var(--au-indigo)",
       title: "Clock Styles",
-      desc: "Choose from 11 clock widget faces for your home screen.",
+      desc: "Choose from 14 clock widget faces for your home screen.",
       value: clockStyles ?? true,
       onChange: setClockStyles,
     },

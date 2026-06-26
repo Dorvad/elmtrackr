@@ -22,6 +22,8 @@ sealed interface SettingsUiState {
         val validationErrors: Map<String, String> = emptyMap(),
         val passwordResetFeedback: String? = null,
         val saveFeedback: SettingsSaveFeedback? = null,
+        val isDeletingAccount: Boolean = false,
+        val accountActionFeedback: String? = null,
     ) : SettingsUiState
 
     data class Error(val message: String) : SettingsUiState

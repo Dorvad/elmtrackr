@@ -87,4 +87,10 @@ class FakeAuthRepository : AuthRepository {
     }
 
     override suspend fun handleDeepLink(uriString: String) {}
+
+    override suspend fun deleteAccount(): AuthResult {
+        val userId = _profile.value?.id ?: return AuthResult.Error("No account to delete")
+        _profile.value = null
+        return AuthResult.Success
+    }
 }

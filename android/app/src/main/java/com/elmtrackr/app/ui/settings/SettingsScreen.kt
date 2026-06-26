@@ -68,6 +68,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import com.elmtrackr.app.BuildConfig
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -112,6 +115,8 @@ private fun supportedClockStyleOf(style: ClockStyle): ClockStyle = style
 private val THEME_OPTIONS = listOf("system" to "System default", "light" to "Light", "dark" to "Dark")
 private val DAY_LABELS    = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
+private enum class LegalDoc { PRIVACY, TERMS }
+
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
@@ -120,10 +125,28 @@ fun SettingsScreen(
     onReplayOnboarding: () -> Unit = {},
 ) {
     var showCompensation by rememberSaveable { mutableStateOf(false) }
+    var legalDoc by rememberSaveable { mutableStateOf<LegalDoc?>(null) }
     if (showCompensation) {
         CompensationSettingsScreen(onBack = { showCompensation = false })
         return
     }
+    when (legalDoc) {
+        LegalDoc.PRIVACY -> LegalDocumentScreen(
+            title = "Privacy Policy",
+            sections = LegalDocuments.privacyPolicy,
+            lastUpdated = LegalDocuments.LAST_UPDATED,
+            onBack = { legalDoc = null },
+        )
+        LegalDoc.TERMS -> LegalDocumentScreen(
+            title = "Terms of Service",
+            sections = LegalDocuments.termsOfService,
+            lastUpdated = LegalDocuments.LAST_UPDATED,
+            onBack = { legalDoc = null },
+        )
+        null -> Unit
+    }
+    if (legalDoc != null) return
+
     val uiState by viewModel.uiState.collectAsState()
     LaunchedEffect(Unit) { viewModel.ensureSettingsExist() }
 
@@ -150,6 +173,10 @@ fun SettingsScreen(
                 onReplayOnboarding = onReplayOnboarding,
                 onOpenCompensation = { showCompensation = true },
                 onDismissSaveFeedback = viewModel::clearSaveFeedback,
+                onDeleteAccount = viewModel::deleteAccount,
+                onDismissAccountFeedback = viewModel::clearAccountActionFeedback,
+                onOpenPrivacy = { legalDoc = LegalDoc.PRIVACY },
+                onOpenTerms = { legalDoc = LegalDoc.TERMS },
             )
             is SettingsUiState.Error -> ErrorState(
                 message = state.message,
@@ -172,6 +199,10 @@ private fun SettingsContent(
     onReplayOnboarding: () -> Unit,
     onOpenCompensation: () -> Unit = {},
     onDismissSaveFeedback: () -> Unit = {},
+    onDeleteAccount: () -> Unit = {},
+    onDismissAccountFeedback: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
+    onOpenTerms: () -> Unit = {},
 ) {
     var displayName   by remember(state.profile?.fullName)                       { mutableStateOf(state.profile?.fullName ?: "") }
     var dailyOtText   by remember(state.settings.dailyOvertimeThresholdMinutes)  { mutableStateOf(minutesToHours(state.settings.dailyOvertimeThresholdMinutes)) }
@@ -181,7 +212,6 @@ private fun SettingsContent(
     var clockStyle    by remember(state.settings.clockStyle)                     { mutableStateOf(supportedClockStyleOf(state.settings.clockStyle)) }
     var currency      by remember(state.settings.currency)                       { mutableStateOf(state.settings.currency) }
     var travelRefunds by remember(state.settings.featuresTravelRefunds)          { mutableStateOf(state.settings.featuresTravelRefunds) }
-    var paidProjects  by remember(state.settings.featuresPaidProjects)           { mutableStateOf(state.settings.featuresPaidProjects) }
     var insights      by remember(state.settings.featuresInsights)               { mutableStateOf(state.settings.featuresInsights) }
     var clockStyles   by remember(state.settings.featuresClockStyles)            { mutableStateOf(state.settings.featuresClockStyles) }
 
@@ -198,6 +228,14 @@ private fun SettingsContent(
         )
         onDismissSaveFeedback()
     }
+    LaunchedEffect(state.accountActionFeedback) {
+        val feedback = state.accountActionFeedback ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = feedback, duration = SnackbarDuration.Long)
+        onDismissAccountFeedback()
+        if (feedback == "Account deleted" || feedback == "Local data cleared") {
+            onSignOut()
+        }
+    }
 
     val saveAction: () -> Unit = {
         onSave(
@@ -210,7 +248,7 @@ private fun SettingsContent(
             currency,
             SettingsFeatureFlags(
                 travelRefunds = travelRefunds,
-                paidProjects = paidProjects,
+                paidProjects = state.settings.featuresPaidProjects,
                 insights = insights,
                 clockStyles = clockStyles,
             ),
@@ -348,7 +386,7 @@ private fun SettingsContent(
             item {
                 CollapsibleSettingsSection(
                     title = "Features",
-                    summary = featuresSummary(travelRefunds, paidProjects, insights, clockStyles),
+                    summary = featuresSummary(travelRefunds, insights, clockStyles),
                     expanded = featuresExpanded,
                     onExpandedChange = { featuresExpanded = it },
                 ) {
@@ -357,19 +395,6 @@ private fun SettingsContent(
                         description   = "Track and manage travel refund claims",
                         checked       = travelRefunds,
                         onCheckedChange = { travelRefunds = it },
-                    )
-                    ToggleRow(
-                        title         = "Paid Projects",
-                        description   = "Track billable work by project",
-                        checked       = paidProjects,
-                        onCheckedChange = { paidProjects = it },
-                    )
-                    ToggleRow(
-                        title         = "Tip Calculator",
-                        description   = "Coming soon — tip tracking is not available yet",
-                        checked       = false,
-                        onCheckedChange = {},
-                        enabled       = false,
                     )
                     ToggleRow(
                         title         = "Insights",
@@ -427,14 +452,36 @@ private fun SettingsContent(
                 }
             }
 
+            item {
+                SettingsSectionCard("About & Legal") {
+                    InfoRow("Version", BuildConfig.VERSION_NAME)
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = onOpenPrivacy, modifier = Modifier.fillMaxWidth()) {
+                        Text("Privacy Policy")
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = onOpenTerms, modifier = Modifier.fillMaxWidth()) {
+                        Text("Terms of Service")
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Support: ${LegalDocuments.CONTACT_EMAIL}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
             if (authState != null) {
                 item {
                     SettingsSectionCard("Account") {
                         AccountSection(
                             authState       = authState,
                             passwordResetFeedback = state.passwordResetFeedback,
+                            isDeletingAccount = state.isDeletingAccount,
                             onResetPassword = onResetPassword,
                             onSignOut       = onSignOut,
+                            onDeleteAccount = onDeleteAccount,
                         )
                     }
                 }
@@ -469,13 +516,11 @@ private fun payrollSummary(
 
 private fun featuresSummary(
     travelRefunds: Boolean,
-    paidProjects: Boolean,
     insights: Boolean,
     clockStyles: Boolean,
 ): String {
     val enabled = listOfNotNull(
         "Travel Refunds".takeIf { travelRefunds },
-        "Paid Projects".takeIf { paidProjects },
         "Insights".takeIf { insights },
         "Clock Styles".takeIf { clockStyles },
     )
@@ -937,10 +982,13 @@ private fun InfoRow(label: String, value: String) {
 private fun AccountSection(
     authState: AuthUiState,
     passwordResetFeedback: String? = null,
+    isDeletingAccount: Boolean = false,
     onResetPassword: () -> Unit,
     onSignOut: () -> Unit,
+    onDeleteAccount: () -> Unit,
 ) {
     var showSignOutConfirm by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     if (showSignOutConfirm) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showSignOutConfirm = false },
@@ -952,6 +1000,31 @@ private fun AccountSection(
                 }
             },
             dismissButton = { androidx.compose.material3.TextButton(onClick = { showSignOutConfirm = false }) { Text("Cancel") } },
+        )
+    }
+    if (showDeleteConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete account?") },
+            text = {
+                Text(
+                    "This permanently deletes your cloud account, shifts, settings, refund claims, and receipt photos. " +
+                        "Local data on this device will also be removed. This cannot be undone.",
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDeleteAccount()
+                    },
+                ) {
+                    Text("Delete account", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            },
         )
     }
     when (authState) {
@@ -981,11 +1054,20 @@ private fun AccountSection(
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
                 onClick  = { showSignOutConfirm = true },
-                enabled  = !authState.isLoading,
+                enabled  = !authState.isLoading && !isDeletingAccount,
                 colors   = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(if (authState.isLoading) "Signing out..." else "Sign out")
+            }
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick  = { showDeleteConfirm = true },
+                enabled  = !authState.isLoading && !isDeletingAccount,
+                colors   = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (isDeletingAccount) "Deleting account..." else "Delete account")
             }
         }
         is AuthUiState.SignedOut       -> Text("Not signed in.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

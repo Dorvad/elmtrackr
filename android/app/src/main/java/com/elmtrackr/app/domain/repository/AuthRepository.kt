@@ -32,6 +32,12 @@ interface AuthRepository {
     /** Sign out and clear the local session reference. */
     suspend fun signOut()
 
+    /**
+     * Permanently delete the signed-in account and all associated cloud and local data.
+     * Requires network when Supabase is configured.
+     */
+    suspend fun deleteAccount(): AuthResult
+
     /** Send a password-reset email. */
     suspend fun resetPassword(email: String): AuthResult
 

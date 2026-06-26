@@ -51,4 +51,7 @@ interface ProfileDao {
 
     @Query("SELECT * FROM profiles WHERE remoteId = :remoteId LIMIT 1")
     suspend fun getProfileByRemoteId(remoteId: String): ProfileEntity?
+
+    @Query("DELETE FROM profiles WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: String)
 }

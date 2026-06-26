@@ -52,4 +52,7 @@ interface CompensationProfileDao {
 
     @Query("UPDATE compensation_profiles SET isDefault = 0 WHERE userId = :userId")
     suspend fun clearDefaultForUser(userId: String)
+
+    @Query("DELETE FROM compensation_profiles WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: String)
 }

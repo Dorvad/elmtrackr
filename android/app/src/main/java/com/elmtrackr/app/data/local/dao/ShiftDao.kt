@@ -78,6 +78,9 @@ interface ShiftDao {
     @Query("SELECT * FROM shifts WHERE userId = :userId AND deletedAt IS NULL")
     suspend fun getAllShiftsForUser(userId: String): List<ShiftEntity>
 
+    @Query("DELETE FROM shifts WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: String)
+
     @Query(
         "SELECT * FROM shifts WHERE userId = :userId AND endTime IS NULL AND deletedAt IS NULL"
     )
