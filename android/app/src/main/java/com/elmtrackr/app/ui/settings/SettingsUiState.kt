@@ -3,6 +3,11 @@ package com.elmtrackr.app.ui.settings
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.UserSettings
 
+data class SettingsSaveFeedback(
+    val message: String,
+    val isError: Boolean = false,
+)
+
 sealed interface SettingsUiState {
     data object Loading : SettingsUiState
 
@@ -16,6 +21,7 @@ sealed interface SettingsUiState {
         val isSyncing: Boolean = false,
         val validationErrors: Map<String, String> = emptyMap(),
         val passwordResetFeedback: String? = null,
+        val saveFeedback: SettingsSaveFeedback? = null,
     ) : SettingsUiState
 
     data class Error(val message: String) : SettingsUiState

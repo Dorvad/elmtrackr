@@ -325,6 +325,61 @@ class SettingsViewModelTest {
         assertEquals(1, syncRepo.syncCallCount)
     }
 
+    @Test
+    fun `saveSettings emits success feedback`() = runTest {
+        val vm = buildVm()
+        repo.setSettings(defaultSettings())
+        val states = mutableListOf<SettingsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        vm.saveSettings("", 8.0, 40.0, null, "UTC", ClockStyle.CLASSIC)
+        advanceUntilIdle()
+
+        val ready = states.filterIsInstance<SettingsUiState.Ready>().lastOrNull()
+        assertNotNull(ready)
+        assertEquals("Settings saved", ready!!.saveFeedback?.message)
+        assertEquals(false, ready.saveFeedback?.isError)
+        job.cancel()
+    }
+
+    @Test
+    fun `saveSettings emits validation feedback`() = runTest {
+        val vm = buildVm()
+        repo.setSettings(defaultSettings())
+        val states = mutableListOf<SettingsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        vm.saveSettings("", 0.0, 40.0, null, "UTC", ClockStyle.CLASSIC)
+        advanceUntilIdle()
+
+        val ready = states.filterIsInstance<SettingsUiState.Ready>().lastOrNull()
+        assertNotNull(ready)
+        assertTrue(ready!!.saveFeedback?.isError == true)
+        assertTrue(ready.validationErrors.containsKey("dailyOt"))
+        job.cancel()
+    }
+
+    @Test
+    fun `clearSaveFeedback clears feedback`() = runTest {
+        val vm = buildVm()
+        repo.setSettings(defaultSettings())
+        val states = mutableListOf<SettingsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        vm.saveSettings("", 8.0, 40.0, null, "UTC", ClockStyle.CLASSIC)
+        advanceUntilIdle()
+        vm.clearSaveFeedback()
+        advanceUntilIdle()
+
+        val ready = states.filterIsInstance<SettingsUiState.Ready>().lastOrNull()
+        assertNotNull(ready)
+        assertEquals(null, ready!!.saveFeedback)
+        job.cancel()
+    }
+
     // ── Account ───────────────────────────────────────────────────────────────
 
     @Test

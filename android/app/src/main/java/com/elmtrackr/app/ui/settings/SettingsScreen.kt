@@ -2,6 +2,9 @@
 
 package com.elmtrackr.app.ui.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
@@ -20,6 +23,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -41,6 +47,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -48,7 +59,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -138,6 +148,7 @@ fun SettingsScreen(
                 onResetPassword = viewModel::resetPassword,
                 onReplayOnboarding = onReplayOnboarding,
                 onOpenCompensation = { showCompensation = true },
+                onDismissSaveFeedback = viewModel::clearSaveFeedback,
             )
             is SettingsUiState.Error -> ErrorState(
                 message = state.message,
@@ -159,6 +170,7 @@ private fun SettingsContent(
     onResetPassword: () -> Unit,
     onReplayOnboarding: () -> Unit,
     onOpenCompensation: () -> Unit = {},
+    onDismissSaveFeedback: () -> Unit = {},
 ) {
     var displayName   by remember(state.profile?.fullName)                       { mutableStateOf(state.profile?.fullName ?: "") }
     var dailyOtText   by remember(state.settings.dailyOvertimeThresholdMinutes)  { mutableStateOf(minutesToHours(state.settings.dailyOvertimeThresholdMinutes)) }
@@ -172,192 +184,366 @@ private fun SettingsContent(
     var insights      by remember(state.settings.featuresInsights)               { mutableStateOf(state.settings.featuresInsights) }
     var clockStyles   by remember(state.settings.featuresClockStyles)            { mutableStateOf(state.settings.featuresClockStyles) }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxSize()
-            .padding(horizontal = Spacing.screenH),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
-        item { Spacer(Modifier.height(Spacing.lg)) }
-        item {
-            Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        }
-        item { Spacer(Modifier.height(Spacing.md)) }
-        item {
-            SettingsSectionCard("Profile") {
-                OutlinedTextField(
-                    value         = displayName,
-                    onValueChange = { displayName = it },
-                    label         = { Text("Display name") },
-                    singleLine    = true,
-                    modifier      = Modifier.fillMaxWidth(),
-                )
-                state.profile?.let { profile ->
-                    Spacer(Modifier.height(8.dp))
-                    Text(profile.email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
+    var appearanceExpanded by rememberSaveable { mutableStateOf(false) }
+    var payrollExpanded by rememberSaveable { mutableStateOf(false) }
+    var featuresExpanded by rememberSaveable { mutableStateOf(false) }
 
-        item {
-            SettingsSectionCard("Appearance") {
-                ThemeDropdown(selected = state.selectedTheme, onSelect = onTheme)
-                if (state.settings.featuresClockStyles) {
-                    Spacer(Modifier.height(12.dp))
-                    ClockStyleDropdown(selected = clockStyle, onSelect = { clockStyle = it })
-                }
-                Spacer(Modifier.height(12.dp))
-                OutlinedButton(onClick = onReplayOnboarding, modifier = Modifier.fillMaxWidth()) {
-                    Text("Review feature setup")
-                }
-            }
-        }
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(state.saveFeedback) {
+        val feedback = state.saveFeedback ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            message = feedback.message,
+            duration = if (feedback.isError) SnackbarDuration.Long else SnackbarDuration.Short,
+        )
+        onDismissSaveFeedback()
+    }
 
-        item {
-            SettingsSectionCard("Overtime Thresholds") {
-                HoursField(
-                    label         = "Daily overtime (hours)",
-                    value         = dailyOtText,
-                    onValueChange = { dailyOtText = it },
-                    error         = state.validationErrors["dailyOt"],
-                )
-                Spacer(Modifier.height(8.dp))
-                HoursField(
-                    label         = "Weekly overtime (hours)",
-                    value         = weeklyOtText,
-                    onValueChange = { weeklyOtText = it },
-                    error         = state.validationErrors["weeklyOt"],
-                )
-            }
-        }
+    val saveAction: () -> Unit = {
+        onSave(
+            displayName,
+            dailyOtText.toDoubleOrNull() ?: 0.0,
+            weeklyOtText.toDoubleOrNull() ?: 0.0,
+            hourlyRateText.toDoubleOrNull(),
+            timezone,
+            clockStyle,
+            currency,
+            SettingsFeatureFlags(
+                travelRefunds = travelRefunds,
+                paidProjects = paidProjects,
+                insights = insights,
+                clockStyles = clockStyles,
+            ),
+        )
+    }
 
-        item {
-            SettingsSectionCard("Weekend Days") {
-                WeekendDaysSelector(selected = state.settings.weekendDays, onChange = onWeekendDays)
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = Spacing.screenH),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
+        ) {
+            item { Spacer(Modifier.height(Spacing.lg)) }
+            item {
+                Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             }
-        }
-
-        item {
-            SettingsSectionCard("Payroll") {
-                OutlinedButton(onClick = onOpenCompensation, modifier = Modifier.fillMaxWidth()) {
-                    Text("Compensation rules")
-                }
-                Spacer(Modifier.height(8.dp))
+            item {
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    "Configure region presets, overtime tiers, premiums, and currency for pay estimates.",
+                    "Expand a section to edit it. Theme and weekend days save immediately; everything else uses Save Settings.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.height(12.dp))
-                HoursField(
-                    label         = "Hourly rate",
-                    value         = hourlyRateText,
-                    onValueChange = { hourlyRateText = it },
-                    error         = state.validationErrors["hourlyRate"],
-                )
-                Spacer(Modifier.height(12.dp))
-                CurrencyDropdown(selected = currency, onSelect = { currency = it })
             }
-        }
+            item { Spacer(Modifier.height(Spacing.md)) }
 
-        item {
-            SettingsSectionCard("Location") {
-                CountryTimezoneDropdown(timezone = timezone, onSelect = { timezone = it })
-            }
-        }
-
-        item {
-            SettingsSectionCard("Features") {
-                ToggleRow(
-                    title         = "Travel Refunds",
-                    description   = "Track and manage travel refund claims",
-                    checked       = travelRefunds,
-                    onCheckedChange = { travelRefunds = it },
-                )
-                ToggleRow(
-                    title         = "Paid Projects",
-                    description   = "Track billable work by project",
-                    checked       = paidProjects,
-                    onCheckedChange = { paidProjects = it },
-                )
-                ToggleRow(
-                    title         = "Tip Calculator",
-                    description   = "Coming soon — tip tracking is not available yet",
-                    checked       = false,
-                    onCheckedChange = {},
-                    enabled       = false,
-                )
-                ToggleRow(
-                    title         = "Insights",
-                    description   = "View trends and patterns in your work history",
-                    checked       = insights,
-                    onCheckedChange = { insights = it },
-                )
-                ToggleRow(
-                    title         = "Clock Styles",
-                    description   = "Choose from different clock display styles",
-                    checked       = clockStyles,
-                    onCheckedChange = { clockStyles = it },
-                )
-            }
-        }
-
-        item {
-            ElmGradientButton(
-                onClick  = {
-                    onSave(
-                        displayName,
-                        dailyOtText.toDoubleOrNull() ?: 0.0,
-                        weeklyOtText.toDoubleOrNull() ?: 0.0,
-                        hourlyRateText.toDoubleOrNull(),
-                        timezone,
-                        clockStyle,
-                        currency,
-                        SettingsFeatureFlags(
-                            travelRefunds = travelRefunds,
-                            paidProjects = paidProjects,
-                            insights = insights,
-                            clockStyles = clockStyles,
-                        ),
-                    )
-                },
-                enabled  = !state.isSaving,
-                modifier = Modifier.padding(vertical = 8.dp),
-            ) {
-                Text(if (state.isSaving) "Saving..." else "Save Settings", fontWeight = FontWeight.SemiBold)
-            }
-        }
-
-        item {
-            SettingsSectionCard("Sync") {
-                InfoRow("Pending changes", state.pendingCount.toString())
-                InfoRow("Last sync",       state.lastSyncStatus ?: "Never")
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick  = onSync,
-                    enabled  = !state.isSyncing,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(if (state.isSyncing) "Syncing..." else "Sync Now")
-                }
-            }
-        }
-
-        if (authState != null) {
             item {
-                SettingsSectionCard("Account") {
-                    AccountSection(
-                        authState       = authState,
-                        passwordResetFeedback = state.passwordResetFeedback,
-                        onResetPassword = onResetPassword,
-                        onSignOut       = onSignOut,
+                SettingsSectionCard("Profile") {
+                    OutlinedTextField(
+                        value         = displayName,
+                        onValueChange = { displayName = it },
+                        label         = { Text("Display name") },
+                        singleLine    = true,
+                        modifier      = Modifier.fillMaxWidth(),
+                    )
+                    state.profile?.let { profile ->
+                        Spacer(Modifier.height(8.dp))
+                        Text(profile.email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+
+            item {
+                CollapsibleSettingsSection(
+                    title = "Appearance",
+                    summary = appearanceSummary(state.selectedTheme, clockStyle, clockStyles),
+                    expanded = appearanceExpanded,
+                    onExpandedChange = { appearanceExpanded = it },
+                ) {
+                    ThemeDropdown(selected = state.selectedTheme, onSelect = onTheme)
+                    if (clockStyles) {
+                        Spacer(Modifier.height(12.dp))
+                        ClockStyleDropdown(selected = clockStyle, onSelect = { clockStyle = it })
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(onClick = onReplayOnboarding, modifier = Modifier.fillMaxWidth()) {
+                        Text("Review feature setup")
+                    }
+                }
+            }
+
+            item {
+                CollapsibleSettingsSection(
+                    title = "Payroll",
+                    summary = payrollSummary(
+                        hourlyRateText = hourlyRateText,
+                        currency = currency,
+                        dailyOtText = dailyOtText,
+                        weeklyOtText = weeklyOtText,
+                        weekendDays = state.settings.weekendDays,
+                        timezone = timezone,
+                    ),
+                    expanded = payrollExpanded,
+                    onExpandedChange = { payrollExpanded = it },
+                ) {
+                    OutlinedButton(onClick = onOpenCompensation, modifier = Modifier.fillMaxWidth()) {
+                        Text("Compensation rules")
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Configure region presets, overtime tiers, premiums, and currency for pay estimates.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    PayrollSubsectionTitle("Pay rate")
+                    Spacer(Modifier.height(8.dp))
+                    HoursField(
+                        label         = "Hourly rate",
+                        value         = hourlyRateText,
+                        onValueChange = { hourlyRateText = it },
+                        error         = state.validationErrors["hourlyRate"],
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    CurrencyDropdown(selected = currency, onSelect = { currency = it })
+                    Spacer(Modifier.height(16.dp))
+                    PayrollSubsectionTitle("Overtime thresholds")
+                    Spacer(Modifier.height(8.dp))
+                    HoursField(
+                        label         = "Daily overtime (hours)",
+                        value         = dailyOtText,
+                        onValueChange = { dailyOtText = it },
+                        error         = state.validationErrors["dailyOt"],
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    HoursField(
+                        label         = "Weekly overtime (hours)",
+                        value         = weeklyOtText,
+                        onValueChange = { weeklyOtText = it },
+                        error         = state.validationErrors["weeklyOt"],
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    PayrollSubsectionTitle("Weekend days")
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Selected days count as weekends for overtime and reports. Saves immediately.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    WeekendDaysSelector(selected = state.settings.weekendDays, onChange = onWeekendDays)
+                    Spacer(Modifier.height(16.dp))
+                    PayrollSubsectionTitle("Location")
+                    Spacer(Modifier.height(8.dp))
+                    CountryTimezoneDropdown(timezone = timezone, onSelect = { timezone = it })
+                }
+            }
+
+            item {
+                CollapsibleSettingsSection(
+                    title = "Features",
+                    summary = featuresSummary(travelRefunds, paidProjects, insights, clockStyles),
+                    expanded = featuresExpanded,
+                    onExpandedChange = { featuresExpanded = it },
+                ) {
+                    ToggleRow(
+                        title         = "Travel Refunds",
+                        description   = "Track and manage travel refund claims",
+                        checked       = travelRefunds,
+                        onCheckedChange = { travelRefunds = it },
+                    )
+                    ToggleRow(
+                        title         = "Paid Projects",
+                        description   = "Track billable work by project",
+                        checked       = paidProjects,
+                        onCheckedChange = { paidProjects = it },
+                    )
+                    ToggleRow(
+                        title         = "Tip Calculator",
+                        description   = "Coming soon — tip tracking is not available yet",
+                        checked       = false,
+                        onCheckedChange = {},
+                        enabled       = false,
+                    )
+                    ToggleRow(
+                        title         = "Insights",
+                        description   = "View trends and patterns in your work history",
+                        checked       = insights,
+                        onCheckedChange = { insights = it },
+                    )
+                    ToggleRow(
+                        title         = "Clock Styles",
+                        description   = "Choose from different clock display styles",
+                        checked       = clockStyles,
+                        onCheckedChange = { clockStyles = it },
                     )
                 }
             }
-        }
 
-        item { Spacer(Modifier.height(32.dp)) }
+            item {
+                ElmCard(modifier = Modifier.padding(vertical = 8.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Text(
+                            "Save your profile, payroll, and feature changes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Theme and weekend days are saved as you change them.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        ElmGradientButton(
+                            onClick  = saveAction,
+                            enabled  = !state.isSaving,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(if (state.isSaving) "Saving..." else "Save Settings", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+
+            item {
+                SettingsSectionCard("Sync") {
+                    InfoRow("Pending changes", state.pendingCount.toString())
+                    InfoRow("Last sync",       state.lastSyncStatus ?: "Never")
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick  = onSync,
+                        enabled  = !state.isSyncing,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (state.isSyncing) "Syncing..." else "Sync Now")
+                    }
+                }
+            }
+
+            if (authState != null) {
+                item {
+                    SettingsSectionCard("Account") {
+                        AccountSection(
+                            authState       = authState,
+                            passwordResetFeedback = state.passwordResetFeedback,
+                            onResetPassword = onResetPassword,
+                            onSignOut       = onSignOut,
+                        )
+                    }
+                }
+            }
+
+            item { Spacer(Modifier.height(32.dp)) }
+        }
+    }
+}
+
+private fun appearanceSummary(theme: String, clockStyle: ClockStyle, clockStylesEnabled: Boolean): String {
+    val themeLabel = THEME_OPTIONS.firstOrNull { it.first == theme }?.second ?: theme
+    return if (clockStylesEnabled) {
+        "$themeLabel · ${clockStyle.name.lowercase().replaceFirstChar(Char::uppercase)} face"
+    } else {
+        themeLabel
+    }
+}
+
+private fun payrollSummary(
+    hourlyRateText: String,
+    currency: CurrencyCode,
+    dailyOtText: String,
+    weeklyOtText: String,
+    weekendDays: List<Int>,
+    timezone: String,
+): String {
+    val ratePart = hourlyRateText.toDoubleOrNull()?.let { "${currency.symbol}$it/hr" } ?: "No hourly rate"
+    val weekendPart = weekendDays.sorted().joinToString(", ") { DAY_LABELS[it] }
+    return "$ratePart · OT $dailyOtText/$weeklyOtText h · $weekendPart · $timezone"
+}
+
+private fun featuresSummary(
+    travelRefunds: Boolean,
+    paidProjects: Boolean,
+    insights: Boolean,
+    clockStyles: Boolean,
+): String {
+    val enabled = listOfNotNull(
+        "Travel Refunds".takeIf { travelRefunds },
+        "Paid Projects".takeIf { paidProjects },
+        "Insights".takeIf { insights },
+        "Clock Styles".takeIf { clockStyles },
+    )
+    return when (enabled.size) {
+        0 -> "No optional features enabled"
+        in 1..2 -> enabled.joinToString(" · ")
+        else -> "${enabled.size} features enabled"
+    }
+}
+
+@Composable
+private fun PayrollSubsectionTitle(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+    )
+}
+
+@Composable
+private fun CollapsibleSettingsSection(
+    title: String,
+    summary: String,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    ElmCard(modifier = Modifier.padding(bottom = 12.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(CornerRadius.Small))
+                    .clickable { onExpandedChange(!expanded) }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                    ElmSectionHeader(title, modifier = Modifier.fillMaxWidth())
+                    AnimatedVisibility(
+                        visible = !expanded,
+                        enter = expandVertically(),
+                        exit = shrinkVertically(),
+                    ) {
+                        Text(
+                            summary,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = if (expanded) "Collapse $title" else "Expand $title",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(),
+                exit = shrinkVertically(),
+            ) {
+                Column {
+                    Spacer(Modifier.height(12.dp))
+                    content()
+                }
+            }
+        }
     }
 }
 
