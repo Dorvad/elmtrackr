@@ -20,6 +20,11 @@ import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
@@ -38,9 +43,17 @@ class SupabaseAuthRepository(
 
     private companion object {
         const val AUTH_CALLBACK = "elmtrackr://auth/callback"
+        const val AUTH_RESET_CALLBACK = "elmtrackr://auth/reset-password"
     }
 
     private val client: SupabaseClient? = SupabaseClientProvider.get()
+    private val _passwordRecoveryRequired = MutableStateFlow(false)
+    private val _deepLinkErrors = MutableSharedFlow<String>(extraBufferCapacity = 1)
+
+    override val deepLinkErrors: SharedFlow<String> = _deepLinkErrors.asSharedFlow()
+
+    override fun observePasswordRecoveryRequired(): Flow<Boolean> =
+        _passwordRecoveryRequired.asStateFlow()
 
     override fun isConfigured(): Boolean = client != null
 
@@ -48,8 +61,6 @@ class SupabaseAuthRepository(
     override fun observeCurrentProfile(): Flow<Profile?> {
         val c = client ?: return flowOf(null)
         return c.auth.sessionStatus
-            // Don't emit while the SDK is restoring a session from storage —
-            // keeps the ViewModel in its Loading initial state until settled.
             .filter { it !is SessionStatus.Initializing }
             .flatMapLatest { status ->
                 when (status) {
@@ -105,6 +116,7 @@ class SupabaseAuthRepository(
                 this.email = email
                 this.password = password
             }
+            _passwordRecoveryRequired.value = false
             AuthResult.Success
         } catch (e: Exception) {
             AuthResult.Error(AuthErrorMapper.messageFor(e, AuthOperation.SIGN_IN))
@@ -130,24 +142,55 @@ class SupabaseAuthRepository(
         } catch (e: Exception) {
             // Best-effort — still clear local references below
         }
+        _passwordRecoveryRequired.value = false
         appPrefs.setLastActiveUserId(null)
     }
 
     override suspend fun resetPassword(email: String): AuthResult {
         val c = client ?: return AuthResult.NotConfigured
         return try {
-            c.auth.resetPasswordForEmail(email, redirectUrl = AUTH_CALLBACK)
+            c.auth.resetPasswordForEmail(email, redirectUrl = AUTH_RESET_CALLBACK)
             AuthResult.Success
         } catch (e: Exception) {
             AuthResult.Error(AuthErrorMapper.messageFor(e, AuthOperation.PASSWORD_RESET))
         }
     }
 
+    override suspend fun updatePassword(newPassword: String): AuthResult {
+        val c = client ?: return AuthResult.NotConfigured
+        return try {
+            c.auth.updateUser {
+                password = newPassword
+            }
+            _passwordRecoveryRequired.value = false
+            AuthResult.Success
+        } catch (e: Exception) {
+            AuthResult.Error(AuthErrorMapper.messageFor(e, AuthOperation.UPDATE_PASSWORD))
+        }
+    }
+
+    override suspend fun clearPasswordRecoveryRequired() {
+        _passwordRecoveryRequired.value = false
+    }
+
     override suspend fun handleDeepLink(uriString: String) {
         val c = client ?: return
-        when (val payload = AuthCallbackParser.parse(uriString)) {
-            is AuthCallbackPayload.Code -> c.auth.exchangeCodeForSession(payload.value)
-            is AuthCallbackPayload.Tokens -> c.auth.importAuthToken(payload.accessToken, payload.refreshToken)
+        try {
+            when (val payload = AuthCallbackParser.parse(uriString)) {
+                is AuthCallbackPayload.Code -> {
+                    c.auth.exchangeCodeForSession(payload.value)
+                    _passwordRecoveryRequired.value = payload.isRecovery
+                }
+                is AuthCallbackPayload.Tokens -> {
+                    c.auth.importAuthToken(payload.accessToken, payload.refreshToken)
+                    _passwordRecoveryRequired.value = payload.isRecovery
+                }
+            }
+        } catch (e: Exception) {
+            _passwordRecoveryRequired.value = false
+            _deepLinkErrors.emit(
+                AuthErrorMapper.messageFor(e, AuthOperation.PASSWORD_RECOVERY),
+            )
         }
     }
 

@@ -7,13 +7,24 @@ import org.junit.Test
 class AuthCallbackParserTest {
     @Test
     fun `parses PKCE code callback`() {
-        assertEquals(AuthCallbackPayload.Code("abc123"), AuthCallbackParser.parse("elmtrackr://auth/callback?code=abc123"))
+        assertEquals(
+            AuthCallbackPayload.Code("abc123"),
+            AuthCallbackParser.parse("elmtrackr://auth/callback?code=abc123"),
+        )
+    }
+
+    @Test
+    fun `parses recovery PKCE code on reset-password path`() {
+        assertEquals(
+            AuthCallbackPayload.Code("abc123", isRecovery = true),
+            AuthCallbackParser.parse("elmtrackr://auth/reset-password?code=abc123"),
+        )
     }
 
     @Test
     fun `parses token fragment callback`() {
         assertEquals(
-            AuthCallbackPayload.Tokens("access", "refresh"),
+            AuthCallbackPayload.Tokens("access", "refresh", isRecovery = true),
             AuthCallbackParser.parse("elmtrackr://auth/callback#access_token=access&refresh_token=refresh&type=recovery"),
         )
     }

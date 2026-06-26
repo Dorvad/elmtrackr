@@ -10,7 +10,9 @@ supabase.anon.key=
 # --- Supabase dashboard configuration ---
 # In your Supabase project → Authentication → URL Configuration, add:
 #
-#   Redirect URL:  elmtrackr://auth/callback
+#   Redirect URLs:
+#     elmtrackr://auth/callback
+#     elmtrackr://auth/reset-password
 #
 # This URL is used for:
 #   - Email confirmation links

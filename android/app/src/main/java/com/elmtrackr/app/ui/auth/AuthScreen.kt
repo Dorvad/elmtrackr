@@ -89,6 +89,12 @@ fun AuthScreen(
             is AuthUiState.PasswordResetSent -> PasswordResetSentContent(
                 onBack = viewModel::dismissPasswordReset,
             )
+            is AuthUiState.PasswordRecovery -> PasswordRecoveryContent(
+                isLoading = s.isLoading,
+                errorMessage = s.errorMessage,
+                onUpdatePassword = viewModel::updatePassword,
+                onBack = viewModel::dismissPasswordRecovery,
+            )
             is AuthUiState.SignUpConfirmation -> SignUpConfirmationContent(
                 email = s.email,
                 onBack = viewModel::dismissSignUpConfirmation,
@@ -376,6 +382,132 @@ internal fun SignedOutContent(
                         Text("Back to sign in", color = MaterialTheme.colorScheme.primary)
                     }
                 }
+            }
+        }
+    }
+}
+
+// ── Password recovery (deep link) ─────────────────────────────────────────────
+
+@Composable
+private fun PasswordRecoveryContent(
+    isLoading: Boolean,
+    errorMessage: String?,
+    onUpdatePassword: (String) -> Unit,
+    onBack: () -> Unit,
+) {
+    var password by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
+    val passwordError = if (password.isNotBlank() && password.length < MIN_PASSWORD_LENGTH)
+        "Password must be at least $MIN_PASSWORD_LENGTH characters" else null
+    val confirmError = if (confirmPassword.isNotBlank() && password != confirmPassword)
+        "Passwords do not match" else null
+    val canSubmit = !isLoading &&
+        password.isNotBlank() &&
+        confirmPassword.isNotBlank() &&
+        passwordError == null &&
+        confirmError == null
+
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = 480.dp)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 48.dp)
+                .auroraEnter(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            AuroraBoltLogo()
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = "Choose a new password",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Enter a new password for your ElmTrackr account.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(20.dp))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("New password") },
+                isError = passwordError != null,
+                supportingText = passwordError?.let { { Text(it) } },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                            tint = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = { Text("Confirm password") },
+                isError = confirmError != null,
+                supportingText = confirmError?.let { { Text(it) } },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        focusManager.clearFocus()
+                        if (canSubmit) onUpdatePassword(password)
+                    },
+                ),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            errorMessage?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+            ElmGradientButton(
+                onClick = {
+                    focusManager.clearFocus()
+                    onUpdatePassword(password)
+                },
+                enabled = canSubmit,
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.White,
+                    )
+                } else {
+                    Text("Update password", fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = onBack) {
+                Text("Back to sign in", color = MaterialTheme.colorScheme.primary)
             }
         }
     }

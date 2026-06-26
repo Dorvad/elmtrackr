@@ -69,10 +69,11 @@ In your Supabase project → **Authentication → URL Configuration**, add:
 
 | Field | Value |
 |---|---|
-| Redirect URL | `elmtrackr://auth/callback` |
+| Redirect URLs | `elmtrackr://auth/callback`, `elmtrackr://auth/reset-password` |
 
-This deep-link scheme is used for email confirmation, password reset, and
-any OAuth callbacks added later.
+`elmtrackr://auth/callback` handles email confirmation and OAuth. Password-reset
+emails use `elmtrackr://auth/reset-password` so the app can show the new-password
+screen after the link is opened.
 
 ### Behavior when credentials are missing
 

@@ -335,6 +335,7 @@ private fun SettingsContent(
                 SettingsSectionCard("Account") {
                     AccountSection(
                         authState       = authState,
+                        passwordResetFeedback = state.passwordResetFeedback,
                         onResetPassword = onResetPassword,
                         onSignOut       = onSignOut,
                     )
@@ -678,6 +679,7 @@ private fun InfoRow(label: String, value: String) {
 @Composable
 private fun AccountSection(
     authState: AuthUiState,
+    passwordResetFeedback: String? = null,
     onResetPassword: () -> Unit,
     onSignOut: () -> Unit,
 ) {
@@ -711,6 +713,14 @@ private fun AccountSection(
             OutlinedButton(onClick = onResetPassword, modifier = Modifier.fillMaxWidth()) {
                 Text("Reset password")
             }
+            passwordResetFeedback?.let { feedback ->
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = feedback,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
                 onClick  = { showSignOutConfirm = true },
@@ -723,6 +733,7 @@ private fun AccountSection(
         }
         is AuthUiState.SignedOut       -> Text("Not signed in.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         is AuthUiState.PasswordResetSent -> Text("Password reset email sent.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        is AuthUiState.PasswordRecovery -> Text("Complete password reset on the sign-in screen.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         is AuthUiState.SignUpConfirmation -> Text("Confirmation sent to ${authState.email}.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

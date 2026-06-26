@@ -4,6 +4,8 @@ internal enum class AuthOperation {
     SIGN_IN,
     SIGN_UP,
     PASSWORD_RESET,
+    PASSWORD_RECOVERY,
+    UPDATE_PASSWORD,
 }
 
 /** Converts SDK failures into messages that are safe to render in the UI. */
@@ -47,6 +49,8 @@ internal object AuthErrorMapper {
                 AuthOperation.SIGN_IN -> "Unable to sign in. Please try again."
                 AuthOperation.SIGN_UP -> "Unable to create your account. Please try again."
                 AuthOperation.PASSWORD_RESET -> "Unable to send the reset email. Please try again."
+                AuthOperation.PASSWORD_RECOVERY -> "That reset link is invalid or has expired."
+                AuthOperation.UPDATE_PASSWORD -> "Unable to update your password. Please try again."
             }
         }
     }
