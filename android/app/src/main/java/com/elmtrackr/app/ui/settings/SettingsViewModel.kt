@@ -51,6 +51,7 @@ class SettingsViewModel(
     private val _isSyncing = MutableStateFlow(false)
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     private val _passwordResetFeedback = MutableStateFlow<String?>(null)
+    private val _saveFeedback = MutableStateFlow<SettingsSaveFeedback?>(null)
 
     private data class CoreData(
         val settings: UserSettings?,
@@ -65,6 +66,7 @@ class SettingsViewModel(
         val isSyncing: Boolean,
         val validationErrors: Map<String, String>,
         val passwordResetFeedback: String?,
+        val saveFeedback: SettingsSaveFeedback?,
     )
 
     private val coreData = authRepository.observeCurrentProfile().flatMapLatest { profile ->
@@ -86,9 +88,12 @@ class SettingsViewModel(
             _isSyncing,
             _validationErrors,
             _passwordResetFeedback,
-        ) { syncing, errors, resetFeedback -> Triple(syncing, errors, resetFeedback) },
-    ) { (profile, theme, saving), (syncing, errors, resetFeedback) ->
-        Extras(profile, theme, saving, syncing, errors, resetFeedback)
+            _saveFeedback,
+        ) { syncing, errors, resetFeedback, saveFeedback ->
+            Quad(syncing, errors, resetFeedback, saveFeedback)
+        },
+    ) { (profile, theme, saving), (syncing, errors, resetFeedback, saveFeedback) ->
+        Extras(profile, theme, saving, syncing, errors, resetFeedback, saveFeedback)
     }
 
     val uiState: StateFlow<SettingsUiState> = combine(
@@ -106,6 +111,7 @@ class SettingsViewModel(
             isSyncing = extras.isSyncing,
             validationErrors = extras.validationErrors,
             passwordResetFeedback = extras.passwordResetFeedback,
+            saveFeedback = extras.saveFeedback,
         )
     }.catch { e ->
         emit(SettingsUiState.Error(e.message ?: "Unknown error"))
@@ -126,14 +132,29 @@ class SettingsViewModel(
         featureFlags: SettingsFeatureFlags? = null,
     ) {
         val errors = validate(dailyOtHours, weeklyOtHours, hourlyRate)
-        if (errors.isNotEmpty()) { _validationErrors.value = errors; return }
+        if (errors.isNotEmpty()) {
+            _validationErrors.value = errors
+            _saveFeedback.value = SettingsSaveFeedback(
+                message = "Fix the highlighted fields before saving",
+                isError = true,
+            )
+            return
+        }
         _validationErrors.value = emptyMap()
         viewModelScope.launch {
             _isSaving.value = true
             val currentProfile = authRepository.getCurrentProfile()
-                ?: run { _isSaving.value = false; return@launch }
+                ?: run {
+                    _isSaving.value = false
+                    _saveFeedback.value = SettingsSaveFeedback("Could not save settings", isError = true)
+                    return@launch
+                }
             val existing = settingsRepository.getSettings(currentProfile.id)
-                ?: run { _isSaving.value = false; return@launch }
+                ?: run {
+                    _isSaving.value = false
+                    _saveFeedback.value = SettingsSaveFeedback("Could not save settings", isError = true)
+                    return@launch
+                }
             val flags = featureFlags ?: SettingsFeatureFlags(
                 travelRefunds = existing.featuresTravelRefunds,
                 paidProjects = existing.featuresPaidProjects,
@@ -179,8 +200,15 @@ class SettingsViewModel(
                 )
             }
             _isSaving.value = false
+            _saveFeedback.value = SettingsSaveFeedback("Settings saved")
         }
     }
+
+    fun clearSaveFeedback() {
+        _saveFeedback.value = null
+    }
+
+    private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
     fun updateFeatureFlag(feature: FeatureFlag, enabled: Boolean) {
         viewModelScope.launch {

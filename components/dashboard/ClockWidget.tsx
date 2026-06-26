@@ -168,6 +168,9 @@ export function ClockWidget({
   if (clockStyle === "dial") return <DialClock {...sharedProps} progress={progress} />;
   if (clockStyle === "strand") return <StrandClock {...sharedProps} bloom={bloom} />;
   if (clockStyle === "prism") return <PrismClock {...sharedProps} progress={progress} bloom={bloom} />;
+  if (clockStyle === "sand") return <SandClock {...sharedProps} progress={progress} dailyThresholdMinutes={dailyThresholdMinutes} />;
+  if (clockStyle === "blocks") return <BlocksClock {...sharedProps} progress={progress} dailyThresholdMinutes={dailyThresholdMinutes} />;
+  if (clockStyle === "orbit") return <OrbitClock {...sharedProps} progress={progress} bloom={bloom} />;
 
   // ── Classic — Aurora comet progress ring ──────────────────
   const size = 200, strokeWidth = 11, radius = (size - strokeWidth) / 2;
@@ -1543,3 +1546,245 @@ const PrismClock = React.memo(function PrismClock({ isClockedIn, elapsedSeconds,
     </div>
   );
 });
+
+// ── Sand style ────────────────────────────────────────────────────────────────
+
+const SandClock = React.memo(function SandClock({
+  isClockedIn,
+  elapsedSeconds,
+  isOvertime,
+  loading,
+  onPress,
+  phase,
+  progress,
+  dailyThresholdMinutes = 480,
+}: SharedProps & { progress: number; dailyThresholdMinutes?: number }) {
+  const stops = PHASE_STOPS[phase];
+  const clamped = Math.min(1, progress);
+  const accent = isOvertime ? "#FF9E7D" : stops[1];
+  const cx = 150, top = 12, bottom = 188, mid = 100;
+
+  return (
+    <div className="rounded-3xl overflow-hidden relative animate-scale-in bg-white border border-white/80 au-card p-5 flex flex-col items-center gap-4">
+      <div className="absolute inset-0 overflow-hidden rounded-3xl" style={{ zIndex: 0 }}>
+        <AuroraMesh phase={phase} />
+        <Grain />
+      </div>
+      <div className="relative z-10 flex flex-col items-center gap-4 w-full">
+        <div className="text-xs font-bold uppercase tracking-widest" style={{ color: isClockedIn ? accent : "var(--au-faint)" }}>
+          {isClockedIn ? "Time flowing" : "Ready"}
+        </div>
+        <div className="relative w-full" style={{ height: 200 }}>
+          <svg viewBox="0 0 300 200" width="100%" height="200">
+            <defs>
+              <linearGradient id={`sd-fill-${phase}`} x1="0" y1="0" x2="0" y2="1">
+                <stop stopColor={stops[0]} /><stop offset="1" stopColor={stops[2]} />
+              </linearGradient>
+            </defs>
+            <path
+              d={`M${cx - 72} ${top} Q${cx} ${top - 10} ${cx + 72} ${top} L${cx + 18} ${mid - 4} L${cx + 72} ${bottom} Q${cx} ${bottom + 10} ${cx - 72} ${bottom} L${cx - 18} ${mid + 4} Z`}
+              fill="none"
+              stroke="#ECEBFA"
+              strokeWidth={2.5}
+            />
+            {isClockedIn && clamped > 0 && (
+              <>
+                <path
+                  d={`M${cx - 58} ${top + 8} L${cx + 58} ${top + 8} L${cx + 14} ${top + 8 + (mid - top - 18) * (1 - clamped)} L${cx - 14} ${top + 8 + (mid - top - 18) * (1 - clamped)} Z`}
+                  fill={`url(#sd-fill-${phase})`}
+                  opacity={0.85}
+                  style={{ transition: "all 1s cubic-bezier(0.3,0.8,0.3,1)" }}
+                />
+                <path
+                  d={`M${cx - 14} ${bottom - 8 - (bottom - mid - 18) * clamped} L${cx + 14} ${bottom - 8 - (bottom - mid - 18) * clamped} L${cx + 58} ${bottom - 8} L${cx - 58} ${bottom - 8} Z`}
+                  fill={`url(#sd-fill-${phase})`}
+                  opacity={0.95}
+                  style={{ transition: "all 1s cubic-bezier(0.3,0.8,0.3,1)" }}
+                />
+              </>
+            )}
+          </svg>
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+            <span
+              className="font-bold tabular-nums leading-none"
+              style={{ fontFamily: "var(--au-display)", fontSize: elapsedSeconds >= 3600 ? 28 : 36, color: "var(--au-ink)" }}
+              suppressHydrationWarning
+            >
+              {isClockedIn ? formatHMS(elapsedSeconds) : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+        </div>
+        {isClockedIn && (
+          <p className="text-xs" style={{ color: "var(--au-ink-2)" }}>
+            {(dailyThresholdMinutes / 60).toFixed(0)}h daily goal · {Math.round(clamped * 100)}%
+          </p>
+        )}
+        <ExpressiveClockButton isClockedIn={isClockedIn} loading={loading} onPress={onPress} accent={accent} />
+      </div>
+    </div>
+  );
+});
+
+// ── Blocks style ──────────────────────────────────────────────────────────────
+
+const BlocksClock = React.memo(function BlocksClock({
+  isClockedIn,
+  elapsedSeconds,
+  isOvertime,
+  loading,
+  onPress,
+  phase,
+  progress,
+  dailyThresholdMinutes = 480,
+}: SharedProps & { progress: number; dailyThresholdMinutes?: number }) {
+  const stops = PHASE_STOPS[phase];
+  const blockCount = 8;
+  const clamped = Math.min(1, progress);
+  const filled = Math.floor(clamped * blockCount);
+  const partial = clamped * blockCount - filled;
+  const accent = isOvertime ? "var(--au-peach-deep)" : stops[1];
+
+  return (
+    <div className="rounded-3xl overflow-hidden relative animate-scale-in bg-white border border-white/80 au-card p-5 flex flex-col items-center gap-4">
+      <div className="absolute inset-0 overflow-hidden rounded-3xl" style={{ zIndex: 0 }}>
+        <AuroraMesh phase={phase} />
+        <Grain />
+      </div>
+      <div className="relative z-10 flex flex-col items-center gap-4 w-full">
+        <div className="text-xs font-bold uppercase tracking-widest" style={{ color: isClockedIn ? accent : "var(--au-faint)" }}>
+          {isClockedIn ? "Workday" : "Ready"}
+        </div>
+        <span
+          className="font-bold tabular-nums leading-none"
+          style={{ fontFamily: "var(--au-display)", fontSize: elapsedSeconds >= 3600 ? 32 : 40, color: "var(--au-ink)" }}
+          suppressHydrationWarning
+        >
+          {isClockedIn ? formatHMS(elapsedSeconds) : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        </span>
+        <div className="flex gap-1.5 w-full px-1">
+          {Array.from({ length: blockCount }, (_, index) => {
+            const isFilled = index < filled;
+            const isCurrent = index === filled && isClockedIn;
+            const height = isCurrent ? `${50 + partial * 50}%` : "100%";
+            return (
+              <div key={index} className="flex-1 h-8 rounded-md overflow-hidden relative" style={{ background: "#ECEBFA" }}>
+                <div
+                  className="absolute bottom-0 left-0 right-0 rounded-md"
+                  style={{
+                    height: isFilled || isCurrent ? height : "0%",
+                    background: isFilled || isCurrent ? phaseGrad(phase) : "transparent",
+                    opacity: isCurrent ? 0.75 : 1,
+                    transition: "height 1s cubic-bezier(0.3,0.8,0.3,1)",
+                    boxShadow: isCurrent ? `0 0 10px ${accent}` : "none",
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-xs" style={{ color: "var(--au-ink-2)" }}>
+          {filled}/{blockCount} hours toward {(dailyThresholdMinutes / 60).toFixed(0)}h goal
+        </p>
+        <ExpressiveClockButton isClockedIn={isClockedIn} loading={loading} onPress={onPress} accent={accent} />
+      </div>
+    </div>
+  );
+});
+
+// ── Orbit style ───────────────────────────────────────────────────────────────
+
+const OrbitClock = React.memo(function OrbitClock({
+  isClockedIn,
+  elapsedSeconds,
+  isOvertime,
+  loading,
+  onPress,
+  phase,
+  progress,
+  bloom,
+}: SharedProps & { progress: number }) {
+  const stops = PHASE_STOPS[phase];
+  const size = 200, cx = 100, cy = 100, r = 72;
+  const clamped = Math.min(1, progress);
+  const angle = -Math.PI / 2 + clamped * 2 * Math.PI;
+  const sx = cx + r * Math.cos(angle);
+  const sy = cy + r * Math.sin(angle);
+  const accent = isOvertime ? "var(--au-peach-deep)" : stops[1];
+  const orbitArc = orbitArcPath(cx, cy, r, -Math.PI / 2, angle);
+
+  return (
+    <div className="rounded-3xl overflow-hidden relative animate-scale-in bg-white border border-white/80 au-card p-5 flex flex-col items-center gap-4">
+      <div className="absolute inset-0 overflow-hidden rounded-3xl" style={{ zIndex: 0 }}>
+        <AuroraMesh phase={phase} />
+        <Grain />
+      </div>
+      <div className="relative z-10 flex flex-col items-center gap-4 w-full">
+        <div className="text-xs font-bold uppercase tracking-widest" style={{ color: isClockedIn ? accent : "var(--au-faint)" }}>
+          {isClockedIn ? "In orbit" : "Ready"}
+        </div>
+        <div className="relative" style={{ width: size, height: size }}>
+          {bloom && (
+            <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `8px solid ${stops[1]}`, animation: "auBloom 0.9s cubic-bezier(0.2,0.6,0.3,1) forwards", pointerEvents: "none" }} />
+          )}
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke="#ECEBFA" strokeWidth={1.5} strokeDasharray="8 10" />
+            {isClockedIn && clamped > 0 && (
+              <path d={orbitArc} stroke={accent} strokeWidth={4} strokeLinecap="round" opacity={0.35} fill="none" />
+            )}
+            {isClockedIn && <circle cx={sx} cy={sy} r={14} fill={accent} opacity={0.15} />}
+            <circle cx={sx} cy={sy} r={6} fill={accent} />
+            <circle cx={sx} cy={sy} r={2} fill="white" />
+          </svg>
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+            <span
+              className="font-bold tabular-nums leading-none"
+              style={{ fontFamily: "var(--au-display)", fontSize: elapsedSeconds >= 3600 ? 24 : 30, color: "var(--au-ink)" }}
+              suppressHydrationWarning
+            >
+              {isClockedIn ? formatHMS(elapsedSeconds) : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+        </div>
+        <ExpressiveClockButton isClockedIn={isClockedIn} loading={loading} onPress={onPress} accent={accent} />
+      </div>
+    </div>
+  );
+});
+
+function orbitArcPath(cx: number, cy: number, r: number, from: number, to: number): string {
+  const sx = cx + r * Math.cos(from), sy = cy + r * Math.sin(from);
+  const ex = cx + r * Math.cos(to), ey = cy + r * Math.sin(to);
+  return `M${sx.toFixed(1)} ${sy.toFixed(1)} A${r} ${r} 0 ${to - from > Math.PI ? 1 : 0} 1 ${ex.toFixed(1)} ${ey.toFixed(1)}`;
+}
+
+function ExpressiveClockButton({
+  isClockedIn,
+  loading,
+  onPress,
+  accent,
+}: {
+  isClockedIn: boolean;
+  loading: boolean;
+  onPress: () => Promise<void>;
+  accent: string;
+}) {
+  return (
+    <button
+      onClick={onPress}
+      disabled={loading}
+      className="clock-btn w-full rounded-[18px] py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60"
+      style={
+        isClockedIn
+          ? { background: "transparent", color: accent, border: `1.5px solid ${accent}` }
+          : { background: "var(--au-grad)", color: "#fff", border: "none", boxShadow: "0 14px 26px -10px rgba(91,77,242,0.7)" }
+      }
+    >
+      {loading ? (
+        <span className="flex items-center justify-center gap-2">
+          <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+          {isClockedIn ? "Clocking out…" : "Clocking in…"}
+        </span>
+      ) : isClockedIn ? "Clock Out" : "Clock In"}
+    </button>
+  );
+}

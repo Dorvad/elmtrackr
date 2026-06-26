@@ -47,6 +47,9 @@ const CLOCK_STYLES: { value: ClockStyle; label: string; desc: string }[] = [
   { value: "dial",    label: "Dial",     desc: "Analog sweep hand" },
   { value: "strand",  label: "Strand",   desc: "Fiber-optic strand fill" },
   { value: "prism",   label: "Prism",    desc: "Triangle liquid rise" },
+  { value: "sand",    label: "Sand",     desc: "Flowing hourglass fill" },
+  { value: "blocks",  label: "Blocks",   desc: "Hour-by-hour segments" },
+  { value: "orbit",   label: "Orbit",    desc: "Satellite lap progress" },
 ];
 
 export default function FeaturesPage() {

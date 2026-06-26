@@ -22,6 +22,9 @@ export function ClockFaceThumbnail({ style }: { style: ClockStyle }) {
     case "dial":    return <DialThumb />;
     case "strand":  return <StrandThumb />;
     case "prism":   return <PrismThumb />;
+    case "sand":    return <SandThumb />;
+    case "blocks":  return <BlocksThumb />;
+    case "orbit":   return <OrbitThumb />;
   }
 }
 
@@ -323,6 +326,88 @@ function PrismThumb() {
       <circle cx={cx2} cy={cy2} r={3} fill={G2} filter="url(#pr-glow)" />
       {/* Time at centroid */}
       <text x={80} y={86} textAnchor="middle" fontSize={12} fontWeight="700" fill="white" filter="url(#pr-glow)">2:34</text>
+    </svg>
+  );
+}
+
+// ── Sand ──────────────────────────────────────────────────────────────────────
+function SandThumb() {
+  const cx = 80, top = 14, bottom = 106, mid = 60;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <defs>
+        <linearGradient id="sd-g" x1="0" y1="0" x2="0" y2="1">
+          <stop stopColor={G0} /><stop offset="1" stopColor={G2} />
+        </linearGradient>
+      </defs>
+      <rect width={W} height={H} rx={14} fill="white" />
+      <path
+        d={`M${cx - 28} ${top} Q${cx} ${top - 6} ${cx + 28} ${top} L${cx + 8} ${mid} L${cx + 28} ${bottom} Q${cx} ${bottom + 6} ${cx - 28} ${bottom} L${cx - 8} ${mid} Z`}
+        stroke="#ECEBFA" strokeWidth={2}
+      />
+      <path
+        d={`M${cx - 8} ${bottom - 34} L${cx + 8} ${bottom - 34} L${cx + 22} ${bottom - 8} L${cx - 22} ${bottom - 8} Z`}
+        fill="url(#sd-g)" opacity={0.75}
+      />
+      <circle cx={cx} cy={mid} r={2} fill={G1} opacity={0.7} />
+      <text x={cx} y={72} textAnchor="middle" fontSize={16} fontWeight="700" fill="#181530" letterSpacing={-0.5}>2:34</text>
+    </svg>
+  );
+}
+
+// ── Blocks ───────────────────────────────────────────────────────────────────
+function BlocksThumb() {
+  const blocks = 8;
+  const gap = 4;
+  const bw = (W - 24 - gap * (blocks - 1)) / blocks;
+  const baseX = 12;
+  const baseY = 88;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <defs>
+        <linearGradient id="bk-g" x1="0" y1="0" x2="1" y2="0">
+          <stop stopColor={G0} /><stop offset="1" stopColor={G2} />
+        </linearGradient>
+      </defs>
+      <rect width={W} height={H} rx={14} fill="white" />
+      <text x={80} y={52} textAnchor="middle" fontSize={7} fontWeight="700" fill="#9B9AC4" letterSpacing={1}>WORKDAY</text>
+      <text x={80} y={72} textAnchor="middle" fontSize={18} fontWeight="700" fill="#181530" letterSpacing={-1}>2:34</text>
+      {Array.from({ length: blocks }, (_, i) => (
+        <rect
+          key={i}
+          x={baseX + i * (bw + gap)}
+          y={baseY}
+          width={bw}
+          height={14}
+          rx={3}
+          fill={i < 5 ? "url(#bk-g)" : "#ECEBFA"}
+          opacity={i === 5 ? 0.45 : 1}
+        />
+      ))}
+    </svg>
+  );
+}
+
+// ── Orbit ─────────────────────────────────────────────────────────────────────
+function OrbitThumb() {
+  const cx = 80, cy = 58, r = 34;
+  const angle = (-90 + 0.62 * 360) * (Math.PI / 180);
+  const sx = cx + r * Math.cos(angle);
+  const sy = cy + r * Math.sin(angle);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <rect width={W} height={H} rx={14} fill="white" />
+      <circle cx={cx} cy={cy} r={r} stroke="#ECEBFA" strokeWidth={1.5} strokeDasharray="6 7" />
+      <path
+        d={arc(cx, cy, r, -Math.PI / 2, angle)}
+        stroke={G1}
+        strokeWidth={3}
+        strokeLinecap="round"
+        opacity={0.35}
+      />
+      <circle cx={sx} cy={sy} r={5} fill={G0} />
+      <circle cx={sx} cy={sy} r={2} fill="white" />
+      <text x={cx} y={cy + 6} textAnchor="middle" fontSize={16} fontWeight="700" fill="#181530" letterSpacing={-0.5}>2:34</text>
     </svg>
   );
 }
