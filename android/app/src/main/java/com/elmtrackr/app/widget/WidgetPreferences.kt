@@ -5,12 +5,12 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.Shift
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.max
 
 object WidgetPreferences {
 
@@ -22,6 +22,8 @@ object WidgetPreferences {
     val KEY_PENDING_COUNT = intPreferencesKey("widget_pending_count")
     val KEY_SHIFT_START_EPOCH = longPreferencesKey("widget_shift_start_epoch")
     val KEY_LAST_PUNCH_END_EPOCH = longPreferencesKey("widget_last_punch_end_epoch")
+    val KEY_TODAY_MINUTES = intPreferencesKey("widget_today_minutes")
+    val KEY_DAILY_GOAL_MINUTES = intPreferencesKey("widget_daily_goal_minutes")
 
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
 
@@ -34,31 +36,72 @@ object WidgetPreferences {
         val pendingCount: Int,
         val shiftStartEpochMillis: Long,
         val lastPunchEndEpochMillis: Long,
+        val todayMinutes: Int,
+        val dailyGoalMinutes: Int,
     ) {
-        val elapsedLabel: String
-            get() {
-                if (!isActive || shiftStartEpochMillis <= 0L) return ""
-                val minutes = ((System.currentTimeMillis() - shiftStartEpochMillis) / 60_000L)
-                    .toInt()
-                    .coerceAtLeast(0)
-                return ShiftDurationCalculator.formatMinutes(minutes)
+        val elapsedHms: String
+            get() = if (isActive && shiftStartEpochMillis > 0L) {
+                WidgetTimeFormat.elapsedHms(shiftStartEpochMillis)
+            } else {
+                ""
             }
 
-        val primaryTimeLabel: String
-            get() = if (isActive) elapsedLabel.ifEmpty { startTimeLabel } else startTimeLabel
+        val todayHms: String
+            get() = WidgetTimeFormat.minutesToHms(todayMinutes)
+
+        val todayShort: String
+            get() = WidgetTimeFormat.minutesToShort(todayMinutes)
+
+        val goalHoursLabel: String
+            get() = "${dailyGoalMinutes / 60}h"
+
+        val progressPercent: Int
+            get() = if (dailyGoalMinutes <= 0) 0
+            else ((todayMinutes.toFloat() / dailyGoalMinutes) * 100f).toInt().coerceIn(0, 100)
+
+        val progressRemainderMinutes: Int
+            get() = max(0, dailyGoalMinutes - todayMinutes)
 
         val statusLabel: String
             get() = if (isActive) "CLOCKED IN" else "CLOCKED OUT"
 
-        val subtitleLabel: String
+        val primaryTimeLabel: String
             get() = when {
-                isActive -> "Since $startTimeLabel"
-                lastPunchLabel.isNotBlank() -> lastPunchLabel
-                else -> "Tap Clock In to start"
+                isActive -> elapsedHms.ifEmpty { startTimeLabel }
+                startTimeLabel != "--:--" -> startTimeLabel
+                else -> todayHms
             }
 
+        val progressSubLabel: String
+            get() = if (isActive) {
+                "$progressPercent% of an ${goalHoursLabel} day · started $startTimeLabel"
+            } else {
+                val remain = WidgetTimeFormat.minutesToShort(progressRemainderMinutes)
+                "$progressPercent% of an ${goalHoursLabel} day · ${remain} to goal"
+            }
+
+        val singleToggleSecondaryTop: String
+            get() = if (isActive) "on shift" else "last punch"
+
+        val singleToggleSecondaryBottom: String
+            get() = when {
+                isActive -> "since $startTimeLabel"
+                lastPunchLabel.isNotBlank() -> lastPunchLabel.removePrefix("Last out • ")
+                todayMinutes > 0 -> "Today $todayShort"
+                else -> "tap to start"
+            }
+
+        val tallLoggedLabel: String
+            get() = if (todayMinutes > 0) "Today $todayShort logged" else "No time logged today"
+
+        val tallActiveSubLabel: String
+            get() = "Since $startTimeLabel · Today $todayShort"
+
         val actionLabel: String
-            get() = if (isActive) "Clock Out" else "Clock In"
+            get() = if (isActive) "PUNCH OUT" else "PUNCH IN"
+
+        val actionHint: String
+            get() = if (isActive) "tap to end shift" else "tap to start shift"
     }
 
     fun read(prefs: Preferences): DisplayState = DisplayState(
@@ -70,6 +113,8 @@ object WidgetPreferences {
         pendingCount = prefs[KEY_PENDING_COUNT] ?: 0,
         shiftStartEpochMillis = prefs[KEY_SHIFT_START_EPOCH] ?: 0L,
         lastPunchEndEpochMillis = prefs[KEY_LAST_PUNCH_END_EPOCH] ?: 0L,
+        todayMinutes = prefs[KEY_TODAY_MINUTES] ?: 0,
+        dailyGoalMinutes = prefs[KEY_DAILY_GOAL_MINUTES] ?: WidgetShiftState.DEFAULT_DAILY_GOAL_MINUTES,
     )
 
     fun writeFromShift(state: WidgetShiftState): (Preferences) -> Preferences = { prefs ->
@@ -82,6 +127,8 @@ object WidgetPreferences {
             this[KEY_PENDING_COUNT] = state.pendingCount
             this[KEY_SHIFT_START_EPOCH] = state.shiftStartEpochMillis
             this[KEY_LAST_PUNCH_END_EPOCH] = state.lastPunchEndEpochMillis
+            this[KEY_TODAY_MINUTES] = state.todayMinutes
+            this[KEY_DAILY_GOAL_MINUTES] = state.dailyGoalMinutes
         }
     }
 

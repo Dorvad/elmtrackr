@@ -9,15 +9,14 @@ import androidx.glance.currentState
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 
-/** Classic widget: logo, status, elapsed time, and a single stateful Clock In / Out button. */
+/** 4×1 single-toggle wide bar. */
 class ElmTrackrWidget : GlanceAppWidget() {
 
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
-            val state = WidgetPreferences.read(currentState<Preferences>())
-            ClassicWidgetContent(state)
+            SingleToggleWidgetContent(WidgetPreferences.read(currentState<Preferences>()))
         }
     }
 }

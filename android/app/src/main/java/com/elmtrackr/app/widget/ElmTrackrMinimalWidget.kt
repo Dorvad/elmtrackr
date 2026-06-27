@@ -9,15 +9,14 @@ import androidx.glance.currentState
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 
-/** Minimal widget: large timer typography and a compact action pill. */
+/** 4×1 day-goal progress bar + round toggle. */
 class ElmTrackrMinimalWidget : GlanceAppWidget() {
 
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
-            val state = WidgetPreferences.read(currentState<Preferences>())
-            MinimalWidgetContent(state)
+            ProgressWidgetContent(WidgetPreferences.read(currentState<Preferences>()))
         }
     }
 }

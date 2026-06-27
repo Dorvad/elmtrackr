@@ -1,7 +1,9 @@
 package com.elmtrackr.app.widget
 
+import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.Shift
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -10,15 +12,16 @@ object WidgetStateMapper {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
 
-    fun map(
-        shift: Shift?,
-        lastCompletedShift: Shift? = null,
-        pendingCount: Int = 0,
-    ): WidgetShiftState {
+    fun map(context: WidgetContext): WidgetShiftState {
         val zone = ZoneId.systemDefault()
+        val today = LocalDate.now(zone)
         val now = Instant.now().atZone(zone)
         val dateLabel = now.format(dateFormatter)
+        val dailyGoal = context.settings?.dailyOvertimeThresholdMinutes
+            ?: WidgetShiftState.DEFAULT_DAILY_GOAL_MINUTES
+        val todayMinutes = computeTodayMinutes(context.activeShift, context.todayShifts, zone, today)
 
+        val shift = context.activeShift
         if (shift != null && shift.isActive) {
             val startFormatted = WidgetPreferences.formatShiftStart(shift.startTime, zone)
             return WidgetShiftState(
@@ -27,12 +30,14 @@ object WidgetStateMapper {
                 startTimeLabel = startFormatted,
                 dateLabel = dateLabel,
                 lastPunchLabel = "Since $startFormatted",
-                pendingCount = pendingCount,
+                pendingCount = context.pendingCount,
                 shiftStartEpochMillis = shift.startTime.toEpochMilli(),
+                todayMinutes = todayMinutes,
+                dailyGoalMinutes = dailyGoal,
             )
         }
 
-        val lastEnd = lastCompletedShift?.endTime
+        val lastEnd = context.lastCompletedShift?.endTime
         return if (lastEnd != null) {
             WidgetShiftState(
                 isActive = false,
@@ -40,8 +45,10 @@ object WidgetStateMapper {
                 startTimeLabel = WidgetPreferences.formatShiftStart(lastEnd, zone),
                 dateLabel = dateLabel,
                 lastPunchLabel = WidgetPreferences.formatLastPunch(lastEnd, zone),
-                pendingCount = pendingCount,
+                pendingCount = context.pendingCount,
                 lastPunchEndEpochMillis = lastEnd.toEpochMilli(),
+                todayMinutes = todayMinutes,
+                dailyGoalMinutes = dailyGoal,
             )
         } else {
             WidgetShiftState(
@@ -50,8 +57,29 @@ object WidgetStateMapper {
                 startTimeLabel = "--:--",
                 dateLabel = dateLabel,
                 lastPunchLabel = "",
-                pendingCount = pendingCount,
+                pendingCount = context.pendingCount,
+                todayMinutes = todayMinutes,
+                dailyGoalMinutes = dailyGoal,
             )
         }
+    }
+
+    private fun computeTodayMinutes(
+        activeShift: Shift?,
+        todayShifts: List<Shift>,
+        zone: ZoneId,
+        today: LocalDate,
+    ): Int {
+        val completed = todayShifts
+            .filter { it.isCompleted && it.startTime.atZone(zone).toLocalDate() == today }
+            .sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
+        val active = activeShift?.takeIf { it.isActive }?.let { shift ->
+            if (shift.startTime.atZone(zone).toLocalDate() == today) {
+                ShiftDurationCalculator.elapsedMinutes(shift) ?: 0
+            } else {
+                0
+            }
+        } ?: 0
+        return completed + active
     }
 }

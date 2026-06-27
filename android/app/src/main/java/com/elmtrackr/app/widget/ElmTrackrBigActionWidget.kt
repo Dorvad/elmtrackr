@@ -9,14 +9,14 @@ import androidx.glance.currentState
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 
-/** 4×2 tall card with full-width action bar. */
-class ElmTrackrAuroraWidget : GlanceAppWidget() {
+/** 1×1 big action toggle. */
+class ElmTrackrBigActionWidget : GlanceAppWidget() {
 
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
-            TallCardWidgetContent(WidgetPreferences.read(currentState<Preferences>()))
+            BigActionWidgetContent(WidgetPreferences.read(currentState<Preferences>()))
         }
     }
 }

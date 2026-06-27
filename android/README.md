@@ -676,58 +676,37 @@ On Android 13+ (API 33), `POST_NOTIFICATIONS` is a runtime permission.
 
 ### Home screen widgets
 
-ElmTrackr includes **three** Jetpack Glance home screen widget styles (all 4×1,
-resizable). Pick one from the widget picker:
+ElmTrackr includes **five** Jetpack Glance widget styles aligned with the product
+mockups. Each uses a **single stateful Punch In / Out control** that performs the
+action headlessly (no app launch required).
 
-| Widget | Style |
-|---|---|
-| **ElmTrackr Classic** | Logo + status dot + elapsed timer + action pill |
-| **ElmTrackr Minimal** | Large thin timer typography on dark background |
-| **ElmTrackr Aurora** | Indigo→aqua gradient with frosted action button |
+| Widget picker name | Size | Design |
+|---|---|---|
+| **ElmTrackr Single Toggle** | 4×1 | Logo + status + live `H:MM:SS` timer + white/outlined pill CTA |
+| **ElmTrackr Progress** | 4×1 | Day-goal progress bar + `today / 8h` + round toggle |
+| **ElmTrackr Tall** | 4×2 | Oversized clock + full-width action bar at base |
+| **ElmTrackr Ring** | 1×1 | Open ring → filled ring when on shift; whole tile toggles |
+| **ElmTrackr Big Action** | 1×1 | Large white circle punch-in; stop glyph + corner timer when active |
 
 | Property | Value |
 |---|---|
 | Library | Jetpack Glance 1.1.0 (`androidx.glance:glance-appwidget`) |
-| Primary size | 4×1 cells (250 dp wide, 50 dp tall) |
-| Resize | horizontal + vertical; min 2×1 |
-| State storage | `PreferencesGlanceStateDefinition` (DataStore Preferences) |
+| Day goal | `UserSettings.dailyOvertimeThresholdMinutes` (default 8h) |
+| Live timer | `H:MM:SS` while clocked in; refreshes every 60s via `WidgetRefreshWorker` |
 | Update trigger | `ElmTrackrApp.startActiveShiftObserver()` → `ElmTrackrWidgetUpdater.update()` |
-| On-boot / fresh-place | `BaseElmTrackrWidgetReceiver.onUpdate()` re-reads Room and refreshes |
 
 **Widget states:**
 
 | State | Display | Action button |
 |---|---|---|
-| Idle (not clocked in) | Last clock-out time (from Room) or `--:--` | **Clock In** — clocks in headlessly |
-| Active (shift running) | Live elapsed time (`2h 14m`) + since time | **Clock Out** — clocks out headlessly |
+| Idle | Last punch time or today's logged total | **PUNCH IN** (white filled pill / round button) |
+| Active | Live elapsed `H:MM:SS` + since time | **PUNCH OUT** (outlined pill with stop glyph) |
 
-Only **one** action button is shown per state. It always performs the correct
-action without opening the app. Tapping the logo/time/status area opens the app
-for full details.
+Tapping the status/time/logo area opens the app. The CTA always matches state and
+clocks in/out via `WidgetActions` without opening the UI.
 
-**Action behaviour:**
-
-- **Clock In** — `WidgetActions.clockIn()` → Room write, sync queued, notification
-  + widget refresh via the active-shift observer.
-- **Clock Out** — `WidgetActions.clockOut()` → uses `ClockOutActions` (settings
-  fallback, notification cancel, confirmation toast/notification).
-- Wrong-state taps are impossible — the button label and action always match
-  the current shift state.
-
-**Key classes:**
-
-| Class | Responsibility |
-|---|---|
-| `ElmTrackrWidget` / `ElmTrackrMinimalWidget` / `ElmTrackrAuroraWidget` | Glance layouts per style |
-| `WidgetLayouts` | Shared status + single stateful action button |
-| `WidgetPreferences` | Glance prefs keys + `DisplayState` (elapsed time, labels) |
-| `ElmTrackrWidgetUpdater` | Updates all three widget types from Room state |
-| `WidgetStateMapper` | `Shift?` + last completed shift → `WidgetShiftState` |
-| `ClockInWidgetAction` / `ClockOutWidgetAction` | Glance `ActionCallback` entry points |
-
-**Button corners:** `GlanceModifier.cornerRadius()` requires API 31+. Widgets
-use shape drawables (`widget_button_clock_in`, `widget_button_clock_out`, etc.)
-for pill backgrounds — works on all supported API levels (26+).
+**Key classes:** `WidgetLayouts`, `WidgetPreferences.DisplayState`, `WidgetStateMapper`,
+`WidgetRefreshWorker`, `ElmTrackrWidgetUpdater`
 
 ### App shortcuts
 
@@ -778,7 +757,7 @@ the active-shift observer fires.
 | ✅ 11 — Reports | Monthly summary, payroll estimate, weekly breakdown with prior-month deltas, CSV + PDF export, insights, travel refund review |
 | ✅ 12 — Settings | Full settings form, feature toggles, theme, weekend days, sync section, account |
 | ✅ 13 — Native features | Active-shift notification, clock-out action, long-shift reminder, app shortcuts |
-| ✅ 14 — Home screen widget | Jetpack Glance 4×1 widget: active shift status + Clock In / Clock Out actions |
+| ✅ 14 — Home screen widgets | Five Glance styles (4×1 single-toggle, 4×1 progress, 4×2 tall, 1×1 ring, 1×1 big action) |
 | ✅ 15 — Refunds | CameraX receipt capture, gallery import, Supabase receipt storage/sync, refund claim management, reimbursement PDF export |
 | ✅ 16 — Polish | Visual redesign, animations, headless shortcut clock-out, aurora mesh backgrounds, bottom-nav blur (API 31+), theme hot-reload, IANA timezone picker |
 

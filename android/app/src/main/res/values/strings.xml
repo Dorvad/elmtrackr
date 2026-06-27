@@ -7,12 +7,16 @@
     <string name="shortcut_clock_in_long">Clock In to ElmTrackr</string>
     <string name="shortcut_clock_out_short">Clock Out</string>
     <string name="shortcut_clock_out_long">Clock Out of ElmTrackr</string>
-    <string name="widget_description">Classic ElmTrackr widget with logo, live shift status, and a Clock In / Out button.</string>
-    <string name="widget_description_minimal">Minimal ElmTrackr widget with large timer text and a Clock In / Out button.</string>
-    <string name="widget_description_aurora">Aurora ElmTrackr widget with gradient styling and a Clock In / Out button.</string>
-    <string name="widget_label_classic">ElmTrackr Classic</string>
-    <string name="widget_label_minimal">ElmTrackr Minimal</string>
-    <string name="widget_label_aurora">ElmTrackr Aurora</string>
+    <string name="widget_description">Single-toggle 4×1 bar: status, live timer, and one Punch In/Out pill.</string>
+    <string name="widget_description_minimal">Progress 4×1 bar: day-goal progress and round toggle.</string>
+    <string name="widget_description_aurora">Tall 4×2 card: oversized clock and full-width action bar.</string>
+    <string name="widget_description_ring">Square 1×1 ring toggle with shift progress.</string>
+    <string name="widget_description_big_action">Square 1×1 big action toggle with maximal tap target.</string>
+    <string name="widget_label_classic">ElmTrackr Single Toggle</string>
+    <string name="widget_label_minimal">ElmTrackr Progress</string>
+    <string name="widget_label_aurora">ElmTrackr Tall</string>
+    <string name="widget_label_ring">ElmTrackr Ring</string>
+    <string name="widget_label_big_action">ElmTrackr Big Action</string>
 
     <!-- Active shift notification -->
     <string name="notif_active_shift_title">Clocked in</string>

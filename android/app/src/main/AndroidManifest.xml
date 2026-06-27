@@ -109,6 +109,30 @@
                 android:resource="@xml/elmtrackr_widget_aurora_info" />
         </receiver>
 
+        <receiver
+            android:name=".widget.ElmTrackrRingWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_label_ring">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/elmtrackr_widget_ring_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.ElmTrackrBigActionWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_label_big_action">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/elmtrackr_widget_big_action_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"

@@ -180,7 +180,19 @@ class ElmTrackrApp : Application() {
                         .observeRecentCompletedShifts(userId, limit = 1)
                         .first()
                         .firstOrNull()
-                    ElmTrackrWidgetUpdater.update(this@ElmTrackrApp, shift, lastCompleted)
+                    val zone = java.time.ZoneId.systemDefault()
+                    val today = java.time.LocalDate.now(zone)
+                    val todayShifts = shiftsRepository
+                        .observeShiftsByMonth(userId, today.year, today.monthValue)
+                        .first()
+                    val settings = settingsRepository.getSettings(userId)
+                    ElmTrackrWidgetUpdater.update(
+                        this@ElmTrackrApp,
+                        shift,
+                        lastCompleted,
+                        todayShifts,
+                        settings,
+                    )
                 }
         }
     }
