@@ -7,6 +7,7 @@ import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
+import com.elmtrackr.app.fake.FakeNetworkMonitor
 import com.elmtrackr.app.fake.FakeSyncRepository
 import com.elmtrackr.app.fake.FakeThemePreferenceStore
 import com.elmtrackr.app.util.MainDispatcherRule
@@ -34,8 +35,9 @@ class SettingsViewModelTest {
     }
     private val themeStore = FakeThemePreferenceStore()
     private val compensationRepo = FakeCompensationProfilesRepository()
+    private val networkMonitor = FakeNetworkMonitor()
 
-    private fun buildVm() = SettingsViewModel(repo, syncRepo, authRepo, compensationRepo, themeStore)
+    private fun buildVm() = SettingsViewModel(repo, syncRepo, authRepo, compensationRepo, themeStore, networkMonitor)
 
     private fun defaultSettings() = UserSettings(
         id = "s1",
@@ -89,7 +91,7 @@ class SettingsViewModelTest {
         repo.setSettings(defaultSettings())
         advanceUntilIdle()
 
-        vm.saveSettings("", 10.0, 50.0, null, "UTC", ClockStyle.CLASSIC)
+        vm.saveSettings("", 10.0, 50.0, null, "UTC", ClockStyle.CLASSIC, weekendDays = emptyList())
         advanceUntilIdle()
 
         val saved = repo.getSettings("u1")
@@ -103,7 +105,7 @@ class SettingsViewModelTest {
         repo.setSettings(defaultSettings())
         advanceUntilIdle()
 
-        vm.saveSettings("", 8.0, 40.0, 75.5, "UTC", ClockStyle.CLASSIC)
+        vm.saveSettings("", 8.0, 40.0, 75.5, "UTC", ClockStyle.CLASSIC, weekendDays = emptyList())
         advanceUntilIdle()
 
         assertEquals(75.5, repo.getSettings("u1")?.hourlyRate)
@@ -115,7 +117,7 @@ class SettingsViewModelTest {
         repo.setSettings(defaultSettings().copy(hourlyRate = 50.0))
         advanceUntilIdle()
 
-        vm.saveSettings("", 8.0, 40.0, null, "UTC", ClockStyle.CLASSIC)
+        vm.saveSettings("", 8.0, 40.0, null, "UTC", ClockStyle.CLASSIC, weekendDays = emptyList())
         advanceUntilIdle()
 
         assertEquals(null, repo.getSettings("u1")?.hourlyRate)
@@ -127,7 +129,7 @@ class SettingsViewModelTest {
         repo.setSettings(defaultSettings())
         advanceUntilIdle()
 
-        vm.saveSettings("", 8.0, 40.0, 50.0, "UTC", ClockStyle.CLASSIC, CurrencyCode.EUR)
+        vm.saveSettings("", 8.0, 40.0, 50.0, "UTC", ClockStyle.CLASSIC, CurrencyCode.EUR, weekendDays = emptyList())
         advanceUntilIdle()
 
         assertEquals(CurrencyCode.EUR, repo.getSettings("u1")?.currency)
@@ -153,6 +155,7 @@ class SettingsViewModelTest {
             null,
             "UTC",
             ClockStyle.CLASSIC,
+            weekendDays = emptyList(),
             featureFlags = SettingsFeatureFlags(
                 travelRefunds = true,
                 paidProjects = true,
@@ -176,7 +179,7 @@ class SettingsViewModelTest {
         authRepo.setProfile(Profile("u1", "test@example.com", null, Instant.EPOCH, Instant.EPOCH))
         advanceUntilIdle()
 
-        vm.saveSettings("Alice", 8.0, 40.0, null, "UTC", ClockStyle.CLASSIC)
+        vm.saveSettings("Alice", 8.0, 40.0, null, "UTC", ClockStyle.CLASSIC, weekendDays = emptyList())
         advanceUntilIdle()
 
         assertEquals("Alice", authRepo.getCurrentProfile()?.fullName)
@@ -189,7 +192,7 @@ class SettingsViewModelTest {
         authRepo.setProfile(Profile("u1", "test@example.com", "Alice", Instant.EPOCH, Instant.EPOCH))
         advanceUntilIdle()
 
-        vm.saveSettings("Alice", 8.0, 40.0, null, "UTC", ClockStyle.CLASSIC)
+        vm.saveSettings("Alice", 8.0, 40.0, null, "UTC", ClockStyle.CLASSIC, weekendDays = emptyList())
         advanceUntilIdle()
 
         assertEquals("Alice", authRepo.getCurrentProfile()?.fullName)
@@ -333,7 +336,7 @@ class SettingsViewModelTest {
         val job = launch { vm.uiState.collect { states.add(it) } }
         advanceUntilIdle()
 
-        vm.saveSettings("", 8.0, 40.0, null, "UTC", ClockStyle.CLASSIC)
+        vm.saveSettings("", 8.0, 40.0, null, "UTC", ClockStyle.CLASSIC, weekendDays = emptyList())
         advanceUntilIdle()
 
         val ready = states.filterIsInstance<SettingsUiState.Ready>().lastOrNull()
@@ -351,7 +354,7 @@ class SettingsViewModelTest {
         val job = launch { vm.uiState.collect { states.add(it) } }
         advanceUntilIdle()
 
-        vm.saveSettings("", 0.0, 40.0, null, "UTC", ClockStyle.CLASSIC)
+        vm.saveSettings("", 0.0, 40.0, null, "UTC", ClockStyle.CLASSIC, weekendDays = emptyList())
         advanceUntilIdle()
 
         val ready = states.filterIsInstance<SettingsUiState.Ready>().lastOrNull()
@@ -369,7 +372,7 @@ class SettingsViewModelTest {
         val job = launch { vm.uiState.collect { states.add(it) } }
         advanceUntilIdle()
 
-        vm.saveSettings("", 8.0, 40.0, null, "UTC", ClockStyle.CLASSIC)
+        vm.saveSettings("", 8.0, 40.0, null, "UTC", ClockStyle.CLASSIC, weekendDays = emptyList())
         advanceUntilIdle()
         vm.clearSaveFeedback()
         advanceUntilIdle()

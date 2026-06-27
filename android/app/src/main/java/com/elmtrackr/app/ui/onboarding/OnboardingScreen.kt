@@ -78,7 +78,7 @@ import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.Spacing
 import java.util.TimeZone
 
-private const val TOTAL_STEPS = 8
+private const val TOTAL_STEPS = 7
 private val DAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
 @Composable
@@ -227,21 +227,19 @@ fun OnboardingScreen(
                                 onNext = { if (workWeekValid) step = 6 },
                             )
                             6 -> FeaturesStep(
-                                travelRefunds, paidProjects, insights, clockStyles,
-                                { travelRefunds = it }, { paidProjects = it }, { insights = it }, { clockStyles = it },
+                                travelRefunds, insights,
+                                { travelRefunds = it }, { insights = it },
                                 onBack = { step = 5 }, onNext = { step = 7 },
                             )
-                            7 -> ClockStyleStep(clockStyle, { clockStyle = it }, onBack = { step = 6 }, onNext = { step = 8 })
                             else -> ReviewStep(
                                 displayName = displayName.trim(),
                                 hourlyRate = hourlyRate,
                                 currency = currency,
                                 regionLabel = RegionPresets.forRegion(regionCode).label,
                                 weekendDays = weekendDays,
-                                clockStyle = clockStyle,
-                                enabledCount = listOf(travelRefunds, paidProjects, insights, clockStyles).count { it },
+                                enabledCount = listOf(travelRefunds, insights).count { it },
                                 error = (state as? OnboardingUiState.ValidationError)?.errors?.values?.firstOrNull(),
-                                onBack = { step = 7 },
+                                onBack = { step = 6 },
                                 onFinish = {
                                     viewModel.completeOnboarding(
                                         OnboardingInput(
@@ -255,10 +253,10 @@ fun OnboardingScreen(
                                             hourlyRate = hourlyRate,
                                             currency = currency,
                                             featuresTravelRefunds = travelRefunds,
-                                            featuresPaidProjects = paidProjects,
+                                            featuresPaidProjects = false,
                                             featuresInsights = insights,
-                                            featuresClockStyles = clockStyles,
-                                            clockStyle = clockStyle,
+                                            featuresClockStyles = true,
+                                            clockStyle = ClockStyle.CLASSIC,
                                             preserveExisting = replay,
                                         ),
                                     )
@@ -319,7 +317,6 @@ private fun stepTitle(step: Int): String = when (step) {
     4 -> "Pay preferences"
     5 -> "Work week"
     6 -> "Features"
-    7 -> "Clock face"
     else -> "Review"
 }
 
@@ -564,7 +561,6 @@ internal fun ReviewStep(
     currency: CurrencyCode,
     regionLabel: String,
     weekendDays: List<Int>,
-    clockStyle: ClockStyle,
     enabledCount: Int,
     error: String?,
     onBack: () -> Unit,
@@ -576,14 +572,17 @@ internal fun ReviewStep(
         }
         Spacer(Modifier.height(18.dp))
         Text("Ready to start", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
-        Text("Review your setup. You can change everything later.", color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        Text(
+            "Clock in once. See hours, pay estimate, and overtime instantly.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
         Spacer(Modifier.height(20.dp))
         SetupCard {
             ReviewRow("Name", displayName)
             ReviewRow("Region", regionLabel)
             ReviewRow("Hourly salary", hourlyRate?.let { MoneyFormatter.format(it, currency) } ?: "Not set")
             ReviewRow("Weekend", weekendDays.joinToString(", ") { DAY_LABELS[it] })
-            ReviewRow("Clock face", clockStyle.name.lowercase().replaceFirstChar(Char::uppercase))
             ReviewRow("Optional features", "$enabledCount enabled", showDivider = false)
         }
         error?.let { Spacer(Modifier.height(12.dp)); Text(it, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
@@ -642,15 +641,19 @@ internal fun WelcomeStep(replay: Boolean, onNext: () -> Unit) {
         Text(if (replay) "Review your setup" else "Welcome to ElmTrackr", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center)
         Spacer(Modifier.height(10.dp))
         Text(
-            if (replay) "Update your profile, pay, work week, features, and clock face." else "Smart shift tracking for modern workers. Let's get you set up in under a minute.",
+            if (replay) {
+                "Update your profile, pay, work week, and features."
+            } else {
+                "Clock in once. See hours, pay estimate, and overtime instantly."
+            },
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(24.dp))
         SetupCard {
-            WelcomeBenefit(Icons.Filled.AccessTime, "Track shifts in one tap")
-            WelcomeBenefit(Icons.Filled.Paid, "See pay and overtime instantly")
-            WelcomeBenefit(Icons.Filled.Analytics, "Keep reports and refunds organized", showDivider = false)
+            WelcomeBenefit(Icons.Filled.AccessTime, "One tap to clock in and out")
+            WelcomeBenefit(Icons.Filled.Paid, "Live pay and overtime estimates")
+            WelcomeBenefit(Icons.Filled.Analytics, "Reports build automatically", showDivider = false)
         }
         Spacer(Modifier.height(26.dp))
         ElmGradientButton(onClick = onNext) { Text(if (replay) "Review Setup" else "Get Started", fontWeight = FontWeight.Bold) }
@@ -670,16 +673,14 @@ private fun WelcomeBenefit(icon: androidx.compose.ui.graphics.vector.ImageVector
 }
 
 @Composable
-private fun FeaturesStep(
-    travel: Boolean, projects: Boolean, insights: Boolean, styles: Boolean,
-    onTravel: (Boolean) -> Unit, onProjects: (Boolean) -> Unit, onInsights: (Boolean) -> Unit, onStyles: (Boolean) -> Unit,
+internal fun FeaturesStep(
+    travel: Boolean, insights: Boolean,
+    onTravel: (Boolean) -> Unit, onInsights: (Boolean) -> Unit,
     onBack: () -> Unit, onNext: () -> Unit,
 ) {
     StepHeader("What do you need?", "Enable the features that fit your workflow. You can change these later in Settings.")
     FeatureCard("Travel Refunds", "Track transport reimbursements for eligible shifts.", travel, onTravel)
-    FeatureCard("Tip Calculator", "Coming soon — tip tracking is not available yet.", false, {}, comingSoon = true)
     FeatureCard("Insights & Analytics", "Smart summaries, weekly trends, and daily coaching.", insights, onInsights)
-    FeatureCard("Clock Styles", "Choose how the clock widget looks on your home screen.", styles, onStyles)
     Spacer(Modifier.height(20.dp)); NavRow(onBack, onNext)
 }
 

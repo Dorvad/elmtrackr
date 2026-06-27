@@ -38,7 +38,8 @@ export function BottomNav() {
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className="flex flex-1 flex-col items-center gap-1 py-2.5 relative"
+                aria-label={`${label}${active ? ", current page" : ""}`}
+                className="flex flex-1 flex-col items-center gap-1 py-2.5 relative min-h-12"
               >
                 {/* Gradient pill behind active icon */}
                 <span

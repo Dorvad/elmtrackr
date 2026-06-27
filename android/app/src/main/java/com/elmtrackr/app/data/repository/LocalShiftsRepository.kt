@@ -128,4 +128,7 @@ class LocalShiftsRepository(
 
     override fun observePendingSyncShifts(userId: String): Flow<List<Shift>> =
         shiftDao.observePendingSyncShifts(userId).map { entities -> entities.map { it.toDomain() } }
+
+    override suspend fun hasAnyShifts(userId: String): Boolean =
+        shiftDao.getAllShiftsForUser(userId).isNotEmpty()
 }

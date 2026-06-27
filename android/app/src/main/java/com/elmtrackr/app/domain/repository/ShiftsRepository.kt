@@ -35,5 +35,7 @@ interface ShiftsRepository {
     fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<Shift>>
 
     fun observePendingSyncShifts(userId: String): Flow<List<Shift>>
+
+    suspend fun hasAnyShifts(userId: String): Boolean
 }
 

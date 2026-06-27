@@ -68,6 +68,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import com.elmtrackr.app.BuildConfig
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -93,6 +96,8 @@ import androidx.compose.foundation.layout.widthIn
 import com.elmtrackr.app.ui.design.ElmCard
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.design.ElmSyncPill
+import com.elmtrackr.app.ui.sync.resolveSyncStatus
 import com.elmtrackr.app.ui.theme.AuroraFaint
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraInk2
@@ -112,6 +117,8 @@ private fun supportedClockStyleOf(style: ClockStyle): ClockStyle = style
 private val THEME_OPTIONS = listOf("system" to "System default", "light" to "Light", "dark" to "Dark")
 private val DAY_LABELS    = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
+private enum class LegalDoc { PRIVACY, TERMS }
+
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
@@ -120,10 +127,28 @@ fun SettingsScreen(
     onReplayOnboarding: () -> Unit = {},
 ) {
     var showCompensation by rememberSaveable { mutableStateOf(false) }
+    var legalDoc by rememberSaveable { mutableStateOf<LegalDoc?>(null) }
     if (showCompensation) {
         CompensationSettingsScreen(onBack = { showCompensation = false })
         return
     }
+    when (legalDoc) {
+        LegalDoc.PRIVACY -> LegalDocumentScreen(
+            title = "Privacy Policy",
+            sections = LegalDocuments.privacyPolicy,
+            lastUpdated = LegalDocuments.LAST_UPDATED,
+            onBack = { legalDoc = null },
+        )
+        LegalDoc.TERMS -> LegalDocumentScreen(
+            title = "Terms of Service",
+            sections = LegalDocuments.termsOfService,
+            lastUpdated = LegalDocuments.LAST_UPDATED,
+            onBack = { legalDoc = null },
+        )
+        null -> Unit
+    }
+    if (legalDoc != null) return
+
     val uiState by viewModel.uiState.collectAsState()
     LaunchedEffect(Unit) { viewModel.ensureSettingsExist() }
 
@@ -143,13 +168,16 @@ fun SettingsScreen(
                 authState     = authState,
                 onSave        = viewModel::saveSettings,
                 onSignOut     = onSignOut,
-                onWeekendDays = viewModel::updateWeekendDays,
                 onTheme       = viewModel::saveTheme,
                 onSync        = viewModel::triggerSync,
                 onResetPassword = viewModel::resetPassword,
                 onReplayOnboarding = onReplayOnboarding,
                 onOpenCompensation = { showCompensation = true },
                 onDismissSaveFeedback = viewModel::clearSaveFeedback,
+                onDeleteAccount = viewModel::deleteAccount,
+                onDismissAccountFeedback = viewModel::clearAccountActionFeedback,
+                onOpenPrivacy = { legalDoc = LegalDoc.PRIVACY },
+                onOpenTerms = { legalDoc = LegalDoc.TERMS },
             )
             is SettingsUiState.Error -> ErrorState(
                 message = state.message,
@@ -163,15 +191,18 @@ fun SettingsScreen(
 private fun SettingsContent(
     state: SettingsUiState.Ready,
     authState: AuthUiState?,
-    onSave: (String, Double, Double, Double?, String, ClockStyle, CurrencyCode, SettingsFeatureFlags) -> Unit,
+    onSave: (String, Double, Double, Double?, String, ClockStyle, CurrencyCode, List<Int>, SettingsFeatureFlags) -> Unit,
     onSignOut: () -> Unit,
-    onWeekendDays: (List<Int>) -> Unit,
     onTheme: (String) -> Unit,
     onSync: () -> Unit,
     onResetPassword: () -> Unit,
     onReplayOnboarding: () -> Unit,
     onOpenCompensation: () -> Unit = {},
     onDismissSaveFeedback: () -> Unit = {},
+    onDeleteAccount: () -> Unit = {},
+    onDismissAccountFeedback: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
+    onOpenTerms: () -> Unit = {},
 ) {
     var displayName   by remember(state.profile?.fullName)                       { mutableStateOf(state.profile?.fullName ?: "") }
     var dailyOtText   by remember(state.settings.dailyOvertimeThresholdMinutes)  { mutableStateOf(minutesToHours(state.settings.dailyOvertimeThresholdMinutes)) }
@@ -181,9 +212,9 @@ private fun SettingsContent(
     var clockStyle    by remember(state.settings.clockStyle)                     { mutableStateOf(supportedClockStyleOf(state.settings.clockStyle)) }
     var currency      by remember(state.settings.currency)                       { mutableStateOf(state.settings.currency) }
     var travelRefunds by remember(state.settings.featuresTravelRefunds)          { mutableStateOf(state.settings.featuresTravelRefunds) }
-    var paidProjects  by remember(state.settings.featuresPaidProjects)           { mutableStateOf(state.settings.featuresPaidProjects) }
     var insights      by remember(state.settings.featuresInsights)               { mutableStateOf(state.settings.featuresInsights) }
     var clockStyles   by remember(state.settings.featuresClockStyles)            { mutableStateOf(state.settings.featuresClockStyles) }
+    var weekendDays   by remember(state.settings.weekendDays)                    { mutableStateOf(state.settings.weekendDays) }
 
     var appearanceExpanded by rememberSaveable { mutableStateOf(false) }
     var payrollExpanded by rememberSaveable { mutableStateOf(false) }
@@ -198,6 +229,14 @@ private fun SettingsContent(
         )
         onDismissSaveFeedback()
     }
+    LaunchedEffect(state.accountActionFeedback) {
+        val feedback = state.accountActionFeedback ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = feedback, duration = SnackbarDuration.Long)
+        onDismissAccountFeedback()
+        if (feedback == "Account deleted" || feedback == "Local data cleared") {
+            onSignOut()
+        }
+    }
 
     val saveAction: () -> Unit = {
         onSave(
@@ -208,18 +247,70 @@ private fun SettingsContent(
             timezone,
             clockStyle,
             currency,
+            weekendDays,
             SettingsFeatureFlags(
                 travelRefunds = travelRefunds,
-                paidProjects = paidProjects,
+                paidProjects = state.settings.featuresPaidProjects,
                 insights = insights,
                 clockStyles = clockStyles,
             ),
         )
     }
 
+    val isDirty = displayName.trim() != (state.profile?.fullName ?: "").trim() ||
+        dailyOtText != minutesToHours(state.settings.dailyOvertimeThresholdMinutes) ||
+        weeklyOtText != minutesToHours(state.settings.weeklyOvertimeThresholdMinutes) ||
+        hourlyRateText != (state.settings.hourlyRate?.toString() ?: "") ||
+        timezone != state.settings.timezone ||
+        clockStyle != supportedClockStyleOf(state.settings.clockStyle) ||
+        currency != state.settings.currency ||
+        weekendDays.sorted() != state.settings.weekendDays.sorted() ||
+        travelRefunds != state.settings.featuresTravelRefunds ||
+        insights != state.settings.featuresInsights ||
+        clockStyles != state.settings.featuresClockStyles
+
+    val syncStatus = resolveSyncStatus(
+        isRemoteConfigured = state.isRemoteConfigured,
+        isOnline = state.isOnline,
+        isSyncing = state.isSyncing,
+        pendingCount = state.pendingCount,
+        lastSyncStatus = state.lastSyncStatus,
+        syncError = state.syncError,
+    )
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            AnimatedVisibility(visible = isDirty) {
+                Surface(
+                    tonalElevation = 3.dp,
+                    shadowElevation = 8.dp,
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.screenH, vertical = 12.dp),
+                    ) {
+                        Text(
+                            "You have unsaved changes",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        ElmGradientButton(
+                            onClick = saveAction,
+                            enabled = !state.isSaving,
+                            accessibilityLabel = "Save settings",
+                        ) {
+                            Text(if (state.isSaving) "Saving..." else "Save Settings", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+        },
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -236,7 +327,7 @@ private fun SettingsContent(
             item {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Expand a section to edit it. Theme and weekend days save immediately; everything else uses Save Settings.",
+                    "Theme saves immediately. Everything else uses the save bar when you have unsaved changes.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -286,7 +377,7 @@ private fun SettingsContent(
                         currency = currency,
                         dailyOtText = dailyOtText,
                         weeklyOtText = weeklyOtText,
-                        weekendDays = state.settings.weekendDays,
+                        weekendDays = weekendDays,
                         timezone = timezone,
                     ),
                     expanded = payrollExpanded,
@@ -332,12 +423,12 @@ private fun SettingsContent(
                     PayrollSubsectionTitle("Weekend days")
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Selected days count as weekends for overtime and reports. Saves immediately.",
+                        "Selected days count as weekends for overtime and reports.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(8.dp))
-                    WeekendDaysSelector(selected = state.settings.weekendDays, onChange = onWeekendDays)
+                    WeekendDaysSelector(selected = weekendDays, onChange = { weekendDays = it })
                     Spacer(Modifier.height(16.dp))
                     PayrollSubsectionTitle("Location")
                     Spacer(Modifier.height(8.dp))
@@ -348,7 +439,7 @@ private fun SettingsContent(
             item {
                 CollapsibleSettingsSection(
                     title = "Features",
-                    summary = featuresSummary(travelRefunds, paidProjects, insights, clockStyles),
+                    summary = featuresSummary(travelRefunds, insights, clockStyles),
                     expanded = featuresExpanded,
                     onExpandedChange = { featuresExpanded = it },
                 ) {
@@ -357,19 +448,6 @@ private fun SettingsContent(
                         description   = "Track and manage travel refund claims",
                         checked       = travelRefunds,
                         onCheckedChange = { travelRefunds = it },
-                    )
-                    ToggleRow(
-                        title         = "Paid Projects",
-                        description   = "Track billable work by project",
-                        checked       = paidProjects,
-                        onCheckedChange = { paidProjects = it },
-                    )
-                    ToggleRow(
-                        title         = "Tip Calculator",
-                        description   = "Coming soon — tip tracking is not available yet",
-                        checked       = false,
-                        onCheckedChange = {},
-                        enabled       = false,
                     )
                     ToggleRow(
                         title         = "Insights",
@@ -387,43 +465,52 @@ private fun SettingsContent(
             }
 
             item {
-                ElmCard(modifier = Modifier.padding(vertical = 8.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                        Text(
-                            "Save your profile, payroll, and feature changes",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
+                SettingsSectionCard("Sync") {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Status", style = MaterialTheme.typography.bodyMedium)
+                        ElmSyncPill(
+                            status = syncStatus,
+                            onClick = if (syncStatus.isActionable) onSync else null,
                         )
-                        Spacer(Modifier.height(4.dp))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        syncStatus.detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (syncStatus.isActionable) {
+                        Spacer(Modifier.height(8.dp))
                         Text(
-                            "Theme and weekend days are saved as you change them.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            "Tap the status pill to sync now.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
                         )
-                        Spacer(Modifier.height(12.dp))
-                        ElmGradientButton(
-                            onClick  = saveAction,
-                            enabled  = !state.isSaving,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(if (state.isSaving) "Saving..." else "Save Settings", fontWeight = FontWeight.SemiBold)
-                        }
                     }
                 }
             }
 
             item {
-                SettingsSectionCard("Sync") {
-                    InfoRow("Pending changes", state.pendingCount.toString())
-                    InfoRow("Last sync",       state.lastSyncStatus ?: "Never")
+                SettingsSectionCard("About & Legal") {
+                    InfoRow("Version", BuildConfig.VERSION_NAME)
                     Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick  = onSync,
-                        enabled  = !state.isSyncing,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(if (state.isSyncing) "Syncing..." else "Sync Now")
+                    OutlinedButton(onClick = onOpenPrivacy, modifier = Modifier.fillMaxWidth()) {
+                        Text("Privacy Policy")
                     }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = onOpenTerms, modifier = Modifier.fillMaxWidth()) {
+                        Text("Terms of Service")
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Support: ${LegalDocuments.CONTACT_EMAIL}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 
@@ -433,14 +520,16 @@ private fun SettingsContent(
                         AccountSection(
                             authState       = authState,
                             passwordResetFeedback = state.passwordResetFeedback,
+                            isDeletingAccount = state.isDeletingAccount,
                             onResetPassword = onResetPassword,
                             onSignOut       = onSignOut,
+                            onDeleteAccount = onDeleteAccount,
                         )
                     }
                 }
             }
 
-            item { Spacer(Modifier.height(32.dp)) }
+            item { Spacer(Modifier.height(if (isDirty) 96.dp else 32.dp)) }
         }
     }
 }
@@ -469,13 +558,11 @@ private fun payrollSummary(
 
 private fun featuresSummary(
     travelRefunds: Boolean,
-    paidProjects: Boolean,
     insights: Boolean,
     clockStyles: Boolean,
 ): String {
     val enabled = listOfNotNull(
         "Travel Refunds".takeIf { travelRefunds },
-        "Paid Projects".takeIf { paidProjects },
         "Insights".takeIf { insights },
         "Clock Styles".takeIf { clockStyles },
     )
@@ -937,10 +1024,13 @@ private fun InfoRow(label: String, value: String) {
 private fun AccountSection(
     authState: AuthUiState,
     passwordResetFeedback: String? = null,
+    isDeletingAccount: Boolean = false,
     onResetPassword: () -> Unit,
     onSignOut: () -> Unit,
+    onDeleteAccount: () -> Unit,
 ) {
     var showSignOutConfirm by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     if (showSignOutConfirm) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showSignOutConfirm = false },
@@ -952,6 +1042,31 @@ private fun AccountSection(
                 }
             },
             dismissButton = { androidx.compose.material3.TextButton(onClick = { showSignOutConfirm = false }) { Text("Cancel") } },
+        )
+    }
+    if (showDeleteConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete account?") },
+            text = {
+                Text(
+                    "This permanently deletes your cloud account, shifts, settings, refund claims, and receipt photos. " +
+                        "Local data on this device will also be removed. This cannot be undone.",
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDeleteAccount()
+                    },
+                ) {
+                    Text("Delete account", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            },
         )
     }
     when (authState) {
@@ -981,11 +1096,20 @@ private fun AccountSection(
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
                 onClick  = { showSignOutConfirm = true },
-                enabled  = !authState.isLoading,
+                enabled  = !authState.isLoading && !isDeletingAccount,
                 colors   = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(if (authState.isLoading) "Signing out..." else "Sign out")
+            }
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick  = { showDeleteConfirm = true },
+                enabled  = !authState.isLoading && !isDeletingAccount,
+                colors   = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (isDeletingAccount) "Deleting account..." else "Delete account")
             }
         }
         is AuthUiState.SignedOut       -> Text("Not signed in.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1004,9 +1128,8 @@ private fun SettingsScreenPreview() {
                 settings = UserSettings(id = "s1", userId = "u1", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH),
             ),
             authState       = AuthUiState.NotConfigured,
-            onSave          = { _, _, _, _, _, _, _, _ -> },
+            onSave          = { _, _, _, _, _, _, _, _, _ -> },
             onSignOut       = {},
-            onWeekendDays   = {},
             onTheme         = {},
             onSync          = {},
             onResetPassword = {},

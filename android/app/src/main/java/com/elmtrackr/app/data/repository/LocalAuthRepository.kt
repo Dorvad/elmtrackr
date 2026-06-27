@@ -1,5 +1,6 @@
 package com.elmtrackr.app.data.repository
 
+import com.elmtrackr.app.data.local.LocalUserDataCleaner
 import com.elmtrackr.app.data.local.dao.ProfileDao
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.map
 class LocalAuthRepository(
     private val profileDao: ProfileDao,
     private val appPrefs: AppPreferencesRepository,
+    private val localUserDataCleaner: LocalUserDataCleaner,
 ) : AuthRepository {
 
     private val _passwordRecoveryRequired = MutableStateFlow(false)
@@ -61,6 +63,14 @@ class LocalAuthRepository(
 
     override suspend fun signOut() {
         appPrefs.setLastActiveUserId(null)
+    }
+
+    override suspend fun deleteAccount(): AuthResult {
+        val userId = getCurrentProfile()?.id
+            ?: return AuthResult.Error("No account to delete")
+        localUserDataCleaner.clearUserData(userId)
+        signOut()
+        return AuthResult.Success
     }
 
     override suspend fun resetPassword(email: String): AuthResult =

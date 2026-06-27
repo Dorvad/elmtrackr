@@ -78,6 +78,9 @@ interface RefundClaimDao {
     @Query("SELECT * FROM refund_claims WHERE userId = :userId AND deletedAt IS NULL")
     suspend fun getAllClaimsForUser(userId: String): List<RefundClaimEntity>
 
+    @Query("DELETE FROM refund_claims WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: String)
+
     @Query("SELECT * FROM refund_claims WHERE remoteId = :remoteId LIMIT 1")
     suspend fun getClaimByRemoteId(remoteId: String): RefundClaimEntity?
 }

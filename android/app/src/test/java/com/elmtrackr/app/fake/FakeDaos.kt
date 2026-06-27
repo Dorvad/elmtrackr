@@ -74,6 +74,11 @@ class FakeShiftDao : ShiftDao {
                 .sortedByDescending { e -> e.endTime }
                 .take(limit)
         }
+
+    override suspend fun deleteAllForUser(userId: String) {
+        store.entries.removeIf { it.value.userId == userId }
+        refresh()
+    }
 }
 
 // ---- FakeRefundClaimDao ----
@@ -124,6 +129,11 @@ class FakeRefundClaimDao : RefundClaimDao {
 
     override suspend fun getClaimByRemoteId(remoteId: String): RefundClaimEntity? =
         store.values.firstOrNull { it.remoteId == remoteId }
+
+    override suspend fun deleteAllForUser(userId: String) {
+        store.entries.removeIf { it.value.userId == userId }
+        refresh()
+    }
 }
 
 // ---- FakeSettingsDao ----
@@ -164,6 +174,11 @@ class FakeSettingsDao : SettingsDao {
 
     override suspend fun getSettingsByRemoteId(remoteId: String): UserSettingsEntity? =
         store.values.firstOrNull { it.remoteId == remoteId }
+
+    override suspend fun deleteAllForUser(userId: String) {
+        store.entries.removeIf { it.value.userId == userId }
+        refresh()
+    }
 }
 
 // ---- FakeProfileDao ----
@@ -201,6 +216,11 @@ class FakeProfileDao : ProfileDao {
 
     override suspend fun getProfileByRemoteId(remoteId: String): ProfileEntity? =
         store.values.firstOrNull { it.remoteId == remoteId }
+
+    override suspend fun deleteAllForUser(userId: String) {
+        store.entries.removeIf { it.value.userId == userId }
+        refresh()
+    }
 }
 
 // ---- FakeCompensationProfileDao ----
@@ -263,6 +283,11 @@ class FakeCompensationProfileDao : com.elmtrackr.app.data.local.dao.Compensation
         store.replaceAll { _, value ->
             if (value.userId == userId) value.copy(isDefault = false) else value
         }
+        refresh()
+    }
+
+    override suspend fun deleteAllForUser(userId: String) {
+        store.entries.removeIf { it.value.userId == userId }
         refresh()
     }
 }

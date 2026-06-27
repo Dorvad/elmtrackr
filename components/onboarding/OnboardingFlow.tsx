@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSettings } from "@/hooks/useSettings";
 import { useCompensationProfiles } from "@/hooks/useCompensationProfiles";
 import { useToast } from "@/components/ui/Toast";
-import type { ClockStyle, RegionCode } from "@/types";
+import type { RegionCode } from "@/types";
 import {
   CURRENCY_OPTIONS,
   REGION_PRESETS,
@@ -26,7 +26,7 @@ const INITIAL_FEATURES: FeatureSelection = {
   clock_styles: true,
 };
 
-const TOTAL = 6;
+const TOTAL = 5;
 
 export function OnboardingFlow({ replay = false }: { replay?: boolean }) {
   const { settings, saveSettings } = useSettings();
@@ -41,9 +41,8 @@ export function OnboardingFlow({ replay = false }: { replay?: boolean }) {
     travel_refunds: settings?.features_travel_refunds ?? INITIAL_FEATURES.travel_refunds,
     paid_projects: settings?.features_paid_projects ?? INITIAL_FEATURES.paid_projects,
     insights: settings?.features_insights ?? INITIAL_FEATURES.insights,
-    clock_styles: settings?.features_clock_styles ?? INITIAL_FEATURES.clock_styles,
+    clock_styles: true,
   }));
-  const [clockStyle, setClockStyle] = useState<ClockStyle>(settings?.clock_style ?? "classic");
   const [saving, setSaving] = useState(false);
 
   function next() { setStep((s) => Math.min(s + 1, TOTAL)); }
@@ -108,10 +107,10 @@ export function OnboardingFlow({ replay = false }: { replay?: boolean }) {
     try {
       await saveSettings({
         features_travel_refunds: features.travel_refunds,
-        features_paid_projects: features.paid_projects,
+        features_paid_projects: false,
         features_insights: features.insights,
-        features_clock_styles: features.clock_styles,
-        clock_style: clockStyle,
+        features_clock_styles: true,
+        clock_style: "classic",
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
       });
@@ -173,15 +172,7 @@ export function OnboardingFlow({ replay = false }: { replay?: boolean }) {
           />
         )}
         {step === 5 && (
-          <ClockStyleScreen
-            selected={clockStyle}
-            onChange={setClockStyle}
-            onNext={next}
-            onBack={prev}
-          />
-        )}
-        {step === 6 && (
-          <DoneScreen features={features} onFinish={finish} saving={saving} />
+          <DoneScreen onFinish={finish} saving={saving} />
         )}
       </div>
     </div>
@@ -203,8 +194,8 @@ function WelcomeScreen({ onNext, replay }: { onNext: () => void; replay: boolean
       </h1>
       <p className="text-base text-gray-500 mb-10 leading-relaxed">
         {replay
-          ? "Review and update your features and preferences."
-          : "Smart shift tracking for modern workers. Let's get you set up in under a minute."}
+          ? "Update your region, features, and preferences."
+          : "Clock in once. See hours, pay estimate, and overtime instantly."}
       </p>
       <button
         type="button"
@@ -363,7 +354,7 @@ function HowItWorksScreen({ onNext, onBack }: { onNext: () => void; onBack: () =
   return (
     <div className="animate-fade-in-up">
       <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight mb-1">How it works</h2>
-      <p className="text-sm text-gray-400 mb-5">Three things ElmTrackr does really well.</p>
+      <p className="text-sm text-gray-400 mb-5">Clock in once. See hours, pay estimate, and overtime instantly.</p>
       <div className="flex flex-col gap-3 mb-8">
         {items.map((item) => (
           <div
@@ -465,17 +456,6 @@ function FeaturesScreen({
       desc: "Track transport reimbursements for late-night or holiday shifts.",
     },
     {
-      key: "paid_projects" as const,
-      icon: (
-        <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
-        </svg>
-      ),
-      iconColor: "bg-violet-100 text-violet-600",
-      title: "Paid Projects",
-      desc: "Organize shifts by project or client and track earnings per project.",
-    },
-    {
       key: "insights" as const,
       icon: (
         <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -485,17 +465,6 @@ function FeaturesScreen({
       iconColor: "bg-emerald-100 text-emerald-600",
       title: "Insights & Analytics",
       desc: "Smart summaries, weekly trends, and daily coaching nudges.",
-    },
-    {
-      key: "clock_styles" as const,
-      icon: (
-        <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
-        </svg>
-      ),
-      iconColor: "bg-sky-100 text-sky-600",
-      title: "Clock Styles",
-      desc: "Choose between Classic, Minimal, or Focus clock widget designs.",
     },
   ];
 
@@ -523,243 +492,15 @@ function FeaturesScreen({
   );
 }
 
-// ── Screen 5: Clock Style ─────────────────────────────────────────────────────
-
-const CLOCK_STYLE_OPTIONS: {
-  value: ClockStyle;
-  label: string;
-  desc: string;
-  preview: React.ReactNode;
-}[] = [
-  {
-    value: "classic",
-    label: "Classic",
-    desc: "Progress ring with full stats",
-    preview: (
-      <div className="flex flex-col items-center gap-1.5 py-3">
-        <div className="h-14 w-14 rounded-full border-4 border-indigo-500 flex items-center justify-center">
-          <span className="text-[11px] font-bold text-indigo-600 tabular-nums">1:23</span>
-        </div>
-        <div className="flex gap-1 items-center">
-          <div className="h-1 w-6 rounded bg-indigo-400" />
-          <div className="h-1 w-5 rounded bg-gray-200" />
-        </div>
-      </div>
-    ),
-  },
-  {
-    value: "minimal",
-    label: "Minimal",
-    desc: "Clean time display, no ring",
-    preview: (
-      <div className="flex flex-col items-center gap-1 py-3">
-        <span className="text-xl font-extrabold text-gray-800 tabular-nums">1:23</span>
-        <span className="text-[9px] text-gray-400 font-semibold uppercase tracking-widest">elapsed</span>
-      </div>
-    ),
-  },
-  {
-    value: "bold",
-    label: "Bold",
-    desc: "Extra-large time, no distractions",
-    preview: (
-      <div className="flex flex-col items-center gap-1 py-3">
-        <span className="text-2xl font-black text-gray-900 tabular-nums tracking-tighter">1:23</span>
-        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">elapsed</span>
-      </div>
-    ),
-  },
-  {
-    value: "focus",
-    label: "Focus",
-    desc: "Dark card, distraction-free",
-    preview: (
-      <div className="flex flex-col items-center py-3">
-        <div className="rounded-xl bg-indigo-950 px-4 py-2.5">
-          <span className="text-base font-extrabold text-white tabular-nums">1:23</span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    value: "night",
-    label: "Night",
-    desc: "Dark with cyan glow effect",
-    preview: (
-      <div className="flex flex-col items-center gap-1 py-3 bg-gray-950 rounded-lg mx-1">
-        <span
-          className="text-xl font-extrabold text-cyan-400 tabular-nums"
-          style={{ textShadow: "0 0 12px rgba(34,211,238,0.6)" }}
-        >
-          1:23
-        </span>
-        <span className="text-[9px] text-cyan-800 font-bold uppercase tracking-widest">active</span>
-      </div>
-    ),
-  },
-  {
-    value: "retro",
-    label: "Retro",
-    desc: "Amber terminal glow display",
-    preview: (
-      <div className="flex flex-col items-center py-3 bg-gray-950 rounded-lg mx-1">
-        <div className="bg-gray-900 rounded-lg px-3 py-1.5">
-          <span
-            className="text-xl font-mono font-bold text-amber-400 tabular-nums tracking-widest"
-            style={{ textShadow: "0 0 8px rgba(251,191,36,0.5)" }}
-          >
-            01:23
-          </span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    value: "aurora",
-    label: "Aurora",
-    desc: "Rainbow gradient progress ring",
-    preview: (
-      <div className="flex flex-col items-center py-3">
-        <div className="relative" style={{ width: 56, height: 56 }}>
-          <svg width={56} height={56} viewBox="0 0 56 56" className="absolute inset-0">
-            <defs>
-              <linearGradient id="onb-aurora" x1="0" y1="0" x2="56" y2="56" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#6366f1" />
-                <stop offset="50%" stopColor="#a855f7" />
-                <stop offset="100%" stopColor="#f97316" />
-              </linearGradient>
-            </defs>
-            <circle cx={28} cy={28} r={24} strokeWidth={5} stroke="#f1f5f9" fill="none" />
-            <circle cx={28} cy={28} r={24} strokeWidth={5} stroke="url(#onb-aurora)" fill="none"
-              strokeLinecap="round" strokeDasharray={150.8} strokeDashoffset={37.7}
-              transform="rotate(-90 28 28)" />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[9px] font-bold" style={{ background: "linear-gradient(135deg,#6366f1,#ec4899)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>1:23</span>
-          </div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    value: "pulse",
-    label: "Pulse",
-    desc: "Glowing concentric rings on dark",
-    preview: (
-      <div className="flex flex-col items-center py-3 bg-gray-950 rounded-lg mx-1">
-        <div className="relative" style={{ width: 52, height: 52 }}>
-          <div className="absolute inset-0 rounded-full border-2 border-cyan-400" style={{ boxShadow: "0 0 8px rgba(34,211,238,0.5)" }} />
-          <div className="absolute rounded-full border border-cyan-400" style={{ top: 8, left: 8, right: 8, bottom: 8, opacity: 0.6 }} />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[9px] font-bold text-cyan-400" style={{ textShadow: "0 0 8px rgba(34,211,238,0.6)" }}>1:23</span>
-          </div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    value: "dial",
-    label: "Dial",
-    desc: "Analog kitchen timer with sweep",
-    preview: (
-      <div className="flex items-center justify-center py-3">
-        <svg width={52} height={52} viewBox="0 0 52 52">
-          <circle cx={26} cy={26} r={22} fill="white" stroke="#e5e7eb" strokeWidth={1} />
-          <path d="M 26 26 L 26 4 A 22 22 0 0 1 45 37 Z" fill="rgba(220,38,38,0.15)" />
-          {Array.from({ length: 12 }, (_, i) => {
-            const a = (i * 30 - 90) * Math.PI / 180;
-            return (
-              <line key={i}
-                x1={26 + Math.cos(a) * 17} y1={26 + Math.sin(a) * 17}
-                x2={26 + Math.cos(a) * 21} y2={26 + Math.sin(a) * 21}
-                stroke="#374151" strokeWidth="1.5" strokeLinecap="round"
-              />
-            );
-          })}
-          <line x1={26} y1={26} x2={43} y2={35} stroke="#dc2626" strokeWidth={2} strokeLinecap="round" />
-          <circle cx={26} cy={26} r={4} fill="#1f2937" />
-        </svg>
-      </div>
-    ),
-  },
-];
-
-function ClockStyleScreen({
-  selected,
-  onChange,
-  onNext,
-  onBack,
-}: {
-  selected: ClockStyle;
-  onChange: (s: ClockStyle) => void;
-  onNext: () => void;
-  onBack: () => void;
-}) {
-  return (
-    <div className="animate-fade-in-up">
-      <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight mb-1">Pick your style</h2>
-      <p className="text-sm text-gray-400 mb-5">
-        Choose how your clock widget looks on the home screen.
-      </p>
-      <div className="flex flex-col gap-3 mb-8">
-        {CLOCK_STYLE_OPTIONS.map((style) => (
-          <button
-            key={style.value}
-            type="button"
-            onClick={() => onChange(style.value)}
-            className={[
-              "flex items-center gap-4 rounded-2xl border p-4 text-left transition-all duration-200 active:scale-[0.99]",
-              selected === style.value
-                ? "bg-indigo-50 border-indigo-300 shadow-sm"
-                : "bg-white border-gray-100 shadow-sm hover:border-gray-200",
-            ].join(" ")}
-          >
-            <div className="w-24 bg-gray-50 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {style.preview}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-0.5">
-                <p className={`text-sm font-bold ${selected === style.value ? "text-indigo-800" : "text-gray-900"}`}>
-                  {style.label}
-                </p>
-                {selected === style.value && (
-                  <span className="h-4 w-4 rounded-full bg-indigo-600 flex items-center justify-center">
-                    <svg className="h-2.5 w-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                    </svg>
-                  </span>
-                )}
-              </div>
-              <p className={`text-xs ${selected === style.value ? "text-indigo-500" : "text-gray-400"}`}>
-                {style.desc}
-              </p>
-            </div>
-          </button>
-        ))}
-      </div>
-      <NavRow onBack={onBack} onNext={onNext} />
-    </div>
-  );
-}
-
-// ── Screen 6: Done ────────────────────────────────────────────────────────────
+// ── Screen 5: Done ────────────────────────────────────────────────────────────
 
 function DoneScreen({
-  features,
   onFinish,
   saving,
 }: {
-  features: FeatureSelection;
   onFinish: () => void;
   saving: boolean;
 }) {
-  const enabledFeatures = [
-    features.travel_refunds && "Travel Refunds",
-    features.paid_projects && "Paid Projects",
-    features.insights && "Insights & Analytics",
-    features.clock_styles && "Clock Styles",
-  ].filter(Boolean) as string[];
-
   return (
     <div className="flex flex-col items-center text-center animate-fade-in-up pt-8">
       <div className="h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center mb-5">
@@ -768,28 +509,9 @@ function DoneScreen({
         </svg>
       </div>
       <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight mb-2">You&apos;re all set!</h2>
-      <p className="text-sm text-gray-400 mb-6">
-        ElmTrackr is ready to go. Here&apos;s what&apos;s enabled:
+      <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+        Clock in once. See hours, pay estimate, and overtime instantly.
       </p>
-
-      {enabledFeatures.length > 0 ? (
-        <div className="w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-8 text-left">
-          {enabledFeatures.map((f) => (
-            <div key={f} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-              <span className="h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <svg className="h-3 w-3 text-emerald-600" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                </svg>
-              </span>
-              <span className="text-sm font-medium text-gray-700">{f}</span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="w-full bg-gray-50 rounded-2xl border border-gray-100 p-4 mb-8">
-          <p className="text-sm text-gray-400">No extra features — keeping it simple.</p>
-        </div>
-      )}
 
       <button
         type="button"
@@ -803,11 +525,11 @@ function DoneScreen({
             Saving…
           </span>
         ) : (
-          "Start Tracking"
+          "Clock in on the home screen"
         )}
       </button>
       <p className="text-xs text-gray-400 mt-4">
-        Change features anytime in Settings → Manage Features
+        Customize your clock face later in Settings → Manage Features
       </p>
     </div>
   );

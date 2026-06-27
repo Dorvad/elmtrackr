@@ -86,4 +86,7 @@ class FakeShiftsRepository : ShiftsRepository {
         }
 
     override fun observePendingSyncShifts(userId: String): Flow<List<Shift>> = flowOf(emptyList())
+
+    override suspend fun hasAnyShifts(userId: String): Boolean =
+        _shifts.value.any { it.userId == userId }
 }

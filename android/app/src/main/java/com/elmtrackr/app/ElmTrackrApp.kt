@@ -8,6 +8,7 @@ import android.graphics.drawable.Icon
 import com.elmtrackr.app.data.auth.SupabaseClientProvider
 import com.elmtrackr.app.data.local.ElmTrackrDatabase
 import com.elmtrackr.app.data.local.LegacyDataAdopter
+import com.elmtrackr.app.data.local.LocalUserDataCleaner
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.remote.RemoteCompensationProfilesDataSource
 import com.elmtrackr.app.data.remote.SupabaseProfileDataSource
@@ -33,6 +34,7 @@ import com.elmtrackr.app.notification.NotificationChannels
 import com.elmtrackr.app.shortcuts.HeadlessTrampolineActivity
 import com.elmtrackr.app.widget.ElmTrackrWidgetUpdater
 import com.elmtrackr.app.sync.SyncScheduler
+import com.elmtrackr.app.util.NetworkMonitor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -53,6 +55,8 @@ class ElmTrackrApp : Application() {
     val database: ElmTrackrDatabase by lazy { ElmTrackrDatabase.getInstance(this) }
 
     val appPreferences: AppPreferencesRepository by lazy { AppPreferencesRepository(this) }
+
+    val networkMonitor: NetworkMonitor by lazy { NetworkMonitor(this) }
 
     val currentUserProvider: CurrentUserProvider by lazy {
         PreferencesCurrentUserProvider(appPreferences)
@@ -109,10 +113,20 @@ class ElmTrackrApp : Application() {
         SupabaseClientProvider.get()?.let { SupabaseRefundReceiptStorage(it) }
     }
 
+    val localUserDataCleaner: LocalUserDataCleaner by lazy {
+        LocalUserDataCleaner(
+            database.shiftDao(),
+            database.settingsDao(),
+            database.profileDao(),
+            database.refundClaimDao(),
+            database.compensationProfileDao(),
+        )
+    }
+
     // SupabaseAuthRepository self-checks BuildConfig: returns NotConfigured state
     // gracefully when SUPABASE_URL / SUPABASE_ANON_KEY are absent (e.g. CI).
     val authRepository: AuthRepository by lazy {
-        SupabaseAuthRepository(database.profileDao(), appPreferences) { userId ->
+        SupabaseAuthRepository(database.profileDao(), appPreferences, localUserDataCleaner) { userId ->
             legacyDataAdopter.adoptFor(userId)
             applicationScope.launch {
                 val settings = settingsRepository.getSettings(userId)

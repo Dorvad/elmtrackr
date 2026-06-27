@@ -7,6 +7,16 @@ supabase.url=
 # Your Supabase anon/public key
 supabase.anon.key=
 
+# Public web app URL (optional — used for in-app links to privacy policy / terms)
+# e.g. https://elmtrackr.app
+web.app.url=
+
+# --- Release signing (required for Play Store uploads) ---
+# KEYSTORE_PATH=keystore/elmtrackr-release.jks
+# KEYSTORE_PASSWORD=
+# KEY_ALIAS=
+# KEY_PASSWORD=
+
 # --- Supabase dashboard configuration ---
 # In your Supabase project → Authentication → URL Configuration, add:
 #

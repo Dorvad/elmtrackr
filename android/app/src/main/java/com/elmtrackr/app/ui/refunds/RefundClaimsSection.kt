@@ -262,7 +262,10 @@ fun RefundClaimCard(
             }
 
             if (claim == null) {
-                Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = onAdd,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) {
                     Text(if (shift.refundAction == RefundAction.REMIND_LATER) "Add receipt now" else "Add refund claim")
                 }
                 if (direction == RefundDirection.FROM_WORK) {
@@ -289,11 +292,23 @@ fun RefundClaimCard(
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { onEdit(claim) }, enabled = !isDeleting) { Text("Edit") }
+                    TextButton(
+                        onClick = { onEdit(claim) },
+                        enabled = !isDeleting,
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text("Edit") }
                     claim.receiptPath?.let { path ->
-                        TextButton(onClick = { onViewReceipt(path) }, enabled = !isDeleting) { Text("View receipt") }
+                        TextButton(
+                            onClick = { onViewReceipt(path) },
+                            enabled = !isDeleting,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("View receipt") }
                     }
-                    TextButton(onClick = { onDelete(claim) }, enabled = !isDeleting) {
+                    TextButton(
+                        onClick = { onDelete(claim) },
+                        enabled = !isDeleting,
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) {
                         if (isDeleting) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                         else Text("Delete", color = MaterialTheme.colorScheme.error)
                     }
@@ -312,17 +327,17 @@ private fun RefundActionRow(
 ) {
     when (action) {
         null -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onNoRide, modifier = Modifier.weight(1f)) { Text("No ride") }
-            OutlinedButton(onClick = onRemindLater, modifier = Modifier.weight(1f)) { Text("Remind later") }
+            OutlinedButton(onClick = onNoRide, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text("No ride") }
+            OutlinedButton(onClick = onRemindLater, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text("Remind later") }
         }
         RefundAction.NO_RIDE_TAKEN -> Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Marked as no ride taken", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-            TextButton(onClick = onUndo) { Text("Undo") }
+            TextButton(onClick = onUndo, modifier = Modifier.heightIn(min = 48.dp)) { Text("Undo") }
         }
         RefundAction.REMIND_LATER -> Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Reminder kept for later", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-            TextButton(onClick = onNoRide) { Text("No ride") }
-            TextButton(onClick = onUndo) { Text("Undo") }
+            TextButton(onClick = onNoRide, modifier = Modifier.heightIn(min = 48.dp)) { Text("No ride") }
+            TextButton(onClick = onUndo, modifier = Modifier.heightIn(min = 48.dp)) { Text("Undo") }
         }
         RefundAction.SUBMITTED -> Unit
     }
@@ -522,12 +537,12 @@ fun ReceiptPhotoArea(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onTakePhoto, modifier = Modifier.weight(1f)) {
+                OutlinedButton(onClick = onTakePhoto, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
                     Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(if (pendingPhotoPath == null) "Camera" else "Retake")
                 }
-                OutlinedButton(onClick = { picker.launch("image/*") }, modifier = Modifier.weight(1f)) {
+                OutlinedButton(onClick = { picker.launch("image/*") }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
                     Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Gallery")
@@ -536,15 +551,15 @@ fun ReceiptPhotoArea(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (pendingPhotoPath != null) {
-                    TextButton(onClick = onRemovePendingPhoto) {
-                        Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(17.dp))
+                    TextButton(onClick = onRemovePendingPhoto, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Remove receipt photo", modifier = Modifier.size(17.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("Remove photo", color = MaterialTheme.colorScheme.error)
                     }
                 }
                 if (pendingPhotoPath == null && existingReceiptPath != null) {
-                    TextButton(onClick = { onViewReceipt(existingReceiptPath) }) {
-                        Icon(Icons.Filled.Visibility, contentDescription = null, modifier = Modifier.size(17.dp))
+                    TextButton(onClick = { onViewReceipt(existingReceiptPath) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Icon(Icons.Filled.Visibility, contentDescription = "View receipt", modifier = Modifier.size(17.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("View existing receipt")
                     }
@@ -569,7 +584,7 @@ private fun RefundDateTimeRow(
             readOnly = true,
             label = { Text("Ride date") },
             trailingIcon = {
-                IconButton(onClick = onPickDate) {
+                IconButton(onClick = onPickDate, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Filled.Schedule, contentDescription = "Pick ride date", modifier = Modifier.size(18.dp))
                 }
             },
@@ -581,7 +596,7 @@ private fun RefundDateTimeRow(
             readOnly = true,
             label = { Text("Ride time") },
             trailingIcon = {
-                IconButton(onClick = onPickTime) {
+                IconButton(onClick = onPickTime, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Filled.Schedule, contentDescription = "Pick ride time", modifier = Modifier.size(18.dp))
                 }
             },

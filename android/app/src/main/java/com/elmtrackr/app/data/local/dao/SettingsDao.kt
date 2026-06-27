@@ -52,6 +52,9 @@ interface SettingsDao {
     @Query("SELECT * FROM user_settings WHERE userId = :userId")
     suspend fun getAllSettingsForUser(userId: String): List<UserSettingsEntity>
 
+    @Query("DELETE FROM user_settings WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: String)
+
     @Query("SELECT * FROM user_settings WHERE remoteId = :remoteId LIMIT 1")
     suspend fun getSettingsByRemoteId(remoteId: String): UserSettingsEntity?
 }

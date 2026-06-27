@@ -17,15 +17,20 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.elmlaunch.myapp"
+        applicationId = "com.elmtrackr.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3   // bump for each sideload; reset to 1 for first Play Store track upload
-        versionName = "1.0.1"
+        versionCode = 4
+        versionName = "1.0.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("supabase.anon.key", "")}\"")
+        buildConfigField(
+            "String",
+            "WEB_APP_URL",
+            "\"${localProps.getProperty("web.app.url", "")}\"",
+        )
 
         vectorDrawables {
             useSupportLibrary = true

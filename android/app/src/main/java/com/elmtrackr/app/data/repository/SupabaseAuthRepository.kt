@@ -13,7 +13,10 @@ import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.domain.model.AuthResult
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.repository.AuthRepository
+import com.elmtrackr.app.data.local.LocalUserDataCleaner
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.rpc
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
@@ -38,6 +41,7 @@ import java.time.Instant
 class SupabaseAuthRepository(
     private val profileDao: ProfileDao,
     private val appPrefs: AppPreferencesRepository,
+    private val localUserDataCleaner: LocalUserDataCleaner,
     private val onAuthenticated: suspend (String) -> Unit = {},
 ) : AuthRepository {
 
@@ -144,6 +148,19 @@ class SupabaseAuthRepository(
         }
         _passwordRecoveryRequired.value = false
         appPrefs.setLastActiveUserId(null)
+    }
+
+    override suspend fun deleteAccount(): AuthResult {
+        val userId = getCurrentProfile()?.id
+            ?: return AuthResult.Error("No account to delete")
+        return try {
+            client?.postgrest?.rpc("delete_own_account")
+            localUserDataCleaner.clearUserData(userId)
+            signOut()
+            AuthResult.Success
+        } catch (e: Exception) {
+            AuthResult.Error(AuthErrorMapper.messageFor(e, AuthOperation.DELETE_ACCOUNT))
+        }
     }
 
     override suspend fun resetPassword(email: String): AuthResult {

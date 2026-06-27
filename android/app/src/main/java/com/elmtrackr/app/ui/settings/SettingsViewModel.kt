@@ -12,10 +12,12 @@ import com.elmtrackr.app.domain.model.AuthResult
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Profile
+import com.elmtrackr.app.domain.model.SyncResult
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.SyncRepository
+import com.elmtrackr.app.util.NetworkStatusMonitor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -45,13 +47,17 @@ class SettingsViewModel(
     private val authRepository: AuthRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
     private val themeStore: ThemePreferenceStore,
+    private val networkMonitor: NetworkStatusMonitor,
 ) : ViewModel() {
 
     private val _isSaving = MutableStateFlow(false)
     private val _isSyncing = MutableStateFlow(false)
+    private val _syncError = MutableStateFlow<String?>(null)
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     private val _passwordResetFeedback = MutableStateFlow<String?>(null)
     private val _saveFeedback = MutableStateFlow<SettingsSaveFeedback?>(null)
+    private val _isDeletingAccount = MutableStateFlow(false)
+    private val _accountActionFeedback = MutableStateFlow<String?>(null)
 
     private data class CoreData(
         val settings: UserSettings?,
@@ -67,6 +73,8 @@ class SettingsViewModel(
         val validationErrors: Map<String, String>,
         val passwordResetFeedback: String?,
         val saveFeedback: SettingsSaveFeedback?,
+        val isDeletingAccount: Boolean,
+        val accountActionFeedback: String?,
     )
 
     private val coreData = authRepository.observeCurrentProfile().flatMapLatest { profile ->
@@ -85,34 +93,66 @@ class SettingsViewModel(
             _isSaving,
         ) { profile, theme, saving -> Triple(profile, theme, saving) },
         combine(
-            _isSyncing,
-            _validationErrors,
-            _passwordResetFeedback,
-            _saveFeedback,
-        ) { syncing, errors, resetFeedback, saveFeedback ->
-            Quad(syncing, errors, resetFeedback, saveFeedback)
+            combine(
+                _isSyncing,
+                _validationErrors,
+                _passwordResetFeedback,
+            ) { syncing, errors, resetFeedback ->
+                Triple(syncing, errors, resetFeedback)
+            },
+            combine(
+                _saveFeedback,
+                _isDeletingAccount,
+                _accountActionFeedback,
+            ) { saveFeedback, deleting, accountFeedback ->
+                Triple(saveFeedback, deleting, accountFeedback)
+            },
+        ) { (syncing, errors, resetFeedback), (saveFeedback, deleting, accountFeedback) ->
+            AccountExtras(syncing, errors, resetFeedback, saveFeedback, deleting, accountFeedback)
         },
-    ) { (profile, theme, saving), (syncing, errors, resetFeedback, saveFeedback) ->
-        Extras(profile, theme, saving, syncing, errors, resetFeedback, saveFeedback)
+    ) { (profile, theme, saving), account ->
+        Extras(
+            profile,
+            theme,
+            saving,
+            account.syncing,
+            account.errors,
+            account.resetFeedback,
+            account.saveFeedback,
+            account.deleting,
+            account.accountFeedback,
+        )
     }
 
     val uiState: StateFlow<SettingsUiState> = combine(
-        coreData,
-        extras,
-    ) { core, extras ->
-        if (core.settings == null) SettingsUiState.Loading
-        else SettingsUiState.Ready(
-            settings = core.settings,
-            profile = extras.profile,
-            selectedTheme = extras.theme,
-            pendingCount = core.pendingCount,
-            lastSyncStatus = core.lastSyncStatus,
-            isSaving = extras.isSaving,
-            isSyncing = extras.isSyncing,
-            validationErrors = extras.validationErrors,
-            passwordResetFeedback = extras.passwordResetFeedback,
-            saveFeedback = extras.saveFeedback,
-        )
+        combine(
+            coreData,
+            extras,
+        ) { core, extras ->
+            if (core.settings == null) SettingsUiState.Loading
+            else SettingsUiState.Ready(
+                settings = core.settings,
+                profile = extras.profile,
+                selectedTheme = extras.theme,
+                pendingCount = core.pendingCount,
+                lastSyncStatus = core.lastSyncStatus,
+                isRemoteConfigured = authRepository.isConfigured(),
+                isSaving = extras.isSaving,
+                isSyncing = extras.isSyncing,
+                validationErrors = extras.validationErrors,
+                passwordResetFeedback = extras.passwordResetFeedback,
+                saveFeedback = extras.saveFeedback,
+                isDeletingAccount = extras.isDeletingAccount,
+                accountActionFeedback = extras.accountActionFeedback,
+            )
+        },
+        networkMonitor.isOnline,
+        _syncError,
+    ) { state, isOnline, syncError ->
+        when (state) {
+            is SettingsUiState.Ready -> state.copy(isOnline = isOnline, syncError = syncError)
+            else -> state
+        }
     }.catch { e ->
         emit(SettingsUiState.Error(e.message ?: "Unknown error"))
     }.stateIn(
@@ -129,6 +169,7 @@ class SettingsViewModel(
         timezone: String,
         clockStyle: ClockStyle,
         currency: CurrencyCode = CurrencyCode.ILS,
+        weekendDays: List<Int>,
         featureFlags: SettingsFeatureFlags? = null,
     ) {
         val errors = validate(dailyOtHours, weeklyOtHours, hourlyRate)
@@ -168,6 +209,7 @@ class SettingsViewModel(
                 timezone = timezone.trim(),
                 clockStyle = clockStyle,
                 currency = currency,
+                weekendDays = weekendDays,
                 featuresTravelRefunds = flags.travelRefunds,
                 featuresPaidProjects = flags.paidProjects,
                 featuresInsights = flags.insights,
@@ -184,6 +226,7 @@ class SettingsViewModel(
                     rules = defaultProfile.rules.copy(
                         dailyStandardMinutes = (dailyOtHours * 60).roundToInt(),
                         weeklyStandardMinutes = (weeklyOtHours * 60).roundToInt(),
+                        weekendDays = weekendDays,
                     ),
                 )
                 val savedProfile = compensationProfilesRepository.upsertProfile(updatedProfile)
@@ -207,6 +250,34 @@ class SettingsViewModel(
     fun clearSaveFeedback() {
         _saveFeedback.value = null
     }
+
+    fun clearAccountActionFeedback() {
+        _accountActionFeedback.value = null
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _isDeletingAccount.value = true
+            when (val result = authRepository.deleteAccount()) {
+                is AuthResult.Success ->
+                    _accountActionFeedback.value = "Account deleted"
+                is AuthResult.NotConfigured ->
+                    _accountActionFeedback.value = "Local data cleared"
+                is AuthResult.Error ->
+                    _accountActionFeedback.value = result.message
+            }
+            _isDeletingAccount.value = false
+        }
+    }
+
+    private data class AccountExtras(
+        val syncing: Boolean,
+        val errors: Map<String, String>,
+        val resetFeedback: String?,
+        val saveFeedback: SettingsSaveFeedback?,
+        val deleting: Boolean,
+        val accountFeedback: String?,
+    )
 
     private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
@@ -251,10 +322,20 @@ class SettingsViewModel(
     fun triggerSync() {
         viewModelScope.launch {
             _isSyncing.value = true
+            _syncError.value = null
             val userId = authRepository.getCurrentProfile()?.id
-            if (userId != null) syncRepository.syncAll(userId)
+            if (userId != null) {
+                _syncError.value = syncRepository.syncAll(userId).toUserMessage()
+            }
             _isSyncing.value = false
         }
+    }
+
+    private fun SyncResult.toUserMessage(): String? = when (this) {
+        is SyncResult.Success, SyncResult.NotConfigured -> null
+        is SyncResult.PartialSuccess ->
+            if (errors.isEmpty()) null else "${errors.size} items could not sync"
+        is SyncResult.Failure -> message
     }
 
     fun resetPassword() {
@@ -312,6 +393,7 @@ class SettingsViewModel(
                     authRepository = app.authRepository,
                     compensationProfilesRepository = app.compensationProfilesRepository,
                     themeStore = AppThemePreferenceStore(app.appPreferences),
+                    networkMonitor = app.networkMonitor,
                 )
             }
         }

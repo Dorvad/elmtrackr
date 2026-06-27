@@ -188,6 +188,20 @@ function LoginPageContent() {
             <Button type="submit" loading={loading} disabled={missingConfig} fullWidth size="lg" className="mt-1">
               {mode === "sign_in" ? "Sign In" : "Create Account"}
             </Button>
+
+            {mode === "sign_up" && (
+              <p className="text-xs text-center text-gray-400 leading-relaxed -mt-1">
+                By creating an account you agree to our{" "}
+                <Link href="/terms" className="font-semibold" style={{ color: "var(--au-indigo)" }}>
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="font-semibold" style={{ color: "var(--au-indigo)" }}>
+                  Privacy Policy
+                </Link>
+                .
+              </p>
+            )}
           </form>
         </div>
       </div>

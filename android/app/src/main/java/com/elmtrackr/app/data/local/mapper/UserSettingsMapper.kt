@@ -27,7 +27,7 @@ fun UserSettingsEntity.toDomain(): UserSettings = UserSettings(
     featuresPaidProjects = featuresPaidProjects,
     featuresInsights = featuresInsights,
     featuresClockStyles = featuresClockStyles,
-    clockStyle = ClockStyle.valueOf(clockStyle),
+    clockStyle = ClockStyle.fromPersisted(clockStyle),
     createdAt = Instant.ofEpochMilli(createdAt),
     updatedAt = Instant.ofEpochMilli(updatedAt),
 )

@@ -2,6 +2,7 @@ package com.elmtrackr.app.ui.design
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -39,6 +42,7 @@ import com.elmtrackr.app.ui.theme.auroraSyncedPillBackground
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import com.elmtrackr.app.ui.theme.auroraWeekendBackground
 import com.elmtrackr.app.ui.theme.auroraWeekendInk
+import com.elmtrackr.app.ui.sync.SyncStatusUi
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 
@@ -63,43 +67,43 @@ fun ElmSectionHeader(
 
 @Composable
 fun ElmSyncPill(
-    pendingCount: Int,
-    isRemoteConfigured: Boolean,
+    status: SyncStatusUi,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    val (label, color, bg) = when {
-        !isRemoteConfigured -> Triple(
-            "Offline",
-            auroraSecondaryText(),
-            auroraSurfaceSub(),
-        )
-        pendingCount > 0 -> Triple(
-            "↑ $pendingCount pending",
-            auroraOvertimeInk(),
-            auroraOvertimeBackground(),
-        )
-        else -> Triple(
-            "✓ Synced",
-            MaterialTheme.colorScheme.primary,
-            auroraSyncedPillBackground(),
-        )
+    val clickableModifier = if (status.isActionable && onClick != null) {
+        Modifier
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = status.contentDescription }
+    } else {
+        Modifier.semantics { contentDescription = status.contentDescription }
     }
-    Box(
+    Row(
         modifier = modifier
+            .then(clickableModifier)
             .shadow(
-                elevation = if (pendingCount > 0) 4.dp else 2.dp,
+                elevation = if (status.isActionable) 4.dp else 2.dp,
                 shape = RoundedCornerShape(50),
                 ambientColor = AuroraIndigo.copy(alpha = 0.08f),
                 spotColor = AuroraIndigo.copy(alpha = 0.2f),
             )
-            .background(bg, RoundedCornerShape(50))
+            .background(status.background, RoundedCornerShape(50))
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), RoundedCornerShape(50))
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        if (status.showSpinner) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(12.dp),
+                strokeWidth = 2.dp,
+                color = status.color,
+            )
+        }
         Text(
-            text  = label,
+            text = status.shortLabel,
             style = MaterialTheme.typography.labelSmall,
-            color = color,
+            color = status.color,
             fontWeight = FontWeight.Medium,
         )
     }

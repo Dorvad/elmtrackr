@@ -26,14 +26,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.elmtrackr.app.domain.PayrollCalculator
-import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.RefundProvider
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.ui.auth.SignedOutContent
-import com.elmtrackr.app.ui.onboarding.ClockStyleStep
+import com.elmtrackr.app.ui.onboarding.FeaturesStep
 import com.elmtrackr.app.ui.onboarding.PaySetupStep
 import com.elmtrackr.app.ui.onboarding.OnboardingProgress
 import com.elmtrackr.app.ui.onboarding.ProfileStep
@@ -71,8 +70,8 @@ class ScreenshotRegressionTest {
     }
 
     @Test
-    fun onboardingClockStyles() = verify("onboarding-clock-styles") {
-        OnboardingTestColumn(6) { ClockStyleStep(ClockStyle.CLASSIC, {}, {}, {}) }
+    fun onboardingFeatures() = verify("onboarding-features") {
+        OnboardingTestColumn(6) { FeaturesStep(false, true, {}, {}, {}, {}) }
     }
 
     @Test
@@ -99,7 +98,7 @@ class ScreenshotRegressionTest {
     @Test
     fun onboardingReview() = verify("onboarding-review") {
         OnboardingTestColumn(7) {
-            ReviewStep("Dor", 50.0, CurrencyCode.ILS, listOf(5, 6), ClockStyle.AURORA, 3, null, {}, {})
+            ReviewStep("Dor", 50.0, CurrencyCode.ILS, "Israel", listOf(5, 6), 2, null, {}, {})
         }
     }
 

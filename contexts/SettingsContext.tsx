@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { UserSettings } from "@/types";
+import { normalizeClockStyle } from "@/types";
 import { DEFAULT_WEEKEND_DAYS } from "@/lib/shifts/weekend";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -70,6 +71,10 @@ const DEFAULT_SETTINGS: Omit<
 
 const CACHE_KEY = "elmtrackr-settings-v1";
 
+function normalizeSettings(s: UserSettings): UserSettings {
+  return { ...s, clock_style: normalizeClockStyle(s.clock_style) };
+}
+
 function readCache(): UserSettings | null {
   if (typeof window === "undefined") return null;
   try {
@@ -77,7 +82,7 @@ function readCache(): UserSettings | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as UserSettings;
     if (typeof parsed?.id !== "string") return null;
-    return parsed;
+    return normalizeSettings(parsed);
   } catch {
     return null;
   }
@@ -135,7 +140,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (err) { setError(err.message); setLoading(false); return; }
 
       if (data) {
-        const s = data as UserSettings;
+        const s = normalizeSettings(data as UserSettings);
         setSettings(s);
         writeCache(s);
       } else {
@@ -146,7 +151,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           .select()
           .single();
         if (!insertErr && mounted) {
-          const s = created as UserSettings;
+          const s = normalizeSettings(created as UserSettings);
           setSettings(s);
           writeCache(s);
         }
@@ -167,7 +172,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         .select()
         .single();
       if (err) throw new Error(err.message);
-      const s = data as UserSettings;
+      const s = normalizeSettings(data as UserSettings);
       setSettings(s);
       writeCache(s);
     },
