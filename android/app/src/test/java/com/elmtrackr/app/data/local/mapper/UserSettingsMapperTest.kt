@@ -58,6 +58,18 @@ class UserSettingsMapperTest {
     fun `toDomain maps clockStyle enum`() {
         assertEquals(ClockStyle.AURORA, entity(clockStyle = "AURORA").toDomain().clockStyle)
         assertEquals(ClockStyle.CLASSIC, entity(clockStyle = "CLASSIC").toDomain().clockStyle)
+        assertEquals(ClockStyle.FELLOWSHIP, entity(clockStyle = "FELLOWSHIP").toDomain().clockStyle)
+    }
+
+    @Test
+    fun `toDomain falls back to CLASSIC for unknown clockStyle`() {
+        assertEquals(ClockStyle.CLASSIC, entity(clockStyle = "NOT_A_REAL_STYLE").toDomain().clockStyle)
+        assertEquals(ClockStyle.CLASSIC, entity(clockStyle = "").toDomain().clockStyle)
+    }
+
+    @Test
+    fun `toDomain accepts lowercase persisted clockStyle`() {
+        assertEquals(ClockStyle.FELLOWSHIP, entity(clockStyle = "fellowship").toDomain().clockStyle)
     }
 
     @Test
