@@ -10,4 +10,5 @@ data class ShiftFormInput(
     val notes: String,
     val isSpecialDay: Boolean,
     val refundAction: RefundAction?,
+    val compensationProfileId: String? = null,
 )

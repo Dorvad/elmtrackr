@@ -6,10 +6,13 @@ import com.elmtrackr.app.fake.FakeCurrentUserProvider
 import com.elmtrackr.app.fake.FakeRefundsRepository
 import com.elmtrackr.app.fake.FakeRefundReceiptStorage
 import com.elmtrackr.app.fake.FakeShiftsRepository
+import com.elmtrackr.app.domain.compensation.RegionPresets
+import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.ReceiptUpload
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
+import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.util.MainDispatcherRule
@@ -484,6 +487,43 @@ class ShiftsViewModelTest {
         assertNull(claim.receiptPath)
         assertEquals(true, completed)
         assertTrue(vm.refundNotice.value?.contains("saved without") == true)
+    }
+
+    @Test
+    fun `create shift uses selected compensation profile`() = runTest {
+        seedSettings()
+        val ilPreset = RegionPresets.forRegion(RegionCode.IL)
+        val profile = CompensationProfile(
+            id = "profile-b",
+            userId = "u1",
+            name = "Night rate",
+            regionCode = RegionCode.IL,
+            currencyCode = "ILS",
+            timezone = "Asia/Jerusalem",
+            baseHourlyRate = 55.0,
+            rules = ilPreset.rules,
+            stackingPolicy = ilPreset.stackingPolicy,
+            isDefault = false,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        compensationRepo.setProfiles(profile)
+        val vm = buildVm()
+
+        vm.createShift(
+            ShiftFormInput(
+                startTime = Instant.parse("2024-01-08T09:00:00Z"),
+                endTime = Instant.parse("2024-01-08T17:00:00Z"),
+                breakMinutes = 0,
+                notes = "",
+                isSpecialDay = false,
+                refundAction = null,
+                compensationProfileId = "profile-b",
+            ),
+        )
+        advanceUntilIdle()
+
+        assertEquals("profile-b", shiftsRepo.currentShifts.single().compensationProfileId)
     }
 
     private fun specialDayShift() = Shift(

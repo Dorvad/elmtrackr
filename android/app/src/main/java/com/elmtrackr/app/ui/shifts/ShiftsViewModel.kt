@@ -155,7 +155,7 @@ class ShiftsViewModel(
                 notes = input.notes.ifBlank { null },
                 isSpecialDay = input.isSpecialDay,
                 refundAction = input.refundAction,
-                compensationProfileId = settings.defaultCompensationProfileId,
+                compensationProfileId = input.compensationProfileId ?: settings.defaultCompensationProfileId,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -186,6 +186,7 @@ class ShiftsViewModel(
                 notes = input.notes.ifBlank { null },
                 isSpecialDay = input.isSpecialDay,
                 refundAction = existing.refundAction,
+                compensationProfileId = input.compensationProfileId ?: existing.compensationProfileId,
                 updatedAt = Instant.now(),
             )
             val payAffecting = updated.startTime != existing.startTime ||

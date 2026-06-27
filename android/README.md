@@ -2,14 +2,15 @@
 
 > CI debug APKs pick up `SUPABASE_URL` and `SUPABASE_ANON_KEY` from GitHub Actions secrets at build time.
 
-> **Implementation status (2026-06-21):** Authenticated user identity, one-time
+> **Implementation status (2026-06-25):** Authenticated user identity, one-time
 > legacy-data adoption, account-isolated offline sync, current Supabase wire
-> formats, auth callbacks, live theme selection, shift month navigation, basic
-> insights, refund claim editing, and debug/release verification are implemented.
+> formats, auth callbacks, live theme selection, shift month navigation, insights
+> (feature-gated), refund claim editing with CameraX receipt capture and PDF
+> export, compensation profiles on shift create/edit, weekly/month-over-month
+> report comparisons, and debug/release verification are implemented.
 > Remaining parity work is intentionally tracked as separate deliverables:
-> receipt capture/storage and refund PDF export, eight additional native clock
-> renderers, advanced motion, staged onboarding, fuller weekly
-> comparisons, and emulator/device instrumentation.
+> eight additional native clock renderers, advanced motion, staged onboarding
+> polish, and broader emulator/device instrumentation coverage.
 
 Native Kotlin + Jetpack Compose app that lives in this directory alongside the
 Next.js web app. The two share the same Supabase backend but have completely
@@ -477,6 +478,8 @@ The `ShiftsScreen` (`ui/shifts/ShiftsScreen.kt`) is fully functional and offline
 | Edit an existing shift | ✅ offline-first (`PENDING_UPDATE`) |
 | Delete a shift | ✅ soft-delete (`PENDING_DELETE`) |
 | Break minutes, notes, special-day flag | ✅ |
+| Compensation profile picker (when profiles exist) | ✅ create + edit |
+| Travel refund claims (CameraX + gallery, upload/sync) | ✅ feature-gated by `featuresTravelRefunds` |
 | Travel refund action (conditional on `featuresTravelRefunds` setting) | ✅ |
 | Validation: end time must be after start time; break ≥ 0 | ✅ |
 | Empty-state prompt with FAB | ✅ |
@@ -539,7 +542,7 @@ The `SettingsScreen` (`ui/settings/SettingsScreen.kt`) is fully functional with 
 - Errors appear inline under the offending field via `supportingText`.
 
 **Clock styles:**
-All fourteen supported `ClockStyle` values render natively on the dashboard.
+The settings dropdown lists all supported `ClockStyle` values. Only **Classic**, **Minimal**, and **Aurora** render natively on the dashboard; any other persisted value (including legacy styles) falls back to Classic via `ClockStyle.fromPersisted()`.
 
 **Known limitations:**
 - Theme change takes effect immediately (DataStore + Compose recomposition).
@@ -558,8 +561,14 @@ The `ReportsScreen` (`ui/reports/ReportsScreen.kt`) is fully functional and read
 | Payroll estimate (total, regular, OT, special) | ✅ shown when hourly rate set |
 | "Set hourly rate in Settings" hint when no rate | ✅ |
 | Per-week breakdown for selected month | ✅ ISO Monday-anchored weeks |
+| Week-over-week delta vs prior month (when data exists) | ✅ |
+| Month-over-month total hours comparison | ✅ |
 | CSV export via Android share sheet | ✅ `elmtrackr-YYYY-MM.csv` |
+| PDF export (hours report) | ✅ `ReportExporter.shareShiftPdf` |
+| Daily insights carousel | ✅ feature-gated by `featuresInsights` |
+| Shift insights stat grid | ✅ when insights enabled |
 | Travel refund review (unresolved shifts) | ✅ feature-gated by `featuresTravelRefunds` |
+| Refund reimbursement PDF export (per month + all months) | ✅ embeds receipt images when available |
 | Empty state | ✅ |
 | Loading / error state | ✅ |
 
@@ -573,7 +582,15 @@ Uses Israeli payroll tiers (100/125/150% weekday, 150/175/200% Shabbat/holiday).
 
 **Weekly breakdown:**
 Computed from the selected month's completed shifts via `WeeklyBreakdownBuilder.groupByWeek()`.
-Shows ISO Monday-anchored week start date, total hours, and shift count.
+Shows ISO Monday-anchored week start date, total hours, shift count, and optional
+delta vs the overlapping week in the previous month (`prevMonthMinutes`).
+
+**PDF export behaviour:**
+- **Hours tab:** `ReportExporter.shareShiftPdf` — monthly shift summary PDF via share sheet.
+- **Refunds tab:** `ReportExporter.shareRefundPdf` — reimbursement packet with claim details and embedded receipt images (when signed URLs resolve).
+
+**Insights gating:**
+When `featuresInsights` is off, Reports shows a disabled-state card instead of daily insight cards and the shift insights grid.
 
 **CSV export behaviour:**
 - Columns: `Date, Start Time, End Time, Gross Min, Break Min, Net Min, Special Day, Notes[, Gross Pay]`
@@ -747,11 +764,46 @@ the active-shift observer fires.
 | ✅ 6 — Data sync | Offline-first sync engine: Room + Supabase PostgREST + WorkManager |
 | ✅ 7 — App shell | Auth-aware navigation, onboarding flow, 4-tab main shell, auth section in Settings |
 | ✅ 8 — Auth & Onboarding UI | Usable auth screen (logo, password toggle, validation); full onboarding form |
-| ✅ 9 — Dashboard | Live timer, 3 clock styles, edit start time, month summary, recent shifts, sync status |
-| ✅ 10 — Shifts | Full shift history, create/edit/delete (offline-first), date+time pickers, validation |
-| ✅ 11 — Reports | Monthly summary, payroll estimate, weekly breakdown, CSV export, travel refund review |
+| ✅ 9 — Dashboard | Live timer, 3 native clock styles (Classic/Minimal/Aurora), edit start time, month summary, recent shifts, sync status |
+| ✅ 10 — Shifts | Full shift history, create/edit/delete (offline-first), date+time pickers, validation, compensation profile picker |
+| ✅ 11 — Reports | Monthly summary, payroll estimate, weekly breakdown with prior-month deltas, CSV + PDF export, insights, travel refund review |
 | ✅ 12 — Settings | Full settings form, feature toggles, theme, weekend days, sync section, account |
 | ✅ 13 — Native features | Active-shift notification, clock-out action, long-shift reminder, app shortcuts |
 | ✅ 14 — Home screen widget | Jetpack Glance 4×1 widget: active shift status + Clock In / Clock Out actions |
-| 15 — Refunds | CameraX receipt capture, refund claim management |
-| 16 — Polish | Visual redesign, animations, headless shortcut clock-out | ✅ headless shortcut, aurora mesh, nav blur, theme hot-reload, IANA timezone picker |
+| ✅ 15 — Refunds | CameraX receipt capture, gallery import, Supabase receipt storage/sync, refund claim management, reimbursement PDF export |
+| ✅ 16 — Polish | Visual redesign, animations, headless shortcut clock-out, aurora mesh backgrounds, bottom-nav blur (API 31+), theme hot-reload, IANA timezone picker |
+
+---
+
+## Testing
+
+### Unit tests
+
+```bash
+cd android && ./gradlew :app:testDebugUnitTest
+```
+
+Covers payroll/overtime calculators, sync mappers, ViewModels, timezone helpers, and report builders.
+
+### Instrumentation (device / emulator)
+
+```bash
+cd android && ./gradlew :app:connectedDebugAndroidTest
+```
+
+| Suite | What it covers |
+|---|---|
+| `MainActivitySmokeTest` | Main activity launches without crashing |
+| `ScreenshotRegressionTest` | Compose golden screenshots for auth, onboarding, reports, shifts, dashboard skeleton |
+| `ShiftDaoTest`, `SettingsDaoTest`, `ElmTrackrDatabaseMigrationTest` | Room DAO + migration integrity |
+
+**Recording screenshot goldens** (on a device/emulator):
+
+```bash
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.recordScreenshots=true
+```
+
+PNG files are written to the app's external files dir under `screenshots/`. Copy them into `app/src/androidTest/assets/goldens/` before committing updated baselines.
+
+> Screenshot tests require golden PNGs in `androidTest/assets/goldens/`. CI currently runs unit tests only; connected tests are run locally or on a device farm before release.

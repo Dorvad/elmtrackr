@@ -115,6 +115,7 @@ import java.time.Month
 import java.time.YearMonth
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
 import kotlin.math.abs
 
@@ -235,6 +236,9 @@ fun ReportsScreen(
                                             ),
                                             viewModel.csvFilename(state.year, state.month),
                                         )
+                                    },
+                                    onExportPdf = {
+                                        ReportExporter.shareShiftPdf(context, state)
                                     },
                                 )
                             }
@@ -359,6 +363,7 @@ private fun ReportsEmptyContent() = ElmEmptyState(
 internal fun HoursReport(
     state: ReportsUiState.Ready,
     onExportCsv: () -> Unit,
+    onExportPdf: () -> Unit,
 ) {
     val currency = state.settings?.currency ?: CurrencyCode.ILS
     val report = state.report
@@ -372,19 +377,33 @@ internal fun HoursReport(
                 Column(Modifier.fillMaxWidth()) {
                     DistributionHeader(report)
                     Spacer(Modifier.height(12.dp))
-                    OutlinedButton(onClick = onExportCsv, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Filled.Share, null, Modifier.size(14.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("CSV", style = MaterialTheme.typography.labelMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = onExportCsv, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Filled.Share, null, Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("CSV", style = MaterialTheme.typography.labelMedium)
+                        }
+                        OutlinedButton(onClick = onExportPdf, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Filled.PictureAsPdf, null, Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("PDF", style = MaterialTheme.typography.labelMedium)
+                        }
                     }
                 }
             } else {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                     DistributionHeader(report, Modifier.weight(1f))
-                    OutlinedButton(onClick = onExportCsv) {
-                        Icon(Icons.Filled.Share, null, Modifier.size(14.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("CSV", style = MaterialTheme.typography.labelMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = onExportCsv) {
+                            Icon(Icons.Filled.Share, null, Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("CSV", style = MaterialTheme.typography.labelMedium)
+                        }
+                        OutlinedButton(onClick = onExportPdf) {
+                            Icon(Icons.Filled.PictureAsPdf, null, Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("PDF", style = MaterialTheme.typography.labelMedium)
+                        }
                     }
                 }
             }
@@ -405,6 +424,40 @@ internal fun HoursReport(
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         ElmStatCard("Overtime", formatHoursDecimal(report.overtimeMinutes) + "h", Modifier.weight(1f), variant = ElmStatVariant.OVERTIME)
         ElmStatCard("Weekend", formatHoursDecimal(report.weekendMinutes) + "h", Modifier.weight(1f), variant = ElmStatVariant.WEEKEND)
+    }
+
+    if (state.previousMonthMinutes > 0) {
+        val delta = report.totalMinutes - state.previousMonthMinutes
+        val deltaColor = when {
+            delta > 0 -> Color(0xFF10B981)
+            delta < 0 -> Color(0xFFF43F5E)
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+        val arrow = when {
+            delta > 0 -> "↑"
+            delta < 0 -> "↓"
+            else -> "—"
+        }
+        val prevMonthName = YearMonth.of(state.year, state.month).minusMonths(1)
+            .month.getDisplayName(JavaTextStyle.SHORT, Locale.getDefault())
+        Spacer(Modifier.height(14.dp))
+        ReportCard {
+            Text("Month over month", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(4.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${formatHoursDecimal(report.totalMinutes)}h this month",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    "$arrow ${formatHoursDecimal(abs(delta))}h vs $prevMonthName",
+                    color = deltaColor,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+        }
     }
 
     // ── Gross pay (web: only when total_gross > 0) ────────────────────────────
@@ -433,7 +486,22 @@ internal fun HoursReport(
     }
 
     // ── Daily Insights carousel (web: features_insights) ──────────────────────
-    if (state.dailyInsights.isNotEmpty()) {
+    if (state.settings?.featuresInsights == false) {
+        Spacer(Modifier.height(18.dp))
+        ReportCard {
+            Text(
+                "Insights are turned off",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Enable Insights in Settings → Features to see daily cards and shift stats here.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    } else if (state.dailyInsights.isNotEmpty()) {
         Spacer(Modifier.height(18.dp))
         InsightOfTheDay(state.dailyInsights)
     }
