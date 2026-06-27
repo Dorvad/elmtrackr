@@ -364,7 +364,7 @@ internal fun ShiftsMonthCard(
             IconButton(
                 onClick = onPrevious,
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(48.dp)
                     .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
             ) {
                 Icon(Icons.Filled.ChevronLeft, "Previous month", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -388,7 +388,7 @@ internal fun ShiftsMonthCard(
                 onClick = onNext,
                 enabled = canGoNext,
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(48.dp)
                     .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
             ) {
                 Icon(

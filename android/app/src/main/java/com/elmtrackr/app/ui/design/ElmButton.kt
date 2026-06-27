@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
@@ -38,6 +40,7 @@ fun ElmGradientButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     compact: Boolean = false,
+    accessibilityLabel: String? = null,
     content: @Composable () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -65,6 +68,13 @@ fun ElmGradientButton(
         modifier = modifier
             .then(if (compact) Modifier else Modifier.fillMaxWidth())
             .heightIn(min = if (compact) 36.dp else 52.dp)
+            .then(
+                if (accessibilityLabel != null) {
+                    Modifier.semantics { contentDescription = accessibilityLabel }
+                } else {
+                    Modifier
+                },
+            )
             .auroraPressScale(interactionSource)
             .shadow(
                 elevation = if (enabled) 10.dp else 0.dp,

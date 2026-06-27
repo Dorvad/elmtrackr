@@ -96,6 +96,8 @@ import androidx.compose.foundation.layout.widthIn
 import com.elmtrackr.app.ui.design.ElmCard
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.design.ElmSyncPill
+import com.elmtrackr.app.ui.sync.resolveSyncStatus
 import com.elmtrackr.app.ui.theme.AuroraFaint
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraInk2
@@ -166,7 +168,6 @@ fun SettingsScreen(
                 authState     = authState,
                 onSave        = viewModel::saveSettings,
                 onSignOut     = onSignOut,
-                onWeekendDays = viewModel::updateWeekendDays,
                 onTheme       = viewModel::saveTheme,
                 onSync        = viewModel::triggerSync,
                 onResetPassword = viewModel::resetPassword,
@@ -190,9 +191,8 @@ fun SettingsScreen(
 private fun SettingsContent(
     state: SettingsUiState.Ready,
     authState: AuthUiState?,
-    onSave: (String, Double, Double, Double?, String, ClockStyle, CurrencyCode, SettingsFeatureFlags) -> Unit,
+    onSave: (String, Double, Double, Double?, String, ClockStyle, CurrencyCode, List<Int>, SettingsFeatureFlags) -> Unit,
     onSignOut: () -> Unit,
-    onWeekendDays: (List<Int>) -> Unit,
     onTheme: (String) -> Unit,
     onSync: () -> Unit,
     onResetPassword: () -> Unit,
@@ -214,6 +214,7 @@ private fun SettingsContent(
     var travelRefunds by remember(state.settings.featuresTravelRefunds)          { mutableStateOf(state.settings.featuresTravelRefunds) }
     var insights      by remember(state.settings.featuresInsights)               { mutableStateOf(state.settings.featuresInsights) }
     var clockStyles   by remember(state.settings.featuresClockStyles)            { mutableStateOf(state.settings.featuresClockStyles) }
+    var weekendDays   by remember(state.settings.weekendDays)                    { mutableStateOf(state.settings.weekendDays) }
 
     var appearanceExpanded by rememberSaveable { mutableStateOf(false) }
     var payrollExpanded by rememberSaveable { mutableStateOf(false) }
@@ -246,6 +247,7 @@ private fun SettingsContent(
             timezone,
             clockStyle,
             currency,
+            weekendDays,
             SettingsFeatureFlags(
                 travelRefunds = travelRefunds,
                 paidProjects = state.settings.featuresPaidProjects,
@@ -255,9 +257,60 @@ private fun SettingsContent(
         )
     }
 
+    val isDirty = displayName.trim() != (state.profile?.fullName ?: "").trim() ||
+        dailyOtText != minutesToHours(state.settings.dailyOvertimeThresholdMinutes) ||
+        weeklyOtText != minutesToHours(state.settings.weeklyOvertimeThresholdMinutes) ||
+        hourlyRateText != (state.settings.hourlyRate?.toString() ?: "") ||
+        timezone != state.settings.timezone ||
+        clockStyle != supportedClockStyleOf(state.settings.clockStyle) ||
+        currency != state.settings.currency ||
+        weekendDays.sorted() != state.settings.weekendDays.sorted() ||
+        travelRefunds != state.settings.featuresTravelRefunds ||
+        insights != state.settings.featuresInsights ||
+        clockStyles != state.settings.featuresClockStyles
+
+    val syncStatus = resolveSyncStatus(
+        isRemoteConfigured = state.isRemoteConfigured,
+        isOnline = state.isOnline,
+        isSyncing = state.isSyncing,
+        pendingCount = state.pendingCount,
+        lastSyncStatus = state.lastSyncStatus,
+        syncError = state.syncError,
+    )
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            AnimatedVisibility(visible = isDirty) {
+                Surface(
+                    tonalElevation = 3.dp,
+                    shadowElevation = 8.dp,
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.screenH, vertical = 12.dp),
+                    ) {
+                        Text(
+                            "You have unsaved changes",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        ElmGradientButton(
+                            onClick = saveAction,
+                            enabled = !state.isSaving,
+                            accessibilityLabel = "Save settings",
+                        ) {
+                            Text(if (state.isSaving) "Saving..." else "Save Settings", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+        },
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -274,7 +327,7 @@ private fun SettingsContent(
             item {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Expand a section to edit it. Theme and weekend days save immediately; everything else uses Save Settings.",
+                    "Theme saves immediately. Everything else uses the save bar when you have unsaved changes.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -324,7 +377,7 @@ private fun SettingsContent(
                         currency = currency,
                         dailyOtText = dailyOtText,
                         weeklyOtText = weeklyOtText,
-                        weekendDays = state.settings.weekendDays,
+                        weekendDays = weekendDays,
                         timezone = timezone,
                     ),
                     expanded = payrollExpanded,
@@ -370,12 +423,12 @@ private fun SettingsContent(
                     PayrollSubsectionTitle("Weekend days")
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Selected days count as weekends for overtime and reports. Saves immediately.",
+                        "Selected days count as weekends for overtime and reports.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(8.dp))
-                    WeekendDaysSelector(selected = state.settings.weekendDays, onChange = onWeekendDays)
+                    WeekendDaysSelector(selected = weekendDays, onChange = { weekendDays = it })
                     Spacer(Modifier.height(16.dp))
                     PayrollSubsectionTitle("Location")
                     Spacer(Modifier.height(8.dp))
@@ -412,42 +465,31 @@ private fun SettingsContent(
             }
 
             item {
-                ElmCard(modifier = Modifier.padding(vertical = 8.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                        Text(
-                            "Save your profile, payroll, and feature changes",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "Theme and weekend days are saved as you change them.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        ElmGradientButton(
-                            onClick  = saveAction,
-                            enabled  = !state.isSaving,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(if (state.isSaving) "Saving..." else "Save Settings", fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
-            }
-
-            item {
                 SettingsSectionCard("Sync") {
-                    InfoRow("Pending changes", state.pendingCount.toString())
-                    InfoRow("Last sync",       state.lastSyncStatus ?: "Never")
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick  = onSync,
-                        enabled  = !state.isSyncing,
-                        modifier = Modifier.fillMaxWidth(),
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(if (state.isSyncing) "Syncing..." else "Sync Now")
+                        Text("Status", style = MaterialTheme.typography.bodyMedium)
+                        ElmSyncPill(
+                            status = syncStatus,
+                            onClick = if (syncStatus.isActionable) onSync else null,
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        syncStatus.detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (syncStatus.isActionable) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Tap the status pill to sync now.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                     }
                 }
             }
@@ -487,7 +529,7 @@ private fun SettingsContent(
                 }
             }
 
-            item { Spacer(Modifier.height(32.dp)) }
+            item { Spacer(Modifier.height(if (isDirty) 96.dp else 32.dp)) }
         }
     }
 }
@@ -1086,9 +1128,8 @@ private fun SettingsScreenPreview() {
                 settings = UserSettings(id = "s1", userId = "u1", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH),
             ),
             authState       = AuthUiState.NotConfigured,
-            onSave          = { _, _, _, _, _, _, _, _ -> },
+            onSave          = { _, _, _, _, _, _, _, _, _ -> },
             onSignOut       = {},
-            onWeekendDays   = {},
             onTheme         = {},
             onSync          = {},
             onResetPassword = {},

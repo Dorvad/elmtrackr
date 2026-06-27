@@ -387,6 +387,7 @@ export function ClockWidget({
         <button
           onClick={handlePress}
           disabled={loading}
+          aria-label={isClockedIn ? "Clock out. End your current shift." : "Clock in. Start tracking your shift."}
           className="clock-btn relative w-full rounded-[18px] py-4 text-base font-bold tracking-wide transition-all duration-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
           style={
             isClockedIn
@@ -493,6 +494,7 @@ const MinimalClock = React.memo(function MinimalClock({ isClockedIn, elapsedSeco
         <button
           onClick={onPress}
           disabled={loading}
+          aria-label={isClockedIn ? "Clock out. End your current shift." : "Clock in. Start tracking your shift."}
           className="clock-btn w-full rounded-[18px] py-3.5 text-sm font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60"
           style={
             isClockedIn
@@ -575,6 +577,7 @@ const BoldClock = React.memo(function BoldClock({ isClockedIn, elapsedSeconds, i
         <button
           onClick={onPress}
           disabled={loading}
+          aria-label={isClockedIn ? "Clock out. End your current shift." : "Clock in. Start tracking your shift."}
           className="clock-btn w-full rounded-[18px] py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60"
           style={
             isClockedIn
@@ -677,6 +680,7 @@ const FocusClock = React.memo(function FocusClock({ isClockedIn, elapsedSeconds,
         <button
           onClick={onPress}
           disabled={loading}
+          aria-label={isClockedIn ? "Clock out. End your current shift." : "Clock in. Start tracking your shift."}
           className="clock-btn w-full rounded-[18px] py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60"
           style={
             isClockedIn
@@ -813,6 +817,7 @@ const NightClock = React.memo(function NightClock({ isClockedIn, elapsedSeconds,
       <button
         onClick={onPress}
         disabled={loading}
+        aria-label={isClockedIn ? "Clock out. End your current shift." : "Clock in. Start tracking your shift."}
         className="clock-btn relative w-full rounded-[18px] py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60"
         style={
           isClockedIn
@@ -915,6 +920,7 @@ const RetroClock = React.memo(function RetroClock({ isClockedIn, elapsedSeconds,
         <button
           onClick={onPress}
           disabled={loading}
+          aria-label={isClockedIn ? "Clock out. End your current shift." : "Clock in. Start tracking your shift."}
           className="clock-btn w-full rounded-[18px] py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60"
           style={
             isClockedIn
@@ -1041,6 +1047,7 @@ const AuroraClock = React.memo(function AuroraClock({ isClockedIn, elapsedSecond
         <button
           onClick={onPress}
           disabled={loading}
+          aria-label={isClockedIn ? "Clock out. End your current shift." : "Clock in. Start tracking your shift."}
           className="clock-btn w-full rounded-[18px] py-3.5 text-sm font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60"
           style={
             isClockedIn
@@ -1155,6 +1162,7 @@ const PulseClock = React.memo(function PulseClock({ isClockedIn, elapsedSeconds,
         <button
           onClick={onPress}
           disabled={loading}
+          aria-label={isClockedIn ? "Clock out. End your current shift." : "Clock in. Start tracking your shift."}
           className="clock-btn w-full rounded-[18px] py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60"
           style={
             isClockedIn
@@ -1266,6 +1274,7 @@ const DialClock = React.memo(function DialClock({ isClockedIn, elapsedSeconds, i
         <button
           onClick={onPress}
           disabled={loading}
+          aria-label={isClockedIn ? "Clock out. End your current shift." : "Clock in. Start tracking your shift."}
           className="clock-btn w-full rounded-[18px] py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60"
           style={
             isClockedIn
@@ -1399,6 +1408,7 @@ const StrandClock = React.memo(function StrandClock({ isClockedIn, elapsedSecond
         <button
           onClick={onPress}
           disabled={loading}
+          aria-label={isClockedIn ? "Clock out. End your current shift." : "Clock in. Start tracking your shift."}
           className="clock-btn w-full rounded-[18px] py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60"
           style={
             isClockedIn
@@ -1528,6 +1538,7 @@ const PrismClock = React.memo(function PrismClock({ isClockedIn, elapsedSeconds,
         <button
           onClick={onPress}
           disabled={loading}
+          aria-label={isClockedIn ? "Clock out. End your current shift." : "Clock in. Start tracking your shift."}
           className="clock-btn w-full rounded-[18px] py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60"
           style={
             isClockedIn
@@ -1772,6 +1783,7 @@ function ExpressiveClockButton({
     <button
       onClick={onPress}
       disabled={loading}
+      aria-label={isClockedIn ? "Clock out. End your current shift." : "Clock in. Start tracking your shift."}
       className="clock-btn w-full rounded-[18px] py-4 text-base font-bold tracking-wide transition-all active:scale-95 disabled:opacity-60"
       style={
         isClockedIn

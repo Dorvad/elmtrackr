@@ -158,7 +158,7 @@ function ClaimCard({
               <button
                 type="button"
                 onClick={() => setShowForm(true)}
-                className="w-full rounded-xl bg-indigo-600 text-white text-sm font-bold py-2 hover:bg-indigo-700 active:scale-[0.98] transition-all"
+                className="w-full rounded-xl bg-indigo-600 text-white text-sm font-bold py-3 min-h-12 hover:bg-indigo-700 active:scale-[0.98] transition-all"
               >
                 Add receipt claim
               </button>
@@ -166,14 +166,14 @@ function ClaimCard({
                 <button
                   type="button"
                   onClick={() => handleActionClick("no_ride_taken")}
-                  className="flex-1 rounded-xl border border-gray-200 text-gray-500 text-sm font-semibold py-1.5 hover:bg-white transition-all"
+                  className="flex-1 rounded-xl border border-gray-200 text-gray-500 text-sm font-semibold py-3 min-h-12 hover:bg-white transition-all"
                 >
                   No ride taken
                 </button>
                 <button
                   type="button"
                   onClick={() => handleActionClick("remind_later")}
-                  className="flex-1 rounded-xl border border-amber-200 text-amber-600 text-sm font-semibold py-1.5 hover:bg-amber-50 transition-all"
+                  className="flex-1 rounded-xl border border-amber-200 text-amber-600 text-sm font-semibold py-3 min-h-12 hover:bg-amber-50 transition-all"
                 >
                   Remind me later
                 </button>
@@ -199,14 +199,15 @@ function ClaimCard({
               <button
                 type="button"
                 onClick={() => setShowForm(true)}
-                className="flex-1 rounded-xl bg-indigo-600 text-white text-sm font-bold py-2 hover:bg-indigo-700 transition-all"
+                className="flex-1 rounded-xl bg-indigo-600 text-white text-sm font-bold py-3 min-h-12 hover:bg-indigo-700 transition-all"
               >
                 Add receipt now
               </button>
               <button
                 type="button"
                 onClick={() => handleActionClick("no_ride_taken")}
-                className="rounded-xl border border-gray-200 text-gray-500 text-sm font-semibold px-3 py-2 hover:bg-white transition-all"
+                className="rounded-xl border border-gray-200 text-gray-500 text-sm font-semibold px-3 py-3 min-h-12 hover:bg-white transition-all"
+                aria-label="Mark as no ride taken"
               >
                 No ride
               </button>
@@ -218,7 +219,7 @@ function ClaimCard({
             <button
               type="button"
               onClick={() => setShowForm(true)}
-              className="w-full rounded-xl bg-indigo-600 text-white text-sm font-bold py-2 hover:bg-indigo-700 active:scale-[0.98] transition-all"
+              className="w-full rounded-xl bg-indigo-600 text-white text-sm font-bold py-3 min-h-12 hover:bg-indigo-700 active:scale-[0.98] transition-all"
             >
               Add receipt claim
             </button>
@@ -253,7 +254,8 @@ function ClaimCard({
                 <button
                   type="button"
                   onClick={() => setShowForm(true)}
-                  className="text-xs text-indigo-600 font-semibold underline hover:text-indigo-800"
+                  aria-label={`Edit ${label} refund claim`}
+                  className="text-xs text-indigo-600 font-semibold underline hover:text-indigo-800 min-h-12 px-2"
                 >
                   Edit
                 </button>
@@ -261,7 +263,8 @@ function ClaimCard({
                   type="button"
                   onClick={handleDelete}
                   disabled={saving}
-                  className="text-xs text-red-400 font-semibold underline hover:text-red-600"
+                  aria-label={`Delete ${label} refund claim`}
+                  className="text-xs text-red-400 font-semibold underline hover:text-red-600 min-h-12 px-2"
                 >
                   Delete
                 </button>
@@ -370,14 +373,14 @@ function ClaimCard({
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 rounded-xl bg-indigo-600 text-white text-sm font-bold py-2.5 hover:bg-indigo-700 disabled:opacity-60 transition-all"
+              className="flex-1 rounded-xl bg-indigo-600 text-white text-sm font-bold py-3 min-h-12 hover:bg-indigo-700 disabled:opacity-60 transition-all"
             >
               {saving ? "Saving…" : "Save Claim"}
             </button>
             <button
               type="button"
               onClick={() => { setShowForm(false); setReceiptFile(null); }}
-              className="rounded-xl border border-gray-200 text-gray-500 text-sm font-semibold px-4 py-2.5 hover:bg-white transition-all"
+              className="rounded-xl border border-gray-200 text-gray-500 text-sm font-semibold px-4 py-3 min-h-12 hover:bg-white transition-all"
             >
               Cancel
             </button>
