@@ -18,12 +18,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.ui.layout.PhoneContentMaxWidth
+import com.elmtrackr.app.ui.layout.TabletContentPadding
+import com.elmtrackr.app.ui.layout.isTabletLayout
 import com.elmtrackr.app.ui.theme.Spacing
 
 /**
- * Shared screen shell matching the web app's `max-w-md mx-auto px-5` layout
- * with proper status-bar insets instead of a hard-coded top padding.
+ * Shared screen shell matching the web app's `max-w-md mx-auto px-5` layout on phones,
+ * and full-width padded content on tablets.
  */
 @Composable
 fun AuroraScreen(
@@ -33,6 +37,7 @@ fun AuroraScreen(
     showMeshBackground: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val isTablet = isTabletLayout()
     val scrollState = rememberScrollState()
     Box(modifier = Modifier.fillMaxSize()) {
         if (showMeshBackground) {
@@ -44,12 +49,11 @@ fun AuroraScreen(
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.TopCenter,
+                contentAlignment = if (isTablet) Alignment.TopStart else Alignment.TopCenter,
             ) {
                 Column(
                     modifier = modifier
-                        .widthIn(max = 448.dp)
-                        .fillMaxWidth()
+                        .then(if (isTablet) Modifier.fillMaxWidth() else Modifier.widthIn(max = PhoneContentMaxWidth).fillMaxWidth())
                         .statusBarsPadding()
                         .then(
                             if (scrollable) Modifier.verticalScroll(scrollState)
@@ -57,7 +61,9 @@ fun AuroraScreen(
                         )
                         .then(
                             if (horizontalPadding) {
-                                Modifier.padding(horizontal = Spacing.screenH)
+                                Modifier.padding(
+                                    horizontal = if (isTablet) TabletContentPadding else Spacing.screenH,
+                                )
                             } else {
                                 Modifier
                             },
@@ -80,6 +86,7 @@ fun AuroraListScreen(
     showMeshBackground: Boolean = false,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    val isTablet = isTabletLayout()
     Box(modifier = Modifier.fillMaxSize()) {
         if (showMeshBackground) {
             AuroraMeshBackground(modifier = Modifier.fillMaxSize())
@@ -92,12 +99,11 @@ fun AuroraListScreen(
                 modifier = modifier
                     .fillMaxSize()
                     .statusBarsPadding(),
-                contentAlignment = Alignment.TopCenter,
+                contentAlignment = if (isTablet) Alignment.TopStart else Alignment.TopCenter,
                 content = {
                     Box(
                         modifier = Modifier
-                            .widthIn(max = 448.dp)
-                            .fillMaxWidth(),
+                            .then(if (isTablet) Modifier.fillMaxWidth() else Modifier.widthIn(max = PhoneContentMaxWidth).fillMaxWidth()),
                         content = content,
                     )
                 },
@@ -105,3 +111,7 @@ fun AuroraListScreen(
         }
     }
 }
+
+/** Content max width for the current form factor; [Dp.Unspecified] on tablet. */
+@Composable
+fun auroraContentMaxWidth(): Dp = if (isTabletLayout()) Dp.Unspecified else PhoneContentMaxWidth

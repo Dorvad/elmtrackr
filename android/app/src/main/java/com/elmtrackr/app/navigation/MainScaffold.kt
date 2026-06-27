@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -54,6 +56,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
+import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.auth.AuthViewModel
 import com.elmtrackr.app.ui.dashboard.DashboardScreen
 import com.elmtrackr.app.ui.reports.ReportsScreen
@@ -72,6 +77,9 @@ import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraMeshBackground
 import com.elmtrackr.app.ui.design.AuroraMotion
 import com.elmtrackr.app.ui.design.auroraPressScale
+import com.elmtrackr.app.ui.layout.PhoneContentMaxWidth
+import com.elmtrackr.app.ui.layout.isTabletLayout
+import com.elmtrackr.app.ui.navigation.ElmSideNavigation
 
 private val navGradient = Brush.linearGradient(
     colorStops = arrayOf(0f to AuroraIndigo, 0.42f to AuroraPlum, 1f to AuroraAqua),
@@ -89,21 +97,74 @@ fun MainScaffold(authViewModel: AuthViewModel) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute      = navBackStackEntry?.destination?.route
     val authState         by authViewModel.uiState.collectAsState()
-    var hideBottomBar     by rememberSaveable { mutableStateOf(false) }
+    var hideNavChrome     by rememberSaveable { mutableStateOf(false) }
+    val isTablet          = isTabletLayout()
+
+    val navigateToTab: (String) -> Unit = { route ->
+        navController.navigate(route) {
+            popUpTo(BottomNavItem.DASHBOARD.route) { saveState = true }
+            launchSingleTop = true
+            restoreState    = true
+        }
+    }
+
+    if (isTablet) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+        ) {
+            if (!hideNavChrome) {
+                ElmSideNavigation(
+                    currentRoute = currentRoute,
+                    onNavigate = navigateToTab,
+                )
+            }
+            NavHost(
+                navController    = navController,
+                startDestination = BottomNavItem.DASHBOARD.route,
+                modifier         = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                enterTransition = {
+                    val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
+                    navEnterTransition(forward)
+                },
+                exitTransition = {
+                    val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
+                    navExitTransition(forward)
+                },
+                popEnterTransition = {
+                    val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
+                    navEnterTransition(forward)
+                },
+                popExitTransition = {
+                    val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
+                    navExitTransition(forward)
+                },
+            ) {
+                mainNavGraph(
+                    navController = navController,
+                    authState = authState,
+                    authViewModel = authViewModel,
+                    pendingShiftEditId = pendingShiftEditId,
+                    onPendingEditConsumed = { pendingShiftEditId = null },
+                    onPendingEditSet = { pendingShiftEditId = it },
+                    onFormVisibilityChanged = { hideNavChrome = it },
+                    onReplayOnboarding = { replayOnboarding = true },
+                )
+            }
+        }
+        return
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (!hideBottomBar) {
+            if (!hideNavChrome) {
             ElmBottomNav(
                 currentRoute = currentRoute,
-                onNavigate   = { route ->
-                    navController.navigate(route) {
-                        popUpTo(BottomNavItem.DASHBOARD.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState    = true
-                    }
-                },
+                onNavigate   = navigateToTab,
             )
             }
         },
@@ -129,44 +190,66 @@ fun MainScaffold(authViewModel: AuthViewModel) {
                 navExitTransition(forward)
             },
         ) {
-            composable(BottomNavItem.DASHBOARD.route) {
-                DashboardScreen(
-                    onNavigateToReports = {
-                        navController.navigate(BottomNavItem.REPORTS.route) {
-                            popUpTo(BottomNavItem.DASHBOARD.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
-            }
-            composable(BottomNavItem.SHIFTS.route) {
-                ShiftsScreen(
-                    pendingEditShiftId = pendingShiftEditId,
-                    onPendingEditConsumed = { pendingShiftEditId = null },
-                    onFormVisibilityChanged = { hideBottomBar = it },
-                )
-            }
-            composable(BottomNavItem.REPORTS.route) {
-                ReportsScreen(
-                    onNavigateToShift = { shiftId ->
-                        pendingShiftEditId = shiftId
-                        navController.navigate(BottomNavItem.SHIFTS.route) {
-                            popUpTo(BottomNavItem.DASHBOARD.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
-            }
-            composable(BottomNavItem.SETTINGS.route) {
-                SettingsScreen(
-                    authState = authState,
-                    onSignOut = { authViewModel.signOut() },
-                    onReplayOnboarding = { replayOnboarding = true },
-                )
-            }
+            mainNavGraph(
+                navController = navController,
+                authState = authState,
+                authViewModel = authViewModel,
+                pendingShiftEditId = pendingShiftEditId,
+                onPendingEditConsumed = { pendingShiftEditId = null },
+                onPendingEditSet = { pendingShiftEditId = it },
+                onFormVisibilityChanged = { hideNavChrome = it },
+                onReplayOnboarding = { replayOnboarding = true },
+            )
         }
+    }
+}
+
+private fun NavGraphBuilder.mainNavGraph(
+    navController: NavHostController,
+    authState: AuthUiState,
+    authViewModel: AuthViewModel,
+    pendingShiftEditId: String?,
+    onPendingEditConsumed: () -> Unit,
+    onPendingEditSet: (String) -> Unit,
+    onFormVisibilityChanged: (Boolean) -> Unit,
+    onReplayOnboarding: () -> Unit,
+) {
+    composable(BottomNavItem.DASHBOARD.route) {
+        DashboardScreen(
+            onNavigateToReports = {
+                navController.navigate(BottomNavItem.REPORTS.route) {
+                    popUpTo(BottomNavItem.DASHBOARD.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            },
+        )
+    }
+    composable(BottomNavItem.SHIFTS.route) {
+        ShiftsScreen(
+            pendingEditShiftId = pendingShiftEditId,
+            onPendingEditConsumed = onPendingEditConsumed,
+            onFormVisibilityChanged = onFormVisibilityChanged,
+        )
+    }
+    composable(BottomNavItem.REPORTS.route) {
+        ReportsScreen(
+            onNavigateToShift = { shiftId ->
+                onPendingEditSet(shiftId)
+                navController.navigate(BottomNavItem.SHIFTS.route) {
+                    popUpTo(BottomNavItem.DASHBOARD.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            },
+        )
+    }
+    composable(BottomNavItem.SETTINGS.route) {
+        SettingsScreen(
+            authState = authState,
+            onSignOut = { authViewModel.signOut() },
+            onReplayOnboarding = onReplayOnboarding,
+        )
     }
 }
 
@@ -210,7 +293,7 @@ private fun ElmBottomNav(
       )
       Row(
         modifier = Modifier
-          .widthIn(max = 448.dp)
+          .widthIn(max = PhoneContentMaxWidth)
           .fillMaxWidth()
           .align(Alignment.CenterHorizontally)
           .padding(horizontal = 8.dp),

@@ -95,6 +95,7 @@ import com.elmtrackr.app.ui.components.motion.LiveClockTimer
 import com.elmtrackr.app.ui.components.motion.activeShiftPulse
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraScreen
+import com.elmtrackr.app.ui.layout.isTabletLayout
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmCard
 import com.elmtrackr.app.ui.design.ElmCardPadded
@@ -221,6 +222,8 @@ private fun DashboardReady(
     val clockStyle = state.settings?.clockStyle?.toSupportedOrDefault()
         ?: SupportedClockStyle.CLASSIC
 
+    val isTablet = isTabletLayout()
+
     AuroraScreen {
             DashboardHeader(
                 displayName = state.displayName,
@@ -255,76 +258,118 @@ private fun DashboardReady(
             }
 
             val dailyOtMinutes = state.settings?.dailyOvertimeThresholdMinutes ?: (8 * 60)
+            val currencyCode = state.paySummary?.currencyCode
+                ?: state.settings?.currencyCode
+                ?: state.settings?.currency?.name
+                ?: "ILS"
 
-            Box(modifier = Modifier.fillMaxWidth().auroraEnter(index = 1)) {
-                AnimatedContent(
-                    targetState = clockStyle,
-                    transitionSpec = {
-                        (fadeIn(tween(300)) + scaleIn(tween(350), initialScale = .96f)) togetherWith
-                            (fadeOut(tween(160)) + scaleOut(tween(160), targetScale = .98f))
-                    },
-                    label = "watch-face-change",
-                ) { renderStyle ->
-                when (renderStyle) {
-                    SupportedClockStyle.CLASSIC -> ClassicClockCard(
-                        activeShift       = activeShift,
-                        elapsedSeconds    = elapsedSeconds,
-                        dailyOtMinutes    = dailyOtMinutes,
-                        onClockIn         = handleClockIn,
-                        onClockOut        = handleClockOut,
-                        onEditStartTime   = { showEditDialog = true },
-                    )
-                    SupportedClockStyle.MINIMAL -> MinimalClockCard(
-                        activeShift     = activeShift,
-                        elapsedSeconds  = elapsedSeconds,
-                        onClockIn       = handleClockIn,
-                        onClockOut      = handleClockOut,
-                        onEditStartTime = { showEditDialog = true },
-                    )
-                    SupportedClockStyle.AURORA -> AuroraClockCard(
-                        activeShift     = activeShift,
-                        elapsedSeconds  = elapsedSeconds,
-                        onClockIn       = handleClockIn,
-                        onClockOut      = handleClockOut,
-                        onEditStartTime = { showEditDialog = true },
-                    )
-                    SupportedClockStyle.FOCUS,
-                    SupportedClockStyle.BOLD,
-                    SupportedClockStyle.NIGHT,
-                    SupportedClockStyle.RETRO,
-                    SupportedClockStyle.PULSE,
-                    SupportedClockStyle.DIAL,
-                    SupportedClockStyle.STRAND,
-                    SupportedClockStyle.PRISM,
-                    SupportedClockStyle.SAND,
-                    SupportedClockStyle.BLOCKS,
-                    SupportedClockStyle.ORBIT -> ExpressiveClockCard(
-                        style = renderStyle,
-                        activeShift = activeShift,
-                        elapsedSeconds = elapsedSeconds,
-                        dailyOtMinutes = dailyOtMinutes,
-                        onClockIn = handleClockIn,
-                        onClockOut = handleClockOut,
-                        onEditStartTime = { showEditDialog = true },
-                    )
-                }
+            val clockCard = @Composable {
+                Box(modifier = Modifier.fillMaxWidth().auroraEnter(index = 1)) {
+                    AnimatedContent(
+                        targetState = clockStyle,
+                        transitionSpec = {
+                            (fadeIn(tween(300)) + scaleIn(tween(350), initialScale = .96f)) togetherWith
+                                (fadeOut(tween(160)) + scaleOut(tween(160), targetScale = .98f))
+                        },
+                        label = "watch-face-change",
+                    ) { renderStyle ->
+                    when (renderStyle) {
+                        SupportedClockStyle.CLASSIC -> ClassicClockCard(
+                            activeShift       = activeShift,
+                            elapsedSeconds    = elapsedSeconds,
+                            dailyOtMinutes    = dailyOtMinutes,
+                            onClockIn         = handleClockIn,
+                            onClockOut        = handleClockOut,
+                            onEditStartTime   = { showEditDialog = true },
+                        )
+                        SupportedClockStyle.MINIMAL -> MinimalClockCard(
+                            activeShift     = activeShift,
+                            elapsedSeconds  = elapsedSeconds,
+                            onClockIn       = handleClockIn,
+                            onClockOut      = handleClockOut,
+                            onEditStartTime = { showEditDialog = true },
+                        )
+                        SupportedClockStyle.AURORA -> AuroraClockCard(
+                            activeShift     = activeShift,
+                            elapsedSeconds  = elapsedSeconds,
+                            onClockIn       = handleClockIn,
+                            onClockOut      = handleClockOut,
+                            onEditStartTime = { showEditDialog = true },
+                        )
+                        SupportedClockStyle.FOCUS,
+                        SupportedClockStyle.BOLD,
+                        SupportedClockStyle.NIGHT,
+                        SupportedClockStyle.RETRO,
+                        SupportedClockStyle.PULSE,
+                        SupportedClockStyle.DIAL,
+                        SupportedClockStyle.STRAND,
+                        SupportedClockStyle.PRISM,
+                        SupportedClockStyle.SAND,
+                        SupportedClockStyle.BLOCKS,
+                        SupportedClockStyle.ORBIT -> ExpressiveClockCard(
+                            style = renderStyle,
+                            activeShift = activeShift,
+                            elapsedSeconds = elapsedSeconds,
+                            dailyOtMinutes = dailyOtMinutes,
+                            onClockIn = handleClockIn,
+                            onClockOut = handleClockOut,
+                            onEditStartTime = { showEditDialog = true },
+                        )
+                    }
+                    }
                 }
             }
 
-            MonthSummarySection(
-                report      = state.monthlyReport,
-                paySummary  = state.paySummary,
-                currencyCode = state.paySummary?.currencyCode
-                    ?: state.settings?.currencyCode
-                    ?: state.settings?.currency?.name
-                    ?: "ILS",
-                modifier    = Modifier.auroraEnter(index = 2),
-            )
+            if (isTablet) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(0.42f),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        clockCard()
+                        MonthSummaryDistribution(
+                            report = state.monthlyReport,
+                            modifier = Modifier.auroraEnter(index = 2),
+                        )
+                    }
+                    Column(
+                        modifier = Modifier.weight(0.58f),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        MonthSummaryStatsGrid(
+                            report = state.monthlyReport,
+                            modifier = Modifier.auroraEnter(index = 2),
+                        )
+                        MonthSummaryGrossPay(
+                            paySummary = state.paySummary,
+                            currencyCode = currencyCode,
+                            modifier = Modifier.auroraEnter(index = 3),
+                        )
+                        RecentShiftsSection(
+                            recentShifts = state.recentShifts,
+                            modifier = Modifier.auroraEnter(index = 4),
+                        )
+                    }
+                }
+            } else {
+                clockCard()
 
-            RecentShiftsSection(
-                recentShifts = state.recentShifts,
-                modifier = Modifier.auroraEnter(index = 3),
-            )
+                MonthSummarySection(
+                    report      = state.monthlyReport,
+                    paySummary  = state.paySummary,
+                    currencyCode = currencyCode,
+                    modifier    = Modifier.auroraEnter(index = 2),
+                )
+
+                RecentShiftsSection(
+                    recentShifts = state.recentShifts,
+                    modifier = Modifier.auroraEnter(index = 3),
+                )
+            }
     }
 }
 
@@ -1070,31 +1115,57 @@ private fun MonthSummarySection(
     currencyCode: String,
     modifier: Modifier = Modifier,
 ) {
-    val totalMinutes = report?.totalMinutes ?: 0
-    val regularMinutes = report?.regularMinutes ?: 0
-    val overtimeMinutes = report?.overtimeMinutes ?: 0
-    val weekendMinutes = report?.weekendMinutes ?: 0
-    val monthName = YearMonth.now().month.getDisplayName(TextStyle.FULL, Locale.getDefault())
-
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ElmSectionHeader(title = "$monthName Summary", modifier = Modifier.weight(1f))
-            Text(
-                text = "${report?.shiftCount ?: 0} shift${if (report?.shiftCount == 1) "" else "s"}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium,
-            )
-        }
+        MonthSummaryHeader(report)
+        MonthSummaryDistributionCard(report)
+        MonthSummaryStatsGrid(report)
+        MonthSummaryGrossPay(paySummary, currencyCode)
+    }
+}
 
-        ElmCardPadded(modifier = Modifier.auroraEnter(index = 1)) {
+@Composable
+private fun MonthSummaryHeader(report: MonthlyReport?) {
+    val monthName = YearMonth.now().month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ElmSectionHeader(title = "$monthName Summary", modifier = Modifier.weight(1f))
+        Text(
+            text = "${report?.shiftCount ?: 0} shift${if (report?.shiftCount == 1) "" else "s"}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+@Composable
+private fun MonthSummaryDistribution(
+    report: MonthlyReport?,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        MonthSummaryHeader(report)
+        MonthSummaryDistributionCard(report)
+    }
+}
+
+@Composable
+private fun MonthSummaryDistributionCard(report: MonthlyReport?) {
+    val totalMinutes = report?.totalMinutes ?: 0
+    val regularMinutes = report?.regularMinutes ?: 0
+    val overtimeMinutes = report?.overtimeMinutes ?: 0
+    val weekendMinutes = report?.weekendMinutes ?: 0
+
+    ElmCardPadded(modifier = Modifier.auroraEnter(index = 1)) {
             Text(
                 text = "HOURS DISTRIBUTION",
                 style = MaterialTheme.typography.labelSmall,
@@ -1121,87 +1192,141 @@ private fun MonthSummarySection(
             Spacer(Modifier.height(10.dp))
             DistributionLegend(regularMinutes, overtimeMinutes, weekendMinutes)
         }
+}
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            ElmStatCard(
-                label = "Total",
-                value = "${formatHoursDecimal(totalMinutes)}h",
-                variant = ElmStatVariant.PRIMARY,
-                modifier = Modifier.weight(1f).auroraEnter(index = 1),
-            )
-            ElmStatCard(
-                label = "Regular",
-                value = "${formatHoursDecimal(regularMinutes)}h",
-                modifier = Modifier.weight(1f).auroraEnter(index = 2),
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            ElmStatCard(
-                label = "Overtime",
-                value = "${formatHoursDecimal(overtimeMinutes)}h",
-                variant = ElmStatVariant.OVERTIME,
-                modifier = Modifier.weight(1f).auroraEnter(index = 3),
-            )
-            ElmStatCard(
-                label = "Weekend",
-                value = "${formatHoursDecimal(weekendMinutes)}h",
-                variant = ElmStatVariant.WEEKEND,
-                modifier = Modifier.weight(1f).auroraEnter(index = 4),
-            )
-        }
+@Composable
+private fun MonthSummaryStatsGrid(
+    report: MonthlyReport?,
+    modifier: Modifier = Modifier,
+) {
+    val totalMinutes = report?.totalMinutes ?: 0
+    val regularMinutes = report?.regularMinutes ?: 0
+    val overtimeMinutes = report?.overtimeMinutes ?: 0
+    val weekendMinutes = report?.weekendMinutes ?: 0
+    val isTablet = isTabletLayout()
 
-        paySummary?.takeIf { it.totalGross > 0.0 }?.let { pay ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .auroraEnter(index = 3)
-                    .background(headerGradient, RoundedCornerShape(CornerRadius.Large))
-                    .border(1.dp, AuroraWhite.copy(alpha = 0.28f), RoundedCornerShape(CornerRadius.Large))
-                    .padding(16.dp),
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (isTablet) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Column {
+                ElmStatCard(
+                    label = "Total",
+                    value = "${formatHoursDecimal(totalMinutes)}h",
+                    variant = ElmStatVariant.PRIMARY,
+                    modifier = Modifier.weight(1f).auroraEnter(index = 1),
+                )
+                ElmStatCard(
+                    label = "Regular",
+                    value = "${formatHoursDecimal(regularMinutes)}h",
+                    modifier = Modifier.weight(1f).auroraEnter(index = 2),
+                )
+                ElmStatCard(
+                    label = "Overtime",
+                    value = "${formatHoursDecimal(overtimeMinutes)}h",
+                    variant = ElmStatVariant.OVERTIME,
+                    modifier = Modifier.weight(1f).auroraEnter(index = 3),
+                )
+                ElmStatCard(
+                    label = "Weekend",
+                    value = "${formatHoursDecimal(weekendMinutes)}h",
+                    variant = ElmStatVariant.WEEKEND,
+                    modifier = Modifier.weight(1f).auroraEnter(index = 4),
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                ElmStatCard(
+                    label = "Total",
+                    value = "${formatHoursDecimal(totalMinutes)}h",
+                    variant = ElmStatVariant.PRIMARY,
+                    modifier = Modifier.weight(1f).auroraEnter(index = 1),
+                )
+                ElmStatCard(
+                    label = "Regular",
+                    value = "${formatHoursDecimal(regularMinutes)}h",
+                    modifier = Modifier.weight(1f).auroraEnter(index = 2),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                ElmStatCard(
+                    label = "Overtime",
+                    value = "${formatHoursDecimal(overtimeMinutes)}h",
+                    variant = ElmStatVariant.OVERTIME,
+                    modifier = Modifier.weight(1f).auroraEnter(index = 3),
+                )
+                ElmStatCard(
+                    label = "Weekend",
+                    value = "${formatHoursDecimal(weekendMinutes)}h",
+                    variant = ElmStatVariant.WEEKEND,
+                    modifier = Modifier.weight(1f).auroraEnter(index = 4),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthSummaryGrossPay(
+    paySummary: PayrollCalculator.MonthlyPaySummary?,
+    currencyCode: String,
+    modifier: Modifier = Modifier,
+) {
+    paySummary?.takeIf { it.totalGross > 0.0 }?.let { pay ->
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .auroraEnter(index = 3)
+                .background(headerGradient, RoundedCornerShape(CornerRadius.Large))
+                .border(1.dp, AuroraWhite.copy(alpha = 0.28f), RoundedCornerShape(CornerRadius.Large))
+                .padding(16.dp),
+        ) {
+            Column {
+                Text(
+                    text = "THIS MONTH - GROSS PAY",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AuroraWhite.copy(alpha = 0.65f),
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = "THIS MONTH - GROSS PAY",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AuroraWhite.copy(alpha = 0.65f),
-                        fontWeight = FontWeight.Bold,
+                        text = MoneyFormatter.format(pay.totalGross, currencyCode),
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = AuroraWhite,
+                        fontWeight = FontWeight.ExtraBold,
                     )
-                    Spacer(Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            text = MoneyFormatter.format(pay.totalGross, currencyCode),
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = AuroraWhite,
-                            fontWeight = FontWeight.ExtraBold,
-                        )
-                        Text(
-                            text = " before tax",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AuroraWhite.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                    }
-                    if (pay.overtimeGross > 0.0 || pay.specialGross > 0.0) {
-                        Spacer(Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            if (pay.regularGross > 0.0) {
-                                PaySummaryCell("Regular", pay.regularGross, currencyCode, Modifier.weight(1f))
-                            }
-                            if (pay.overtimeGross > 0.0) {
-                                PaySummaryCell("Overtime", pay.overtimeGross, currencyCode, Modifier.weight(1f))
-                            }
-                            if (pay.specialGross > 0.0) {
-                                PaySummaryCell("Holiday", pay.specialGross, currencyCode, Modifier.weight(1f))
-                            }
+                    Text(
+                        text = " before tax",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuroraWhite.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    )
+                }
+                if (pay.overtimeGross > 0.0 || pay.specialGross > 0.0) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (pay.regularGross > 0.0) {
+                            PaySummaryCell("Regular", pay.regularGross, currencyCode, Modifier.weight(1f))
+                        }
+                        if (pay.overtimeGross > 0.0) {
+                            PaySummaryCell("Overtime", pay.overtimeGross, currencyCode, Modifier.weight(1f))
+                        }
+                        if (pay.specialGross > 0.0) {
+                            PaySummaryCell("Holiday", pay.specialGross, currencyCode, Modifier.weight(1f))
                         }
                     }
                 }
