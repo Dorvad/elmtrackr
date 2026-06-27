@@ -1,24 +1,24 @@
 # Fellowship clock face assets
 
-Drop your pixel-art SVGs here. The clock face cycles through **backgrounds** once per hour (7 scenes, looping).
+Pixel-art backgrounds and party sprite for the Fellowship clock face. The scene advances once per hour (7 locations, looping).
 
 ## Files
 
 | File | Scene (hour slot) |
 |------|-------------------|
-| `backgrounds/shire.svg` | 12am, 7am, 2pm, 9pm… |
-| `backgrounds/bree.svg` | Prancing Pony |
-| `backgrounds/rivendell.svg` | Rivendell |
-| `backgrounds/moria.svg` | Mines of Moria |
-| `backgrounds/anduin.svg` | River / Argonath area |
-| `backgrounds/lothlorien.svg` | Lothlórien |
-| `backgrounds/mordor.svg` | Mordor |
+| `backgrounds/shire.png` | 12am, 7am, 2pm, 9pm… |
+| `backgrounds/bree.png` | Bree / Prancing Pony |
+| `backgrounds/rivendell.png` | Rivendell |
+| `backgrounds/moria.png` | Mines of Moria |
+| `backgrounds/anduin.png` | Anduin / river journey |
+| `backgrounds/lothlorien.png` | Lothlórien |
+| `backgrounds/mordor.png` | Mordor |
 
-`fellowship.svg` — horizontal party sprite (transparent or white background; white is fine).
+`fellowship.png` — horizontal party sprite strip (transparent or white background).
 
-## Recommended canvas
+## Canvas size
 
-- **Backgrounds:** 600×400 (wide face, 3:2). Ground/path should sit near the bottom ~15% for character placement.
-- **Fellowship:** ~600×120 or similar wide strip; characters centered on the bottom edge.
+- **Backgrounds:** 1200×800 (3:2, @2x). Ground/path should sit near the bottom ~15% for character placement.
+- **Fellowship:** wide strip (~1200×320); characters aligned to the bottom edge.
 
-Replace the bundled placeholder SVGs with your own exports to see the full effect.
+Android copies live in `android/app/src/main/res/drawable-nodpi/fellowship_bg_*.png` and `fellowship_party.png`.

@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" fill="none">
-  <rect width="600" height="400" fill="#9BD4F0"/>
-  <rect y="310" width="600" height="90" fill="#C4A574"/>
-  <rect x="180" y="140" width="240" height="170" fill="#E8DCC8" stroke="#6B4E2E" stroke-width="4"/>
-  <polygon points="180,140 300,80 420,140" fill="#D4A83A"/>
-  <rect x="270" y="220" width="60" height="90" fill="#5C3D1E"/>
-  <text x="300" y="360" text-anchor="middle" fill="#4A3728" font-family="monospace" font-size="14" opacity="0.5">bree  replace me</text>
-</svg>

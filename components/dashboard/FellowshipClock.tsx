@@ -16,6 +16,10 @@ function formatHMS(totalSeconds: number): string {
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
+function formatWallClock(): string {
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 function formatStartTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -40,19 +44,24 @@ export function FellowshipClock({
   activeShiftStartTime,
 }: FellowshipClockProps) {
   const [hour, setHour] = useState(() => new Date().getHours());
+  const [wallClock, setWallClock] = useState(formatWallClock);
   const targetIndex = fellowshipBackgroundIndex(hour);
   const [displayIndex, setDisplayIndex] = useState(targetIndex);
   const [fadeFromIndex, setFadeFromIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    const syncHour = () => {
-      const next = new Date().getHours();
-      setHour((prev) => (prev === next ? prev : next));
+    const sync = () => {
+      const now = new Date();
+      setHour((prev) => {
+        const next = now.getHours();
+        return prev === next ? prev : next;
+      });
+      if (!isClockedIn) setWallClock(formatWallClock());
     };
-    syncHour();
-    const id = setInterval(syncHour, 1000);
+    sync();
+    const id = setInterval(sync, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [isClockedIn]);
 
   useEffect(() => {
     if (targetIndex === displayIndex) return;
@@ -64,6 +73,7 @@ export function FellowshipClock({
 
   const scene = FELLOWSHIP_BACKGROUNDS[displayIndex];
   const fadingScene = fadeFromIndex != null ? FELLOWSHIP_BACKGROUNDS[fadeFromIndex] : null;
+  const stopwatchText = isClockedIn ? formatHMS(elapsedSeconds) : wallClock;
 
   const handlePress = useCallback(async () => {
     await onPress();
@@ -74,7 +84,6 @@ export function FellowshipClock({
       className="rounded-3xl overflow-hidden relative animate-scale-in border border-white/80"
       style={{ background: "#0c0a18" }}
     >
-      {/* Scene — wide pixel-art background */}
       <div className="relative w-full aspect-[3/2] overflow-hidden">
         {fadingScene && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -84,6 +93,7 @@ export function FellowshipClock({
             alt=""
             aria-hidden
             className="absolute inset-0 w-full h-full object-cover object-bottom fellowship-bg-fade-out"
+            style={{ imageRendering: "pixelated" }}
           />
         )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -93,13 +103,14 @@ export function FellowshipClock({
           alt=""
           aria-hidden
           className={`absolute inset-0 w-full h-full object-cover object-bottom ${fadeFromIndex != null ? "fellowship-bg-fade-in" : ""}`}
+          style={{ imageRendering: "pixelated" }}
         />
 
-        {/* Location + time overlay */}
+        {/* Scene label */}
         <div
-          className="absolute inset-x-0 top-0 z-20 px-3 pt-3 pb-8"
+          className="absolute inset-x-0 top-0 z-20 px-3 pt-3 pb-6"
           style={{
-            background: "linear-gradient(180deg, rgba(8,6,20,0.72) 0%, transparent 100%)",
+            background: "linear-gradient(180deg, rgba(8,6,20,0.65) 0%, transparent 100%)",
           }}
         >
           <p
@@ -108,43 +119,51 @@ export function FellowshipClock({
           >
             {scene.label}
           </p>
+        </div>
+
+        {/* Gold medieval stopwatch — above the fellowship */}
+        <div className="absolute inset-x-0 bottom-[24%] z-20 flex flex-col items-center pointer-events-none px-3">
           <p
-            className="text-center font-bold tabular-nums leading-none mt-1"
+            className="fellowship-stopwatch text-center font-bold tabular-nums leading-none"
             style={{
-              fontFamily: "var(--au-display)",
-              fontSize: isClockedIn ? 28 : 32,
-              color: isOvertime ? "var(--au-peach-deep)" : "#fff",
-              textShadow: "0 2px 12px rgba(0,0,0,0.45)",
+              fontSize: isClockedIn && elapsedSeconds >= 3600 ? 26 : 30,
+              color: isOvertime ? "#F4A582" : undefined,
             }}
+            aria-live="polite"
+            aria-label={isClockedIn ? `Elapsed time ${stopwatchText}` : `Current time ${stopwatchText}`}
             suppressHydrationWarning
           >
-            {isClockedIn
-              ? formatHMS(elapsedSeconds)
-              : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            {stopwatchText}
           </p>
           {isClockedIn && activeShiftStartTime && (
-            <p className="text-center text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.65)" }}>
+            <p
+              className="text-center text-[10px] mt-1 tracking-wide"
+              style={{
+                fontFamily: "var(--fellowship-font)",
+                color: "rgba(212, 175, 55, 0.7)",
+                textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+              }}
+            >
               since {formatStartTime(activeShiftStartTime)}
             </p>
           )}
         </div>
 
         {/* Fellowship party — idle bob */}
-        <div className="absolute inset-x-0 bottom-[10%] z-10 flex justify-center pointer-events-none px-2">
-          <div className="fellowship-idle w-[88%] max-w-[340px]">
+        <div className="absolute inset-x-0 bottom-[8%] z-10 flex justify-center pointer-events-none px-2">
+          <div className="fellowship-idle w-[90%] max-w-[360px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={fellowshipPartyPath()}
               alt=""
               aria-hidden
-              className="w-full h-auto drop-shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
+              className="w-full h-auto drop-shadow-[0_6px_18px_rgba(0,0,0,0.45)]"
               style={{ imageRendering: "pixelated" }}
             />
           </div>
         </div>
       </div>
 
-      {/* Controls */}
       <div className="relative z-20 px-4 pb-4 pt-2 flex flex-col gap-2" style={{ background: "rgba(8,6,20,0.92)" }}>
         {isClockedIn && onEditStartTime && (
           <button
