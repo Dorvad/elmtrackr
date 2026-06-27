@@ -80,7 +80,7 @@ class RemoteMapperTest {
     }
 
     @Test
-    fun `settings pull maps fellowship clock style from remote`() {
+    fun `settings pull maps unknown fellowship clock style to CLASSIC`() {
         val json = buildJsonObject {
             put("id", "remote")
             put("user_id", "user")
@@ -98,8 +98,8 @@ class RemoteMapperTest {
             put("updated_at", "2026-06-21T12:34:56Z")
         }
 
-        assertEquals("FELLOWSHIP", json.toUserSettingsEntity().clockStyle)
-        assertEquals(ClockStyle.FELLOWSHIP, json.toUserSettingsEntity().toDomain().clockStyle)
+        assertEquals("CLASSIC", json.toUserSettingsEntity().clockStyle)
+        assertEquals(ClockStyle.CLASSIC, json.toUserSettingsEntity().toDomain().clockStyle)
     }
 
     @Test

@@ -288,13 +288,6 @@ private fun DashboardReady(
                         onClockOut      = handleClockOut,
                         onEditStartTime = { showEditDialog = true },
                     )
-                    SupportedClockStyle.FELLOWSHIP -> FellowshipClockCard(
-                        activeShift = activeShift,
-                        elapsedSeconds = elapsedSeconds,
-                        onClockIn = handleClockIn,
-                        onClockOut = handleClockOut,
-                        onEditStartTime = { showEditDialog = true },
-                    )
                     SupportedClockStyle.FOCUS,
                     SupportedClockStyle.BOLD,
                     SupportedClockStyle.NIGHT,

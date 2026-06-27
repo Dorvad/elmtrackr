@@ -25,7 +25,6 @@ export function ClockFaceThumbnail({ style }: { style: ClockStyle }) {
     case "sand":    return <SandThumb />;
     case "blocks":  return <BlocksThumb />;
     case "orbit":   return <OrbitThumb />;
-    case "fellowship": return <FellowshipThumb />;
   }
 }
 
@@ -409,23 +408,6 @@ function OrbitThumb() {
       <circle cx={sx} cy={sy} r={5} fill={G0} />
       <circle cx={sx} cy={sy} r={2} fill="white" />
       <text x={cx} y={cy + 6} textAnchor="middle" fontSize={16} fontWeight="700" fill="#181530" letterSpacing={-0.5}>2:34</text>
-    </svg>
-  );
-}
-
-// ── Fellowship ────────────────────────────────────────────────────────────────
-function FellowshipThumb() {
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" xmlns="http://www.w3.org/2000/svg" fill="none">
-      <rect width={W} height={H} rx={14} fill="#5B8F3E"/>
-      <rect y="0" width={W} height="52" fill="#7EC8E3"/>
-      <ellipse cx="80" cy="78" rx="70" ry="18" fill="#4A7A34"/>
-      <g transform="translate(24, 88)">
-        {[0, 18, 36, 54, 72, 90, 108].map((x, i) => (
-          <rect key={i} x={x} y={i % 2 === 0 ? 4 : 0} width="12" height="18" rx="1" fill={["#3D5C3A","#9CA3AF","#2D6B3A","#8B2E2E","#8B5A2B","#4A7A34","#2E7A6A"][i]} />
-        ))}
-      </g>
-      <text x={80} y={24} textAnchor="middle" fontSize={8} fontWeight="700" fill="#fff" opacity={0.85}>FELLOWSHIP</text>
     </svg>
   );
 }

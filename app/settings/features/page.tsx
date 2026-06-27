@@ -50,7 +50,6 @@ const CLOCK_STYLES: { value: ClockStyle; label: string; desc: string }[] = [
   { value: "sand",    label: "Sand",     desc: "Flowing hourglass fill" },
   { value: "blocks",  label: "Blocks",   desc: "Hour-by-hour segments" },
   { value: "orbit",   label: "Orbit",    desc: "Satellite lap progress" },
-  { value: "fellowship", label: "Fellowship", desc: "Journey scene each hour" },
 ];
 
 export default function FeaturesPage() {

@@ -197,7 +197,17 @@ export interface WeeklyTotals {
   shifts: Shift[];
 }
 
-export type ClockStyle = "classic" | "minimal" | "focus" | "bold" | "night" | "retro" | "aurora" | "pulse" | "dial" | "strand" | "prism" | "sand" | "blocks" | "orbit" | "fellowship";
+export type ClockStyle = "classic" | "minimal" | "focus" | "bold" | "night" | "retro" | "aurora" | "pulse" | "dial" | "strand" | "prism" | "sand" | "blocks" | "orbit";
+
+const CLOCK_STYLES: ClockStyle[] = [
+  "classic", "minimal", "focus", "bold", "night", "retro", "aurora", "pulse",
+  "dial", "strand", "prism", "sand", "blocks", "orbit",
+];
+
+/** Map persisted/synced values to a supported clock style. */
+export function normalizeClockStyle(value: string | null | undefined): ClockStyle {
+  return CLOCK_STYLES.includes(value as ClockStyle) ? (value as ClockStyle) : "classic";
+}
 
 export type ClockStatus = "clocked_in" | "clocked_out";
 

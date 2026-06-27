@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { Shift } from "@/types";
 import type { ClockStyle } from "@/types";
 import { ProgressRing } from "@/components/ui/ProgressRing";
-import { FellowshipClock } from "@/components/dashboard/FellowshipClock";
 
 interface ClockWidgetProps {
   activeShift: Shift | null;
@@ -172,19 +171,6 @@ export function ClockWidget({
   if (clockStyle === "sand") return <SandClock {...sharedProps} progress={progress} dailyThresholdMinutes={dailyThresholdMinutes} />;
   if (clockStyle === "blocks") return <BlocksClock {...sharedProps} progress={progress} dailyThresholdMinutes={dailyThresholdMinutes} />;
   if (clockStyle === "orbit") return <OrbitClock {...sharedProps} progress={progress} bloom={bloom} />;
-  if (clockStyle === "fellowship") {
-    return (
-      <FellowshipClock
-        isClockedIn={isClockedIn}
-        elapsedSeconds={elapsedSeconds}
-        isOvertime={isOvertime}
-        loading={loading}
-        onPress={handlePress}
-        onEditStartTime={onEditStartTime}
-        activeShiftStartTime={activeShift?.start_time}
-      />
-    );
-  }
 
   // ── Classic — Aurora comet progress ring ──────────────────
   const size = 200, strokeWidth = 11, radius = (size - strokeWidth) / 2;

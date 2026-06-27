@@ -875,7 +875,6 @@ private fun watchFaceDescription(style: ClockStyle): String = when (style) {
     ClockStyle.SAND -> "Flowing hourglass"
     ClockStyle.BLOCKS -> "Hour-by-hour blocks"
     ClockStyle.ORBIT -> "Orbiting satellite"
-    ClockStyle.FELLOWSHIP -> "Hourly journey scene"
 }
 
 @Composable

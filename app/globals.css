@@ -42,9 +42,6 @@
   --au-grad-text: linear-gradient(118deg, #5B4DF2 0%, #8B5CF6 45%, #16C8D6 110%);
   --au-font: 'Hanken Grotesk', system-ui, sans-serif;
   --au-display: 'Bricolage Grotesque', 'Hanken Grotesk', sans-serif;
-  --fellowship-font: 'Cinzel', 'Times New Roman', serif;
-  --fellowship-gold: #E8C872;
-  --fellowship-gold-deep: #B8860B;
 }
 
 /* ============================================================
@@ -145,45 +142,6 @@ body {
 @keyframes auPrismOrbit {
   0%   { stroke-dashoffset: 0;    }
   100% { stroke-dashoffset: -743; }
-}
-
-@keyframes fellowshipIdle {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-4px); }
-}
-
-@keyframes fellowshipBgIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes fellowshipBgOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-
-.fellowship-idle {
-  animation: fellowshipIdle 2.8s ease-in-out infinite;
-  transform-origin: center bottom;
-}
-
-.fellowship-bg-fade-in {
-  animation: fellowshipBgIn 1.4s ease-in-out forwards;
-}
-
-.fellowship-bg-fade-out {
-  animation: fellowshipBgOut 1.4s ease-in-out forwards;
-  z-index: 1;
-}
-
-.fellowship-stopwatch {
-  font-family: var(--fellowship-font);
-  color: var(--fellowship-gold);
-  letter-spacing: 0.06em;
-  text-shadow:
-    0 1px 0 var(--fellowship-gold-deep),
-    0 2px 6px rgba(0, 0, 0, 0.55),
-    0 0 14px rgba(232, 200, 114, 0.35);
 }
 
 /* Existing keyframes (kept for compatibility) */
