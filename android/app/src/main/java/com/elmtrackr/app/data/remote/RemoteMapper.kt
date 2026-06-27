@@ -5,6 +5,7 @@ import com.elmtrackr.app.data.local.entity.ProfileEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
+import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -192,7 +193,7 @@ fun JsonObject.toUserSettingsEntity(
         featuresPaidProjects = bool("features_paid_projects"),
         featuresInsights = bool("features_insights"),
         featuresClockStyles = bool("features_clock_styles"),
-        clockStyle = (str("clock_style") ?: "classic").uppercase(),
+        clockStyle = ClockStyle.fromPersisted(str("clock_style") ?: "classic").name,
         createdAt = requireInstantMillis("created_at"),
         updatedAt = requireInstantMillis("updated_at"),
         deletedAt = null,

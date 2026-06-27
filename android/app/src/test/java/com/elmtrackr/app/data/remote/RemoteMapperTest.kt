@@ -4,7 +4,11 @@ import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
+import com.elmtrackr.app.data.local.mapper.toDomain
+import com.elmtrackr.app.domain.model.ClockStyle
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
@@ -73,6 +77,29 @@ class RemoteMapperTest {
         assertEquals("5,6", json.toUserSettingsEntity().weekendDays)
         assertEquals("AURORA", json.toUserSettingsEntity().clockStyle)
         assertEquals("EUR", json.toUserSettingsEntity().currency)
+    }
+
+    @Test
+    fun `settings pull maps fellowship clock style from remote`() {
+        val json = buildJsonObject {
+            put("id", "remote")
+            put("user_id", "user")
+            put("timezone", "UTC")
+            put("daily_overtime_threshold_minutes", 480)
+            put("weekly_overtime_threshold_minutes", 2400)
+            put("weekend_days", buildJsonArray { add(JsonPrimitive(5)); add(JsonPrimitive(6)) })
+            put("onboarding_completed", true)
+            put("features_travel_refunds", false)
+            put("features_paid_projects", false)
+            put("features_insights", true)
+            put("features_clock_styles", true)
+            put("clock_style", "fellowship")
+            put("created_at", "2026-06-21T12:34:56Z")
+            put("updated_at", "2026-06-21T12:34:56Z")
+        }
+
+        assertEquals("FELLOWSHIP", json.toUserSettingsEntity().clockStyle)
+        assertEquals(ClockStyle.FELLOWSHIP, json.toUserSettingsEntity().toDomain().clockStyle)
     }
 
     @Test

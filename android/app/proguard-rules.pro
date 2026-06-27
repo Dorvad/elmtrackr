@@ -85,6 +85,11 @@
 # ============================================================
 -keep class com.elmtrackr.app.domain.model.** { *; }
 -keepclassmembers class com.elmtrackr.app.domain.model.** { *; }
+-keepclassmembers enum com.elmtrackr.app.domain.model.ClockStyle {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+    ** fromPersisted(...);
+}
 
 # Room entity and converter classes
 -keep class com.elmtrackr.app.data.local.entity.** { *; }
