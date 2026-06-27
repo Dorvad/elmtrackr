@@ -140,6 +140,7 @@ fun DashboardScreen(
     onNavigateToReports: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val showCelebration by viewModel.showFirstClockInCelebration.collectAsState()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -153,6 +154,8 @@ fun DashboardScreen(
                 onClockOut      = viewModel::clockOut,
                 onEditStartTime = viewModel::editActiveShiftStartTime,
                 onNavigateToReports = onNavigateToReports,
+                showFirstClockInCelebration = showCelebration,
+                onDismissFirstClockInCelebration = viewModel::dismissFirstClockInCelebration,
             )
             is DashboardUiState.Error  -> ErrorState(message = state.message, onRetry = viewModel::retry)
         }
@@ -166,6 +169,8 @@ private fun DashboardReady(
     onClockOut: (String) -> Unit,
     onEditStartTime: (shiftId: String, newStartTime: Instant) -> Unit,
     onNavigateToReports: () -> Unit,
+    showFirstClockInCelebration: Boolean,
+    onDismissFirstClockInCelebration: () -> Unit,
 ) {
     val activeShift = state.activeShift
     val haptic = LocalHapticFeedback.current
@@ -202,6 +207,10 @@ private fun DashboardReady(
             },
             onDismiss = { showEditDialog = false },
         )
+    }
+
+    if (showFirstClockInCelebration) {
+        FirstClockInCelebrationDialog(onDismiss = onDismissFirstClockInCelebration)
     }
 
     val clockStyle = state.settings?.clockStyle?.toSupportedOrDefault()
@@ -434,9 +443,9 @@ private fun FirstRunWelcomeCard(onClockIn: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.primaryContainer,
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Welcome to ElmTrackr", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("You're ready", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
-                "Clock in to start your first shift. Your hours, pay, reports, and refund reminders will build from there.",
+                "Clock in once. See hours, pay estimate, and overtime instantly.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
@@ -445,6 +454,43 @@ private fun FirstRunWelcomeCard(onClockIn: () -> Unit) {
             }
         }
     }
+}
+
+@Composable
+private fun FirstClockInCelebrationDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                Modifier
+                    .size(56.dp)
+                    .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Bolt,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+        },
+        title = {
+            Text("You're tracking!", textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        },
+        text = {
+            Text(
+                "Your hours, pay estimate, and overtime are live on the home screen. Keep the shift running — or clock out when you're done.",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            ElmGradientButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text("Got it", fontWeight = FontWeight.SemiBold)
+            }
+        },
+    )
 }
 // â”€â”€ Classic clock card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

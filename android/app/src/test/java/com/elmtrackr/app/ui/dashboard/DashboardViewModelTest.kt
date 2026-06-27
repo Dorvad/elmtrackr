@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.dashboard
 
+import com.elmtrackr.app.fake.FakeAppPreferencesStore
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeReportsRepository
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -40,8 +42,10 @@ class DashboardViewModelTest {
         setProfile(Profile("u1", "test@test.com", null, Instant.EPOCH, Instant.EPOCH))
     }
 
+    private val appPrefs = FakeAppPreferencesStore()
+
     private fun buildVm() = DashboardViewModel(
-        shiftsRepo, settingsRepo, reportsRepo, syncRepo, authRepo, compensationRepo,
+        shiftsRepo, settingsRepo, reportsRepo, syncRepo, authRepo, compensationRepo, appPrefs,
     )
 
     private fun defaultSettings() = UserSettings(
@@ -274,6 +278,27 @@ class DashboardViewModelTest {
         val ready = collected.filterIsInstance<DashboardUiState.Ready>().lastOrNull()
         assertEquals(3, ready?.pendingSyncCount)
         job.cancel()
+    }
+
+    @Test
+    fun `first clock in shows celebration once`() = runTest {
+        val vm = buildVm()
+        settingsRepo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        vm.clockIn()
+        advanceUntilIdle()
+
+        assertTrue(vm.showFirstClockInCelebration.value)
+        vm.dismissFirstClockInCelebration()
+        assertFalse(vm.showFirstClockInCelebration.value)
+
+        vm.clockOut(shiftsRepo.currentShifts.first().id)
+        advanceUntilIdle()
+        vm.clockIn()
+        advanceUntilIdle()
+
+        assertFalse(vm.showFirstClockInCelebration.value)
     }
 
     @Test

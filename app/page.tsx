@@ -12,6 +12,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/components/ui/Toast";
 import { ClockWidget } from "@/components/dashboard/ClockWidget";
 import { EditStartTimeModal } from "@/components/dashboard/EditStartTimeModal";
+import { FirstClockInCelebration } from "@/components/dashboard/FirstClockInCelebration";
 import { MonthSummary } from "@/components/dashboard/MonthSummary";
 import { ShiftRow } from "@/components/shifts/ShiftRow";
 import { PageSpinner } from "@/components/ui/Spinner";
@@ -23,6 +24,7 @@ import { formatCurrency } from "@/lib/compensation/currency";
 import { COMPENSATION_ESTIMATE_NOTE } from "@/lib/compensation/constants";
 import { filterShiftsByMonth } from "@/lib/shifts/aggregation";
 import { countUnresolvedRefunds } from "@/lib/shifts/refund";
+import { hasCelebratedFirstClockIn, markFirstClockInCelebrated } from "@/lib/firstClockIn";
 
 export default function DashboardPage() {
   const {
@@ -48,14 +50,22 @@ export default function DashboardPage() {
 
   const [showEditStartModal, setShowEditStartModal] = useState(false);
   const [refundBannerDismissed, setRefundBannerDismissed] = useState(false);
+  const [showFirstClockInCelebration, setShowFirstClockInCelebration] = useState(false);
 
   const recentShifts = shifts.slice(0, 5);
+  const isFirstRun = !clockLoading && !shiftsLoading && shifts.length === 0 && !activeShift;
 
   async function handleClockIn() {
+    const isFirstClockIn = shifts.length === 0 && !hasCelebratedFirstClockIn();
     try {
       await clockIn(defaultProfile?.id ?? settings?.default_compensation_profile_id);
       await refreshShifts();
-      toast("Shift started", "success");
+      if (isFirstClockIn) {
+        markFirstClockInCelebrated();
+        setShowFirstClockInCelebration(true);
+      } else {
+        toast("Shift started", "success");
+      }
     } catch {
       toast("Failed to clock in", "error");
     }
@@ -206,6 +216,20 @@ export default function DashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+          </div>
+        )}
+
+        {isFirstRun && (
+          <div
+            className="rounded-3xl px-4 py-4 animate-fade-in-up border border-white/80 au-card"
+            style={{ background: "var(--au-surface-sub)" }}
+          >
+            <p className="text-sm font-bold mb-1" style={{ color: "var(--au-ink)" }}>
+              You&apos;re ready
+            </p>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--au-ink-2)" }}>
+              Clock in once. See hours, pay estimate, and overtime instantly.
+            </p>
           </div>
         )}
 
@@ -363,6 +387,10 @@ export default function DashboardPage() {
           onSave={handleEditStartTime}
           onClose={() => setShowEditStartModal(false)}
         />
+      )}
+
+      {showFirstClockInCelebration && (
+        <FirstClockInCelebration onDismiss={() => setShowFirstClockInCelebration(false)} />
       )}
     </div>
   );

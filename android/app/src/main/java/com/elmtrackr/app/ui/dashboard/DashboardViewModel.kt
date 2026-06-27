@@ -40,10 +40,14 @@ class DashboardViewModel(
     private val syncRepository: SyncRepository,
     private val authRepository: AuthRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
+    private val appPreferences: com.elmtrackr.app.data.local.preferences.AppPreferencesStore,
 ) : ViewModel() {
 
     private val today = LocalDate.now(ZoneOffset.UTC)
     private val _refreshNonce = MutableStateFlow(0)
+    private val _showFirstClockInCelebration = MutableStateFlow(false)
+
+    val showFirstClockInCelebration: StateFlow<Boolean> = _showFirstClockInCelebration
 
     private data class RawData(
         val activeShift: Shift?,
@@ -124,9 +128,19 @@ class DashboardViewModel(
         viewModelScope.launch {
             val userId = authRepository.getCurrentProfile()?.id ?: return@launch
             val settings = settingsRepository.getSettings(userId) ?: return@launch
+            val isFirstClockIn = !shiftsRepository.hasAnyShifts(userId) &&
+                !appPreferences.currentPreferences().firstClockInCelebrated
             compensationProfilesRepository.ensureMigrated(userId)
             shiftsRepository.clockIn(userId, settings.defaultCompensationProfileId)
+            if (isFirstClockIn) {
+                appPreferences.setFirstClockInCelebrated(true)
+                _showFirstClockInCelebration.value = true
+            }
         }
+    }
+
+    fun dismissFirstClockInCelebration() {
+        _showFirstClockInCelebration.value = false
     }
 
     fun clockOut(shiftId: String) {
@@ -164,6 +178,7 @@ class DashboardViewModel(
                     app.syncRepository,
                     app.authRepository,
                     app.compensationProfilesRepository,
+                    app.appPreferences,
                 )
             }
         }
