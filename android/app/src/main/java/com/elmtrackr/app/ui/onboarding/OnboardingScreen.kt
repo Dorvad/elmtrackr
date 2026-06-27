@@ -227,8 +227,8 @@ fun OnboardingScreen(
                                 onNext = { if (workWeekValid) step = 6 },
                             )
                             6 -> FeaturesStep(
-                                travelRefunds, paidProjects, insights, clockStyles,
-                                { travelRefunds = it }, { paidProjects = it }, { insights = it }, { clockStyles = it },
+                                travelRefunds, insights, clockStyles,
+                                { travelRefunds = it }, { insights = it }, { clockStyles = it },
                                 onBack = { step = 5 }, onNext = { step = 7 },
                             )
                             7 -> ClockStyleStep(clockStyle, { clockStyle = it }, onBack = { step = 6 }, onNext = { step = 8 })
@@ -239,7 +239,7 @@ fun OnboardingScreen(
                                 regionLabel = RegionPresets.forRegion(regionCode).label,
                                 weekendDays = weekendDays,
                                 clockStyle = clockStyle,
-                                enabledCount = listOf(travelRefunds, paidProjects, insights, clockStyles).count { it },
+                                enabledCount = listOf(travelRefunds, insights, clockStyles).count { it },
                                 error = (state as? OnboardingUiState.ValidationError)?.errors?.values?.firstOrNull(),
                                 onBack = { step = 7 },
                                 onFinish = {
@@ -255,7 +255,7 @@ fun OnboardingScreen(
                                             hourlyRate = hourlyRate,
                                             currency = currency,
                                             featuresTravelRefunds = travelRefunds,
-                                            featuresPaidProjects = paidProjects,
+                                            featuresPaidProjects = false,
                                             featuresInsights = insights,
                                             featuresClockStyles = clockStyles,
                                             clockStyle = clockStyle,
@@ -671,13 +671,12 @@ private fun WelcomeBenefit(icon: androidx.compose.ui.graphics.vector.ImageVector
 
 @Composable
 private fun FeaturesStep(
-    travel: Boolean, projects: Boolean, insights: Boolean, styles: Boolean,
-    onTravel: (Boolean) -> Unit, onProjects: (Boolean) -> Unit, onInsights: (Boolean) -> Unit, onStyles: (Boolean) -> Unit,
+    travel: Boolean, insights: Boolean, styles: Boolean,
+    onTravel: (Boolean) -> Unit, onInsights: (Boolean) -> Unit, onStyles: (Boolean) -> Unit,
     onBack: () -> Unit, onNext: () -> Unit,
 ) {
     StepHeader("What do you need?", "Enable the features that fit your workflow. You can change these later in Settings.")
     FeatureCard("Travel Refunds", "Track transport reimbursements for eligible shifts.", travel, onTravel)
-    FeatureCard("Tip Calculator", "Coming soon — tip tracking is not available yet.", false, {}, comingSoon = true)
     FeatureCard("Insights & Analytics", "Smart summaries, weekly trends, and daily coaching.", insights, onInsights)
     FeatureCard("Clock Styles", "Choose how the clock widget looks on your home screen.", styles, onStyles)
     Spacer(Modifier.height(20.dp)); NavRow(onBack, onNext)
