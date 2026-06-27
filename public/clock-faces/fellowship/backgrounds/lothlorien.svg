@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" fill="none">
+  <rect width="600" height="400" fill="#C8E6C0"/>
+  <rect y="300" width="600" height="100" fill="#3D6B2E"/>
+  <rect x="60" y="80" width="36" height="220" fill="#E8DDB8" rx="4"/>
+  <ellipse cx="78" cy="70" rx="55" ry="45" fill="#D4C878" opacity="0.85"/>
+  <rect x="420" y="100" width="40" height="200" fill="#E8DDB8" rx="4"/>
+  <ellipse cx="440" cy="85" rx="60" ry="50" fill="#E8D060" opacity="0.9"/>
+  <path d="M140 200 Q300 160 460 190" stroke="#F0E8C0" stroke-width="3" fill="none" opacity="0.6"/>
+  <text x="300" y="360" text-anchor="middle" fill="#2A4A20" font-family="monospace" font-size="14" opacity="0.5">lothlorien  replace me</text>
+</svg>
