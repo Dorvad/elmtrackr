@@ -12,6 +12,8 @@ supabase.anon.key=
 web.app.url=
 
 # --- Release signing (required for Play Store uploads) ---
+# Must match the upload key registered in Play Console (App integrity → App signing).
+# Verify with: keytool -list -v -keystore <path> -alias <alias>
 # KEYSTORE_PATH=keystore/elmtrackr-release.jks
 # KEYSTORE_PASSWORD=
 # KEY_ALIAS=

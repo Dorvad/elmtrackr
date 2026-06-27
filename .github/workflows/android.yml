@@ -153,7 +153,8 @@ jobs:
       - name: Upload release AAB
         uses: actions/upload-artifact@v4
         with:
-          name: ElmTrackr-release
+          # CI-only signing — NOT for Play Store. Build bundleRelease locally with elmtrackr-release.jks.
+          name: ElmTrackr-release-CI-ONLY-DO-NOT-UPLOAD-TO-PLAY
           path: android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 30

@@ -255,6 +255,52 @@ Workflow file: [`.github/workflows/android.yml`](../.github/workflows/android.ym
 
 ---
 
+## Play Store upload (release AAB)
+
+**Do not upload the `ElmTrackr-release` artifact from GitHub Actions to Play Console.**
+CI generates a throwaway signing key on every run. Play Console will reject it with
+“signed with the wrong key”.
+
+Build and sign locally with the **same release keystore** used for your first Play upload.
+
+### 1. Configure signing in `android/local.properties`
+
+```properties
+KEYSTORE_PATH=keystore/elmtrackr-release.jks
+KEYSTORE_PASSWORD=your-store-password
+KEY_ALIAS=your-key-alias
+KEY_PASSWORD=your-key-password
+```
+
+### 2. Verify the keystore fingerprint matches Play Console
+
+Play Console → **App integrity** → **App signing** shows the upload certificate SHA-1.
+Your local keystore must match (expected: `A5:37:CC:E7:CA:2E:C9:42:D3:7C:DE:34:C3:9D:D6:11:FE:BD:F7:C3`).
+
+```bash
+keytool -list -v \
+  -keystore android/keystore/elmtrackr-release.jks \
+  -alias YOUR_KEY_ALIAS
+```
+
+Look for `SHA1:` in the output. If it does not match, you are using the wrong keystore file.
+
+### 3. Build the release bundle
+
+```bash
+cd android
+./gradlew :app:bundleRelease
+```
+
+Output: `android/app/build/outputs/bundle/release/app-release.aab`
+
+### 4. Upload to Play Console
+
+- Use a **new `versionCode`** each upload (currently **6** / `1.0.5` in `app/build.gradle.kts`).
+- Upload the locally built `app-release.aab`, not a CI artifact.
+
+---
+
 ## Project structure
 
 ```
