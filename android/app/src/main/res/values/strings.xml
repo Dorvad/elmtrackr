@@ -7,7 +7,12 @@
     <string name="shortcut_clock_in_long">Clock In to ElmTrackr</string>
     <string name="shortcut_clock_out_short">Clock Out</string>
     <string name="shortcut_clock_out_long">Clock Out of ElmTrackr</string>
-    <string name="widget_description">Shows your active shift status and lets you clock in or out.</string>
+    <string name="widget_description">Classic ElmTrackr widget with logo, live shift status, and a Clock In / Out button.</string>
+    <string name="widget_description_minimal">Minimal ElmTrackr widget with large timer text and a Clock In / Out button.</string>
+    <string name="widget_description_aurora">Aurora ElmTrackr widget with gradient styling and a Clock In / Out button.</string>
+    <string name="widget_label_classic">ElmTrackr Classic</string>
+    <string name="widget_label_minimal">ElmTrackr Minimal</string>
+    <string name="widget_label_aurora">ElmTrackr Aurora</string>
 
     <!-- Active shift notification -->
     <string name="notif_active_shift_title">Clocked in</string>

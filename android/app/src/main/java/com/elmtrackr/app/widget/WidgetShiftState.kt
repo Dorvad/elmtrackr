@@ -3,10 +3,12 @@ package com.elmtrackr.app.widget
 data class WidgetShiftState(
     val isActive: Boolean,
     val shiftId: String,
-    /** HH:MM of the active shift start (active) or approximate clock-out time (inactive). */
+    /** HH:mm when clocked in; last clock-out time or placeholder when idle. */
     val startTimeLabel: String,
     val dateLabel: String,
-    /** "Today HH:MM" string used for the "Last punch" / "Since" subtitle line. */
+    /** Human-readable subtitle (since / last out). */
     val lastPunchLabel: String,
     val pendingCount: Int,
+    val shiftStartEpochMillis: Long = 0L,
+    val lastPunchEndEpochMillis: Long = 0L,
 )

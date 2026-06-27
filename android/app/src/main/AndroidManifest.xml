@@ -72,16 +72,41 @@
             </intent-filter>
         </receiver>
 
-        <!-- ElmTrackr home screen widget (Jetpack Glance 4Ã—1 horizontal). -->
+        <!-- ElmTrackr home screen widgets (Jetpack Glance 4×1 horizontal). -->
         <receiver
             android:name=".widget.ElmTrackrWidgetReceiver"
-            android:exported="true">
+            android:exported="true"
+            android:label="@string/widget_label_classic">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/elmtrackr_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.ElmTrackrMinimalWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_label_minimal">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/elmtrackr_widget_minimal_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.ElmTrackrAuroraWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_label_aurora">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/elmtrackr_widget_aurora_info" />
         </receiver>
 
         <provider

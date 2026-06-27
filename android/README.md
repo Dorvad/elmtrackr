@@ -674,10 +674,16 @@ On Android 13+ (API 33), `POST_NOTIFICATIONS` is a runtime permission.
 - The `POST_NOTIFICATIONS` permission is declared in `AndroidManifest.xml` for
   forward compatibility; on API < 33 it is silently ignored by the system.
 
-### Home screen widget
+### Home screen widgets
 
-ElmTrackr includes a Jetpack Glance home screen widget optimised for Niagara
-Launcher's horizontal feed (primary size: 4×1 cells).
+ElmTrackr includes **three** Jetpack Glance home screen widget styles (all 4×1,
+resizable). Pick one from the widget picker:
+
+| Widget | Style |
+|---|---|
+| **ElmTrackr Classic** | Logo + status dot + elapsed timer + action pill |
+| **ElmTrackr Minimal** | Large thin timer typography on dark background |
+| **ElmTrackr Aurora** | Indigo→aqua gradient with frosted action button |
 
 | Property | Value |
 |---|---|
@@ -686,39 +692,42 @@ Launcher's horizontal feed (primary size: 4×1 cells).
 | Resize | horizontal + vertical; min 2×1 |
 | State storage | `PreferencesGlanceStateDefinition` (DataStore Preferences) |
 | Update trigger | `ElmTrackrApp.startActiveShiftObserver()` → `ElmTrackrWidgetUpdater.update()` |
-| On-boot / fresh-place | `ElmTrackrWidgetReceiver.onUpdate()` re-reads Room and refreshes |
+| On-boot / fresh-place | `BaseElmTrackrWidgetReceiver.onUpdate()` re-reads Room and refreshes |
 
 **Widget states:**
 
-| State | Status text | Action button |
+| State | Display | Action button |
 |---|---|---|
-| Idle (not clocked in) | "Ready to clock in" + today's date | Clock In |
-| Active (shift running) | "Clocked in since HH:mm" + today's date | Clock Out |
+| Idle (not clocked in) | Last clock-out time (from Room) or `--:--` | **Clock In** — clocks in headlessly |
+| Active (shift running) | Live elapsed time (`2h 14m`) + since time | **Clock Out** — clocks out headlessly |
+
+Only **one** action button is shown per state. It always performs the correct
+action without opening the app. Tapping the logo/time/status area opens the app
+for full details.
 
 **Action behaviour:**
 
-- **Clock In** — calls `LocalShiftsRepository.clockIn()` directly (Room write,
-  sync queued, no network required). The active-shift observer in `ElmTrackrApp`
-  then updates both the notification and the widget state.
-- **Clock Out** — calls `LocalShiftsRepository.clockOut(shiftId)` via the shift ID
-  stored in the widget state. Same offline-first guarantee.
-- **Tap anywhere** — opens `MainActivity` (Dashboard).
+- **Clock In** — `WidgetActions.clockIn()` → Room write, sync queued, notification
+  + widget refresh via the active-shift observer.
+- **Clock Out** — `WidgetActions.clockOut()` → uses `ClockOutActions` (settings
+  fallback, notification cancel, confirmation toast/notification).
+- Wrong-state taps are impossible — the button label and action always match
+  the current shift state.
 
 **Key classes:**
 
 | Class | Responsibility |
 |---|---|
-| `ElmTrackrWidget` | `GlanceAppWidget` — renders idle / active layout |
-| `ElmTrackrWidgetReceiver` | `GlanceAppWidgetReceiver` — handles `APPWIDGET_UPDATE` (boot, first placement) |
-| `ElmTrackrWidgetUpdater` | Suspending helper; maps `Shift?` → Glance state; calls `widget.update()` |
-| `WidgetStateMapper` | Pure function `Shift? → WidgetShiftState`; fully unit-tested without Android |
-| `ClockInWidgetAction` | `ActionCallback` — calls `shiftsRepository.clockIn()` |
-| `ClockOutWidgetAction` | `ActionCallback` — reads `SHIFT_ID_KEY` param, calls `clockOut()` |
+| `ElmTrackrWidget` / `ElmTrackrMinimalWidget` / `ElmTrackrAuroraWidget` | Glance layouts per style |
+| `WidgetLayouts` | Shared status + single stateful action button |
+| `WidgetPreferences` | Glance prefs keys + `DisplayState` (elapsed time, labels) |
+| `ElmTrackrWidgetUpdater` | Updates all three widget types from Room state |
+| `WidgetStateMapper` | `Shift?` + last completed shift → `WidgetShiftState` |
+| `ClockInWidgetAction` / `ClockOutWidgetAction` | Glance `ActionCallback` entry points |
 
-**Button corners:** `GlanceModifier.cornerRadius()` requires API 31+. The
-widget uses `ImageProvider(R.drawable.widget_button)` (a shape drawable with
-`<corners android:radius="20dp"/>`) for the pill background instead — works on
-all supported API levels (26+).
+**Button corners:** `GlanceModifier.cornerRadius()` requires API 31+. Widgets
+use shape drawables (`widget_button_clock_in`, `widget_button_clock_out`, etc.)
+for pill backgrounds — works on all supported API levels (26+).
 
 ### App shortcuts
 

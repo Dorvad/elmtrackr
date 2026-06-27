@@ -28,6 +28,7 @@ import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.PreferencesCurrentUserProvider
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.SyncRepository
+import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.notification.ActiveShiftNotificationManager
 import com.elmtrackr.app.notification.LongShiftReminderWorker
 import com.elmtrackr.app.notification.NotificationChannels
@@ -43,6 +44,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -153,12 +155,17 @@ class ElmTrackrApp : Application() {
         applicationScope.launch {
             currentUserProvider.userId
                 .filterNotNull()
-                .flatMapLatest { userId -> shiftsRepository.observeActiveShift(userId) }
+                .flatMapLatest { userId: String ->
+                    shiftsRepository.observeActiveShift(userId).map { active: Shift? ->
+                        userId to active
+                    }
+                }
                 .catch { /* never crash the app due to notification failures */ }
-                .collect { shift ->
+                .collect { payload: Pair<String, Shift?> ->
+                    val userId = payload.first
+                    val shift = payload.second
                     if (shift != null) {
                         notifManager.showActiveShiftNotification(shift)
-                        val userId = currentUserProvider.currentUserId() ?: return@collect
                         val settings = settingsRepository.getSettings(userId)
                         val delayMinutes = settings?.dailyOvertimeThresholdMinutes?.toLong()
                             ?: LongShiftReminderWorker.FALLBACK_THRESHOLD_MINUTES
@@ -169,7 +176,11 @@ class ElmTrackrApp : Application() {
                         cancelReminder()
                         updateDynamicShortcuts(clockedIn = false)
                     }
-                    ElmTrackrWidgetUpdater.update(this@ElmTrackrApp, shift)
+                    val lastCompleted = shiftsRepository
+                        .observeRecentCompletedShifts(userId, limit = 1)
+                        .first()
+                        .firstOrNull()
+                    ElmTrackrWidgetUpdater.update(this@ElmTrackrApp, shift, lastCompleted)
                 }
         }
     }

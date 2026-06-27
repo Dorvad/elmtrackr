@@ -8,32 +8,48 @@ import java.util.Locale
 
 object WidgetStateMapper {
 
-    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
     private val dateFormatter = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
 
-    fun map(shift: Shift?, pendingCount: Int = 0): WidgetShiftState {
+    fun map(
+        shift: Shift?,
+        lastCompletedShift: Shift? = null,
+        pendingCount: Int = 0,
+    ): WidgetShiftState {
         val zone = ZoneId.systemDefault()
         val now = Instant.now().atZone(zone)
         val dateLabel = now.format(dateFormatter)
-        return if (shift != null && shift.isActive) {
-            val startFormatted = shift.startTime.atZone(zone).format(timeFormatter)
-            WidgetShiftState(
+
+        if (shift != null && shift.isActive) {
+            val startFormatted = WidgetPreferences.formatShiftStart(shift.startTime, zone)
+            return WidgetShiftState(
                 isActive = true,
                 shiftId = shift.id,
                 startTimeLabel = startFormatted,
                 dateLabel = dateLabel,
-                lastPunchLabel = "Today $startFormatted",
+                lastPunchLabel = "Since $startFormatted",
                 pendingCount = pendingCount,
+                shiftStartEpochMillis = shift.startTime.toEpochMilli(),
             )
-        } else {
-            // Use current time as the best approximation of when the shift ended.
-            val nowFormatted = now.format(timeFormatter)
+        }
+
+        val lastEnd = lastCompletedShift?.endTime
+        return if (lastEnd != null) {
             WidgetShiftState(
                 isActive = false,
                 shiftId = "",
-                startTimeLabel = nowFormatted,
+                startTimeLabel = WidgetPreferences.formatShiftStart(lastEnd, zone),
                 dateLabel = dateLabel,
-                lastPunchLabel = "Today $nowFormatted",
+                lastPunchLabel = WidgetPreferences.formatLastPunch(lastEnd, zone),
+                pendingCount = pendingCount,
+                lastPunchEndEpochMillis = lastEnd.toEpochMilli(),
+            )
+        } else {
+            WidgetShiftState(
+                isActive = false,
+                shiftId = "",
+                startTimeLabel = "--:--",
+                dateLabel = dateLabel,
+                lastPunchLabel = "",
                 pendingCount = pendingCount,
             )
         }

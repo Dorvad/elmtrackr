@@ -24,7 +24,7 @@ class WidgetStateMapperTest {
         val state = WidgetStateMapper.map(null)
         assertFalse(state.isActive)
         assertEquals("", state.shiftId)
-        assertTrue(state.startTimeLabel.matches(Regex("\\d{2}:\\d{2}")))
+        assertEquals("--:--", state.startTimeLabel)
     }
 
     @Test
@@ -33,7 +33,19 @@ class WidgetStateMapperTest {
         val state = WidgetStateMapper.map(shift)
         assertFalse(state.isActive)
         assertEquals("", state.shiftId)
-        assertTrue(state.startTimeLabel.matches(Regex("\\d{2}:\\d{2}")))
+    }
+
+    @Test
+    fun `idle uses last completed shift end time when provided`() {
+        val endedAt = Instant.parse("2024-01-08T17:30:00Z")
+        val lastCompleted = makeShift(
+            startTime = Instant.parse("2024-01-08T09:00:00Z"),
+            endTime = endedAt,
+        )
+        val state = WidgetStateMapper.map(null, lastCompletedShift = lastCompleted)
+        assertFalse(state.isActive)
+        assertTrue(state.lastPunchLabel.contains("Last out"))
+        assertEquals(endedAt.toEpochMilli(), state.lastPunchEndEpochMillis)
     }
 
     @Test
@@ -43,6 +55,7 @@ class WidgetStateMapperTest {
         assertTrue(state.isActive)
         assertEquals("shift-1", state.shiftId)
         assertFalse(state.startTimeLabel.isEmpty())
+        assertTrue(state.shiftStartEpochMillis > 0L)
     }
 
     @Test
