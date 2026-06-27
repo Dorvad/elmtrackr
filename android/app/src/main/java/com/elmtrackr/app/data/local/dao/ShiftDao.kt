@@ -99,7 +99,7 @@ interface ShiftDao {
     @Query(
         "SELECT * FROM shifts WHERE userId = :userId " +
             "AND startTime >= :fromEpoch AND startTime < :toEpoch " +
-            "AND deletedAt IS NULL ORDER BY startTime ASC"
+            "AND deletedAt IS NULL ORDER BY startTime DESC"
     )
     fun observeShiftsByDateRange(
         userId: String,
