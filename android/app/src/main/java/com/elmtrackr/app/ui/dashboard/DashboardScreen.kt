@@ -147,7 +147,7 @@ fun DashboardScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color    = MaterialTheme.colorScheme.background,
+        color    = Color.Transparent,
     ) {
         when (val state = uiState) {
             is DashboardUiState.Loading -> DashboardSkeleton()

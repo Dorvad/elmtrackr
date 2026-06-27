@@ -432,7 +432,7 @@ private fun SettingsContent(
                     Spacer(Modifier.height(16.dp))
                     PayrollSubsectionTitle("Location")
                     Spacer(Modifier.height(8.dp))
-                    CountryTimezoneDropdown(timezone = timezone, onSelect = { timezone = it })
+                    IanaTimezonePicker(selected = timezone, onSelect = { timezone = it })
                 }
             }
 
@@ -875,31 +875,6 @@ private fun watchFaceDescription(style: ClockStyle): String = when (style) {
     ClockStyle.SAND -> "Flowing hourglass"
     ClockStyle.BLOCKS -> "Hour-by-hour blocks"
     ClockStyle.ORBIT -> "Orbiting satellite"
-}
-
-@Composable
-private fun CountryTimezoneDropdown(timezone: String, onSelect: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    val country = COUNTRY_TIMEZONES.firstOrNull { it.second == timezone }?.first
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        OutlinedTextField(
-            value = country ?: timezone,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Country") },
-            supportingText = { Text("Timezone: $timezone") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            COUNTRY_TIMEZONES.forEach { (name, zone) ->
-                DropdownMenuItem(
-                    text = { Text(name) },
-                    onClick = { onSelect(zone); expanded = false },
-                )
-            }
-        }
-    }
 }
 
 // â”€â”€ Hours field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

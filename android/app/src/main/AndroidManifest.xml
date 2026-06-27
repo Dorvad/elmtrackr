@@ -51,7 +51,10 @@
         <activity
             android:name=".shortcuts.HeadlessTrampolineActivity"
             android:theme="@android:style/Theme.NoDisplay"
-            android:exported="false" />
+            android:exported="false"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
 
         <receiver
             android:name=".shortcuts.HeadlessClockOutReceiver"

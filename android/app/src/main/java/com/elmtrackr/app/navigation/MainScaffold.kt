@@ -1,6 +1,7 @@
 package com.elmtrackr.app.navigation
 
 import android.animation.ValueAnimator
+import android.os.Build
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -43,6 +44,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -67,6 +69,7 @@ import com.elmtrackr.app.ui.theme.auroraNavSelectedLabel
 import com.elmtrackr.app.ui.theme.auroraNavUnselectedIcon
 import com.elmtrackr.app.ui.theme.auroraNavUnselectedLabel
 import com.elmtrackr.app.ui.design.AuroraEaseOut
+import com.elmtrackr.app.ui.design.AuroraMeshBackground
 import com.elmtrackr.app.ui.design.AuroraMotion
 import com.elmtrackr.app.ui.design.auroraPressScale
 
@@ -173,20 +176,33 @@ private fun ElmBottomNav(
     onNavigate: (String) -> Unit,
 ) {
   val navShape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
-  Surface(
-    color = auroraNavBarBackground(),
-    shadowElevation = 0.dp,
+  Box(
     modifier = Modifier
       .fillMaxWidth()
-      .navigationBarsPadding()
-      .shadow(
-        elevation = 16.dp,
-        shape = navShape,
-        clip = false,
-        ambientColor = AuroraIndigo.copy(alpha = 0.06f),
-        spotColor = AuroraIndigo.copy(alpha = 0.08f),
-      ),
+      .navigationBarsPadding(),
   ) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      Box(
+        modifier = Modifier
+          .matchParentSize()
+          .blur(24.dp),
+      ) {
+        AuroraMeshBackground(modifier = Modifier.matchParentSize())
+      }
+    }
+    Surface(
+      color = auroraNavBarBackground(),
+      shadowElevation = 0.dp,
+      modifier = Modifier
+        .fillMaxWidth()
+        .shadow(
+          elevation = 16.dp,
+          shape = navShape,
+          clip = false,
+          ambientColor = AuroraIndigo.copy(alpha = 0.06f),
+          spotColor = AuroraIndigo.copy(alpha = 0.08f),
+        ),
+    ) {
     Column(modifier = Modifier.fillMaxWidth()) {
       HorizontalDivider(
         color = AuroraHair,
@@ -273,6 +289,7 @@ private fun ElmBottomNav(
           }
         }
       }
+    }
     }
   }
 }

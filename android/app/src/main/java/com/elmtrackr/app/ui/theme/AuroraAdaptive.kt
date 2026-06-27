@@ -19,7 +19,7 @@ fun auroraSecondaryText(): Color = MaterialTheme.colorScheme.onSurfaceVariant
 fun auroraFaintText(): Color = MaterialTheme.colorScheme.outline
 
 @Composable
-fun auroraNavBarBackground(): Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
+fun auroraNavBarBackground(): Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
 
 @Composable
 fun auroraNavUnselectedIcon(): Color = MaterialTheme.colorScheme.outline

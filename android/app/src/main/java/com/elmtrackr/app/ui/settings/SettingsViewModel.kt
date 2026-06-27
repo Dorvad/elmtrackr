@@ -206,7 +206,7 @@ class SettingsViewModel(
                 dailyOvertimeThresholdMinutes = (dailyOtHours * 60).roundToInt(),
                 weeklyOvertimeThresholdMinutes = (weeklyOtHours * 60).roundToInt(),
                 hourlyRate = hourlyRate,
-                timezone = timezone.trim(),
+                timezone = IanaTimezones.normalize(timezone.trim()),
                 clockStyle = clockStyle,
                 currency = currency,
                 weekendDays = weekendDays,
@@ -222,7 +222,7 @@ class SettingsViewModel(
             if (defaultProfile != null) {
                 val updatedProfile = defaultProfile.copy(
                     baseHourlyRate = hourlyRate,
-                    timezone = timezone.trim(),
+                    timezone = IanaTimezones.normalize(timezone.trim()),
                     rules = defaultProfile.rules.copy(
                         dailyStandardMinutes = (dailyOtHours * 60).roundToInt(),
                         weeklyStandardMinutes = (weeklyOtHours * 60).roundToInt(),

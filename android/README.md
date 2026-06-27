@@ -535,14 +535,14 @@ The `SettingsScreen` (`ui/settings/SettingsScreen.kt`) is fully functional with 
 - Daily OT: must be > 0 and ≤ 24 h.
 - Weekly OT: must be > 0, ≤ 168 h, and ≥ daily OT.
 - Hourly rate: must be ≥ 0 when provided (null = not set).
+- Timezone: must be a valid IANA zone ID (selected via searchable picker).
 - Errors appear inline under the offending field via `supportingText`.
 
 **Clock styles:**
-Only three of eleven `ClockStyle` values render natively. The settings screen exposes only these three. Any unsupported value saved externally falls back to CLASSIC via `supportedClockStyleOf()`.
+All fourteen supported `ClockStyle` values render natively on the dashboard.
 
 **Known limitations:**
-- Timezone is a free-text field — no picker or validation against IANA zone names yet.
-- Theme change takes effect on next app start (no hot-reload).
+- Theme change takes effect immediately (DataStore + Compose recomposition).
 
 ---
 
@@ -724,10 +724,14 @@ Both dynamic shortcuts open the app to the Dashboard where the action can be
 completed. Managed by `ElmTrackrApp.updateDynamicShortcuts()`, called whenever
 the active-shift observer fires.
 
-**Known limitation:** The Clock Out dynamic shortcut opens the app rather than
-clocking out directly (no transparent-trampoline activity). A future phase can
-add a `ClockOutShortcutActivity` that calls `ClockOutReceiver` and finishes
-immediately for a fully headless shortcut experience.
+**Clock Out dynamic shortcut:** Uses a headless trampoline activity that clocks out without opening the main UI, then shows a brief confirmation notification.
+
+**Theme:** Changes apply immediately across the app (no restart required). System theme tracks device dark-mode changes while "System default" is selected.
+
+**Timezone:** Searchable IANA timezone picker in Settings (Payroll → Location).
+
+**Known limitations:**
+- Bottom-nav blur uses a frosted mesh layer on Android 12+; older devices use translucent fill only.
 
 ---
 
@@ -750,4 +754,4 @@ immediately for a fully headless shortcut experience.
 | ✅ 13 — Native features | Active-shift notification, clock-out action, long-shift reminder, app shortcuts |
 | ✅ 14 — Home screen widget | Jetpack Glance 4×1 widget: active shift status + Clock In / Clock Out actions |
 | 15 — Refunds | CameraX receipt capture, refund claim management |
-| 16 — Polish | Visual redesign, animations, headless shortcut clock-out |
+| 16 — Polish | Visual redesign, animations, headless shortcut clock-out | ✅ headless shortcut, aurora mesh, nav blur, theme hot-reload, IANA timezone picker |

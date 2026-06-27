@@ -87,5 +87,5 @@ with original ElmTrackr web design".
 
 ## Known Gaps (not blocking)
 - Card border `border-white/80` (subtle; hairline outline used instead)
-- Aurora mesh animated background on dashboard
-- True backdrop blur on bottom nav (approximated with translucent fill + shadow)
+- ~~Aurora mesh animated background on dashboard~~ ✅ added (`AuroraMeshBackground`)
+- ~~True backdrop blur on bottom nav~~ ✅ frosted mesh blur on API 31+ (`ElmBottomNav`)
