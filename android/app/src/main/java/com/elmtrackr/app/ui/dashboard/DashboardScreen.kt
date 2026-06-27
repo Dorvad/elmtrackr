@@ -65,6 +65,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -100,6 +102,7 @@ import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.design.ElmStatCard
 import com.elmtrackr.app.ui.design.ElmStatVariant
 import com.elmtrackr.app.ui.design.ElmSyncPill
+import com.elmtrackr.app.ui.sync.resolveSyncStatus
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.auroraSecondaryText
@@ -153,6 +156,7 @@ fun DashboardScreen(
                 onClockIn       = viewModel::clockIn,
                 onClockOut      = viewModel::clockOut,
                 onEditStartTime = viewModel::editActiveShiftStartTime,
+                onTriggerSync   = viewModel::triggerSync,
                 onNavigateToReports = onNavigateToReports,
                 showFirstClockInCelebration = showCelebration,
                 onDismissFirstClockInCelebration = viewModel::dismissFirstClockInCelebration,
@@ -168,6 +172,7 @@ private fun DashboardReady(
     onClockIn: () -> Unit,
     onClockOut: (String) -> Unit,
     onEditStartTime: (shiftId: String, newStartTime: Instant) -> Unit,
+    onTriggerSync: () -> Unit,
     onNavigateToReports: () -> Unit,
     showFirstClockInCelebration: Boolean,
     onDismissFirstClockInCelebration: () -> Unit,
@@ -219,8 +224,15 @@ private fun DashboardReady(
     AuroraScreen {
             DashboardHeader(
                 displayName = state.displayName,
-                pendingSyncCount = state.pendingSyncCount,
-                isRemoteConfigured = state.isRemoteConfigured,
+                syncStatus = resolveSyncStatus(
+                    isRemoteConfigured = state.isRemoteConfigured,
+                    isOnline = state.isOnline,
+                    isSyncing = state.isSyncing,
+                    pendingCount = state.pendingSyncCount,
+                    lastSyncStatus = state.lastSyncStatus,
+                    syncError = state.syncError,
+                ),
+                onSyncClick = onTriggerSync,
             )
 
             if (state.recentShifts.isEmpty() && activeShift == null) {
@@ -276,6 +288,13 @@ private fun DashboardReady(
                         onClockOut      = handleClockOut,
                         onEditStartTime = { showEditDialog = true },
                     )
+                    SupportedClockStyle.FELLOWSHIP -> FellowshipClockCard(
+                        activeShift = activeShift,
+                        elapsedSeconds = elapsedSeconds,
+                        onClockIn = handleClockIn,
+                        onClockOut = handleClockOut,
+                        onEditStartTime = { showEditDialog = true },
+                    )
                     SupportedClockStyle.FOCUS,
                     SupportedClockStyle.BOLD,
                     SupportedClockStyle.NIGHT,
@@ -321,8 +340,8 @@ private fun DashboardReady(
 @Composable
 private fun DashboardHeader(
     displayName: String?,
-    pendingSyncCount: Int,
-    isRemoteConfigured: Boolean,
+    syncStatus: com.elmtrackr.app.ui.sync.SyncStatusUi,
+    onSyncClick: () -> Unit,
 ) {
     val hour = Instant.now().atZone(ZoneId.systemDefault()).hour
     val greetingBase = when (hour) {
@@ -381,8 +400,8 @@ private fun DashboardHeader(
             }
         }
         ElmSyncPill(
-            pendingCount = pendingSyncCount,
-            isRemoteConfigured = isRemoteConfigured,
+            status = syncStatus,
+            onClick = if (syncStatus.isActionable) onSyncClick else null,
         )
     }
 }
@@ -449,7 +468,10 @@ private fun FirstRunWelcomeCard(onClockIn: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
-            ElmGradientButton(onClick = onClockIn) {
+            ElmGradientButton(
+                onClick = onClockIn,
+                accessibilityLabel = "Clock in. Start tracking your shift.",
+            ) {
                 Text("Clock in now", fontWeight = FontWeight.SemiBold)
             }
         }
@@ -568,11 +590,11 @@ private fun ClassicClockCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    IconButton(onClick = onEditStartTime, modifier = Modifier.size(32.dp)) {
+                    IconButton(onClick = onEditStartTime, modifier = Modifier.size(48.dp)) {
                         Icon(
                             imageVector     = Icons.Filled.Edit,
                             contentDescription = "Edit start time",
-                            modifier        = Modifier.size(16.dp),
+                            modifier        = Modifier.size(18.dp),
                             tint            = MaterialTheme.colorScheme.outline,
                         )
                     }
@@ -585,7 +607,10 @@ private fun ClassicClockCard(
                         containerColor = MaterialTheme.colorScheme.error,
                         contentColor   = MaterialTheme.colorScheme.onError,
                     ),
-                    modifier = Modifier.fillMaxWidth().activeShiftPulse(true),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .activeShiftPulse(true)
+                        .semantics { contentDescription = "Clock out. End your current shift." },
                 ) {
                     Text("Clock Out", fontWeight = FontWeight.Bold)
                 }
@@ -598,7 +623,10 @@ private fun ClassicClockCard(
                     textAlign  = TextAlign.Center,
                 )
                 Spacer(Modifier.height(16.dp))
-                ElmGradientButton(onClick = onClockIn) {
+                ElmGradientButton(
+                    onClick = onClockIn,
+                    accessibilityLabel = "Clock in. Start tracking your shift.",
+                ) {
                     Text("Clock In", fontWeight = FontWeight.Bold)
                 }
             }
@@ -635,7 +663,7 @@ private fun MinimalClockCard(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                IconButton(onClick = onEditStartTime, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = onEditStartTime, modifier = Modifier.size(48.dp)) {
                     Icon(
                         imageVector        = Icons.Filled.Edit,
                         contentDescription = "Edit start time",
@@ -654,7 +682,16 @@ private fun MinimalClockCard(
             else
                 ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
             contentPadding = PaddingValues(16.dp),
-            modifier = Modifier.size(120.dp).activeShiftPulse(activeShift != null),
+            modifier = Modifier
+                .size(120.dp)
+                .activeShiftPulse(activeShift != null)
+                .semantics {
+                    contentDescription = if (activeShift != null) {
+                        "Clock out. End your current shift."
+                    } else {
+                        "Clock in. Start tracking your shift."
+                    }
+                },
         ) {
             Text(
                 text       = if (activeShift != null) "OUT" else "IN",
@@ -701,11 +738,11 @@ private fun AuroraClockCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.8f),
                     )
-                    IconButton(onClick = onEditStartTime, modifier = Modifier.size(32.dp)) {
+                    IconButton(onClick = onEditStartTime, modifier = Modifier.size(48.dp)) {
                         Icon(
                             imageVector        = Icons.Filled.Edit,
                             contentDescription = "Edit start time",
-                            modifier           = Modifier.size(16.dp),
+                            modifier           = Modifier.size(18.dp),
                             tint               = Color.White.copy(alpha = 0.7f),
                         )
                     }
@@ -718,7 +755,10 @@ private fun AuroraClockCard(
                         containerColor = Color.White.copy(alpha = 0.22f),
                         contentColor   = Color.White,
                     ),
-                    modifier = Modifier.fillMaxWidth().activeShiftPulse(true),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .activeShiftPulse(true)
+                        .semantics { contentDescription = "Clock out. End your current shift." },
                 ) {
                     Text("Clock Out", fontWeight = FontWeight.Bold)
                 }
@@ -737,7 +777,9 @@ private fun AuroraClockCard(
                         containerColor = Color.White.copy(alpha = 0.22f),
                         contentColor   = Color.White,
                     ),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Clock in. Start tracking your shift." },
                 ) {
                     Text("Clock In", fontWeight = FontWeight.Bold)
                 }
@@ -1000,15 +1042,24 @@ private fun ExpressiveClockCard(
             if (activeShift != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Since ${formatInstantTime(activeShift.startTime)}", style = MaterialTheme.typography.bodySmall, color = foreground.copy(alpha = .65f))
-                    IconButton(onClick = onEditStartTime, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Filled.Edit, "Edit start time", tint = foreground.copy(alpha = .6f), modifier = Modifier.size(15.dp))
+                    IconButton(onClick = onEditStartTime, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Filled.Edit, "Edit start time", tint = foreground.copy(alpha = .6f), modifier = Modifier.size(18.dp))
                     }
                 }
             } else Text("Tap to start tracking your shift", style = MaterialTheme.typography.bodySmall, color = foreground.copy(alpha = .6f))
             Spacer(Modifier.height(12.dp))
             Button(
                 onClick = if (running) onClockOut else onClockIn,
-                modifier = Modifier.fillMaxWidth().activeShiftPulse(running),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .activeShiftPulse(running)
+                    .semantics {
+                        contentDescription = if (running) {
+                            "Clock out. End your current shift."
+                        } else {
+                            "Clock in. Start tracking your shift."
+                        }
+                    },
                 shape = RoundedCornerShape(CornerRadius.Medium),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (running) accent.copy(alpha = if (dark) .25f else .12f) else accent,

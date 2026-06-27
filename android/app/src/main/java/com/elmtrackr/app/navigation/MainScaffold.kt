@@ -36,6 +36,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.shadow
@@ -196,20 +201,20 @@ private fun ElmBottomNav(
         horizontalArrangement = Arrangement.SpaceEvenly,
       ) {
         BottomNavItem.entries.forEach { item ->
-          val selected = currentRoute == item.route
+          val isSelected = currentRoute == item.route
           val interactionSource = remember { MutableInteractionSource() }
           val pillAlpha by animateFloatAsState(
-            targetValue = if (selected) 1f else 0f,
+            targetValue = if (isSelected) 1f else 0f,
             animationSpec = tween(
-              durationMillis = if (selected) 250 else 150,
+              durationMillis = if (isSelected) 250 else 150,
               easing = AuroraEaseOut,
             ),
             label = "bottom-nav-pill-alpha",
           )
           val pillScale by animateFloatAsState(
-            targetValue = if (selected) 1f else 0.9f,
+            targetValue = if (isSelected) 1f else 0.9f,
             animationSpec = tween(
-              durationMillis = if (selected) 250 else 150,
+              durationMillis = if (isSelected) 250 else 150,
               easing = AuroraEaseOut,
             ),
             label = "bottom-nav-pill-scale",
@@ -217,6 +222,11 @@ private fun ElmBottomNav(
           Column(
             modifier = Modifier
               .weight(1f)
+              .semantics(mergeDescendants = true) {
+                role = Role.Tab
+                selected = isSelected
+                contentDescription = "${item.label}${if (isSelected) ", selected" else ""}"
+              }
               .auroraPressScale(interactionSource)
               .clickable(
                 interactionSource = interactionSource,
@@ -248,8 +258,8 @@ private fun ElmBottomNav(
               )
               Icon(
                 imageVector = item.icon,
-                contentDescription = item.label,
-                tint = if (selected) Color.White else auroraNavUnselectedIcon(),
+                contentDescription = null,
+                tint = if (isSelected) Color.White else auroraNavUnselectedIcon(),
                 modifier = Modifier.size(20.dp),
               )
             }
@@ -257,7 +267,7 @@ private fun ElmBottomNav(
               text = item.label,
               fontSize = 10.5.sp,
               lineHeight = 14.sp,
-              color = if (selected) auroraNavSelectedLabel() else auroraNavUnselectedLabel(),
+              color = if (isSelected) auroraNavSelectedLabel() else auroraNavUnselectedLabel(),
               fontWeight = FontWeight.SemiBold,
             )
           }

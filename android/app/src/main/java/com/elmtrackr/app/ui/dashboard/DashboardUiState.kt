@@ -17,6 +17,10 @@ sealed interface DashboardUiState {
         val recentShifts: List<Shift> = emptyList(),
         val displayName: String? = null,
         val isRemoteConfigured: Boolean = true,
+        val isOnline: Boolean = true,
+        val isSyncing: Boolean = false,
+        val syncError: String? = null,
+        val lastSyncStatus: String? = null,
         val unresolvedRefundCount: Int = 0,
         val paySummary: PayrollCalculator.MonthlyPaySummary? = null,
     ) : DashboardUiState

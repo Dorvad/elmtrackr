@@ -6,6 +6,7 @@ import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeReportsRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeShiftsRepository
+import com.elmtrackr.app.fake.FakeNetworkMonitor
 import com.elmtrackr.app.fake.FakeSyncRepository
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Profile
@@ -43,9 +44,10 @@ class DashboardViewModelTest {
     }
 
     private val appPrefs = FakeAppPreferencesStore()
+    private val networkMonitor = FakeNetworkMonitor()
 
     private fun buildVm() = DashboardViewModel(
-        shiftsRepo, settingsRepo, reportsRepo, syncRepo, authRepo, compensationRepo, appPrefs,
+        shiftsRepo, settingsRepo, reportsRepo, syncRepo, authRepo, compensationRepo, appPrefs, networkMonitor,
     )
 
     private fun defaultSettings() = UserSettings(

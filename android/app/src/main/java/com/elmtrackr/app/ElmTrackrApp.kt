@@ -34,6 +34,7 @@ import com.elmtrackr.app.notification.NotificationChannels
 import com.elmtrackr.app.shortcuts.HeadlessTrampolineActivity
 import com.elmtrackr.app.widget.ElmTrackrWidgetUpdater
 import com.elmtrackr.app.sync.SyncScheduler
+import com.elmtrackr.app.util.NetworkMonitor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,6 +55,8 @@ class ElmTrackrApp : Application() {
     val database: ElmTrackrDatabase by lazy { ElmTrackrDatabase.getInstance(this) }
 
     val appPreferences: AppPreferencesRepository by lazy { AppPreferencesRepository(this) }
+
+    val networkMonitor: NetworkMonitor by lazy { NetworkMonitor(this) }
 
     val currentUserProvider: CurrentUserProvider by lazy {
         PreferencesCurrentUserProvider(appPreferences)

@@ -11,6 +11,7 @@ import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.model.SyncResult
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.repository.AuthRepository
@@ -18,6 +19,7 @@ import com.elmtrackr.app.domain.repository.ReportsRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.SyncRepository
+import com.elmtrackr.app.util.NetworkStatusMonitor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -41,11 +43,14 @@ class DashboardViewModel(
     private val authRepository: AuthRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
     private val appPreferences: com.elmtrackr.app.data.local.preferences.AppPreferencesStore,
+    private val networkMonitor: NetworkStatusMonitor,
 ) : ViewModel() {
 
     private val today = LocalDate.now(ZoneOffset.UTC)
     private val _refreshNonce = MutableStateFlow(0)
     private val _showFirstClockInCelebration = MutableStateFlow(false)
+    private val _isSyncing = MutableStateFlow(false)
+    private val _syncError = MutableStateFlow<String?>(null)
 
     val showFirstClockInCelebration: StateFlow<Boolean> = _showFirstClockInCelebration
 
@@ -59,7 +64,7 @@ class DashboardViewModel(
         val profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
     )
 
-    val uiState: StateFlow<DashboardUiState> = _refreshNonce
+    private val coreUiState: StateFlow<DashboardUiState> = _refreshNonce
         .flatMapLatest {
             authRepository.observeCurrentProfile().flatMapLatest { profile ->
             if (profile == null) return@flatMapLatest flowOf(DashboardUiState.Loading)
@@ -108,6 +113,28 @@ class DashboardViewModel(
         }
         .catch { e ->
         emit(DashboardUiState.Error(e.message ?: "Unknown error"))
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = DashboardUiState.Loading,
+    )
+
+    val uiState: StateFlow<DashboardUiState> = combine(
+        coreUiState,
+        networkMonitor.isOnline,
+        _isSyncing,
+        _syncError,
+        syncRepository.observeLastSyncStatus(),
+    ) { state, isOnline, isSyncing, syncError, lastSyncStatus ->
+        when (state) {
+            is DashboardUiState.Ready -> state.copy(
+                isOnline = isOnline,
+                isSyncing = isSyncing,
+                syncError = syncError,
+                lastSyncStatus = lastSyncStatus,
+            )
+            else -> state
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -166,6 +193,25 @@ class DashboardViewModel(
         _refreshNonce.value++
     }
 
+    fun triggerSync() {
+        viewModelScope.launch {
+            _isSyncing.value = true
+            _syncError.value = null
+            val userId = authRepository.getCurrentProfile()?.id
+            if (userId != null) {
+                _syncError.value = syncRepository.syncAll(userId).toUserMessage()
+            }
+            _isSyncing.value = false
+        }
+    }
+
+    private fun SyncResult.toUserMessage(): String? = when (this) {
+        is SyncResult.Success, SyncResult.NotConfigured -> null
+        is SyncResult.PartialSuccess ->
+            if (errors.isEmpty()) null else "${errors.size} items could not sync"
+        is SyncResult.Failure -> message
+    }
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -179,6 +225,7 @@ class DashboardViewModel(
                     app.authRepository,
                     app.compensationProfilesRepository,
                     app.appPreferences,
+                    app.networkMonitor,
                 )
             }
         }
