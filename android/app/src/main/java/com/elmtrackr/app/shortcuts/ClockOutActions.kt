@@ -37,6 +37,7 @@ object ClockOutActions {
 
         ActiveShiftNotificationManager(context.applicationContext).cancelActiveShiftNotification()
         ElmTrackrWidgetUpdater.update(context.applicationContext, null)
+        com.elmtrackr.app.wear.WearSyncPublisher.refresh(context.applicationContext)
         app.refreshDynamicShortcuts()
         return Result.CLOCKED_OUT
     }

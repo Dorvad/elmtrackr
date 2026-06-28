@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Required for notifications on Android 13+ (API 33+). Runtime-requested in MainActivity. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-feature
         android:name="android.hardware.camera.any"
@@ -142,6 +143,18 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/export_paths" />
         </provider>
+
+        <service
+            android:name=".wear.WearMessageListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/elmtrackr/"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
 
     </application>
 

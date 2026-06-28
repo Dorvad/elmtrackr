@@ -3,6 +3,7 @@ package com.elmtrackr.app.widget
 import android.content.Context
 import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.shortcuts.ClockOutActions
+import com.elmtrackr.app.wear.WearSyncPublisher
 
 object WidgetActions {
 
@@ -11,6 +12,7 @@ object WidgetActions {
         val userId = app.currentUserProvider.currentUserId() ?: return false
         return runCatching {
             app.shiftsRepository.clockIn(userId)
+            WearSyncPublisher.refresh(context.applicationContext)
             true
         }.getOrDefault(false)
     }

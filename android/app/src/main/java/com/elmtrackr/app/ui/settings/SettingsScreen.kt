@@ -749,6 +749,36 @@ private fun ClockStyleDropdown(selected: ClockStyle, onSelect: (ClockStyle) -> U
 
 @Composable
 internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
+    if (style == ClockStyle.FELLOWSHIP) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(68.dp)
+                .clip(RoundedCornerShape(CornerRadius.Medium)),
+        ) {
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(com.elmtrackr.app.R.drawable.fellowship_bg_shire),
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.25f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "01:23",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                    color = Color(0xFFD4AF37),
+                )
+            }
+        }
+        return
+    }
     val transition = rememberInfiniteTransition(label = "watch-${style.name}")
     val pulse by transition.animateFloat(
         initialValue = 0.35f,
@@ -875,6 +905,7 @@ private fun watchFaceDescription(style: ClockStyle): String = when (style) {
     ClockStyle.SAND -> "Flowing hourglass"
     ClockStyle.BLOCKS -> "Hour-by-hour blocks"
     ClockStyle.ORBIT -> "Orbiting satellite"
+    ClockStyle.FELLOWSHIP -> "Quest through Middle-earth"
 }
 
 // â”€â”€ Hours field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -47,6 +48,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -72,6 +74,7 @@ import com.elmtrackr.app.domain.compensation.RegionPresets
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.ui.design.AppLogo
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.settings.IanaTimezonePicker
 import com.elmtrackr.app.ui.settings.WatchFacePreview
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
@@ -222,6 +225,7 @@ fun OnboardingScreen(
                                 onWeekendDaysChange = { weekendDays = it },
                                 onDailyOtChange = { dailyOtText = it.decimalInput() },
                                 onWeeklyOtChange = { weeklyOtText = it.decimalInput() },
+                                onTimezoneChange = { timezone = it },
                                 valid = workWeekValid,
                                 onBack = { step = 4 },
                                 onNext = { if (workWeekValid) step = 6 },
@@ -475,10 +479,12 @@ internal fun WorkWeekStep(
     onWeekendDaysChange: (List<Int>) -> Unit,
     onDailyOtChange: (String) -> Unit,
     onWeeklyOtChange: (String) -> Unit,
+    onTimezoneChange: (String) -> Unit,
     valid: Boolean,
     onBack: () -> Unit,
     onNext: () -> Unit,
 ) {
+    var showTimezoneEditor by rememberSaveable { mutableStateOf(false) }
     SetupHero(Icons.Filled.CalendarMonth, "Set your work week", "Choose weekend days and when overtime starts.")
     SetupCard {
         Text("Weekend days", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
@@ -539,15 +545,34 @@ internal fun WorkWeekStep(
         }
         Spacer(Modifier.height(14.dp))
         Row(
-            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.tertiaryContainer, RoundedCornerShape(CornerRadius.Medium)).padding(12.dp),
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(CornerRadius.Medium))
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Filled.Tune, null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
+            Icon(Icons.Filled.Public, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(10.dp))
-            Column {
-                Text("Timezone", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
-                Text(timezone, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+            Column(Modifier.weight(1f)) {
+                Text("Timezone", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(timezone, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Set from your region in step 2",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = { showTimezoneEditor = !showTimezoneEditor }) {
+                Text(if (showTimezoneEditor) "Hide timezone picker" else "Change timezone")
+            }
+        }
+        if (showTimezoneEditor) {
+            IanaTimezonePicker(
+                selected = timezone,
+                onSelect = onTimezoneChange,
+            )
         }
     }
     Spacer(Modifier.height(18.dp))

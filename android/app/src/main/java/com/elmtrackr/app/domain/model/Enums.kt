@@ -17,7 +17,7 @@ enum class RefundDirection {
 
 enum class ClockStyle {
     CLASSIC, MINIMAL, FOCUS, BOLD, NIGHT, RETRO, AURORA, PULSE, DIAL, STRAND, PRISM,
-    SAND, BLOCKS, ORBIT,
+    SAND, BLOCKS, ORBIT, FELLOWSHIP,
     ;
 
     companion object {

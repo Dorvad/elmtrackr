@@ -34,6 +34,7 @@ import com.elmtrackr.app.notification.LongShiftReminderWorker
 import com.elmtrackr.app.notification.NotificationChannels
 import com.elmtrackr.app.shortcuts.HeadlessTrampolineActivity
 import com.elmtrackr.app.widget.ElmTrackrWidgetUpdater
+import com.elmtrackr.app.wear.WearSyncPublisher
 import com.elmtrackr.app.sync.SyncScheduler
 import com.elmtrackr.app.util.NetworkMonitor
 import kotlinx.coroutines.CoroutineScope
@@ -146,6 +147,20 @@ class ElmTrackrApp : Application() {
         syncScheduler.schedulePeriodic()
         RefundReceiptPhotoCleanupWorker.schedule(this)
         startActiveShiftObserver()
+        startWearSignOutObserver()
+    }
+
+    private fun startWearSignOutObserver() {
+        applicationScope.launch {
+            currentUserProvider.userId.collect { userId ->
+                if (userId == null) {
+                    WearSyncPublisher.publishSnapshot(
+                        this@ElmTrackrApp,
+                        com.elmtrackr.wear.sync.WearShiftSnapshot.signedOut(),
+                    )
+                }
+            }
+        }
     }
 
     // â”€â”€ Active-shift notification observer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -192,6 +207,15 @@ class ElmTrackrApp : Application() {
                         lastCompleted,
                         todayShifts,
                         settings,
+                    )
+                    WearSyncPublisher.publishFromWidgetContext(
+                        this@ElmTrackrApp,
+                        com.elmtrackr.app.widget.WidgetContext(
+                            activeShift = shift,
+                            lastCompletedShift = lastCompleted,
+                            todayShifts = todayShifts,
+                            settings = settings,
+                        ),
                     )
                 }
         }
