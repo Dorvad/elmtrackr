@@ -15,6 +15,11 @@ class ClockInWidgetAction : ActionCallback {
     ) {
         val app = context.applicationContext as ElmTrackrApp
         val userId = app.currentUserProvider.currentUserId() ?: return
-        app.shiftsRepository.clockIn(userId)
+        val settings = app.settingsRepository.getSettings(userId)
+        val defaultProfile = app.compensationProfilesRepository.ensureMigrated(userId)
+        app.shiftsRepository.clockIn(
+            userId,
+            defaultProfile?.id ?: settings?.defaultCompensationProfileId,
+        )
     }
 }

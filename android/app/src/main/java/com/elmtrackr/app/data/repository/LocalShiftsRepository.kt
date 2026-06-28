@@ -33,6 +33,10 @@ class LocalShiftsRepository(
         shiftDao.getShiftById(localId)?.toDomain()
 
     override suspend fun clockIn(userId: String, compensationProfileId: String?): Shift {
+        shiftDao.getActiveShifts(userId).maxByOrNull { it.startTime }?.let { activeShift ->
+            return activeShift.toDomain()
+        }
+
         val now = Instant.now().toEpochMilli()
         val entity = ShiftEntity(
             localId = UUID.randomUUID().toString(),

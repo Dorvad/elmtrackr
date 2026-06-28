@@ -157,8 +157,8 @@ class DashboardViewModel(
             val settings = settingsRepository.getSettings(userId) ?: return@launch
             val isFirstClockIn = !shiftsRepository.hasAnyShifts(userId) &&
                 !appPreferences.currentPreferences().firstClockInCelebrated
-            compensationProfilesRepository.ensureMigrated(userId)
-            shiftsRepository.clockIn(userId, settings.defaultCompensationProfileId)
+            val defaultProfile = compensationProfilesRepository.ensureMigrated(userId)
+            shiftsRepository.clockIn(userId, defaultProfile?.id ?: settings.defaultCompensationProfileId)
             if (isFirstClockIn) {
                 appPreferences.setFirstClockInCelebrated(true)
                 _showFirstClockInCelebration.value = true

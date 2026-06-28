@@ -8,8 +8,12 @@ import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeShiftsRepository
 import com.elmtrackr.app.fake.FakeNetworkMonitor
 import com.elmtrackr.app.fake.FakeSyncRepository
+import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Profile
+import com.elmtrackr.app.domain.model.RegionCode
+import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.util.MainDispatcherRule
@@ -105,6 +109,30 @@ class DashboardViewModelTest {
         val ready = collected.filterIsInstance<DashboardUiState.Ready>().lastOrNull()
         assertTrue(ready?.activeShift?.isActive == true)
         job.cancel()
+    }
+
+    @Test
+    fun `clockIn uses migrated default compensation profile`() = runTest {
+        val defaultProfile = CompensationProfile(
+            id = "profile-default",
+            userId = "u1",
+            name = "Default job",
+            regionCode = RegionCode.IL,
+            currencyCode = "ILS",
+            timezone = "Asia/Jerusalem",
+            baseHourlyRate = 100.0,
+            rules = CompensationRules(),
+            stackingPolicy = StackingPolicy.HIGHEST_ONLY,
+            isDefault = true,
+        )
+        compensationRepo.setProfiles(defaultProfile)
+        settingsRepo.setSettings(defaultSettings().copy(defaultCompensationProfileId = null))
+        val vm = buildVm()
+
+        vm.clockIn()
+        advanceUntilIdle()
+
+        assertEquals("profile-default", shiftsRepo.currentShifts.single().compensationProfileId)
     }
 
     @Test

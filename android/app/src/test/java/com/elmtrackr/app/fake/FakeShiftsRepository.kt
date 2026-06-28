@@ -29,6 +29,8 @@ class FakeShiftsRepository : ShiftsRepository {
         _shifts.value.firstOrNull { it.id == localId }
 
     override suspend fun clockIn(userId: String, compensationProfileId: String?): Shift {
+        _shifts.value.firstOrNull { it.userId == userId && it.isActive }?.let { return it }
+
         val shift = Shift(
             id = "fake-${_shifts.value.size}",
             userId = userId,
