@@ -1567,6 +1567,25 @@ private fun DashboardScreenPreview() {
     }
 }
 
+/** Renders the dashboard ready state for screenshot / UI tests. */
+@Composable
+internal fun DashboardReadyPreview(
+    state: DashboardUiState.Ready,
+    modifier: Modifier = Modifier,
+    onNavigateToReports: () -> Unit = {},
+) {
+    DashboardReady(
+        state = state,
+        onClockIn = {},
+        onClockOut = {},
+        onEditStartTime = { _, _ -> },
+        onTriggerSync = {},
+        onNavigateToReports = onNavigateToReports,
+        showFirstClockInCelebration = false,
+        onDismissFirstClockInCelebration = {},
+    )
+}
+
 @Composable
 private fun DashboardError(message: String) {
     Box(Modifier.fillMaxSize(), Alignment.Center) {

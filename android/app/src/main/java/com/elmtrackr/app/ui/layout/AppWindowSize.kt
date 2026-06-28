@@ -1,7 +1,9 @@
 package com.elmtrackr.app.ui.layout
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -19,8 +21,19 @@ enum class DeviceFormFactor {
     Tablet,
 }
 
+val LocalDeviceFormFactor = staticCompositionLocalOf<DeviceFormFactor?> { null }
+
+@Composable
+fun ProvideDeviceFormFactor(
+    formFactor: DeviceFormFactor,
+    content: @Composable () -> Unit,
+) {
+    CompositionLocalProvider(LocalDeviceFormFactor provides formFactor, content = content)
+}
+
 @Composable
 fun rememberDeviceFormFactor(): DeviceFormFactor {
+    LocalDeviceFormFactor.current?.let { return it }
     val configuration = LocalConfiguration.current
     return remember(configuration.smallestScreenWidthDp) {
         deviceFormFactor(configuration.smallestScreenWidthDp)
