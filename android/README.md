@@ -300,7 +300,7 @@ Output: `android/app/build/outputs/bundle/release/app-release.aab`
 
 ### 4. Upload to Play Console
 
-- Use a **new `versionCode`** each upload (currently **6** / `1.0.5` in `app/build.gradle.kts`).
+- Use a **new `versionCode`** each upload (currently **8** / `1.0.6` in `app/build.gradle.kts`).
 - Upload the locally built `app-release.aab`, not a CI artifact.
 
 ---
