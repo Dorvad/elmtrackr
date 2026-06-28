@@ -1,5 +1,7 @@
 # ElmTrackr — Native Android App
 
+> **Android-first (June 2026):** This directory is the **primary product**. The Next.js web app (`app/`) is frozen — see [ANDROID_FIRST.md](../ANDROID_FIRST.md). Supabase wire formats are owned here: [docs/supabase-contract.md](docs/supabase-contract.md).
+
 > CI debug APKs pick up `SUPABASE_URL` and `SUPABASE_ANON_KEY` from GitHub Actions secrets at build time.
 
 > **Implementation status (2026-06-25):** Authenticated user identity, one-time
@@ -12,14 +14,15 @@
 > eight additional native clock renderers, advanced motion, staged onboarding
 > polish, and broader emulator/device instrumentation coverage.
 
-Native Kotlin + Jetpack Compose app that lives in this directory alongside the
-Next.js web app. The two share the same Supabase backend but have completely
-separate codebases. **No WebView, no Capacitor.**
+Native Kotlin + Jetpack Compose app. Shares a Supabase backend with the legacy
+web app but has a **separate codebase**. **No WebView, no Capacitor.** New
+features and schema decisions are made in Android first.
 
 ```
 elmtrackr/
-├── android/          ← you are here (native Android)
-├── app/              ← Next.js web app (untouched)
+├── android/          ← you are here (active product)
+├── supabase/         ← shared schema (Android-owned contract)
+├── app/              ← frozen Next.js web (see app/ARCHIVED.md)
 └── .github/workflows/android.yml
 ```
 
