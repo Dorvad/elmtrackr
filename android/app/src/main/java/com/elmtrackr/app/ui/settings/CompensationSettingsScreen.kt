@@ -288,7 +288,7 @@ private fun RegionDropdown(
         label = "Region preset",
         selected = selected.name,
         options = options.map { it.first.name to it.second },
-        onSelect = { onSelect(RegionCode.valueOf(it)) },
+        onSelect = { onSelect(RegionCode.fromPersisted(it)) },
     )
 }
 

@@ -92,6 +92,7 @@ import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.model.WeeklyTotals
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraScreen
+import com.elmtrackr.app.ui.layout.isTabletLayout
 import com.elmtrackr.app.ui.design.ElmEmptyState
 import com.elmtrackr.app.ui.design.ElmStatCard
 import com.elmtrackr.app.ui.design.ElmStatVariant
@@ -176,12 +177,21 @@ fun ReportsScreen(
     }
 
     AuroraScreen {
+        val isTablet = isTabletLayout()
         Text(
             "Reports",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.auroraEnter(),
         )
+        if (isTablet) {
+            Text(
+                "Your performance overview",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.auroraEnter(index = 1),
+            )
+        }
         ReportTabs(
             selected = effectiveTab,
             refundsEnabled = refundsEnabled,
@@ -360,16 +370,11 @@ private fun ReportsEmptyContent() = ElmEmptyState(
 // ── Hours report ──────────────────────────────────────────────────────────────
 
 @Composable
-internal fun HoursReport(
-    state: ReportsUiState.Ready,
+private fun PhoneHoursReportTop(
+    report: com.elmtrackr.app.domain.model.MonthlyReport,
     onExportCsv: () -> Unit,
     onExportPdf: () -> Unit,
 ) {
-    val currency = state.settings?.currency ?: CurrencyCode.ILS
-    val report = state.report
-
-    Column(Modifier.fillMaxWidth()) {
-    // ── Hours distribution card (web: CSV export only in this card) ─────────────
     ReportCard {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val stackActions = maxWidth < 340.dp
@@ -414,7 +419,6 @@ internal fun HoursReport(
         DistributionLegend(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
     }
 
-    // ── Summary stat grid (web StatCard variants) ───────────────────────────────
     Spacer(Modifier.height(14.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         ElmStatCard("Total", formatHoursDecimal(report.totalMinutes) + "h", Modifier.weight(1f), variant = ElmStatVariant.PRIMARY)
@@ -425,8 +429,192 @@ internal fun HoursReport(
         ElmStatCard("Overtime", formatHoursDecimal(report.overtimeMinutes) + "h", Modifier.weight(1f), variant = ElmStatVariant.OVERTIME)
         ElmStatCard("Weekend", formatHoursDecimal(report.weekendMinutes) + "h", Modifier.weight(1f), variant = ElmStatVariant.WEEKEND)
     }
+}
 
-    if (state.previousMonthMinutes > 0) {
+@Composable
+private fun TabletHoursReportTop(
+    state: ReportsUiState.Ready,
+    report: com.elmtrackr.app.domain.model.MonthlyReport,
+    currency: CurrencyCode,
+    onExportCsv: () -> Unit,
+    onExportPdf: () -> Unit,
+) {
+    val totalPct = report.totalMinutes.takeIf { it > 0 }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        ElmStatCard(
+            label = "Total",
+            value = formatHoursDecimal(report.totalMinutes) + "h",
+            sub = "All hours this month",
+            variant = ElmStatVariant.PRIMARY,
+            modifier = Modifier.weight(1f),
+        )
+        ElmStatCard(
+            label = "Regular",
+            value = formatHoursDecimal(report.regularMinutes) + "h",
+            sub = totalPct?.let { "${(report.regularMinutes * 100 / it)}% of total" },
+            modifier = Modifier.weight(1f),
+        )
+        ElmStatCard(
+            label = "Overtime",
+            value = formatHoursDecimal(report.overtimeMinutes) + "h",
+            sub = totalPct?.let { "${(report.overtimeMinutes * 100 / it)}% of total" },
+            variant = ElmStatVariant.OVERTIME,
+            modifier = Modifier.weight(1f),
+        )
+        ElmStatCard(
+            label = "Weekend",
+            value = formatHoursDecimal(report.weekendMinutes) + "h",
+            sub = totalPct?.let { "${(report.weekendMinutes * 100 / it)}% of total" },
+            variant = ElmStatVariant.WEEKEND,
+            modifier = Modifier.weight(1f),
+        )
+    }
+
+    Spacer(Modifier.height(16.dp))
+
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        state.paySummary?.takeIf { it.totalGross > 0 }?.let { pay ->
+            ReportCard(Modifier.weight(1f)) {
+                SectionLabel("Gross Pay · Before Tax")
+                Text(
+                    MoneyFormatter.format(pay.totalGross, currency),
+                    style = TextStyle(
+                        fontSize = MaterialTheme.typography.headlineMedium.fontSize,
+                        fontWeight = FontWeight.ExtraBold,
+                        brush = Brush.linearGradient(listOf(AuroraIndigo, AuroraPlum, AuroraAqua)),
+                    ),
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PayCell("Regular", pay.regularGross, currency, AuroraIndigo,
+                        MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
+                    PayCell("Overtime", pay.overtimeGross, currency, AuroraPeachDeep,
+                        auroraOvertimeBackground(), Modifier.weight(1f))
+                    PayCell("Holiday", pay.specialGross, currency, AuroraPlum,
+                        auroraWeekendBackground(), Modifier.weight(1f))
+                }
+            }
+        } ?: Spacer(Modifier.weight(1f))
+
+        ReportCard(Modifier.weight(1f)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                DistributionHeader(report, Modifier.weight(1f))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onExportCsv) {
+                        Icon(Icons.Filled.Share, null, Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("CSV", style = MaterialTheme.typography.labelMedium)
+                    }
+                    OutlinedButton(onClick = onExportPdf) {
+                        Icon(Icons.Filled.PictureAsPdf, null, Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("PDF", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+            DistributionBar(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
+            Spacer(Modifier.height(8.dp))
+            DistributionLegend(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
+        }
+    }
+
+    state.insights?.let { insights ->
+        Spacer(Modifier.height(16.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            if (state.previousMonthMinutes > 0) {
+                val delta = report.totalMinutes - state.previousMonthMinutes
+                val pctChange = if (state.previousMonthMinutes > 0) {
+                    (delta * 100 / state.previousMonthMinutes)
+                } else 0
+                val prevMonthName = YearMonth.of(state.year, state.month).minusMonths(1)
+                    .month.getDisplayName(JavaTextStyle.FULL, Locale.getDefault())
+                Box(
+                    modifier = Modifier
+                        .weight(1.6f)
+                        .background(
+                            Brush.linearGradient(listOf(Color(0xFF10B981), Color(0xFF0D9488))),
+                            RoundedCornerShape(CornerRadius.Large),
+                        )
+                        .padding(20.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            "Peak Performer",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                        Text(
+                            when {
+                                pctChange > 0 -> "You worked $pctChange% more hours than $prevMonthName. Keep up the momentum!"
+                                pctChange < 0 -> "You worked ${abs(pctChange)}% fewer hours than $prevMonthName."
+                                else -> "Same hours as $prevMonthName."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.9f),
+                        )
+                    }
+                }
+            } else {
+                Spacer(Modifier.weight(1.6f))
+            }
+
+            InsightStatCard(
+                icon = "⏱",
+                label = "Avg Shift Length",
+                value = if (insights.averageShiftMinutes > 0) {
+                    ShiftDurationCalculator.formatMinutes(insights.averageShiftMinutes)
+                } else "—",
+                sub = "per shift",
+                accentColor = AuroraIndigo,
+                bgColor = AuroraIndigo.copy(alpha = 0.10f),
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun HoursReport(
+    state: ReportsUiState.Ready,
+    onExportCsv: () -> Unit,
+    onExportPdf: () -> Unit,
+) {
+    val currency = state.settings?.currency ?: CurrencyCode.ILS
+    val report = state.report
+    val isTablet = isTabletLayout()
+
+    Column(Modifier.fillMaxWidth()) {
+    if (isTablet) {
+        TabletHoursReportTop(
+            state = state,
+            report = report,
+            currency = currency,
+            onExportCsv = onExportCsv,
+            onExportPdf = onExportPdf,
+        )
+    } else {
+        PhoneHoursReportTop(
+            report = report,
+            onExportCsv = onExportCsv,
+            onExportPdf = onExportPdf,
+        )
+    }
+
+    if (!isTablet && state.previousMonthMinutes > 0) {
         val delta = report.totalMinutes - state.previousMonthMinutes
         val deltaColor = when {
             delta > 0 -> Color(0xFF10B981)
@@ -460,7 +648,42 @@ internal fun HoursReport(
         }
     }
 
-    // ── Gross pay (web: only when total_gross > 0) ────────────────────────────
+    if (isTablet && state.previousMonthMinutes > 0) {
+        val delta = report.totalMinutes - state.previousMonthMinutes
+        val deltaColor = when {
+            delta > 0 -> Color(0xFF10B981)
+            delta < 0 -> Color(0xFFF43F5E)
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+        val arrow = when {
+            delta > 0 -> "↑"
+            delta < 0 -> "↓"
+            else -> "—"
+        }
+        val prevMonthName = YearMonth.of(state.year, state.month).minusMonths(1)
+            .month.getDisplayName(JavaTextStyle.SHORT, Locale.getDefault())
+        Spacer(Modifier.height(14.dp))
+        ReportCard {
+            Text("Month over month", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(4.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${formatHoursDecimal(report.totalMinutes)}h this month",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    "$arrow ${formatHoursDecimal(abs(delta))}h vs $prevMonthName",
+                    color = deltaColor,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+        }
+    }
+
+    // ── Gross pay (phone only — shown in tablet top row) ─────────────────────
+    if (!isTablet) {
     state.paySummary?.takeIf { it.totalGross > 0 }?.let { pay ->
         Spacer(Modifier.height(14.dp))
         ReportCard {
@@ -483,6 +706,7 @@ internal fun HoursReport(
                     auroraWeekendBackground(), Modifier.weight(1f))
             }
         }
+    }
     }
 
     // ── Daily Insights carousel (web: features_insights) ──────────────────────
@@ -507,6 +731,7 @@ internal fun HoursReport(
     }
 
     // ── Shift Insights / QuickStats (web: 6-card grid) ────────────────────────
+    if (!isTablet) {
     state.insights?.let { insights ->
         val currency2 = state.settings?.currency ?: CurrencyCode.ILS
         Spacer(Modifier.height(18.dp))
@@ -579,6 +804,7 @@ internal fun HoursReport(
                 modifier = Modifier.weight(1f),
             )
         }
+    }
     }
 
     // ── Weekly breakdown ──────────────────────────────────────────────────────
@@ -1481,10 +1707,10 @@ private fun PayCell(label: String, amount: Double, currency: CurrencyCode, textC
 }
 
 @Composable
-private fun ReportCard(content: @Composable () -> Unit) {
+private fun ReportCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val shape = RoundedCornerShape(CornerRadius.Large)
     Card(
-        Modifier
+        modifier
             .fillMaxWidth()
             .auroraEnter()
             .animateContentSize()

@@ -4,6 +4,7 @@ import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
+import com.elmtrackr.app.data.local.mapper.toDomainOrNull
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.sync.NoOpSyncTrigger
@@ -19,10 +20,10 @@ class LocalSettingsRepository(
 ) : SettingsRepository {
 
     override fun observeSettings(userId: String): Flow<UserSettings?> =
-        settingsDao.observeSettings(userId).map { it?.toDomain() }
+        settingsDao.observeSettings(userId).map { it.toDomainOrNull { entity -> entity.toDomain() } }
 
     override suspend fun getSettings(userId: String): UserSettings? =
-        settingsDao.getSettings(userId)?.toDomain()
+        settingsDao.getSettings(userId).toDomainOrNull { it.toDomain() }
 
     override suspend fun saveSettings(settings: UserSettings) {
         val existing = settingsDao.getSettings(settings.userId)

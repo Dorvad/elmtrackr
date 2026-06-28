@@ -14,11 +14,14 @@ fun UserSettingsEntity.toDomain(): UserSettings = UserSettings(
     timezone = timezone,
     dailyOvertimeThresholdMinutes = dailyOvertimeThresholdMinutes,
     weeklyOvertimeThresholdMinutes = weeklyOvertimeThresholdMinutes,
-    weekendDays = if (weekendDays.isBlank()) emptyList()
-                  else weekendDays.split(",").map { it.trim().toInt() },
+    weekendDays = if (weekendDays.isBlank()) {
+        emptyList()
+    } else {
+        weekendDays.split(",").mapNotNull { it.trim().toIntOrNull() }
+    },
     hourlyRate = hourlyRate,
     currency = CurrencyCode.from(currency),
-    regionCode = regionCode?.let { runCatching { RegionCode.valueOf(it) }.getOrNull() },
+    regionCode = regionCode?.let { RegionCode.fromPersisted(it) },
     currencyCode = currencyCode,
     defaultCompensationProfileId = defaultCompensationProfileId,
     onboardingCompleted = onboardingCompleted,

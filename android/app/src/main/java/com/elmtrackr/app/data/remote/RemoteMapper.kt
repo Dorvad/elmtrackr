@@ -6,6 +6,7 @@ import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.domain.model.ClockStyle
+import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -87,7 +88,7 @@ fun JsonObject.toShiftEntity(existingLocalId: String? = null): ShiftEntity {
         breakMinutes = int("break_minutes"),
         notes = str("notes"),
         isSpecialDay = bool("is_special_day"),
-        refundAction = str("refund_action")?.uppercase(),
+        refundAction = str("refund_action")?.let { RefundAction.fromPersisted(it)?.name },
         compensationProfileId = str("compensation_profile_id"),
         compensationSnapshotJson = this["compensation_snapshot_json"].toNullableStoredJson(),
         createdAt = requireInstantMillis("created_at"),
@@ -259,7 +260,7 @@ fun JsonObject.toCompensationProfileEntity(existingLocalId: String? = null): Com
         remoteId = remoteId,
         userId = requireStr("user_id"),
         name = requireStr("name"),
-        regionCode = requireStr("region_code"),
+        regionCode = requireStr("region_code").uppercase(),
         currencyCode = requireStr("currency_code"),
         timezone = str("timezone") ?: "UTC",
         baseHourlyRate = dbl("base_hourly_rate"),

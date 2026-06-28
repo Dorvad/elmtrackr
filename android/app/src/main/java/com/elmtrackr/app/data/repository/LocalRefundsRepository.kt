@@ -5,6 +5,8 @@ import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
+import com.elmtrackr.app.data.local.mapper.mapToDomain
+import com.elmtrackr.app.data.local.mapper.toDomainOrNull
 import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
@@ -22,13 +24,13 @@ class LocalRefundsRepository(
 ) : RefundsRepository {
 
     override fun observeClaimsForUser(userId: String): Flow<List<RefundClaim>> =
-        refundClaimDao.observeClaimsForUser(userId).map { entities -> entities.map { it.toDomain() } }
+        refundClaimDao.observeClaimsForUser(userId).map { entities -> entities.mapToDomain { it.toDomain() } }
 
     override fun observeClaimsForShift(shiftLocalId: String): Flow<List<RefundClaim>> =
-        refundClaimDao.observeClaimsForShift(shiftLocalId).map { entities -> entities.map { it.toDomain() } }
+        refundClaimDao.observeClaimsForShift(shiftLocalId).map { entities -> entities.mapToDomain { it.toDomain() } }
 
     override suspend fun getClaimById(localId: String): RefundClaim? =
-        refundClaimDao.getClaimById(localId)?.toDomain()
+        refundClaimDao.getClaimById(localId).toDomainOrNull { it.toDomain() }
 
     override suspend fun addClaim(
         shiftLocalId: String,
@@ -90,5 +92,5 @@ class LocalRefundsRepository(
     }
 
     override fun observePendingSyncClaims(userId: String): Flow<List<RefundClaim>> =
-        refundClaimDao.observePendingSyncClaims(userId).map { entities -> entities.map { it.toDomain() } }
+        refundClaimDao.observePendingSyncClaims(userId).map { entities -> entities.mapToDomain { it.toDomain() } }
 }
