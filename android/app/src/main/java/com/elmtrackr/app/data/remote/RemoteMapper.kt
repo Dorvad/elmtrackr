@@ -4,6 +4,7 @@ import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
 import com.elmtrackr.app.data.local.entity.ProfileEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
+import com.elmtrackr.app.data.local.entity.TaskEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
@@ -59,6 +60,7 @@ private fun JsonElement?.toStoredJsonObject(default: String = "{}"): String = wh
 fun ShiftEntity.toRemoteJson(
     overrideId: String? = null,
     compensationProfileRemoteId: String? = compensationProfileId,
+    taskRemoteId: String? = taskId,
 ): JsonObject = buildJsonObject {
     put("id", overrideId ?: remoteId ?: error("No remote id for shift $localId"))
     put("user_id", userId)
@@ -72,6 +74,10 @@ fun ShiftEntity.toRemoteJson(
     compensationSnapshotJson?.let {
         put("compensation_snapshot_json", Json.parseToJsonElement(it))
     }
+    taskRemoteId?.let { put("task_id", it) }
+    taskNameSnapshot?.let { put("task_name_snapshot", it) }
+    taskIconSnapshot?.let { put("task_icon_snapshot", it) }
+    taskHourlyRateSnapshot?.let { put("task_hourly_rate_snapshot", it) }
     put("created_at", epochIso(createdAt))
     put("updated_at", epochIso(updatedAt))
 }
@@ -90,6 +96,10 @@ fun JsonObject.toShiftEntity(existingLocalId: String? = null): ShiftEntity {
         refundAction = str("refund_action")?.uppercase(),
         compensationProfileId = str("compensation_profile_id"),
         compensationSnapshotJson = this["compensation_snapshot_json"].toNullableStoredJson(),
+        taskId = str("task_id"),
+        taskNameSnapshot = str("task_name_snapshot"),
+        taskIconSnapshot = str("task_icon_snapshot"),
+        taskHourlyRateSnapshot = dbl("task_hourly_rate_snapshot"),
         createdAt = requireInstantMillis("created_at"),
         updatedAt = requireInstantMillis("updated_at"),
         deletedAt = null,
@@ -269,6 +279,40 @@ fun JsonObject.toCompensationProfileEntity(existingLocalId: String? = null): Com
         effectiveUntil = instantMillis("effective_until"),
         isDefault = bool("is_default"),
         isArchived = bool("is_archived"),
+        createdAt = requireInstantMillis("created_at"),
+        updatedAt = requireInstantMillis("updated_at"),
+        deletedAt = null,
+        syncStatus = SyncStatus.SYNCED,
+        lastSyncError = null,
+        lastSyncedAt = Instant.now().toEpochMilli(),
+    )
+}
+
+// ---- TaskEntity ↔ JsonObject ----
+
+fun TaskEntity.toRemoteJson(overrideId: String? = null): JsonObject = buildJsonObject {
+    put("id", overrideId ?: remoteId ?: error("No remote id for task $localId"))
+    put("user_id", userId)
+    put("name", name)
+    put("icon", icon)
+    put("hourly_rate", hourlyRate)
+    put("is_archived", isArchived)
+    lastUsedAt?.let { put("last_used_at", epochIso(it)) }
+    put("created_at", epochIso(createdAt))
+    put("updated_at", epochIso(updatedAt))
+}
+
+fun JsonObject.toTaskEntity(existingLocalId: String? = null): TaskEntity {
+    val remoteId = requireStr("id")
+    return TaskEntity(
+        localId = existingLocalId ?: remoteId,
+        remoteId = remoteId,
+        userId = requireStr("user_id"),
+        name = requireStr("name"),
+        icon = str("icon") ?: "📋",
+        hourlyRate = dbl("hourly_rate") ?: 0.0,
+        isArchived = bool("is_archived"),
+        lastUsedAt = instantMillis("last_used_at"),
         createdAt = requireInstantMillis("created_at"),
         updatedAt = requireInstantMillis("updated_at"),
         deletedAt = null,

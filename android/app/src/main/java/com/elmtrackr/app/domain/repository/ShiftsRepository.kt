@@ -13,7 +13,14 @@ interface ShiftsRepository {
     suspend fun getShiftById(localId: String): Shift?
 
     /** Creates a new shift with only a start time (clock-in). */
-    suspend fun clockIn(userId: String, compensationProfileId: String? = null): Shift
+    suspend fun clockIn(
+        userId: String,
+        compensationProfileId: String? = null,
+        taskId: String? = null,
+        taskNameSnapshot: String? = null,
+        taskIconSnapshot: String? = null,
+        taskHourlyRateSnapshot: Double? = null,
+    ): Shift
 
     /** Sets end time on an active shift (clock-out). */
     suspend fun clockOut(

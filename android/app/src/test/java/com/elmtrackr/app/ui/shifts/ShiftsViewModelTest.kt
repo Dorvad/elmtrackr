@@ -6,6 +6,7 @@ import com.elmtrackr.app.fake.FakeCurrentUserProvider
 import com.elmtrackr.app.fake.FakeRefundsRepository
 import com.elmtrackr.app.fake.FakeRefundReceiptStorage
 import com.elmtrackr.app.fake.FakeShiftsRepository
+import com.elmtrackr.app.fake.FakeTasksRepository
 import com.elmtrackr.app.domain.compensation.RegionPresets
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.ReceiptUpload
@@ -38,6 +39,7 @@ class ShiftsViewModelTest {
     private val shiftsRepo = FakeShiftsRepository()
     private val settingsRepo = FakeSettingsRepository()
     private val compensationRepo = FakeCompensationProfilesRepository()
+    private val tasksRepo = FakeTasksRepository()
     private val currentUser = FakeCurrentUserProvider()
     private val refundsRepo = FakeRefundsRepository()
     private val receiptStorage = FakeRefundReceiptStorage()
@@ -46,6 +48,7 @@ class ShiftsViewModelTest {
         shiftsRepo,
         settingsRepo,
         compensationRepo,
+        tasksRepo,
         currentUser,
         refundsRepo,
         receiptStorage,

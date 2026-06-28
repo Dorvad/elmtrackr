@@ -44,6 +44,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -163,6 +164,7 @@ fun ShiftsScreen(
             navState = formTarget!!,
             settings = (uiState as? ShiftsUiState.Ready)?.settings,
             profiles = (uiState as? ShiftsUiState.Ready)?.profiles.orEmpty(),
+            tasks = (uiState as? ShiftsUiState.Ready)?.tasks.orEmpty(),
             errors   = formErrors,
             featuresTravelRefunds = featuresTravelRefunds,
             onSave = { input ->
@@ -625,11 +627,13 @@ private fun ActiveBadge() {
 
 // ── Form ──────────────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun ShiftFormContent(
     navState: ShiftFormNavState,
     settings: UserSettings?,
     profiles: List<CompensationProfile>,
+    tasks: List<com.elmtrackr.app.domain.model.Task>,
     errors: Map<String, String>,
     featuresTravelRefunds: Boolean,
     onSave: (ShiftFormInput) -> Unit,
@@ -653,6 +657,8 @@ private fun ShiftFormContent(
     var compensationProfileId by rememberSaveable {
         mutableStateOf(initialShift?.compensationProfileId ?: settings?.defaultCompensationProfileId)
     }
+    var taskId by rememberSaveable { mutableStateOf(initialShift?.taskId) }
+    val activeTasks = tasks.filter { !it.isArchived }
 
     var showStartDatePicker by rememberSaveable { mutableStateOf(false) }
     var showStartTimePicker by rememberSaveable { mutableStateOf(false) }
@@ -812,6 +818,40 @@ private fun ShiftFormContent(
                     )
                 }
 
+                if (activeTasks.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Task", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(6.dp))
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        FilterChip(
+                            selected = taskId == null,
+                            onClick = { taskId = null },
+                            label = { Text("None") },
+                        )
+                        activeTasks.forEach { task ->
+                            FilterChip(
+                                selected = taskId == task.id,
+                                onClick = { taskId = task.id },
+                                label = { Text("${task.icon} ${task.name}") },
+                            )
+                        }
+                    }
+                    if (isEdit && initialShift?.taskNameSnapshot != null &&
+                        activeTasks.none { it.id == initialShift.taskId }
+                    ) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "Saved task: ${initialShift.taskIconSnapshot.orEmpty()} ${initialShift.taskNameSnapshot} (${initialShift.taskHourlyRateSnapshot}/hr)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                val selectedTask = activeTasks.firstOrNull { it.id == taskId }
                 val previewStart = Instant.ofEpochMilli(startMillis)
                 val previewEnd = if (hasEndTime) Instant.ofEpochMilli(endMillis) else null
                 if (previewEnd?.isAfter(previewStart) == true) {
@@ -824,6 +864,10 @@ private fun ShiftFormContent(
                         notes = notesText,
                         isSpecialDay = isSpecialDay,
                         compensationProfileId = compensationProfileId,
+                        taskId = taskId,
+                        taskNameSnapshot = selectedTask?.name,
+                        taskIconSnapshot = selectedTask?.icon,
+                        taskHourlyRateSnapshot = selectedTask?.hourlyRate,
                     )
                     val minutes = ShiftDurationCalculator.netMinutes(previewShift)
                     val previewPay = settings?.let {
@@ -881,6 +925,7 @@ private fun ShiftFormContent(
                                 isSpecialDay = isSpecialDay,
                                 refundAction = initialShift?.refundAction,
                                 compensationProfileId = compensationProfileId,
+                                taskId = taskId,
                             )
                         )
                     },

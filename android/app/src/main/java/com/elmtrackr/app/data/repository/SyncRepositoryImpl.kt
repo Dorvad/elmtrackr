@@ -11,7 +11,10 @@ import com.elmtrackr.app.data.remote.RemoteProfileDataSource
 import com.elmtrackr.app.data.remote.RemoteRefundsDataSource
 import com.elmtrackr.app.data.remote.RemoteSettingsDataSource
 import com.elmtrackr.app.data.remote.RemoteShiftsDataSource
+import com.elmtrackr.app.data.local.dao.TaskDao
+import com.elmtrackr.app.data.remote.RemoteTasksDataSource
 import com.elmtrackr.app.data.remote.toCompensationProfileEntity
+import com.elmtrackr.app.data.remote.toTaskEntity
 import com.elmtrackr.app.data.remote.toProfileEntity
 import com.elmtrackr.app.data.remote.toRefundClaimEntity
 import com.elmtrackr.app.data.remote.toRemoteJson
@@ -35,11 +38,13 @@ class SyncRepositoryImpl(
     private val settingsDao: SettingsDao,
     private val profileDao: ProfileDao,
     private val compensationProfileDao: CompensationProfileDao,
+    private val taskDao: TaskDao,
     private val remoteShifts: RemoteShiftsDataSource?,
     private val remoteRefunds: RemoteRefundsDataSource?,
     private val remoteSettings: RemoteSettingsDataSource?,
     private val remoteProfile: RemoteProfileDataSource?,
     private val remoteCompensationProfiles: RemoteCompensationProfilesDataSource?,
+    private val remoteTasks: RemoteTasksDataSource?,
 ) : SyncRepository {
 
     private fun JsonObject.timestampMillis(key: String): Long =
@@ -54,8 +59,10 @@ class SyncRepositoryImpl(
             shiftDao.observePendingSyncShifts(userId),
             refundClaimDao.observePendingSyncClaims(userId),
             compensationProfileDao.observeProfiles(userId),
-        ) { shifts, claims, profiles ->
-            shifts.size + claims.size + profiles.count { it.syncStatus != SyncStatus.SYNCED }
+            taskDao.observeAllTasks(userId),
+        ) { shifts, claims, profiles, tasks ->
+            shifts.size + claims.size + profiles.count { it.syncStatus != SyncStatus.SYNCED } +
+                tasks.count { it.syncStatus != SyncStatus.SYNCED }
         }
 
     override fun observeLastSyncStatus(): Flow<String?> = _lastSyncStatus
@@ -72,9 +79,10 @@ class SyncRepositoryImpl(
         errors += pullSettings(userId)
         errors += pullProfiles(userId)
         errors += pullCompensationProfiles(userId)
+        errors += pullTasks(userId)
 
-        // Push in dependency order: compensation profiles before shifts/settings that reference them.
         errors += pushCompensationProfiles(userId)
+        errors += pushTasks(userId)
         errors += pushShifts(userId)
         errors += pushRefundClaims(userId)
         errors += pushSettings(userId)
@@ -95,6 +103,44 @@ class SyncRepositoryImpl(
     private suspend fun resolveProfileLocalId(remoteId: String?): String? {
         if (remoteId == null) return null
         return compensationProfileDao.getByRemoteId(remoteId)?.localId ?: remoteId
+    }
+
+    private suspend fun resolveTaskRemoteId(localId: String?): String? {
+        if (localId == null) return null
+        return taskDao.getByLocalId(localId)?.remoteId ?: localId
+    }
+
+    private suspend fun resolveTaskLocalId(remoteId: String?): String? {
+        if (remoteId == null) return null
+        return taskDao.getByRemoteId(remoteId)?.localId ?: remoteId
+    }
+
+    private suspend fun pushTasks(userId: String): List<SyncItemError> {
+        val remote = remoteTasks ?: return emptyList()
+        val errors = mutableListOf<SyncItemError>()
+        val pending = taskDao.getPendingSyncTasks(userId)
+        val now = Instant.now().toEpochMilli()
+
+        for (entity in pending) {
+            runCatching {
+                when (entity.syncStatus) {
+                    SyncStatus.PENDING_DELETE -> {
+                        entity.remoteId?.let { remote.deleteTask(it) }
+                        taskDao.updateSyncState(entity.localId, SyncStatus.SYNCED, entity.remoteId, now, null)
+                    }
+                    else -> {
+                        val remoteId = entity.remoteId ?: UUID.randomUUID().toString()
+                        remote.upsertTask(entity.copy(remoteId = remoteId))
+                        taskDao.updateSyncState(entity.localId, SyncStatus.SYNCED, remoteId, now, null)
+                    }
+                }
+            }.onFailure { e ->
+                val msg = SyncErrorMapper.messageFor(e)
+                errors += SyncItemError("task", entity.localId, msg)
+                taskDao.updateSyncState(entity.localId, SyncStatus.FAILED, entity.remoteId, entity.lastSyncedAt, msg)
+            }
+        }
+        return errors
     }
 
     private suspend fun pushCompensationProfiles(userId: String): List<SyncItemError> {
@@ -146,10 +192,12 @@ class SyncRepositoryImpl(
                     else -> {
                         val remoteId = entity.remoteId ?: UUID.randomUUID().toString()
                         val profileRemoteId = resolveProfileRemoteId(entity.compensationProfileId)
+                        val taskRemoteId = resolveTaskRemoteId(entity.taskId)
                         remoteShifts!!.upsert(
                             entity.toRemoteJson(
                                 overrideId = remoteId,
                                 compensationProfileRemoteId = profileRemoteId,
+                                taskRemoteId = taskRemoteId,
                             ),
                         )
                         shiftDao.updateSyncState(entity.localId, SyncStatus.SYNCED, remoteId, now, null)
@@ -274,6 +322,7 @@ class SyncRepositoryImpl(
                                 compensationProfileId = resolveProfileLocalId(
                                     remote.remoteStr("compensation_profile_id"),
                                 ),
+                                taskId = resolveTaskLocalId(remote.remoteStr("task_id")),
                             ),
                         )
                     }
@@ -285,6 +334,11 @@ class SyncRepositoryImpl(
                                     compensationProfileId = resolveProfileLocalId(
                                         remote.remoteStr("compensation_profile_id"),
                                     ) ?: local.compensationProfileId,
+                                    taskId = resolveTaskLocalId(remote.remoteStr("task_id")) ?: local.taskId,
+                                    taskNameSnapshot = remote.remoteStr("task_name_snapshot") ?: local.taskNameSnapshot,
+                                    taskIconSnapshot = remote.remoteStr("task_icon_snapshot") ?: local.taskIconSnapshot,
+                                    taskHourlyRateSnapshot = remote["task_hourly_rate_snapshot"]?.jsonPrimitive?.content?.toDoubleOrNull()
+                                        ?: local.taskHourlyRateSnapshot,
                                 ),
                             )
                         }
@@ -402,6 +456,34 @@ class SyncRepositoryImpl(
                 errors += SyncItemError(
                     "comp_profile_pull",
                     remote["id"]?.jsonPrimitive?.content ?: "?",
+                    SyncErrorMapper.messageFor(e),
+                )
+            }
+        }
+        return errors
+    }
+
+    private suspend fun pullTasks(userId: String): List<SyncItemError> {
+        val remote = remoteTasks ?: return emptyList()
+        val errors = mutableListOf<SyncItemError>()
+        val remoteItems: List<JsonObject> = runCatching { remote.fetchTasks(userId) }
+            .getOrElse { e -> return listOf(SyncItemError("task_pull", userId, SyncErrorMapper.messageFor(e))) }
+
+        for (remoteJson in remoteItems) {
+            runCatching {
+                val remoteId = remoteJson["id"]?.jsonPrimitive?.content ?: return@runCatching
+                val remoteUpdatedAt = remoteJson.timestampMillis("updated_at")
+                val local = taskDao.getByRemoteId(remoteId)
+
+                when {
+                    local == null -> taskDao.insert(remoteJson.toTaskEntity())
+                    local.syncStatus == SyncStatus.SYNCED && remoteUpdatedAt > local.updatedAt ->
+                        taskDao.insert(remoteJson.toTaskEntity(existingLocalId = local.localId))
+                }
+            }.onFailure { e ->
+                errors += SyncItemError(
+                    "task_pull",
+                    remoteJson["id"]?.jsonPrimitive?.content ?: "?",
                     SyncErrorMapper.messageFor(e),
                 )
             }

@@ -32,7 +32,14 @@ class LocalShiftsRepository(
     override suspend fun getShiftById(localId: String): Shift? =
         shiftDao.getShiftById(localId)?.toDomain()
 
-    override suspend fun clockIn(userId: String, compensationProfileId: String?): Shift {
+    override suspend fun clockIn(
+        userId: String,
+        compensationProfileId: String?,
+        taskId: String?,
+        taskNameSnapshot: String?,
+        taskIconSnapshot: String?,
+        taskHourlyRateSnapshot: Double?,
+    ): Shift {
         val now = Instant.now().toEpochMilli()
         val entity = ShiftEntity(
             localId = UUID.randomUUID().toString(),
@@ -46,6 +53,10 @@ class LocalShiftsRepository(
             refundAction = null,
             compensationProfileId = compensationProfileId,
             compensationSnapshotJson = null,
+            taskId = taskId,
+            taskNameSnapshot = taskNameSnapshot,
+            taskIconSnapshot = taskIconSnapshot,
+            taskHourlyRateSnapshot = taskHourlyRateSnapshot,
             createdAt = now,
             updatedAt = now,
             deletedAt = null,

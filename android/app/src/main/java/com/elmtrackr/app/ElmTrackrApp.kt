@@ -22,6 +22,8 @@ import com.elmtrackr.app.data.repository.LocalRefundsRepository
 import com.elmtrackr.app.data.repository.LocalReportsRepository
 import com.elmtrackr.app.data.repository.LocalSettingsRepository
 import com.elmtrackr.app.data.repository.LocalShiftsRepository
+import com.elmtrackr.app.data.remote.RemoteTasksDataSource
+import com.elmtrackr.app.data.repository.LocalTasksRepository
 import com.elmtrackr.app.data.repository.SupabaseAuthRepository
 import com.elmtrackr.app.data.repository.SyncRepositoryImpl
 import com.elmtrackr.app.domain.CurrentUserProvider
@@ -81,12 +83,18 @@ class ElmTrackrApp : Application() {
             settingsDao = database.settingsDao(),
             profileDao = database.profileDao(),
             compensationProfileDao = database.compensationProfileDao(),
+            taskDao = database.taskDao(),
             remoteShifts = client?.let { SupabaseShiftsDataSource(it) },
             remoteRefunds = client?.let { SupabaseRefundsDataSource(it) },
             remoteSettings = client?.let { SupabaseSettingsDataSource(it) },
             remoteProfile = client?.let { SupabaseProfileDataSource(it) },
             remoteCompensationProfiles = client?.let { RemoteCompensationProfilesDataSource(it) },
+            remoteTasks = client?.let { RemoteTasksDataSource(it) },
         )
+    }
+
+    val tasksRepository: LocalTasksRepository by lazy {
+        LocalTasksRepository(database.taskDao(), syncScheduler)
     }
 
     val compensationProfilesRepository: LocalCompensationProfilesRepository by lazy {
@@ -123,6 +131,7 @@ class ElmTrackrApp : Application() {
             database.profileDao(),
             database.refundClaimDao(),
             database.compensationProfileDao(),
+            database.taskDao(),
         )
     }
 

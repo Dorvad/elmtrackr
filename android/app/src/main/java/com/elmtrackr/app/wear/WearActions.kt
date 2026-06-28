@@ -3,6 +3,8 @@ package com.elmtrackr.app.wear
 import android.content.Context
 import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.shortcuts.ClockOutActions
+import com.elmtrackr.app.domain.tasks.TaskClockInHelper
+import com.elmtrackr.app.wear.WearSyncPublisher
 import com.elmtrackr.wear.sync.PunchResult
 
 object WearActions {
@@ -13,7 +15,17 @@ object WearActions {
             ?: return PunchResult(success = false, errorCode = "not_signed_in")
         val settings = app.settingsRepository.getSettings(userId)
         return runCatching {
-            app.shiftsRepository.clockIn(userId, settings?.defaultCompensationProfileId)
+            val task = TaskClockInHelper.resolveAutoTask(app.tasksRepository, app.shiftsRepository, userId)
+            val params = TaskClockInHelper.paramsFromTask(task)
+            app.shiftsRepository.clockIn(
+                userId = userId,
+                compensationProfileId = settings?.defaultCompensationProfileId,
+                taskId = params.taskId,
+                taskNameSnapshot = params.taskNameSnapshot,
+                taskIconSnapshot = params.taskIconSnapshot,
+                taskHourlyRateSnapshot = params.taskHourlyRateSnapshot,
+            )
+            task?.let { app.tasksRepository.markTaskUsed(userId, it.id) }
             WearSyncPublisher.refresh(context)
             PunchResult(success = true)
         }.getOrElse {

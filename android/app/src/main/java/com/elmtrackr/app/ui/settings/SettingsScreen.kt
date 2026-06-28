@@ -127,9 +127,14 @@ fun SettingsScreen(
     onReplayOnboarding: () -> Unit = {},
 ) {
     var showCompensation by rememberSaveable { mutableStateOf(false) }
+    var showTasks by rememberSaveable { mutableStateOf(false) }
     var legalDoc by rememberSaveable { mutableStateOf<LegalDoc?>(null) }
     if (showCompensation) {
         CompensationSettingsScreen(onBack = { showCompensation = false })
+        return
+    }
+    if (showTasks) {
+        com.elmtrackr.app.ui.tasks.TaskManagementScreen(onBack = { showTasks = false })
         return
     }
     when (legalDoc) {
@@ -173,6 +178,7 @@ fun SettingsScreen(
                 onResetPassword = viewModel::resetPassword,
                 onReplayOnboarding = onReplayOnboarding,
                 onOpenCompensation = { showCompensation = true },
+                onOpenTasks = { showTasks = true },
                 onDismissSaveFeedback = viewModel::clearSaveFeedback,
                 onDeleteAccount = viewModel::deleteAccount,
                 onDismissAccountFeedback = viewModel::clearAccountActionFeedback,
@@ -198,6 +204,7 @@ private fun SettingsContent(
     onResetPassword: () -> Unit,
     onReplayOnboarding: () -> Unit,
     onOpenCompensation: () -> Unit = {},
+    onOpenTasks: () -> Unit = {},
     onDismissSaveFeedback: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
     onDismissAccountFeedback: () -> Unit = {},
@@ -385,6 +392,10 @@ private fun SettingsContent(
                 ) {
                     OutlinedButton(onClick = onOpenCompensation, modifier = Modifier.fillMaxWidth()) {
                         Text("Compensation rules")
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = onOpenTasks, modifier = Modifier.fillMaxWidth()) {
+                        Text("Tasks")
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(

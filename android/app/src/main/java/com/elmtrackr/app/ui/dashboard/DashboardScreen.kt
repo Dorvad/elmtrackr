@@ -144,6 +144,12 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val showCelebration by viewModel.showFirstClockInCelebration.collectAsState()
+    var showTasks by rememberSaveable { mutableStateOf(false) }
+
+    if (showTasks) {
+        com.elmtrackr.app.ui.tasks.TaskManagementScreen(onBack = { showTasks = false })
+        return
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -158,6 +164,8 @@ fun DashboardScreen(
                 onEditStartTime = viewModel::editActiveShiftStartTime,
                 onTriggerSync   = viewModel::triggerSync,
                 onNavigateToReports = onNavigateToReports,
+                onSelectTask    = viewModel::selectTask,
+                onManageTasks   = { showTasks = true },
                 showFirstClockInCelebration = showCelebration,
                 onDismissFirstClockInCelebration = viewModel::dismissFirstClockInCelebration,
             )
@@ -174,6 +182,8 @@ private fun DashboardReady(
     onEditStartTime: (shiftId: String, newStartTime: Instant) -> Unit,
     onTriggerSync: () -> Unit,
     onNavigateToReports: () -> Unit,
+    onSelectTask: (String) -> Unit,
+    onManageTasks: () -> Unit,
     showFirstClockInCelebration: Boolean,
     onDismissFirstClockInCelebration: () -> Unit,
 ) {
@@ -255,6 +265,32 @@ private fun DashboardReady(
             }
 
             val dailyOtMinutes = state.settings?.dailyOvertimeThresholdMinutes ?: (8 * 60)
+
+            if (activeShift == null && state.activeTasks.isNotEmpty()) {
+                com.elmtrackr.app.ui.tasks.TaskSelectorBar(
+                    tasks = state.activeTasks,
+                    selectedTaskId = state.selectedTaskId,
+                    habitSuggested = state.habitSuggested,
+                    onSelectTask = onSelectTask,
+                    onManageTasks = onManageTasks,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                        .auroraEnter(index = 1),
+                )
+            }
+
+            if (activeShift != null && !activeShift.taskNameSnapshot.isNullOrBlank()) {
+                com.elmtrackr.app.ui.tasks.ActiveShiftTaskBadge(
+                    icon = activeShift.taskIconSnapshot,
+                    name = activeShift.taskNameSnapshot,
+                    rate = activeShift.taskHourlyRateSnapshot,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .auroraEnter(index = 1),
+                )
+            }
 
             Box(modifier = Modifier.fillMaxWidth().auroraEnter(index = 1)) {
                 AnimatedContent(

@@ -7,6 +7,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 class WidgetStateMapperTest {
 
@@ -64,12 +66,14 @@ class WidgetStateMapperTest {
 
     @Test
     fun `today minutes sums completed shifts`() {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now(zone)
         val completed = makeShift(
-            startTime = Instant.now().minusSeconds(8 * 3600),
-            endTime = Instant.now().minusSeconds(3600),
+            startTime = today.atTime(9, 0).atZone(zone).toInstant(),
+            endTime = today.atTime(16, 0).atZone(zone).toInstant(),
         )
         val state = WidgetStateMapper.map(context(today = listOf(completed)))
-        assertTrue(state.todayMinutes >= 420)
+        assertEquals(420, state.todayMinutes)
     }
 
     @Test

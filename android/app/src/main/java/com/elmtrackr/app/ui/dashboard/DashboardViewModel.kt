@@ -12,13 +12,17 @@ import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.SyncResult
+import com.elmtrackr.app.domain.repository.SyncRepository
+import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.ReportsRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
-import com.elmtrackr.app.domain.repository.SyncRepository
+import com.elmtrackr.app.domain.repository.TasksRepository
+import com.elmtrackr.app.domain.tasks.TaskClockInHelper
+import com.elmtrackr.app.domain.tasks.TaskHabitSuggestionBuilder
 import com.elmtrackr.app.util.NetworkStatusMonitor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -42,6 +46,7 @@ class DashboardViewModel(
     private val syncRepository: SyncRepository,
     private val authRepository: AuthRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
+    private val tasksRepository: TasksRepository,
     private val appPreferences: com.elmtrackr.app.data.local.preferences.AppPreferencesStore,
     private val networkMonitor: NetworkStatusMonitor,
 ) : ViewModel() {
@@ -51,6 +56,8 @@ class DashboardViewModel(
     private val _showFirstClockInCelebration = MutableStateFlow(false)
     private val _isSyncing = MutableStateFlow(false)
     private val _syncError = MutableStateFlow<String?>(null)
+    private val _selectedTaskId = MutableStateFlow<String?>(null)
+    private val _habitSuggested = MutableStateFlow(false)
 
     val showFirstClockInCelebration: StateFlow<Boolean> = _showFirstClockInCelebration
 
@@ -62,6 +69,7 @@ class DashboardViewModel(
         val monthShifts: List<Shift>,
         val recentShifts: List<Shift>,
         val profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
+        val activeTasks: List<Task>,
     )
 
     private val coreUiState: StateFlow<DashboardUiState> = _refreshNonce
@@ -76,13 +84,15 @@ class DashboardViewModel(
                     syncRepository.observePendingCount(profile.id),
                     shiftsRepository.observeShiftsByMonth(profile.id, today.year, today.monthValue),
                 ) { activeShift, report, settings, pendingCount, monthShifts ->
-                    RawData(activeShift, report, settings, pendingCount, monthShifts, emptyList(), emptyList())
+                    RawData(activeShift, report, settings, pendingCount, monthShifts, emptyList(), emptyList(), emptyList())
                 },
                 compensationProfilesRepository.observeProfiles(profile.id),
             ) { raw, profiles ->
                 raw.copy(profiles = profiles)
             }.combine(shiftsRepository.observeRecentCompletedShifts(profile.id, 5)) { raw, recentShifts ->
                 raw.copy(recentShifts = recentShifts)
+            }.combine(tasksRepository.observeActiveTasks(profile.id)) { raw, activeTasks ->
+                raw.copy(activeTasks = activeTasks)
             }.combine(flowOf(profile)) { raw, currentProfile ->
                 if (raw.settings == null) {
                     DashboardUiState.Loading
@@ -99,6 +109,9 @@ class DashboardViewModel(
                     monthlyReport = raw.report,
                     settings = raw.settings,
                     profiles = raw.profiles,
+                    activeTasks = raw.activeTasks,
+                    selectedTaskId = _selectedTaskId.value,
+                    habitSuggested = _habitSuggested.value,
                     pendingSyncCount = raw.pendingCount,
                     recentShifts = raw.recentShifts,
                     displayName = currentProfile.fullName,
@@ -120,18 +133,29 @@ class DashboardViewModel(
     )
 
     val uiState: StateFlow<DashboardUiState> = combine(
-        coreUiState,
-        networkMonitor.isOnline,
-        _isSyncing,
-        _syncError,
-        syncRepository.observeLastSyncStatus(),
-    ) { state, isOnline, isSyncing, syncError, lastSyncStatus ->
+        combine(
+            coreUiState,
+            networkMonitor.isOnline,
+            _isSyncing,
+            _syncError,
+            syncRepository.observeLastSyncStatus(),
+        ) { state, isOnline, isSyncing, syncError, lastSyncStatus ->
+            Triple(state, isOnline to isSyncing, syncError to lastSyncStatus)
+        },
+        _selectedTaskId,
+        _habitSuggested,
+    ) { triple, selectedTaskId, habitSuggested ->
+        val state = triple.first
+        val (isOnline, isSyncing) = triple.second
+        val (syncError, lastSyncStatus) = triple.third
         when (state) {
             is DashboardUiState.Ready -> state.copy(
                 isOnline = isOnline,
                 isSyncing = isSyncing,
                 syncError = syncError,
                 lastSyncStatus = lastSyncStatus,
+                selectedTaskId = selectedTaskId,
+                habitSuggested = habitSuggested,
             )
             else -> state
         }
@@ -149,6 +173,32 @@ class DashboardViewModel(
                 compensationProfilesRepository.ensureMigrated(userId)
             }
         }
+        viewModelScope.launch {
+            authRepository.observeCurrentProfile().flatMapLatest { profile ->
+                if (profile == null) return@flatMapLatest flowOf(emptyList<Task>() to emptyList<Shift>())
+                combine(
+                    tasksRepository.observeActiveTasks(profile.id),
+                    shiftsRepository.observeRecentCompletedShifts(profile.id, 60),
+                ) { tasks, shifts -> tasks to shifts }
+            }.collect { (tasks, shifts) ->
+                if (tasks.isEmpty()) {
+                    _selectedTaskId.value = null
+                    _habitSuggested.value = false
+                    return@collect
+                }
+                val current = _selectedTaskId.value
+                if (current == null || tasks.none { it.id == current }) {
+                    val suggestion = TaskHabitSuggestionBuilder.suggest(tasks, shifts)
+                    _selectedTaskId.value = suggestion?.task?.id ?: tasks.maxByOrNull { it.createdAt }?.id
+                    _habitSuggested.value = suggestion?.isHabitBased == true
+                }
+            }
+        }
+    }
+
+    fun selectTask(taskId: String) {
+        _selectedTaskId.value = taskId
+        _habitSuggested.value = false
     }
 
     fun clockIn() {
@@ -158,7 +208,19 @@ class DashboardViewModel(
             val isFirstClockIn = !shiftsRepository.hasAnyShifts(userId) &&
                 !appPreferences.currentPreferences().firstClockInCelebrated
             compensationProfilesRepository.ensureMigrated(userId)
-            shiftsRepository.clockIn(userId, settings.defaultCompensationProfileId)
+            val tasks = tasksRepository.getActiveTasks(userId)
+            val selected = tasks.firstOrNull { it.id == _selectedTaskId.value }
+                ?: tasks.maxByOrNull { it.createdAt }
+            val taskParams = TaskClockInHelper.paramsFromTask(selected)
+            shiftsRepository.clockIn(
+                userId = userId,
+                compensationProfileId = settings.defaultCompensationProfileId,
+                taskId = taskParams.taskId,
+                taskNameSnapshot = taskParams.taskNameSnapshot,
+                taskIconSnapshot = taskParams.taskIconSnapshot,
+                taskHourlyRateSnapshot = taskParams.taskHourlyRateSnapshot,
+            )
+            selected?.let { tasksRepository.markTaskUsed(userId, it.id) }
             if (isFirstClockIn) {
                 appPreferences.setFirstClockInCelebrated(true)
                 _showFirstClockInCelebration.value = true
@@ -224,6 +286,7 @@ class DashboardViewModel(
                     app.syncRepository,
                     app.authRepository,
                     app.compensationProfilesRepository,
+                    app.tasksRepository,
                     app.appPreferences,
                     app.networkMonitor,
                 )

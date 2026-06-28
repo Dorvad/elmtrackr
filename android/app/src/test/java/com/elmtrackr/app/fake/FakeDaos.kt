@@ -291,3 +291,58 @@ class FakeCompensationProfileDao : com.elmtrackr.app.data.local.dao.Compensation
         refresh()
     }
 }
+
+class FakeTaskDao : com.elmtrackr.app.data.local.dao.TaskDao {
+    private val store = mutableMapOf<String, com.elmtrackr.app.data.local.entity.TaskEntity>()
+    private val _flow = MutableStateFlow<List<com.elmtrackr.app.data.local.entity.TaskEntity>>(emptyList())
+
+    private fun refresh() { _flow.value = store.values.toList() }
+
+    override fun observeActiveTasks(userId: String) =
+        _flow.map { it.filter { e -> e.userId == userId && !e.isArchived && e.deletedAt == null } }
+
+    override fun observeAllTasks(userId: String) =
+        _flow.map { it.filter { e -> e.userId == userId && e.deletedAt == null } }
+
+    override suspend fun getActiveTasks(userId: String) =
+        store.values.filter { it.userId == userId && !it.isArchived && it.deletedAt == null }
+
+    override suspend fun getByLocalId(localId: String) = store[localId]
+
+    override suspend fun getById(userId: String, localId: String) =
+        store[localId]?.takeIf { it.userId == userId }
+
+    override suspend fun getByRemoteId(remoteId: String) =
+        store.values.firstOrNull { it.remoteId == remoteId }
+
+    override suspend fun getPendingSyncTasks(userId: String) =
+        store.values.filter { it.userId == userId && it.syncStatus != SyncStatus.SYNCED && it.deletedAt == null }
+
+    override suspend fun insert(task: com.elmtrackr.app.data.local.entity.TaskEntity) {
+        store[task.localId] = task
+        refresh()
+    }
+
+    override suspend fun updateSyncState(
+        localId: String,
+        status: SyncStatus,
+        remoteId: String?,
+        syncedAt: Long?,
+        error: String?,
+    ) {
+        store[localId]?.let {
+            store[localId] = it.copy(syncStatus = status, remoteId = remoteId, lastSyncedAt = syncedAt, lastSyncError = error)
+        }
+        refresh()
+    }
+
+    override suspend fun updateLastUsed(localId: String, lastUsedAt: Long, updatedAt: Long) {
+        store[localId]?.let { store[localId] = it.copy(lastUsedAt = lastUsedAt, updatedAt = updatedAt) }
+        refresh()
+    }
+
+    override suspend fun deleteAllForUser(userId: String) {
+        store.entries.removeIf { it.value.userId == userId }
+        refresh()
+    }
+}

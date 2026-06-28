@@ -28,13 +28,24 @@ class FakeShiftsRepository : ShiftsRepository {
     override suspend fun getShiftById(localId: String): Shift? =
         _shifts.value.firstOrNull { it.id == localId }
 
-    override suspend fun clockIn(userId: String, compensationProfileId: String?): Shift {
+    override suspend fun clockIn(
+        userId: String,
+        compensationProfileId: String?,
+        taskId: String?,
+        taskNameSnapshot: String?,
+        taskIconSnapshot: String?,
+        taskHourlyRateSnapshot: Double?,
+    ): Shift {
         val shift = Shift(
             id = "fake-${_shifts.value.size}",
             userId = userId,
             startTime = Instant.parse("2024-01-08T09:00:00Z"),
             endTime = null,
             compensationProfileId = compensationProfileId,
+            taskId = taskId,
+            taskNameSnapshot = taskNameSnapshot,
+            taskIconSnapshot = taskIconSnapshot,
+            taskHourlyRateSnapshot = taskHourlyRateSnapshot,
         )
         _shifts.value = _shifts.value + shift
         syncScheduledCount++

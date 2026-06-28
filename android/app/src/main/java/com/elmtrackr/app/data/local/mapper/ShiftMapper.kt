@@ -20,6 +20,10 @@ fun ShiftEntity.toDomain(): Shift = Shift(
     compensationSnapshot = compensationSnapshotJson
         ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
         ?.let { CompensationRulesCodec.decodeSnapshot(it) },
+    taskId = taskId,
+    taskNameSnapshot = taskNameSnapshot,
+    taskIconSnapshot = taskIconSnapshot,
+    taskHourlyRateSnapshot = taskHourlyRateSnapshot,
     createdAt = Instant.ofEpochMilli(createdAt),
     updatedAt = Instant.ofEpochMilli(updatedAt),
 )
@@ -42,6 +46,10 @@ fun Shift.toEntity(
     refundAction = refundAction?.name,
     compensationProfileId = compensationProfileId,
     compensationSnapshotJson = compensationSnapshot?.let { CompensationRulesCodec.encodeSnapshot(it) },
+    taskId = taskId,
+    taskNameSnapshot = taskNameSnapshot,
+    taskIconSnapshot = taskIconSnapshot,
+    taskHourlyRateSnapshot = taskHourlyRateSnapshot,
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
     deletedAt = deletedAt,

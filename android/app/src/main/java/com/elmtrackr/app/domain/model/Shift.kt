@@ -17,6 +17,10 @@ data class Shift(
     val refundAction: RefundAction? = null,
     val compensationProfileId: String? = null,
     val compensationSnapshot: com.elmtrackr.app.domain.model.CompensationSnapshot? = null,
+    val taskId: String? = null,
+    val taskNameSnapshot: String? = null,
+    val taskIconSnapshot: String? = null,
+    val taskHourlyRateSnapshot: Double? = null,
     val createdAt: Instant = Instant.EPOCH,
     val updatedAt: Instant = Instant.EPOCH,
 ) {

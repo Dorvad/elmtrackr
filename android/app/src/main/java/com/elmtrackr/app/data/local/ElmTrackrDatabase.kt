@@ -18,6 +18,8 @@ import com.elmtrackr.app.data.local.entity.ProfileEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
+import com.elmtrackr.app.data.local.dao.TaskDao
+import com.elmtrackr.app.data.local.entity.TaskEntity
 
 @Database(
     entities = [
@@ -26,8 +28,9 @@ import com.elmtrackr.app.data.local.entity.UserSettingsEntity
         ProfileEntity::class,
         RefundClaimEntity::class,
         CompensationProfileEntity::class,
+        TaskEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -40,6 +43,8 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
 
     abstract fun compensationProfileDao(): CompensationProfileDao
 
+    abstract fun taskDao(): TaskDao
+
     companion object {
         @Volatile private var INSTANCE: ElmTrackrDatabase? = null
 
@@ -49,7 +54,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     context.applicationContext,
                     ElmTrackrDatabase::class.java,
                     "elmtrackr.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }
@@ -94,6 +99,36 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     """.trimIndent(),
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_compensation_profiles_userId ON compensation_profiles(userId)")
+            }
+        }
+
+        internal val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE shifts ADD COLUMN taskId TEXT")
+                db.execSQL("ALTER TABLE shifts ADD COLUMN taskNameSnapshot TEXT")
+                db.execSQL("ALTER TABLE shifts ADD COLUMN taskIconSnapshot TEXT")
+                db.execSQL("ALTER TABLE shifts ADD COLUMN taskHourlyRateSnapshot REAL")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS tasks (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        icon TEXT NOT NULL,
+                        hourlyRate REAL NOT NULL,
+                        isArchived INTEGER NOT NULL,
+                        lastUsedAt INTEGER,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_userId ON tasks(userId)")
             }
         }
     }

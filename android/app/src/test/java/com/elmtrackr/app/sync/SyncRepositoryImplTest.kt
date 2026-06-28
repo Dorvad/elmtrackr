@@ -13,6 +13,7 @@ import com.elmtrackr.app.fake.FakeRemoteSettingsDataSource
 import com.elmtrackr.app.fake.FakeRemoteShiftsDataSource
 import com.elmtrackr.app.fake.FakeSettingsDao
 import com.elmtrackr.app.fake.FakeShiftDao
+import com.elmtrackr.app.fake.FakeTaskDao
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -38,6 +39,7 @@ class SyncRepositoryImplTest {
     private val settingsDao = FakeSettingsDao()
     private val profileDao = FakeProfileDao()
     private val compensationProfileDao = FakeCompensationProfileDao()
+    private val taskDao = FakeTaskDao()
     private val remoteShifts = FakeRemoteShiftsDataSource()
     private val remoteRefunds = FakeRemoteRefundsDataSource()
     private val remoteSettings = FakeRemoteSettingsDataSource()
@@ -49,11 +51,13 @@ class SyncRepositoryImplTest {
         settingsDao = settingsDao,
         profileDao = profileDao,
         compensationProfileDao = compensationProfileDao,
+        taskDao = taskDao,
         remoteShifts = if (configured) remoteShifts else null,
         remoteRefunds = if (configured) remoteRefunds else null,
         remoteSettings = if (configured) remoteSettings else null,
         remoteProfile = if (configured) remoteProfile else null,
         remoteCompensationProfiles = null,
+        remoteTasks = null,
     )
 
     private val now = Instant.now().toEpochMilli()
