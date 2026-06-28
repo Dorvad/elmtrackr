@@ -67,11 +67,10 @@ class WidgetStateMapperTest {
     @Test
     fun `today minutes sums completed shifts`() {
         val zone = ZoneId.systemDefault()
-        val today = LocalDate.now(zone)
-        val completed = makeShift(
-            startTime = today.atTime(9, 0).atZone(zone).toInstant(),
-            endTime = today.atTime(16, 0).atZone(zone).toInstant(),
-        )
+        val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant()
+        val startTime = todayStart.plusSeconds(9 * 3600)
+        val endTime = todayStart.plusSeconds(16 * 3600)
+        val completed = makeShift(startTime = startTime, endTime = endTime)
         val state = WidgetStateMapper.map(context(today = listOf(completed)))
         assertEquals(420, state.todayMinutes)
     }

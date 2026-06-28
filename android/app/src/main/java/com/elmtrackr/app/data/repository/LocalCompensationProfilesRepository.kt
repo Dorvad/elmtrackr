@@ -3,6 +3,8 @@ package com.elmtrackr.app.data.repository
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
+import com.elmtrackr.app.data.local.mapper.mapToDomain
+import com.elmtrackr.app.data.local.mapper.toDomainOrNull
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.data.local.entity.SyncStatus
@@ -18,13 +20,13 @@ class LocalCompensationProfilesRepository(
 ) : CompensationProfilesRepository {
 
     override fun observeProfiles(userId: String): Flow<List<CompensationProfile>> =
-        profileDao.observeProfiles(userId).map { entities -> entities.map { it.toDomain() } }
+        profileDao.observeProfiles(userId).map { entities -> entities.mapToDomain { it.toDomain() } }
 
     override suspend fun getProfiles(userId: String): List<CompensationProfile> =
-        profileDao.getByUser(userId).map { it.toDomain() }
+        profileDao.getByUser(userId).mapToDomain { it.toDomain() }
 
     override suspend fun getProfileById(userId: String, profileId: String): CompensationProfile? =
-        profileDao.getById(userId, profileId)?.toDomain()
+        profileDao.getById(userId, profileId).toDomainOrNull { it.toDomain() }
 
     override suspend fun upsertProfile(profile: CompensationProfile): CompensationProfile {
         val now = System.currentTimeMillis()
@@ -55,11 +57,11 @@ class LocalCompensationProfilesRepository(
         )
     }
 
-    override suspend fun ensureMigrated(userId: String): CompensationProfile? {
-        val settings = settingsRepository.getSettings(userId) ?: return null
-        if (!settings.onboardingCompleted) return null
+    override suspend fun ensureMigrated(userId: String): CompensationProfile? = runCatching {
+        val settings = settingsRepository.getSettings(userId) ?: return@runCatching null
+        if (!settings.onboardingCompleted) return@runCatching null
         val existing = getProfiles(userId).filter { !it.isArchived }
-        if (existing.isNotEmpty()) return existing.firstOrNull { it.isDefault } ?: existing.first()
+        if (existing.isNotEmpty()) return@runCatching existing.firstOrNull { it.isDefault } ?: existing.first()
 
         val now = Instant.now()
         val migration = CompensationResolver.buildMigrationProfile(userId, settings).copy(
@@ -71,6 +73,6 @@ class LocalCompensationProfilesRepository(
         val updates = CompensationResolver.profileToLegacySettingsUpdates(saved)
         val updated = settings.apply(updates).copy(updatedAt = now)
         settingsRepository.saveSettings(updated)
-        return saved
-    }
+        saved
+    }.getOrNull()
 }

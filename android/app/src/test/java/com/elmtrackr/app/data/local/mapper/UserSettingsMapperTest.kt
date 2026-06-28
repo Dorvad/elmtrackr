@@ -55,6 +55,11 @@ class UserSettingsMapperTest {
     }
 
     @Test
+    fun `toDomain skips invalid weekend day entries`() {
+        assertEquals(listOf(5, 6), entity(weekendDays = "5,6,invalid").toDomain().weekendDays)
+    }
+
+    @Test
     fun `toDomain maps clockStyle enum`() {
         assertEquals(ClockStyle.AURORA, entity(clockStyle = "AURORA").toDomain().clockStyle)
         assertEquals(ClockStyle.CLASSIC, entity(clockStyle = "CLASSIC").toDomain().clockStyle)
