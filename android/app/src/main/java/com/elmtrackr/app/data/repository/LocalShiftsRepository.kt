@@ -5,6 +5,8 @@ import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
+import com.elmtrackr.app.data.local.mapper.mapToDomain
+import com.elmtrackr.app.data.local.mapper.toDomainOrNull
 import com.elmtrackr.app.domain.compensation.CompensationRulesCodec
 import com.elmtrackr.app.domain.model.CompensationSnapshot
 import com.elmtrackr.app.domain.model.Shift
@@ -24,13 +26,13 @@ class LocalShiftsRepository(
 ) : ShiftsRepository {
 
     override fun observeShifts(userId: String): Flow<List<Shift>> =
-        shiftDao.observeShifts(userId).map { entities -> entities.map { it.toDomain() } }
+        shiftDao.observeShifts(userId).map { entities -> entities.mapToDomain { it.toDomain() } }
 
     override fun observeActiveShift(userId: String): Flow<Shift?> =
-        shiftDao.observeActiveShift(userId).map { it?.toDomain() }
+        shiftDao.observeActiveShift(userId).map { it.toDomainOrNull { entity -> entity.toDomain() } }
 
     override suspend fun getShiftById(localId: String): Shift? =
-        shiftDao.getShiftById(localId)?.toDomain()
+        shiftDao.getShiftById(localId).toDomainOrNull { it.toDomain() }
 
     override suspend fun clockIn(userId: String, compensationProfileId: String?): Shift {
         val now = Instant.now().toEpochMilli()
@@ -119,15 +121,15 @@ class LocalShiftsRepository(
         val from = ym.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
         val to = ym.plusMonths(1).atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
         return shiftDao.observeShiftsByDateRange(userId, from, to).map { entities ->
-            entities.map { it.toDomain() }
+            entities.mapToDomain { it.toDomain() }
         }
     }
 
     override fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<Shift>> =
-        shiftDao.observeRecentCompletedShifts(userId, limit).map { entities -> entities.map { it.toDomain() } }
+        shiftDao.observeRecentCompletedShifts(userId, limit).map { entities -> entities.mapToDomain { it.toDomain() } }
 
     override fun observePendingSyncShifts(userId: String): Flow<List<Shift>> =
-        shiftDao.observePendingSyncShifts(userId).map { entities -> entities.map { it.toDomain() } }
+        shiftDao.observePendingSyncShifts(userId).map { entities -> entities.mapToDomain { it.toDomain() } }
 
     override suspend fun hasAnyShifts(userId: String): Boolean =
         shiftDao.getAllShiftsForUser(userId).isNotEmpty()

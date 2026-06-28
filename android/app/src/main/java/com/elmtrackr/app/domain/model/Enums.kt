@@ -5,14 +5,39 @@ enum class RefundAction {
     NO_RIDE_TAKEN,
     REMIND_LATER,
     SUBMITTED,
+    ;
+
+    companion object {
+        fun fromPersisted(raw: String?): RefundAction? {
+            if (raw.isNullOrBlank()) return null
+            val normalized = raw.trim().uppercase().replace('-', '_')
+            return entries.find { it.name == normalized }
+        }
+    }
 }
 
 enum class RefundProvider {
-    LIME, DOTT, BIRD, TAXI, OTHER
+    LIME, DOTT, BIRD, TAXI, OTHER;
+
+    companion object {
+        fun fromPersisted(raw: String?): RefundProvider {
+            if (raw.isNullOrBlank()) return OTHER
+            val normalized = raw.trim().uppercase()
+            return entries.find { it.name == normalized } ?: OTHER
+        }
+    }
 }
 
 enum class RefundDirection {
-    TO_WORK, FROM_WORK
+    TO_WORK, FROM_WORK;
+
+    companion object {
+        fun fromPersisted(raw: String?): RefundDirection {
+            if (raw.isNullOrBlank()) return TO_WORK
+            val normalized = raw.trim().uppercase().replace('-', '_')
+            return entries.find { it.name == normalized } ?: TO_WORK
+        }
+    }
 }
 
 enum class ClockStyle {
