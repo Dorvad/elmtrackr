@@ -1,137 +1,54 @@
 package com.elmtrackr.app.ui.shifts
 
-import android.content.Intent
-import android.net.Uri
-import android.provider.OpenableColumns
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.elmtrackr.app.ui.theme.CornerRadius
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.elmtrackr.app.domain.ShiftDurationCalculator
-import com.elmtrackr.app.domain.PayrollCalculator
-import com.elmtrackr.app.domain.MoneyFormatter
-import com.elmtrackr.app.domain.model.CurrencyCode
-import com.elmtrackr.app.domain.OvernightShiftDetector
-import com.elmtrackr.app.domain.compensation.CompensationResolver
-import com.elmtrackr.app.domain.model.CompensationProfile
-import com.elmtrackr.app.domain.RefundPolicy
-import com.elmtrackr.app.domain.model.ReceiptUpload
-import com.elmtrackr.app.domain.model.RefundAction
-import com.elmtrackr.app.domain.model.RefundClaim
-import com.elmtrackr.app.domain.model.RefundDirection
-import com.elmtrackr.app.domain.model.RefundProvider
-import com.elmtrackr.app.domain.model.Shift
-import com.elmtrackr.app.domain.model.UserSettings
-import androidx.compose.foundation.border
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
-import com.elmtrackr.app.ui.design.ElmCard
-import com.elmtrackr.app.ui.design.ElmDashedButton
-import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import com.elmtrackr.app.ui.design.ElmEmptyState
-import com.elmtrackr.app.ui.design.ElmGradientButton
-import com.elmtrackr.app.ui.design.ElmSectionHeader
-import com.elmtrackr.app.ui.design.auroraEnter
-import com.elmtrackr.app.ui.refunds.RefundClaimsSection
-import com.elmtrackr.app.ui.theme.AuroraAqua
-import com.elmtrackr.app.ui.theme.AuroraFaint
-import com.elmtrackr.app.ui.theme.AuroraInk2
-import com.elmtrackr.app.ui.theme.AuroraPlum
-import com.elmtrackr.app.ui.theme.AuroraWeekendBg
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.ui.theme.Spacing
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.YearMonth
-import java.time.format.TextStyle
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-
-private val dateLongFmt  = DateTimeFormatter.ofPattern("d MMM yyyy")
-private val timeFmt      = DateTimeFormatter.ofPattern("HH:mm")
-private val dayNumFmt    = DateTimeFormatter.ofPattern("dd")
-private val weekdayFmt   = DateTimeFormatter.ofPattern("EEE")
 
 @Composable
 fun ShiftsScreen(
@@ -140,11 +57,11 @@ fun ShiftsScreen(
     onPendingEditConsumed: () -> Unit = {},
     onFormVisibilityChanged: (Boolean) -> Unit = {},
 ) {
-    val uiState            by viewModel.uiState.collectAsState()
-    val formTarget         by viewModel.formTarget.collectAsState()
-    val formErrors         by viewModel.formErrors.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val formTarget by viewModel.formTarget.collectAsState()
+    val formErrors by viewModel.formErrors.collectAsState()
     val featuresTravelRefunds by viewModel.featuresTravelRefunds.collectAsState()
-    val selectedMonth       by viewModel.selectedMonth.collectAsState()
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
 
     LaunchedEffect(formTarget) {
         onFormVisibilityChanged(formTarget != null)
@@ -165,12 +82,12 @@ fun ShiftsScreen(
             settings = (uiState as? ShiftsUiState.Ready)?.settings,
             profiles = (uiState as? ShiftsUiState.Ready)?.profiles.orEmpty(),
             tasks = (uiState as? ShiftsUiState.Ready)?.tasks.orEmpty(),
-            errors   = formErrors,
+            errors = formErrors,
             featuresTravelRefunds = featuresTravelRefunds,
             onSave = { input ->
                 when (val t = formTarget!!) {
                     is ShiftFormNavState.Create -> viewModel.createShift(input)
-                    is ShiftFormNavState.Edit   -> viewModel.saveEditedShift(t.shift.id, input)
+                    is ShiftFormNavState.Edit -> viewModel.saveEditedShift(t.shift.id, input)
                 }
             },
             onDelete = { shiftId ->
@@ -190,8 +107,14 @@ fun ShiftsScreen(
                     .padding(horizontal = Spacing.screenH),
             ) {
                 ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
+                ShiftsMonthPicker(
+                    month = selectedMonth,
+                    onPrevious = viewModel::previousMonth,
+                    onNext = viewModel::nextMonth,
+                )
                 ShiftsSkeleton()
             }
+
             is ShiftsUiState.Empty -> Column(
                 Modifier
                     .fillMaxWidth()
@@ -199,11 +122,16 @@ fun ShiftsScreen(
                     .padding(horizontal = Spacing.screenH),
             ) {
                 ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
-                ShiftsMonthCard(
+                ShiftsMonthPicker(
                     month = selectedMonth,
-                    shifts = emptyList(),
                     onPrevious = viewModel::previousMonth,
                     onNext = viewModel::nextMonth,
+                )
+                ShiftsHeroSummaryCard(
+                    shifts = emptyList(),
+                    activeShift = null,
+                    settings = null,
+                    month = selectedMonth,
                 )
                 Spacer(Modifier.height(Spacing.md))
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -214,12 +142,12 @@ fun ShiftsScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                ElmDashedButton(
-                    label = "Add shift manually",
+                ShiftsAddPastShiftButton(
                     onClick = viewModel::showCreateForm,
                     modifier = Modifier.padding(bottom = Spacing.xl),
                 )
             }
+
             is ShiftsUiState.Ready -> ShiftsListContent(
                 state = state,
                 selectedMonth = selectedMonth,
@@ -228,28 +156,11 @@ fun ShiftsScreen(
                 onAddShift = viewModel::showCreateForm,
                 onEditShift = viewModel::showEditForm,
             )
+
             is ShiftsUiState.Error -> ErrorState(
                 message = state.message,
                 onRetry = viewModel::retry,
             )
-        }
-    }
-}
-
-// ── List ──────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun ShiftsPageHeader(onAddShift: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(top = Spacing.lg, bottom = Spacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("All shifts", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        ElmGradientButton(onClick = onAddShift, compact = true) {
-            Text("+ New", fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -263,6 +174,15 @@ private fun ShiftsListContent(
     onAddShift: () -> Unit,
     onEditShift: (String) -> Unit,
 ) {
+    val weekSections = ShiftWeekGrouper.groupByWeek(
+        shifts = state.shifts,
+        activeShift = state.activeShift,
+        month = selectedMonth,
+        settings = state.settings,
+        profiles = state.profiles,
+    )
+    var entranceIndex = 0
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -271,36 +191,51 @@ private fun ShiftsListContent(
     ) {
         item { ShiftsPageHeader(onAddShift = onAddShift) }
         item {
-            ShiftsMonthCard(
+            ShiftsMonthPicker(
                 month = selectedMonth,
-                shifts = state.shifts,
                 onPrevious = onPreviousMonth,
                 onNext = onNextMonth,
             )
         }
-        if (state.shifts.isNotEmpty()) {
+        item {
+            ShiftsHeroSummaryCard(
+                shifts = state.shifts,
+                activeShift = state.activeShift,
+                settings = state.settings,
+                month = selectedMonth,
+                profiles = state.profiles,
+            )
+        }
+
+        weekSections.forEach { section ->
             item {
-                ElmCard {
-                    state.shifts.forEachIndexed { index, shift ->
-                        if (index > 0) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(com.elmtrackr.app.ui.theme.CornerRadius.Medium),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                ) {
+                    Column {
+                        ShiftsWeekSectionHeader(section = section, settings = state.settings)
+                        section.shifts.forEach { shift ->
+                            val rowIndex = entranceIndex++
+                            ShiftRow(
+                                shift = shift,
+                                settings = state.settings,
+                                profiles = state.profiles,
+                                showRefunds = state.featuresTravelRefunds,
+                                grouped = true,
+                                entranceIndex = rowIndex,
+                                onClick = { onEditShift(shift.id) },
+                            )
                         }
-                        ShiftRow(
-                            shift = shift,
-                            settings = state.settings,
-                            profiles = state.profiles,
-                            showRefunds = state.featuresTravelRefunds,
-                            grouped = true,
-                            entranceIndex = index,
-                            onClick = { onEditShift(shift.id) },
-                        )
                     }
                 }
             }
         }
+
         item {
-            ElmDashedButton(
-                label = "Add shift manually",
+            ShiftsAddPastShiftButton(
                 onClick = onAddShift,
                 modifier = Modifier.padding(bottom = Spacing.xl),
             )
@@ -310,342 +245,10 @@ private fun ShiftsListContent(
 }
 
 @Composable
-internal fun MonthShiftSummary(
-    shifts: List<Shift>,
-    settings: UserSettings?,
-    profiles: List<CompensationProfile> = emptyList(),
-) {
-    val completed = shifts.filter { it.isCompleted }
-    val totalMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
-    val pay = settings?.let { PayrollCalculator.sumMonthlyPay(completed, it, profiles) }
-        ?.takeIf { it.totalGross > 0 }
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-        shape = RoundedCornerShape(CornerRadius.Large),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column {
-                Text("THIS MONTH", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                Text(ShiftDurationCalculator.formatMinutes(totalMinutes), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                Text("${completed.size} completed shift${if (completed.size == 1) "" else "s"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            pay?.let {
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("GROSS PAY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                    Text(
-                        MoneyFormatter.format(
-                            it.totalGross,
-                            settings?.currency ?: CurrencyCode.from(it.currencyCode) ?: CurrencyCode.ILS,
-                        ),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.ExtraBold,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-internal fun ShiftsMonthCard(
-    month: YearMonth,
-    shifts: List<Shift>,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
-) {
-    val completed = shifts.filter { it.isCompleted }
-    val totalMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
-    val canGoNext = month < YearMonth.now()
-    val shape = RoundedCornerShape(CornerRadius.Large)
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
-        shape = shape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(
-                onClick = onPrevious,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
-            ) {
-                Icon(Icons.Filled.ChevronLeft, "Previous month", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "${month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.year}",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                if (totalMinutes > 0) {
-                    Text(
-                        "${formatHoursDecimal(totalMinutes)}h · ${completed.size} shift${if (completed.size == 1) "" else "s"}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-            IconButton(
-                onClick = onNext,
-                enabled = canGoNext,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
-            ) {
-                Icon(
-                    Icons.Filled.ChevronRight,
-                    "Next month",
-                    tint = if (canGoNext) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline,
-                )
-            }
-        }
-    }
-}
-
-private fun formatHoursDecimal(minutes: Int): String = "%.1f".format(Locale.US, minutes / 60.0)
-
-@Composable
-internal fun ShiftRow(
-    shift: Shift,
-    settings: UserSettings?,
-    profiles: List<CompensationProfile> = emptyList(),
-    showRefunds: Boolean,
-    grouped: Boolean = false,
-    entranceIndex: Int = 0,
-    onClick: () -> Unit,
-) {
-    val zone         = ZoneId.systemDefault()
-    val zdt          = shift.startTime.atZone(zone)
-    val dayNumber    = zdt.format(dayNumFmt)
-    val weekday      = zdt.format(weekdayFmt).uppercase(Locale.getDefault())
-    val startText    = zdt.format(timeFmt)
-    val endText      = shift.endTime?.atZone(zone)?.format(timeFmt) ?: "Active"
-    val durationText = if (shift.isCompleted)
-        ShiftDurationCalculator.netMinutes(shift)?.let { ShiftDurationCalculator.formatMinutes(it) }
-    else null
-    val overnight = OvernightShiftDetector.isOvernight(shift)
-    val weekend = settings?.let {
-        CompensationResolver.isWeekendShift(shift, it, profiles)
-    } == true
-    val breakdown = settings?.takeIf { shift.isCompleted }?.let { com.elmtrackr.app.domain.MonthlyReportBuilder.buildShiftBreakdown(shift, it) }
-    val pay = settings?.let { s ->
-        PayrollCalculator.calculateShiftPay(shift, s, profiles)
-    }
-
-    val stripeColor = when {
-        shift.isActive    -> AuroraAqua
-        shift.isSpecialDay -> AuroraPlum
-        else              -> MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-    }
-
-    val rowModifier = if (grouped) {
-        Modifier.fillMaxWidth().auroraEnter(entranceIndex)
-    } else {
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp).auroraEnter(entranceIndex)
-    }
-
-    if (grouped) {
-        Surface(onClick = onClick, modifier = rowModifier, color = MaterialTheme.colorScheme.surface) {
-            ShiftRowContent(
-                shift, settings, showRefunds, stripeColor, dayNumber, weekday,
-                startText, endText, durationText, weekend, overnight, breakdown, pay,
-            )
-        }
-    } else {
-        Card(
-            onClick = onClick,
-            modifier = rowModifier,
-            shape = RoundedCornerShape(CornerRadius.Medium),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        ) {
-            ShiftRowContent(
-                shift, settings, showRefunds, stripeColor, dayNumber, weekday,
-                startText, endText, durationText, weekend, overnight, breakdown, pay,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ShiftRowContent(
-    shift: Shift,
-    settings: UserSettings?,
-    showRefunds: Boolean,
-    stripeColor: Color,
-    dayNumber: String,
-    weekday: String,
-    startText: String,
-    endText: String,
-    durationText: String?,
-    weekend: Boolean,
-    overnight: Boolean,
-    breakdown: com.elmtrackr.app.domain.model.ShiftBreakdown?,
-    pay: com.elmtrackr.app.domain.model.ShiftPayBreakdown?,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-            // Left colour stripe
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(stripeColor)
-            )
-
-            // Date block
-            Column(
-                modifier            = Modifier
-                    .width(54.dp)
-                    .padding(vertical = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text       = dayNumber,
-                    style      = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color      = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text       = weekday,
-                    style      = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            // Main info
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 4.dp, top = 12.dp, bottom = 12.dp),
-            ) {
-                Text(
-                    text       = "$startText - $endText",
-                    style      = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = MaterialTheme.colorScheme.onSurface,
-                )
-                if (shift.isActive || shift.isSpecialDay || weekend || overnight || shift.breakMinutes > 0 || (showRefunds && shift.refundAction != null)) {
-                    Spacer(Modifier.height(3.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        if (shift.isActive) {
-                            ActiveBadge()
-                        }
-                        if (shift.isSpecialDay) {
-                            SpecialBadge()
-                        }
-                        if (weekend && !shift.isSpecialDay) ShiftBadge("Weekend", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
-                        if (overnight) ShiftBadge("Overnight", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
-                        if (shift.breakMinutes > 0 && !shift.isActive) {
-                            Text(
-                                text  = "${shift.breakMinutes}m brk",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        if (showRefunds) shift.refundAction?.let { action ->
-                            ShiftBadge(
-                                when (action) {
-                                    RefundAction.SUBMITTED -> "Refund sent"
-                                    RefundAction.NO_RIDE_TAKEN -> "No ride"
-                                    RefundAction.REMIND_LATER -> "Refund later"
-                                },
-                                MaterialTheme.colorScheme.primaryContainer,
-                                MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                        }
-                    }
-                }
-                shift.notes?.takeIf { it.isNotBlank() }?.let {
-                    Spacer(Modifier.height(3.dp))
-                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                }
-            }
-
-            // Duration
-            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 4.dp)) {
-                if (shift.isActive) ActiveDuration(shift.startTime)
-                else if (durationText != null) Text(durationText, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                Text(
-                    text = "Edit",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                if ((breakdown?.overtimeMinutes ?: 0) > 0 && !shift.isSpecialDay && !weekend) {
-                    Text("+${ShiftDurationCalculator.formatMinutes(breakdown!!.overtimeMinutes)} OT", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-                }
-                pay?.let { Text(MoneyFormatter.format(it.totalGross, settings?.currency ?: CurrencyCode.ILS), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) }
-            }
-
-            // Chevron
-            Icon(
-                imageVector        = Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint               = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(18.dp).padding(end = 6.dp),
-        )
-    }
-}
-
-@Composable
-private fun SpecialBadge() {
-    Box(
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(50))
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-    ) {
-        Text(
-            text       = "Special",
-            style      = MaterialTheme.typography.labelSmall,
-            color      = MaterialTheme.colorScheme.onSecondaryContainer,
-            fontWeight = FontWeight.Bold,
-        )
-    }
-}
-
-@Composable
-private fun ActiveBadge() {
-    Box(
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(50))
-            .padding(horizontal = 8.dp, vertical = 2.dp),
-    ) {
-        Text(
-            text       = "Active",
-            style      = MaterialTheme.typography.labelSmall,
-            color      = MaterialTheme.colorScheme.onPrimaryContainer,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
-}
-
-// ── Form ──────────────────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
-@Composable
 private fun ShiftFormContent(
     navState: ShiftFormNavState,
-    settings: UserSettings?,
-    profiles: List<CompensationProfile>,
+    settings: com.elmtrackr.app.domain.model.UserSettings?,
+    profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
     tasks: List<com.elmtrackr.app.domain.model.Task>,
     errors: Map<String, String>,
     featuresTravelRefunds: Boolean,
@@ -653,31 +256,28 @@ private fun ShiftFormContent(
     onDelete: (shiftId: String) -> Unit,
     onClose: () -> Unit,
 ) {
-    val isEdit       = navState is ShiftFormNavState.Edit
     val initialShift = (navState as? ShiftFormNavState.Edit)?.shift
-    val zone         = ZoneId.systemDefault()
-    val now          = Instant.now()
+    val zone = ZoneId.systemDefault()
+    val now = Instant.now()
 
     val defaultStart = initialShift?.startTime ?: now.minusSeconds(3600)
-    val defaultEnd   = initialShift?.endTime   ?: now
+    val defaultEnd = initialShift?.endTime ?: now
 
-    var startMillis       by rememberSaveable { mutableStateOf(defaultStart.toEpochMilli()) }
-    var hasEndTime        by rememberSaveable { mutableStateOf(initialShift?.isCompleted ?: true) }
-    var endMillis         by rememberSaveable { mutableStateOf(defaultEnd.toEpochMilli()) }
-    var breakText         by rememberSaveable { mutableStateOf((initialShift?.breakMinutes ?: 0).toString()) }
-    var notesText         by rememberSaveable { mutableStateOf(initialShift?.notes ?: "") }
-    var isSpecialDay      by rememberSaveable { mutableStateOf(initialShift?.isSpecialDay ?: false) }
+    var startMillis by rememberSaveable { mutableStateOf(defaultStart.toEpochMilli()) }
+    var hasEndTime by rememberSaveable { mutableStateOf(initialShift?.isCompleted ?: true) }
+    var endMillis by rememberSaveable { mutableStateOf(defaultEnd.toEpochMilli()) }
+    var breakMinutes by rememberSaveable { mutableStateOf(initialShift?.breakMinutes ?: 0) }
+    var notesText by rememberSaveable { mutableStateOf(initialShift?.notes ?: "") }
+    var isSpecialDay by rememberSaveable { mutableStateOf(initialShift?.isSpecialDay ?: false) }
     var compensationProfileId by rememberSaveable {
         mutableStateOf(initialShift?.compensationProfileId ?: settings?.defaultCompensationProfileId)
     }
     var taskId by rememberSaveable { mutableStateOf(initialShift?.taskId) }
-    val activeTasks = tasks.filter { !it.isArchived }
 
     var showStartDatePicker by rememberSaveable { mutableStateOf(false) }
     var showStartTimePicker by rememberSaveable { mutableStateOf(false) }
-    var showEndDatePicker   by rememberSaveable { mutableStateOf(false) }
-    var showEndTimePicker   by rememberSaveable { mutableStateOf(false) }
-    var showDeleteConfirm   by rememberSaveable { mutableStateOf(false) }
+    var showEndDatePicker by rememberSaveable { mutableStateOf(false) }
+    var showEndTimePicker by rememberSaveable { mutableStateOf(false) }
 
     if (showStartDatePicker) {
         DatePickerWrapper(
@@ -710,333 +310,39 @@ private fun ShiftFormContent(
         )
     }
 
-    if (showDeleteConfirm && isEdit) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete shift?") },
-            text  = { Text("This shift will be removed from your device.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteConfirm = false
-                    onDelete((navState as ShiftFormNavState.Edit).shift.id)
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") } },
-        )
-    }
-
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Row(
-                modifier          = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onClose) {
-                    Icon(Icons.Filled.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text(
-                    text       = if (isEdit) "Edit Shift" else "New Shift",
-                    style      = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier   = Modifier.weight(1f).padding(start = 4.dp),
-                )
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-            Column(
-                modifier            = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                ElmSectionHeader("Start Time")
-                DateTimeRow(
-                    dateLabel = "Date", timeLabel = "Time",
-                    millis = startMillis, zone = zone,
-                    onPickDate = { showStartDatePicker = true },
-                    onPickTime = { showStartTimePicker = true },
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
-
-                Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically,
-                ) {
-                    ElmSectionHeader("End Time", modifier = Modifier.weight(1f))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text  = if (hasEndTime) "Set" else "Active / no end",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Switch(
-                            checked         = hasEndTime,
-                            onCheckedChange = { hasEndTime = it },
-                            modifier        = Modifier.padding(start = 8.dp),
-                        )
-                    }
-                }
-                if (hasEndTime) {
-                    DateTimeRow(
-                        dateLabel = "Date", timeLabel = "Time",
-                        millis = endMillis, zone = zone,
-                        onPickDate = { showEndDatePicker = true },
-                        onPickTime = { showEndTimePicker = true },
-                    )
-                }
-                errors["endTime"]?.let { FieldError(it) }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
-
-                OutlinedTextField(
-                    value         = breakText,
-                    onValueChange = { if (it.all { c -> c.isDigit() }) breakText = it },
-                    label         = { Text("Break (minutes)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine    = true,
-                    modifier      = Modifier.fillMaxWidth(),
-                )
-                errors["breakMinutes"]?.let { FieldError(it) }
-
-                OutlinedTextField(
-                    value         = notesText,
-                    onValueChange = { notesText = it },
-                    label         = { Text("Notes (optional)") },
-                    minLines      = 2,
-                    maxLines      = 4,
-                    modifier      = Modifier.fillMaxWidth(),
-                )
-
-                Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Special day", style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            text  = "Weekend, holiday, or higher-rate day",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(checked = isSpecialDay, onCheckedChange = { isSpecialDay = it })
-                }
-
-                if (profiles.isNotEmpty()) {
-                    CompensationProfilePicker(
-                        profiles = profiles,
-                        selectedId = compensationProfileId,
-                        onSelect = { compensationProfileId = it },
-                    )
-                }
-
-                if (activeTasks.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    Text("Task", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(6.dp))
-                    androidx.compose.foundation.layout.FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        FilterChip(
-                            selected = taskId == null,
-                            onClick = { taskId = null },
-                            label = { Text("None") },
-                        )
-                        activeTasks.forEach { task ->
-                            FilterChip(
-                                selected = taskId == task.id,
-                                onClick = { taskId = task.id },
-                                label = { Text("${task.icon} ${task.name}") },
-                            )
-                        }
-                    }
-                    if (isEdit && initialShift?.taskNameSnapshot != null &&
-                        activeTasks.none { it.id == initialShift.taskId }
-                    ) {
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            "Saved task: ${initialShift.taskIconSnapshot.orEmpty()} ${initialShift.taskNameSnapshot} (${initialShift.taskHourlyRateSnapshot}/hr)",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-
-                val selectedTask = activeTasks.firstOrNull { it.id == taskId }
-                val previewStart = Instant.ofEpochMilli(startMillis)
-                val previewEnd = if (hasEndTime) Instant.ofEpochMilli(endMillis) else null
-                if (previewEnd?.isAfter(previewStart) == true) {
-                    val previewShift = Shift(
-                        id = initialShift?.id ?: "preview",
-                        userId = initialShift?.userId ?: "preview",
-                        startTime = previewStart,
-                        endTime = previewEnd,
-                        breakMinutes = breakText.toIntOrNull() ?: 0,
-                        notes = notesText,
-                        isSpecialDay = isSpecialDay,
-                        compensationProfileId = compensationProfileId,
-                        taskId = taskId,
-                        taskNameSnapshot = selectedTask?.name,
-                        taskIconSnapshot = selectedTask?.icon,
-                        taskHourlyRateSnapshot = selectedTask?.hourlyRate,
-                    )
-                    val minutes = ShiftDurationCalculator.netMinutes(previewShift)
-                    val previewPay = settings?.let {
-                        PayrollCalculator.calculateShiftPay(previewShift, it, profiles)
-                    }
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(CornerRadius.Medium),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Column {
-                                Text("SHIFT TOTAL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
-                                Text(minutes?.let(ShiftDurationCalculator::formatMinutes) ?: "-", fontWeight = FontWeight.ExtraBold)
-                            }
-                            previewPay?.let {
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text("ESTIMATED PAY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
-                                    Text(MoneyFormatter.format(it.totalGross, settings?.currency ?: CurrencyCode.ILS), fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                val toEligibility = initialShift?.let(RefundPolicy::checkToWorkEligibility)
-                val fromEligibility = initialShift?.let(RefundPolicy::checkFromWorkEligibility)
-                if (
-                    featuresTravelRefunds &&
-                    isEdit &&
-                    initialShift?.isCompleted == true &&
-                    (toEligibility?.eligible == true || fromEligibility?.eligible == true)
-                ) {
-                    ElmSectionHeader("Travel Refund")
-                    RefundClaimsSection(
-                        shift = initialShift,
-                        currency = settings?.currency ?: CurrencyCode.ILS,
-                    )
-                    errors["refund"]?.let { FieldError(it) }
-                }
-
-                Spacer(Modifier.height(8.dp))
-
-                ElmGradientButton(
-                    onClick = {
-                        onSave(
-                            ShiftFormInput(
-                                startTime    = Instant.ofEpochMilli(startMillis),
-                                endTime      = if (hasEndTime) Instant.ofEpochMilli(endMillis) else null,
-                                breakMinutes = breakText.toIntOrNull() ?: 0,
-                                notes        = notesText,
-                                isSpecialDay = isSpecialDay,
-                                refundAction = initialShift?.refundAction,
-                                compensationProfileId = compensationProfileId,
-                                taskId = taskId,
-                            )
-                        )
-                    },
-                ) {
-                    Text("Save", fontWeight = FontWeight.SemiBold)
-                }
-
-                if (isEdit) {
-                    OutlinedButton(
-                        onClick = { showDeleteConfirm = true },
-                        colors  = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Delete shift")
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun ActiveDuration(start: Instant) {
-    var seconds by remember(start) { mutableStateOf(0L) }
-    androidx.compose.runtime.LaunchedEffect(start) {
-        while (true) {
-            seconds = ((Instant.now().toEpochMilli() - start.toEpochMilli()) / 1000L).coerceAtLeast(0L)
-            delay(1_000)
-        }
-    }
-    Text(formatLiveDuration(seconds), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
-}
-
-@Composable
-private fun ShiftBadge(label: String, background: Color, color: Color) {
-    Box(Modifier.background(background, RoundedCornerShape(50)).padding(horizontal = 6.dp, vertical = 2.dp)) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-
-private fun formatLiveDuration(seconds: Long): String {
-    val hours = seconds / 3600
-    val minutes = (seconds % 3600) / 60
-    val secs = seconds % 60
-    return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, secs)
-    else "%02d:%02d".format(minutes, secs)
-}
-
-@Composable
-private fun DateTimeRow(
-    dateLabel: String,
-    timeLabel: String,
-    millis: Long,
-    zone: ZoneId,
-    onPickDate: () -> Unit,
-    onPickTime: () -> Unit,
-) {
-    val zdt = Instant.ofEpochMilli(millis).atZone(zone)
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
-            value         = zdt.format(dateLongFmt),
-            onValueChange = {},
-            readOnly      = true,
-            label         = { Text(dateLabel) },
-            trailingIcon  = {
-                IconButton(onClick = onPickDate) {
-                    Icon(Icons.Filled.CalendarToday, contentDescription = "Pick date", modifier = Modifier.size(18.dp))
-                }
-            },
-            modifier = Modifier.weight(1.5f),
-        )
-        OutlinedTextField(
-            value         = zdt.format(timeFmt),
-            onValueChange = {},
-            readOnly      = true,
-            label         = { Text(timeLabel) },
-            trailingIcon  = {
-                IconButton(onClick = onPickTime) {
-                    Icon(Icons.Filled.Schedule, contentDescription = "Pick time", modifier = Modifier.size(18.dp))
-                }
-            },
-            modifier = Modifier.weight(1f),
+        ShiftEditFormContent(
+            navState = navState,
+            settings = settings,
+            errors = errors,
+            featuresTravelRefunds = featuresTravelRefunds,
+            onSave = onSave,
+            onDelete = onDelete,
+            onClose = onClose,
+            onPickStartDate = { showStartDatePicker = true },
+            onPickStartTime = { showStartTimePicker = true },
+            onPickEndDate = { showEndDatePicker = true },
+            onPickEndTime = { showEndTimePicker = true },
+            startMillis = startMillis,
+            endMillis = endMillis,
+            hasEndTime = hasEndTime,
+            onHasEndTimeChange = { hasEndTime = it },
+            breakMinutes = breakMinutes,
+            onBreakMinutesChange = { breakMinutes = it },
+            notesText = notesText,
+            onNotesChange = { notesText = it },
+            isSpecialDay = isSpecialDay,
+            onSpecialDayChange = { isSpecialDay = it },
+            profiles = profiles,
+            compensationProfileId = compensationProfileId,
+            onCompensationProfileIdChange = { compensationProfileId = it },
+            tasks = tasks,
+            taskId = taskId,
+            onTaskIdChange = { taskId = it },
+            showRefundSection = shouldShowRefundSection(featuresTravelRefunds, initialShift),
+            initialShift = initialShift,
         )
     }
-}
-
-@Composable
-private fun FieldError(message: String) {
-    Text(
-        text     = message,
-        style    = MaterialTheme.typography.bodySmall,
-        color    = MaterialTheme.colorScheme.error,
-        modifier = Modifier.fillMaxWidth(),
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1048,7 +354,7 @@ private fun DatePickerWrapper(currentMillis: Long, onConfirm: (Long) -> Unit, on
     val state = rememberDatePickerState(initialSelectedDateMillis = initUtcMidnight)
     DatePickerDialog(
         onDismissRequest = onDismiss,
-        confirmButton    = {
+        confirmButton = {
             TextButton(onClick = { state.selectedDateMillis?.let { onConfirm(it) } ?: onDismiss() }) { Text("OK") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
@@ -1059,13 +365,18 @@ private fun DatePickerWrapper(currentMillis: Long, onConfirm: (Long) -> Unit, on
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TimePickerWrapper(currentMillis: Long, zone: ZoneId, onConfirm: (hour: Int, minute: Int) -> Unit, onDismiss: () -> Unit) {
-    val zdt   = Instant.ofEpochMilli(currentMillis).atZone(zone)
+private fun TimePickerWrapper(
+    currentMillis: Long,
+    zone: ZoneId,
+    onConfirm: (hour: Int, minute: Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val zdt = Instant.ofEpochMilli(currentMillis).atZone(zone)
     val state = rememberTimePickerState(initialHour = zdt.hour, initialMinute = zdt.minute, is24Hour = true)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select time") },
-        text  = { TimePicker(state = state) },
+        text = { TimePicker(state = state) },
         confirmButton = { TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text("OK") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
@@ -1073,7 +384,7 @@ private fun TimePickerWrapper(currentMillis: Long, zone: ZoneId, onConfirm: (hou
 
 private fun applyDate(currentMillis: Long, utcMidnightMillis: Long, zone: ZoneId): Long {
     val currentTime = Instant.ofEpochMilli(currentMillis).atZone(zone).toLocalTime()
-    val newDate     = Instant.ofEpochMilli(utcMidnightMillis).atZone(ZoneOffset.UTC).toLocalDate()
+    val newDate = Instant.ofEpochMilli(utcMidnightMillis).atZone(ZoneOffset.UTC).toLocalDate()
     return LocalDateTime.of(newDate, currentTime).atZone(zone).toInstant().toEpochMilli()
 }
 
@@ -1088,12 +399,7 @@ private fun ShiftsScreenPreview() {
     ElmTrackrTheme {
         Column(Modifier.padding(Spacing.md)) {
             ShiftsPageHeader(onAddShift = {})
-            ShiftsMonthCard(
-                month = YearMonth.now(),
-                shifts = emptyList(),
-                onPrevious = {},
-                onNext = {},
-            )
+            ShiftsMonthPicker(month = YearMonth.now(), onPrevious = {}, onNext = {})
             Spacer(Modifier.height(Spacing.md))
             ElmEmptyState(
                 icon = Icons.Filled.AccessTime,

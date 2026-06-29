@@ -3,7 +3,6 @@ package com.elmtrackr.app.data.repository
 import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
-import com.elmtrackr.app.sync.SyncTrigger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -17,27 +16,37 @@ class LocalShiftsRepositoryTest {
     fun `clockIn returns existing active shift instead of creating duplicate`() = runTest {
         val dao = InMemoryShiftDao()
         dao.insertShift(shiftEntity(localId = "active-1", startTime = 1_000L))
-        var syncSchedules = 0
-        val repository = LocalShiftsRepository(dao, SyncTrigger { syncSchedules++ })
+        val repository = LocalShiftsRepository(dao)
 
-        val shift = repository.clockIn("u1", compensationProfileId = "new-profile")
+        val shift = repository.clockIn(
+            userId = "u1",
+            compensationProfileId = "new-profile",
+            taskId = null,
+            taskNameSnapshot = null,
+            taskIconSnapshot = null,
+            taskHourlyRateSnapshot = null,
+        )
 
         assertEquals("active-1", shift.id)
         assertEquals(1, dao.currentShifts.size)
-        assertEquals(0, syncSchedules)
     }
 
     @Test
     fun `clockIn creates shift with compensation profile when no active shift exists`() = runTest {
         val dao = InMemoryShiftDao()
-        var syncSchedules = 0
-        val repository = LocalShiftsRepository(dao, SyncTrigger { syncSchedules++ })
+        val repository = LocalShiftsRepository(dao)
 
-        val shift = repository.clockIn("u1", compensationProfileId = "profile-1")
+        val shift = repository.clockIn(
+            userId = "u1",
+            compensationProfileId = "profile-1",
+            taskId = null,
+            taskNameSnapshot = null,
+            taskIconSnapshot = null,
+            taskHourlyRateSnapshot = null,
+        )
 
         assertEquals("profile-1", shift.compensationProfileId)
         assertEquals(1, dao.currentShifts.size)
-        assertEquals(1, syncSchedules)
     }
 
     private fun shiftEntity(
@@ -57,10 +66,14 @@ class LocalShiftsRepositoryTest {
         refundAction = null,
         compensationProfileId = "existing-profile",
         compensationSnapshotJson = null,
+        taskId = null,
+        taskNameSnapshot = null,
+        taskIconSnapshot = null,
+        taskHourlyRateSnapshot = null,
         createdAt = startTime,
         updatedAt = startTime,
         deletedAt = null,
-        syncStatus = SyncStatus.PENDING_CREATE,
+        syncStatus = SyncStatus.SYNCED,
         lastSyncError = null,
         lastSyncedAt = null,
     )
