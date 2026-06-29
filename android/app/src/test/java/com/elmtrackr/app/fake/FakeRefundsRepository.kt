@@ -29,5 +29,4 @@ class FakeRefundsRepository : RefundsRepository {
         onDeleteClaim?.invoke(localId)
         claims.value = claims.value.filterNot { it.id == localId }
     }
-    override fun observePendingSyncClaims(userId: String): Flow<List<RefundClaim>> = observeClaimsForUser(userId)
 }

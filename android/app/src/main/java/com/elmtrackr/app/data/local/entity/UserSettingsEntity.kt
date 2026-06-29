@@ -28,6 +28,7 @@ data class UserSettingsEntity(
     val featuresPaidProjects: Boolean,
     val featuresInsights: Boolean,
     val featuresClockStyles: Boolean,
+    val featuresOvertimeReminders: Boolean,
     val clockStyle: String,
     val createdAt: Long,
     val updatedAt: Long,

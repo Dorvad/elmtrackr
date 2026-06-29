@@ -107,7 +107,7 @@ class SupabaseAuthRepository(
         profileDao.upsertProfile(
             profile.toEntity(
                 userId = userId,
-                syncStatus = SyncStatus.PENDING_UPDATE,
+                syncStatus = SyncStatus.SYNCED,
                 remoteId = userId,
             ),
         )

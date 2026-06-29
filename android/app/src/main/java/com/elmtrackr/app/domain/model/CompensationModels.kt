@@ -2,9 +2,31 @@ package com.elmtrackr.app.domain.model
 
 import java.time.Instant
 
-enum class RegionCode { IL, US, GB, EU, CUSTOM }
+enum class RegionCode {
+    IL, US, GB, EU, CUSTOM;
 
-enum class StackingPolicy { HIGHEST_ONLY, ADDITIVE }
+    companion object {
+        /** Parse web/Room persisted values without crashing on unknown or lowercase codes. */
+        fun fromPersisted(raw: String?): RegionCode {
+            if (raw.isNullOrBlank()) return IL
+            val normalized = raw.trim().uppercase()
+            return entries.find { it.name == normalized } ?: IL
+        }
+    }
+}
+
+enum class StackingPolicy { HIGHEST_ONLY, ADDITIVE;
+
+    companion object {
+        fun fromPersisted(raw: String?): StackingPolicy {
+            if (raw.isNullOrBlank()) return HIGHEST_ONLY
+            return when (raw.trim().lowercase()) {
+                "additive" -> ADDITIVE
+                else -> HIGHEST_ONLY
+            }
+        }
+    }
+}
 
 data class OvertimeTier(val afterMinutes: Int, val multiplier: Double)
 

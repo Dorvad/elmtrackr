@@ -39,6 +39,7 @@ import com.elmtrackr.app.ui.onboarding.ProfileStep
 import com.elmtrackr.app.ui.onboarding.ReviewStep
 import com.elmtrackr.app.ui.onboarding.WorkWeekStep
 import com.elmtrackr.app.ui.onboarding.WelcomeStep
+import com.elmtrackr.app.ui.dashboard.DashboardSkeleton
 import com.elmtrackr.app.ui.reports.HoursReport
 import com.elmtrackr.app.ui.reports.ReportsUiState
 import com.elmtrackr.app.ui.shifts.MonthShiftSummary
@@ -103,6 +104,33 @@ class ScreenshotRegressionTest {
     }
 
     @Test
+    fun dashboardSkeleton() = verify("dashboard-skeleton") {
+        DashboardSkeleton(Modifier.fillMaxSize().padding(16.dp))
+    }
+
+    @Test
+    fun reportsInsightsDisabled() = verify("reports-insights-disabled") {
+        val settings = sampleSettings().copy(featuresInsights = false)
+        val shifts = sampleShifts()
+        Column(Modifier.fillMaxSize().padding(12.dp).verticalScroll(rememberScrollState())) {
+            HoursReport(
+                ReportsUiState.Ready(
+                    year = 2024,
+                    month = 1,
+                    report = MonthlyReport(2024, 1, 990, 870, 120, 0, 2, emptyList()),
+                    weeklyTotals = emptyList(),
+                    paySummary = PayrollCalculator.sumMonthlyPay(shifts, settings),
+                    rawShifts = shifts,
+                    settings = settings,
+                    previousMonthMinutes = 840,
+                ),
+                onExportCsv = {},
+                onExportPdf = {},
+            )
+        }
+    }
+
+    @Test
     fun reportsHours() = verify("reports-hours") {
         val settings = sampleSettings()
         val shifts = sampleShifts()
@@ -119,6 +147,7 @@ class ScreenshotRegressionTest {
                     previousMonthMinutes = 840,
                 ),
                 onExportCsv = {},
+                onExportPdf = {},
             )
         }
     }

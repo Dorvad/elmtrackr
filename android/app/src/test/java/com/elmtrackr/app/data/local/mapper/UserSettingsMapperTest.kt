@@ -35,6 +35,7 @@ class UserSettingsMapperTest {
         featuresPaidProjects = false,
         featuresInsights = true,
         featuresClockStyles = true,
+        featuresOvertimeReminders = true,
         clockStyle = clockStyle,
         createdAt = 0L,
         updatedAt = 0L,
@@ -55,6 +56,11 @@ class UserSettingsMapperTest {
     }
 
     @Test
+    fun `toDomain skips invalid weekend day entries`() {
+        assertEquals(listOf(5, 6), entity(weekendDays = "5,6,invalid").toDomain().weekendDays)
+    }
+
+    @Test
     fun `toDomain maps clockStyle enum`() {
         assertEquals(ClockStyle.AURORA, entity(clockStyle = "AURORA").toDomain().clockStyle)
         assertEquals(ClockStyle.CLASSIC, entity(clockStyle = "CLASSIC").toDomain().clockStyle)
@@ -64,8 +70,12 @@ class UserSettingsMapperTest {
     fun `toDomain falls back to CLASSIC for unknown clockStyle`() {
         assertEquals(ClockStyle.CLASSIC, entity(clockStyle = "NOT_A_REAL_STYLE").toDomain().clockStyle)
         assertEquals(ClockStyle.CLASSIC, entity(clockStyle = "").toDomain().clockStyle)
-        assertEquals(ClockStyle.CLASSIC, entity(clockStyle = "FELLOWSHIP").toDomain().clockStyle)
-        assertEquals(ClockStyle.CLASSIC, entity(clockStyle = "fellowship").toDomain().clockStyle)
+    }
+
+    @Test
+    fun `toDomain parses FELLOWSHIP clockStyle`() {
+        assertEquals(ClockStyle.FELLOWSHIP, entity(clockStyle = "FELLOWSHIP").toDomain().clockStyle)
+        assertEquals(ClockStyle.FELLOWSHIP, entity(clockStyle = "fellowship").toDomain().clockStyle)
     }
 
     @Test

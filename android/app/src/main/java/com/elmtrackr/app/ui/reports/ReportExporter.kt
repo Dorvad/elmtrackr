@@ -159,7 +159,9 @@ object ReportExporter {
             ensureSpace(38f)
             val breakdown = state.settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it) }
             val pay = state.settings?.let { settings ->
-                settings.hourlyRate?.takeIf { it > 0 }?.let { com.elmtrackr.app.domain.PayrollCalculator.calculateShiftPay(shift, settings) }
+                settings.hourlyRate?.takeIf { it > 0 }?.let {
+                    com.elmtrackr.app.domain.PayrollCalculator.calculateShiftPay(shift, settings, state.profiles)
+                }
             }
             val timeText = buildString {
                 append(timeFormat.format(shift.startTime))

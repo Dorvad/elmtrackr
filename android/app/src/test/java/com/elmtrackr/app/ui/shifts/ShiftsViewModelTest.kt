@@ -6,10 +6,14 @@ import com.elmtrackr.app.fake.FakeCurrentUserProvider
 import com.elmtrackr.app.fake.FakeRefundsRepository
 import com.elmtrackr.app.fake.FakeRefundReceiptStorage
 import com.elmtrackr.app.fake.FakeShiftsRepository
+import com.elmtrackr.app.fake.FakeTasksRepository
+import com.elmtrackr.app.domain.compensation.RegionPresets
+import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.ReceiptUpload
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
+import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.util.MainDispatcherRule
@@ -35,6 +39,7 @@ class ShiftsViewModelTest {
     private val shiftsRepo = FakeShiftsRepository()
     private val settingsRepo = FakeSettingsRepository()
     private val compensationRepo = FakeCompensationProfilesRepository()
+    private val tasksRepo = FakeTasksRepository()
     private val currentUser = FakeCurrentUserProvider()
     private val refundsRepo = FakeRefundsRepository()
     private val receiptStorage = FakeRefundReceiptStorage()
@@ -43,6 +48,7 @@ class ShiftsViewModelTest {
         shiftsRepo,
         settingsRepo,
         compensationRepo,
+        tasksRepo,
         currentUser,
         refundsRepo,
         receiptStorage,
@@ -113,10 +119,9 @@ class ShiftsViewModelTest {
     // ── create manual shift ─────────────────────────────────────────────────
 
     @Test
-    fun `create manual shift writes locally and marks pending sync`() = runTest {
+    fun `create manual shift writes locally`() = runTest {
         seedSettings()
         val vm = buildVm()
-        val prevSync = shiftsRepo.syncScheduledCount
 
         val input = ShiftFormInput(
             startTime = Instant.parse("2024-01-08T09:00:00Z"),
@@ -129,7 +134,6 @@ class ShiftsViewModelTest {
         vm.createShift(input)
         advanceUntilIdle()
 
-        assertEquals(1, shiftsRepo.syncScheduledCount - prevSync)
         assertEquals(1, shiftsRepo.currentShifts.size)
     }
 
@@ -157,12 +161,11 @@ class ShiftsViewModelTest {
     // ── edit shift ──────────────────────────────────────────────────────────
 
     @Test
-    fun `edit shift updates locally and marks pending sync`() = runTest {
+    fun `edit shift updates locally`() = runTest {
         seedSettings()
         val original = Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z"), breakMinutes = 0)
         shiftsRepo.setShifts(original)
         val vm = buildVm()
-        val prevSync = shiftsRepo.syncScheduledCount
 
         val input = ShiftFormInput(
             startTime = original.startTime,
@@ -175,7 +178,6 @@ class ShiftsViewModelTest {
         vm.saveEditedShift("s1", input)
         advanceUntilIdle()
 
-        assertEquals(1, shiftsRepo.syncScheduledCount - prevSync)
         val saved = shiftsRepo.getShiftById("s1")!!
         assertEquals(45, saved.breakMinutes)
         assertEquals("Updated", saved.notes)
@@ -205,20 +207,18 @@ class ShiftsViewModelTest {
     // ── delete shift ────────────────────────────────────────────────────────
 
     @Test
-    fun `delete shift removes shift and marks pending sync`() = runTest {
+    fun `delete shift removes shift locally`() = runTest {
         shiftsRepo.setShifts(
             Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z")),
         )
         val vm = buildVm()
         val states = mutableListOf<ShiftsUiState>()
         val job = launch { vm.uiState.collect { states.add(it) } }
-        val prevSync = shiftsRepo.syncScheduledCount
 
         advanceUntilIdle()
         vm.deleteShift("s1")
         advanceUntilIdle()
 
-        assertEquals(1, shiftsRepo.syncScheduledCount - prevSync)
         assertTrue(states.any { it is ShiftsUiState.Empty })
         job.cancel()
     }
@@ -312,35 +312,6 @@ class ShiftsViewModelTest {
 
         assertTrue(vm.formErrors.value.containsKey("endTime"))
         assertTrue(vm.formTarget.value is ShiftFormNavState.Create)
-    }
-
-    // ── sync scheduler ──────────────────────────────────────────────────────
-
-    @Test
-    fun `sync scheduler called after create, update, and delete`() = runTest {
-        seedSettings()
-        val vm = buildVm()
-        val shift = Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z"))
-        val start = shiftsRepo.syncScheduledCount
-
-        // create
-        vm.createShift(ShiftFormInput(shift.startTime, shift.endTime, 0, "", false, null))
-        advanceUntilIdle()
-
-        // get created shift id
-        val createdId = shiftsRepo.currentShifts.first().id
-
-        shiftsRepo.setShifts(Shift(createdId, "u1", shift.startTime, shift.endTime))
-
-        // update
-        vm.saveEditedShift(createdId, ShiftFormInput(shift.startTime, shift.endTime, 15, "", false, null))
-        advanceUntilIdle()
-
-        // delete
-        vm.deleteShift(createdId)
-        advanceUntilIdle()
-
-        assertEquals(3, shiftsRepo.syncScheduledCount - start)
     }
 
     // ── form navigation ─────────────────────────────────────────────────────
@@ -484,6 +455,43 @@ class ShiftsViewModelTest {
         assertNull(claim.receiptPath)
         assertEquals(true, completed)
         assertTrue(vm.refundNotice.value?.contains("saved without") == true)
+    }
+
+    @Test
+    fun `create shift uses selected compensation profile`() = runTest {
+        seedSettings()
+        val ilPreset = RegionPresets.forRegion(RegionCode.IL)
+        val profile = CompensationProfile(
+            id = "profile-b",
+            userId = "u1",
+            name = "Night rate",
+            regionCode = RegionCode.IL,
+            currencyCode = "ILS",
+            timezone = "Asia/Jerusalem",
+            baseHourlyRate = 55.0,
+            rules = ilPreset.rules,
+            stackingPolicy = ilPreset.stackingPolicy,
+            isDefault = false,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        compensationRepo.setProfiles(profile)
+        val vm = buildVm()
+
+        vm.createShift(
+            ShiftFormInput(
+                startTime = Instant.parse("2024-01-08T09:00:00Z"),
+                endTime = Instant.parse("2024-01-08T17:00:00Z"),
+                breakMinutes = 0,
+                notes = "",
+                isSpecialDay = false,
+                refundAction = null,
+                compensationProfileId = "profile-b",
+            ),
+        )
+        advanceUntilIdle()
+
+        assertEquals("profile-b", shiftsRepo.currentShifts.single().compensationProfileId)
     }
 
     private fun specialDayShift() = Shift(

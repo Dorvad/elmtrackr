@@ -15,7 +15,7 @@ fun ProfileEntity.toDomain(): Profile = Profile(
 
 fun Profile.toEntity(
     userId: String,
-    syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    syncStatus: SyncStatus = SyncStatus.SYNCED,
     remoteId: String? = null,
     deletedAt: Long? = null,
     lastSyncError: String? = null,

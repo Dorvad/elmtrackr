@@ -143,7 +143,7 @@ object CompensationRulesCodec {
         return CompensationSnapshot(
             profileId = obj.getString("profile_id"),
             profileName = obj.optString("profile_name", "Main job"),
-            regionCode = RegionCode.valueOf(obj.optString("region_code", "IL")),
+            regionCode = RegionCode.fromPersisted(obj.optString("region_code", "IL")),
             currencyCode = obj.optString("currency_code", "USD"),
             timezone = obj.optString("timezone", "UTC"),
             baseHourlyRate = obj.optNullableDouble("base_hourly_rate"),
@@ -192,6 +192,5 @@ object CompensationRulesCodec {
         return optDouble(key)
     }
 
-    private fun String.toStackingPolicy(): StackingPolicy =
-        if (this == "additive") StackingPolicy.ADDITIVE else StackingPolicy.HIGHEST_ONLY
+    private fun String.toStackingPolicy(): StackingPolicy = StackingPolicy.fromPersisted(this)
 }

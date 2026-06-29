@@ -45,6 +45,8 @@ object DailyInsightsBuilder {
     private const val SHWARMA_MIN      = 5.0
     private const val MONOPOLY_HRS     = 3.0
     private const val SHAKESPEARE_HRS  = 10_000.0
+    private const val EARTH_WALK_HRS   = 8015.0
+    private const val DEGREE_HRS       = 4000.0
     private const val ARMY_SERVICE_HRS = 4_600.0
     private const val GUITAR_SOLO_SEC  = 30.0
     private const val RAMEN_MIN        = 3.0
@@ -227,6 +229,20 @@ object DailyInsightsBuilder {
             "🎭", "Shakespeare Mode",
             "Experts estimate Shakespeare spent **${SHAKESPEARE_HRS.roundToInt().toLocaleString()}h** writing all his works. This month you completed **$shakespearePct%** of a Shakespeare.",
             InsightColor.VIOLET,
+        )
+
+        val earthPct = (totalHours / EARTH_WALK_HRS * 100 * 10).roundToInt().toDouble() / 10.0
+        if (earthPct > 0) pool += DailyInsight(
+            "🌍", "Around the World",
+            "Walking Earth's circumference at 5 km/h takes **${EARTH_WALK_HRS.roundToInt().toLocaleString()}h**. Your work this month is **$earthPct%** of the way around the globe.",
+            InsightColor.EMERALD,
+        )
+
+        val degreePct = (totalHours / DEGREE_HRS * 100 * 10).roundToInt().toDouble() / 10.0
+        if (degreePct > 0) pool += DailyInsight(
+            "🎓", "Degree Progress",
+            "A full university degree takes roughly **${DEGREE_HRS.roundToInt().toLocaleString()} hours** of study. Your work this month = **$degreePct%** of an entire degree.",
+            InsightColor.INDIGO,
         )
 
         val guitarSolos = (totalMinutes * 60 / GUITAR_SOLO_SEC).roundToInt()

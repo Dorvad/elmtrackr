@@ -1,0 +1,35 @@
+package com.elmtrackr.app.widget
+
+import android.content.Context
+import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.shortcuts.ClockOutActions
+import com.elmtrackr.app.domain.tasks.TaskClockInHelper
+import com.elmtrackr.app.wear.WearSyncPublisher
+
+object WidgetActions {
+
+    suspend fun clockIn(context: Context): Boolean {
+        val app = context.applicationContext as ElmTrackrApp
+        val userId = app.currentUserProvider.currentUserId() ?: return false
+        return runCatching {
+            val task = TaskClockInHelper.resolveAutoTask(app.tasksRepository, app.shiftsRepository, userId)
+            val params = TaskClockInHelper.paramsFromTask(task)
+            app.shiftsRepository.clockIn(
+                userId = userId,
+                taskId = params.taskId,
+                taskNameSnapshot = params.taskNameSnapshot,
+                taskIconSnapshot = params.taskIconSnapshot,
+                taskHourlyRateSnapshot = params.taskHourlyRateSnapshot,
+            )
+            task?.let { app.tasksRepository.markTaskUsed(userId, it.id) }
+            WearSyncPublisher.refresh(context.applicationContext)
+            true
+        }.getOrDefault(false)
+    }
+
+    suspend fun clockOut(context: Context): ClockOutActions.Result {
+        val result = ClockOutActions.clockOutActiveShift(context)
+        ClockOutActions.showShortcutFeedback(context, result)
+        return result
+    }
+}

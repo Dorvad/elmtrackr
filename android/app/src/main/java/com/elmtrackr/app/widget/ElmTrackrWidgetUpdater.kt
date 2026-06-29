@@ -1,39 +1,69 @@
 package com.elmtrackr.app.widget
 
 import android.content.Context
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.model.UserSettings
 
 object ElmTrackrWidgetUpdater {
 
-    val KEY_IS_ACTIVE = booleanPreferencesKey("widget_is_active")
-    val KEY_SHIFT_ID = stringPreferencesKey("widget_shift_id")
-    val KEY_START_TIME_LABEL = stringPreferencesKey("widget_start_time_label")
-    val KEY_DATE_LABEL = stringPreferencesKey("widget_date_label")
-    val KEY_LAST_PUNCH_LABEL = stringPreferencesKey("widget_last_punch_label")
-    val KEY_PENDING_COUNT = intPreferencesKey("widget_pending_count")
+    val KEY_IS_ACTIVE = WidgetPreferences.KEY_IS_ACTIVE
+    val KEY_SHIFT_ID = WidgetPreferences.KEY_SHIFT_ID
+    val KEY_START_TIME_LABEL = WidgetPreferences.KEY_START_TIME_LABEL
+    val KEY_DATE_LABEL = WidgetPreferences.KEY_DATE_LABEL
+    val KEY_LAST_PUNCH_LABEL = WidgetPreferences.KEY_LAST_PUNCH_LABEL
+    val KEY_PENDING_COUNT = WidgetPreferences.KEY_PENDING_COUNT
 
-    suspend fun update(context: Context, shift: Shift?, pendingCount: Int = 0) {
-        val state = WidgetStateMapper.map(shift, pendingCount)
+    private val widgetTypes: List<GlanceAppWidget> = listOf(
+        ElmTrackrWidget(),
+        ElmTrackrMinimalWidget(),
+        ElmTrackrAuroraWidget(),
+        ElmTrackrRingWidget(),
+        ElmTrackrBigActionWidget(),
+    )
+
+    suspend fun update(context: Context, contextData: WidgetContext) {
+        val state = WidgetStateMapper.map(contextData)
+        if (state.isActive) {
+            WidgetTimerScheduler.schedule(context)
+        } else {
+            WidgetTimerScheduler.cancel(context)
+        }
+        pushState(context, state)
+    }
+
+    suspend fun update(
+        context: Context,
+        shift: Shift?,
+        lastCompletedShift: Shift? = null,
+        todayShifts: List<Shift> = emptyList(),
+        settings: UserSettings? = null,
+        pendingCount: Int = 0,
+    ) {
+        update(
+            context,
+            WidgetContext(
+                activeShift = shift,
+                lastCompletedShift = lastCompletedShift,
+                todayShifts = todayShifts,
+                settings = settings,
+                pendingCount = pendingCount,
+            ),
+        )
+    }
+
+    private suspend fun pushState(context: Context, state: WidgetShiftState) {
         val manager = GlanceAppWidgetManager(context)
-        val widget = ElmTrackrWidget()
-        for (glanceId in manager.getGlanceIds(ElmTrackrWidget::class.java)) {
-            updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
-                prefs.toMutablePreferences().apply {
-                    this[KEY_IS_ACTIVE] = state.isActive
-                    this[KEY_SHIFT_ID] = state.shiftId
-                    this[KEY_START_TIME_LABEL] = state.startTimeLabel
-                    this[KEY_DATE_LABEL] = state.dateLabel
-                    this[KEY_LAST_PUNCH_LABEL] = state.lastPunchLabel
-                    this[KEY_PENDING_COUNT] = state.pendingCount
+        for (widget in widgetTypes) {
+            for (glanceId in manager.getGlanceIds(widget.javaClass)) {
+                updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) {
+                    WidgetPreferences.writeFromShift(state)(it)
                 }
+                widget.update(context, glanceId)
             }
-            widget.update(context, glanceId)
         }
     }
 }

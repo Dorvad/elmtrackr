@@ -44,6 +44,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -162,6 +163,8 @@ fun ShiftsScreen(
         ShiftFormContent(
             navState = formTarget!!,
             settings = (uiState as? ShiftsUiState.Ready)?.settings,
+            profiles = (uiState as? ShiftsUiState.Ready)?.profiles.orEmpty(),
+            tasks = (uiState as? ShiftsUiState.Ready)?.tasks.orEmpty(),
             errors   = formErrors,
             featuresTravelRefunds = featuresTravelRefunds,
             onSave = { input ->
@@ -307,10 +310,15 @@ private fun ShiftsListContent(
 }
 
 @Composable
-internal fun MonthShiftSummary(shifts: List<Shift>, settings: UserSettings?) {
+internal fun MonthShiftSummary(
+    shifts: List<Shift>,
+    settings: UserSettings?,
+    profiles: List<CompensationProfile> = emptyList(),
+) {
     val completed = shifts.filter { it.isCompleted }
     val totalMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
-    val pay = settings?.hourlyRate?.takeIf { it > 0 }?.let { PayrollCalculator.sumMonthlyPay(completed, settings) }
+    val pay = settings?.let { PayrollCalculator.sumMonthlyPay(completed, it, profiles) }
+        ?.takeIf { it.totalGross > 0 }
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
         shape = RoundedCornerShape(CornerRadius.Large),
@@ -329,7 +337,15 @@ internal fun MonthShiftSummary(shifts: List<Shift>, settings: UserSettings?) {
             pay?.let {
                 Column(horizontalAlignment = Alignment.End) {
                     Text("GROSS PAY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                    Text(MoneyFormatter.format(it.totalGross, settings?.currency ?: CurrencyCode.ILS), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        MoneyFormatter.format(
+                            it.totalGross,
+                            settings?.currency ?: CurrencyCode.from(it.currencyCode) ?: CurrencyCode.ILS,
+                        ),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
                 }
             }
         }
@@ -624,10 +640,13 @@ private fun ActiveBadge() {
 
 // ── Form ──────────────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun ShiftFormContent(
     navState: ShiftFormNavState,
     settings: UserSettings?,
+    profiles: List<CompensationProfile>,
+    tasks: List<com.elmtrackr.app.domain.model.Task>,
     errors: Map<String, String>,
     featuresTravelRefunds: Boolean,
     onSave: (ShiftFormInput) -> Unit,
@@ -648,6 +667,11 @@ private fun ShiftFormContent(
     var breakText         by rememberSaveable { mutableStateOf((initialShift?.breakMinutes ?: 0).toString()) }
     var notesText         by rememberSaveable { mutableStateOf(initialShift?.notes ?: "") }
     var isSpecialDay      by rememberSaveable { mutableStateOf(initialShift?.isSpecialDay ?: false) }
+    var compensationProfileId by rememberSaveable {
+        mutableStateOf(initialShift?.compensationProfileId ?: settings?.defaultCompensationProfileId)
+    }
+    var taskId by rememberSaveable { mutableStateOf(initialShift?.taskId) }
+    val activeTasks = tasks.filter { !it.isArchived }
 
     var showStartDatePicker by rememberSaveable { mutableStateOf(false) }
     var showStartTimePicker by rememberSaveable { mutableStateOf(false) }
@@ -690,7 +714,7 @@ private fun ShiftFormContent(
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text("Delete shift?") },
-            text  = { Text("This shift will be removed. The deletion will sync when online.") },
+            text  = { Text("This shift will be removed from your device.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
@@ -799,6 +823,48 @@ private fun ShiftFormContent(
                     Switch(checked = isSpecialDay, onCheckedChange = { isSpecialDay = it })
                 }
 
+                if (profiles.isNotEmpty()) {
+                    CompensationProfilePicker(
+                        profiles = profiles,
+                        selectedId = compensationProfileId,
+                        onSelect = { compensationProfileId = it },
+                    )
+                }
+
+                if (activeTasks.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Task", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(6.dp))
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        FilterChip(
+                            selected = taskId == null,
+                            onClick = { taskId = null },
+                            label = { Text("None") },
+                        )
+                        activeTasks.forEach { task ->
+                            FilterChip(
+                                selected = taskId == task.id,
+                                onClick = { taskId = task.id },
+                                label = { Text("${task.icon} ${task.name}") },
+                            )
+                        }
+                    }
+                    if (isEdit && initialShift?.taskNameSnapshot != null &&
+                        activeTasks.none { it.id == initialShift.taskId }
+                    ) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "Saved task: ${initialShift.taskIconSnapshot.orEmpty()} ${initialShift.taskNameSnapshot} (${initialShift.taskHourlyRateSnapshot}/hr)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                val selectedTask = activeTasks.firstOrNull { it.id == taskId }
                 val previewStart = Instant.ofEpochMilli(startMillis)
                 val previewEnd = if (hasEndTime) Instant.ofEpochMilli(endMillis) else null
                 if (previewEnd?.isAfter(previewStart) == true) {
@@ -810,10 +876,16 @@ private fun ShiftFormContent(
                         breakMinutes = breakText.toIntOrNull() ?: 0,
                         notes = notesText,
                         isSpecialDay = isSpecialDay,
+                        compensationProfileId = compensationProfileId,
+                        taskId = taskId,
+                        taskNameSnapshot = selectedTask?.name,
+                        taskIconSnapshot = selectedTask?.icon,
+                        taskHourlyRateSnapshot = selectedTask?.hourlyRate,
                     )
                     val minutes = ShiftDurationCalculator.netMinutes(previewShift)
-                    val previewPay = settings?.hourlyRate?.takeIf { it > 0 }
-                        ?.let { PayrollCalculator.calculateShiftPay(previewShift, requireNotNull(settings)) }
+                    val previewPay = settings?.let {
+                        PayrollCalculator.calculateShiftPay(previewShift, it, profiles)
+                    }
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(CornerRadius.Medium),
@@ -865,6 +937,8 @@ private fun ShiftFormContent(
                                 notes        = notesText,
                                 isSpecialDay = isSpecialDay,
                                 refundAction = initialShift?.refundAction,
+                                compensationProfileId = compensationProfileId,
+                                taskId = taskId,
                             )
                         )
                     },
@@ -908,280 +982,6 @@ private fun ShiftBadge(label: String, background: Color, color: Color) {
 }
 
 @Composable
-private fun RefundClaimsEditor(
-    shift: Shift,
-    claims: List<RefundClaim>,
-    toEligibility: RefundPolicy.Eligibility?,
-    fromEligibility: RefundPolicy.Eligibility?,
-    onSave: (String, RefundDirection, RefundProvider, Double, Instant, String, ReceiptUpload?, (Boolean) -> Unit) -> Unit,
-    onDelete: (String) -> Unit,
-    onActionChange: (String, RefundAction?) -> Unit,
-    receiptUrl: suspend (String) -> String?,
-    currency: CurrencyCode,
-) {
-    val directions = buildList {
-        if (toEligibility?.eligible == true) add(RefundDirection.TO_WORK to toEligibility)
-        if (fromEligibility?.eligible == true) add(RefundDirection.FROM_WORK to fromEligibility)
-    }
-    directions.forEach { (direction, eligibility) ->
-        RefundClaimCard(
-            shift = shift,
-            direction = direction,
-            eligibility = eligibility,
-            existing = claims.firstOrNull { it.direction == direction },
-            onSave = onSave,
-            onDelete = onDelete,
-            onActionChange = onActionChange,
-            receiptUrl = receiptUrl,
-            currency = currency,
-        )
-    }
-}
-
-@Composable
-@OptIn(ExperimentalLayoutApi::class)
-private fun RefundClaimCard(
-    shift: Shift,
-    direction: RefundDirection,
-    eligibility: RefundPolicy.Eligibility,
-    existing: RefundClaim?,
-    onSave: (String, RefundDirection, RefundProvider, Double, Instant, String, ReceiptUpload?, (Boolean) -> Unit) -> Unit,
-    onDelete: (String) -> Unit,
-    onActionChange: (String, RefundAction?) -> Unit,
-    receiptUrl: suspend (String) -> String?,
-    currency: CurrencyCode,
-) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val zone = ZoneId.systemDefault()
-    val defaultRideAt = existing?.rideAt ?: when (direction) {
-        RefundDirection.TO_WORK -> shift.startTime
-        RefundDirection.FROM_WORK -> shift.endTime ?: shift.startTime
-    }
-    var showForm by rememberSaveable(existing?.id, direction.name) { mutableStateOf(false) }
-    var providerName by rememberSaveable(existing?.id, direction.name) {
-        mutableStateOf(existing?.provider?.name ?: RefundProvider.LIME.name)
-    }
-    var amountText by rememberSaveable(existing?.id, direction.name) {
-        mutableStateOf(existing?.amount?.toString() ?: "")
-    }
-    var notesText by rememberSaveable(existing?.id, direction.name) {
-        mutableStateOf(existing?.notes ?: "")
-    }
-    var rideAtMillis by rememberSaveable(existing?.id, direction.name) {
-        mutableStateOf(defaultRideAt.toEpochMilli())
-    }
-    var selectedReceipt by remember(existing?.id, direction.name) { mutableStateOf<ReceiptUpload?>(null) }
-    var showRideDatePicker by rememberSaveable { mutableStateOf(false) }
-    var showRideTimePicker by rememberSaveable { mutableStateOf(false) }
-    var isSaving by rememberSaveable { mutableStateOf(false) }
-    var receiptError by rememberSaveable { mutableStateOf<String?>(null) }
-
-    val receiptPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) {
-            scope.launch {
-                selectedReceipt = readReceiptUpload(context, uri)
-                receiptError = if (selectedReceipt == null) "Choose an image smaller than 10 MB." else null
-            }
-        }
-    }
-
-    if (showRideDatePicker) {
-        DatePickerWrapper(
-            currentMillis = rideAtMillis,
-            onConfirm = { rideAtMillis = applyDate(rideAtMillis, it, zone); showRideDatePicker = false },
-            onDismiss = { showRideDatePicker = false },
-        )
-    }
-    if (showRideTimePicker) {
-        TimePickerWrapper(
-            currentMillis = rideAtMillis,
-            zone = zone,
-            onConfirm = { hour, minute ->
-                rideAtMillis = applyTime(rideAtMillis, hour, minute, zone)
-                showRideTimePicker = false
-            },
-            onDismiss = { showRideTimePicker = false },
-        )
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth().animateContentSize(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(CornerRadius.Medium),
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                if (direction == RefundDirection.TO_WORK) "→ Ride to work" else "← Ride from work",
-                fontWeight = FontWeight.Bold,
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                eligibility.reasons.forEach { reason ->
-                    Text(
-                        text = reason,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier
-                            .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(50))
-                            .padding(horizontal = 7.dp, vertical = 3.dp),
-                    )
-                }
-            }
-
-            if (!showForm && existing == null) {
-                Button(onClick = { showForm = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (shift.refundAction == RefundAction.REMIND_LATER) "Add receipt now" else "Add receipt claim")
-                }
-                if (direction == RefundDirection.FROM_WORK) {
-                    when (shift.refundAction) {
-                        null -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(
-                                onClick = { onActionChange(shift.id, RefundAction.NO_RIDE_TAKEN) },
-                                modifier = Modifier.weight(1f),
-                            ) { Text("No ride") }
-                            OutlinedButton(
-                                onClick = { onActionChange(shift.id, RefundAction.REMIND_LATER) },
-                                modifier = Modifier.weight(1f),
-                            ) { Text("Remind later") }
-                        }
-                        RefundAction.NO_RIDE_TAKEN -> Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("No ride taken", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            TextButton(onClick = { onActionChange(shift.id, null) }) { Text("Undo") }
-                        }
-                        RefundAction.REMIND_LATER -> OutlinedButton(
-                            onClick = { onActionChange(shift.id, RefundAction.NO_RIDE_TAKEN) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text("No ride taken") }
-                        RefundAction.SUBMITTED -> Unit
-                    }
-                }
-            }
-
-            if (!showForm && existing != null) {
-                Text(
-                    "${existing.provider.name.lowercase().replaceFirstChar { it.uppercase() }} · ${MoneyFormatter.format(existing.amount, currency)}",
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    existing.rideAt.atZone(zone).format(DateTimeFormatter.ofPattern("d MMM yyyy · HH:mm")),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                existing.notes?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { showForm = true }) { Text("Edit") }
-                    existing.receiptPath?.let { path ->
-                        TextButton(onClick = {
-                            scope.launch {
-                                receiptUrl(path)?.let { url ->
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                                }
-                            }
-                        }) { Text("View receipt") }
-                    }
-                    TextButton(onClick = { onDelete(existing.id) }) {
-                        Text("Delete", color = MaterialTheme.colorScheme.error)
-                    }
-                }
-            }
-
-            if (showForm) {
-                RideProviderSelector(
-                    selected = RefundProvider.valueOf(providerName),
-                    onSelect = { providerName = it.name },
-                )
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { value ->
-                        if (value.count { it == '.' } <= 1 && value.all { it.isDigit() || it == '.' }) amountText = value
-                    },
-                    label = { Text("Amount (${currency.symbol})") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                DateTimeRow(
-                    dateLabel = "Ride date",
-                    timeLabel = "Ride time",
-                    millis = rideAtMillis,
-                    zone = zone,
-                    onPickDate = { showRideDatePicker = true },
-                    onPickTime = { showRideTimePicker = true },
-                )
-                OutlinedTextField(
-                    value = notesText,
-                    onValueChange = { notesText = it },
-                    label = { Text("Claim notes (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedButton(
-                    onClick = { receiptPicker.launch("image/*") },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        selectedReceipt?.fileName
-                            ?: if (existing?.receiptPath != null) "Replace receipt photo" else "Attach receipt photo",
-                    )
-                }
-                receiptError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = {
-                            onSave(
-                                shift.id,
-                                direction,
-                                RefundProvider.valueOf(providerName),
-                                amountText.toDoubleOrNull() ?: 0.0,
-                                Instant.ofEpochMilli(rideAtMillis),
-                                notesText,
-                                selectedReceipt,
-                                { success ->
-                                    isSaving = false
-                                    if (success) showForm = false
-                                },
-                            )
-                            isSaving = true
-                        },
-                        enabled = !isSaving && (amountText.toDoubleOrNull() ?: 0.0) > 0,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        if (isSaving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                        else Text(if (existing == null) "Save claim" else "Update claim")
-                    }
-                    TextButton(onClick = { showForm = false }, enabled = !isSaving) { Text("Cancel") }
-                }
-            }
-        }
-    }
-}
-
-private suspend fun readReceiptUpload(context: android.content.Context, uri: Uri): ReceiptUpload? =
-    withContext(Dispatchers.IO) {
-        val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
-            ?.use { cursor ->
-                if (cursor.moveToFirst()) cursor.getString(0) else null
-            }
-            ?: "receipt.jpg"
-        val bytes = context.contentResolver.openInputStream(uri)?.use { input ->
-            val output = java.io.ByteArrayOutputStream()
-            val buffer = ByteArray(8 * 1024)
-            var total = 0
-            while (true) {
-                val read = input.read(buffer)
-                if (read < 0) break
-                total += read
-                if (total > MAX_RECEIPT_BYTES) return@withContext null
-                output.write(buffer, 0, read)
-            }
-            output.toByteArray()
-        } ?: return@withContext null
-        ReceiptUpload(name, bytes, context.contentResolver.getType(uri))
-    }
-
-private const val MAX_RECEIPT_BYTES = 10 * 1024 * 1024
 
 private fun formatLiveDuration(seconds: Long): String {
     val hours = seconds / 3600

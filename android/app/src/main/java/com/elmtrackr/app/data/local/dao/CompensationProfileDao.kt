@@ -15,7 +15,7 @@ interface CompensationProfileDao {
     @Query("SELECT * FROM compensation_profiles WHERE userId = :userId AND isArchived = 0 AND deletedAt IS NULL ORDER BY isDefault DESC, createdAt ASC")
     fun observeProfiles(userId: String): Flow<List<CompensationProfileEntity>>
 
-    @Query("SELECT * FROM compensation_profiles WHERE userId = :userId AND deletedAt IS NULL ORDER BY isDefault DESC, createdAt ASC")
+    @Query("SELECT * FROM compensation_profiles WHERE userId = :userId AND isArchived = 0 AND deletedAt IS NULL ORDER BY isDefault DESC, createdAt ASC")
     suspend fun getByUser(userId: String): List<CompensationProfileEntity>
 
     @Query("SELECT * FROM compensation_profiles WHERE userId = :userId AND isArchived = 0 AND deletedAt IS NULL ORDER BY isDefault DESC, createdAt ASC LIMIT 1")

@@ -20,6 +20,8 @@ import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.RefundReceiptStorage
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
+import com.elmtrackr.app.domain.repository.TasksRepository
+import com.elmtrackr.app.domain.tasks.TaskSnapshotApplier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -43,6 +45,7 @@ class ShiftsViewModel(
     private val shiftsRepository: ShiftsRepository,
     private val settingsRepository: SettingsRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
+    private val tasksRepository: TasksRepository,
     private val currentUserProvider: CurrentUserProvider,
     private val refundsRepository: RefundsRepository,
     private val refundReceiptStorage: RefundReceiptStorage? = null,
@@ -87,7 +90,8 @@ class ShiftsViewModel(
                 shiftsRepository.observeActiveShift(userId),
                 settingsRepository.observeSettings(userId),
                 compensationProfilesRepository.observeProfiles(userId),
-            ) { shifts, activeShift, settings, profiles ->
+                tasksRepository.observeAllTasks(userId),
+            ) { shifts, activeShift, settings, profiles, tasks ->
                 if (shifts.isEmpty()) ShiftsUiState.Empty
                 else ShiftsUiState.Ready(
                     shifts = shifts,
@@ -95,6 +99,7 @@ class ShiftsViewModel(
                     featuresTravelRefunds = settings?.featuresTravelRefunds ?: false,
                     settings = settings,
                     profiles = profiles,
+                    tasks = tasks,
                 )
             }
         }
@@ -155,10 +160,12 @@ class ShiftsViewModel(
                 notes = input.notes.ifBlank { null },
                 isSpecialDay = input.isSpecialDay,
                 refundAction = input.refundAction,
-                compensationProfileId = settings.defaultCompensationProfileId,
+                compensationProfileId = input.compensationProfileId ?: settings.defaultCompensationProfileId,
                 createdAt = now,
                 updatedAt = now,
             )
+            val task = input.taskId?.let { tasksRepository.getTaskById(userId, it) }
+            shift = TaskSnapshotApplier.applyToShift(shift, task)
             if (shift.isCompleted) {
                 shift = shift.copy(
                     compensationSnapshot = ShiftCompensationHelper.buildClockOutSnapshot(
@@ -179,20 +186,25 @@ class ShiftsViewModel(
             val settings = settingsRepository.getSettings(userId) ?: return@launch
             val profiles = compensationProfilesRepository.getProfiles(userId)
             val existing = shiftsRepository.getShiftById(shiftId) ?: return@launch
-            val updated = existing.copy(
+            val task = input.taskId?.let { tasksRepository.getTaskById(userId, it) }
+            var updated = existing.copy(
                 startTime = input.startTime,
                 endTime = input.endTime,
                 breakMinutes = input.breakMinutes,
                 notes = input.notes.ifBlank { null },
                 isSpecialDay = input.isSpecialDay,
                 refundAction = existing.refundAction,
+                compensationProfileId = input.compensationProfileId ?: existing.compensationProfileId,
                 updatedAt = Instant.now(),
             )
+            updated = TaskSnapshotApplier.applyToShift(updated, task)
             val payAffecting = updated.startTime != existing.startTime ||
                 updated.endTime != existing.endTime ||
                 updated.breakMinutes != existing.breakMinutes ||
                 updated.isSpecialDay != existing.isSpecialDay ||
-                updated.compensationProfileId != existing.compensationProfileId
+                updated.compensationProfileId != existing.compensationProfileId ||
+                updated.taskId != existing.taskId ||
+                updated.taskHourlyRateSnapshot != existing.taskHourlyRateSnapshot
             val finalShift = if (updated.isCompleted && payAffecting) {
                 updated.copy(
                     compensationSnapshot = ShiftCompensationHelper.buildClockOutSnapshot(
@@ -357,6 +369,7 @@ class ShiftsViewModel(
                     app.shiftsRepository,
                     app.settingsRepository,
                     app.compensationProfilesRepository,
+                    app.tasksRepository,
                     app.currentUserProvider,
                     app.refundsRepository,
                     app.refundReceiptStorage,

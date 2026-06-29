@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Required for notifications on Android 13+ (API 33+). Runtime-requested in MainActivity. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-feature
         android:name="android.hardware.camera.any"
@@ -51,7 +52,10 @@
         <activity
             android:name=".shortcuts.HeadlessTrampolineActivity"
             android:theme="@android:style/Theme.NoDisplay"
-            android:exported="false" />
+            android:exported="false"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
 
         <receiver
             android:name=".shortcuts.HeadlessClockOutReceiver"
@@ -69,16 +73,65 @@
             </intent-filter>
         </receiver>
 
-        <!-- ElmTrackr home screen widget (Jetpack Glance 4Ã—1 horizontal). -->
+        <!-- ElmTrackr home screen widgets (Jetpack Glance 4×1 horizontal). -->
         <receiver
             android:name=".widget.ElmTrackrWidgetReceiver"
-            android:exported="true">
+            android:exported="true"
+            android:label="@string/widget_label_classic">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/elmtrackr_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.ElmTrackrMinimalWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_label_minimal">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/elmtrackr_widget_minimal_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.ElmTrackrAuroraWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_label_aurora">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/elmtrackr_widget_aurora_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.ElmTrackrRingWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_label_ring">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/elmtrackr_widget_ring_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.ElmTrackrBigActionWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_label_big_action">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/elmtrackr_widget_big_action_info" />
         </receiver>
 
         <provider
@@ -90,6 +143,18 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/export_paths" />
         </provider>
+
+        <service
+            android:name=".wear.WearMessageListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/elmtrackr/"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
 
     </application>
 

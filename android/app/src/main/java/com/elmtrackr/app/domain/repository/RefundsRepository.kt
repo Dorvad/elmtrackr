@@ -28,6 +28,4 @@ interface RefundsRepository {
     suspend fun updateClaim(claim: RefundClaim): RefundClaim
 
     suspend fun deleteClaim(localId: String)
-
-    fun observePendingSyncClaims(userId: String): Flow<List<RefundClaim>>
 }

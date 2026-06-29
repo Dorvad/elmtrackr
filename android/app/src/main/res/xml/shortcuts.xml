@@ -13,7 +13,7 @@
         android:shortcutLongLabel="@string/shortcut_new_shift_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.elmtrackr.app"
+            android:targetPackage="com.elmlaunch.myapp"
             android:targetClass="com.elmtrackr.app.MainActivity" />
         <categories android:name="android.shortcut.conversation" />
     </shortcut>

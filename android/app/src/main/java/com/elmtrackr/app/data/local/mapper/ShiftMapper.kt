@@ -15,17 +15,21 @@ fun ShiftEntity.toDomain(): Shift = Shift(
     breakMinutes = breakMinutes,
     notes = notes,
     isSpecialDay = isSpecialDay,
-    refundAction = refundAction?.let { RefundAction.valueOf(it.uppercase()) },
+    refundAction = RefundAction.fromPersisted(refundAction),
     compensationProfileId = compensationProfileId,
     compensationSnapshot = compensationSnapshotJson
         ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
         ?.let { CompensationRulesCodec.decodeSnapshot(it) },
+    taskId = taskId,
+    taskNameSnapshot = taskNameSnapshot,
+    taskIconSnapshot = taskIconSnapshot,
+    taskHourlyRateSnapshot = taskHourlyRateSnapshot,
     createdAt = Instant.ofEpochMilli(createdAt),
     updatedAt = Instant.ofEpochMilli(updatedAt),
 )
 
 fun Shift.toEntity(
-    syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    syncStatus: SyncStatus = SyncStatus.SYNCED,
     remoteId: String? = null,
     deletedAt: Long? = null,
     lastSyncError: String? = null,
@@ -42,6 +46,10 @@ fun Shift.toEntity(
     refundAction = refundAction?.name,
     compensationProfileId = compensationProfileId,
     compensationSnapshotJson = compensationSnapshot?.let { CompensationRulesCodec.encodeSnapshot(it) },
+    taskId = taskId,
+    taskNameSnapshot = taskNameSnapshot,
+    taskIconSnapshot = taskIconSnapshot,
+    taskHourlyRateSnapshot = taskHourlyRateSnapshot,
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
     deletedAt = deletedAt,

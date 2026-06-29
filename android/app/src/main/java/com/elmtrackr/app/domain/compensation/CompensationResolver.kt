@@ -74,13 +74,19 @@ object CompensationResolver {
         settings: UserSettings,
         profiles: List<CompensationProfile>,
     ): ResolvedCompensation {
-        shift.compensationSnapshot?.let { return snapshotToResolved(it) }
-
-        val profileId = shift.compensationProfileId ?: settings.defaultCompensationProfileId
-        if (profileId != null) {
-            profiles.firstOrNull { it.id == profileId }?.let { return profileToResolved(it) }
+        val resolved = when {
+            shift.compensationSnapshot != null -> snapshotToResolved(shift.compensationSnapshot)
+            else -> {
+                val profileId = shift.compensationProfileId ?: settings.defaultCompensationProfileId
+                if (profileId != null) {
+                    profiles.firstOrNull { it.id == profileId || it.remoteId == profileId }
+                        ?.let { return profileToResolved(it) }
+                }
+                legacySettingsToResolved(settings)
+            }
         }
-        return legacySettingsToResolved(settings)
+        val taskRate = shift.taskHourlyRateSnapshot?.takeIf { it > 0 }
+        return if (taskRate != null) resolved.copy(baseHourlyRate = taskRate) else resolved
     }
 
     fun buildSnapshot(resolved: ResolvedCompensation): CompensationSnapshot = CompensationSnapshot(

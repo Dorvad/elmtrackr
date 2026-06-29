@@ -22,3 +22,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "ElmTrackr"
 include(":app")
+include(":wear-sync")
+include(":wear")

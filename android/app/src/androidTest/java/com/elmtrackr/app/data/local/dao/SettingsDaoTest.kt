@@ -53,6 +53,7 @@ class SettingsDaoTest {
         featuresPaidProjects = false,
         featuresInsights = true,
         featuresClockStyles = true,
+        featuresOvertimeReminders = true,
         clockStyle = "CLASSIC",
         createdAt = 0L,
         updatedAt = 0L,

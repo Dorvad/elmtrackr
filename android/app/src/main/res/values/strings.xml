@@ -7,14 +7,31 @@
     <string name="shortcut_clock_in_long">Clock In to ElmTrackr</string>
     <string name="shortcut_clock_out_short">Clock Out</string>
     <string name="shortcut_clock_out_long">Clock Out of ElmTrackr</string>
-    <string name="widget_description">Shows your active shift status and lets you clock in or out.</string>
+    <string name="widget_description">Single-toggle 4×1 bar: status, live timer, and one Punch In/Out pill.</string>
+    <string name="widget_description_minimal">Progress 4×1 bar: day-goal progress and round toggle.</string>
+    <string name="widget_description_aurora">Tall 4×2 card: oversized clock and full-width action bar.</string>
+    <string name="widget_description_ring">Square 1×1 ring toggle with shift progress.</string>
+    <string name="widget_description_big_action">Square 1×1 big action toggle with maximal tap target.</string>
+    <string name="widget_label_classic">ElmTrackr Single Toggle</string>
+    <string name="widget_label_minimal">ElmTrackr Progress</string>
+    <string name="widget_label_aurora">ElmTrackr Tall</string>
+    <string name="widget_label_ring">ElmTrackr Ring</string>
+    <string name="widget_label_big_action">ElmTrackr Big Action</string>
 
     <!-- Active shift notification -->
     <string name="notif_active_shift_title">Clocked in</string>
     <string name="notif_active_shift_text">Since %1$s</string>
     <string name="notif_clock_out_action">Clock Out</string>
 
-    <!-- Long-shift reminder notification -->
+    <!-- Overtime reminder notifications -->
+    <string name="notif_overtime_pre_warning_title">Overtime in 30 minutes</string>
+    <string name="notif_overtime_pre_warning_text">Clocked in since %1$s. Remember to clock out before overtime.</string>
+    <string name="notif_overtime_at_threshold_title">You\'re in overtime</string>
+    <string name="notif_overtime_at_threshold_text">Clocked in since %1$s. Consider clocking out now.</string>
+    <string name="notif_overtime_hourly_title">Still clocked in during overtime</string>
+    <string name="notif_overtime_hourly_text">You\'ve been in overtime for %1$d hour(s). Don\'t forget to clock out.</string>
+
+    <!-- Legacy reminder strings (kept for screenshot/regression compatibility) -->
     <string name="notif_reminder_title">You\'re still clocked in</string>
     <string name="notif_reminder_text">Since %1$s. Tap to review.</string>
 </resources>

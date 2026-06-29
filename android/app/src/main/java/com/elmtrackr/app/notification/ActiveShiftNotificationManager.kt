@@ -66,7 +66,37 @@ class ActiveShiftNotificationManager(private val context: Context) {
         notifManager.notify(NOTIFICATION_ID_ACTIVE, notification)
     }
 
-    fun showLongShiftReminder(shift: Shift) {
+    fun showOvertimePreWarning(shift: Shift) {
+        showReminderNotification(
+            titleRes = R.string.notif_overtime_pre_warning_title,
+            textRes = R.string.notif_overtime_pre_warning_text,
+            shift = shift,
+        )
+    }
+
+    fun showOvertimeAtThreshold(shift: Shift) {
+        showReminderNotification(
+            titleRes = R.string.notif_overtime_at_threshold_title,
+            textRes = R.string.notif_overtime_at_threshold_text,
+            shift = shift,
+        )
+    }
+
+    fun showOvertimeHourlyReminder(shift: Shift, hoursInOvertime: Long) {
+        showReminderNotification(
+            titleRes = R.string.notif_overtime_hourly_title,
+            textRes = R.string.notif_overtime_hourly_text,
+            shift = shift,
+            textArg = hoursInOvertime,
+        )
+    }
+
+    private fun showReminderNotification(
+        titleRes: Int,
+        textRes: Int,
+        shift: Shift,
+        textArg: Any? = formatStartTime(shift.startTime),
+    ) {
         if (!notifManager.areNotificationsEnabled()) return
 
         val tapIntent = PendingIntent.getActivity(
@@ -88,10 +118,16 @@ class ActiveShiftNotificationManager(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        val contentText = when (textArg) {
+            is Long -> context.getString(textRes, textArg)
+            is String -> context.getString(textRes, textArg)
+            else -> context.getString(textRes, textArg)
+        }
+
         val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_REMINDERS)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(context.getString(R.string.notif_reminder_title))
-            .setContentText(context.getString(R.string.notif_reminder_text, formatStartTime(shift.startTime)))
+            .setContentTitle(context.getString(titleRes))
+            .setContentText(contentText)
             .setContentIntent(tapIntent)
             .setAutoCancel(true)
             .addAction(0, context.getString(R.string.notif_clock_out_action), clockOutPendingIntent)

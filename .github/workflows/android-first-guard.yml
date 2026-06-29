@@ -1,0 +1,57 @@
+# Blocks PRs that change frozen web paths without explicit Android approval.
+# See ANDROID_FIRST.md
+
+name: Android-first guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  web-freeze:
+    name: Web freeze check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect unapproved web changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          LABELS_JSON: ${{ toJson(github.event.pull_request.labels) }}
+        run: |
+          set -euo pipefail
+
+          if echo "$LABELS_JSON" | grep -q '"name": "android-approved"'; then
+            echo "android-approved label present — web changes allowed."
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          # Paths that are allowed without touching android/ in the same PR
+          ALLOWED_PREFIXES='^(android/|supabase/|\.github/|ANDROID_FIRST\.md|README\.md|app/ARCHIVED\.md)'
+
+          WEB_PREFIXES='^(app/|components/|lib/|types/|public/|package\.json|package-lock\.json|next\.config|tsconfig)'
+
+          WEB_ONLY=$(echo "$CHANGED" | grep -vE "$ALLOWED_PREFIXES" | grep -E "$WEB_PREFIXES" || true)
+
+          if [ -n "$WEB_ONLY" ]; then
+            echo "::error::Frozen web paths changed without android-approved label:"
+            echo "$WEB_ONLY"
+            echo ""
+            echo "See ANDROID_FIRST.md — product development is Android-first."
+            echo "Add the android-approved label if this is an approved exception (security, bugfix, deprecation)."
+            exit 1
+          fi
+
+          echo "No unapproved web-only changes detected."

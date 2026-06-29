@@ -38,11 +38,9 @@ import com.elmtrackr.app.ui.theme.AuroraWhite
 import com.elmtrackr.app.ui.theme.auroraOvertimeBackground
 import com.elmtrackr.app.ui.theme.auroraOvertimeInk
 import com.elmtrackr.app.ui.theme.auroraSecondaryText
-import com.elmtrackr.app.ui.theme.auroraSyncedPillBackground
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import com.elmtrackr.app.ui.theme.auroraWeekendBackground
 import com.elmtrackr.app.ui.theme.auroraWeekendInk
-import com.elmtrackr.app.ui.sync.SyncStatusUi
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 
@@ -61,52 +59,6 @@ fun ElmSectionHeader(
         letterSpacing = TextUnit(0.16f, TextUnitType.Em),
         modifier      = modifier,
     )
-}
-
-// ── Status pill ───────────────────────────────────────────────────────────────
-
-@Composable
-fun ElmSyncPill(
-    status: SyncStatusUi,
-    onClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-) {
-    val clickableModifier = if (status.isActionable && onClick != null) {
-        Modifier
-            .clickable(onClick = onClick)
-            .semantics { contentDescription = status.contentDescription }
-    } else {
-        Modifier.semantics { contentDescription = status.contentDescription }
-    }
-    Row(
-        modifier = modifier
-            .then(clickableModifier)
-            .shadow(
-                elevation = if (status.isActionable) 4.dp else 2.dp,
-                shape = RoundedCornerShape(50),
-                ambientColor = AuroraIndigo.copy(alpha = 0.08f),
-                spotColor = AuroraIndigo.copy(alpha = 0.2f),
-            )
-            .background(status.background, RoundedCornerShape(50))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), RoundedCornerShape(50))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        if (status.showSpinner) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(12.dp),
-                strokeWidth = 2.dp,
-                color = status.color,
-            )
-        }
-        Text(
-            text = status.shortLabel,
-            style = MaterialTheme.typography.labelSmall,
-            color = status.color,
-            fontWeight = FontWeight.Medium,
-        )
-    }
 }
 
 // ── Stat card ─────────────────────────────────────────────────────────────────

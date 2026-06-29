@@ -1,13 +1,24 @@
 ﻿package com.elmtrackr.app.shortcuts
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
+/**
+ * Transparent trampoline for the dynamic Clock Out app shortcut.
+ * Performs clock-out without opening the main UI.
+ */
 class HeadlessTrampolineActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        sendBroadcast(Intent(HeadlessClockOutReceiver.ACTION_HEADLESS_CLOCK_OUT).setPackage(packageName))
-        finish()
+        lifecycleScope.launch {
+            try {
+                val result = ClockOutActions.clockOutActiveShift(applicationContext)
+                ClockOutActions.showShortcutFeedback(applicationContext, result)
+            } finally {
+                finish()
+            }
+        }
     }
 }

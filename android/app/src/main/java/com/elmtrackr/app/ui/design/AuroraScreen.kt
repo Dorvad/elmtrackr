@@ -17,49 +17,62 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.ui.layout.PhoneContentMaxWidth
+import com.elmtrackr.app.ui.layout.TabletContentPadding
+import com.elmtrackr.app.ui.layout.isTabletLayout
 import com.elmtrackr.app.ui.theme.Spacing
 
 /**
- * Shared screen shell matching the web app's `max-w-md mx-auto px-5` layout
- * with proper status-bar insets instead of a hard-coded top padding.
+ * Shared screen shell matching the web app's `max-w-md mx-auto px-5` layout on phones,
+ * and full-width padded content on tablets.
  */
 @Composable
 fun AuroraScreen(
     modifier: Modifier = Modifier,
     scrollable: Boolean = true,
     horizontalPadding: Boolean = true,
+    showMeshBackground: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val isTablet = isTabletLayout()
     val scrollState = rememberScrollState()
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
-    ) {
-        Box(
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (showMeshBackground) {
+            AuroraMeshBackground(modifier = Modifier.fillMaxSize())
+        }
+        Surface(
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.TopCenter,
+            color = if (showMeshBackground) Color.Transparent else MaterialTheme.colorScheme.background,
         ) {
-            Column(
-                modifier = modifier
-                    .widthIn(max = 448.dp)
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .then(
-                        if (scrollable) Modifier.verticalScroll(scrollState)
-                        else Modifier,
-                    )
-                    .then(
-                        if (horizontalPadding) {
-                            Modifier.padding(horizontal = Spacing.screenH)
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .padding(top = Spacing.lg, bottom = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
-                content = content,
-            )
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = if (isTablet) Alignment.TopStart else Alignment.TopCenter,
+            ) {
+                Column(
+                    modifier = modifier
+                        .then(if (isTablet) Modifier.fillMaxWidth() else Modifier.widthIn(max = PhoneContentMaxWidth).fillMaxWidth())
+                        .statusBarsPadding()
+                        .then(
+                            if (scrollable) Modifier.verticalScroll(scrollState)
+                            else Modifier,
+                        )
+                        .then(
+                            if (horizontalPadding) {
+                                Modifier.padding(
+                                    horizontal = if (isTablet) TabletContentPadding else Spacing.screenH,
+                                )
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .padding(top = Spacing.lg, bottom = Spacing.xl),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                    content = content,
+                )
+            }
         }
     }
 }
@@ -70,25 +83,35 @@ fun AuroraScreen(
 @Composable
 fun AuroraListScreen(
     modifier: Modifier = Modifier,
+    showMeshBackground: Boolean = false,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
-    ) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .statusBarsPadding(),
-            contentAlignment = Alignment.TopCenter,
-            content = {
-                Box(
-                    modifier = Modifier
-                        .widthIn(max = 448.dp)
-                        .fillMaxWidth(),
-                    content = content,
-                )
-            },
-        )
+    val isTablet = isTabletLayout()
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (showMeshBackground) {
+            AuroraMeshBackground(modifier = Modifier.fillMaxSize())
+        }
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = if (showMeshBackground) Color.Transparent else MaterialTheme.colorScheme.background,
+        ) {
+            Box(
+                modifier = modifier
+                    .fillMaxSize()
+                    .statusBarsPadding(),
+                contentAlignment = if (isTablet) Alignment.TopStart else Alignment.TopCenter,
+                content = {
+                    Box(
+                        modifier = Modifier
+                            .then(if (isTablet) Modifier.fillMaxWidth() else Modifier.widthIn(max = PhoneContentMaxWidth).fillMaxWidth()),
+                        content = content,
+                    )
+                },
+            )
+        }
     }
 }
+
+/** Content max width for the current form factor; [Dp.Unspecified] on tablet. */
+@Composable
+fun auroraContentMaxWidth(): Dp = if (isTabletLayout()) Dp.Unspecified else PhoneContentMaxWidth

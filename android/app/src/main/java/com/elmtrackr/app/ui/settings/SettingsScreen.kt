@@ -96,8 +96,6 @@ import androidx.compose.foundation.layout.widthIn
 import com.elmtrackr.app.ui.design.ElmCard
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.design.ElmGradientButton
-import com.elmtrackr.app.ui.design.ElmSyncPill
-import com.elmtrackr.app.ui.sync.resolveSyncStatus
 import com.elmtrackr.app.ui.theme.AuroraFaint
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraInk2
@@ -127,9 +125,14 @@ fun SettingsScreen(
     onReplayOnboarding: () -> Unit = {},
 ) {
     var showCompensation by rememberSaveable { mutableStateOf(false) }
+    var showTasks by rememberSaveable { mutableStateOf(false) }
     var legalDoc by rememberSaveable { mutableStateOf<LegalDoc?>(null) }
     if (showCompensation) {
         CompensationSettingsScreen(onBack = { showCompensation = false })
+        return
+    }
+    if (showTasks) {
+        com.elmtrackr.app.ui.tasks.TaskManagementScreen(onBack = { showTasks = false })
         return
     }
     when (legalDoc) {
@@ -169,10 +172,10 @@ fun SettingsScreen(
                 onSave        = viewModel::saveSettings,
                 onSignOut     = onSignOut,
                 onTheme       = viewModel::saveTheme,
-                onSync        = viewModel::triggerSync,
                 onResetPassword = viewModel::resetPassword,
                 onReplayOnboarding = onReplayOnboarding,
                 onOpenCompensation = { showCompensation = true },
+                onOpenTasks = { showTasks = true },
                 onDismissSaveFeedback = viewModel::clearSaveFeedback,
                 onDeleteAccount = viewModel::deleteAccount,
                 onDismissAccountFeedback = viewModel::clearAccountActionFeedback,
@@ -194,10 +197,10 @@ private fun SettingsContent(
     onSave: (String, Double, Double, Double?, String, ClockStyle, CurrencyCode, List<Int>, SettingsFeatureFlags) -> Unit,
     onSignOut: () -> Unit,
     onTheme: (String) -> Unit,
-    onSync: () -> Unit,
     onResetPassword: () -> Unit,
     onReplayOnboarding: () -> Unit,
     onOpenCompensation: () -> Unit = {},
+    onOpenTasks: () -> Unit = {},
     onDismissSaveFeedback: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
     onDismissAccountFeedback: () -> Unit = {},
@@ -214,6 +217,7 @@ private fun SettingsContent(
     var travelRefunds by remember(state.settings.featuresTravelRefunds)          { mutableStateOf(state.settings.featuresTravelRefunds) }
     var insights      by remember(state.settings.featuresInsights)               { mutableStateOf(state.settings.featuresInsights) }
     var clockStyles   by remember(state.settings.featuresClockStyles)            { mutableStateOf(state.settings.featuresClockStyles) }
+    var overtimeReminders by remember(state.settings.featuresOvertimeReminders) { mutableStateOf(state.settings.featuresOvertimeReminders) }
     var weekendDays   by remember(state.settings.weekendDays)                    { mutableStateOf(state.settings.weekendDays) }
 
     var appearanceExpanded by rememberSaveable { mutableStateOf(false) }
@@ -253,6 +257,7 @@ private fun SettingsContent(
                 paidProjects = state.settings.featuresPaidProjects,
                 insights = insights,
                 clockStyles = clockStyles,
+                overtimeReminders = overtimeReminders,
             ),
         )
     }
@@ -267,16 +272,8 @@ private fun SettingsContent(
         weekendDays.sorted() != state.settings.weekendDays.sorted() ||
         travelRefunds != state.settings.featuresTravelRefunds ||
         insights != state.settings.featuresInsights ||
-        clockStyles != state.settings.featuresClockStyles
-
-    val syncStatus = resolveSyncStatus(
-        isRemoteConfigured = state.isRemoteConfigured,
-        isOnline = state.isOnline,
-        isSyncing = state.isSyncing,
-        pendingCount = state.pendingCount,
-        lastSyncStatus = state.lastSyncStatus,
-        syncError = state.syncError,
-    )
+        clockStyles != state.settings.featuresClockStyles ||
+        overtimeReminders != state.settings.featuresOvertimeReminders
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -387,6 +384,10 @@ private fun SettingsContent(
                         Text("Compensation rules")
                     }
                     Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = onOpenTasks, modifier = Modifier.fillMaxWidth()) {
+                        Text("Tasks")
+                    }
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         "Configure region presets, overtime tiers, premiums, and currency for pay estimates.",
                         style = MaterialTheme.typography.bodySmall,
@@ -432,14 +433,14 @@ private fun SettingsContent(
                     Spacer(Modifier.height(16.dp))
                     PayrollSubsectionTitle("Location")
                     Spacer(Modifier.height(8.dp))
-                    CountryTimezoneDropdown(timezone = timezone, onSelect = { timezone = it })
+                    IanaTimezonePicker(selected = timezone, onSelect = { timezone = it })
                 }
             }
 
             item {
                 CollapsibleSettingsSection(
                     title = "Features",
-                    summary = featuresSummary(travelRefunds, insights, clockStyles),
+                    summary = featuresSummary(travelRefunds, insights, clockStyles, overtimeReminders),
                     expanded = featuresExpanded,
                     onExpandedChange = { featuresExpanded = it },
                 ) {
@@ -461,36 +462,12 @@ private fun SettingsContent(
                         checked       = clockStyles,
                         onCheckedChange = { clockStyles = it },
                     )
-                }
-            }
-
-            item {
-                SettingsSectionCard("Sync") {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("Status", style = MaterialTheme.typography.bodyMedium)
-                        ElmSyncPill(
-                            status = syncStatus,
-                            onClick = if (syncStatus.isActionable) onSync else null,
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        syncStatus.detail,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ToggleRow(
+                        title         = "Overtime Reminders",
+                        description   = "Notify 30 minutes before overtime and hourly while in overtime",
+                        checked       = overtimeReminders,
+                        onCheckedChange = { overtimeReminders = it },
                     )
-                    if (syncStatus.isActionable) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Tap the status pill to sync now.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
                 }
             }
 
@@ -560,11 +537,13 @@ private fun featuresSummary(
     travelRefunds: Boolean,
     insights: Boolean,
     clockStyles: Boolean,
+    overtimeReminders: Boolean,
 ): String {
     val enabled = listOfNotNull(
         "Travel Refunds".takeIf { travelRefunds },
         "Insights".takeIf { insights },
         "Clock Styles".takeIf { clockStyles },
+        "Overtime Reminders".takeIf { overtimeReminders },
     )
     return when (enabled.size) {
         0 -> "No optional features enabled"
@@ -749,6 +728,36 @@ private fun ClockStyleDropdown(selected: ClockStyle, onSelect: (ClockStyle) -> U
 
 @Composable
 internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
+    if (style == ClockStyle.FELLOWSHIP) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(68.dp)
+                .clip(RoundedCornerShape(CornerRadius.Medium)),
+        ) {
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(com.elmtrackr.app.R.drawable.fellowship_bg_shire),
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.25f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "01:23",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                    color = Color(0xFFD4AF37),
+                )
+            }
+        }
+        return
+    }
     val transition = rememberInfiniteTransition(label = "watch-${style.name}")
     val pulse by transition.animateFloat(
         initialValue = 0.35f,
@@ -875,31 +884,7 @@ private fun watchFaceDescription(style: ClockStyle): String = when (style) {
     ClockStyle.SAND -> "Flowing hourglass"
     ClockStyle.BLOCKS -> "Hour-by-hour blocks"
     ClockStyle.ORBIT -> "Orbiting satellite"
-}
-
-@Composable
-private fun CountryTimezoneDropdown(timezone: String, onSelect: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    val country = COUNTRY_TIMEZONES.firstOrNull { it.second == timezone }?.first
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        OutlinedTextField(
-            value = country ?: timezone,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Country") },
-            supportingText = { Text("Timezone: $timezone") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            COUNTRY_TIMEZONES.forEach { (name, zone) ->
-                DropdownMenuItem(
-                    text = { Text(name) },
-                    onClick = { onSelect(zone); expanded = false },
-                )
-            }
-        }
-    }
+    ClockStyle.FELLOWSHIP -> "Quest through Middle-earth"
 }
 
 // â”€â”€ Hours field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1035,7 +1020,7 @@ private fun AccountSection(
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showSignOutConfirm = false },
             title = { Text("Sign out?") },
-            text = { Text("Your local changes are kept and will sync the next time you sign in.") },
+            text = { Text("Your data stays on this device.") },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { showSignOutConfirm = false; onSignOut() }) {
                     Text("Sign out", color = MaterialTheme.colorScheme.error)
@@ -1131,7 +1116,6 @@ private fun SettingsScreenPreview() {
             onSave          = { _, _, _, _, _, _, _, _, _ -> },
             onSignOut       = {},
             onTheme         = {},
-            onSync          = {},
             onResetPassword = {},
             onReplayOnboarding = {},
         )

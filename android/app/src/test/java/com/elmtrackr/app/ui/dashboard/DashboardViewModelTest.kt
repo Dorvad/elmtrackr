@@ -6,8 +6,7 @@ import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeReportsRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeShiftsRepository
-import com.elmtrackr.app.fake.FakeNetworkMonitor
-import com.elmtrackr.app.fake.FakeSyncRepository
+import com.elmtrackr.app.fake.FakeTasksRepository
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.Shift
@@ -37,17 +36,16 @@ class DashboardViewModelTest {
     private val shiftsRepo = FakeShiftsRepository()
     private val settingsRepo = FakeSettingsRepository()
     private val reportsRepo = FakeReportsRepository()
-    private val syncRepo = FakeSyncRepository()
     private val compensationRepo = FakeCompensationProfilesRepository()
+    private val tasksRepo = FakeTasksRepository()
     private val authRepo = FakeAuthRepository().apply {
         setProfile(Profile("u1", "test@test.com", null, Instant.EPOCH, Instant.EPOCH))
     }
 
     private val appPrefs = FakeAppPreferencesStore()
-    private val networkMonitor = FakeNetworkMonitor()
 
     private fun buildVm() = DashboardViewModel(
-        shiftsRepo, settingsRepo, reportsRepo, syncRepo, authRepo, compensationRepo, appPrefs, networkMonitor,
+        shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, appPrefs,
     )
 
     private fun defaultSettings() = UserSettings(
@@ -247,38 +245,6 @@ class DashboardViewModelTest {
 
         val ready = collected.filterIsInstance<DashboardUiState.Ready>().lastOrNull()
         assertEquals("Alice", ready?.displayName)
-        job.cancel()
-    }
-
-    // ---- isRemoteConfigured / sync status ----
-
-    @Test
-    fun `isRemoteConfigured reflects auth repository configuration`() = runTest {
-        authRepo.configured = false
-
-        val vm = buildVm()
-        val collected = mutableListOf<DashboardUiState>()
-        val job = launch { vm.uiState.collect { collected.add(it) } }
-        settingsRepo.setSettings(defaultSettings())
-        advanceUntilIdle()
-
-        val ready = collected.filterIsInstance<DashboardUiState.Ready>().lastOrNull()
-        assertEquals(false, ready?.isRemoteConfigured)
-        job.cancel()
-    }
-
-    @Test
-    fun `pendingSyncCount is exposed in Ready state`() = runTest {
-        syncRepo.setPendingCount(3)
-
-        val vm = buildVm()
-        val collected = mutableListOf<DashboardUiState>()
-        val job = launch { vm.uiState.collect { collected.add(it) } }
-        settingsRepo.setSettings(defaultSettings())
-        advanceUntilIdle()
-
-        val ready = collected.filterIsInstance<DashboardUiState.Ready>().lastOrNull()
-        assertEquals(3, ready?.pendingSyncCount)
         job.cancel()
     }
 

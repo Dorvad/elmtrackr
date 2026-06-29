@@ -13,6 +13,7 @@ sealed interface ShiftsUiState {
         val featuresTravelRefunds: Boolean = false,
         val settings: UserSettings? = null,
         val profiles: List<com.elmtrackr.app.domain.model.CompensationProfile> = emptyList(),
+        val tasks: List<com.elmtrackr.app.domain.model.Task> = emptyList(),
     ) : ShiftsUiState
 
     data class Error(val message: String) : ShiftsUiState

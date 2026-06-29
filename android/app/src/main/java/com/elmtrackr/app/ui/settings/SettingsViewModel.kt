@@ -12,12 +12,9 @@ import com.elmtrackr.app.domain.model.AuthResult
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Profile
-import com.elmtrackr.app.domain.model.SyncResult
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
-import com.elmtrackr.app.domain.repository.SyncRepository
-import com.elmtrackr.app.util.NetworkStatusMonitor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,28 +28,25 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
 import kotlin.math.roundToInt
 
-enum class FeatureFlag { TRAVEL_REFUNDS, PAID_PROJECTS, INSIGHTS, CLOCK_STYLES }
+enum class FeatureFlag { TRAVEL_REFUNDS, PAID_PROJECTS, INSIGHTS, CLOCK_STYLES, OVERTIME_REMINDERS }
 
 data class SettingsFeatureFlags(
     val travelRefunds: Boolean,
     val paidProjects: Boolean,
     val insights: Boolean,
     val clockStyles: Boolean,
+    val overtimeReminders: Boolean,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
-    private val syncRepository: SyncRepository,
     private val authRepository: AuthRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
     private val themeStore: ThemePreferenceStore,
-    private val networkMonitor: NetworkStatusMonitor,
 ) : ViewModel() {
 
     private val _isSaving = MutableStateFlow(false)
-    private val _isSyncing = MutableStateFlow(false)
-    private val _syncError = MutableStateFlow<String?>(null)
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     private val _passwordResetFeedback = MutableStateFlow<String?>(null)
     private val _saveFeedback = MutableStateFlow<SettingsSaveFeedback?>(null)
@@ -61,15 +55,12 @@ class SettingsViewModel(
 
     private data class CoreData(
         val settings: UserSettings?,
-        val pendingCount: Int,
-        val lastSyncStatus: String?,
     )
 
     private data class Extras(
         val profile: Profile?,
         val theme: String,
         val isSaving: Boolean,
-        val isSyncing: Boolean,
         val validationErrors: Map<String, String>,
         val passwordResetFeedback: String?,
         val saveFeedback: SettingsSaveFeedback?,
@@ -78,12 +69,10 @@ class SettingsViewModel(
     )
 
     private val coreData = authRepository.observeCurrentProfile().flatMapLatest { profile ->
-        if (profile == null) flowOf(CoreData(null, 0, null))
-        else combine(
-            settingsRepository.observeSettings(profile.id),
-            syncRepository.observePendingCount(profile.id),
-            syncRepository.observeLastSyncStatus(),
-        ) { settings, pending, lastSync -> CoreData(settings, pending, lastSync) }
+        if (profile == null) flowOf(CoreData(null))
+        else settingsRepository.observeSettings(profile.id).flatMapLatest { settings ->
+            flowOf(CoreData(settings))
+        }
     }
 
     private val extras = combine(
@@ -94,11 +83,10 @@ class SettingsViewModel(
         ) { profile, theme, saving -> Triple(profile, theme, saving) },
         combine(
             combine(
-                _isSyncing,
                 _validationErrors,
                 _passwordResetFeedback,
-            ) { syncing, errors, resetFeedback ->
-                Triple(syncing, errors, resetFeedback)
+            ) { errors, resetFeedback ->
+                Pair(errors, resetFeedback)
             },
             combine(
                 _saveFeedback,
@@ -107,15 +95,14 @@ class SettingsViewModel(
             ) { saveFeedback, deleting, accountFeedback ->
                 Triple(saveFeedback, deleting, accountFeedback)
             },
-        ) { (syncing, errors, resetFeedback), (saveFeedback, deleting, accountFeedback) ->
-            AccountExtras(syncing, errors, resetFeedback, saveFeedback, deleting, accountFeedback)
+        ) { (errors, resetFeedback), (saveFeedback, deleting, accountFeedback) ->
+            AccountExtras(errors, resetFeedback, saveFeedback, deleting, accountFeedback)
         },
     ) { (profile, theme, saving), account ->
         Extras(
             profile,
             theme,
             saving,
-            account.syncing,
             account.errors,
             account.resetFeedback,
             account.saveFeedback,
@@ -125,34 +112,21 @@ class SettingsViewModel(
     }
 
     val uiState: StateFlow<SettingsUiState> = combine(
-        combine(
-            coreData,
-            extras,
-        ) { core, extras ->
-            if (core.settings == null) SettingsUiState.Loading
-            else SettingsUiState.Ready(
-                settings = core.settings,
-                profile = extras.profile,
-                selectedTheme = extras.theme,
-                pendingCount = core.pendingCount,
-                lastSyncStatus = core.lastSyncStatus,
-                isRemoteConfigured = authRepository.isConfigured(),
-                isSaving = extras.isSaving,
-                isSyncing = extras.isSyncing,
-                validationErrors = extras.validationErrors,
-                passwordResetFeedback = extras.passwordResetFeedback,
-                saveFeedback = extras.saveFeedback,
-                isDeletingAccount = extras.isDeletingAccount,
-                accountActionFeedback = extras.accountActionFeedback,
-            )
-        },
-        networkMonitor.isOnline,
-        _syncError,
-    ) { state, isOnline, syncError ->
-        when (state) {
-            is SettingsUiState.Ready -> state.copy(isOnline = isOnline, syncError = syncError)
-            else -> state
-        }
+        coreData,
+        extras,
+    ) { core, extras ->
+        if (core.settings == null) SettingsUiState.Loading
+        else SettingsUiState.Ready(
+            settings = core.settings,
+            profile = extras.profile,
+            selectedTheme = extras.theme,
+            isSaving = extras.isSaving,
+            validationErrors = extras.validationErrors,
+            passwordResetFeedback = extras.passwordResetFeedback,
+            saveFeedback = extras.saveFeedback,
+            isDeletingAccount = extras.isDeletingAccount,
+            accountActionFeedback = extras.accountActionFeedback,
+        )
     }.catch { e ->
         emit(SettingsUiState.Error(e.message ?: "Unknown error"))
     }.stateIn(
@@ -201,12 +175,14 @@ class SettingsViewModel(
                 paidProjects = existing.featuresPaidProjects,
                 insights = existing.featuresInsights,
                 clockStyles = existing.featuresClockStyles,
+                overtimeReminders = existing.featuresOvertimeReminders,
             )
+            val normalizedTimezone = IanaTimezones.normalize(timezone.trim())
             val savedSettings = existing.copy(
                 dailyOvertimeThresholdMinutes = (dailyOtHours * 60).roundToInt(),
                 weeklyOvertimeThresholdMinutes = (weeklyOtHours * 60).roundToInt(),
                 hourlyRate = hourlyRate,
-                timezone = timezone.trim(),
+                timezone = normalizedTimezone,
                 clockStyle = clockStyle,
                 currency = currency,
                 weekendDays = weekendDays,
@@ -214,15 +190,18 @@ class SettingsViewModel(
                 featuresPaidProjects = flags.paidProjects,
                 featuresInsights = flags.insights,
                 featuresClockStyles = flags.clockStyles,
+                featuresOvertimeReminders = flags.overtimeReminders,
                 updatedAt = Instant.now(),
             )
             settingsRepository.saveSettings(savedSettings)
+            compensationProfilesRepository.ensureMigrated(currentProfile.id)
             val profiles = compensationProfilesRepository.getProfiles(currentProfile.id)
             val defaultProfile = profiles.firstOrNull { it.isDefault } ?: profiles.firstOrNull()
             if (defaultProfile != null) {
                 val updatedProfile = defaultProfile.copy(
                     baseHourlyRate = hourlyRate,
-                    timezone = timezone.trim(),
+                    currencyCode = currency.name,
+                    timezone = normalizedTimezone,
                     rules = defaultProfile.rules.copy(
                         dailyStandardMinutes = (dailyOtHours * 60).roundToInt(),
                         weeklyStandardMinutes = (weeklyOtHours * 60).roundToInt(),
@@ -271,15 +250,12 @@ class SettingsViewModel(
     }
 
     private data class AccountExtras(
-        val syncing: Boolean,
         val errors: Map<String, String>,
         val resetFeedback: String?,
         val saveFeedback: SettingsSaveFeedback?,
         val deleting: Boolean,
         val accountFeedback: String?,
     )
-
-    private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
     fun updateFeatureFlag(feature: FeatureFlag, enabled: Boolean) {
         viewModelScope.launch {
@@ -290,6 +266,7 @@ class SettingsViewModel(
                 FeatureFlag.PAID_PROJECTS -> existing.copy(featuresPaidProjects = enabled)
                 FeatureFlag.INSIGHTS -> existing.copy(featuresInsights = enabled)
                 FeatureFlag.CLOCK_STYLES -> existing.copy(featuresClockStyles = enabled)
+                FeatureFlag.OVERTIME_REMINDERS -> existing.copy(featuresOvertimeReminders = enabled)
             }
             settingsRepository.saveSettings(updated.copy(updatedAt = Instant.now()))
         }
@@ -301,6 +278,7 @@ class SettingsViewModel(
             val existing = settingsRepository.getSettings(userId) ?: return@launch
             val savedSettings = existing.copy(weekendDays = days, updatedAt = Instant.now())
             settingsRepository.saveSettings(savedSettings)
+            compensationProfilesRepository.ensureMigrated(userId)
             val profiles = compensationProfilesRepository.getProfiles(userId)
             val defaultProfile = profiles.firstOrNull { it.isDefault } ?: profiles.firstOrNull()
             if (defaultProfile != null) {
@@ -317,25 +295,6 @@ class SettingsViewModel(
 
     fun saveTheme(theme: String) {
         viewModelScope.launch { themeStore.saveTheme(theme) }
-    }
-
-    fun triggerSync() {
-        viewModelScope.launch {
-            _isSyncing.value = true
-            _syncError.value = null
-            val userId = authRepository.getCurrentProfile()?.id
-            if (userId != null) {
-                _syncError.value = syncRepository.syncAll(userId).toUserMessage()
-            }
-            _isSyncing.value = false
-        }
-    }
-
-    private fun SyncResult.toUserMessage(): String? = when (this) {
-        is SyncResult.Success, SyncResult.NotConfigured -> null
-        is SyncResult.PartialSuccess ->
-            if (errors.isEmpty()) null else "${errors.size} items could not sync"
-        is SyncResult.Failure -> message
     }
 
     fun resetPassword() {
@@ -362,6 +321,7 @@ class SettingsViewModel(
             if (settingsRepository.getSettings(userId) == null) {
                 settingsRepository.createDefaultSettings(userId)
             }
+            compensationProfilesRepository.ensureMigrated(userId)
         }
     }
 
@@ -389,11 +349,9 @@ class SettingsViewModel(
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
                 SettingsViewModel(
                     settingsRepository = app.settingsRepository,
-                    syncRepository = app.syncRepository,
                     authRepository = app.authRepository,
                     compensationProfilesRepository = app.compensationProfilesRepository,
                     themeStore = AppThemePreferenceStore(app.appPreferences),
-                    networkMonitor = app.networkMonitor,
                 )
             }
         }

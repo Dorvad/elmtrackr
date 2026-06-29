@@ -115,6 +115,15 @@ class ShiftDaoTest {
     }
 
     @Test
+    fun observeShiftsByDateRange_ordersMostRecentFirst() = runTest {
+        dao.insertShift(shift("older", startTime = 1_000L))
+        dao.insertShift(shift("newer", startTime = 5_000L))
+        dao.insertShift(shift("newest", startTime = 9_000L))
+        val result = dao.observeShiftsByDateRange("u1", fromEpoch = 0L, toEpoch = 10_000L).first()
+        assertEquals(listOf("newest", "newer", "older"), result.map { it.localId })
+    }
+
+    @Test
     fun getShiftById_returnsNullForMissing() = runTest {
         assertNull(dao.getShiftById("nonexistent"))
     }

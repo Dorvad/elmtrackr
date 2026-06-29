@@ -43,6 +43,7 @@ class ClockOutReceiver : BroadcastReceiver() {
                 val nm = ActiveShiftNotificationManager(context.applicationContext)
                 nm.cancelActiveShiftNotification()
                 nm.cancelReminderNotification()
+                OvertimeReminderScheduler.cancelAll(context.applicationContext)
             } finally {
                 pendingResult.finish()
             }

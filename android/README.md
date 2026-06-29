@@ -1,24 +1,28 @@
 # ElmTrackr — Native Android App
 
+> **Android-first (June 2026):** This directory is the **primary product**. The Next.js web app (`app/`) is frozen — see [ANDROID_FIRST.md](../ANDROID_FIRST.md). Supabase wire formats are owned here: [docs/supabase-contract.md](docs/supabase-contract.md).
+
 > CI debug APKs pick up `SUPABASE_URL` and `SUPABASE_ANON_KEY` from GitHub Actions secrets at build time.
 
-> **Implementation status (2026-06-21):** Authenticated user identity, one-time
+> **Implementation status (2026-06-25):** Authenticated user identity, one-time
 > legacy-data adoption, account-isolated offline sync, current Supabase wire
-> formats, auth callbacks, live theme selection, shift month navigation, basic
-> insights, refund claim editing, and debug/release verification are implemented.
+> formats, auth callbacks, live theme selection, shift month navigation, insights
+> (feature-gated), refund claim editing with CameraX receipt capture and PDF
+> export, compensation profiles on shift create/edit, weekly/month-over-month
+> report comparisons, and debug/release verification are implemented.
 > Remaining parity work is intentionally tracked as separate deliverables:
-> receipt capture/storage and refund PDF export, eight additional native clock
-> renderers, advanced motion, staged onboarding, fuller weekly
-> comparisons, and emulator/device instrumentation.
+> eight additional native clock renderers, advanced motion, staged onboarding
+> polish, and broader emulator/device instrumentation coverage.
 
-Native Kotlin + Jetpack Compose app that lives in this directory alongside the
-Next.js web app. The two share the same Supabase backend but have completely
-separate codebases. **No WebView, no Capacitor.**
+Native Kotlin + Jetpack Compose app. Shares a Supabase backend with the legacy
+web app but has a **separate codebase**. **No WebView, no Capacitor.** New
+features and schema decisions are made in Android first.
 
 ```
 elmtrackr/
-├── android/          ← you are here (native Android)
-├── app/              ← Next.js web app (untouched)
+├── android/          ← you are here (active product)
+├── supabase/         ← shared schema (Android-owned contract)
+├── app/              ← frozen Next.js web (see app/ARCHIVED.md)
 └── .github/workflows/android.yml
 ```
 
@@ -296,7 +300,7 @@ Output: `android/app/build/outputs/bundle/release/app-release.aab`
 
 ### 4. Upload to Play Console
 
-- Use a **new `versionCode`** each upload (currently **6** / `1.0.5` in `app/build.gradle.kts`).
+- Use a **new `versionCode`** each upload (currently **9** / `1.0.7` in `app/build.gradle.kts`).
 - Upload the locally built `app-release.aab`, not a CI artifact.
 
 ---
@@ -477,6 +481,8 @@ The `ShiftsScreen` (`ui/shifts/ShiftsScreen.kt`) is fully functional and offline
 | Edit an existing shift | ✅ offline-first (`PENDING_UPDATE`) |
 | Delete a shift | ✅ soft-delete (`PENDING_DELETE`) |
 | Break minutes, notes, special-day flag | ✅ |
+| Compensation profile picker (when profiles exist) | ✅ create + edit |
+| Travel refund claims (CameraX + gallery, upload/sync) | ✅ feature-gated by `featuresTravelRefunds` |
 | Travel refund action (conditional on `featuresTravelRefunds` setting) | ✅ |
 | Validation: end time must be after start time; break ≥ 0 | ✅ |
 | Empty-state prompt with FAB | ✅ |
@@ -535,14 +541,14 @@ The `SettingsScreen` (`ui/settings/SettingsScreen.kt`) is fully functional with 
 - Daily OT: must be > 0 and ≤ 24 h.
 - Weekly OT: must be > 0, ≤ 168 h, and ≥ daily OT.
 - Hourly rate: must be ≥ 0 when provided (null = not set).
+- Timezone: must be a valid IANA zone ID (selected via searchable picker).
 - Errors appear inline under the offending field via `supportingText`.
 
 **Clock styles:**
-Only three of eleven `ClockStyle` values render natively. The settings screen exposes only these three. Any unsupported value saved externally falls back to CLASSIC via `supportedClockStyleOf()`.
+The settings dropdown lists all supported `ClockStyle` values. Only **Classic**, **Minimal**, and **Aurora** render natively on the dashboard; any other persisted value (including legacy styles) falls back to Classic via `ClockStyle.fromPersisted()`.
 
 **Known limitations:**
-- Timezone is a free-text field — no picker or validation against IANA zone names yet.
-- Theme change takes effect on next app start (no hot-reload).
+- Theme change takes effect immediately (DataStore + Compose recomposition).
 
 ---
 
@@ -558,8 +564,14 @@ The `ReportsScreen` (`ui/reports/ReportsScreen.kt`) is fully functional and read
 | Payroll estimate (total, regular, OT, special) | ✅ shown when hourly rate set |
 | "Set hourly rate in Settings" hint when no rate | ✅ |
 | Per-week breakdown for selected month | ✅ ISO Monday-anchored weeks |
+| Week-over-week delta vs prior month (when data exists) | ✅ |
+| Month-over-month total hours comparison | ✅ |
 | CSV export via Android share sheet | ✅ `elmtrackr-YYYY-MM.csv` |
+| PDF export (hours report) | ✅ `ReportExporter.shareShiftPdf` |
+| Daily insights carousel | ✅ feature-gated by `featuresInsights` |
+| Shift insights stat grid | ✅ when insights enabled |
 | Travel refund review (unresolved shifts) | ✅ feature-gated by `featuresTravelRefunds` |
+| Refund reimbursement PDF export (per month + all months) | ✅ embeds receipt images when available |
 | Empty state | ✅ |
 | Loading / error state | ✅ |
 
@@ -573,7 +585,15 @@ Uses Israeli payroll tiers (100/125/150% weekday, 150/175/200% Shabbat/holiday).
 
 **Weekly breakdown:**
 Computed from the selected month's completed shifts via `WeeklyBreakdownBuilder.groupByWeek()`.
-Shows ISO Monday-anchored week start date, total hours, and shift count.
+Shows ISO Monday-anchored week start date, total hours, shift count, and optional
+delta vs the overlapping week in the previous month (`prevMonthMinutes`).
+
+**PDF export behaviour:**
+- **Hours tab:** `ReportExporter.shareShiftPdf` — monthly shift summary PDF via share sheet.
+- **Refunds tab:** `ReportExporter.shareRefundPdf` — reimbursement packet with claim details and embedded receipt images (when signed URLs resolve).
+
+**Insights gating:**
+When `featuresInsights` is off, Reports shows a disabled-state card instead of daily insight cards and the shift insights grid.
 
 **CSV export behaviour:**
 - Columns: `Date, Start Time, End Time, Gross Min, Break Min, Net Min, Special Day, Notes[, Gross Pay]`
@@ -657,51 +677,39 @@ On Android 13+ (API 33), `POST_NOTIFICATIONS` is a runtime permission.
 - The `POST_NOTIFICATIONS` permission is declared in `AndroidManifest.xml` for
   forward compatibility; on API < 33 it is silently ignored by the system.
 
-### Home screen widget
+### Home screen widgets
 
-ElmTrackr includes a Jetpack Glance home screen widget optimised for Niagara
-Launcher's horizontal feed (primary size: 4×1 cells).
+ElmTrackr includes **five** Jetpack Glance widget styles aligned with the product
+mockups. Each uses a **single stateful Punch In / Out control** that performs the
+action headlessly (no app launch required).
+
+| Widget picker name | Size | Design |
+|---|---|---|
+| **ElmTrackr Single Toggle** | 4×1 | Logo + status + live `H:MM:SS` timer + white/outlined pill CTA |
+| **ElmTrackr Progress** | 4×1 | Day-goal progress bar + `today / 8h` + round toggle |
+| **ElmTrackr Tall** | 4×2 | Oversized clock + full-width action bar at base |
+| **ElmTrackr Ring** | 1×1 | Open ring → filled ring when on shift; whole tile toggles |
+| **ElmTrackr Big Action** | 1×1 | Large white circle punch-in; stop glyph + corner timer when active |
 
 | Property | Value |
 |---|---|
 | Library | Jetpack Glance 1.1.0 (`androidx.glance:glance-appwidget`) |
-| Primary size | 4×1 cells (250 dp wide, 50 dp tall) |
-| Resize | horizontal + vertical; min 2×1 |
-| State storage | `PreferencesGlanceStateDefinition` (DataStore Preferences) |
+| Day goal | `UserSettings.dailyOvertimeThresholdMinutes` (default 8h) |
+| Live timer | `H:MM:SS` while clocked in; refreshes every 60s via `WidgetRefreshWorker` |
 | Update trigger | `ElmTrackrApp.startActiveShiftObserver()` → `ElmTrackrWidgetUpdater.update()` |
-| On-boot / fresh-place | `ElmTrackrWidgetReceiver.onUpdate()` re-reads Room and refreshes |
 
 **Widget states:**
 
-| State | Status text | Action button |
+| State | Display | Action button |
 |---|---|---|
-| Idle (not clocked in) | "Ready to clock in" + today's date | Clock In |
-| Active (shift running) | "Clocked in since HH:mm" + today's date | Clock Out |
+| Idle | Last punch time or today's logged total | **PUNCH IN** (white filled pill / round button) |
+| Active | Live elapsed `H:MM:SS` + since time | **PUNCH OUT** (outlined pill with stop glyph) |
 
-**Action behaviour:**
+Tapping the status/time/logo area opens the app. The CTA always matches state and
+clocks in/out via `WidgetActions` without opening the UI.
 
-- **Clock In** — calls `LocalShiftsRepository.clockIn()` directly (Room write,
-  sync queued, no network required). The active-shift observer in `ElmTrackrApp`
-  then updates both the notification and the widget state.
-- **Clock Out** — calls `LocalShiftsRepository.clockOut(shiftId)` via the shift ID
-  stored in the widget state. Same offline-first guarantee.
-- **Tap anywhere** — opens `MainActivity` (Dashboard).
-
-**Key classes:**
-
-| Class | Responsibility |
-|---|---|
-| `ElmTrackrWidget` | `GlanceAppWidget` — renders idle / active layout |
-| `ElmTrackrWidgetReceiver` | `GlanceAppWidgetReceiver` — handles `APPWIDGET_UPDATE` (boot, first placement) |
-| `ElmTrackrWidgetUpdater` | Suspending helper; maps `Shift?` → Glance state; calls `widget.update()` |
-| `WidgetStateMapper` | Pure function `Shift? → WidgetShiftState`; fully unit-tested without Android |
-| `ClockInWidgetAction` | `ActionCallback` — calls `shiftsRepository.clockIn()` |
-| `ClockOutWidgetAction` | `ActionCallback` — reads `SHIFT_ID_KEY` param, calls `clockOut()` |
-
-**Button corners:** `GlanceModifier.cornerRadius()` requires API 31+. The
-widget uses `ImageProvider(R.drawable.widget_button)` (a shape drawable with
-`<corners android:radius="20dp"/>`) for the pill background instead — works on
-all supported API levels (26+).
+**Key classes:** `WidgetLayouts`, `WidgetPreferences.DisplayState`, `WidgetStateMapper`,
+`WidgetRefreshWorker`, `ElmTrackrWidgetUpdater`
 
 ### App shortcuts
 
@@ -724,10 +732,14 @@ Both dynamic shortcuts open the app to the Dashboard where the action can be
 completed. Managed by `ElmTrackrApp.updateDynamicShortcuts()`, called whenever
 the active-shift observer fires.
 
-**Known limitation:** The Clock Out dynamic shortcut opens the app rather than
-clocking out directly (no transparent-trampoline activity). A future phase can
-add a `ClockOutShortcutActivity` that calls `ClockOutReceiver` and finishes
-immediately for a fully headless shortcut experience.
+**Clock Out dynamic shortcut:** Uses a headless trampoline activity that clocks out without opening the main UI, then shows a brief confirmation notification.
+
+**Theme:** Changes apply immediately across the app (no restart required). System theme tracks device dark-mode changes while "System default" is selected.
+
+**Timezone:** Searchable IANA timezone picker in Settings (Payroll → Location).
+
+**Known limitations:**
+- Bottom-nav blur uses a frosted mesh layer on Android 12+; older devices use translucent fill only.
 
 ---
 
@@ -743,11 +755,46 @@ immediately for a fully headless shortcut experience.
 | ✅ 6 — Data sync | Offline-first sync engine: Room + Supabase PostgREST + WorkManager |
 | ✅ 7 — App shell | Auth-aware navigation, onboarding flow, 4-tab main shell, auth section in Settings |
 | ✅ 8 — Auth & Onboarding UI | Usable auth screen (logo, password toggle, validation); full onboarding form |
-| ✅ 9 — Dashboard | Live timer, 3 clock styles, edit start time, month summary, recent shifts, sync status |
-| ✅ 10 — Shifts | Full shift history, create/edit/delete (offline-first), date+time pickers, validation |
-| ✅ 11 — Reports | Monthly summary, payroll estimate, weekly breakdown, CSV export, travel refund review |
+| ✅ 9 — Dashboard | Live timer, 3 native clock styles (Classic/Minimal/Aurora), edit start time, month summary, recent shifts, sync status |
+| ✅ 10 — Shifts | Full shift history, create/edit/delete (offline-first), date+time pickers, validation, compensation profile picker |
+| ✅ 11 — Reports | Monthly summary, payroll estimate, weekly breakdown with prior-month deltas, CSV + PDF export, insights, travel refund review |
 | ✅ 12 — Settings | Full settings form, feature toggles, theme, weekend days, sync section, account |
 | ✅ 13 — Native features | Active-shift notification, clock-out action, long-shift reminder, app shortcuts |
-| ✅ 14 — Home screen widget | Jetpack Glance 4×1 widget: active shift status + Clock In / Clock Out actions |
-| 15 — Refunds | CameraX receipt capture, refund claim management |
-| 16 — Polish | Visual redesign, animations, headless shortcut clock-out |
+| ✅ 14 — Home screen widgets | Five Glance styles (4×1 single-toggle, 4×1 progress, 4×2 tall, 1×1 ring, 1×1 big action) |
+| ✅ 15 — Refunds | CameraX receipt capture, gallery import, Supabase receipt storage/sync, refund claim management, reimbursement PDF export |
+| ✅ 16 — Polish | Visual redesign, animations, headless shortcut clock-out, aurora mesh backgrounds, bottom-nav blur (API 31+), theme hot-reload, IANA timezone picker |
+
+---
+
+## Testing
+
+### Unit tests
+
+```bash
+cd android && ./gradlew :app:testDebugUnitTest
+```
+
+Covers payroll/overtime calculators, sync mappers, ViewModels, timezone helpers, and report builders.
+
+### Instrumentation (device / emulator)
+
+```bash
+cd android && ./gradlew :app:connectedDebugAndroidTest
+```
+
+| Suite | What it covers |
+|---|---|
+| `MainActivitySmokeTest` | Main activity launches without crashing |
+| `ScreenshotRegressionTest` | Compose golden screenshots for auth, onboarding, reports, shifts, dashboard skeleton |
+| `ShiftDaoTest`, `SettingsDaoTest`, `ElmTrackrDatabaseMigrationTest` | Room DAO + migration integrity |
+
+**Recording screenshot goldens** (on a device/emulator):
+
+```bash
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.recordScreenshots=true
+```
+
+PNG files are written to the app's external files dir under `screenshots/`. Copy them into `app/src/androidTest/assets/goldens/` before committing updated baselines.
+
+> Screenshot tests require golden PNGs in `androidTest/assets/goldens/`. CI currently runs unit tests only; connected tests are run locally or on a device farm before release.

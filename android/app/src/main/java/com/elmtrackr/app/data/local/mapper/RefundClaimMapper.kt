@@ -11,8 +11,8 @@ fun RefundClaimEntity.toDomain(): RefundClaim = RefundClaim(
     id = localId,
     shiftId = shiftLocalId,
     userId = userId,
-    direction = RefundDirection.valueOf(direction.uppercase()),
-    provider = RefundProvider.valueOf(provider.uppercase()),
+    direction = RefundDirection.fromPersisted(direction),
+    provider = RefundProvider.fromPersisted(provider),
     amount = amount,
     rideAt = Instant.ofEpochMilli(rideAt),
     notes = notes,
@@ -22,7 +22,7 @@ fun RefundClaimEntity.toDomain(): RefundClaim = RefundClaim(
 )
 
 fun RefundClaim.toEntity(
-    syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    syncStatus: SyncStatus = SyncStatus.SYNCED,
     remoteId: String? = null,
     deletedAt: Long? = null,
     lastSyncError: String? = null,

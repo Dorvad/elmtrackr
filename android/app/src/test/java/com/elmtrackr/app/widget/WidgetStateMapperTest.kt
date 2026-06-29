@@ -1,11 +1,14 @@
 package com.elmtrackr.app.widget
 
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.model.UserSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 class WidgetStateMapperTest {
 
@@ -19,71 +22,69 @@ class WidgetStateMapperTest {
         endTime = endTime,
     )
 
+    private fun context(
+        active: Shift? = null,
+        lastCompleted: Shift? = null,
+        today: List<Shift> = emptyList(),
+    ) = WidgetContext(
+        activeShift = active,
+        lastCompletedShift = lastCompleted,
+        todayShifts = today,
+        settings = UserSettings(id = "s", userId = "user-1"),
+    )
+
     @Test
     fun `idle when shift is null`() {
-        val state = WidgetStateMapper.map(null)
+        val state = WidgetStateMapper.map(context())
         assertFalse(state.isActive)
         assertEquals("", state.shiftId)
-        assertTrue(state.startTimeLabel.matches(Regex("\\d{2}:\\d{2}")))
+        assertEquals("--:--", state.startTimeLabel)
     }
 
     @Test
-    fun `idle when shift has end time`() {
-        val shift = makeShift(endTime = Instant.now())
-        val state = WidgetStateMapper.map(shift)
+    fun `idle uses last completed shift end time when provided`() {
+        val endedAt = Instant.parse("2024-01-08T17:30:00Z")
+        val lastCompleted = makeShift(
+            startTime = Instant.parse("2024-01-08T09:00:00Z"),
+            endTime = endedAt,
+        )
+        val state = WidgetStateMapper.map(context(lastCompleted = lastCompleted))
         assertFalse(state.isActive)
-        assertEquals("", state.shiftId)
-        assertTrue(state.startTimeLabel.matches(Regex("\\d{2}:\\d{2}")))
+        assertTrue(state.lastPunchLabel.contains("Last out"))
+        assertEquals(endedAt.toEpochMilli(), state.lastPunchEndEpochMillis)
     }
 
     @Test
     fun `active when shift has no end time`() {
         val shift = makeShift()
-        val state = WidgetStateMapper.map(shift)
+        val state = WidgetStateMapper.map(context(active = shift, today = listOf(shift)))
         assertTrue(state.isActive)
         assertEquals("shift-1", state.shiftId)
-        assertFalse(state.startTimeLabel.isEmpty())
+        assertTrue(state.shiftStartEpochMillis > 0L)
+        assertTrue(state.todayMinutes >= 59)
     }
 
     @Test
-    fun `start time label is HH colon mm format`() {
-        val shift = makeShift()
-        val state = WidgetStateMapper.map(shift)
-        assertTrue(
-            "Expected HH:mm but got: ${state.startTimeLabel}",
-            state.startTimeLabel.matches(Regex("\\d{2}:\\d{2}")),
+    fun `today minutes sums completed shifts`() {
+        val zone = ZoneId.systemDefault()
+        val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant()
+        val startTime = todayStart.plusSeconds(9 * 3600)
+        val endTime = todayStart.plusSeconds(16 * 3600)
+        val completed = makeShift(startTime = startTime, endTime = endTime)
+        val state = WidgetStateMapper.map(context(today = listOf(completed)))
+        assertEquals(420, state.todayMinutes)
+    }
+
+    @Test
+    fun `daily goal comes from settings`() {
+        val settings = UserSettings(
+            id = "s",
+            userId = "user-1",
+            dailyOvertimeThresholdMinutes = 600,
         )
-    }
-
-    @Test
-    fun `date label populated for idle state`() {
-        val state = WidgetStateMapper.map(null)
-        assertFalse(state.dateLabel.isEmpty())
-    }
-
-    @Test
-    fun `date label populated for active state`() {
-        val shift = makeShift()
-        val state = WidgetStateMapper.map(shift)
-        assertFalse(state.dateLabel.isEmpty())
-    }
-
-    @Test
-    fun `pending count passed through for active shift`() {
-        val shift = makeShift()
-        val state = WidgetStateMapper.map(shift, pendingCount = 5)
-        assertEquals(5, state.pendingCount)
-    }
-
-    @Test
-    fun `pending count passed through for idle state`() {
-        val state = WidgetStateMapper.map(null, pendingCount = 2)
-        assertEquals(2, state.pendingCount)
-    }
-
-    @Test
-    fun `pending count defaults to zero`() {
-        val state = WidgetStateMapper.map(null)
-        assertEquals(0, state.pendingCount)
+        val state = WidgetStateMapper.map(
+            WidgetContext(null, null, emptyList(), settings),
+        )
+        assertEquals(600, state.dailyGoalMinutes)
     }
 }
