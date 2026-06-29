@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 import { getSupabaseConfig, isMissingConfig } from "./config";
 
+const PUBLIC_ROUTES = new Set(["/privacy", "/terms"]);
+
 export async function updateSession(request: NextRequest) {
   if (isMissingConfig()) {
     return NextResponse.next({ request });
@@ -33,15 +35,17 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/auth");
+  const pathname = request.nextUrl.pathname;
+  const isPublicRoute =
+    pathname.startsWith("/auth") || PUBLIC_ROUTES.has(pathname);
 
-  if (!user && !isAuthRoute) {
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
     return NextResponse.redirect(url);
   }
 
-  if (user && request.nextUrl.pathname === "/auth/login") {
+  if (user && pathname === "/auth/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
