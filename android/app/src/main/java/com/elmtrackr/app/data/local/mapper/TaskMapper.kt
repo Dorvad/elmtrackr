@@ -19,7 +19,7 @@ fun TaskEntity.toDomain(): Task = Task(
 )
 
 fun Task.toEntity(
-    syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    syncStatus: SyncStatus = SyncStatus.SYNCED,
     remoteId: String? = this.remoteId,
     deletedAt: Long? = null,
     lastSyncError: String? = null,

@@ -28,7 +28,7 @@ import com.elmtrackr.app.ui.theme.Spacing
  * Skeleton loading screen for the Dashboard.
  *
  * Mimics the layout of DashboardReady with an animated shimmer:
- *   - Header logo + sync pill row
+ *   - Header logo row
  *   - Large clock card placeholder
  *   - Two rows of stat card placeholders (2 cards each)
  *   - Recent shifts section header + 3 row placeholders
@@ -48,14 +48,13 @@ fun DashboardSkeleton(modifier: Modifier = Modifier) {
     ) {
         Spacer(Modifier.height(Spacing.lg))
 
-        // Header row (logo placeholder + sync pill placeholder)
+        // Header row (logo placeholder)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ShimmerPill(width = 140.dp, height = 24.dp, shape = CornerRadius.Small, brush = shimmer)
-            ShimmerPill(width = 72.dp,  height = 20.dp, shape = CornerRadius.Small, brush = shimmer)
         }
 
         Spacer(Modifier.height(Spacing.lg))

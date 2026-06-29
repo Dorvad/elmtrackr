@@ -310,10 +310,15 @@ private fun ShiftsListContent(
 }
 
 @Composable
-internal fun MonthShiftSummary(shifts: List<Shift>, settings: UserSettings?) {
+internal fun MonthShiftSummary(
+    shifts: List<Shift>,
+    settings: UserSettings?,
+    profiles: List<CompensationProfile> = emptyList(),
+) {
     val completed = shifts.filter { it.isCompleted }
     val totalMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
-    val pay = settings?.hourlyRate?.takeIf { it > 0 }?.let { PayrollCalculator.sumMonthlyPay(completed, settings) }
+    val pay = settings?.let { PayrollCalculator.sumMonthlyPay(completed, it, profiles) }
+        ?.takeIf { it.totalGross > 0 }
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
         shape = RoundedCornerShape(CornerRadius.Large),
@@ -332,7 +337,15 @@ internal fun MonthShiftSummary(shifts: List<Shift>, settings: UserSettings?) {
             pay?.let {
                 Column(horizontalAlignment = Alignment.End) {
                     Text("GROSS PAY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                    Text(MoneyFormatter.format(it.totalGross, settings?.currency ?: CurrencyCode.ILS), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        MoneyFormatter.format(
+                            it.totalGross,
+                            settings?.currency ?: CurrencyCode.from(it.currencyCode) ?: CurrencyCode.ILS,
+                        ),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
                 }
             }
         }

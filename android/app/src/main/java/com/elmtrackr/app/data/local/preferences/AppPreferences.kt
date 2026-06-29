@@ -21,7 +21,6 @@ object AppPreferenceKeys {
     val FIRST_CLOCK_IN_CELEBRATED = booleanPreferencesKey("first_clock_in_celebrated")
     val LAST_ACTIVE_USER_ID = stringPreferencesKey("last_active_user_id")
     val DEVICE_ID = stringPreferencesKey("device_id")
-    val LAST_SYNC_STATUS = stringPreferencesKey("last_sync_status")
     val LEGACY_DATA_ADOPTED = booleanPreferencesKey("legacy_data_adopted")
 }
 
@@ -31,7 +30,6 @@ data class AppPreferenceValues(
     val firstClockInCelebrated: Boolean = false,
     val lastActiveUserId: String? = null,
     val deviceId: String? = null,
-    val lastSyncStatus: String? = null,
     val legacyDataAdopted: Boolean = false,
 )
 
@@ -45,7 +43,6 @@ class AppPreferencesRepository(private val context: Context) : AppPreferencesSto
                 firstClockInCelebrated = prefs[AppPreferenceKeys.FIRST_CLOCK_IN_CELEBRATED] ?: false,
                 lastActiveUserId = prefs[AppPreferenceKeys.LAST_ACTIVE_USER_ID],
                 deviceId = prefs[AppPreferenceKeys.DEVICE_ID],
-                lastSyncStatus = prefs[AppPreferenceKeys.LAST_SYNC_STATUS],
                 legacyDataAdopted = prefs[AppPreferenceKeys.LEGACY_DATA_ADOPTED] ?: false,
             )
         }
@@ -71,13 +68,6 @@ class AppPreferencesRepository(private val context: Context) : AppPreferencesSto
 
     suspend fun setDeviceId(deviceId: String) {
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.DEVICE_ID] = deviceId }
-    }
-
-    suspend fun setLastSyncStatus(status: String?) {
-        context.appPreferencesDataStore.edit {
-            if (status != null) it[AppPreferenceKeys.LAST_SYNC_STATUS] = status
-            else it.remove(AppPreferenceKeys.LAST_SYNC_STATUS)
-        }
     }
 
     override suspend fun currentPreferences(): AppPreferenceValues = preferences.first()

@@ -28,7 +28,8 @@ fun CompensationProfilePicker(
     if (profiles.isEmpty()) return
 
     var expanded by remember { mutableStateOf(false) }
-    val selected = profiles.firstOrNull { it.id == selectedId } ?: profiles.first()
+    val selected = profiles.firstOrNull { it.id == selectedId || it.remoteId == selectedId }
+        ?: profiles.first()
 
     ExposedDropdownMenuBox(
         expanded = expanded,

@@ -36,7 +36,7 @@ fun UserSettingsEntity.toDomain(): UserSettings = UserSettings(
 )
 
 fun UserSettings.toEntity(
-    syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    syncStatus: SyncStatus = SyncStatus.SYNCED,
     remoteId: String? = null,
     deletedAt: Long? = null,
     lastSyncError: String? = null,

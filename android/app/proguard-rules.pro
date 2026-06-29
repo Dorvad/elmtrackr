@@ -125,7 +125,6 @@
 # (e.g. ClockOutReceiver) are loaded by class name by Android.
 # ============================================================
 -keep class com.elmtrackr.app.notification.** { *; }
--keep class com.elmtrackr.app.sync.** { *; }
 
 # ============================================================
 # kotlinx.coroutines — volatile fields are accessed via

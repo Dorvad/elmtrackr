@@ -12,6 +12,8 @@ import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.Instant
 import java.util.UUID
 
@@ -19,6 +21,8 @@ class LocalCompensationProfilesRepository(
     private val profileDao: CompensationProfileDao,
     private val settingsRepository: SettingsRepository,
 ) : CompensationProfilesRepository {
+
+    private val migrationMutex = Mutex()
 
     override fun observeProfiles(userId: String): Flow<List<CompensationProfile>> =
         profileDao.observeProfiles(userId).map { entities -> entities.mapToDomain { it.toDomain() } }
@@ -49,38 +53,45 @@ class LocalCompensationProfilesRepository(
     }
 
     override suspend fun deleteProfile(userId: String, profileId: String) {
-        val existing = profileDao.getById(userId, profileId) ?: return
+        val existing = profileDao.getById(userId, profileId)
+            ?: profileDao.getByRemoteId(profileId)?.takeIf { it.userId == userId }
+            ?: return
+        val now = System.currentTimeMillis()
         profileDao.insert(
             existing.copy(
+                isArchived = true,
+                deletedAt = now,
                 syncStatus = SyncStatus.SYNCED,
-                updatedAt = System.currentTimeMillis(),
+                updatedAt = now,
             ),
         )
     }
 
     override suspend fun ensureMigrated(userId: String): CompensationProfile? {
-        return try {
-            val settings = settingsRepository.getSettings(userId) ?: return null
-            if (!settings.onboardingCompleted) return null
-            val existing = getProfiles(userId).filter { !it.isArchived }
-            if (existing.isNotEmpty()) {
-                return existing.firstOrNull { it.isDefault } ?: existing.first()
-            }
+        return migrationMutex.withLock {
+            try {
+                val settings = settingsRepository.getSettings(userId) ?: return@withLock null
+                if (!settings.onboardingCompleted) return@withLock null
+                val existing = getProfiles(userId).filter { !it.isArchived }
+                if (existing.isNotEmpty()) {
+                    return@withLock existing.firstOrNull { it.isDefault } ?: existing.first()
+                }
 
-            val now = Instant.now()
-            val migration = CompensationResolver.buildMigrationProfile(userId, settings).copy(
-                id = UUID.randomUUID().toString(),
-                createdAt = now,
-                updatedAt = now,
-            )
-            val saved = upsertProfile(migration)
-            val updates = CompensationResolver.profileToLegacySettingsUpdates(saved)
-            val updated = settings.apply(updates).copy(updatedAt = now)
-            settingsRepository.saveSettings(updated)
-            saved
-        } catch (e: Exception) {
-            Log.w(TAG, "Compensation profile migration failed for user $userId", e)
-            null
+                val now = Instant.now()
+                val migration = CompensationResolver.buildMigrationProfile(userId, settings).copy(
+                    id = UUID.randomUUID().toString(),
+                    createdAt = now,
+                    updatedAt = now,
+                )
+                val saved = upsertProfile(migration)
+                val updates = CompensationResolver.profileToLegacySettingsUpdates(saved)
+                val updated = settings.apply(updates).copy(updatedAt = now)
+                settingsRepository.saveSettings(updated)
+                saved
+            } catch (e: Exception) {
+                Log.w(TAG, "Compensation profile migration failed for user $userId", e)
+                null
+            }
         }
     }
 

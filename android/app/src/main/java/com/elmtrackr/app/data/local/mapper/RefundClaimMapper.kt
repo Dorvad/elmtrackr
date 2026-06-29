@@ -22,7 +22,7 @@ fun RefundClaimEntity.toDomain(): RefundClaim = RefundClaim(
 )
 
 fun RefundClaim.toEntity(
-    syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    syncStatus: SyncStatus = SyncStatus.SYNCED,
     remoteId: String? = null,
     deletedAt: Long? = null,
     lastSyncError: String? = null,

@@ -29,7 +29,7 @@ fun ShiftEntity.toDomain(): Shift = Shift(
 )
 
 fun Shift.toEntity(
-    syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    syncStatus: SyncStatus = SyncStatus.SYNCED,
     remoteId: String? = null,
     deletedAt: Long? = null,
     lastSyncError: String? = null,
