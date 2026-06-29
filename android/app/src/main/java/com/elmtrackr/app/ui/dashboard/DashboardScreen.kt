@@ -1624,6 +1624,8 @@ internal fun DashboardReadyPreview(
         onEditStartTime = { _, _ -> },
         onTriggerSync = {},
         onNavigateToReports = onNavigateToReports,
+        onSelectTask = {},
+        onManageTasks = {},
         showFirstClockInCelebration = false,
         onDismissFirstClockInCelebration = {},
     )
