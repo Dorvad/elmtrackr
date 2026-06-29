@@ -161,6 +161,7 @@ class SettingsViewModelTest {
                 paidProjects = true,
                 insights = true,
                 clockStyles = false,
+                overtimeReminders = true,
             ),
         )
         advanceUntilIdle()
@@ -283,6 +284,18 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(true, repo.getSettings("u1")?.featuresClockStyles)
+    }
+
+    @Test
+    fun `updateFeatureFlag OVERTIME_REMINDERS saves immediately`() = runTest {
+        val vm = buildVm()
+        repo.setSettings(defaultSettings().copy(featuresOvertimeReminders = true))
+        advanceUntilIdle()
+
+        vm.updateFeatureFlag(FeatureFlag.OVERTIME_REMINDERS, false)
+        advanceUntilIdle()
+
+        assertEquals(false, repo.getSettings("u1")?.featuresOvertimeReminders)
     }
 
     // ── Weekend days ──────────────────────────────────────────────────────────

@@ -46,7 +46,7 @@ class ActiveShiftNotificationLogicTest {
         assertTrue(
             ActiveShiftNotificationManager.isShiftOverThreshold(
                 startTime,
-                LongShiftReminderWorker.FALLBACK_THRESHOLD_MINUTES,
+                OvertimeReminderPolicy.FALLBACK_THRESHOLD_MINUTES,
             ),
         )
     }

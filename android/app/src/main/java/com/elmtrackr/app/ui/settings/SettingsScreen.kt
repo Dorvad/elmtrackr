@@ -217,6 +217,7 @@ private fun SettingsContent(
     var travelRefunds by remember(state.settings.featuresTravelRefunds)          { mutableStateOf(state.settings.featuresTravelRefunds) }
     var insights      by remember(state.settings.featuresInsights)               { mutableStateOf(state.settings.featuresInsights) }
     var clockStyles   by remember(state.settings.featuresClockStyles)            { mutableStateOf(state.settings.featuresClockStyles) }
+    var overtimeReminders by remember(state.settings.featuresOvertimeReminders) { mutableStateOf(state.settings.featuresOvertimeReminders) }
     var weekendDays   by remember(state.settings.weekendDays)                    { mutableStateOf(state.settings.weekendDays) }
 
     var appearanceExpanded by rememberSaveable { mutableStateOf(false) }
@@ -256,6 +257,7 @@ private fun SettingsContent(
                 paidProjects = state.settings.featuresPaidProjects,
                 insights = insights,
                 clockStyles = clockStyles,
+                overtimeReminders = overtimeReminders,
             ),
         )
     }
@@ -270,7 +272,8 @@ private fun SettingsContent(
         weekendDays.sorted() != state.settings.weekendDays.sorted() ||
         travelRefunds != state.settings.featuresTravelRefunds ||
         insights != state.settings.featuresInsights ||
-        clockStyles != state.settings.featuresClockStyles
+        clockStyles != state.settings.featuresClockStyles ||
+        overtimeReminders != state.settings.featuresOvertimeReminders
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -437,7 +440,7 @@ private fun SettingsContent(
             item {
                 CollapsibleSettingsSection(
                     title = "Features",
-                    summary = featuresSummary(travelRefunds, insights, clockStyles),
+                    summary = featuresSummary(travelRefunds, insights, clockStyles, overtimeReminders),
                     expanded = featuresExpanded,
                     onExpandedChange = { featuresExpanded = it },
                 ) {
@@ -458,6 +461,12 @@ private fun SettingsContent(
                         description   = "Choose from different clock display styles",
                         checked       = clockStyles,
                         onCheckedChange = { clockStyles = it },
+                    )
+                    ToggleRow(
+                        title         = "Overtime Reminders",
+                        description   = "Notify 30 minutes before overtime and hourly while in overtime",
+                        checked       = overtimeReminders,
+                        onCheckedChange = { overtimeReminders = it },
                     )
                 }
             }
@@ -528,11 +537,13 @@ private fun featuresSummary(
     travelRefunds: Boolean,
     insights: Boolean,
     clockStyles: Boolean,
+    overtimeReminders: Boolean,
 ): String {
     val enabled = listOfNotNull(
         "Travel Refunds".takeIf { travelRefunds },
         "Insights".takeIf { insights },
         "Clock Styles".takeIf { clockStyles },
+        "Overtime Reminders".takeIf { overtimeReminders },
     )
     return when (enabled.size) {
         0 -> "No optional features enabled"

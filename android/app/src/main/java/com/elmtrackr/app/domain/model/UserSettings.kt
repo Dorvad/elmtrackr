@@ -28,6 +28,7 @@ data class UserSettings(
     val featuresPaidProjects: Boolean = false,
     val featuresInsights: Boolean = true,
     val featuresClockStyles: Boolean = true,
+    val featuresOvertimeReminders: Boolean = true,
     val clockStyle: ClockStyle = ClockStyle.CLASSIC,
     val createdAt: Instant = Instant.EPOCH,
     val updatedAt: Instant = Instant.EPOCH,

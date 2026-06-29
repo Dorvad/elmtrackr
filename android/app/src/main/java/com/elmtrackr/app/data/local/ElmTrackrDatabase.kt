@@ -30,7 +30,7 @@ import com.elmtrackr.app.data.local.entity.TaskEntity
         CompensationProfileEntity::class,
         TaskEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -54,7 +54,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     context.applicationContext,
                     ElmTrackrDatabase::class.java,
                     "elmtrackr.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { INSTANCE = it }
             }
@@ -129,6 +129,14 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     """.trimIndent(),
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_userId ON tasks(userId)")
+            }
+        }
+
+        internal val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE user_settings ADD COLUMN featuresOvertimeReminders INTEGER NOT NULL DEFAULT 1",
+                )
             }
         }
     }

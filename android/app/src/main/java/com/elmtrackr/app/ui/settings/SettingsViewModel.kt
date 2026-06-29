@@ -28,13 +28,14 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
 import kotlin.math.roundToInt
 
-enum class FeatureFlag { TRAVEL_REFUNDS, PAID_PROJECTS, INSIGHTS, CLOCK_STYLES }
+enum class FeatureFlag { TRAVEL_REFUNDS, PAID_PROJECTS, INSIGHTS, CLOCK_STYLES, OVERTIME_REMINDERS }
 
 data class SettingsFeatureFlags(
     val travelRefunds: Boolean,
     val paidProjects: Boolean,
     val insights: Boolean,
     val clockStyles: Boolean,
+    val overtimeReminders: Boolean,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -174,6 +175,7 @@ class SettingsViewModel(
                 paidProjects = existing.featuresPaidProjects,
                 insights = existing.featuresInsights,
                 clockStyles = existing.featuresClockStyles,
+                overtimeReminders = existing.featuresOvertimeReminders,
             )
             val normalizedTimezone = IanaTimezones.normalize(timezone.trim())
             val savedSettings = existing.copy(
@@ -188,6 +190,7 @@ class SettingsViewModel(
                 featuresPaidProjects = flags.paidProjects,
                 featuresInsights = flags.insights,
                 featuresClockStyles = flags.clockStyles,
+                featuresOvertimeReminders = flags.overtimeReminders,
                 updatedAt = Instant.now(),
             )
             settingsRepository.saveSettings(savedSettings)
@@ -263,6 +266,7 @@ class SettingsViewModel(
                 FeatureFlag.PAID_PROJECTS -> existing.copy(featuresPaidProjects = enabled)
                 FeatureFlag.INSIGHTS -> existing.copy(featuresInsights = enabled)
                 FeatureFlag.CLOCK_STYLES -> existing.copy(featuresClockStyles = enabled)
+                FeatureFlag.OVERTIME_REMINDERS -> existing.copy(featuresOvertimeReminders = enabled)
             }
             settingsRepository.saveSettings(updated.copy(updatedAt = Instant.now()))
         }

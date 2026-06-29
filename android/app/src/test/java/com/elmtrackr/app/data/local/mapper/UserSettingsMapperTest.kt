@@ -35,6 +35,7 @@ class UserSettingsMapperTest {
         featuresPaidProjects = false,
         featuresInsights = true,
         featuresClockStyles = true,
+        featuresOvertimeReminders = true,
         clockStyle = clockStyle,
         createdAt = 0L,
         updatedAt = 0L,

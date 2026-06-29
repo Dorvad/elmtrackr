@@ -23,8 +23,9 @@ import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.PreferencesCurrentUserProvider
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.notification.ActiveShiftNotificationManager
-import com.elmtrackr.app.notification.LongShiftReminderWorker
+import com.elmtrackr.app.notification.OvertimeReminderScheduler
 import com.elmtrackr.app.notification.NotificationChannels
 import com.elmtrackr.app.shortcuts.HeadlessTrampolineActivity
 import com.elmtrackr.app.widget.ElmTrackrWidgetUpdater
@@ -34,15 +35,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ElmTrackrApp : Application() {
@@ -146,24 +144,26 @@ class ElmTrackrApp : Application() {
             currentUserProvider.userId
                 .filterNotNull()
                 .flatMapLatest { userId: String ->
-                    shiftsRepository.observeActiveShift(userId).map { active: Shift? ->
-                        userId to active
+                    combine(
+                        shiftsRepository.observeActiveShift(userId),
+                        settingsRepository.observeSettings(userId),
+                    ) { active: Shift?, settings ->
+                        Triple(userId, active, settings)
                     }
                 }
                 .catch { /* never crash the app due to notification failures */ }
-                .collect { payload: Pair<String, Shift?> ->
+                .collect { payload: Triple<String, Shift?, UserSettings?> ->
                     val userId = payload.first
                     val shift = payload.second
+                    val settings = payload.third
                     if (shift != null) {
                         notifManager.showActiveShiftNotification(shift)
-                        val settings = settingsRepository.getSettings(userId)
-                        val delayMinutes = settings?.dailyOvertimeThresholdMinutes?.toLong()
-                            ?: LongShiftReminderWorker.FALLBACK_THRESHOLD_MINUTES
-                        scheduleReminder(delayMinutes)
+                        OvertimeReminderScheduler.scheduleForActiveShift(this@ElmTrackrApp, shift, settings)
                         updateDynamicShortcuts(clockedIn = true)
                     } else {
                         notifManager.cancelActiveShiftNotification()
-                        cancelReminder()
+                        notifManager.cancelReminderNotification()
+                        OvertimeReminderScheduler.cancelAll(this@ElmTrackrApp)
                         updateDynamicShortcuts(clockedIn = false)
                     }
                     val lastCompleted = shiftsRepository
@@ -175,7 +175,6 @@ class ElmTrackrApp : Application() {
                     val todayShifts = shiftsRepository
                         .observeShiftsByMonth(userId, today.year, today.monthValue)
                         .first()
-                    val settings = settingsRepository.getSettings(userId)
                     ElmTrackrWidgetUpdater.update(
                         this@ElmTrackrApp,
                         shift,
@@ -194,21 +193,6 @@ class ElmTrackrApp : Application() {
                     )
                 }
         }
-    }
-
-    private fun scheduleReminder(delayMinutes: Long) {
-        WorkManager.getInstance(this).enqueueUniqueWork(
-            LongShiftReminderWorker.WORK_NAME,
-            ExistingWorkPolicy.KEEP,
-            OneTimeWorkRequestBuilder<LongShiftReminderWorker>()
-                .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
-                .addTag(LongShiftReminderWorker.WORK_NAME)
-                .build(),
-        )
-    }
-
-    private fun cancelReminder() {
-        WorkManager.getInstance(this).cancelUniqueWork(LongShiftReminderWorker.WORK_NAME)
     }
 
     fun refreshDynamicShortcuts() {
