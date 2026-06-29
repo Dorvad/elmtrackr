@@ -165,8 +165,10 @@ internal fun ShiftsHeroSummaryCard(
     val weekendMin = report?.weekendMinutes ?: 0
     val categoryTotal = (regularMin + overtimeMin + weekendMin).coerceAtLeast(1)
 
-    val pay = settings?.hourlyRate?.takeIf { it > 0 }?.let {
-        PayrollCalculator.sumMonthlyPay(completed, settings).totalGross
+    val pay = settings?.let { s ->
+        val hasRate = (s.hourlyRate ?: 0.0) > 0.0 ||
+            profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
+        if (hasRate) PayrollCalculator.sumMonthlyPay(completed, s, profiles).totalGross else null
     }
 
     val currency = settings?.currency ?: CurrencyCode.ILS
