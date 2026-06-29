@@ -20,8 +20,8 @@ android {
         applicationId = "com.elmlaunch.myapp"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "1.0.6"
+        versionCode = 9
+        versionName = "1.0.7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")
