@@ -39,6 +39,10 @@ class LocalShiftsRepository(
         taskIconSnapshot: String?,
         taskHourlyRateSnapshot: Double?,
     ): Shift {
+        shiftDao.getActiveShifts(userId).maxByOrNull { it.startTime }?.let { activeShift ->
+            return activeShift.toDomain()
+        }
+
         val now = Instant.now().toEpochMilli()
         val entity = ShiftEntity(
             localId = UUID.randomUUID().toString(),

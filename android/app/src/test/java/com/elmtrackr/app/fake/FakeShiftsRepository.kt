@@ -33,6 +33,8 @@ class FakeShiftsRepository : ShiftsRepository {
         taskIconSnapshot: String?,
         taskHourlyRateSnapshot: Double?,
     ): Shift {
+        _shifts.value.firstOrNull { it.userId == userId && it.isActive }?.let { return it }
+
         val shift = Shift(
             id = "fake-${_shifts.value.size}",
             userId = userId,
