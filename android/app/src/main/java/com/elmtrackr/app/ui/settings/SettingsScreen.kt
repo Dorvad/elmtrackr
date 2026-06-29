@@ -2,16 +2,12 @@
 
 package com.elmtrackr.app.ui.settings
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,20 +19,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.draw.clip
@@ -47,13 +39,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,8 +56,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import com.elmtrackr.app.BuildConfig
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -91,14 +77,6 @@ import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
-import com.elmtrackr.app.ui.components.states.LoadingState
-import androidx.compose.foundation.layout.widthIn
-import com.elmtrackr.app.ui.design.ElmCard
-import com.elmtrackr.app.ui.design.ElmSectionHeader
-import com.elmtrackr.app.ui.design.ElmGradientButton
-import com.elmtrackr.app.ui.theme.AuroraFaint
-import com.elmtrackr.app.ui.theme.AuroraIndigo
-import com.elmtrackr.app.ui.theme.AuroraInk2
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.ui.theme.Spacing
 import java.time.Instant
@@ -162,8 +140,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.screenH),
             ) {
-                Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = Spacing.lg))
-                Spacer(Modifier.height(Spacing.md))
+                SettingsPageHeader()
                 SettingsSkeleton()
             }
             is SettingsUiState.Ready -> SettingsContent(
@@ -262,94 +239,59 @@ private fun SettingsContent(
         )
     }
 
-    val isDirty = displayName.trim() != (state.profile?.fullName ?: "").trim() ||
-        dailyOtText != minutesToHours(state.settings.dailyOvertimeThresholdMinutes) ||
-        weeklyOtText != minutesToHours(state.settings.weeklyOvertimeThresholdMinutes) ||
-        hourlyRateText != (state.settings.hourlyRate?.toString() ?: "") ||
-        timezone != state.settings.timezone ||
-        clockStyle != supportedClockStyleOf(state.settings.clockStyle) ||
-        currency != state.settings.currency ||
-        weekendDays.sorted() != state.settings.weekendDays.sorted() ||
-        travelRefunds != state.settings.featuresTravelRefunds ||
-        insights != state.settings.featuresInsights ||
-        clockStyles != state.settings.featuresClockStyles ||
-        overtimeReminders != state.settings.featuresOvertimeReminders
+    val unsavedCount = listOf(
+        displayName.trim() != (state.profile?.fullName ?: "").trim(),
+        dailyOtText != minutesToHours(state.settings.dailyOvertimeThresholdMinutes),
+        weeklyOtText != minutesToHours(state.settings.weeklyOvertimeThresholdMinutes),
+        hourlyRateText != (state.settings.hourlyRate?.toString() ?: ""),
+        timezone != state.settings.timezone,
+        clockStyle != supportedClockStyleOf(state.settings.clockStyle),
+        currency != state.settings.currency,
+        weekendDays.sorted() != state.settings.weekendDays.sorted(),
+        travelRefunds != state.settings.featuresTravelRefunds,
+        insights != state.settings.featuresInsights,
+        clockStyles != state.settings.featuresClockStyles,
+        overtimeReminders != state.settings.featuresOvertimeReminders,
+    ).count { it }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            AnimatedVisibility(visible = isDirty) {
-                Surface(
-                    tonalElevation = 3.dp,
-                    shadowElevation = 8.dp,
-                    color = MaterialTheme.colorScheme.surface,
-                ) {
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Spacing.screenH, vertical = 12.dp),
-                    ) {
-                        Text(
-                            "You have unsaved changes",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        ElmGradientButton(
-                            onClick = saveAction,
-                            enabled = !state.isSaving,
-                            accessibilityLabel = "Save settings",
-                        ) {
-                            Text(if (state.isSaving) "Saving..." else "Save Settings", fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
-            }
-        },
-    ) { innerPadding ->
+    val themeLabel = THEME_OPTIONS.firstOrNull { it.first == state.selectedTheme }?.second ?: state.selectedTheme
+
+    Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = Spacing.screenH),
-            verticalArrangement = Arrangement.spacedBy(0.dp),
+                .padding(horizontal = Spacing.screenH)
+                .padding(bottom = if (unsavedCount > 0) 88.dp else 32.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            item { Spacer(Modifier.height(Spacing.lg)) }
+            item { SettingsPageHeader() }
             item {
-                Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            }
-            item {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Theme saves immediately. Everything else uses the save bar when you have unsaved changes.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                SettingsProfileHeroCard(
+                    displayName = displayName,
+                    email = state.profile?.email,
+                    themeLabel = themeLabel,
+                    hourlyRate = hourlyRateText.toDoubleOrNull(),
+                    currency = currency,
                 )
             }
-            item { Spacer(Modifier.height(Spacing.md)) }
 
             item {
-                SettingsSectionCard("Profile") {
+                SettingsSectionCard(title = "PROFILE") {
                     OutlinedTextField(
-                        value         = displayName,
+                        value = displayName,
                         onValueChange = { displayName = it },
-                        label         = { Text("Display name") },
-                        singleLine    = true,
-                        modifier      = Modifier.fillMaxWidth(),
+                        label = { Text("Display name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(CornerRadius.Medium),
                     )
-                    state.profile?.let { profile ->
-                        Spacer(Modifier.height(8.dp))
-                        Text(profile.email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
                 }
             }
 
             item {
-                CollapsibleSettingsSection(
-                    title = "Appearance",
+                SettingsCollapsibleCard(
+                    title = "APPEARANCE",
                     summary = appearanceSummary(state.selectedTheme, clockStyle, clockStyles),
                     expanded = appearanceExpanded,
                     onExpandedChange = { appearanceExpanded = it },
@@ -360,15 +302,17 @@ private fun SettingsContent(
                         ClockStyleDropdown(selected = clockStyle, onSelect = { clockStyle = it })
                     }
                     Spacer(Modifier.height(12.dp))
-                    OutlinedButton(onClick = onReplayOnboarding, modifier = Modifier.fillMaxWidth()) {
-                        Text("Review feature setup")
-                    }
+                    SettingsNavRow(
+                        title = "Review feature setup",
+                        subtitle = "Replay onboarding and feature choices",
+                        onClick = onReplayOnboarding,
+                    )
                 }
             }
 
             item {
-                CollapsibleSettingsSection(
-                    title = "Payroll",
+                SettingsCollapsibleCard(
+                    title = "PAYROLL",
                     summary = payrollSummary(
                         hourlyRateText = hourlyRateText,
                         currency = currency,
@@ -380,48 +324,46 @@ private fun SettingsContent(
                     expanded = payrollExpanded,
                     onExpandedChange = { payrollExpanded = it },
                 ) {
-                    OutlinedButton(onClick = onOpenCompensation, modifier = Modifier.fillMaxWidth()) {
-                        Text("Compensation rules")
-                    }
+                    SettingsNavRow(
+                        title = "Compensation rules",
+                        subtitle = "Region presets, overtime tiers, and premiums",
+                        onClick = onOpenCompensation,
+                    )
                     Spacer(Modifier.height(8.dp))
-                    OutlinedButton(onClick = onOpenTasks, modifier = Modifier.fillMaxWidth()) {
-                        Text("Tasks")
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Configure region presets, overtime tiers, premiums, and currency for pay estimates.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    SettingsNavRow(
+                        title = "Tasks",
+                        subtitle = "Optional task labels for clock-in",
+                        onClick = onOpenTasks,
                     )
                     Spacer(Modifier.height(16.dp))
-                    PayrollSubsectionTitle("Pay rate")
+                    SettingsSubsectionLabel("Pay rate")
                     Spacer(Modifier.height(8.dp))
                     HoursField(
-                        label         = "Hourly rate",
-                        value         = hourlyRateText,
+                        label = "Hourly rate",
+                        value = hourlyRateText,
                         onValueChange = { hourlyRateText = it },
-                        error         = state.validationErrors["hourlyRate"],
+                        error = state.validationErrors["hourlyRate"],
                     )
                     Spacer(Modifier.height(12.dp))
                     CurrencyDropdown(selected = currency, onSelect = { currency = it })
                     Spacer(Modifier.height(16.dp))
-                    PayrollSubsectionTitle("Overtime thresholds")
+                    SettingsSubsectionLabel("Overtime thresholds")
                     Spacer(Modifier.height(8.dp))
                     HoursField(
-                        label         = "Daily overtime (hours)",
-                        value         = dailyOtText,
+                        label = "Daily overtime (hours)",
+                        value = dailyOtText,
                         onValueChange = { dailyOtText = it },
-                        error         = state.validationErrors["dailyOt"],
+                        error = state.validationErrors["dailyOt"],
                     )
                     Spacer(Modifier.height(8.dp))
                     HoursField(
-                        label         = "Weekly overtime (hours)",
-                        value         = weeklyOtText,
+                        label = "Weekly overtime (hours)",
+                        value = weeklyOtText,
                         onValueChange = { weeklyOtText = it },
-                        error         = state.validationErrors["weeklyOt"],
+                        error = state.validationErrors["weeklyOt"],
                     )
                     Spacer(Modifier.height(16.dp))
-                    PayrollSubsectionTitle("Weekend days")
+                    SettingsSubsectionLabel("Weekend days")
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "Selected days count as weekends for overtime and reports.",
@@ -431,57 +373,61 @@ private fun SettingsContent(
                     Spacer(Modifier.height(8.dp))
                     WeekendDaysSelector(selected = weekendDays, onChange = { weekendDays = it })
                     Spacer(Modifier.height(16.dp))
-                    PayrollSubsectionTitle("Location")
+                    SettingsSubsectionLabel("Location")
                     Spacer(Modifier.height(8.dp))
                     IanaTimezonePicker(selected = timezone, onSelect = { timezone = it })
                 }
             }
 
             item {
-                CollapsibleSettingsSection(
-                    title = "Features",
+                SettingsCollapsibleCard(
+                    title = "FEATURES",
                     summary = featuresSummary(travelRefunds, insights, clockStyles, overtimeReminders),
                     expanded = featuresExpanded,
                     onExpandedChange = { featuresExpanded = it },
                 ) {
-                    ToggleRow(
-                        title         = "Travel Refunds",
-                        description   = "Track and manage travel refund claims",
-                        checked       = travelRefunds,
+                    SettingsToggleRow(
+                        title = "Travel refunds",
+                        description = "Track and manage travel refund claims",
+                        checked = travelRefunds,
                         onCheckedChange = { travelRefunds = it },
                     )
-                    ToggleRow(
-                        title         = "Insights",
-                        description   = "View trends and patterns in your work history",
-                        checked       = insights,
+                    SettingsToggleRow(
+                        title = "Insights",
+                        description = "View trends and patterns in your work history",
+                        checked = insights,
                         onCheckedChange = { insights = it },
                     )
-                    ToggleRow(
-                        title         = "Clock Styles",
-                        description   = "Choose from different clock display styles",
-                        checked       = clockStyles,
+                    SettingsToggleRow(
+                        title = "Clock styles",
+                        description = "Choose from different clock display styles",
+                        checked = clockStyles,
                         onCheckedChange = { clockStyles = it },
                     )
-                    ToggleRow(
-                        title         = "Overtime Reminders",
-                        description   = "Notify 30 minutes before overtime and hourly while in overtime",
-                        checked       = overtimeReminders,
+                    SettingsToggleRow(
+                        title = "Overtime reminders",
+                        description = "Notify 30 minutes before overtime and hourly while in overtime",
+                        checked = overtimeReminders,
                         onCheckedChange = { overtimeReminders = it },
                     )
                 }
             }
 
             item {
-                SettingsSectionCard("About & Legal") {
-                    InfoRow("Version", BuildConfig.VERSION_NAME)
+                SettingsSectionCard(title = "ABOUT & LEGAL") {
+                    SettingsInfoRow("Version", BuildConfig.VERSION_NAME)
                     Spacer(Modifier.height(8.dp))
-                    OutlinedButton(onClick = onOpenPrivacy, modifier = Modifier.fillMaxWidth()) {
-                        Text("Privacy Policy")
-                    }
+                    SettingsNavRow(
+                        title = "Privacy Policy",
+                        subtitle = "How we handle your data",
+                        onClick = onOpenPrivacy,
+                    )
                     Spacer(Modifier.height(8.dp))
-                    OutlinedButton(onClick = onOpenTerms, modifier = Modifier.fillMaxWidth()) {
-                        Text("Terms of Service")
-                    }
+                    SettingsNavRow(
+                        title = "Terms of Service",
+                        subtitle = "Usage terms and conditions",
+                        onClick = onOpenTerms,
+                    )
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "Support: ${LegalDocuments.CONTACT_EMAIL}",
@@ -493,20 +439,32 @@ private fun SettingsContent(
 
             if (authState != null) {
                 item {
-                    SettingsSectionCard("Account") {
+                    SettingsSectionCard(title = "ACCOUNT") {
                         AccountSection(
-                            authState       = authState,
+                            authState = authState,
                             passwordResetFeedback = state.passwordResetFeedback,
                             isDeletingAccount = state.isDeletingAccount,
                             onResetPassword = onResetPassword,
-                            onSignOut       = onSignOut,
+                            onSignOut = onSignOut,
                             onDeleteAccount = onDeleteAccount,
                         )
                     }
                 }
             }
+        }
 
-            item { Spacer(Modifier.height(if (isDirty) 96.dp else 32.dp)) }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+
+        if (unsavedCount > 0) {
+            SettingsFloatingSaveBar(
+                unsavedCount = unsavedCount,
+                isSaving = state.isSaving,
+                onSave = saveAction,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
     }
 }
@@ -552,82 +510,7 @@ private fun featuresSummary(
     }
 }
 
-@Composable
-private fun PayrollSubsectionTitle(title: String) {
-    Text(
-        title,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.SemiBold,
-    )
-}
-
-@Composable
-private fun CollapsibleSettingsSection(
-    title: String,
-    summary: String,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    ElmCard(modifier = Modifier.padding(bottom = 12.dp)) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(CornerRadius.Small))
-                    .clickable { onExpandedChange(!expanded) }
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                    ElmSectionHeader(title, modifier = Modifier.fillMaxWidth())
-                    AnimatedVisibility(
-                        visible = !expanded,
-                        enter = expandVertically(),
-                        exit = shrinkVertically(),
-                    ) {
-                        Text(
-                            summary,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
-                }
-                Icon(
-                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                    contentDescription = if (expanded) "Collapse $title" else "Expand $title",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically(),
-                exit = shrinkVertically(),
-            ) {
-                Column {
-                    Spacer(Modifier.height(12.dp))
-                    content()
-                }
-            }
-        }
-    }
-}
-
-// â”€â”€ Section card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-@Composable
-private fun SettingsSectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    ElmCard(modifier = Modifier.padding(bottom = 12.dp)) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            ElmSectionHeader(title, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(12.dp))
-            content()
-        }
-    }
-}
-
-// â”€â”€ Theme / clock dropdowns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Theme / clock dropdowns ─────────────────────────────────────────────────
 
 @Composable
 private fun ThemeDropdown(selected: String, onSelect: (String) -> Unit) {
@@ -959,51 +842,7 @@ private fun WeekendDayChip(
     )
 }
 
-// â”€â”€ Toggle row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-@Composable
-private fun ToggleRow(
-    title: String,
-    description: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    enabled: Boolean = true,
-) {
-    Row(
-        modifier          = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-            )
-            Text(
-                description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.5f),
-            )
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
-    }
-}
-
-// â”€â”€ Info row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(
-        modifier              = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment     = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
-    }
-}
-
-// â”€â”€ Account section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Account section ─────────────────────────────────────────────────────────
 
 @Composable
 private fun AccountSection(

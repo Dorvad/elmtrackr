@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -24,12 +23,13 @@ import com.elmtrackr.app.ui.theme.Spacing
 fun SettingsSkeleton(modifier: Modifier = Modifier) {
     val shimmer = rememberShimmerBrush()
     Column(
-        modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.md),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        ShimmerBlock(width = 120.dp, height = 32.dp, corner = CornerRadius.Small, brush = shimmer)
+        ShimmerBlock(width = 140.dp, height = 36.dp, corner = CornerRadius.Small, brush = shimmer)
+        ShimmerBlock(modifier = Modifier.fillMaxWidth(), height = 96.dp, corner = CornerRadius.Large, brush = shimmer)
         repeat(4) {
-            ShimmerBlock(modifier = Modifier.fillMaxWidth(), height = 120.dp, corner = CornerRadius.Large, brush = shimmer)
+            ShimmerBlock(modifier = Modifier.fillMaxWidth(), height = 72.dp, corner = CornerRadius.Large, brush = shimmer)
         }
         Spacer(Modifier.height(Spacing.sm))
     }
