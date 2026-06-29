@@ -121,6 +121,8 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.play.services.wearable)
+    implementation(libs.play.app.update)
+    implementation(libs.play.app.update.ktx)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
