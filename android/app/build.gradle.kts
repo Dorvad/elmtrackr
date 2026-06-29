@@ -26,11 +26,6 @@ android {
 
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("supabase.anon.key", "")}\"")
-        buildConfigField(
-            "String",
-            "WEB_APP_URL",
-            "\"${localProps.getProperty("web.app.url", "")}\"",
-        )
 
         vectorDrawables {
             useSupportLibrary = true

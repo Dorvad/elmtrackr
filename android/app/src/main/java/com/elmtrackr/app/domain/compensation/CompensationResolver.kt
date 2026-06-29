@@ -79,7 +79,8 @@ object CompensationResolver {
             else -> {
                 val profileId = shift.compensationProfileId ?: settings.defaultCompensationProfileId
                 if (profileId != null) {
-                    profiles.firstOrNull { it.id == profileId }?.let { return profileToResolved(it) }
+                    profiles.firstOrNull { it.id == profileId || it.remoteId == profileId }
+                        ?.let { return profileToResolved(it) }
                 }
                 legacySettingsToResolved(settings)
             }

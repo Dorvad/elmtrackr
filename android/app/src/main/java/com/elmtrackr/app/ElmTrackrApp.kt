@@ -10,26 +10,18 @@ import com.elmtrackr.app.data.local.ElmTrackrDatabase
 import com.elmtrackr.app.data.local.LegacyDataAdopter
 import com.elmtrackr.app.data.local.LocalUserDataCleaner
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
-import com.elmtrackr.app.data.remote.RemoteCompensationProfilesDataSource
-import com.elmtrackr.app.data.remote.SupabaseProfileDataSource
-import com.elmtrackr.app.data.remote.SupabaseRefundsDataSource
 import com.elmtrackr.app.data.remote.SupabaseRefundReceiptStorage
-import com.elmtrackr.app.data.remote.SupabaseSettingsDataSource
-import com.elmtrackr.app.data.remote.SupabaseShiftsDataSource
 import com.elmtrackr.app.data.receipts.RefundReceiptPhotoCleanupWorker
 import com.elmtrackr.app.data.repository.LocalCompensationProfilesRepository
 import com.elmtrackr.app.data.repository.LocalRefundsRepository
 import com.elmtrackr.app.data.repository.LocalReportsRepository
 import com.elmtrackr.app.data.repository.LocalSettingsRepository
 import com.elmtrackr.app.data.repository.LocalShiftsRepository
-import com.elmtrackr.app.data.remote.RemoteTasksDataSource
 import com.elmtrackr.app.data.repository.LocalTasksRepository
 import com.elmtrackr.app.data.repository.SupabaseAuthRepository
-import com.elmtrackr.app.data.repository.SyncRepositoryImpl
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.PreferencesCurrentUserProvider
 import com.elmtrackr.app.domain.repository.AuthRepository
-import com.elmtrackr.app.domain.repository.SyncRepository
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.notification.ActiveShiftNotificationManager
 import com.elmtrackr.app.notification.LongShiftReminderWorker
@@ -37,8 +29,6 @@ import com.elmtrackr.app.notification.NotificationChannels
 import com.elmtrackr.app.shortcuts.HeadlessTrampolineActivity
 import com.elmtrackr.app.widget.ElmTrackrWidgetUpdater
 import com.elmtrackr.app.wear.WearSyncPublisher
-import com.elmtrackr.app.sync.SyncScheduler
-import com.elmtrackr.app.util.NetworkMonitor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -61,8 +51,6 @@ class ElmTrackrApp : Application() {
 
     val appPreferences: AppPreferencesRepository by lazy { AppPreferencesRepository(this) }
 
-    val networkMonitor: NetworkMonitor by lazy { NetworkMonitor(this) }
-
     val currentUserProvider: CurrentUserProvider by lazy {
         PreferencesCurrentUserProvider(appPreferences)
     }
@@ -71,30 +59,10 @@ class ElmTrackrApp : Application() {
         LegacyDataAdopter(database, appPreferences)
     }
 
-    private val syncScheduler: SyncScheduler by lazy { SyncScheduler(this) }
-
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    val syncRepository: SyncRepository by lazy {
-        val client = SupabaseClientProvider.get()
-        SyncRepositoryImpl(
-            shiftDao = database.shiftDao(),
-            refundClaimDao = database.refundClaimDao(),
-            settingsDao = database.settingsDao(),
-            profileDao = database.profileDao(),
-            compensationProfileDao = database.compensationProfileDao(),
-            taskDao = database.taskDao(),
-            remoteShifts = client?.let { SupabaseShiftsDataSource(it) },
-            remoteRefunds = client?.let { SupabaseRefundsDataSource(it) },
-            remoteSettings = client?.let { SupabaseSettingsDataSource(it) },
-            remoteProfile = client?.let { SupabaseProfileDataSource(it) },
-            remoteCompensationProfiles = client?.let { RemoteCompensationProfilesDataSource(it) },
-            remoteTasks = client?.let { RemoteTasksDataSource(it) },
-        )
-    }
-
     val tasksRepository: LocalTasksRepository by lazy {
-        LocalTasksRepository(database.taskDao(), syncScheduler)
+        LocalTasksRepository(database.taskDao())
     }
 
     val compensationProfilesRepository: LocalCompensationProfilesRepository by lazy {
@@ -105,11 +73,11 @@ class ElmTrackrApp : Application() {
     }
 
     val shiftsRepository: LocalShiftsRepository by lazy {
-        LocalShiftsRepository(database.shiftDao(), syncScheduler)
+        LocalShiftsRepository(database.shiftDao())
     }
 
     val settingsRepository: LocalSettingsRepository by lazy {
-        LocalSettingsRepository(database.settingsDao(), syncScheduler)
+        LocalSettingsRepository(database.settingsDao())
     }
 
     val reportsRepository: LocalReportsRepository by lazy {
@@ -117,7 +85,7 @@ class ElmTrackrApp : Application() {
     }
 
     val refundsRepository: LocalRefundsRepository by lazy {
-        LocalRefundsRepository(database.refundClaimDao(), syncScheduler)
+        LocalRefundsRepository(database.refundClaimDao())
     }
 
     val refundReceiptStorage by lazy {
@@ -146,7 +114,6 @@ class ElmTrackrApp : Application() {
                     if (settings?.onboardingCompleted == true) {
                         compensationProfilesRepository.ensureMigrated(userId)
                     }
-                    syncRepository.syncAll(userId)
                 }
             }
         }
@@ -155,7 +122,6 @@ class ElmTrackrApp : Application() {
     override fun onCreate() {
         super.onCreate()
         NotificationChannels.createAll(this)
-        syncScheduler.schedulePeriodic()
         RefundReceiptPhotoCleanupWorker.schedule(this)
         startActiveShiftObserver()
         startWearSignOutObserver()
@@ -173,8 +139,6 @@ class ElmTrackrApp : Application() {
             }
         }
     }
-
-    // â”€â”€ Active-shift notification observer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun startActiveShiftObserver() {
         val notifManager = ActiveShiftNotificationManager(this)
@@ -254,7 +218,6 @@ class ElmTrackrApp : Application() {
             updateDynamicShortcuts(clockedIn = activeShift != null)
         }
     }
-    // Dynamic app shortcuts.
 
     private fun updateDynamicShortcuts(clockedIn: Boolean) {
         val shortcutManager = getSystemService(ShortcutManager::class.java) ?: return
@@ -278,4 +241,3 @@ class ElmTrackrApp : Application() {
         shortcutManager.dynamicShortcuts = listOf(shortcut)
     }
 }
-

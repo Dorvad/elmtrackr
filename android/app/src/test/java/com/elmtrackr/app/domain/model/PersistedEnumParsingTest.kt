@@ -30,4 +30,12 @@ class PersistedEnumParsingTest {
         assertEquals(RegionCode.GB, RegionCode.fromPersisted("gb"))
         assertEquals(RegionCode.IL, RegionCode.fromPersisted("unknown"))
     }
+
+    @Test
+    fun stackingPolicy_fromPersisted_handles_wire_values() {
+        assertEquals(StackingPolicy.ADDITIVE, StackingPolicy.fromPersisted("additive"))
+        assertEquals(StackingPolicy.ADDITIVE, StackingPolicy.fromPersisted("ADDITIVE"))
+        assertEquals(StackingPolicy.HIGHEST_ONLY, StackingPolicy.fromPersisted("highest_only"))
+        assertEquals(StackingPolicy.HIGHEST_ONLY, StackingPolicy.fromPersisted(null))
+    }
 }

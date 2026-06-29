@@ -4,11 +4,13 @@ import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.RegionCode
+import com.elmtrackr.app.domain.model.StackingPolicy
+import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
-import com.elmtrackr.app.fake.FakeNetworkMonitor
-import com.elmtrackr.app.fake.FakeSyncRepository
 import com.elmtrackr.app.fake.FakeThemePreferenceStore
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,15 +31,13 @@ class SettingsViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repo = FakeSettingsRepository()
-    private val syncRepo = FakeSyncRepository()
     private val authRepo = FakeAuthRepository().apply {
         setProfile(Profile("u1", "test@example.com", null, Instant.EPOCH, Instant.EPOCH))
     }
     private val themeStore = FakeThemePreferenceStore()
     private val compensationRepo = FakeCompensationProfilesRepository()
-    private val networkMonitor = FakeNetworkMonitor()
 
-    private fun buildVm() = SettingsViewModel(repo, syncRepo, authRepo, compensationRepo, themeStore, networkMonitor)
+    private fun buildVm() = SettingsViewModel(repo, authRepo, compensationRepo, themeStore)
 
     private fun defaultSettings() = UserSettings(
         id = "s1",
@@ -317,16 +317,7 @@ class SettingsViewModelTest {
         job.cancel()
     }
 
-    // ── Sync ──────────────────────────────────────────────────────────────────
-
-    @Test
-    fun `triggerSync calls syncRepository`() = runTest {
-        val vm = buildVm()
-        vm.triggerSync()
-        advanceUntilIdle()
-
-        assertEquals(1, syncRepo.syncCallCount)
-    }
+    // ── Save feedback ─────────────────────────────────────────────────────────
 
     @Test
     fun `saveSettings emits success feedback`() = runTest {
@@ -384,6 +375,41 @@ class SettingsViewModelTest {
     }
 
     // ── Account ───────────────────────────────────────────────────────────────
+
+    @Test
+    fun `saveSettings propagates currency to default compensation profile`() = runTest {
+        val profile = CompensationProfile(
+            id = "cp1",
+            userId = "u1",
+            name = "Main job",
+            regionCode = RegionCode.IL,
+            currencyCode = "ILS",
+            timezone = "Asia/Jerusalem",
+            baseHourlyRate = 50.0,
+            rules = CompensationRules(),
+            stackingPolicy = StackingPolicy.HIGHEST_ONLY,
+            isDefault = true,
+        )
+        compensationRepo.setProfiles(profile)
+        val vm = buildVm()
+        repo.setSettings(defaultSettings().copy(hourlyRate = 50.0, currency = CurrencyCode.ILS))
+
+        vm.saveSettings(
+            displayName = "",
+            dailyOtHours = 8.0,
+            weeklyOtHours = 40.0,
+            hourlyRate = 55.0,
+            timezone = "Asia/Jerusalem",
+            clockStyle = ClockStyle.CLASSIC,
+            currency = CurrencyCode.USD,
+            weekendDays = listOf(5, 6),
+        )
+        advanceUntilIdle()
+
+        val saved = compensationRepo.getProfiles("u1").first()
+        assertEquals("USD", saved.currencyCode)
+        assertEquals(55.0, saved.baseHourlyRate)
+    }
 
     @Test
     fun `resetPassword does not crash when no profile`() = runTest {

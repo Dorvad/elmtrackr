@@ -13,9 +13,6 @@ class FakeShiftsRepository : ShiftsRepository {
 
     private val _shifts = MutableStateFlow<List<Shift>>(emptyList())
 
-    /** Tracks how many operations triggered a sync schedule. */
-    var syncScheduledCount = 0
-
     fun setShifts(vararg shifts: Shift) { _shifts.value = shifts.toList() }
 
     val currentShifts: List<Shift> get() = _shifts.value
@@ -48,7 +45,6 @@ class FakeShiftsRepository : ShiftsRepository {
             taskHourlyRateSnapshot = taskHourlyRateSnapshot,
         )
         _shifts.value = _shifts.value + shift
-        syncScheduledCount++
         return shift
     }
 
@@ -66,25 +62,21 @@ class FakeShiftsRepository : ShiftsRepository {
             compensationSnapshot = compensationSnapshot,
         )
         _shifts.value = _shifts.value.map { if (it.id == localId) updated else it }
-        syncScheduledCount++
         return updated
     }
 
     override suspend fun createManualShift(shift: Shift): Shift {
         _shifts.value = _shifts.value + shift
-        syncScheduledCount++
         return shift
     }
 
     override suspend fun updateShift(shift: Shift): Shift {
         _shifts.value = _shifts.value.map { if (it.id == shift.id) shift else it }
-        syncScheduledCount++
         return shift
     }
 
     override suspend fun deleteShift(localId: String) {
         _shifts.value = _shifts.value.filter { it.id != localId }
-        syncScheduledCount++
     }
 
     override fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>> = _shifts
@@ -95,8 +87,6 @@ class FakeShiftsRepository : ShiftsRepository {
                 .sortedByDescending { it.endTime }
                 .take(limit)
         }
-
-    override fun observePendingSyncShifts(userId: String): Flow<List<Shift>> = flowOf(emptyList())
 
     override suspend fun hasAnyShifts(userId: String): Boolean =
         _shifts.value.any { it.userId == userId }

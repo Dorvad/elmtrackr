@@ -102,8 +102,6 @@ import com.elmtrackr.app.ui.design.ElmCardPadded
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.design.ElmStatCard
 import com.elmtrackr.app.ui.design.ElmStatVariant
-import com.elmtrackr.app.ui.design.ElmSyncPill
-import com.elmtrackr.app.ui.sync.resolveSyncStatus
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.auroraSecondaryText
@@ -163,7 +161,6 @@ fun DashboardScreen(
                 onClockIn       = viewModel::clockIn,
                 onClockOut      = viewModel::clockOut,
                 onEditStartTime = viewModel::editActiveShiftStartTime,
-                onTriggerSync   = viewModel::triggerSync,
                 onNavigateToReports = onNavigateToReports,
                 onSelectTask    = viewModel::selectTask,
                 onManageTasks   = { showTasks = true },
@@ -181,7 +178,6 @@ private fun DashboardReady(
     onClockIn: () -> Unit,
     onClockOut: (String) -> Unit,
     onEditStartTime: (shiftId: String, newStartTime: Instant) -> Unit,
-    onTriggerSync: () -> Unit,
     onNavigateToReports: () -> Unit,
     onSelectTask: (String) -> Unit,
     onManageTasks: () -> Unit,
@@ -235,18 +231,7 @@ private fun DashboardReady(
     val isTablet = isTabletLayout()
 
     AuroraScreen {
-            DashboardHeader(
-                displayName = state.displayName,
-                syncStatus = resolveSyncStatus(
-                    isRemoteConfigured = state.isRemoteConfigured,
-                    isOnline = state.isOnline,
-                    isSyncing = state.isSyncing,
-                    pendingCount = state.pendingSyncCount,
-                    lastSyncStatus = state.lastSyncStatus,
-                    syncError = state.syncError,
-                ),
-                onSyncClick = onTriggerSync,
-            )
+            DashboardHeader(displayName = state.displayName)
 
             if (state.recentShifts.isEmpty() && activeShift == null) {
                 FirstRunWelcomeCard(onClockIn = handleClockIn)
@@ -421,8 +406,6 @@ private fun DashboardReady(
 @Composable
 private fun DashboardHeader(
     displayName: String?,
-    syncStatus: com.elmtrackr.app.ui.sync.SyncStatusUi,
-    onSyncClick: () -> Unit,
 ) {
     val hour = Instant.now().atZone(ZoneId.systemDefault()).hour
     val greetingBase = when (hour) {
@@ -480,10 +463,6 @@ private fun DashboardHeader(
                 )
             }
         }
-        ElmSyncPill(
-            status = syncStatus,
-            onClick = if (syncStatus.isActionable) onSyncClick else null,
-        )
     }
 }
 
@@ -1622,7 +1601,6 @@ internal fun DashboardReadyPreview(
         onClockIn = {},
         onClockOut = {},
         onEditStartTime = { _, _ -> },
-        onTriggerSync = {},
         onNavigateToReports = onNavigateToReports,
         onSelectTask = {},
         onManageTasks = {},

@@ -53,7 +53,7 @@ class CompensationSettingsViewModel(
                     settings == null -> CompensationSettingsUiState.Loading
                     defaultProfile == null && !bootstrapComplete -> CompensationSettingsUiState.Loading
                     defaultProfile == null -> CompensationSettingsUiState.Error(
-                        "No compensation profile found. Sync from Settings or complete onboarding.",
+                        "No compensation profile found. Open Payroll settings or complete onboarding.",
                     )
                     else -> CompensationSettingsUiState.Ready(
                         profile = defaultProfile,

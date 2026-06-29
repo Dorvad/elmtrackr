@@ -6,8 +6,6 @@ import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.repository.TasksRepository
-import com.elmtrackr.app.sync.NoOpSyncTrigger
-import com.elmtrackr.app.sync.SyncTrigger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
@@ -15,7 +13,6 @@ import java.util.UUID
 
 class LocalTasksRepository(
     private val taskDao: TaskDao,
-    private val syncTrigger: SyncTrigger = NoOpSyncTrigger,
 ) : TasksRepository {
 
     override fun observeActiveTasks(userId: String): Flow<List<Task>> =
@@ -36,7 +33,7 @@ class LocalTasksRepository(
         val existing = taskDao.getById(task.userId, taskId)
             ?: task.remoteId?.let { taskDao.getByRemoteId(it) }
         val entity = task.copy(id = taskId).toEntity(
-            syncStatus = if (existing == null) SyncStatus.PENDING_CREATE else SyncStatus.PENDING_UPDATE,
+            syncStatus = SyncStatus.SYNCED,
             remoteId = existing?.remoteId ?: task.remoteId,
         ).copy(
             createdAt = existing?.createdAt ?: now.toEpochMilli(),
@@ -44,7 +41,6 @@ class LocalTasksRepository(
             lastUsedAt = task.lastUsedAt?.toEpochMilli() ?: existing?.lastUsedAt,
         )
         taskDao.insert(entity)
-        syncTrigger.schedule()
         return entity.toDomain()
     }
 
@@ -54,11 +50,10 @@ class LocalTasksRepository(
         taskDao.insert(
             existing.copy(
                 isArchived = true,
-                syncStatus = SyncStatus.PENDING_UPDATE,
+                syncStatus = SyncStatus.SYNCED,
                 updatedAt = now,
             ),
         )
-        syncTrigger.schedule()
     }
 
     override suspend fun markTaskUsed(userId: String, taskId: String) {
@@ -68,13 +63,8 @@ class LocalTasksRepository(
             existing.copy(
                 lastUsedAt = now,
                 updatedAt = now,
-                syncStatus = if (existing.syncStatus == SyncStatus.SYNCED) {
-                    SyncStatus.PENDING_UPDATE
-                } else {
-                    existing.syncStatus
-                },
+                syncStatus = SyncStatus.SYNCED,
             ),
         )
-        syncTrigger.schedule()
     }
 }

@@ -192,6 +192,5 @@ object CompensationRulesCodec {
         return optDouble(key)
     }
 
-    private fun String.toStackingPolicy(): StackingPolicy =
-        if (this == "additive") StackingPolicy.ADDITIVE else StackingPolicy.HIGHEST_ONLY
+    private fun String.toStackingPolicy(): StackingPolicy = StackingPolicy.fromPersisted(this)
 }

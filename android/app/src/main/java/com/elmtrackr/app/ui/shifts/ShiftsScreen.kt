@@ -701,7 +701,7 @@ private fun ShiftFormContent(
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text("Delete shift?") },
-            text  = { Text("This shift will be removed. The deletion will sync when online.") },
+            text  = { Text("This shift will be removed from your device.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false

@@ -16,7 +16,7 @@ object LegalDocuments {
             "Data we collect",
             "Account: email and optional display name. Work data: shift times, breaks, notes, overtime settings, " +
                 "compensation rules, and pay estimates. Refunds: claim details and receipt photos you upload. " +
-                "The app stores data locally and syncs to our cloud database when you are signed in.",
+                "The app stores your data locally on this device.",
         ),
         LegalSection(
             "How we use data",

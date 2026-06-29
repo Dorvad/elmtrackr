@@ -17,7 +17,7 @@ fun CompensationProfileEntity.toDomain(): CompensationProfile = CompensationProf
     timezone = timezone,
     baseHourlyRate = baseHourlyRate,
     rules = CompensationRulesCodec.decode(rulesJson),
-    stackingPolicy = if (stackingPolicy == "additive") StackingPolicy.ADDITIVE else StackingPolicy.HIGHEST_ONLY,
+    stackingPolicy = StackingPolicy.fromPersisted(stackingPolicy),
     effectiveFrom = Instant.ofEpochMilli(effectiveFrom),
     effectiveUntil = effectiveUntil?.let { Instant.ofEpochMilli(it) },
     isDefault = isDefault,
@@ -28,7 +28,7 @@ fun CompensationProfileEntity.toDomain(): CompensationProfile = CompensationProf
 )
 
 fun CompensationProfile.toEntity(
-    syncStatus: SyncStatus = SyncStatus.PENDING_CREATE,
+    syncStatus: SyncStatus = SyncStatus.SYNCED,
     remoteId: String? = null,
     deletedAt: Long? = null,
     lastSyncError: String? = null,

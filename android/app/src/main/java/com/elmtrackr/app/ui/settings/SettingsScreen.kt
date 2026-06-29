@@ -96,8 +96,6 @@ import androidx.compose.foundation.layout.widthIn
 import com.elmtrackr.app.ui.design.ElmCard
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.design.ElmGradientButton
-import com.elmtrackr.app.ui.design.ElmSyncPill
-import com.elmtrackr.app.ui.sync.resolveSyncStatus
 import com.elmtrackr.app.ui.theme.AuroraFaint
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraInk2
@@ -174,7 +172,6 @@ fun SettingsScreen(
                 onSave        = viewModel::saveSettings,
                 onSignOut     = onSignOut,
                 onTheme       = viewModel::saveTheme,
-                onSync        = viewModel::triggerSync,
                 onResetPassword = viewModel::resetPassword,
                 onReplayOnboarding = onReplayOnboarding,
                 onOpenCompensation = { showCompensation = true },
@@ -200,7 +197,6 @@ private fun SettingsContent(
     onSave: (String, Double, Double, Double?, String, ClockStyle, CurrencyCode, List<Int>, SettingsFeatureFlags) -> Unit,
     onSignOut: () -> Unit,
     onTheme: (String) -> Unit,
-    onSync: () -> Unit,
     onResetPassword: () -> Unit,
     onReplayOnboarding: () -> Unit,
     onOpenCompensation: () -> Unit = {},
@@ -275,15 +271,6 @@ private fun SettingsContent(
         travelRefunds != state.settings.featuresTravelRefunds ||
         insights != state.settings.featuresInsights ||
         clockStyles != state.settings.featuresClockStyles
-
-    val syncStatus = resolveSyncStatus(
-        isRemoteConfigured = state.isRemoteConfigured,
-        isOnline = state.isOnline,
-        isSyncing = state.isSyncing,
-        pendingCount = state.pendingCount,
-        lastSyncStatus = state.lastSyncStatus,
-        syncError = state.syncError,
-    )
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -472,36 +459,6 @@ private fun SettingsContent(
                         checked       = clockStyles,
                         onCheckedChange = { clockStyles = it },
                     )
-                }
-            }
-
-            item {
-                SettingsSectionCard("Sync") {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("Status", style = MaterialTheme.typography.bodyMedium)
-                        ElmSyncPill(
-                            status = syncStatus,
-                            onClick = if (syncStatus.isActionable) onSync else null,
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        syncStatus.detail,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (syncStatus.isActionable) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Tap the status pill to sync now.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
                 }
             }
 
@@ -1052,7 +1009,7 @@ private fun AccountSection(
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showSignOutConfirm = false },
             title = { Text("Sign out?") },
-            text = { Text("Your local changes are kept and will sync the next time you sign in.") },
+            text = { Text("Your data stays on this device.") },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { showSignOutConfirm = false; onSignOut() }) {
                     Text("Sign out", color = MaterialTheme.colorScheme.error)
@@ -1148,7 +1105,6 @@ private fun SettingsScreenPreview() {
             onSave          = { _, _, _, _, _, _, _, _, _ -> },
             onSignOut       = {},
             onTheme         = {},
-            onSync          = {},
             onResetPassword = {},
             onReplayOnboarding = {},
         )

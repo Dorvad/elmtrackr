@@ -11,8 +11,6 @@ import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
-import com.elmtrackr.app.domain.model.SyncResult
-import com.elmtrackr.app.domain.repository.SyncRepository
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.RefundPolicy
@@ -23,7 +21,6 @@ import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
 import com.elmtrackr.app.domain.tasks.TaskClockInHelper
 import com.elmtrackr.app.domain.tasks.TaskHabitSuggestionBuilder
-import com.elmtrackr.app.util.NetworkStatusMonitor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -43,19 +40,15 @@ class DashboardViewModel(
     private val shiftsRepository: ShiftsRepository,
     private val settingsRepository: SettingsRepository,
     private val reportsRepository: ReportsRepository,
-    private val syncRepository: SyncRepository,
     private val authRepository: AuthRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
     private val tasksRepository: TasksRepository,
     private val appPreferences: com.elmtrackr.app.data.local.preferences.AppPreferencesStore,
-    private val networkMonitor: NetworkStatusMonitor,
 ) : ViewModel() {
 
     private val today = LocalDate.now(ZoneOffset.UTC)
     private val _refreshNonce = MutableStateFlow(0)
     private val _showFirstClockInCelebration = MutableStateFlow(false)
-    private val _isSyncing = MutableStateFlow(false)
-    private val _syncError = MutableStateFlow<String?>(null)
     private val _selectedTaskId = MutableStateFlow<String?>(null)
     private val _habitSuggested = MutableStateFlow(false)
 
@@ -65,14 +58,13 @@ class DashboardViewModel(
         val activeShift: Shift?,
         val report: MonthlyReport?,
         val settings: UserSettings?,
-        val pendingCount: Int,
         val monthShifts: List<Shift>,
         val recentShifts: List<Shift>,
         val profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
         val activeTasks: List<Task>,
     )
 
-    private val coreUiState: StateFlow<DashboardUiState> = _refreshNonce
+    val uiState: StateFlow<DashboardUiState> = _refreshNonce
         .flatMapLatest {
             authRepository.observeCurrentProfile().flatMapLatest { profile ->
             if (profile == null) return@flatMapLatest flowOf(DashboardUiState.Loading)
@@ -81,10 +73,9 @@ class DashboardViewModel(
                     shiftsRepository.observeActiveShift(profile.id),
                     reportsRepository.observeMonthlyReport(profile.id, today.year, today.monthValue),
                     settingsRepository.observeSettings(profile.id),
-                    syncRepository.observePendingCount(profile.id),
                     shiftsRepository.observeShiftsByMonth(profile.id, today.year, today.monthValue),
-                ) { activeShift, report, settings, pendingCount, monthShifts ->
-                    RawData(activeShift, report, settings, pendingCount, monthShifts, emptyList(), emptyList(), emptyList())
+                ) { activeShift, report, settings, monthShifts ->
+                    RawData(activeShift, report, settings, monthShifts, emptyList(), emptyList(), emptyList())
                 },
                 compensationProfilesRepository.observeProfiles(profile.id),
             ) { raw, profiles ->
@@ -112,10 +103,8 @@ class DashboardViewModel(
                     activeTasks = raw.activeTasks,
                     selectedTaskId = _selectedTaskId.value,
                     habitSuggested = _habitSuggested.value,
-                    pendingSyncCount = raw.pendingCount,
                     recentShifts = raw.recentShifts,
                     displayName = currentProfile.fullName,
-                    isRemoteConfigured = authRepository.isConfigured(),
                     unresolvedRefundCount = if (raw.settings.featuresTravelRefunds == true)
                         RefundPolicy.countUnresolved(raw.monthShifts) else 0,
                     paySummary = paySummary,
@@ -124,41 +113,20 @@ class DashboardViewModel(
             }
         }
         }
+        .combine(_selectedTaskId) { state, selectedTaskId ->
+            when (state) {
+                is DashboardUiState.Ready -> state.copy(selectedTaskId = selectedTaskId)
+                else -> state
+            }
+        }
+        .combine(_habitSuggested) { state, habitSuggested ->
+            when (state) {
+                is DashboardUiState.Ready -> state.copy(habitSuggested = habitSuggested)
+                else -> state
+            }
+        }
         .catch { e ->
         emit(DashboardUiState.Error(e.message ?: "Unknown error"))
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = DashboardUiState.Loading,
-    )
-
-    val uiState: StateFlow<DashboardUiState> = combine(
-        combine(
-            coreUiState,
-            networkMonitor.isOnline,
-            _isSyncing,
-            _syncError,
-            syncRepository.observeLastSyncStatus(),
-        ) { state, isOnline, isSyncing, syncError, lastSyncStatus ->
-            Triple(state, isOnline to isSyncing, syncError to lastSyncStatus)
-        },
-        _selectedTaskId,
-        _habitSuggested,
-    ) { triple, selectedTaskId, habitSuggested ->
-        val state = triple.first
-        val (isOnline, isSyncing) = triple.second
-        val (syncError, lastSyncStatus) = triple.third
-        when (state) {
-            is DashboardUiState.Ready -> state.copy(
-                isOnline = isOnline,
-                isSyncing = isSyncing,
-                syncError = syncError,
-                lastSyncStatus = lastSyncStatus,
-                selectedTaskId = selectedTaskId,
-                habitSuggested = habitSuggested,
-            )
-            else -> state
-        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -255,25 +223,6 @@ class DashboardViewModel(
         _refreshNonce.value++
     }
 
-    fun triggerSync() {
-        viewModelScope.launch {
-            _isSyncing.value = true
-            _syncError.value = null
-            val userId = authRepository.getCurrentProfile()?.id
-            if (userId != null) {
-                _syncError.value = syncRepository.syncAll(userId).toUserMessage()
-            }
-            _isSyncing.value = false
-        }
-    }
-
-    private fun SyncResult.toUserMessage(): String? = when (this) {
-        is SyncResult.Success, SyncResult.NotConfigured -> null
-        is SyncResult.PartialSuccess ->
-            if (errors.isEmpty()) null else "${errors.size} items could not sync"
-        is SyncResult.Failure -> message
-    }
-
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -283,12 +232,10 @@ class DashboardViewModel(
                     app.shiftsRepository,
                     app.settingsRepository,
                     app.reportsRepository,
-                    app.syncRepository,
                     app.authRepository,
                     app.compensationProfilesRepository,
                     app.tasksRepository,
                     app.appPreferences,
-                    app.networkMonitor,
                 )
             }
         }

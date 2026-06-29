@@ -15,7 +15,18 @@ enum class RegionCode {
     }
 }
 
-enum class StackingPolicy { HIGHEST_ONLY, ADDITIVE }
+enum class StackingPolicy { HIGHEST_ONLY, ADDITIVE;
+
+    companion object {
+        fun fromPersisted(raw: String?): StackingPolicy {
+            if (raw.isNullOrBlank()) return HIGHEST_ONLY
+            return when (raw.trim().lowercase()) {
+                "additive" -> ADDITIVE
+                else -> HIGHEST_ONLY
+            }
+        }
+    }
+}
 
 data class OvertimeTier(val afterMinutes: Int, val multiplier: Double)
 

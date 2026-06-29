@@ -119,10 +119,9 @@ class ShiftsViewModelTest {
     // ── create manual shift ─────────────────────────────────────────────────
 
     @Test
-    fun `create manual shift writes locally and marks pending sync`() = runTest {
+    fun `create manual shift writes locally`() = runTest {
         seedSettings()
         val vm = buildVm()
-        val prevSync = shiftsRepo.syncScheduledCount
 
         val input = ShiftFormInput(
             startTime = Instant.parse("2024-01-08T09:00:00Z"),
@@ -135,7 +134,6 @@ class ShiftsViewModelTest {
         vm.createShift(input)
         advanceUntilIdle()
 
-        assertEquals(1, shiftsRepo.syncScheduledCount - prevSync)
         assertEquals(1, shiftsRepo.currentShifts.size)
     }
 
@@ -163,12 +161,11 @@ class ShiftsViewModelTest {
     // ── edit shift ──────────────────────────────────────────────────────────
 
     @Test
-    fun `edit shift updates locally and marks pending sync`() = runTest {
+    fun `edit shift updates locally`() = runTest {
         seedSettings()
         val original = Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z"), breakMinutes = 0)
         shiftsRepo.setShifts(original)
         val vm = buildVm()
-        val prevSync = shiftsRepo.syncScheduledCount
 
         val input = ShiftFormInput(
             startTime = original.startTime,
@@ -181,7 +178,6 @@ class ShiftsViewModelTest {
         vm.saveEditedShift("s1", input)
         advanceUntilIdle()
 
-        assertEquals(1, shiftsRepo.syncScheduledCount - prevSync)
         val saved = shiftsRepo.getShiftById("s1")!!
         assertEquals(45, saved.breakMinutes)
         assertEquals("Updated", saved.notes)
@@ -211,20 +207,18 @@ class ShiftsViewModelTest {
     // ── delete shift ────────────────────────────────────────────────────────
 
     @Test
-    fun `delete shift removes shift and marks pending sync`() = runTest {
+    fun `delete shift removes shift locally`() = runTest {
         shiftsRepo.setShifts(
             Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z")),
         )
         val vm = buildVm()
         val states = mutableListOf<ShiftsUiState>()
         val job = launch { vm.uiState.collect { states.add(it) } }
-        val prevSync = shiftsRepo.syncScheduledCount
 
         advanceUntilIdle()
         vm.deleteShift("s1")
         advanceUntilIdle()
 
-        assertEquals(1, shiftsRepo.syncScheduledCount - prevSync)
         assertTrue(states.any { it is ShiftsUiState.Empty })
         job.cancel()
     }
@@ -318,35 +312,6 @@ class ShiftsViewModelTest {
 
         assertTrue(vm.formErrors.value.containsKey("endTime"))
         assertTrue(vm.formTarget.value is ShiftFormNavState.Create)
-    }
-
-    // ── sync scheduler ──────────────────────────────────────────────────────
-
-    @Test
-    fun `sync scheduler called after create, update, and delete`() = runTest {
-        seedSettings()
-        val vm = buildVm()
-        val shift = Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z"))
-        val start = shiftsRepo.syncScheduledCount
-
-        // create
-        vm.createShift(ShiftFormInput(shift.startTime, shift.endTime, 0, "", false, null))
-        advanceUntilIdle()
-
-        // get created shift id
-        val createdId = shiftsRepo.currentShifts.first().id
-
-        shiftsRepo.setShifts(Shift(createdId, "u1", shift.startTime, shift.endTime))
-
-        // update
-        vm.saveEditedShift(createdId, ShiftFormInput(shift.startTime, shift.endTime, 15, "", false, null))
-        advanceUntilIdle()
-
-        // delete
-        vm.deleteShift(createdId)
-        advanceUntilIdle()
-
-        assertEquals(3, shiftsRepo.syncScheduledCount - start)
     }
 
     // ── form navigation ─────────────────────────────────────────────────────

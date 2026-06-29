@@ -1,5 +1,6 @@
 package com.elmtrackr.app.data.repository
 
+import android.util.Log
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
@@ -37,7 +38,7 @@ class LocalCompensationProfilesRepository(
             profileDao.clearDefaultForUser(profile.userId)
         }
         val entity = profile.copy(id = profileId).toEntity(
-            syncStatus = SyncStatus.PENDING_UPDATE,
+            syncStatus = SyncStatus.SYNCED,
             remoteId = existing?.remoteId ?: profile.remoteId,
         ).copy(
             createdAt = existing?.createdAt ?: now,
@@ -51,28 +52,39 @@ class LocalCompensationProfilesRepository(
         val existing = profileDao.getById(userId, profileId) ?: return
         profileDao.insert(
             existing.copy(
-                syncStatus = SyncStatus.PENDING_DELETE,
+                syncStatus = SyncStatus.SYNCED,
                 updatedAt = System.currentTimeMillis(),
             ),
         )
     }
 
-    override suspend fun ensureMigrated(userId: String): CompensationProfile? = runCatching {
-        val settings = settingsRepository.getSettings(userId) ?: return@runCatching null
-        if (!settings.onboardingCompleted) return@runCatching null
-        val existing = getProfiles(userId).filter { !it.isArchived }
-        if (existing.isNotEmpty()) return@runCatching existing.firstOrNull { it.isDefault } ?: existing.first()
+    override suspend fun ensureMigrated(userId: String): CompensationProfile? {
+        return try {
+            val settings = settingsRepository.getSettings(userId) ?: return null
+            if (!settings.onboardingCompleted) return null
+            val existing = getProfiles(userId).filter { !it.isArchived }
+            if (existing.isNotEmpty()) {
+                return existing.firstOrNull { it.isDefault } ?: existing.first()
+            }
 
-        val now = Instant.now()
-        val migration = CompensationResolver.buildMigrationProfile(userId, settings).copy(
-            id = UUID.randomUUID().toString(),
-            createdAt = now,
-            updatedAt = now,
-        )
-        val saved = upsertProfile(migration)
-        val updates = CompensationResolver.profileToLegacySettingsUpdates(saved)
-        val updated = settings.apply(updates).copy(updatedAt = now)
-        settingsRepository.saveSettings(updated)
-        saved
-    }.getOrNull()
+            val now = Instant.now()
+            val migration = CompensationResolver.buildMigrationProfile(userId, settings).copy(
+                id = UUID.randomUUID().toString(),
+                createdAt = now,
+                updatedAt = now,
+            )
+            val saved = upsertProfile(migration)
+            val updates = CompensationResolver.profileToLegacySettingsUpdates(saved)
+            val updated = settings.apply(updates).copy(updatedAt = now)
+            settingsRepository.saveSettings(updated)
+            saved
+        } catch (e: Exception) {
+            Log.w(TAG, "Compensation profile migration failed for user $userId", e)
+            null
+        }
+    }
+
+    private companion object {
+        const val TAG = "CompensationProfiles"
+    }
 }

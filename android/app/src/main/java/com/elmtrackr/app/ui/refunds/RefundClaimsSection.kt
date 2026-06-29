@@ -241,7 +241,7 @@ fun RefundClaimCard(
                 Column(Modifier.weight(1f)) {
                     Text(directionLabel(direction), fontWeight = FontWeight.Bold)
                     Text(
-                        if (claim == null) "No claim saved yet" else "Claim ready for export and sync",
+                        if (claim == null) "No claim saved yet" else "Claim ready for export",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
