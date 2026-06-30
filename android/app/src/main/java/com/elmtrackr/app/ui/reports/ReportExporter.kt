@@ -155,7 +155,7 @@ object ReportExporter {
         drawShiftHeader(canvas, margin, y, heading, fill)
         y += 18f
 
-        state.rawShifts.sortedBy { it.startTime }.forEach { shift ->
+        state.rawShifts.sortedByDescending { it.startTime }.forEach { shift ->
             ensureSpace(38f)
             val breakdown = state.settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it) }
             val pay = state.settings?.let { settings ->
