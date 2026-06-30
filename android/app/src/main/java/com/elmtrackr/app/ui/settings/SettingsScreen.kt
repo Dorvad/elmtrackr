@@ -44,6 +44,7 @@ internal enum class SettingsDestination {
     COMPENSATION,
     TASKS,
     TERMS,
+    SYNC_DETAILS,
 }
 
 @Composable
@@ -71,6 +72,10 @@ fun SettingsScreen(
                 lastUpdated = LegalDocuments.LAST_UPDATED,
                 onBack = { destination = SettingsDestination.HELP },
             )
+            return
+        }
+        SettingsDestination.SYNC_DETAILS -> {
+            SyncDetailsScreen(onBack = { destination = SettingsDestination.HELP })
             return
         }
         else -> Unit
@@ -283,6 +288,7 @@ private fun SettingsFormHost(
                 onBack = onNavigateBack,
                 onReplayOnboarding = onReplayOnboarding,
                 onOpenTerms = { onNavigate(SettingsDestination.TERMS) },
+                onOpenSyncDetails = { onNavigate(SettingsDestination.SYNC_DETAILS) },
                 onSyncNow = onSyncNow,
             )
             else -> Unit

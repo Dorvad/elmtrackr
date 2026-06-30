@@ -467,6 +467,7 @@ internal fun HelpDetailScreen(
     onBack: () -> Unit,
     onReplayOnboarding: () -> Unit,
     onOpenTerms: () -> Unit,
+    onOpenSyncDetails: () -> Unit,
     onSyncNow: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -521,6 +522,16 @@ internal fun HelpDetailScreen(
                         Spacer(Modifier.height(8.dp))
                         SettingsInfoRow("Last sync", last)
                     }
+                    Spacer(Modifier.height(8.dp))
+                    SettingsNavRow(
+                        title = "Sync details",
+                        subtitle = when {
+                            state.syncFailedCount > 0 -> "${state.syncFailedCount} failed · view pending rows"
+                            state.syncPendingCount > 0 -> "${state.syncPendingCount} pending · view breakdown"
+                            else -> "Local vs synced status and backup export"
+                        },
+                        onClick = onOpenSyncDetails,
+                    )
                     Spacer(Modifier.height(12.dp))
                     OutlinedButton(
                         onClick = onSyncNow,

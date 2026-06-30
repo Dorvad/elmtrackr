@@ -79,6 +79,35 @@ class SyncRepositoryImpl(
 
     override fun observeLastSyncStatus(): Flow<String?> = lastSyncStatus.asStateFlow()
 
+    override fun observeSyncDetails(userId: String): Flow<SyncDetails> = combine(
+        taskDao.observeAllTasks(userId),
+        shiftDao.observeShifts(userId),
+        refundClaimDao.observeClaimsForUser(userId),
+        settingsDao.observeSettings(userId),
+        compensationProfileDao.observeProfiles(userId),
+        lastSyncStatus,
+    ) { tasks, shifts, claims, settings, profiles, status ->
+        SyncDetailsBuilder.build(
+            tasks = tasks,
+            shifts = shifts,
+            claims = claims,
+            settings = settings,
+            profiles = profiles,
+            lastSyncStatus = status,
+        )
+    }
+
+    override suspend fun exportLocalBackup(userId: String): String =
+        LocalBackupExporter.export(
+            userId = userId,
+            taskDao = taskDao,
+            shiftDao = shiftDao,
+            refundClaimDao = refundClaimDao,
+            settingsDao = settingsDao,
+            compensationProfileDao = compensationProfileDao,
+            appVersion = com.elmtrackr.app.BuildConfig.VERSION_NAME,
+        )
+
     override suspend fun hasPendingWork(userId: String): Boolean =
         shiftDao.getPendingSyncShifts(userId).isNotEmpty() ||
             refundClaimDao.getPendingSyncClaims(userId).isNotEmpty() ||
