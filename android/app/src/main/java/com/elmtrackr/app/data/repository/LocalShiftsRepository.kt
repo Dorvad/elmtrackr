@@ -7,6 +7,7 @@ import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.data.local.mapper.mapToDomain
 import com.elmtrackr.app.data.local.mapper.toDomainOrNull
+import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.domain.compensation.CompensationRulesCodec
 import com.elmtrackr.app.domain.model.CompensationSnapshot
 import com.elmtrackr.app.domain.model.Shift
@@ -20,6 +21,7 @@ import java.util.UUID
 
 class LocalShiftsRepository(
     private val shiftDao: ShiftDao,
+    private val syncTrigger: SyncTrigger = com.elmtrackr.app.data.sync.NoOpSyncTrigger,
 ) : ShiftsRepository {
 
     override fun observeShifts(userId: String): Flow<List<Shift>> =
@@ -63,11 +65,12 @@ class LocalShiftsRepository(
             createdAt = now,
             updatedAt = now,
             deletedAt = null,
-            syncStatus = SyncStatus.SYNCED,
+            syncStatus = SyncStatus.PENDING_CREATE,
             lastSyncError = null,
             lastSyncedAt = null,
         )
         shiftDao.insertShift(entity)
+        syncTrigger.schedule()
         return entity.toDomain()
     }
 
@@ -86,26 +89,29 @@ class LocalShiftsRepository(
             notes = notes,
             compensationSnapshotJson = compensationSnapshot?.let { CompensationRulesCodec.encodeSnapshot(it) },
             updatedAt = now,
-            syncStatus = SyncStatus.SYNCED,
+            syncStatus = syncStatusForMutation(existing),
         )
         shiftDao.updateShift(updated)
+        syncTrigger.schedule()
         return updated.toDomain()
     }
 
     override suspend fun createManualShift(shift: Shift): Shift {
-        val entity = shift.toEntity(syncStatus = SyncStatus.SYNCED)
+        val entity = shift.toEntity(syncStatus = SyncStatus.PENDING_CREATE)
         shiftDao.insertShift(entity)
+        syncTrigger.schedule()
         return entity.toDomain()
     }
 
     override suspend fun updateShift(shift: Shift): Shift {
         val existing = shiftDao.getShiftById(shift.id)
         val entity = shift.toEntity(
-            syncStatus = SyncStatus.SYNCED,
+            syncStatus = existing?.let(::syncStatusForMutation) ?: SyncStatus.PENDING_CREATE,
             remoteId = existing?.remoteId,
             lastSyncedAt = existing?.lastSyncedAt,
         )
         shiftDao.upsertShift(entity)
+        syncTrigger.schedule()
         return entity.toDomain()
     }
 
@@ -114,9 +120,10 @@ class LocalShiftsRepository(
         shiftDao.softDeleteShift(
             localId = localId,
             deletedAt = now,
-            syncStatus = SyncStatus.SYNCED,
+            syncStatus = SyncStatus.PENDING_DELETE,
             updatedAt = now,
         )
+        syncTrigger.schedule()
     }
 
     override fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>> {
@@ -133,4 +140,10 @@ class LocalShiftsRepository(
 
     override suspend fun hasAnyShifts(userId: String): Boolean =
         shiftDao.getAllShiftsForUser(userId).isNotEmpty()
+
+    private fun syncStatusForMutation(existing: ShiftEntity): SyncStatus = when {
+        existing.syncStatus == SyncStatus.PENDING_CREATE -> SyncStatus.PENDING_CREATE
+        existing.syncStatus == SyncStatus.PENDING_DELETE -> SyncStatus.PENDING_DELETE
+        else -> SyncStatus.PENDING_UPDATE
+    }
 }

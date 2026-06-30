@@ -11,7 +11,12 @@ import com.elmtrackr.app.data.local.LegacyDataAdopter
 import com.elmtrackr.app.data.local.LocalUserDataCleaner
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.remote.SupabaseRefundReceiptStorage
+import com.elmtrackr.app.data.remote.SupabaseShiftsDataSource
 import com.elmtrackr.app.data.receipts.RefundReceiptPhotoCleanupWorker
+import com.elmtrackr.app.data.sync.SyncRepository
+import com.elmtrackr.app.data.sync.SyncRepositoryImpl
+import com.elmtrackr.app.data.sync.SyncScheduler
+import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.data.repository.LocalCompensationProfilesRepository
 import com.elmtrackr.app.data.repository.LocalRefundsRepository
 import com.elmtrackr.app.data.repository.LocalReportsRepository
@@ -70,8 +75,22 @@ class ElmTrackrApp : Application() {
         )
     }
 
+    val syncScheduler: SyncScheduler by lazy { SyncScheduler(this) }
+
+    val syncTrigger: SyncTrigger by lazy {
+        if (SupabaseClientProvider.isConfigured()) syncScheduler else com.elmtrackr.app.data.sync.NoOpSyncTrigger
+    }
+
+    val remoteShiftsDataSource by lazy {
+        SupabaseClientProvider.get()?.let { SupabaseShiftsDataSource(it) }
+    }
+
+    val syncRepository: SyncRepository by lazy {
+        SyncRepositoryImpl(database.shiftDao(), remoteShiftsDataSource)
+    }
+
     val shiftsRepository: LocalShiftsRepository by lazy {
-        LocalShiftsRepository(database.shiftDao())
+        LocalShiftsRepository(database.shiftDao(), syncTrigger)
     }
 
     val settingsRepository: LocalSettingsRepository by lazy {
@@ -114,6 +133,9 @@ class ElmTrackrApp : Application() {
                     }
                 }
             }
+            if (SupabaseClientProvider.isConfigured()) {
+                syncTrigger.schedule()
+            }
         }
     }
 
@@ -121,6 +143,9 @@ class ElmTrackrApp : Application() {
         super.onCreate()
         NotificationChannels.createAll(this)
         RefundReceiptPhotoCleanupWorker.schedule(this)
+        if (SupabaseClientProvider.isConfigured()) {
+            syncScheduler.schedulePeriodic()
+        }
         startActiveShiftObserver()
         startWearSignOutObserver()
     }

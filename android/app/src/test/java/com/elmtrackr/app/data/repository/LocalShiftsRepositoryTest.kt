@@ -47,6 +47,7 @@ class LocalShiftsRepositoryTest {
 
         assertEquals("profile-1", shift.compensationProfileId)
         assertEquals(1, dao.currentShifts.size)
+        assertEquals(SyncStatus.PENDING_CREATE, dao.currentShifts.first().syncStatus)
     }
 
     private fun shiftEntity(
