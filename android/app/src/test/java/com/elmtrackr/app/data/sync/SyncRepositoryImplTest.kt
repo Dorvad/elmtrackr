@@ -113,6 +113,35 @@ class SyncRepositoryImplTest {
         assertEquals(1, remote.inserts.size)
     }
 
+    @Test
+    fun `syncAll still pulls shifts when tasks table is missing`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = FakeRemoteShiftDataSource(
+            initial = listOf(
+                RemoteShiftRow(
+                    id = "remote-99",
+                    userId = "user-1",
+                    startTime = "2024-06-01T08:00:00Z",
+                    endTime = "2024-06-01T16:00:00Z",
+                    breakMinutes = 0,
+                    createdAt = "2024-06-01T08:00:00Z",
+                    updatedAt = "2024-06-01T16:00:00Z",
+                ),
+            ),
+        )
+        val repository = createRepository(
+            shiftDao = dao,
+            remoteShifts = remote,
+            remoteTasks = MissingTasksRemoteDataSource(),
+        )
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        assertEquals(1, dao.currentShifts.size)
+        assertEquals("remote-99", dao.currentShifts.first().remoteId)
+    }
+
     private fun createRepository(
         shiftDao: ShiftDao = InMemoryShiftDao(),
         remoteShifts: RemoteShiftDataSource = FakeRemoteShiftDataSource(),
@@ -293,6 +322,21 @@ class SyncRepositoryImplTest {
         override suspend fun insert(task: RemoteTaskInsert): RemoteTaskRow = error("not used")
         override suspend fun update(remoteId: String, task: RemoteTaskUpdate) = Unit
         override suspend fun delete(remoteId: String) = Unit
+    }
+
+    private class MissingTasksRemoteDataSource : RemoteTaskDataSource {
+        private val missingTableError = RuntimeException(
+            "Could not find the table 'public.tasks' in the schema cache (PGRST205)",
+        )
+
+        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteTaskRow> =
+            throw missingTableError
+
+        override suspend fun insert(task: RemoteTaskInsert): RemoteTaskRow = throw missingTableError
+
+        override suspend fun update(remoteId: String, task: RemoteTaskUpdate) = throw missingTableError
+
+        override suspend fun delete(remoteId: String) = throw missingTableError
     }
 
     private class EmptyRemoteRefundClaimDataSource : RemoteRefundClaimDataSource {

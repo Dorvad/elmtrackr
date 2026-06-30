@@ -14,6 +14,7 @@ import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import com.elmtrackr.app.data.remote.RemoteCompensationProfileDataSource
 import com.elmtrackr.app.data.remote.RemoteRefundClaimDataSource
 import com.elmtrackr.app.data.remote.RemoteShiftDataSource
+import com.elmtrackr.app.data.remote.RemoteSyncErrors
 import com.elmtrackr.app.data.remote.RemoteTaskDataSource
 import com.elmtrackr.app.data.remote.RemoteUserSettingsDataSource
 import com.elmtrackr.app.data.remote.isoToEpoch
@@ -43,6 +44,7 @@ class SyncRepositoryImpl(
 
     private val idMapper = SyncIdMapper(shiftDao, compensationProfileDao, taskDao)
     private val lastSyncStatus = MutableStateFlow<String?>(null)
+    private var tasksRemoteEnabled = true
 
     override fun observePendingCount(userId: String): Flow<Int> =
         combine(
@@ -93,23 +95,71 @@ class SyncRepositoryImpl(
         }
 
         return runCatching {
-            reconcileNeverSynced(userId)
-            pushTasks(userId)
-            pushCompensationProfiles(userId)
-            pushShifts(userId)
-            pushRefundClaims(userId)
-            pushUserSettings(userId)
-            pullTasks(userId)
-            pullCompensationProfiles(userId)
-            pullUserSettings(userId)
-            pullShifts(userId)
-            pullRefundClaims(userId)
-            lastSyncStatus.value = "Synced ${Instant.now()}"
-            SyncResult.Success
+            val errors = mutableListOf<String>()
+            val warnings = mutableListOf<String>()
+
+            runSyncStep("reconcile", errors) { reconcileNeverSynced(userId) }
+            runSyncStep("push tasks", errors) { pushTasks(userId, warnings) }
+            runSyncStep("push compensation profiles", errors) { pushCompensationProfiles(userId) }
+            runSyncStep("push shifts", errors) { pushShifts(userId) }
+            runSyncStep("push refund claims", errors) { pushRefundClaims(userId) }
+            runSyncStep("push user settings", errors) { pushUserSettings(userId) }
+            runSyncStep("pull compensation profiles", errors) { pullCompensationProfiles(userId) }
+            runSyncStep("pull user settings", errors) { pullUserSettings(userId) }
+            runSyncStep("pull shifts", errors) { pullShifts(userId) }
+            runSyncStep("pull refund claims", errors) { pullRefundClaims(userId) }
+            runSyncStep("pull tasks", errors) { pullTasks(userId, warnings) }
+
+            when {
+                errors.isNotEmpty() -> {
+                    lastSyncStatus.value = "Failed: ${errors.joinToString("; ")}"
+                    SyncResult.Error(errors.joinToString("; "))
+                }
+                warnings.isNotEmpty() -> {
+                    lastSyncStatus.value = "Synced with warnings: ${warnings.joinToString("; ")}"
+                    SyncResult.Success
+                }
+                else -> {
+                    lastSyncStatus.value = "Synced ${Instant.now()}"
+                    SyncResult.Success
+                }
+            }
         }.getOrElse { error ->
             lastSyncStatus.value = "Failed: ${error.message ?: "unknown error"}"
             SyncResult.Error(error.message ?: "Sync failed")
         }
+    }
+
+    private suspend fun runSyncStep(
+        label: String,
+        errors: MutableList<String>,
+        block: suspend () -> Unit,
+    ) {
+        runCatching { block() }.onFailure { error ->
+            errors += "$label: ${error.message ?: "unknown error"}"
+        }
+    }
+
+    private suspend fun suspendTasksRemoteSync(userId: String, warnings: MutableList<String>) {
+        if (!tasksRemoteEnabled) return
+        tasksRemoteEnabled = false
+        taskDao.getPendingSyncTasks(userId)
+            .filter { it.syncStatus == SyncStatus.FAILED }
+            .forEach { task ->
+                val restoredStatus = if (task.remoteId == null) {
+                    SyncStatus.PENDING_CREATE
+                } else {
+                    SyncStatus.PENDING_UPDATE
+                }
+                taskDao.updateSyncState(
+                    task.localId,
+                    restoredStatus,
+                    task.remoteId,
+                    task.lastSyncedAt,
+                    null,
+                )
+            }
+        warnings += TASKS_TABLE_MISSING_WARNING
     }
 
     private suspend fun reconcileNeverSynced(userId: String) {
@@ -160,7 +210,8 @@ class SyncRepositoryImpl(
 
     // ── Tasks ───────────────────────────────────────────────────────────────
 
-    private suspend fun pushTasks(userId: String) {
+    private suspend fun pushTasks(userId: String, warnings: MutableList<String>) {
+        if (!tasksRemoteEnabled) return
         val now = Instant.now().toEpochMilli()
         for (task in taskDao.getPendingSyncTasks(userId)) {
             runCatching {
@@ -173,7 +224,13 @@ class SyncRepositoryImpl(
                     SyncStatus.PENDING_UPDATE -> pushTaskUpdate(task, now)
                     SyncStatus.SYNCED -> Unit
                 }
-            }.onFailure { markTaskFailed(task, it) }
+            }.onFailure { error ->
+                if (RemoteSyncErrors.isMissingRemoteTable(error, ENTITY_TASKS)) {
+                    suspendTasksRemoteSync(userId, warnings)
+                    return
+                }
+                markTaskFailed(task, error)
+            }
         }
     }
 
@@ -199,39 +256,48 @@ class SyncRepositoryImpl(
         )
     }
 
-    private suspend fun pullTasks(userId: String) {
-        val (remoteRows, isFullSync) = pullIncremental(
-            userId = userId,
-            entity = ENTITY_TASKS,
-            fetchPage = { since -> remoteTasks!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
-            updatedAtIso = { it.updatedAt },
-        )
-        val remoteIds = remoteRows.map { it.id }.toSet()
+    private suspend fun pullTasks(userId: String, warnings: MutableList<String>) {
+        if (!tasksRemoteEnabled) return
+        runCatching {
+            val (remoteRows, isFullSync) = pullIncremental(
+                userId = userId,
+                entity = ENTITY_TASKS,
+                fetchPage = { since -> remoteTasks!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+                updatedAtIso = { it.updatedAt },
+            )
+            val remoteIds = remoteRows.map { it.id }.toSet()
 
-        for (remote in remoteRows) {
-            val existing = taskDao.getByRemoteId(remote.id)
-            if (existing != null) {
-                if (existing.syncStatus != SyncStatus.SYNCED) continue
-                if (isoToEpoch(remote.updatedAt) > existing.updatedAt) {
-                    taskDao.upsert(
-                        remote.toLocalEntity(existingLocalId = existing.localId),
-                    )
+            for (remote in remoteRows) {
+                val existing = taskDao.getByRemoteId(remote.id)
+                if (existing != null) {
+                    if (existing.syncStatus != SyncStatus.SYNCED) continue
+                    if (isoToEpoch(remote.updatedAt) > existing.updatedAt) {
+                        taskDao.upsert(
+                            remote.toLocalEntity(existingLocalId = existing.localId),
+                        )
+                    }
+                    continue
                 }
-                continue
+                taskDao.upsert(remote.toLocalEntity())
             }
-            taskDao.upsert(remote.toLocalEntity())
-        }
 
-        if (isFullSync) {
-            val now = Instant.now().toEpochMilli()
-            taskDao.getAllTasksForUser(userId)
-                .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
-                .filter { it.remoteId !in remoteIds }
-                .forEach {
-                    taskDao.upsert(
-                        it.copy(isArchived = true, deletedAt = now, updatedAt = now, syncStatus = SyncStatus.SYNCED),
-                    )
-                }
+            if (isFullSync) {
+                val now = Instant.now().toEpochMilli()
+                taskDao.getAllTasksForUser(userId)
+                    .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
+                    .filter { it.remoteId !in remoteIds }
+                    .forEach {
+                        taskDao.upsert(
+                            it.copy(isArchived = true, deletedAt = now, updatedAt = now, syncStatus = SyncStatus.SYNCED),
+                        )
+                    }
+            }
+        }.onFailure { error ->
+            if (RemoteSyncErrors.isMissingRemoteTable(error, ENTITY_TASKS)) {
+                suspendTasksRemoteSync(userId, warnings)
+            } else {
+                throw error
+            }
         }
     }
 
@@ -574,5 +640,8 @@ class SyncRepositoryImpl(
         const val ENTITY_REFUND_CLAIMS = "refund_claims"
         const val ENTITY_COMPENSATION_PROFILES = "compensation_profiles"
         const val ENTITY_USER_SETTINGS = "user_settings"
+        const val TASKS_TABLE_MISSING_WARNING =
+            "Tasks sync paused because the Supabase tasks table is missing. " +
+                "Apply supabase/migrations/20250628000000_tasks.sql, then sync again."
     }
 }
