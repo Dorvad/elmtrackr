@@ -30,8 +30,17 @@ interface CompensationProfileDao {
     @Query("SELECT * FROM compensation_profiles WHERE remoteId = :remoteId LIMIT 1")
     suspend fun getByRemoteId(remoteId: String): CompensationProfileEntity?
 
-    @Query("SELECT * FROM compensation_profiles WHERE userId = :userId AND syncStatus != 'SYNCED' AND deletedAt IS NULL")
+    @Query("SELECT * FROM compensation_profiles WHERE userId = :userId AND syncStatus IN ('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')")
     suspend fun getPendingSyncProfiles(userId: String): List<CompensationProfileEntity>
+
+    @Query("SELECT * FROM compensation_profiles WHERE userId = :userId AND syncStatus IN ('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE')")
+    fun observePendingSyncProfiles(userId: String): Flow<List<CompensationProfileEntity>>
+
+    @Query("SELECT * FROM compensation_profiles WHERE userId = :userId AND deletedAt IS NULL")
+    suspend fun getAllProfilesForUser(userId: String): List<CompensationProfileEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(profile: CompensationProfileEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(profile: CompensationProfileEntity)

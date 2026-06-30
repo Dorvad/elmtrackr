@@ -161,6 +161,15 @@ class FakeSettingsDao : SettingsDao {
 
     override suspend fun upsertSettings(settings: UserSettingsEntity) { store[settings.localId] = settings; refresh() }
 
+    override fun observePendingSyncSettings(userId: String): Flow<List<UserSettingsEntity>> =
+        _flow.map {
+            it.filter { e ->
+                e.userId == userId && e.syncStatus in listOf(
+                    SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE,
+                )
+            }
+        }
+
     override suspend fun getPendingSyncSettings(userId: String): List<UserSettingsEntity> =
         store.values.filter { it.userId == userId && it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
 
@@ -256,12 +265,29 @@ class FakeCompensationProfileDao : com.elmtrackr.app.data.local.dao.Compensation
             )
         }
 
+    override fun observePendingSyncProfiles(userId: String): Flow<List<com.elmtrackr.app.data.local.entity.CompensationProfileEntity>> =
+        _flow.map {
+            it.filter { e ->
+                e.userId == userId && e.syncStatus in listOf(
+                    SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE,
+                )
+            }
+        }
+
+    override suspend fun getAllProfilesForUser(userId: String): List<com.elmtrackr.app.data.local.entity.CompensationProfileEntity> =
+        store.values.filter { it.userId == userId && it.deletedAt == null }
+
     override suspend fun insert(profile: com.elmtrackr.app.data.local.entity.CompensationProfileEntity) {
         store[profile.localId] = profile
         refresh()
     }
 
     override suspend fun update(profile: com.elmtrackr.app.data.local.entity.CompensationProfileEntity) {
+        store[profile.localId] = profile
+        refresh()
+    }
+
+    override suspend fun upsert(profile: com.elmtrackr.app.data.local.entity.CompensationProfileEntity) {
         store[profile.localId] = profile
         refresh()
     }

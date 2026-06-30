@@ -7,6 +7,7 @@ import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.data.local.mapper.mapToDomain
 import com.elmtrackr.app.data.local.mapper.toDomainOrNull
+import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
@@ -18,6 +19,7 @@ import java.util.UUID
 
 class LocalRefundsRepository(
     private val refundClaimDao: RefundClaimDao,
+    private val syncTrigger: SyncTrigger = com.elmtrackr.app.data.sync.NoOpSyncTrigger,
 ) : RefundsRepository {
 
     override fun observeClaimsForUser(userId: String): Flow<List<RefundClaim>> =
@@ -54,22 +56,24 @@ class LocalRefundsRepository(
             createdAt = now,
             updatedAt = now,
             deletedAt = null,
-            syncStatus = SyncStatus.SYNCED,
+            syncStatus = SyncStatus.PENDING_CREATE,
             lastSyncError = null,
             lastSyncedAt = null,
         )
         refundClaimDao.insertClaim(entity)
+        syncTrigger.schedule()
         return entity.toDomain()
     }
 
     override suspend fun updateClaim(claim: RefundClaim): RefundClaim {
         val existing = refundClaimDao.getClaimById(claim.id)
         val entity = claim.toEntity(
-            syncStatus = SyncStatus.SYNCED,
+            syncStatus = existing?.let(::syncStatusForMutation) ?: SyncStatus.PENDING_CREATE,
             remoteId = existing?.remoteId,
             lastSyncedAt = existing?.lastSyncedAt,
         )
         refundClaimDao.upsertClaim(entity)
+        syncTrigger.schedule()
         return entity.toDomain()
     }
 
@@ -78,8 +82,15 @@ class LocalRefundsRepository(
         refundClaimDao.softDeleteClaim(
             localId = localId,
             deletedAt = now,
-            syncStatus = SyncStatus.SYNCED,
+            syncStatus = SyncStatus.PENDING_DELETE,
             updatedAt = now,
         )
+        syncTrigger.schedule()
+    }
+
+    private fun syncStatusForMutation(existing: RefundClaimEntity): SyncStatus = when {
+        existing.syncStatus == SyncStatus.PENDING_CREATE -> SyncStatus.PENDING_CREATE
+        existing.syncStatus == SyncStatus.PENDING_DELETE -> SyncStatus.PENDING_DELETE
+        else -> SyncStatus.PENDING_UPDATE
     }
 }

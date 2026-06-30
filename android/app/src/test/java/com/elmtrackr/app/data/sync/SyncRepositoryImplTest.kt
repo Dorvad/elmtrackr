@@ -1,14 +1,36 @@
 package com.elmtrackr.app.data.sync
 
+import com.elmtrackr.app.data.local.dao.CompensationProfileDao
+import com.elmtrackr.app.data.local.dao.RefundClaimDao
+import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
+import com.elmtrackr.app.data.local.dao.TaskDao
+import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
+import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
+import com.elmtrackr.app.data.local.entity.TaskEntity
+import com.elmtrackr.app.data.local.entity.UserSettingsEntity
+import com.elmtrackr.app.data.remote.RemoteCompensationProfileDataSource
+import com.elmtrackr.app.data.remote.RemoteCompensationProfileInsert
+import com.elmtrackr.app.data.remote.RemoteCompensationProfileRow
+import com.elmtrackr.app.data.remote.RemoteCompensationProfileUpdate
+import com.elmtrackr.app.data.remote.RemoteRefundClaimDataSource
+import com.elmtrackr.app.data.remote.RemoteRefundClaimInsert
+import com.elmtrackr.app.data.remote.RemoteRefundClaimRow
+import com.elmtrackr.app.data.remote.RemoteRefundClaimUpdate
 import com.elmtrackr.app.data.remote.RemoteShiftDataSource
 import com.elmtrackr.app.data.remote.RemoteShiftInsert
 import com.elmtrackr.app.data.remote.RemoteShiftRow
 import com.elmtrackr.app.data.remote.RemoteShiftUpdate
+import com.elmtrackr.app.data.remote.RemoteUserSettingsDataSource
+import com.elmtrackr.app.data.remote.RemoteUserSettingsRow
+import com.elmtrackr.app.data.remote.RemoteUserSettingsUpdate
+import com.elmtrackr.app.data.remote.RemoteUserSettingsUpsert
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -22,7 +44,7 @@ class SyncRepositoryImplTest {
     fun `push creates remote shift and stores remote id`() = runTest {
         val dao = InMemoryShiftDao()
         val remote = FakeRemoteShiftDataSource()
-        val repository = SyncRepositoryImpl(dao, remote)
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
 
         dao.insertShift(
             shiftEntity(
@@ -57,7 +79,7 @@ class SyncRepositoryImplTest {
                 ),
             ),
         )
-        val repository = SyncRepositoryImpl(dao, remote)
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
 
         val result = repository.syncAll("user-1")
 
@@ -70,7 +92,7 @@ class SyncRepositoryImplTest {
     fun `reconcile marks legacy synced rows without remote id as pending create`() = runTest {
         val dao = InMemoryShiftDao()
         val remote = FakeRemoteShiftDataSource()
-        val repository = SyncRepositoryImpl(dao, remote)
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
 
         dao.insertShift(
             shiftEntity(
@@ -86,6 +108,21 @@ class SyncRepositoryImplTest {
         assertEquals("remote-1", synced.remoteId)
         assertEquals(1, remote.inserts.size)
     }
+
+    private fun createRepository(
+        shiftDao: ShiftDao = InMemoryShiftDao(),
+        remoteShifts: RemoteShiftDataSource = FakeRemoteShiftDataSource(),
+    ) = SyncRepositoryImpl(
+        shiftDao = shiftDao,
+        refundClaimDao = EmptyRefundClaimDao(),
+        settingsDao = EmptySettingsDao(),
+        compensationProfileDao = EmptyCompensationProfileDao(),
+        taskDao = EmptyTaskDao(),
+        remoteShifts = remoteShifts,
+        remoteRefundClaims = EmptyRemoteRefundClaimDataSource(),
+        remoteSettings = EmptyRemoteUserSettingsDataSource(),
+        remoteCompensationProfiles = EmptyRemoteCompensationProfileDataSource(),
+    )
 
     private fun shiftEntity(
         localId: String,
@@ -157,6 +194,93 @@ class SyncRepositoryImplTest {
         override suspend fun delete(remoteId: String) {
             rows.removeAll { it.id == remoteId }
         }
+    }
+
+    private class EmptyRefundClaimDao : RefundClaimDao {
+        override suspend fun adoptLegacyUser(userId: String) = Unit
+        override fun observeClaimsForUser(userId: String): Flow<List<RefundClaimEntity>> = emptyFlow()
+        override fun observeClaimsForShift(shiftLocalId: String): Flow<List<RefundClaimEntity>> = emptyFlow()
+        override suspend fun getClaimById(localId: String): RefundClaimEntity? = null
+        override suspend fun insertClaim(claim: RefundClaimEntity) = Unit
+        override suspend fun updateClaim(claim: RefundClaimEntity) = Unit
+        override suspend fun upsertClaim(claim: RefundClaimEntity) = Unit
+        override suspend fun softDeleteClaim(localId: String, deletedAt: Long, syncStatus: SyncStatus, updatedAt: Long) = Unit
+        override fun observePendingSyncClaims(userId: String): Flow<List<RefundClaimEntity>> = emptyFlow()
+        override suspend fun getPendingSyncClaims(userId: String): List<RefundClaimEntity> = emptyList()
+        override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) = Unit
+        override suspend fun getAllClaimsForUser(userId: String): List<RefundClaimEntity> = emptyList()
+        override suspend fun deleteAllForUser(userId: String) = Unit
+        override suspend fun getClaimByRemoteId(remoteId: String): RefundClaimEntity? = null
+    }
+
+    private class EmptySettingsDao : SettingsDao {
+        override suspend fun adoptLegacyUser(userId: String) = Unit
+        override fun observeSettings(userId: String): Flow<UserSettingsEntity?> = flowOf(null)
+        override suspend fun getSettings(userId: String): UserSettingsEntity? = null
+        override suspend fun insertSettings(settings: UserSettingsEntity) = Unit
+        override suspend fun updateSettings(settings: UserSettingsEntity) = Unit
+        override suspend fun upsertSettings(settings: UserSettingsEntity) = Unit
+        override fun observePendingSyncSettings(userId: String): Flow<List<UserSettingsEntity>> = emptyFlow()
+        override suspend fun getPendingSyncSettings(userId: String): List<UserSettingsEntity> = emptyList()
+        override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) = Unit
+        override suspend fun getAllSettingsForUser(userId: String): List<UserSettingsEntity> = emptyList()
+        override suspend fun deleteAllForUser(userId: String) = Unit
+        override suspend fun getSettingsByRemoteId(remoteId: String): UserSettingsEntity? = null
+    }
+
+    private class EmptyCompensationProfileDao : CompensationProfileDao {
+        override fun observeProfiles(userId: String): Flow<List<CompensationProfileEntity>> = emptyFlow()
+        override suspend fun getByUser(userId: String): List<CompensationProfileEntity> = emptyList()
+        override suspend fun getDefaultProfile(userId: String): CompensationProfileEntity? = null
+        override suspend fun getByLocalId(localId: String): CompensationProfileEntity? = null
+        override suspend fun getById(userId: String, localId: String): CompensationProfileEntity? = null
+        override suspend fun getByRemoteId(remoteId: String): CompensationProfileEntity? = null
+        override suspend fun getPendingSyncProfiles(userId: String): List<CompensationProfileEntity> = emptyList()
+        override fun observePendingSyncProfiles(userId: String): Flow<List<CompensationProfileEntity>> = emptyFlow()
+        override suspend fun getAllProfilesForUser(userId: String): List<CompensationProfileEntity> = emptyList()
+        override suspend fun insert(profile: CompensationProfileEntity) = Unit
+        override suspend fun update(profile: CompensationProfileEntity) = Unit
+        override suspend fun upsert(profile: CompensationProfileEntity) = Unit
+        override suspend fun updateSyncState(localId: String, status: SyncStatus, remoteId: String?, syncedAt: Long?, error: String?) = Unit
+        override suspend fun clearDefaultForUser(userId: String) = Unit
+        override suspend fun deleteAllForUser(userId: String) = Unit
+    }
+
+    private class EmptyTaskDao : TaskDao {
+        override fun observeActiveTasks(userId: String): Flow<List<TaskEntity>> = emptyFlow()
+        override fun observeAllTasks(userId: String): Flow<List<TaskEntity>> = emptyFlow()
+        override suspend fun getActiveTasks(userId: String): List<TaskEntity> = emptyList()
+        override suspend fun getByLocalId(localId: String): TaskEntity? = null
+        override suspend fun getById(userId: String, localId: String): TaskEntity? = null
+        override suspend fun getByRemoteId(remoteId: String): TaskEntity? = null
+        override suspend fun getPendingSyncTasks(userId: String): List<TaskEntity> = emptyList()
+        override suspend fun insert(task: TaskEntity) = Unit
+        override suspend fun updateSyncState(localId: String, status: SyncStatus, remoteId: String?, syncedAt: Long?, error: String?) = Unit
+        override suspend fun updateLastUsed(localId: String, lastUsedAt: Long, updatedAt: Long) = Unit
+        override suspend fun deleteAllForUser(userId: String) = Unit
+    }
+
+    private class EmptyRemoteRefundClaimDataSource : RemoteRefundClaimDataSource {
+        override suspend fun fetchAll(): List<RemoteRefundClaimRow> = emptyList()
+        override suspend fun insert(claim: RemoteRefundClaimInsert): RemoteRefundClaimRow =
+            error("not used")
+        override suspend fun update(remoteId: String, claim: RemoteRefundClaimUpdate) = Unit
+        override suspend fun delete(remoteId: String) = Unit
+    }
+
+    private class EmptyRemoteUserSettingsDataSource : RemoteUserSettingsDataSource {
+        override suspend fun fetchAll(): List<RemoteUserSettingsRow> = emptyList()
+        override suspend fun upsert(settings: RemoteUserSettingsUpsert): RemoteUserSettingsRow =
+            error("not used")
+        override suspend fun update(remoteId: String, settings: RemoteUserSettingsUpdate) = Unit
+    }
+
+    private class EmptyRemoteCompensationProfileDataSource : RemoteCompensationProfileDataSource {
+        override suspend fun fetchAll(): List<RemoteCompensationProfileRow> = emptyList()
+        override suspend fun insert(profile: RemoteCompensationProfileInsert): RemoteCompensationProfileRow =
+            error("not used")
+        override suspend fun update(remoteId: String, profile: RemoteCompensationProfileUpdate) = Unit
+        override suspend fun delete(remoteId: String) = Unit
     }
 
     private class InMemoryShiftDao : ShiftDao {

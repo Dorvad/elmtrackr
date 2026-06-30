@@ -131,6 +131,13 @@ begin
   ) then
     alter table public.user_settings add column clock_style text not null default 'classic';
   end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'user_settings' and column_name = 'features_overtime_reminders'
+  ) then
+    alter table public.user_settings add column features_overtime_reminders boolean not null default true;
+  end if;
 end
 $$;
 

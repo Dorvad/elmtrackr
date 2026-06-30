@@ -11,7 +11,10 @@ import com.elmtrackr.app.data.local.LegacyDataAdopter
 import com.elmtrackr.app.data.local.LocalUserDataCleaner
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.remote.SupabaseRefundReceiptStorage
+import com.elmtrackr.app.data.remote.SupabaseCompensationProfilesDataSource
+import com.elmtrackr.app.data.remote.SupabaseRefundClaimsDataSource
 import com.elmtrackr.app.data.remote.SupabaseShiftsDataSource
+import com.elmtrackr.app.data.remote.SupabaseUserSettingsDataSource
 import com.elmtrackr.app.data.receipts.RefundReceiptPhotoCleanupWorker
 import com.elmtrackr.app.data.sync.SyncRepository
 import com.elmtrackr.app.data.sync.SyncRepositoryImpl
@@ -72,6 +75,7 @@ class ElmTrackrApp : Application() {
         LocalCompensationProfilesRepository(
             database.compensationProfileDao(),
             settingsRepository,
+            syncTrigger,
         )
     }
 
@@ -85,8 +89,30 @@ class ElmTrackrApp : Application() {
         SupabaseClientProvider.get()?.let { SupabaseShiftsDataSource(it) }
     }
 
+    val remoteRefundClaimsDataSource by lazy {
+        SupabaseClientProvider.get()?.let { SupabaseRefundClaimsDataSource(it) }
+    }
+
+    val remoteUserSettingsDataSource by lazy {
+        SupabaseClientProvider.get()?.let { SupabaseUserSettingsDataSource(it) }
+    }
+
+    val remoteCompensationProfilesDataSource by lazy {
+        SupabaseClientProvider.get()?.let { SupabaseCompensationProfilesDataSource(it) }
+    }
+
     val syncRepository: SyncRepository by lazy {
-        SyncRepositoryImpl(database.shiftDao(), remoteShiftsDataSource)
+        SyncRepositoryImpl(
+            shiftDao = database.shiftDao(),
+            refundClaimDao = database.refundClaimDao(),
+            settingsDao = database.settingsDao(),
+            compensationProfileDao = database.compensationProfileDao(),
+            taskDao = database.taskDao(),
+            remoteShifts = remoteShiftsDataSource,
+            remoteRefundClaims = remoteRefundClaimsDataSource,
+            remoteSettings = remoteUserSettingsDataSource,
+            remoteCompensationProfiles = remoteCompensationProfilesDataSource,
+        )
     }
 
     val shiftsRepository: LocalShiftsRepository by lazy {
@@ -94,7 +120,7 @@ class ElmTrackrApp : Application() {
     }
 
     val settingsRepository: LocalSettingsRepository by lazy {
-        LocalSettingsRepository(database.settingsDao())
+        LocalSettingsRepository(database.settingsDao(), syncTrigger)
     }
 
     val reportsRepository: LocalReportsRepository by lazy {
@@ -102,7 +128,7 @@ class ElmTrackrApp : Application() {
     }
 
     val refundsRepository: LocalRefundsRepository by lazy {
-        LocalRefundsRepository(database.refundClaimDao())
+        LocalRefundsRepository(database.refundClaimDao(), syncTrigger)
     }
 
     val refundReceiptStorage by lazy {

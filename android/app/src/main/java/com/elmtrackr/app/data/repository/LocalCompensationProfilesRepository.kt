@@ -8,7 +8,9 @@ import com.elmtrackr.app.data.local.mapper.mapToDomain
 import com.elmtrackr.app.data.local.mapper.toDomainOrNull
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
+import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -20,6 +22,7 @@ import java.util.UUID
 class LocalCompensationProfilesRepository(
     private val profileDao: CompensationProfileDao,
     private val settingsRepository: SettingsRepository,
+    private val syncTrigger: SyncTrigger = com.elmtrackr.app.data.sync.NoOpSyncTrigger,
 ) : CompensationProfilesRepository {
 
     private val migrationMutex = Mutex()
@@ -42,13 +45,14 @@ class LocalCompensationProfilesRepository(
             profileDao.clearDefaultForUser(profile.userId)
         }
         val entity = profile.copy(id = profileId).toEntity(
-            syncStatus = SyncStatus.SYNCED,
+            syncStatus = syncStatusForMutation(existing),
             remoteId = existing?.remoteId ?: profile.remoteId,
         ).copy(
             createdAt = existing?.createdAt ?: now,
             updatedAt = now,
         )
         profileDao.insert(entity)
+        syncTrigger.schedule()
         return entity.toDomain()
     }
 
@@ -61,10 +65,11 @@ class LocalCompensationProfilesRepository(
             existing.copy(
                 isArchived = true,
                 deletedAt = now,
-                syncStatus = SyncStatus.SYNCED,
+                syncStatus = SyncStatus.PENDING_UPDATE,
                 updatedAt = now,
             ),
         )
+        syncTrigger.schedule()
     }
 
     override suspend fun ensureMigrated(userId: String): CompensationProfile? {
@@ -93,6 +98,13 @@ class LocalCompensationProfilesRepository(
                 null
             }
         }
+    }
+
+    private fun syncStatusForMutation(existing: CompensationProfileEntity?): SyncStatus = when {
+        existing == null -> SyncStatus.PENDING_CREATE
+        existing.syncStatus == SyncStatus.PENDING_CREATE -> SyncStatus.PENDING_CREATE
+        existing.syncStatus == SyncStatus.PENDING_DELETE -> SyncStatus.PENDING_DELETE
+        else -> SyncStatus.PENDING_UPDATE
     }
 
     private companion object {

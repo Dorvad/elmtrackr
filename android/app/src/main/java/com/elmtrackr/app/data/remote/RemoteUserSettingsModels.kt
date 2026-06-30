@@ -1,0 +1,72 @@
+package com.elmtrackr.app.data.remote
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class RemoteUserSettingsRow(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    val timezone: String,
+    @SerialName("daily_overtime_threshold_minutes") val dailyOvertimeThresholdMinutes: Int,
+    @SerialName("weekly_overtime_threshold_minutes") val weeklyOvertimeThresholdMinutes: Int,
+    @SerialName("weekend_days") val weekendDays: List<Int>,
+    @SerialName("hourly_rate") val hourlyRate: Double? = null,
+    val currency: String,
+    @SerialName("region_code") val regionCode: String? = null,
+    @SerialName("currency_code") val currencyCode: String? = null,
+    @SerialName("default_compensation_profile_id") val defaultCompensationProfileId: String? = null,
+    @SerialName("onboarding_completed") val onboardingCompleted: Boolean,
+    @SerialName("onboarding_completed_at") val onboardingCompletedAt: String? = null,
+    @SerialName("features_travel_refunds") val featuresTravelRefunds: Boolean,
+    @SerialName("features_paid_projects") val featuresPaidProjects: Boolean,
+    @SerialName("features_insights") val featuresInsights: Boolean,
+    @SerialName("features_clock_styles") val featuresClockStyles: Boolean,
+    @SerialName("features_overtime_reminders") val featuresOvertimeReminders: Boolean = true,
+    @SerialName("clock_style") val clockStyle: String,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("updated_at") val updatedAt: String,
+)
+
+@Serializable
+data class RemoteUserSettingsUpsert(
+    @SerialName("user_id") val userId: String,
+    val timezone: String,
+    @SerialName("daily_overtime_threshold_minutes") val dailyOvertimeThresholdMinutes: Int,
+    @SerialName("weekly_overtime_threshold_minutes") val weeklyOvertimeThresholdMinutes: Int,
+    @SerialName("weekend_days") val weekendDays: List<Int>,
+    @SerialName("hourly_rate") val hourlyRate: Double? = null,
+    val currency: String,
+    @SerialName("region_code") val regionCode: String? = null,
+    @SerialName("currency_code") val currencyCode: String? = null,
+    @SerialName("default_compensation_profile_id") val defaultCompensationProfileId: String? = null,
+    @SerialName("onboarding_completed") val onboardingCompleted: Boolean,
+    @SerialName("onboarding_completed_at") val onboardingCompletedAt: String? = null,
+    @SerialName("features_travel_refunds") val featuresTravelRefunds: Boolean,
+    @SerialName("features_paid_projects") val featuresPaidProjects: Boolean,
+    @SerialName("features_insights") val featuresInsights: Boolean,
+    @SerialName("features_clock_styles") val featuresClockStyles: Boolean,
+    @SerialName("features_overtime_reminders") val featuresOvertimeReminders: Boolean = true,
+    @SerialName("clock_style") val clockStyle: String,
+)
+
+@Serializable
+data class RemoteUserSettingsUpdate(
+    val timezone: String,
+    @SerialName("daily_overtime_threshold_minutes") val dailyOvertimeThresholdMinutes: Int,
+    @SerialName("weekly_overtime_threshold_minutes") val weeklyOvertimeThresholdMinutes: Int,
+    @SerialName("weekend_days") val weekendDays: List<Int>,
+    @SerialName("hourly_rate") val hourlyRate: Double? = null,
+    val currency: String,
+    @SerialName("region_code") val regionCode: String? = null,
+    @SerialName("currency_code") val currencyCode: String? = null,
+    @SerialName("default_compensation_profile_id") val defaultCompensationProfileId: String? = null,
+    @SerialName("onboarding_completed") val onboardingCompleted: Boolean,
+    @SerialName("onboarding_completed_at") val onboardingCompletedAt: String? = null,
+    @SerialName("features_travel_refunds") val featuresTravelRefunds: Boolean,
+    @SerialName("features_paid_projects") val featuresPaidProjects: Boolean,
+    @SerialName("features_insights") val featuresInsights: Boolean,
+    @SerialName("features_clock_styles") val featuresClockStyles: Boolean,
+    @SerialName("features_overtime_reminders") val featuresOvertimeReminders: Boolean = true,
+    @SerialName("clock_style") val clockStyle: String,
+)

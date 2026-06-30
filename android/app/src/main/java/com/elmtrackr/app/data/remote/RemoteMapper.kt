@@ -10,7 +10,10 @@ import java.util.UUID
 
 private val snapshotJson = Json { ignoreUnknownKeys = true }
 
-fun ShiftEntity.toRemoteInsert(): RemoteShiftInsert = RemoteShiftInsert(
+fun ShiftEntity.toRemoteInsert(
+    compensationProfileRemoteId: String? = null,
+    taskRemoteId: String? = null,
+): RemoteShiftInsert = RemoteShiftInsert(
     userId = userId,
     startTime = epochToIso(startTime),
     endTime = endTime?.let(::epochToIso),
@@ -18,24 +21,27 @@ fun ShiftEntity.toRemoteInsert(): RemoteShiftInsert = RemoteShiftInsert(
     notes = notes,
     isSpecialDay = isSpecialDay,
     refundAction = refundAction?.let(::refundActionToWire),
-    compensationProfileId = compensationProfileId,
+    compensationProfileId = compensationProfileRemoteId,
     compensationSnapshotJson = compensationSnapshotJson?.toJsonElement(),
-    taskId = taskId,
+    taskId = taskRemoteId,
     taskNameSnapshot = taskNameSnapshot,
     taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
 )
 
-fun ShiftEntity.toRemoteUpdate(): RemoteShiftUpdate = RemoteShiftUpdate(
+fun ShiftEntity.toRemoteUpdate(
+    compensationProfileRemoteId: String? = null,
+    taskRemoteId: String? = null,
+): RemoteShiftUpdate = RemoteShiftUpdate(
     startTime = epochToIso(startTime),
     endTime = endTime?.let(::epochToIso),
     breakMinutes = breakMinutes,
     notes = notes,
     isSpecialDay = isSpecialDay,
     refundAction = refundAction?.let(::refundActionToWire),
-    compensationProfileId = compensationProfileId,
+    compensationProfileId = compensationProfileRemoteId,
     compensationSnapshotJson = compensationSnapshotJson?.toJsonElement(),
-    taskId = taskId,
+    taskId = taskRemoteId,
     taskNameSnapshot = taskNameSnapshot,
     taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
@@ -43,6 +49,8 @@ fun ShiftEntity.toRemoteUpdate(): RemoteShiftUpdate = RemoteShiftUpdate(
 
 fun RemoteShiftRow.toLocalEntity(
     existingLocalId: String? = null,
+    compensationProfileLocalId: String? = compensationProfileId,
+    taskLocalId: String? = taskId,
     syncStatus: SyncStatus = SyncStatus.SYNCED,
 ): ShiftEntity {
     val created = isoToEpoch(createdAt)
@@ -57,9 +65,9 @@ fun RemoteShiftRow.toLocalEntity(
         notes = notes,
         isSpecialDay = isSpecialDay,
         refundAction = RefundAction.fromPersisted(refundAction)?.name,
-        compensationProfileId = compensationProfileId,
+        compensationProfileId = compensationProfileLocalId,
         compensationSnapshotJson = compensationSnapshotJson?.toSnapshotString(),
-        taskId = taskId,
+        taskId = taskLocalId,
         taskNameSnapshot = taskNameSnapshot,
         taskIconSnapshot = taskIconSnapshot,
         taskHourlyRateSnapshot = taskHourlyRateSnapshot,
