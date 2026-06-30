@@ -43,7 +43,6 @@ internal enum class SettingsDestination {
     HELP,
     COMPENSATION,
     TASKS,
-    PRIVACY,
     TERMS,
 }
 
@@ -63,15 +62,6 @@ fun SettingsScreen(
         }
         SettingsDestination.TASKS -> {
             com.elmtrackr.app.ui.tasks.TaskManagementScreen(onBack = { destination = SettingsDestination.PAY })
-            return
-        }
-        SettingsDestination.PRIVACY -> {
-            LegalDocumentScreen(
-                title = "Privacy Policy",
-                sections = LegalDocuments.privacyPolicy,
-                lastUpdated = LegalDocuments.LAST_UPDATED,
-                onBack = { destination = SettingsDestination.HELP },
-            )
             return
         }
         SettingsDestination.TERMS -> {
@@ -292,7 +282,6 @@ private fun SettingsFormHost(
                 authState = authState,
                 onBack = onNavigateBack,
                 onReplayOnboarding = onReplayOnboarding,
-                onOpenPrivacy = { onNavigate(SettingsDestination.PRIVACY) },
                 onOpenTerms = { onNavigate(SettingsDestination.TERMS) },
                 onSyncNow = onSyncNow,
             )
