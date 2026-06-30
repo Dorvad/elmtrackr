@@ -52,7 +52,7 @@ interface RefundClaimDao {
 
     @Query(
         "SELECT * FROM refund_claims WHERE userId = :userId AND syncStatus IN " +
-            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE')"
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')"
     )
     fun observePendingSyncClaims(userId: String): Flow<List<RefundClaimEntity>>
 

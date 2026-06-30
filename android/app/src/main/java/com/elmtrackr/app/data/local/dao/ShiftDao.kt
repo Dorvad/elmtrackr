@@ -52,7 +52,7 @@ interface ShiftDao {
 
     @Query(
         "SELECT * FROM shifts WHERE userId = :userId AND syncStatus IN " +
-            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE')"
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')"
     )
     fun observePendingSyncShifts(userId: String): Flow<List<ShiftEntity>>
 
@@ -102,6 +102,17 @@ interface ShiftDao {
             "AND deletedAt IS NULL ORDER BY startTime DESC"
     )
     fun observeShiftsByDateRange(
+        userId: String,
+        fromEpoch: Long,
+        toEpoch: Long,
+    ): Flow<List<ShiftEntity>>
+
+    @Query(
+        "SELECT * FROM shifts WHERE userId = :userId " +
+            "AND startTime >= :fromEpoch AND startTime < :toEpoch " +
+            "AND deletedAt IS NULL ORDER BY startTime DESC"
+    )
+    fun observeShiftsForDay(
         userId: String,
         fromEpoch: Long,
         toEpoch: Long,

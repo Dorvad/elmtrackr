@@ -23,4 +23,7 @@ class SyncIdMapper(
 
     suspend fun taskLocalToRemote(localId: String?): String? =
         localId?.let { taskDao.getByLocalId(it)?.remoteId }
+
+    suspend fun taskRemoteToLocal(remoteId: String?): String? =
+        remoteId?.let { taskDao.getByRemoteId(it)?.localId }
 }

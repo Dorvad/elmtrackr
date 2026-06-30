@@ -19,6 +19,10 @@ import com.elmtrackr.app.data.remote.RemoteRefundClaimDataSource
 import com.elmtrackr.app.data.remote.RemoteRefundClaimInsert
 import com.elmtrackr.app.data.remote.RemoteRefundClaimRow
 import com.elmtrackr.app.data.remote.RemoteRefundClaimUpdate
+import com.elmtrackr.app.data.remote.RemoteTaskDataSource
+import com.elmtrackr.app.data.remote.RemoteTaskInsert
+import com.elmtrackr.app.data.remote.RemoteTaskRow
+import com.elmtrackr.app.data.remote.RemoteTaskUpdate
 import com.elmtrackr.app.data.remote.RemoteShiftDataSource
 import com.elmtrackr.app.data.remote.RemoteShiftInsert
 import com.elmtrackr.app.data.remote.RemoteShiftRow
@@ -112,12 +116,16 @@ class SyncRepositoryImplTest {
     private fun createRepository(
         shiftDao: ShiftDao = InMemoryShiftDao(),
         remoteShifts: RemoteShiftDataSource = FakeRemoteShiftDataSource(),
+        syncCursorStore: SyncCursorStore = InMemorySyncCursorStore(),
+        remoteTasks: RemoteTaskDataSource = EmptyRemoteTaskDataSource(),
     ) = SyncRepositoryImpl(
         shiftDao = shiftDao,
         refundClaimDao = EmptyRefundClaimDao(),
         settingsDao = EmptySettingsDao(),
         compensationProfileDao = EmptyCompensationProfileDao(),
         taskDao = EmptyTaskDao(),
+        syncCursorStore = syncCursorStore,
+        remoteTasks = remoteTasks,
         remoteShifts = remoteShifts,
         remoteRefundClaims = EmptyRemoteRefundClaimDataSource(),
         remoteSettings = EmptyRemoteUserSettingsDataSource(),
@@ -162,7 +170,8 @@ class SyncRepositoryImplTest {
         val inserts = mutableListOf<RemoteShiftInsert>()
         private var nextId = 1
 
-        override suspend fun fetchAll(): List<RemoteShiftRow> = rows.toList()
+        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteShiftRow> =
+            rows.filter { sinceIso == null || it.updatedAt >= sinceIso }.take(limit)
 
         override suspend fun insert(shift: RemoteShiftInsert): RemoteShiftRow {
             inserts += shift
@@ -254,14 +263,41 @@ class SyncRepositoryImplTest {
         override suspend fun getById(userId: String, localId: String): TaskEntity? = null
         override suspend fun getByRemoteId(remoteId: String): TaskEntity? = null
         override suspend fun getPendingSyncTasks(userId: String): List<TaskEntity> = emptyList()
+        override fun observePendingSyncTasks(userId: String): Flow<List<TaskEntity>> = emptyFlow()
+        override suspend fun getAllTasksForUser(userId: String): List<TaskEntity> = emptyList()
+        override suspend fun upsert(task: TaskEntity) = Unit
         override suspend fun insert(task: TaskEntity) = Unit
+        override suspend fun adoptLegacyUser(userId: String) = Unit
         override suspend fun updateSyncState(localId: String, status: SyncStatus, remoteId: String?, syncedAt: Long?, error: String?) = Unit
         override suspend fun updateLastUsed(localId: String, lastUsedAt: Long, updatedAt: Long) = Unit
         override suspend fun deleteAllForUser(userId: String) = Unit
     }
 
+    private class InMemorySyncCursorStore : SyncCursorStore {
+        private val cursors = mutableMapOf<String, Long>()
+
+        override suspend fun lastPulledAt(userId: String, entity: String): Long? =
+            cursors["$userId:$entity"]
+
+        override suspend fun setLastPulledAt(userId: String, entity: String, epochMillis: Long) {
+            cursors["$userId:$entity"] = epochMillis
+        }
+
+        override fun sinceIso(epochMillis: Long?): String? =
+            epochMillis?.let { java.time.Instant.ofEpochMilli(it).toString() }
+    }
+
+    private class EmptyRemoteTaskDataSource : RemoteTaskDataSource {
+        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteTaskRow> =
+            emptyList()
+        override suspend fun insert(task: RemoteTaskInsert): RemoteTaskRow = error("not used")
+        override suspend fun update(remoteId: String, task: RemoteTaskUpdate) = Unit
+        override suspend fun delete(remoteId: String) = Unit
+    }
+
     private class EmptyRemoteRefundClaimDataSource : RemoteRefundClaimDataSource {
-        override suspend fun fetchAll(): List<RemoteRefundClaimRow> = emptyList()
+        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteRefundClaimRow> =
+            emptyList()
         override suspend fun insert(claim: RemoteRefundClaimInsert): RemoteRefundClaimRow =
             error("not used")
         override suspend fun update(remoteId: String, claim: RemoteRefundClaimUpdate) = Unit
@@ -269,14 +305,16 @@ class SyncRepositoryImplTest {
     }
 
     private class EmptyRemoteUserSettingsDataSource : RemoteUserSettingsDataSource {
-        override suspend fun fetchAll(): List<RemoteUserSettingsRow> = emptyList()
+        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteUserSettingsRow> =
+            emptyList()
         override suspend fun upsert(settings: RemoteUserSettingsUpsert): RemoteUserSettingsRow =
             error("not used")
         override suspend fun update(remoteId: String, settings: RemoteUserSettingsUpdate) = Unit
     }
 
     private class EmptyRemoteCompensationProfileDataSource : RemoteCompensationProfileDataSource {
-        override suspend fun fetchAll(): List<RemoteCompensationProfileRow> = emptyList()
+        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteCompensationProfileRow> =
+            emptyList()
         override suspend fun insert(profile: RemoteCompensationProfileInsert): RemoteCompensationProfileRow =
             error("not used")
         override suspend fun update(remoteId: String, profile: RemoteCompensationProfileUpdate) = Unit
@@ -390,6 +428,12 @@ class SyncRepositoryImplTest {
                         it.deletedAt == null
                 }
             }
+
+        override fun observeShiftsForDay(
+            userId: String,
+            fromEpoch: Long,
+            toEpoch: Long,
+        ): Flow<List<ShiftEntity>> = observeShiftsByDateRange(userId, fromEpoch, toEpoch)
 
         private companion object {
             val pendingStatuses = setOf(

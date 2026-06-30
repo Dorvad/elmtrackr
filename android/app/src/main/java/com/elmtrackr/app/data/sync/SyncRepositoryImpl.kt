@@ -9,10 +9,12 @@ import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
+import com.elmtrackr.app.data.local.entity.TaskEntity
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import com.elmtrackr.app.data.remote.RemoteCompensationProfileDataSource
 import com.elmtrackr.app.data.remote.RemoteRefundClaimDataSource
 import com.elmtrackr.app.data.remote.RemoteShiftDataSource
+import com.elmtrackr.app.data.remote.RemoteTaskDataSource
 import com.elmtrackr.app.data.remote.RemoteUserSettingsDataSource
 import com.elmtrackr.app.data.remote.isoToEpoch
 import com.elmtrackr.app.data.remote.toLocalEntity
@@ -31,6 +33,8 @@ class SyncRepositoryImpl(
     private val settingsDao: SettingsDao,
     private val compensationProfileDao: CompensationProfileDao,
     private val taskDao: TaskDao,
+    private val syncCursorStore: SyncCursorStore,
+    private val remoteTasks: RemoteTaskDataSource?,
     private val remoteShifts: RemoteShiftDataSource?,
     private val remoteRefundClaims: RemoteRefundClaimDataSource?,
     private val remoteSettings: RemoteUserSettingsDataSource?,
@@ -46,14 +50,42 @@ class SyncRepositoryImpl(
             refundClaimDao.observePendingSyncClaims(userId),
             settingsDao.observePendingSyncSettings(userId),
             compensationProfileDao.observePendingSyncProfiles(userId),
-        ) { shifts, claims, settings, profiles ->
-            shifts.size + claims.size + settings.size + profiles.size
+            taskDao.observePendingSyncTasks(userId),
+        ) { shifts, claims, settings, profiles, tasks ->
+            shifts.size + claims.size + settings.size + profiles.size + tasks.size
+        }
+
+    override fun observeSyncHealth(userId: String): Flow<SyncHealth> =
+        combine(
+            shiftDao.observePendingSyncShifts(userId),
+            refundClaimDao.observePendingSyncClaims(userId),
+            settingsDao.observePendingSyncSettings(userId),
+            compensationProfileDao.observePendingSyncProfiles(userId),
+            taskDao.observePendingSyncTasks(userId),
+        ) { shifts, claims, settings, profiles, tasks ->
+            val pendingCount = shifts.size + claims.size + settings.size + profiles.size + tasks.size
+            val failedCount = shifts.count { it.syncStatus == SyncStatus.FAILED } +
+                claims.count { it.syncStatus == SyncStatus.FAILED } +
+                settings.count { it.syncStatus == SyncStatus.FAILED } +
+                profiles.count { it.syncStatus == SyncStatus.FAILED } +
+                tasks.count { it.syncStatus == SyncStatus.FAILED }
+            SyncHealth(
+                pendingCount = pendingCount,
+                failedCount = failedCount,
+            )
         }
 
     override fun observeLastSyncStatus(): Flow<String?> = lastSyncStatus.asStateFlow()
 
+    override suspend fun hasPendingWork(userId: String): Boolean =
+        shiftDao.getPendingSyncShifts(userId).isNotEmpty() ||
+            refundClaimDao.getPendingSyncClaims(userId).isNotEmpty() ||
+            settingsDao.getPendingSyncSettings(userId).isNotEmpty() ||
+            compensationProfileDao.getPendingSyncProfiles(userId).isNotEmpty() ||
+            taskDao.getPendingSyncTasks(userId).isNotEmpty()
+
     override suspend fun syncAll(userId: String): SyncResult {
-        if (remoteShifts == null || remoteRefundClaims == null ||
+        if (remoteTasks == null || remoteShifts == null || remoteRefundClaims == null ||
             remoteSettings == null || remoteCompensationProfiles == null
         ) {
             lastSyncStatus.value = "Not configured"
@@ -62,10 +94,12 @@ class SyncRepositoryImpl(
 
         return runCatching {
             reconcileNeverSynced(userId)
+            pushTasks(userId)
+            pushCompensationProfiles(userId)
             pushShifts(userId)
             pushRefundClaims(userId)
-            pushCompensationProfiles(userId)
             pushUserSettings(userId)
+            pullTasks(userId)
             pullCompensationProfiles(userId)
             pullUserSettings(userId)
             pullShifts(userId)
@@ -79,6 +113,10 @@ class SyncRepositoryImpl(
     }
 
     private suspend fun reconcileNeverSynced(userId: String) {
+        taskDao.getAllTasksForUser(userId)
+            .filter { it.remoteId == null && it.syncStatus == SyncStatus.SYNCED && it.deletedAt == null }
+            .forEach { taskDao.upsert(it.copy(syncStatus = SyncStatus.PENDING_CREATE)) }
+
         shiftDao.getAllShiftsForUser(userId)
             .filter { it.remoteId == null && it.syncStatus == SyncStatus.SYNCED && it.deletedAt == null }
             .forEach { shiftDao.upsertShift(it.copy(syncStatus = SyncStatus.PENDING_CREATE)) }
@@ -94,6 +132,107 @@ class SyncRepositoryImpl(
         compensationProfileDao.getAllProfilesForUser(userId)
             .filter { it.remoteId == null && it.syncStatus == SyncStatus.SYNCED }
             .forEach { compensationProfileDao.upsert(it.copy(syncStatus = SyncStatus.PENDING_CREATE)) }
+    }
+
+    private suspend fun <Row> pullIncremental(
+        userId: String,
+        entity: String,
+        fetchPage: suspend (sinceIso: String?) -> List<Row>,
+        updatedAtIso: (Row) -> String,
+    ): Pair<List<Row>, Boolean> {
+        val isFullSync = syncCursorStore.lastPulledAt(userId, entity) == null
+        var cursor = syncCursorStore.lastPulledAt(userId, entity)
+        val allRows = mutableListOf<Row>()
+
+        while (true) {
+            val sinceIso = syncCursorStore.sinceIso(cursor)
+            val batch = fetchPage(sinceIso)
+            if (batch.isEmpty()) break
+            allRows += batch
+            val maxEpoch = batch.maxOf { isoToEpoch(updatedAtIso(it)) }
+            cursor = maxOf(cursor ?: 0L, maxEpoch)
+            syncCursorStore.setLastPulledAt(userId, entity, cursor)
+            if (batch.size < PULL_PAGE_SIZE) break
+        }
+
+        return allRows to isFullSync
+    }
+
+    // ── Tasks ───────────────────────────────────────────────────────────────
+
+    private suspend fun pushTasks(userId: String) {
+        val now = Instant.now().toEpochMilli()
+        for (task in taskDao.getPendingSyncTasks(userId)) {
+            runCatching {
+                when (task.syncStatus) {
+                    SyncStatus.PENDING_DELETE -> pushTaskDelete(task, now)
+                    SyncStatus.PENDING_CREATE, SyncStatus.FAILED -> {
+                        if (task.remoteId == null) pushTaskCreate(task, now)
+                        else pushTaskUpdate(task, now)
+                    }
+                    SyncStatus.PENDING_UPDATE -> pushTaskUpdate(task, now)
+                    SyncStatus.SYNCED -> Unit
+                }
+            }.onFailure { markTaskFailed(task, it) }
+        }
+    }
+
+    private suspend fun pushTaskCreate(task: TaskEntity, syncedAt: Long) {
+        val remote = remoteTasks!!.insert(task.toRemoteInsert())
+        taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
+    }
+
+    private suspend fun pushTaskUpdate(task: TaskEntity, syncedAt: Long) {
+        val remoteId = task.remoteId ?: error("Missing remoteId for task ${task.localId}")
+        remoteTasks!!.update(remoteId, task.toRemoteUpdate())
+        taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pushTaskDelete(task: TaskEntity, syncedAt: Long) {
+        task.remoteId?.let { remoteTasks!!.delete(it) }
+        taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, task.remoteId, syncedAt, null)
+    }
+
+    private suspend fun markTaskFailed(task: TaskEntity, error: Throwable) {
+        taskDao.updateSyncState(
+            task.localId, SyncStatus.FAILED, task.remoteId, task.lastSyncedAt, error.message,
+        )
+    }
+
+    private suspend fun pullTasks(userId: String) {
+        val (remoteRows, isFullSync) = pullIncremental(
+            userId = userId,
+            entity = ENTITY_TASKS,
+            fetchPage = { since -> remoteTasks!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            updatedAtIso = { it.updatedAt },
+        )
+        val remoteIds = remoteRows.map { it.id }.toSet()
+
+        for (remote in remoteRows) {
+            val existing = taskDao.getByRemoteId(remote.id)
+            if (existing != null) {
+                if (existing.syncStatus != SyncStatus.SYNCED) continue
+                if (isoToEpoch(remote.updatedAt) > existing.updatedAt) {
+                    taskDao.upsert(
+                        remote.toLocalEntity(existingLocalId = existing.localId),
+                    )
+                }
+                continue
+            }
+            taskDao.upsert(remote.toLocalEntity())
+        }
+
+        if (isFullSync) {
+            val now = Instant.now().toEpochMilli()
+            taskDao.getAllTasksForUser(userId)
+                .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
+                .filter { it.remoteId !in remoteIds }
+                .forEach {
+                    taskDao.upsert(
+                        it.copy(isArchived = true, deletedAt = now, updatedAt = now, syncStatus = SyncStatus.SYNCED),
+                    )
+                }
+        }
     }
 
     // ── Shifts ──────────────────────────────────────────────────────────────
@@ -149,7 +288,12 @@ class SyncRepositoryImpl(
     }
 
     private suspend fun pullShifts(userId: String) {
-        val remoteRows = remoteShifts!!.fetchAll()
+        val (remoteRows, isFullSync) = pullIncremental(
+            userId = userId,
+            entity = ENTITY_SHIFTS,
+            fetchPage = { since -> remoteShifts!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            updatedAtIso = { it.updatedAt },
+        )
         val remoteIds = remoteRows.map { it.id }.toSet()
         val localActiveExists = shiftDao.getActiveShifts(userId).isNotEmpty()
 
@@ -162,7 +306,7 @@ class SyncRepositoryImpl(
                         remote.toLocalEntity(
                             existingLocalId = existing.localId,
                             compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
-                            taskLocalId = remote.taskId,
+                            taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
                             syncStatus = SyncStatus.SYNCED,
                         ),
                     )
@@ -173,16 +317,18 @@ class SyncRepositoryImpl(
             shiftDao.insertShift(
                 remote.toLocalEntity(
                     compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
-                    taskLocalId = remote.taskId,
+                    taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
                 ),
             )
         }
 
-        val now = Instant.now().toEpochMilli()
-        shiftDao.getAllShiftsForUser(userId)
-            .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
-            .filter { it.remoteId !in remoteIds }
-            .forEach { shiftDao.softDeleteShift(it.localId, now, SyncStatus.SYNCED, now) }
+        if (isFullSync) {
+            val now = Instant.now().toEpochMilli()
+            shiftDao.getAllShiftsForUser(userId)
+                .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
+                .filter { it.remoteId !in remoteIds }
+                .forEach { shiftDao.softDeleteShift(it.localId, now, SyncStatus.SYNCED, now) }
+        }
     }
 
     // ── Refund claims ─────────────────────────────────────────────────────────
@@ -233,7 +379,12 @@ class SyncRepositoryImpl(
     }
 
     private suspend fun pullRefundClaims(userId: String) {
-        val remoteRows = remoteRefundClaims!!.fetchAll()
+        val (remoteRows, isFullSync) = pullIncremental(
+            userId = userId,
+            entity = ENTITY_REFUND_CLAIMS,
+            fetchPage = { since -> remoteRefundClaims!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            updatedAtIso = { it.updatedAt },
+        )
         val remoteIds = remoteRows.map { it.id }.toSet()
 
         for (remote in remoteRows) {
@@ -254,11 +405,13 @@ class SyncRepositoryImpl(
             refundClaimDao.insertClaim(remote.toLocalEntity(shiftLocalId = shiftLocalId))
         }
 
-        val now = Instant.now().toEpochMilli()
-        refundClaimDao.getAllClaimsForUser(userId)
-            .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
-            .filter { it.remoteId !in remoteIds }
-            .forEach { refundClaimDao.softDeleteClaim(it.localId, now, SyncStatus.SYNCED, now) }
+        if (isFullSync) {
+            val now = Instant.now().toEpochMilli()
+            refundClaimDao.getAllClaimsForUser(userId)
+                .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
+                .filter { it.remoteId !in remoteIds }
+                .forEach { refundClaimDao.softDeleteClaim(it.localId, now, SyncStatus.SYNCED, now) }
+        }
     }
 
     // ── Compensation profiles ─────────────────────────────────────────────────
@@ -305,7 +458,12 @@ class SyncRepositoryImpl(
     }
 
     private suspend fun pullCompensationProfiles(userId: String) {
-        val remoteRows = remoteCompensationProfiles!!.fetchAll()
+        val (remoteRows, isFullSync) = pullIncremental(
+            userId = userId,
+            entity = ENTITY_COMPENSATION_PROFILES,
+            fetchPage = { since -> remoteCompensationProfiles!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            updatedAtIso = { it.updatedAt },
+        )
         val remoteIds = remoteRows.map { it.id }.toSet()
 
         for (remote in remoteRows) {
@@ -322,15 +480,17 @@ class SyncRepositoryImpl(
             compensationProfileDao.insert(remote.toLocalEntity())
         }
 
-        val now = Instant.now().toEpochMilli()
-        compensationProfileDao.getAllProfilesForUser(userId)
-            .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
-            .filter { it.remoteId !in remoteIds }
-            .forEach {
-                compensationProfileDao.upsert(
-                    it.copy(isArchived = true, deletedAt = now, updatedAt = now, syncStatus = SyncStatus.SYNCED),
-                )
-            }
+        if (isFullSync) {
+            val now = Instant.now().toEpochMilli()
+            compensationProfileDao.getAllProfilesForUser(userId)
+                .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
+                .filter { it.remoteId !in remoteIds }
+                .forEach {
+                    compensationProfileDao.upsert(
+                        it.copy(isArchived = true, deletedAt = now, updatedAt = now, syncStatus = SyncStatus.SYNCED),
+                    )
+                }
+        }
     }
 
     // ── User settings ─────────────────────────────────────────────────────────
@@ -378,7 +538,13 @@ class SyncRepositoryImpl(
     }
 
     private suspend fun pullUserSettings(userId: String) {
-        val remoteRows = remoteSettings!!.fetchAll()
+        val (remoteRows, _) = pullIncremental(
+            userId = userId,
+            entity = ENTITY_USER_SETTINGS,
+            fetchPage = { since -> remoteSettings!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            updatedAtIso = { it.updatedAt },
+        )
+
         for (remote in remoteRows) {
             val profileLocalId = idMapper.profileRemoteToLocal(remote.defaultCompensationProfileId)
             val existing = settingsDao.getSettingsByRemoteId(remote.id)
@@ -399,5 +565,14 @@ class SyncRepositoryImpl(
                 remote.toLocalEntity(defaultCompensationProfileLocalId = profileLocalId),
             )
         }
+    }
+
+    private companion object {
+        const val PULL_PAGE_SIZE = 200
+        const val ENTITY_TASKS = "tasks"
+        const val ENTITY_SHIFTS = "shifts"
+        const val ENTITY_REFUND_CLAIMS = "refund_claims"
+        const val ENTITY_COMPENSATION_PROFILES = "compensation_profiles"
+        const val ENTITY_USER_SETTINGS = "user_settings"
     }
 }

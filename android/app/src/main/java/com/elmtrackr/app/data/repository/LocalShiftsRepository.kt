@@ -12,11 +12,12 @@ import com.elmtrackr.app.domain.compensation.CompensationRulesCodec
 import com.elmtrackr.app.domain.model.CompensationSnapshot
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.repository.ShiftsRepository
+import com.elmtrackr.app.domain.time.WorkTimezone
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
+import java.time.ZoneId
 import java.time.YearMonth
-import java.time.ZoneOffset
 import java.util.UUID
 
 class LocalShiftsRepository(
@@ -126,11 +127,28 @@ class LocalShiftsRepository(
         syncTrigger.schedule()
     }
 
-    override fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>> {
-        val ym = YearMonth.of(year, month)
-        val from = ym.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
-        val to = ym.plusMonths(1).atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+    override fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>> =
+        observeShiftsByMonthInZone(userId, year, month, ZoneId.of("UTC"))
+
+    fun observeShiftsByMonthInZone(
+        userId: String,
+        year: Int,
+        month: Int,
+        zone: ZoneId,
+    ): Flow<List<Shift>> {
+        val (from, to) = WorkTimezone.monthRangeEpochMillis(year, month, zone)
         return shiftDao.observeShiftsByDateRange(userId, from, to).map { entities ->
+            entities.mapToDomain { it.toDomain() }
+        }
+    }
+
+    fun observeShiftsForDay(
+        userId: String,
+        zone: ZoneId,
+        date: java.time.LocalDate,
+    ): Flow<List<Shift>> {
+        val (from, to) = WorkTimezone.dayRangeEpochMillis(date, zone)
+        return shiftDao.observeShiftsForDay(userId, from, to).map { entities ->
             entities.mapToDomain { it.toDomain() }
         }
     }

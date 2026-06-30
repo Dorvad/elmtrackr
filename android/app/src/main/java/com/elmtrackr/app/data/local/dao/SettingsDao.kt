@@ -32,7 +32,7 @@ interface SettingsDao {
 
     @Query(
         "SELECT * FROM user_settings WHERE userId = :userId AND syncStatus IN " +
-            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE')"
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')"
     )
     fun observePendingSyncSettings(userId: String): Flow<List<UserSettingsEntity>>
 

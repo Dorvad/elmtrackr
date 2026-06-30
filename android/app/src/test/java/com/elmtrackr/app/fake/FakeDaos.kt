@@ -68,6 +68,9 @@ class FakeShiftDao : ShiftDao {
     override fun observeShiftsByDateRange(userId: String, fromEpoch: Long, toEpoch: Long): Flow<List<ShiftEntity>> =
         _flow.map { it.filter { e -> e.userId == userId && e.startTime >= fromEpoch && e.startTime < toEpoch && e.deletedAt == null } }
 
+    override fun observeShiftsForDay(userId: String, fromEpoch: Long, toEpoch: Long): Flow<List<ShiftEntity>> =
+        observeShiftsByDateRange(userId, fromEpoch, toEpoch)
+
     override fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<ShiftEntity>> =
         _flow.map {
             it.filter { e -> e.userId == userId && e.endTime != null && e.deletedAt == null }
@@ -343,6 +346,19 @@ class FakeTaskDao : com.elmtrackr.app.data.local.dao.TaskDao {
 
     override suspend fun getPendingSyncTasks(userId: String) =
         store.values.filter { it.userId == userId && it.syncStatus != SyncStatus.SYNCED && it.deletedAt == null }
+
+    override fun observePendingSyncTasks(userId: String) =
+        _flow.map { it.filter { e -> e.userId == userId && e.syncStatus != SyncStatus.SYNCED && e.deletedAt == null } }
+
+    override suspend fun getAllTasksForUser(userId: String) =
+        store.values.filter { it.userId == userId && it.deletedAt == null }
+
+    override suspend fun upsert(task: com.elmtrackr.app.data.local.entity.TaskEntity) = insert(task)
+
+    override suspend fun adoptLegacyUser(userId: String) {
+        store.replaceAll { _, value -> if (value.userId == "local-user") value.copy(userId = userId) else value }
+        refresh()
+    }
 
     override suspend fun insert(task: com.elmtrackr.app.data.local.entity.TaskEntity) {
         store[task.localId] = task

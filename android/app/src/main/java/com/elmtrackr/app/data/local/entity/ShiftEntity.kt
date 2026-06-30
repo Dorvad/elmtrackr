@@ -9,6 +9,7 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["userId"]),
         Index(value = ["userId", "endTime"]),
+        Index(value = ["userId", "startTime"]),
         Index(value = ["syncStatus"]),
     ],
 )

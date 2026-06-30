@@ -14,7 +14,12 @@ class SyncWorker(
         val app = applicationContext as? ElmTrackrApp ?: return Result.failure()
         val userId = app.currentUserProvider.currentUserId() ?: return Result.success()
         return when (val result = app.syncRepository.syncAll(userId)) {
-            is SyncResult.Success, SyncResult.NotConfigured -> Result.success()
+            is SyncResult.Success, SyncResult.NotConfigured -> {
+                if (app.syncRepository.hasPendingWork(userId)) {
+                    app.syncScheduler.schedule()
+                }
+                Result.success()
+            }
             is SyncResult.Error -> Result.retry()
         }
     }

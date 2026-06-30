@@ -14,8 +14,10 @@ import com.elmtrackr.app.data.remote.SupabaseRefundReceiptStorage
 import com.elmtrackr.app.data.remote.SupabaseCompensationProfilesDataSource
 import com.elmtrackr.app.data.remote.SupabaseRefundClaimsDataSource
 import com.elmtrackr.app.data.remote.SupabaseShiftsDataSource
+import com.elmtrackr.app.data.remote.SupabaseTasksDataSource
 import com.elmtrackr.app.data.remote.SupabaseUserSettingsDataSource
 import com.elmtrackr.app.data.receipts.RefundReceiptPhotoCleanupWorker
+import com.elmtrackr.app.data.sync.PreferenceSyncCursorStore
 import com.elmtrackr.app.data.sync.SyncRepository
 import com.elmtrackr.app.data.sync.SyncRepositoryImpl
 import com.elmtrackr.app.data.sync.SyncScheduler
@@ -68,7 +70,7 @@ class ElmTrackrApp : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val tasksRepository: LocalTasksRepository by lazy {
-        LocalTasksRepository(database.taskDao())
+        LocalTasksRepository(database.taskDao(), syncTrigger)
     }
 
     val compensationProfilesRepository: LocalCompensationProfilesRepository by lazy {
@@ -83,6 +85,12 @@ class ElmTrackrApp : Application() {
 
     val syncTrigger: SyncTrigger by lazy {
         if (SupabaseClientProvider.isConfigured()) syncScheduler else com.elmtrackr.app.data.sync.NoOpSyncTrigger
+    }
+
+    val syncCursorStore by lazy { PreferenceSyncCursorStore(this) }
+
+    val remoteTasksDataSource by lazy {
+        SupabaseClientProvider.get()?.let { SupabaseTasksDataSource(it) }
     }
 
     val remoteShiftsDataSource by lazy {
@@ -108,6 +116,8 @@ class ElmTrackrApp : Application() {
             settingsDao = database.settingsDao(),
             compensationProfileDao = database.compensationProfileDao(),
             taskDao = database.taskDao(),
+            syncCursorStore = syncCursorStore,
+            remoteTasks = remoteTasksDataSource,
             remoteShifts = remoteShiftsDataSource,
             remoteRefundClaims = remoteRefundClaimsDataSource,
             remoteSettings = remoteUserSettingsDataSource,

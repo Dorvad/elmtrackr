@@ -22,6 +22,7 @@ object AppPreferenceKeys {
     val LAST_ACTIVE_USER_ID = stringPreferencesKey("last_active_user_id")
     val DEVICE_ID = stringPreferencesKey("device_id")
     val LEGACY_DATA_ADOPTED = booleanPreferencesKey("legacy_data_adopted")
+    val NOTIFICATION_PERMISSION_PROMPTED = booleanPreferencesKey("notification_permission_prompted")
 }
 
 data class AppPreferenceValues(

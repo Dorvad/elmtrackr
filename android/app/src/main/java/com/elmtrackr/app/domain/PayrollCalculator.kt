@@ -10,7 +10,7 @@ import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.ShiftPayBreakdown
 import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.domain.model.UserSettings
-import java.time.ZoneOffset
+import com.elmtrackr.app.domain.time.WorkTimezone
 
 /**
  * Compensation estimation based on user-configured profiles.
@@ -31,7 +31,8 @@ object PayrollCalculator {
         val net = ShiftDurationCalculator.netMinutes(shift)?.takeIf { it > 0 } ?: return null
 
         val ratePerMinute = hourlyRate / 60.0
-        val startDateStr = shift.startTime.atOffset(ZoneOffset.UTC).toLocalDate().toString()
+        val zone = WorkTimezone.zoneFor(resolved, settings)
+        val startDateStr = shift.startTime.atZone(zone).toLocalDate().toString()
         val weekendDays = resolved.rules.weekendDays
         val startOnWeekend = resolved.rules.weekendEnabled &&
             WeekendRules.isWeekendDate(startDateStr, weekendDays)
@@ -52,7 +53,7 @@ object PayrollCalculator {
         for (tier in tiers) {
             if (remaining <= 0) break
             val mins = if (tier.capMinutes == Int.MAX_VALUE) remaining else minOf(remaining, tier.capMinutes)
-            val (effectiveRate, nightPremium) = applyNightPremium(tier.rate, resolved, shift)
+            val (effectiveRate, nightPremium) = applyNightPremium(tier.rate, resolved, shift, zone)
             val amount = mins * ratePerMinute * effectiveRate
             brackets += PayBracket(tier.label, mins, effectiveRate, amount)
 
@@ -179,6 +180,7 @@ object PayrollCalculator {
         baseRate: Double,
         resolved: ResolvedCompensation,
         shift: Shift,
+        zone: java.time.ZoneId,
     ): Pair<Double, Double> {
         val rules = resolved.rules
         if (!rules.nightEnabled || shift.endTime == null) return baseRate to 0.0
@@ -189,7 +191,7 @@ object PayrollCalculator {
         val nightMinutes = if (rules.nightApplyTo == "entire_shift") {
             net
         } else {
-            countNightMinutes(shift, rules.nightStartTime, rules.nightEndTime)
+            countNightMinutes(shift, rules.nightStartTime, rules.nightEndTime, zone)
         }
         if (nightMinutes <= 0) return baseRate to 0.0
 
@@ -202,7 +204,12 @@ object PayrollCalculator {
         return effectiveRate to premium
     }
 
-    private fun countNightMinutes(shift: Shift, nightStart: String, nightEnd: String): Int {
+    private fun countNightMinutes(
+        shift: Shift,
+        nightStart: String,
+        nightEnd: String,
+        zone: java.time.ZoneId,
+    ): Int {
         val end = shift.endTime ?: return 0
         val ns = parseTimeToMinutes(nightStart)
         val ne = parseTimeToMinutes(nightEnd)
@@ -214,7 +221,8 @@ object PayrollCalculator {
         val step = 60_000L
         var t = startMs
         while (t < endMs) {
-            val mins = ((t / 1000 / 60) % (24 * 60)).toInt()
+            val localTime = java.time.Instant.ofEpochMilli(t).atZone(zone).toLocalTime()
+            val mins = localTime.hour * 60 + localTime.minute
             val inNight = if (ns > ne) mins >= ns || mins < ne else mins in ns until ne
             if (inNight) nightMs += step
             t += step

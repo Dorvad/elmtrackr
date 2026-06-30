@@ -13,11 +13,11 @@ The native Android app (`android/`) is the **primary product**. The Next.js web 
 
 ## Default branch
 
-Use **`elmtrackr-android`** as the default branch on GitHub.
+**`Main`** is the canonical default branch on GitHub for active Android and Supabase work.
 
-To change it: **GitHub → Settings → General → Default branch → `elmtrackr-android`**.
+Set it under **GitHub → Settings → General → Default branch → `Main`**.
 
-All new feature branches should branch from `elmtrackr-android`, not from legacy web-focused branches.
+All new feature branches should branch from **`Main`**, not from legacy web-focused branches. Older references to `elmtrackr-android` describe the same product line before the branch was renamed.
 
 ## What is in active development
 
@@ -55,7 +55,7 @@ Web `types/index.ts` is **not** authoritative. Update it only when mirroring an 
 
 ### Android / Supabase PRs (normal path)
 
-- Target base branch: `elmtrackr-android`
+- Target base branch: **`Main`**
 - Touch `android/` and/or `supabase/` as needed
 - Fill out the schema checklist in the PR template when migrations or wire formats change
 - Android CI must pass
@@ -86,7 +86,7 @@ elmtrackr/
 
 ## Onboarding checklist for contributors
 
-1. Clone the repo and set default branch to `elmtrackr-android`.
+1. Clone the repo and work from the **`Main`** branch.
 2. Read `android/README.md` for build and sync architecture.
 3. Read `android/docs/supabase-contract.md` before changing Supabase or persisted fields.
 4. Open Android Studio on the `android/` folder (not the repo root).
@@ -94,5 +94,5 @@ elmtrackr/
 
 ## Related work
 
-- Tablet adaptive layouts and enum crash hardening: see open PRs targeting `elmtrackr-android`.
+- Tablet adaptive layouts and enum crash hardening: see open PRs targeting **`Main`**.
 - Future option: archive web to a branch `archive/web-2026` and trim the default clone to `android/` + `supabase/` only.

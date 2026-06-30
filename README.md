@@ -29,12 +29,14 @@ Full build, CI, Play Store, and architecture docs: **[android/README.md](./andro
 
 ## Default branch
 
-Use **`elmtrackr-android`** as the GitHub default branch. Feature work branches from there.
+**`Main`** is the canonical GitHub default branch for this repository (Android + Supabase).
+
+Feature branches should target `Main`. The legacy name `elmtrackr-android` may still appear in older docs or forks; treat **`Main`** as the source of truth for CI, releases, and PRs.
 
 ## Contributing
 
 1. Read [ANDROID_FIRST.md](./ANDROID_FIRST.md) before opening a PR.
-2. Target `elmtrackr-android` unless you have a specific reason not to.
+2. Target **`Main`** unless you have a specific reason not to.
 3. Schema or enum changes: update `supabase/migrations/`, `android/docs/supabase-contract.md`, and Android `fromPersisted()` parsers in the same PR.
 4. Web changes require the `android-approved` label — see the PR template.
 

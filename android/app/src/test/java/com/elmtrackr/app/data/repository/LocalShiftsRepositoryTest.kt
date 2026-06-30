@@ -186,6 +186,12 @@ class LocalShiftsRepositoryTest {
                 }.sortedBy { it.startTime }
             }
 
+        override fun observeShiftsForDay(
+            userId: String,
+            fromEpoch: Long,
+            toEpoch: Long,
+        ): Flow<List<ShiftEntity>> = observeShiftsByDateRange(userId, fromEpoch, toEpoch)
+
         private companion object {
             val pendingStatuses = setOf(
                 SyncStatus.PENDING_CREATE,

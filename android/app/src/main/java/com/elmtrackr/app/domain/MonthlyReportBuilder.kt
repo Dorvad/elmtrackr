@@ -4,6 +4,7 @@ import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.ShiftBreakdown
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.time.WorkTimezone
 import java.time.ZoneOffset
 
 /**
@@ -21,7 +22,8 @@ object MonthlyReportBuilder {
      */
     fun buildShiftBreakdown(shift: Shift, settings: UserSettings): ShiftBreakdown {
         val net = ShiftDurationCalculator.netMinutes(shift) ?: 0
-        val rawSegments = OvernightShiftDetector.splitShiftByDay(shift)
+        val zone = WorkTimezone.zoneFor(settings)
+        val rawSegments = OvernightShiftDetector.splitShiftByDay(shift, zone)
         val segments = WeekendRules.annotateWeekendSegments(rawSegments, settings.weekendDays)
         val weekendMins = WeekendRules.totalWeekendMinutes(segments)
         val weekdayMins = maxOf(0, net - weekendMins)

@@ -2,8 +2,10 @@ package com.elmtrackr.app.data.repository
 
 import com.elmtrackr.app.data.local.dao.TaskDao
 import com.elmtrackr.app.data.local.entity.SyncStatus
+import com.elmtrackr.app.data.local.entity.TaskEntity
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
+import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.repository.TasksRepository
 import kotlinx.coroutines.flow.Flow
@@ -13,6 +15,7 @@ import java.util.UUID
 
 class LocalTasksRepository(
     private val taskDao: TaskDao,
+    private val syncTrigger: SyncTrigger = com.elmtrackr.app.data.sync.NoOpSyncTrigger,
 ) : TasksRepository {
 
     override fun observeActiveTasks(userId: String): Flow<List<Task>> =
@@ -33,7 +36,7 @@ class LocalTasksRepository(
         val existing = taskDao.getById(task.userId, taskId)
             ?: task.remoteId?.let { taskDao.getByRemoteId(it) }
         val entity = task.copy(id = taskId).toEntity(
-            syncStatus = SyncStatus.SYNCED,
+            syncStatus = syncStatusForMutation(existing),
             remoteId = existing?.remoteId ?: task.remoteId,
         ).copy(
             createdAt = existing?.createdAt ?: now.toEpochMilli(),
@@ -41,6 +44,7 @@ class LocalTasksRepository(
             lastUsedAt = task.lastUsedAt?.toEpochMilli() ?: existing?.lastUsedAt,
         )
         taskDao.insert(entity)
+        syncTrigger.schedule()
         return entity.toDomain()
     }
 
@@ -50,10 +54,11 @@ class LocalTasksRepository(
         taskDao.insert(
             existing.copy(
                 isArchived = true,
-                syncStatus = SyncStatus.SYNCED,
+                syncStatus = SyncStatus.PENDING_UPDATE,
                 updatedAt = now,
             ),
         )
+        syncTrigger.schedule()
     }
 
     override suspend fun markTaskUsed(userId: String, taskId: String) {
@@ -63,8 +68,16 @@ class LocalTasksRepository(
             existing.copy(
                 lastUsedAt = now,
                 updatedAt = now,
-                syncStatus = SyncStatus.SYNCED,
+                syncStatus = syncStatusForMutation(existing),
             ),
         )
+        syncTrigger.schedule()
+    }
+
+    private fun syncStatusForMutation(existing: TaskEntity?): SyncStatus = when {
+        existing == null -> SyncStatus.PENDING_CREATE
+        existing.syncStatus == SyncStatus.PENDING_CREATE -> SyncStatus.PENDING_CREATE
+        existing.syncStatus == SyncStatus.PENDING_DELETE -> SyncStatus.PENDING_DELETE
+        else -> SyncStatus.PENDING_UPDATE
     }
 }

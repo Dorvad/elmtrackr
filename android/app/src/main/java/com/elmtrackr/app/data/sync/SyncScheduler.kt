@@ -24,7 +24,7 @@ class SyncScheduler(
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             ONE_TIME_WORK_NAME,
-            ExistingWorkPolicy.KEEP,
+            ExistingWorkPolicy.APPEND_OR_REPLACE,
             request,
         )
     }

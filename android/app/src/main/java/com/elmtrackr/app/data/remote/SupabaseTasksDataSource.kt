@@ -4,24 +4,26 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 
-class SupabaseShiftsDataSource(
+class SupabaseTasksDataSource(
     private val client: SupabaseClient,
-) : RemoteShiftDataSource {
+) : RemoteTaskDataSource {
 
-    override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteShiftRow> =
+    override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteTaskRow> =
         client.from(TABLE).select {
-            sinceIso?.let { iso -> filter { gte(COLUMN_UPDATED_AT, iso) } }
+            sinceIso?.let { iso ->
+                filter { gte(COLUMN_UPDATED_AT, iso) }
+            }
             order(COLUMN_UPDATED_AT, Order.ASCENDING)
             limit(limit.toLong())
-        }.decodeList<RemoteShiftRow>()
+        }.decodeList<RemoteTaskRow>()
 
-    override suspend fun insert(shift: RemoteShiftInsert): RemoteShiftRow =
-        client.from(TABLE).insert(shift) {
+    override suspend fun insert(task: RemoteTaskInsert): RemoteTaskRow =
+        client.from(TABLE).insert(task) {
             select()
-        }.decodeSingle<RemoteShiftRow>()
+        }.decodeSingle<RemoteTaskRow>()
 
-    override suspend fun update(remoteId: String, shift: RemoteShiftUpdate) {
-        client.from(TABLE).update(shift) {
+    override suspend fun update(remoteId: String, task: RemoteTaskUpdate) {
+        client.from(TABLE).update(task) {
             filter { eq(COLUMN_ID, remoteId) }
         }
     }
@@ -33,7 +35,7 @@ class SupabaseShiftsDataSource(
     }
 
     private companion object {
-        const val TABLE = "shifts"
+        const val TABLE = "tasks"
         const val COLUMN_ID = "id"
         const val COLUMN_UPDATED_AT = "updated_at"
     }
