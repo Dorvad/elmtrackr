@@ -67,9 +67,9 @@ fun RemoteUserSettingsRow.toLocalEntity(
         weeklyOvertimeThresholdMinutes = weeklyOvertimeThresholdMinutes,
         weekendDays = weekendDays.joinToString(","),
         hourlyRate = hourlyRate,
-        currency = currency,
+        currency = resolvedCurrency(),
         regionCode = regionCode?.let { RegionCode.fromPersisted(it).name },
-        currencyCode = currencyCode,
+        currencyCode = resolvedCurrencyCode(),
         defaultCompensationProfileId = defaultCompensationProfileLocalId,
         onboardingCompleted = onboardingCompleted,
         onboardingCompletedAt = onboardingCompletedAt?.let(::isoToEpoch),
@@ -87,6 +87,14 @@ fun RemoteUserSettingsRow.toLocalEntity(
         lastSyncedAt = updated,
     )
 }
+
+private fun RemoteUserSettingsRow.resolvedCurrency(): String =
+    currency?.trim()?.takeIf { it.isNotEmpty() }
+        ?: currencyCode?.trim()?.takeIf { it.isNotEmpty() }
+        ?: "ILS"
+
+private fun RemoteUserSettingsRow.resolvedCurrencyCode(): String =
+    currencyCode?.trim()?.takeIf { it.isNotEmpty() } ?: resolvedCurrency()
 
 private fun parseWeekendDays(raw: String): List<Int> =
     if (raw.isBlank()) emptyList() else raw.split(",").mapNotNull { it.trim().toIntOrNull() }
