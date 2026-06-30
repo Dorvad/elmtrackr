@@ -245,16 +245,6 @@ const CUSTOM_RULES: CompensationRules = {
 
 export const REGION_PRESETS: RegionPreset[] = [
   {
-    regionCode: "IL",
-    label: "Israel",
-    description: "Suggested starting point for Israeli-style overtime and weekend/holiday tiers. You can edit the rules to match your workplace.",
-    currencyCode: "ILS",
-    timezone: "Asia/Jerusalem",
-    profileName: "Main job",
-    rules: IL_RULES,
-    stackingPolicy: "highest_only",
-  },
-  {
     regionCode: "US",
     label: "United States",
     description: "Suggested starting point for US-style daily and weekly overtime. You can edit the rules to match your workplace.",
@@ -282,6 +272,16 @@ export const REGION_PRESETS: RegionPreset[] = [
     timezone: "Europe/Berlin",
     profileName: "Main job",
     rules: EU_RULES,
+    stackingPolicy: "highest_only",
+  },
+  {
+    regionCode: "IL",
+    label: "Israel",
+    description: "Suggested starting point for Israeli-style overtime and weekend/holiday tiers. You can edit the rules to match your workplace.",
+    currencyCode: "ILS",
+    timezone: "Asia/Jerusalem",
+    profileName: "Main job",
+    rules: IL_RULES,
     stackingPolicy: "highest_only",
   },
   {

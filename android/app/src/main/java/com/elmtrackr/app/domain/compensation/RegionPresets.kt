@@ -95,16 +95,6 @@ object RegionPresets {
 
     val all: List<RegionPreset> = listOf(
         RegionPreset(
-            regionCode = RegionCode.IL,
-            label = "Israel",
-            description = "Suggested starting point for Israeli-style overtime and weekend/holiday tiers. You can edit the rules to match your workplace.",
-            currencyCode = "ILS",
-            timezone = "Asia/Jerusalem",
-            profileName = "Main job",
-            rules = ilRules,
-            stackingPolicy = StackingPolicy.HIGHEST_ONLY,
-        ),
-        RegionPreset(
             regionCode = RegionCode.US,
             label = "United States",
             description = "Suggested starting point for US-style daily and weekly overtime. You can edit the rules to match your workplace.",
@@ -132,6 +122,16 @@ object RegionPresets {
             timezone = "Europe/Berlin",
             profileName = "Main job",
             rules = euRules,
+            stackingPolicy = StackingPolicy.HIGHEST_ONLY,
+        ),
+        RegionPreset(
+            regionCode = RegionCode.IL,
+            label = "Israel",
+            description = "Suggested starting point for Israeli-style overtime and weekend/holiday tiers. You can edit the rules to match your workplace.",
+            currencyCode = "ILS",
+            timezone = "Asia/Jerusalem",
+            profileName = "Main job",
+            rules = ilRules,
             stackingPolicy = StackingPolicy.HIGHEST_ONLY,
         ),
         RegionPreset(

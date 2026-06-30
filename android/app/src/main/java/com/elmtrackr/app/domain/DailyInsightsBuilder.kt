@@ -50,6 +50,18 @@ object DailyInsightsBuilder {
     private const val ARMY_SERVICE_HRS = 4_600.0
     private const val GUITAR_SOLO_SEC  = 30.0
     private const val RAMEN_MIN        = 3.0
+    private const val COCA_COLA_ILS    = 6.5
+    private const val MOVIE_TICKET_ILS = 45.0
+    private const val BIG_MAC_ILS      = 55.0
+    private const val NETFLIX_MONTH_ILS = 50.0
+    private const val SPOTIFY_MONTH_ILS = 35.0
+    private const val AVOCADO_ILS      = 5.0
+    private const val BEER_BOTTLE_ILS  = 12.0
+    private const val BUS_RIDE_MIN     = 45.0
+    private const val PODCAST_MIN      = 42.0
+    private const val LAUNDRY_MIN      = 90.0
+    private const val DISHWASHER_MIN   = 120.0
+    private const val EGGS_CARTON_ILS  = 18.0
 
     /**
      * Returns up to 4 insight cards for today, based on [totalMinutes] and
@@ -85,6 +97,7 @@ object DailyInsightsBuilder {
     ): List<DailyInsight> {
         val totalHours = totalMinutes / 60.0
         val shiftCount = shifts.size
+        val totalGross = PayrollCalculator.sumMonthlyPay(shifts, settings, profiles).totalGross
 
         val pool = mutableListOf<DailyInsight>()
 
@@ -170,14 +183,95 @@ object DailyInsightsBuilder {
             InsightColor.AMBER,
         )
 
-        val pizzas = run {
-            val gross = PayrollCalculator.sumMonthlyPay(shifts, settings, profiles).totalGross
-            if (gross > 0) (gross / PIZZA_PRICE_ILS).roundToInt() else 0
-        }
+        val pizzas = if (totalGross > 0) (totalGross / PIZZA_PRICE_ILS).roundToInt() else 0
         if (pizzas > 0) pool += DailyInsight(
             "🍕", "Pizza Fund",
             "This month's earnings could buy you **$pizzas pizzas** at ₪${PIZZA_PRICE_ILS.roundToInt()} each. That's a lot of slices.",
             InsightColor.AMBER,
+        )
+
+        val cokes = if (totalGross > 0) (totalGross / COCA_COLA_ILS).roundToInt() else 0
+        if (cokes > 0) pool += DailyInsight(
+            "🥤", "Coke Counter",
+            "That's **$cokes bottles of Coca-Cola** at ₪${"%.2f".format(COCA_COLA_ILS)} each. Hydration budget unlocked.",
+            InsightColor.ROSE,
+        )
+
+        val movieTickets = if (totalGross > 0) (totalGross / MOVIE_TICKET_ILS).roundToInt() else 0
+        if (movieTickets > 0) pool += DailyInsight(
+            "🎟️", "Cinema Budget",
+            "Your earnings could cover **$movieTickets movie tickets** at ₪${MOVIE_TICKET_ILS.roundToInt()} each. Popcorn sold separately.",
+            InsightColor.VIOLET,
+        )
+
+        val bigMacs = if (totalGross > 0) (totalGross / BIG_MAC_ILS).roundToInt() else 0
+        if (bigMacs > 0) pool += DailyInsight(
+            "🍔", "Burger Run",
+            "That's **$bigMacs Big Mac-style meals** at ₪${BIG_MAC_ILS.roundToInt()} a pop. I'm lovin' the overtime.",
+            InsightColor.AMBER,
+        )
+
+        val netflixMonths = if (totalGross > 0) (totalGross / NETFLIX_MONTH_ILS).roundToInt() else 0
+        if (netflixMonths > 0) pool += DailyInsight(
+            "📺", "Streaming Stack",
+            "Your pay could fund **$netflixMonths months of Netflix** at ₪${NETFLIX_MONTH_ILS.roundToInt()}/month. Plenty of time to chill — after work.",
+            InsightColor.VIOLET,
+        )
+
+        val spotifyMonths = if (totalGross > 0) (totalGross / SPOTIFY_MONTH_ILS).roundToInt() else 0
+        if (spotifyMonths > 0) pool += DailyInsight(
+            "🎧", "Playlist Budget",
+            "That's **$spotifyMonths months of Spotify Premium** at ₪${SPOTIFY_MONTH_ILS.roundToInt()}/month. Soundtrack your shifts.",
+            InsightColor.EMERALD,
+        )
+
+        val avocados = if (totalGross > 0) (totalGross / AVOCADO_ILS).roundToInt() else 0
+        if (avocados > 0) pool += DailyInsight(
+            "🥑", "Avocado Index",
+            "Israel's favorite fruit: **$avocados avocados** at ₪${AVOCADO_ILS.roundToInt()} each. Brunch math checks out.",
+            InsightColor.EMERALD,
+        )
+
+        val beers = if (totalGross > 0) (totalGross / BEER_BOTTLE_ILS).roundToInt() else 0
+        if (beers > 0) pool += DailyInsight(
+            "🍺", "Happy Hour",
+            "Your earnings equal **$beers bottles of beer** at ₪${BEER_BOTTLE_ILS.roundToInt()} each. Cheers to payday.",
+            InsightColor.AMBER,
+        )
+
+        val eggCartons = if (totalGross > 0) (totalGross / EGGS_CARTON_ILS).roundToInt() else 0
+        if (eggCartons > 0) pool += DailyInsight(
+            "🥚", "Breakfast Fund",
+            "That's **$eggCartons cartons of eggs** at ₪${EGGS_CARTON_ILS.roundToInt()} each. Shakshuka season never ends.",
+            InsightColor.AMBER,
+        )
+
+        val busRides = (totalMinutes / BUS_RIDE_MIN).roundToInt()
+        if (busRides > 0) pool += DailyInsight(
+            "🚌", "Commute Time",
+            "An average bus ride is **${BUS_RIDE_MIN.roundToInt()} minutes**. You worked long enough for **$busRides rides** across town.",
+            InsightColor.SKY,
+        )
+
+        val podcasts = (totalMinutes / PODCAST_MIN).roundToInt()
+        if (podcasts > 0) pool += DailyInsight(
+            "🎙️", "Podcast Queue",
+            "A typical podcast episode runs **${PODCAST_MIN.roundToInt()} minutes**. Your **${totalHours.roundToInt()}h** = **$podcasts episodes** you could have binged.",
+            InsightColor.INDIGO,
+        )
+
+        val laundryCycles = (totalMinutes / LAUNDRY_MIN).roundToInt()
+        if (laundryCycles > 0) pool += DailyInsight(
+            "🧺", "Laundry Loads",
+            "One wash cycle takes about **${LAUNDRY_MIN.roundToInt()} minutes**. You worked enough for **$laundryCycles full loads**. Socks included.",
+            InsightColor.SKY,
+        )
+
+        val dishwasherRuns = (totalMinutes / DISHWASHER_MIN).roundToInt()
+        if (dishwasherRuns > 0) pool += DailyInsight(
+            "🍽️", "Dish Duty",
+            "A dishwasher cycle runs **${DISHWASHER_MIN.roundToInt()} minutes**. Your hours = **$dishwasherRuns spotless cycles**. No sponge required.",
+            InsightColor.SKY,
         )
 
         val armyPct = (totalHours / ARMY_SERVICE_HRS * 100).roundToInt()
