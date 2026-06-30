@@ -54,6 +54,18 @@ const MONOPOLY_HRS      = 3;      // average Monopoly game
 const HAIRCUT_MIN       = 30;     // average haircut
 const GUITAR_SOLO_SEC   = 30;     // average guitar solo length
 const RAMEN_MIN         = 3;      // instant ramen cooking time
+const COCA_COLA_ILS     = 6.5;    // 500ml bottle (approx.)
+const MOVIE_TICKET_ILS  = 45;
+const BIG_MAC_ILS       = 55;
+const NETFLIX_MONTH_ILS = 50;
+const SPOTIFY_MONTH_ILS = 35;
+const AVOCADO_ILS       = 5;
+const BEER_BOTTLE_ILS   = 12;
+const BUS_RIDE_MIN      = 45;
+const PODCAST_MIN       = 42;
+const LAUNDRY_MIN       = 90;
+const DISHWASHER_MIN    = 120;
+const EGGS_CARTON_ILS   = 18;
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -273,6 +285,18 @@ function buildPool(
   const guitarSolos   = Math.round((totalHours * 3600) / GUITAR_SOLO_SEC).toLocaleString();
   const ramenBowls    = Math.round((totalHours * 60) / RAMEN_MIN).toLocaleString();
   const pizzaCount    = hasRate ? Math.floor(totalGross / PIZZA_PRICE_ILS) : 0;
+  const cokeCount     = hasRate ? Math.floor(totalGross / COCA_COLA_ILS) : 0;
+  const movieTickets  = hasRate ? Math.floor(totalGross / MOVIE_TICKET_ILS) : 0;
+  const bigMacCount   = hasRate ? Math.floor(totalGross / BIG_MAC_ILS) : 0;
+  const netflixMonths = hasRate ? Math.floor(totalGross / NETFLIX_MONTH_ILS) : 0;
+  const spotifyMonths = hasRate ? Math.floor(totalGross / SPOTIFY_MONTH_ILS) : 0;
+  const avocadoCount  = hasRate ? Math.floor(totalGross / AVOCADO_ILS) : 0;
+  const beerCount     = hasRate ? Math.floor(totalGross / BEER_BOTTLE_ILS) : 0;
+  const eggCartons    = hasRate ? Math.floor(totalGross / EGGS_CARTON_ILS) : 0;
+  const busRides      = Math.floor(totalMinutes / BUS_RIDE_MIN);
+  const podcastCount  = Math.floor(totalMinutes / PODCAST_MIN);
+  const laundryLoads  = Math.floor(totalMinutes / LAUNDRY_MIN);
+  const dishwasherRuns = Math.floor(totalMinutes / DISHWASHER_MIN);
   const vsAvgMonth    = ((totalHours / AVG_MONTH_HRS) * 100).toFixed(0);
 
   // ── Pool ──────────────────────────────────────────────────────
@@ -485,6 +509,30 @@ function buildPool(
       color: "amber",
     },
     {
+      icon: "🚌",
+      title: "Commute Time",
+      text: `An average bus ride is **${BUS_RIDE_MIN} minutes**. Your **${Math.round(totalHours)}h** worked = **${busRides} rides** across town.`,
+      color: "sky",
+    },
+    {
+      icon: "🎙️",
+      title: "Podcast Queue",
+      text: `A typical podcast episode runs **${PODCAST_MIN} minutes**. Your hours this month = **${podcastCount} episodes** you could have binged.`,
+      color: "indigo",
+    },
+    {
+      icon: "🧺",
+      title: "Laundry Loads",
+      text: `One wash cycle takes about **${LAUNDRY_MIN} minutes**. You worked enough for **${laundryLoads} full loads**. Socks included.`,
+      color: "sky",
+    },
+    {
+      icon: "🍽️",
+      title: "Dish Duty",
+      text: `A dishwasher cycle runs **${DISHWASHER_MIN} minutes**. Your hours = **${dishwasherRuns} spotless cycles**. No sponge required.`,
+      color: "sky",
+    },
+    {
       icon: "🎠",
       title: "Carousel Rides",
       text: `A carousel ride lasts **${CAROUSEL_MIN} minutes**. You worked enough this month for **${carouselRides} carousel rides**. Round and round and round you go.`,
@@ -506,6 +554,54 @@ function buildPool(
             title: "Pizza Power",
             text: `Your gross earnings this month could buy **${pizzaCount} pizzas** at **₪${PIZZA_PRICE_ILS}** each. Dinner is sorted — for several months.`,
             color: "rose" as InsightColor,
+          },
+          {
+            icon: "🥤",
+            title: "Coke Counter",
+            text: `That's **${cokeCount} bottles of Coca-Cola** at **₪${COCA_COLA_ILS}** each. Hydration budget unlocked.`,
+            color: "rose" as InsightColor,
+          },
+          {
+            icon: "🎟️",
+            title: "Cinema Budget",
+            text: `Your earnings could cover **${movieTickets} movie tickets** at **₪${MOVIE_TICKET_ILS}** each. Popcorn sold separately.`,
+            color: "violet" as InsightColor,
+          },
+          {
+            icon: "🍔",
+            title: "Burger Run",
+            text: `That's **${bigMacCount} Big Mac-style meals** at **₪${BIG_MAC_ILS}** a pop. I'm lovin' the overtime.`,
+            color: "amber" as InsightColor,
+          },
+          {
+            icon: "📺",
+            title: "Streaming Stack",
+            text: `Your pay could fund **${netflixMonths} months of Netflix** at **₪${NETFLIX_MONTH_ILS}/month**. Plenty of time to chill — after work.`,
+            color: "violet" as InsightColor,
+          },
+          {
+            icon: "🎧",
+            title: "Playlist Budget",
+            text: `That's **${spotifyMonths} months of Spotify Premium** at **₪${SPOTIFY_MONTH_ILS}/month**. Soundtrack your shifts.`,
+            color: "emerald" as InsightColor,
+          },
+          {
+            icon: "🥑",
+            title: "Avocado Index",
+            text: `Israel's favorite fruit: **${avocadoCount} avocados** at **₪${AVOCADO_ILS}** each. Brunch math checks out.`,
+            color: "emerald" as InsightColor,
+          },
+          {
+            icon: "🍺",
+            title: "Happy Hour",
+            text: `Your earnings equal **${beerCount} bottles of beer** at **₪${BEER_BOTTLE_ILS}** each. Cheers to payday.`,
+            color: "amber" as InsightColor,
+          },
+          {
+            icon: "🥚",
+            title: "Breakfast Fund",
+            text: `That's **${eggCartons} cartons of eggs** at **₪${EGGS_CARTON_ILS}** each. Shakshuka season never ends.`,
+            color: "amber" as InsightColor,
           },
         ]
       : []),
