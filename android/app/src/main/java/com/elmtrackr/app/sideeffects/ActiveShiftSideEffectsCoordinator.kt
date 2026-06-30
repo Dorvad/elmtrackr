@@ -20,6 +20,7 @@ import com.elmtrackr.app.wear.WearSyncPublisher
 import com.elmtrackr.wear.sync.WearShiftSnapshot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
@@ -35,7 +36,7 @@ import java.time.LocalDate
  * Splits active-shift side effects into focused observers so notification work
  * is not blocked by widget/Wear refreshes (and vice versa).
  */
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class ActiveShiftSideEffectsCoordinator(
     private val app: Application,
     private val scope: CoroutineScope,
