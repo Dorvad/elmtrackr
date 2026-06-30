@@ -46,6 +46,6 @@ class LocalReportsRepository(
             val shifts = shiftEntities
                 .filter { it.startTime in from until to }
                 .map { it.toDomain() }
-            WeeklyBreakdownBuilder.groupByWeek(shifts)
+            WeeklyBreakdownBuilder.groupByWeek(shifts, settings = settings)
         }
 }

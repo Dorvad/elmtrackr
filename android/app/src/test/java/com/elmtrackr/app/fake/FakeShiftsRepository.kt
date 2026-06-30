@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 class FakeShiftsRepository : ShiftsRepository {
 
@@ -82,6 +84,16 @@ class FakeShiftsRepository : ShiftsRepository {
     }
 
     override fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>> = _shifts
+
+    override fun observeShiftsByMonthInZone(
+        userId: String,
+        year: Int,
+        month: Int,
+        zone: ZoneId,
+    ): Flow<List<Shift>> = observeShiftsByMonth(userId, year, month)
+
+    override fun observeShiftsForDay(userId: String, zone: ZoneId, date: LocalDate): Flow<List<Shift>> =
+        _shifts
 
     override fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<Shift>> =
         _shifts.map { list ->

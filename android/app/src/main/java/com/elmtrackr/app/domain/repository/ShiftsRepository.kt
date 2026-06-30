@@ -3,6 +3,8 @@ package com.elmtrackr.app.domain.repository
 import com.elmtrackr.app.domain.model.CompensationSnapshot
 import com.elmtrackr.app.domain.model.Shift
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
+import java.time.ZoneId
 
 interface ShiftsRepository {
 
@@ -38,6 +40,10 @@ interface ShiftsRepository {
     suspend fun deleteShift(localId: String)
 
     fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>>
+
+    fun observeShiftsByMonthInZone(userId: String, year: Int, month: Int, zone: ZoneId): Flow<List<Shift>>
+
+    fun observeShiftsForDay(userId: String, zone: ZoneId, date: LocalDate): Flow<List<Shift>>
 
     fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<Shift>>
 

@@ -130,7 +130,7 @@ class LocalShiftsRepository(
     override fun observeShiftsByMonth(userId: String, year: Int, month: Int): Flow<List<Shift>> =
         observeShiftsByMonthInZone(userId, year, month, ZoneId.of("UTC"))
 
-    fun observeShiftsByMonthInZone(
+    override fun observeShiftsByMonthInZone(
         userId: String,
         year: Int,
         month: Int,
@@ -142,7 +142,7 @@ class LocalShiftsRepository(
         }
     }
 
-    fun observeShiftsForDay(
+    override fun observeShiftsForDay(
         userId: String,
         zone: ZoneId,
         date: java.time.LocalDate,

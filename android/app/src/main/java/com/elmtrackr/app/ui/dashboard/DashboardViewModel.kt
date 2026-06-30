@@ -21,6 +21,7 @@ import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
 import com.elmtrackr.app.domain.tasks.TaskClockInHelper
 import com.elmtrackr.app.domain.tasks.TaskHabitSuggestionBuilder
+import com.elmtrackr.app.domain.time.WorkTimezone
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +34,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
+import java.time.YearMonth
+import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DashboardViewModel(
@@ -46,7 +48,6 @@ class DashboardViewModel(
     private val appPreferences: com.elmtrackr.app.data.local.preferences.AppPreferencesStore,
 ) : ViewModel() {
 
-    private val today = LocalDate.now(ZoneOffset.UTC)
     private val _refreshNonce = MutableStateFlow(0)
     private val _showFirstClockInCelebration = MutableStateFlow(false)
     private val _selectedTaskId = MutableStateFlow<String?>(null)
@@ -71,12 +72,27 @@ class DashboardViewModel(
             combine(
                 combine(
                     shiftsRepository.observeActiveShift(profile.id),
-                    reportsRepository.observeMonthlyReport(profile.id, today.year, today.monthValue),
                     settingsRepository.observeSettings(profile.id),
-                    shiftsRepository.observeShiftsByMonth(profile.id, today.year, today.monthValue),
-                ) { activeShift, report, settings, monthShifts ->
-                    RawData(activeShift, report, settings, monthShifts, emptyList(), emptyList(), emptyList())
-                },
+                ) { activeShift, settings -> activeShift to settings }
+                    .flatMapLatest { (activeShift, settings) ->
+                        if (settings == null) {
+                            flowOf(RawData(null, null, null, emptyList(), emptyList(), emptyList(), emptyList()))
+                        } else {
+                            val zone = WorkTimezone.zoneFor(settings)
+                            val today = LocalDate.now(zone)
+                            combine(
+                                reportsRepository.observeMonthlyReport(profile.id, today.year, today.monthValue),
+                                shiftsRepository.observeShiftsByMonthInZone(
+                                    profile.id,
+                                    today.year,
+                                    today.monthValue,
+                                    zone,
+                                ),
+                            ) { report, monthShifts ->
+                                RawData(activeShift, report, settings, monthShifts, emptyList(), emptyList(), emptyList())
+                            }
+                        }
+                    },
                 compensationProfilesRepository.observeProfiles(profile.id),
             ) { raw, profiles ->
                 raw.copy(profiles = profiles)
@@ -105,8 +121,10 @@ class DashboardViewModel(
                     habitSuggested = _habitSuggested.value,
                     recentShifts = raw.recentShifts,
                     displayName = currentProfile.fullName,
-                    unresolvedRefundCount = if (raw.settings.featuresTravelRefunds == true)
-                        RefundPolicy.countUnresolved(raw.monthShifts) else 0,
+                    unresolvedRefundCount = if (raw.settings.featuresTravelRefunds == true) {
+                        val zone = WorkTimezone.zoneFor(raw.settings)
+                        RefundPolicy.countUnresolved(raw.monthShifts, zone)
+                    } else 0,
                     paySummary = paySummary,
                 ) as DashboardUiState
                 }
@@ -175,14 +193,14 @@ class DashboardViewModel(
             val settings = settingsRepository.getSettings(userId) ?: return@launch
             val isFirstClockIn = !shiftsRepository.hasAnyShifts(userId) &&
                 !appPreferences.currentPreferences().firstClockInCelebrated
-            compensationProfilesRepository.ensureMigrated(userId)
+            val defaultProfile = compensationProfilesRepository.ensureMigrated(userId)
             val tasks = tasksRepository.getActiveTasks(userId)
             val selected = tasks.firstOrNull { it.id == _selectedTaskId.value }
                 ?: tasks.maxByOrNull { it.createdAt }
             val taskParams = TaskClockInHelper.paramsFromTask(selected)
             shiftsRepository.clockIn(
                 userId = userId,
-                compensationProfileId = settings.defaultCompensationProfileId,
+                compensationProfileId = settings.defaultCompensationProfileId ?: defaultProfile?.id,
                 taskId = taskParams.taskId,
                 taskNameSnapshot = taskParams.taskNameSnapshot,
                 taskIconSnapshot = taskParams.taskIconSnapshot,

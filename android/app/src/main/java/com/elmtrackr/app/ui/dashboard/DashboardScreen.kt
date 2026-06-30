@@ -41,7 +41,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.activity.ComponentActivity
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.elmtrackr.app.MainActivity
+import com.elmtrackr.app.notification.NotificationPermissionCoordinator
+import kotlinx.coroutines.launch
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -186,13 +193,74 @@ private fun DashboardReady(
 ) {
     val activeShift = state.activeShift
     val haptic = LocalHapticFeedback.current
-    var showEditDialog by rememberSaveable { mutableStateOf(false) }
-    var refundBannerDismissed by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    val activity = context as? ComponentActivity
+    val scope = rememberCoroutineScope()
+    var showNotificationRationale by rememberSaveable { mutableStateOf(false) }
+    var pendingClockIn by rememberSaveable { mutableStateOf(false) }
 
-    val handleClockIn = {
+    fun performClockIn() {
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         onClockIn()
     }
+
+    fun requestNotificationsThenClockIn() {
+        val host = activity as? MainActivity
+        if (host == null || NotificationPermissionCoordinator.hasPermission(host)) {
+            performClockIn()
+            return
+        }
+        scope.launch {
+            if (NotificationPermissionCoordinator.shouldShowEducationalPrompt(host)) {
+                showNotificationRationale = true
+                pendingClockIn = true
+            } else {
+                host.requestNotificationPermission { performClockIn() }
+            }
+        }
+    }
+
+    val handleClockIn = { requestNotificationsThenClockIn() }
+    var showEditDialog by rememberSaveable { mutableStateOf(false) }
+    var refundBannerDismissed by rememberSaveable { mutableStateOf(false) }
+
+    if (showNotificationRationale && activity is MainActivity) {
+        AlertDialog(
+            onDismissRequest = {
+                showNotificationRationale = false
+                pendingClockIn = false
+            },
+            title = { Text("Stay on top of your shift") },
+            text = {
+                Text(
+                    "ElmTrackr uses notifications to keep your active shift visible " +
+                        "and remind you before overtime.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showNotificationRationale = false
+                        scope.launch { NotificationPermissionCoordinator.markPromptShown(activity) }
+                        activity.requestNotificationPermission {
+                            if (pendingClockIn) performClockIn()
+                            pendingClockIn = false
+                        }
+                    },
+                ) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showNotificationRationale = false
+                        if (pendingClockIn) performClockIn()
+                        pendingClockIn = false
+                    },
+                ) { Text("Not now") }
+            },
+        )
+    }
+
     val handleClockOut: () -> Unit = {
         val shift = activeShift
         if (shift != null) {

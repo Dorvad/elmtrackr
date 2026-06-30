@@ -489,6 +489,7 @@ begin
 
   delete from public.refund_claims where user_id = uid;
   delete from public.shifts where user_id = uid;
+  delete from public.tasks where user_id = uid;
   delete from public.compensation_profiles where user_id = uid;
   delete from public.user_settings where user_id = uid;
   delete from public.profiles where id = uid;

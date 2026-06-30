@@ -2,8 +2,6 @@ package com.elmtrackr.app
 
 import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import com.elmtrackr.app.data.local.preferences.AppPreferenceValues
 import com.elmtrackr.app.navigation.AppNavGraph
+import com.elmtrackr.app.notification.NotificationPermissionCoordinator
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.update.InAppUpdateHost
 import com.elmtrackr.app.update.InAppUpdateManager
@@ -25,9 +24,14 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    private val requestNotificationPermission = registerForActivityResult(
+    val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { /* granted or not - the app works either way */ }
+    ) { granted ->
+        onNotificationPermissionResult?.invoke(granted)
+        onNotificationPermissionResult = null
+    }
+
+    var onNotificationPermissionResult: ((Boolean) -> Unit)? = null
 
     // True once a flexible Play update has finished downloading and is awaiting a restart.
     private var flexibleUpdateReady by mutableStateOf(false)
@@ -40,7 +44,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         inAppUpdateManager = InAppUpdateManager(this) { flexibleUpdateReady = true }
         intent?.data?.toString()?.let { handleDeepLink(it) }
-        requestNotificationPermissionIfNeeded()
         setContent {
             val app = application as ElmTrackrApp
             val configuration = LocalConfiguration.current
@@ -85,12 +88,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
+    fun requestNotificationPermission(onResult: (Boolean) -> Unit = {}) {
+        if (NotificationPermissionCoordinator.hasPermission(this)) {
+            onResult(true)
+            return
         }
+        onNotificationPermissionResult = onResult
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 }
-

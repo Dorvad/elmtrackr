@@ -15,6 +15,9 @@ import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
+import com.elmtrackr.app.data.sync.SyncHealth
+import com.elmtrackr.app.data.sync.SyncRepository
+import com.elmtrackr.app.data.sync.SyncTrigger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -44,9 +47,12 @@ class SettingsViewModel(
     private val authRepository: AuthRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
     private val themeStore: ThemePreferenceStore,
+    private val syncRepository: SyncRepository,
+    private val syncTrigger: SyncTrigger,
 ) : ViewModel() {
 
     private val _isSaving = MutableStateFlow(false)
+    private val _isSyncing = MutableStateFlow(false)
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     private val _passwordResetFeedback = MutableStateFlow<String?>(null)
     private val _saveFeedback = MutableStateFlow<SettingsSaveFeedback?>(null)
@@ -61,12 +67,22 @@ class SettingsViewModel(
         val profile: Profile?,
         val theme: String,
         val isSaving: Boolean,
+        val isSyncing: Boolean,
+        val syncHealth: SyncHealth?,
+        val lastSyncStatus: String?,
         val validationErrors: Map<String, String>,
         val passwordResetFeedback: String?,
         val saveFeedback: SettingsSaveFeedback?,
         val isDeletingAccount: Boolean,
         val accountActionFeedback: String?,
     )
+
+    private val syncHealthFlow = authRepository.observeCurrentProfile().flatMapLatest { profile ->
+        if (profile == null) flowOf(null)
+        else syncRepository.observeSyncHealth(profile.id)
+    }
+
+    private val lastSyncFlow = syncRepository.observeLastSyncStatus()
 
     private val coreData = authRepository.observeCurrentProfile().flatMapLatest { profile ->
         if (profile == null) flowOf(CoreData(null))
@@ -80,29 +96,40 @@ class SettingsViewModel(
             authRepository.observeCurrentProfile(),
             themeStore.observeTheme(),
             _isSaving,
-        ) { profile, theme, saving -> Triple(profile, theme, saving) },
-        combine(
-            combine(
-                _validationErrors,
-                _passwordResetFeedback,
-            ) { errors, resetFeedback ->
-                Pair(errors, resetFeedback)
-            },
-            combine(
-                _saveFeedback,
-                _isDeletingAccount,
-                _accountActionFeedback,
-            ) { saveFeedback, deleting, accountFeedback ->
-                Triple(saveFeedback, deleting, accountFeedback)
-            },
-        ) { (errors, resetFeedback), (saveFeedback, deleting, accountFeedback) ->
-            AccountExtras(errors, resetFeedback, saveFeedback, deleting, accountFeedback)
+            _isSyncing,
+            syncHealthFlow,
+        ) { profile, theme, saving, syncing, health ->
+            SyncExtras(profile, theme, saving, syncing, health)
         },
-    ) { (profile, theme, saving), account ->
+        combine(
+            lastSyncFlow,
+            combine(
+                combine(
+                    _validationErrors,
+                    _passwordResetFeedback,
+                ) { errors, resetFeedback ->
+                    Pair(errors, resetFeedback)
+                },
+                combine(
+                    _saveFeedback,
+                    _isDeletingAccount,
+                    _accountActionFeedback,
+                ) { saveFeedback, deleting, accountFeedback ->
+                    Triple(saveFeedback, deleting, accountFeedback)
+                },
+            ) { (errors, resetFeedback), (saveFeedback, deleting, accountFeedback) ->
+                AccountExtras(errors, resetFeedback, saveFeedback, deleting, accountFeedback)
+            },
+        ) { lastSync, account -> lastSync to account },
+    ) { syncExtras, lastAccount ->
+        val (lastSync, account) = lastAccount
         Extras(
-            profile,
-            theme,
-            saving,
+            syncExtras.profile,
+            syncExtras.theme,
+            syncExtras.isSaving,
+            syncExtras.isSyncing,
+            syncExtras.syncHealth,
+            lastSync,
             account.errors,
             account.resetFeedback,
             account.saveFeedback,
@@ -110,6 +137,14 @@ class SettingsViewModel(
             account.accountFeedback,
         )
     }
+
+    private data class SyncExtras(
+        val profile: Profile?,
+        val theme: String,
+        val isSaving: Boolean,
+        val isSyncing: Boolean,
+        val syncHealth: SyncHealth?,
+    )
 
     val uiState: StateFlow<SettingsUiState> = combine(
         coreData,
@@ -121,6 +156,10 @@ class SettingsViewModel(
             profile = extras.profile,
             selectedTheme = extras.theme,
             isSaving = extras.isSaving,
+            syncPendingCount = extras.syncHealth?.pendingCount ?: 0,
+            syncFailedCount = extras.syncHealth?.failedCount ?: 0,
+            lastSyncStatus = extras.lastSyncStatus,
+            isSyncing = extras.isSyncing,
             validationErrors = extras.validationErrors,
             passwordResetFeedback = extras.passwordResetFeedback,
             saveFeedback = extras.saveFeedback,
@@ -315,6 +354,15 @@ class SettingsViewModel(
         _passwordResetFeedback.value = null
     }
 
+    fun syncNow() {
+        viewModelScope.launch {
+            val userId = authRepository.getCurrentProfile()?.id ?: return@launch
+            _isSyncing.value = true
+            runCatching { syncRepository.syncAll(userId) }
+            _isSyncing.value = false
+        }
+    }
+
     fun ensureSettingsExist() {
         viewModelScope.launch {
             val userId = authRepository.getCurrentProfile()?.id ?: return@launch
@@ -352,6 +400,8 @@ class SettingsViewModel(
                     authRepository = app.authRepository,
                     compensationProfilesRepository = app.compensationProfilesRepository,
                     themeStore = AppThemePreferenceStore(app.appPreferences),
+                    syncRepository = app.syncRepository,
+                    syncTrigger = app.syncTrigger,
                 )
             }
         }

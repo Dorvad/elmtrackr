@@ -126,6 +126,7 @@ class DashboardViewModelTest {
         compensationRepo.setProfiles(defaultProfile)
         settingsRepo.setSettings(defaultSettings().copy(defaultCompensationProfileId = null))
         val vm = buildVm()
+        advanceUntilIdle()
 
         vm.clockIn()
         advanceUntilIdle()

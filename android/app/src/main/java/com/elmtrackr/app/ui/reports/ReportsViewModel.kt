@@ -15,6 +15,7 @@ import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.OvernightShiftDetector
 import com.elmtrackr.app.domain.WeeklyBreakdownBuilder
 import com.elmtrackr.app.domain.ReportInsightsBuilder
+import com.elmtrackr.app.domain.time.WorkTimezone
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -32,8 +33,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
@@ -48,9 +51,8 @@ class ReportsViewModel(
     private val refundReceiptStorage: RefundReceiptStorage? = null,
 ) : ViewModel() {
 
-    private val today = LocalDate.now(ZoneOffset.UTC)
-    private val _selectedYear = MutableStateFlow(today.year)
-    private val _selectedMonth = MutableStateFlow(today.monthValue)
+    private val _selectedYear = MutableStateFlow(YearMonth.now(ZoneOffset.UTC).year)
+    private val _selectedMonth = MutableStateFlow(YearMonth.now(ZoneOffset.UTC).monthValue)
     private val _refreshNonce = MutableStateFlow(0)
 
     private data class ReportInputs(
@@ -69,11 +71,18 @@ class ReportsViewModel(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = today.year to today.monthValue,
+            initialValue = _selectedYear.value to _selectedMonth.value,
         )
 
-    val canGoNext: StateFlow<Boolean> = combine(_selectedYear, _selectedMonth) { y, m ->
-        YearMonth.of(y, m) < YearMonth.now(ZoneOffset.UTC)
+    val canGoNext: StateFlow<Boolean> = combine(
+        _selectedYear,
+        _selectedMonth,
+        currentUserProvider.userId.filterNotNull().flatMapLatest { userId ->
+            settingsRepository.observeSettings(userId)
+        },
+    ) { y, m, settings ->
+        val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneOffset.UTC
+        YearMonth.of(y, m) < YearMonth.now(zone)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
@@ -95,13 +104,24 @@ class ReportsViewModel(
                 combine(
                     combine(
                         reportsRepository.observeMonthlyReport(userId, year, month),
-                        shiftsRepository.observeShiftsByMonth(userId, year, month),
                         settingsRepository.observeSettings(userId),
-                        shiftsRepository.observeShiftsByMonth(userId, previous.year, previous.monthValue),
-                        refundData,
-                    ) { report, shifts, settings, previousShifts, refundPair ->
-                        val (allShifts, claims) = refundPair
-                        ReportInputs(report, shifts, settings, previousShifts, allShifts, claims)
+                    ) { report, settings ->
+                        report to settings
+                    }.flatMapLatest { (report, settings) ->
+                        val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneOffset.UTC
+                        combine(
+                            shiftsRepository.observeShiftsByMonthInZone(userId, year, month, zone),
+                            shiftsRepository.observeShiftsByMonthInZone(
+                                userId,
+                                previous.year,
+                                previous.monthValue,
+                                zone,
+                            ),
+                            refundData,
+                        ) { shifts, previousShifts, refundPair ->
+                            val (allShifts, claims) = refundPair
+                            ReportInputs(report, shifts, settings, previousShifts, allShifts, claims)
+                        }
                     },
                     compensationProfilesRepository.observeProfiles(userId),
                 ) { inputs, profiles ->
@@ -169,10 +189,15 @@ class ReportsViewModel(
 
     fun nextMonth() {
         val current = YearMonth.of(_selectedYear.value, _selectedMonth.value)
-        if (current >= YearMonth.now(ZoneOffset.UTC)) return
-        val next = current.plusMonths(1)
-        _selectedYear.value = next.year
-        _selectedMonth.value = next.monthValue
+        viewModelScope.launch {
+            val userId = currentUserProvider.currentUserId() ?: return@launch
+            val settings = settingsRepository.getSettings(userId)
+            val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneOffset.UTC
+            if (current >= YearMonth.now(zone)) return@launch
+            val next = current.plusMonths(1)
+            _selectedYear.value = next.year
+            _selectedMonth.value = next.monthValue
+        }
     }
 
     /** Re-subscribes to report data after a flow error. */
@@ -192,18 +217,19 @@ class ReportsViewModel(
         val lines = mutableListOf(
             "Date,Start Time,End Time,Break (min),Total Hours,Regular Hours,Overtime Hours,Weekend Hours,Overnight,Notes",
         )
+        val zone = WorkTimezone.zoneFor(reportSettings)
         completed.forEachIndexed { index, shift ->
             val breakdown = breakdowns[index]
             lines += listOf(
-                shift.startTime.atOffset(ZoneOffset.UTC).toLocalDate().toString(),
-                formatDatetime(shift.startTime),
-                formatDatetime(shift.endTime),
+                WorkTimezone.shiftLocalDate(shift, zone).toString(),
+                formatDatetime(shift.startTime, zone),
+                formatDatetime(shift.endTime, zone),
                 shift.breakMinutes.toString(),
                 formatHoursDecimal(breakdown.totalMinutes),
                 formatHoursDecimal(breakdown.regularMinutes),
                 formatHoursDecimal(breakdown.overtimeMinutes),
                 formatHoursDecimal(breakdown.weekendMinutes),
-                if (OvernightShiftDetector.isOvernight(shift)) "Yes" else "No",
+                if (OvernightShiftDetector.isOvernight(shift, zone)) "Yes" else "No",
                 csvEscape(shift.notes ?: ""),
             ).joinToString(",")
         }
@@ -219,8 +245,8 @@ class ReportsViewModel(
         return lines.joinToString("\n")
     }
 
-    private fun formatDatetime(instant: java.time.Instant?): String = instant
-        ?.atOffset(ZoneOffset.UTC)
+    private fun formatDatetime(instant: java.time.Instant?, zone: ZoneId): String = instant
+        ?.atZone(zone)
         ?.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
         .orEmpty()
 

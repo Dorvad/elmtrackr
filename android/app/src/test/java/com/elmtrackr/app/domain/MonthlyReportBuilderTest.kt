@@ -167,7 +167,7 @@ class MonthlyReportBuilderTest {
             shift("jan", "2024-01-15T09:00:00Z", "2024-01-15T17:00:00Z"),
             shift("feb", "2024-02-01T09:00:00Z", "2024-02-01T17:00:00Z"),
         )
-        val jan = MonthlyReportBuilder.filterByMonth(shifts, 2024, 1)
+        val jan = MonthlyReportBuilder.filterByMonth(shifts, 2024, 1, settings)
         assertEquals(1, jan.size)
         assertEquals("jan", jan[0].id)
     }

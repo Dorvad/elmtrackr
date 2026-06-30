@@ -25,6 +25,7 @@ When changing the contract:
 | `shifts` | Time entries (core entity) |
 | `refund_claims` | Travel refund receipts per shift direction |
 | `compensation_profiles` | Named pay-rule profiles |
+| `tasks` | Paid-project tasks for clock-in (synced per user) |
 
 Full DDL: [`supabase/schema.sql`](../../supabase/schema.sql)
 
@@ -64,6 +65,10 @@ Full DDL: [`supabase/schema.sql`](../../supabase/schema.sql)
 | `refund_action` | text | see RefundAction | `RefundAction.fromPersisted()` |
 | `compensation_profile_id` | uuid | nullable | string? |
 | `compensation_snapshot_json` | jsonb | snapshot at clock-out | JSON string in Room |
+| `task_id` | uuid | nullable FK → `tasks.id` | string? |
+| `task_name_snapshot` | text | nullable | string? |
+| `task_icon_snapshot` | text | nullable | string? |
+| `task_hourly_rate_snapshot` | numeric | nullable | double? |
 
 DB check constraint (legacy): `refund_action in ('no_ride_taken', 'remind_later', 'submitted')`
 
@@ -95,6 +100,38 @@ Unique: `(shift_id, direction)`
 | `stacking_policy` | text | `highest_only`, `additive` | `StackingPolicy` |
 | `effective_from` / `effective_until` | timestamptz | ISO-8601 | Instant |
 | `is_default` / `is_archived` | bool | | bool |
+
+---
+
+## `tasks`
+
+| Column | Type | Wire format | Android |
+|--------|------|-------------|---------|
+| `name` | text | non-empty | string |
+| `icon` | text | emoji / short label | string |
+| `hourly_rate` | numeric | decimal | double |
+| `is_archived` | bool | | bool |
+| `last_used_at` | timestamptz | ISO-8601 or null | epoch millis? |
+
+Shifts may reference `task_id` (nullable FK). Clock-in stores `task_*_snapshot` columns on the shift row.
+
+---
+
+## Sync order (Android)
+
+Push and pull phases run in order:
+
+1. **tasks** (before shifts — shifts may reference task IDs)  
+2. shifts  
+3. refund claims  
+4. user settings  
+5. compensation profiles  
+
+Incremental pull uses `updated_at > lastPulledAt` per entity (see `SyncCursorStore`). Remote rows missing locally are treated as deletes until server-side `deleted_at` tombstones land.
+
+Local `PENDING_*` rows always win over remote until pushed.
+
+`delete_own_account` removes tasks, shifts, refund claims, compensation profiles, user settings, profiles, and refund-receipt storage objects.
 
 ---
 
@@ -164,20 +201,6 @@ Only Classic, Minimal, and Aurora render natively on Android dashboard; others p
 | `highest_only` | `HIGHEST_ONLY` |
 | `additive` | `ADDITIVE` |
 
----
-
-## Sync order (Android)
-
-Push and pull phases run in order:
-
-1. shifts  
-2. refund claims  
-3. user settings  
-4. compensation profiles  
-
-Local `PENDING_*` rows always win over remote until pushed.
-
----
 
 ## Adding a new enum value (checklist)
 

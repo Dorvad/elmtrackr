@@ -11,6 +11,8 @@ import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
+import com.elmtrackr.app.fake.FakeSyncRepository
+import com.elmtrackr.app.fake.FakeSyncTrigger
 import com.elmtrackr.app.fake.FakeThemePreferenceStore
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,8 +38,17 @@ class SettingsViewModelTest {
     }
     private val themeStore = FakeThemePreferenceStore()
     private val compensationRepo = FakeCompensationProfilesRepository()
+    private val syncRepo = FakeSyncRepository()
+    private val syncTrigger = FakeSyncTrigger()
 
-    private fun buildVm() = SettingsViewModel(repo, authRepo, compensationRepo, themeStore)
+    private fun buildVm() = SettingsViewModel(
+        repo,
+        authRepo,
+        compensationRepo,
+        themeStore,
+        syncRepo,
+        syncTrigger,
+    )
 
     private fun defaultSettings() = UserSettings(
         id = "s1",

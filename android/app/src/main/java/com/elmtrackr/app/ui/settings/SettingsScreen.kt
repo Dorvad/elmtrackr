@@ -157,6 +157,7 @@ fun SettingsScreen(
                 onDismissAccountFeedback = viewModel::clearAccountActionFeedback,
                 onOpenPrivacy = { legalDoc = LegalDoc.PRIVACY },
                 onOpenTerms = { legalDoc = LegalDoc.TERMS },
+                onSyncNow = viewModel::syncNow,
             )
             is SettingsUiState.Error -> ErrorState(
                 message = state.message,
@@ -182,6 +183,7 @@ private fun SettingsContent(
     onDismissAccountFeedback: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onOpenTerms: () -> Unit = {},
+    onSyncNow: () -> Unit = {},
 ) {
     var displayName   by remember(state.profile?.fullName)                       { mutableStateOf(state.profile?.fullName ?: "") }
     var dailyOtText   by remember(state.settings.dailyOvertimeThresholdMinutes)  { mutableStateOf(minutesToHours(state.settings.dailyOvertimeThresholdMinutes)) }
@@ -437,6 +439,30 @@ private fun SettingsContent(
             }
 
             if (authState != null) {
+                item {
+                    SettingsSectionCard(title = "SYNC") {
+                        val statusLine = when {
+                            state.isSyncing -> "Syncing…"
+                            state.syncFailedCount > 0 ->
+                                "${state.syncPendingCount} pending · ${state.syncFailedCount} failed"
+                            state.syncPendingCount > 0 -> "${state.syncPendingCount} changes waiting to sync"
+                            else -> "All changes synced"
+                        }
+                        SettingsInfoRow("Status", statusLine)
+                        state.lastSyncStatus?.let { last ->
+                            Spacer(Modifier.height(8.dp))
+                            SettingsInfoRow("Last sync", last)
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedButton(
+                            onClick = onSyncNow,
+                            enabled = !state.isSyncing,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(if (state.isSyncing) "Syncing…" else "Sync now")
+                        }
+                    }
+                }
                 item {
                     SettingsSectionCard(title = "ACCOUNT") {
                         AccountSection(

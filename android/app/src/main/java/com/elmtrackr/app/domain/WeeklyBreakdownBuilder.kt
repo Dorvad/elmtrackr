@@ -5,6 +5,8 @@ import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.model.WeeklyTotals
+import com.elmtrackr.app.domain.time.WorkTimezone
+import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlin.math.min
 
@@ -43,6 +45,8 @@ object WeeklyBreakdownBuilder {
                 profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
         } == true
 
+        val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneOffset.UTC
+
         data class Bucket(
             val shiftList: MutableList<Shift> = mutableListOf(),
             var totalMin: Int = 0,
@@ -54,7 +58,7 @@ object WeeklyBreakdownBuilder {
         val buckets = Array(4) { Bucket() }
 
         for (shift in shifts) {
-            val wi = weekBucket(shift)
+            val wi = weekBucket(shift, zone)
             val mins = min(ShiftDurationCalculator.netMinutes(shift) ?: 0, MAX_SHIFT_MIN)
             val b = buckets[wi]
             b.shiftList += shift
@@ -67,12 +71,12 @@ object WeeklyBreakdownBuilder {
                     b.pay += PayrollCalculator.calculateShiftPay(shift, settings, profiles)?.totalGross ?: 0.0
                 }
             }
-            val date = shift.startTime.atOffset(ZoneOffset.UTC).toLocalDate().toString()
+            val date = WorkTimezone.shiftLocalDate(shift, zone).toString()
             if (b.firstDate.isEmpty() || date < b.firstDate) b.firstDate = date
         }
 
         for (shift in prevMonthShifts) {
-            val wi = weekBucket(shift)
+            val wi = weekBucket(shift, zone)
             buckets[wi].prevMin += min(ShiftDurationCalculator.netMinutes(shift) ?: 0, MAX_SHIFT_MIN)
         }
 
@@ -90,9 +94,9 @@ object WeeklyBreakdownBuilder {
         }
     }
 
-    /** 0-based bucket index by UTC day-of-month. */
-    private fun weekBucket(shift: Shift): Int {
-        val day = shift.startTime.atOffset(ZoneOffset.UTC).dayOfMonth
+    /** 0-based bucket index by local day-of-month in the work timezone. */
+    private fun weekBucket(shift: Shift, zone: ZoneId): Int {
+        val day = shift.startTime.atZone(zone).dayOfMonth
         return when {
             day <= 7  -> 0
             day <= 14 -> 1

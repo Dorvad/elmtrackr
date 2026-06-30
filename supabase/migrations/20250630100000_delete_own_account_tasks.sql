@@ -1,4 +1,5 @@
--- In-app account deletion (Google Play policy). Callable by authenticated users only.
+-- Include tasks in account deletion (tasks sync is Android-owned).
+
 create or replace function public.delete_own_account()
 returns void
 language plpgsql

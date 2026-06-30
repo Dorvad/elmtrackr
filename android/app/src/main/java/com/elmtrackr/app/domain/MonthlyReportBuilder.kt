@@ -5,7 +5,6 @@ import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.ShiftBreakdown
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.time.WorkTimezone
-import java.time.ZoneOffset
 
 /**
  * Builds shift-level and month-level breakdown reports.
@@ -92,10 +91,15 @@ object MonthlyReportBuilder {
         )
     }
 
-    /** Filter shifts to those whose start time falls in [year]/[month] (UTC). */
-    fun filterByMonth(shifts: List<Shift>, year: Int, month: Int): List<Shift> =
-        shifts.filter { shift ->
-            val odt = shift.startTime.atOffset(ZoneOffset.UTC)
-            odt.year == year && odt.monthValue == month
-        }
+    /** Filter shifts to those whose start time falls in [year]/[month] (work timezone). */
+    fun filterByMonth(
+        shifts: List<Shift>,
+        year: Int,
+        month: Int,
+        settings: UserSettings,
+    ): List<Shift> {
+        val zone = WorkTimezone.zoneFor(settings)
+        val (from, to) = WorkTimezone.monthRangeEpochMillis(year, month, zone)
+        return shifts.filter { it.startTime.toEpochMilli() in from until to }
+    }
 }
