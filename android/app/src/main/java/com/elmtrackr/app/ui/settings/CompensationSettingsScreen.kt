@@ -47,6 +47,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.elmtrackr.app.domain.compensation.COMPENSATION_DISCLAIMER
 import com.elmtrackr.app.domain.compensation.COMPENSATION_PROFILE_HELPER
+import com.elmtrackr.app.domain.compensation.COMPENSATION_RULES_GUIDANCE
+import com.elmtrackr.app.domain.compensation.STACKING_POLICY_ADDITIVE_HELPER
+import com.elmtrackr.app.domain.compensation.STACKING_POLICY_HIGHEST_ONLY_HELPER
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.StackingPolicy
@@ -141,6 +144,13 @@ private fun CompensationSettingsContent(
 
         item {
             ElmCardPadded {
+                Text(
+                    COMPENSATION_RULES_GUIDANCE,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
                 Text(COMPENSATION_PROFILE_HELPER, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
                 Text(COMPENSATION_DISCLAIMER, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -334,6 +344,15 @@ private fun StackingPolicyRow(selected: StackingPolicy, onSelect: (StackingPolic
             label = { Text("Additive") },
         )
     }
+    Spacer(Modifier.height(8.dp))
+    Text(
+        when (selected) {
+            StackingPolicy.HIGHEST_ONLY -> STACKING_POLICY_HIGHEST_ONLY_HELPER
+            StackingPolicy.ADDITIVE -> STACKING_POLICY_ADDITIVE_HELPER
+        },
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable

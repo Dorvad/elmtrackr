@@ -161,6 +161,9 @@ object CompensationCurrency {
     }
 }
 
+const val COMPENSATION_RULES_GUIDANCE =
+    "If you're not sure what compensation rules apply to your work, check with your employer, HR or payroll team, and official government labor-law sources for your region before configuring these settings."
+
 const val COMPENSATION_DISCLAIMER =
     "ElmTrackr provides estimated compensation based on the rules you configure. Actual pay may vary based on taxes, deductions, employer policy, payroll practices, collective agreements, local labor laws, and other applicable rules. ElmTrackr does not provide legal, tax, payroll, accounting, or financial advice."
 
@@ -168,3 +171,9 @@ const val COMPENSATION_ESTIMATE_NOTE = "Estimated only. Actual pay may vary."
 
 const val COMPENSATION_PROFILE_HELPER =
     "Compensation estimates are based on this profile. Actual pay may vary by taxes, deductions, employer policy, local regulations, and payroll rules."
+
+const val STACKING_POLICY_HIGHEST_ONLY_HELPER =
+    "When multiple premiums apply (e.g. overtime and night), only the highest rate is used — premiums do not stack on top of each other."
+
+const val STACKING_POLICY_ADDITIVE_HELPER =
+    "When multiple premiums apply, the night premium is added on top of the current rate (e.g. 150% overtime plus 25% night = 175%)."
