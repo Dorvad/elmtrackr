@@ -109,6 +109,7 @@ Unique: `(shift_id, direction)`
 |--------|------|-------------|---------|
 | `name` | text | non-empty | string |
 | `icon` | text | emoji / short label | string |
+| `color` | text | hex color e.g. `#5B4DF2` or null | string? |
 | `hourly_rate` | numeric | decimal | double |
 | `is_archived` | bool | | bool |
 | `last_used_at` | timestamptz | ISO-8601 or null | epoch millis? |

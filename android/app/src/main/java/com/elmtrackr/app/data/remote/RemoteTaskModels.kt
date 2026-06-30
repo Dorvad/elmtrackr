@@ -9,6 +9,7 @@ data class RemoteTaskRow(
     @SerialName("user_id") val userId: String,
     val name: String,
     val icon: String,
+    val color: String? = null,
     @SerialName("hourly_rate") val hourlyRate: Double,
     @SerialName("is_archived") val isArchived: Boolean,
     @SerialName("last_used_at") val lastUsedAt: String? = null,
@@ -21,6 +22,7 @@ data class RemoteTaskInsert(
     @SerialName("user_id") val userId: String,
     val name: String,
     val icon: String,
+    val color: String? = null,
     @SerialName("hourly_rate") val hourlyRate: Double,
     @SerialName("is_archived") val isArchived: Boolean,
     @SerialName("last_used_at") val lastUsedAt: String? = null,
@@ -30,6 +32,7 @@ data class RemoteTaskInsert(
 data class RemoteTaskUpdate(
     val name: String,
     val icon: String,
+    val color: String? = null,
     @SerialName("hourly_rate") val hourlyRate: Double,
     @SerialName("is_archived") val isArchived: Boolean,
     @SerialName("last_used_at") val lastUsedAt: String? = null,

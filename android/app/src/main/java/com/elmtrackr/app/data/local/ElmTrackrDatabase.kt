@@ -30,7 +30,7 @@ import com.elmtrackr.app.data.local.entity.TaskEntity
         CompensationProfileEntity::class,
         TaskEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -54,7 +54,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     context.applicationContext,
                     ElmTrackrDatabase::class.java,
                     "elmtrackr.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .build()
                     .also { INSTANCE = it }
             }
@@ -145,6 +145,12 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_shifts_userId_startTime ON shifts(userId, startTime)",
                 )
+            }
+        }
+
+        internal val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN color TEXT")
             }
         }
     }

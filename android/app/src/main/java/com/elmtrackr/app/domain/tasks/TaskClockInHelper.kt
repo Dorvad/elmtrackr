@@ -30,6 +30,6 @@ object TaskClockInHelper {
         if (tasks.isEmpty()) return null
         val recent = shiftsRepository.observeRecentCompletedShifts(userId, 60).first()
         return TaskHabitSuggestionBuilder.suggest(tasks, recent)?.task
-            ?: tasks.maxByOrNull { it.createdAt }
+            ?: TaskSorting.byRecency(tasks).firstOrNull()
     }
 }

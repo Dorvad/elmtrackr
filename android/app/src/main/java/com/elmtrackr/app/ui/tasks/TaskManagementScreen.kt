@@ -2,6 +2,7 @@
 
 package com.elmtrackr.app.ui.tasks
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,19 +40,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.elmtrackr.app.domain.model.Task
+import com.elmtrackr.app.domain.tasks.TaskDefaultRulesBuilder
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.ElmCardPadded
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.theme.CornerRadius
 
-val TASK_EMOJI_OPTIONS = listOf("💼", "🛠️", "📋", "💻", "🎨", "📞", "🏠", "🚗", "📚", "⚡", "🧑‍💻", "✍️")
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun TaskManagementScreen(
@@ -82,7 +84,7 @@ fun TaskManagementScreen(
 private fun TaskManagementContent(
     state: TaskManagementUiState.Ready,
     onBack: () -> Unit,
-    onSave: (String?, String, String, Double) -> Unit,
+    onSave: (String?, String, String, String?, Double) -> Unit,
     onArchive: (String) -> Unit,
     onDismissMessage: () -> Unit,
 ) {
@@ -117,15 +119,28 @@ private fun TaskManagementContent(
                 Spacer(Modifier.height(8.dp))
                 Text(it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 16.dp))
             }
+            state.errorMessage?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
+            }
+        }
+
+        if (state.defaultRules.isNotEmpty()) {
+            item {
+                DefaultRulesCard(rules = state.defaultRules)
+            }
         }
 
         if (showForm || editingId != null) {
             item {
                 TaskEditorCard(
                     task = state.tasks.firstOrNull { it.id == editingId },
+                    existingNames = state.tasks
+                        .filter { !it.isArchived && it.id != editingId }
+                        .map { it.name },
                     onCancel = { showForm = false; editingId = null },
-                    onSave = { name, icon, rate ->
-                        onSave(editingId, name, icon, rate)
+                    onSave = { name, icon, color, rate ->
+                        onSave(editingId, name, icon, color, rate)
                         showForm = false
                         editingId = null
                     },
@@ -189,6 +204,11 @@ private fun TaskRow(
     ElmCardPadded(Modifier.padding(horizontal = 16.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(task.icon, style = MaterialTheme.typography.headlineSmall)
+            TaskColorDot(
+                color = task.resolveColor(),
+                selected = false,
+                modifier = Modifier.padding(start = 8.dp),
+            )
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(task.name, fontWeight = FontWeight.Bold)
                 Text(
@@ -206,13 +226,43 @@ private fun TaskRow(
 }
 
 @Composable
+private fun DefaultRulesCard(rules: List<com.elmtrackr.app.domain.tasks.TaskDefaultRule>) {
+    ElmCardPadded(Modifier.padding(horizontal = 16.dp)) {
+        Text("Schedule defaults", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Learned from your shift history — used for Suggested now.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
+        rules.take(6).forEach { rule ->
+            Text(
+                TaskDefaultRulesBuilder.formatRule(rule),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(vertical = 2.dp),
+            )
+        }
+        if (rules.size > 6) {
+            Text(
+                "+${rules.size - 6} more",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
 private fun TaskEditorCard(
     task: Task?,
+    existingNames: List<String>,
     onCancel: () -> Unit,
-    onSave: (name: String, icon: String, rate: Double) -> Unit,
+    onSave: (name: String, icon: String, color: String?, rate: Double) -> Unit,
 ) {
     var name by remember(task?.id) { mutableStateOf(task?.name.orEmpty()) }
     var icon by remember(task?.id) { mutableStateOf(task?.icon ?: TASK_EMOJI_OPTIONS.first()) }
+    var color by remember(task?.id) { mutableStateOf(task?.color ?: TASK_COLOR_OPTIONS.first()) }
     var rateText by remember(task?.id) { mutableStateOf(task?.hourlyRate?.toString().orEmpty()) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -243,6 +293,19 @@ private fun TaskEditorCard(
             }
         }
         Spacer(Modifier.height(12.dp))
+        Text("Color", style = MaterialTheme.typography.labelMedium)
+        Spacer(Modifier.height(6.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TASK_COLOR_OPTIONS.forEach { hex ->
+                val swatch = parseTaskColor(hex) ?: Color.Gray
+                TaskColorDot(
+                    color = swatch,
+                    selected = color == hex,
+                    modifier = Modifier.clickable { color = hex },
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             value = rateText,
             onValueChange = { rateText = it.filter { ch -> ch.isDigit() || ch == '.' }; error = null },
@@ -264,8 +327,10 @@ private fun TaskEditorCard(
                     val rate = rateText.toDoubleOrNull()
                     when {
                         trimmed.isEmpty() -> error = "Enter a task name"
+                        existingNames.any { it.equals(trimmed, ignoreCase = true) } ->
+                            error = "A task with this name already exists"
                         rate == null || rate <= 0 -> error = "Enter a valid hourly rate"
-                        else -> onSave(trimmed, icon, rate)
+                        else -> onSave(trimmed, icon, color, rate)
                     }
                 },
                 modifier = Modifier.weight(1f),

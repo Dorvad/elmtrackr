@@ -330,7 +330,9 @@ private fun DashboardReady(
                 com.elmtrackr.app.ui.tasks.TaskSelectorBar(
                     tasks = state.activeTasks,
                     selectedTaskId = state.selectedTaskId,
-                    habitSuggested = state.habitSuggested,
+                    suggestedTaskId = state.suggestedTaskId,
+                    showSuggestedNow = state.showSuggestedNow,
+                    suggestionExplanation = state.suggestionExplanation,
                     onSelectTask = onSelectTask,
                     onManageTasks = onManageTasks,
                     modifier = Modifier
@@ -341,10 +343,12 @@ private fun DashboardReady(
             }
 
             if (activeShift != null && !activeShift.taskNameSnapshot.isNullOrBlank()) {
+                val taskColor = state.activeTasks.firstOrNull { it.id == activeShift.taskId }?.color
                 com.elmtrackr.app.ui.tasks.ActiveShiftTaskBadge(
                     icon = activeShift.taskIconSnapshot,
                     name = activeShift.taskNameSnapshot,
                     rate = activeShift.taskHourlyRateSnapshot,
+                    colorHex = taskColor,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)

@@ -7,11 +7,15 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.domain.model.Task
+import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
 import com.elmtrackr.app.domain.CurrentUserProvider
+import com.elmtrackr.app.domain.tasks.TaskDefaultRule
+import com.elmtrackr.app.domain.tasks.TaskDefaultRulesBuilder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -25,7 +29,9 @@ sealed interface TaskManagementUiState {
     data object Loading : TaskManagementUiState
     data class Ready(
         val tasks: List<Task>,
+        val defaultRules: List<TaskDefaultRule> = emptyList(),
         val message: String? = null,
+        val errorMessage: String? = null,
     ) : TaskManagementUiState
     data class Error(val message: String) : TaskManagementUiState
 }
@@ -33,18 +39,30 @@ sealed interface TaskManagementUiState {
 @OptIn(ExperimentalCoroutinesApi::class)
 class TaskManagementViewModel(
     private val tasksRepository: TasksRepository,
+    private val shiftsRepository: ShiftsRepository,
     private val currentUserProvider: CurrentUserProvider,
 ) : ViewModel() {
 
     private val _message = MutableStateFlow<String?>(null)
+    private val _errorMessage = MutableStateFlow<String?>(null)
     private val _reload = MutableStateFlow(0)
 
     val uiState: StateFlow<TaskManagementUiState> = _reload
         .flatMapLatest {
             currentUserProvider.userId.flatMapLatest { userId ->
                 if (userId == null) return@flatMapLatest flowOf(TaskManagementUiState.Loading)
-                tasksRepository.observeAllTasks(userId).map { tasks ->
-                    TaskManagementUiState.Ready(tasks = tasks, message = _message.value) as TaskManagementUiState
+                combine(
+                    tasksRepository.observeAllTasks(userId),
+                    shiftsRepository.observeRecentCompletedShifts(userId, 120),
+                ) { tasks, shifts ->
+                    val active = tasks.filter { !it.isArchived }
+                    val rules = TaskDefaultRulesBuilder.buildRules(active, shifts)
+                    TaskManagementUiState.Ready(
+                        tasks = tasks,
+                        defaultRules = rules,
+                        message = _message.value,
+                        errorMessage = _errorMessage.value,
+                    ) as TaskManagementUiState
                 }
             }
         }
@@ -56,19 +74,29 @@ class TaskManagementViewModel(
 
     fun clearMessage() {
         _message.value = null
+        _errorMessage.value = null
     }
 
-    fun saveTask(taskId: String?, name: String, icon: String, hourlyRate: Double) {
+    fun saveTask(taskId: String?, name: String, icon: String, color: String?, hourlyRate: Double) {
         viewModelScope.launch {
             val userId = currentUserProvider.currentUserId() ?: return@launch
+            val trimmed = name.trim()
+            val duplicate = tasksRepository.getActiveTasks(userId).any {
+                it.id != taskId && it.name.equals(trimmed, ignoreCase = true)
+            }
+            if (duplicate) {
+                _errorMessage.value = "A task named \"$trimmed\" already exists"
+                return@launch
+            }
             val now = Instant.now()
             val existing = taskId?.let { tasksRepository.getTaskById(userId, it) }
             tasksRepository.upsertTask(
                 Task(
                     id = taskId ?: UUID.randomUUID().toString(),
                     userId = userId,
-                    name = name,
+                    name = trimmed,
                     icon = icon,
+                    color = color,
                     hourlyRate = hourlyRate,
                     isArchived = existing?.isArchived ?: false,
                     createdAt = existing?.createdAt ?: now,
@@ -78,6 +106,7 @@ class TaskManagementViewModel(
                 ),
             )
             _message.value = "Task saved"
+            _errorMessage.value = null
         }
     }
 
@@ -94,7 +123,7 @@ class TaskManagementViewModel(
             initializer {
                 @Suppress("UNCHECKED_CAST")
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
-                TaskManagementViewModel(app.tasksRepository, app.currentUserProvider)
+                TaskManagementViewModel(app.tasksRepository, app.shiftsRepository, app.currentUserProvider)
             }
         }
     }

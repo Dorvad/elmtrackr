@@ -89,6 +89,7 @@ import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.model.TaskMonthlyBreakdown
 import com.elmtrackr.app.domain.model.WeeklyTotals
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraScreen
@@ -112,6 +113,7 @@ import com.elmtrackr.app.ui.theme.AuroraPeachDeep
 import com.elmtrackr.app.ui.theme.auroraOvertimeBackground
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import com.elmtrackr.app.ui.theme.auroraWeekendBackground
+import com.elmtrackr.app.ui.tasks.parseTaskColor
 import java.time.Month
 import java.time.YearMonth
 import java.time.ZoneOffset
@@ -836,6 +838,21 @@ internal fun HoursReport(
         }
     }
 
+    if (state.taskBreakdown.isNotEmpty()) {
+        Spacer(Modifier.height(18.dp))
+        ElmSectionHeader("By Task")
+        Spacer(Modifier.height(8.dp))
+        ReportCard {
+            state.taskBreakdown.forEachIndexed { index, task ->
+                if (index > 0) HorizontalDivider(
+                    Modifier.padding(vertical = 10.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+                TaskBreakdownRow(task, currency)
+            }
+        }
+    }
+
     // ── OT thresholds footnote (web: inline with hairline divider) ────────────
     state.settings?.let { settings ->
         Spacer(Modifier.height(12.dp))
@@ -1086,6 +1103,61 @@ private fun InsightStatCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+    }
+}
+
+// ── Task breakdown row ─────────────────────────────────────────────────────────
+
+@Composable
+private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: CurrencyCode) {
+    val tint = parseTaskColor(task.color)
+    Column(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (tint != null) {
+                Box(
+                    Modifier
+                        .size(10.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(tint),
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                "${task.icon.orEmpty()} ${task.name}",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                formatHoursDecimal(task.totalMinutes) + "h",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                "${task.shiftCount} shifts · avg ${formatHoursDecimal(task.averageShiftMinutes)}h",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            task.totalPay?.let { pay ->
+                Text(
+                    MoneyFormatter.format(pay, currency),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        if (task.overtimeMinutes > 0) {
+            Text(
+                "OT ${formatHoursDecimal(task.overtimeMinutes)}h",
+                style = MaterialTheme.typography.labelSmall,
+                color = AuroraPeachDeep,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
     }
 }

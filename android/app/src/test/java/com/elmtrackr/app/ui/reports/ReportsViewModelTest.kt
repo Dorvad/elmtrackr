@@ -5,7 +5,7 @@ import com.elmtrackr.app.fake.FakeReportsRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeCurrentUserProvider
 import com.elmtrackr.app.fake.FakeShiftsRepository
-import com.elmtrackr.app.fake.FakeRefundsRepository
+import com.elmtrackr.app.fake.FakeTasksRepository
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -33,6 +33,8 @@ class ReportsViewModelTest {
     private val shiftsRepo = FakeShiftsRepository()
     private val settingsRepo = FakeSettingsRepository()
 
+    private val tasksRepo = FakeTasksRepository()
+
     private fun buildVm(ensureSettings: Boolean = true): ReportsViewModel {
         if (ensureSettings) {
             settingsRepo.setSettings(UserSettings(id = "s", userId = "u1"))
@@ -40,6 +42,7 @@ class ReportsViewModelTest {
         return ReportsViewModel(
             reportsRepo,
             shiftsRepo,
+            tasksRepo,
             settingsRepo,
             FakeCurrentUserProvider(),
             FakeRefundsRepository(),

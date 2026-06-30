@@ -14,6 +14,7 @@ data class TaskEntity(
     val userId: String,
     val name: String,
     val icon: String,
+    val color: String?,
     val hourlyRate: Double,
     val isArchived: Boolean,
     val lastUsedAt: Long?,

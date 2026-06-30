@@ -84,6 +84,7 @@ fun ShiftsScreen(
             tasks = (uiState as? ShiftsUiState.Ready)?.tasks.orEmpty(),
             errors = formErrors,
             featuresTravelRefunds = featuresTravelRefunds,
+            onSuggestTaskForStart = viewModel::suggestTaskForStart,
             onSave = { input ->
                 when (val t = formTarget!!) {
                     is ShiftFormNavState.Create -> viewModel.createShift(input)
@@ -252,6 +253,7 @@ private fun ShiftFormContent(
     tasks: List<com.elmtrackr.app.domain.model.Task>,
     errors: Map<String, String>,
     featuresTravelRefunds: Boolean,
+    onSuggestTaskForStart: suspend (Instant) -> String? = { null },
     onSave: (ShiftFormInput) -> Unit,
     onDelete: (shiftId: String) -> Unit,
     onClose: () -> Unit,
@@ -273,6 +275,12 @@ private fun ShiftFormContent(
         mutableStateOf(initialShift?.compensationProfileId ?: settings?.defaultCompensationProfileId)
     }
     var taskId by rememberSaveable { mutableStateOf(initialShift?.taskId) }
+
+    LaunchedEffect(navState, startMillis) {
+        if (navState is ShiftFormNavState.Create && taskId == null) {
+            taskId = onSuggestTaskForStart(Instant.ofEpochMilli(startMillis))
+        }
+    }
 
     var showStartDatePicker by rememberSaveable { mutableStateOf(false) }
     var showStartTimePicker by rememberSaveable { mutableStateOf(false) }

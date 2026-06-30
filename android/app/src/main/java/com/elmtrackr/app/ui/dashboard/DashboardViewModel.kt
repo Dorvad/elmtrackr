@@ -21,6 +21,7 @@ import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
 import com.elmtrackr.app.domain.tasks.TaskClockInHelper
 import com.elmtrackr.app.domain.tasks.TaskHabitSuggestionBuilder
+import com.elmtrackr.app.domain.tasks.TaskSorting
 import com.elmtrackr.app.domain.time.WorkTimezone
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -51,7 +52,9 @@ class DashboardViewModel(
     private val _refreshNonce = MutableStateFlow(0)
     private val _showFirstClockInCelebration = MutableStateFlow(false)
     private val _selectedTaskId = MutableStateFlow<String?>(null)
-    private val _habitSuggested = MutableStateFlow(false)
+    private val _suggestedTaskId = MutableStateFlow<String?>(null)
+    private val _showSuggestedNow = MutableStateFlow(false)
+    private val _suggestionExplanation = MutableStateFlow<String?>(null)
 
     val showFirstClockInCelebration: StateFlow<Boolean> = _showFirstClockInCelebration
 
@@ -118,7 +121,9 @@ class DashboardViewModel(
                     profiles = raw.profiles,
                     activeTasks = raw.activeTasks,
                     selectedTaskId = _selectedTaskId.value,
-                    habitSuggested = _habitSuggested.value,
+                    suggestedTaskId = _suggestedTaskId.value,
+                    showSuggestedNow = _showSuggestedNow.value,
+                    suggestionExplanation = _suggestionExplanation.value,
                     recentShifts = raw.recentShifts,
                     displayName = currentProfile.fullName,
                     unresolvedRefundCount = if (raw.settings.featuresTravelRefunds == true) {
@@ -137,9 +142,21 @@ class DashboardViewModel(
                 else -> state
             }
         }
-        .combine(_habitSuggested) { state, habitSuggested ->
+        .combine(_suggestedTaskId) { state, suggestedTaskId ->
             when (state) {
-                is DashboardUiState.Ready -> state.copy(habitSuggested = habitSuggested)
+                is DashboardUiState.Ready -> state.copy(suggestedTaskId = suggestedTaskId)
+                else -> state
+            }
+        }
+        .combine(_showSuggestedNow) { state, showSuggestedNow ->
+            when (state) {
+                is DashboardUiState.Ready -> state.copy(showSuggestedNow = showSuggestedNow)
+                else -> state
+            }
+        }
+        .combine(_suggestionExplanation) { state, explanation ->
+            when (state) {
+                is DashboardUiState.Ready -> state.copy(suggestionExplanation = explanation)
                 else -> state
             }
         }
@@ -169,14 +186,19 @@ class DashboardViewModel(
             }.collect { (tasks, shifts) ->
                 if (tasks.isEmpty()) {
                     _selectedTaskId.value = null
-                    _habitSuggested.value = false
+                    _suggestedTaskId.value = null
+                    _showSuggestedNow.value = false
+                    _suggestionExplanation.value = null
                     return@collect
                 }
                 val current = _selectedTaskId.value
                 if (current == null || tasks.none { it.id == current }) {
                     val suggestion = TaskHabitSuggestionBuilder.suggest(tasks, shifts)
-                    _selectedTaskId.value = suggestion?.task?.id ?: tasks.maxByOrNull { it.createdAt }?.id
-                    _habitSuggested.value = suggestion?.isHabitBased == true
+                    _selectedTaskId.value = suggestion?.task?.id
+                        ?: TaskSorting.byRecency(tasks).firstOrNull()?.id
+                    _suggestedTaskId.value = suggestion?.task?.id
+                    _showSuggestedNow.value = suggestion?.showSuggestedNow == true
+                    _suggestionExplanation.value = suggestion?.explanation
                 }
             }
         }
@@ -184,7 +206,8 @@ class DashboardViewModel(
 
     fun selectTask(taskId: String) {
         _selectedTaskId.value = taskId
-        _habitSuggested.value = false
+        _showSuggestedNow.value = false
+        _suggestionExplanation.value = null
     }
 
     fun clockIn() {
@@ -196,7 +219,7 @@ class DashboardViewModel(
             val defaultProfile = compensationProfilesRepository.ensureMigrated(userId)
             val tasks = tasksRepository.getActiveTasks(userId)
             val selected = tasks.firstOrNull { it.id == _selectedTaskId.value }
-                ?: tasks.maxByOrNull { it.createdAt }
+                ?: TaskSorting.byRecency(tasks).firstOrNull()
             val taskParams = TaskClockInHelper.paramsFromTask(selected)
             shiftsRepository.clockIn(
                 userId = userId,

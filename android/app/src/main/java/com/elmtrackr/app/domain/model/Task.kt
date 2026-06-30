@@ -7,6 +7,7 @@ data class Task(
     val userId: String,
     val name: String,
     val icon: String,
+    val color: String? = null,
     val hourlyRate: Double,
     val isArchived: Boolean = false,
     val createdAt: Instant = Instant.EPOCH,

@@ -478,6 +478,7 @@ create table if not exists public.tasks (
   user_id       uuid not null references auth.users(id) on delete cascade,
   name          text not null,
   icon          text not null default '📋',
+  color         text,
   hourly_rate   numeric(10, 2) not null,
   is_archived   boolean not null default false,
   last_used_at  timestamptz,

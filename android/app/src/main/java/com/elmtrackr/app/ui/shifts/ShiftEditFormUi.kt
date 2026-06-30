@@ -71,7 +71,9 @@ import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
-import com.elmtrackr.app.ui.theme.Spacing
+import com.elmtrackr.app.ui.tasks.TaskChipColorLeading
+import com.elmtrackr.app.ui.tasks.TaskSorting
+import com.elmtrackr.app.ui.tasks.parseTaskColor
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import java.time.Instant
 import java.time.ZoneId
@@ -131,7 +133,7 @@ internal fun ShiftEditFormContent(
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
     var showRefundExpanded by rememberSaveable { mutableStateOf(false) }
 
-    val activeTasks = tasks.filter { !it.isArchived }
+    val activeTasks = TaskSorting.byRecency(tasks.filter { !it.isArchived })
     val selectedTask = activeTasks.firstOrNull { it.id == taskId }
 
     val unsavedCount = remember(
@@ -357,6 +359,13 @@ internal fun ShiftEditFormContent(
                         if (activeTasks.isNotEmpty()) {
                             if (profiles.isNotEmpty()) Spacer(Modifier.height(Spacing.sm))
                             Text("Task", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                            if (isEdit) {
+                                Text(
+                                    "Change which task this shift used — pay updates when you save.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                             Spacer(Modifier.height(6.dp))
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -372,6 +381,9 @@ internal fun ShiftEditFormContent(
                                         selected = taskId == task.id,
                                         onClick = { onTaskIdChange(task.id) },
                                         label = { Text("${task.icon} ${task.name}") },
+                                        leadingIcon = {
+                                            TaskChipColorLeading(parseTaskColor(task.color))
+                                        },
                                     )
                                 }
                             }

@@ -21,7 +21,8 @@ import com.elmtrackr.app.domain.repository.RefundReceiptStorage
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
-import com.elmtrackr.app.domain.tasks.TaskSnapshotApplier
+import com.elmtrackr.app.domain.tasks.TaskHabitSuggestionBuilder
+import com.elmtrackr.app.domain.time.WorkTimezone
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +37,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.elmtrackr.app.domain.tasks.TaskSnapshotApplier
 import java.time.Instant
 import java.time.YearMonth
 import java.util.UUID
@@ -126,6 +128,16 @@ class ShiftsViewModel(
     fun showCreateForm() {
         _formErrors.value = emptyMap()
         _formTarget.value = ShiftFormNavState.Create
+    }
+
+    suspend fun suggestTaskForStart(startTime: Instant): String? {
+        val userId = currentUserProvider.currentUserId() ?: return null
+        val tasks = tasksRepository.getActiveTasks(userId)
+        if (tasks.isEmpty()) return null
+        val settings = settingsRepository.getSettings(userId)
+        val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: java.time.ZoneId.systemDefault()
+        val recent = shiftsRepository.observeRecentCompletedShifts(userId, 60).first()
+        return TaskHabitSuggestionBuilder.suggest(tasks, recent, now = startTime, zoneId = zone)?.task?.id
     }
 
     fun showEditForm(shiftId: String) {

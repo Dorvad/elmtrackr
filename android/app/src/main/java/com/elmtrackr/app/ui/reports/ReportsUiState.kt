@@ -3,6 +3,7 @@ package com.elmtrackr.app.ui.reports
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.MonthlyReport
+import com.elmtrackr.app.domain.model.TaskMonthlyBreakdown
 import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -29,6 +30,7 @@ sealed interface ReportsUiState {
         val previousMonthMinutes: Int = 0,
         val allShifts: List<Shift> = emptyList(),
         val refundClaims: List<RefundClaim> = emptyList(),
+        val taskBreakdown: List<TaskMonthlyBreakdown> = emptyList(),
     ) : ReportsUiState
 
     data class Error(val message: String) : ReportsUiState

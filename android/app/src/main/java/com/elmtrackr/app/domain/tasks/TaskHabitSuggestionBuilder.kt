@@ -9,6 +9,8 @@ import java.time.temporal.ChronoUnit
 data class TaskSuggestion(
     val task: Task,
     val isHabitBased: Boolean,
+    val showSuggestedNow: Boolean = false,
+    val explanation: String? = null,
 )
 
 object TaskHabitSuggestionBuilder {
@@ -30,6 +32,20 @@ object TaskHabitSuggestionBuilder {
         val active = tasks.filter { !it.isArchived }
         if (active.isEmpty()) return null
 
+        val defaultRules = TaskDefaultRulesBuilder.buildRules(active, completedShifts, zoneId)
+        val matchingRule = TaskDefaultRulesBuilder.ruleForInstant(defaultRules, now, zoneId)
+        matchingRule?.let { rule ->
+            active.firstOrNull { it.id == rule.taskId }?.let { task ->
+                val slotLabel = TaskDefaultRulesBuilder.formatSlot(now, zoneId)
+                return TaskSuggestion(
+                    task = task,
+                    isHabitBased = true,
+                    showSuggestedNow = true,
+                    explanation = "You usually pick ${task.name} on $slotLabel",
+                )
+            }
+        }
+
         val activeIds = active.map { it.id }.toSet()
         val shiftsWithTasks = completedShifts.filter { shift ->
             shift.taskId != null && shift.taskId in activeIds
@@ -38,7 +54,18 @@ object TaskHabitSuggestionBuilder {
         if (shiftsWithTasks.size < MIN_HISTORY) {
             val fallback = active.maxByOrNull { it.lastUsedAt ?: it.createdAt }
                 ?: active.maxByOrNull { it.createdAt }
-            return fallback?.let { TaskSuggestion(it, isHabitBased = false) }
+            return fallback?.let {
+                TaskSuggestion(
+                    task = it,
+                    isHabitBased = false,
+                    showSuggestedNow = false,
+                    explanation = if (it.lastUsedAt != null) {
+                        "Last used ${it.name}"
+                    } else {
+                        null
+                    },
+                )
+            }
         }
 
         val zonedNow = now.atZone(zoneId)
@@ -73,8 +100,19 @@ object TaskHabitSuggestionBuilder {
             ?: active.maxByOrNull { it.lastUsedAt ?: it.createdAt }
             ?: active.maxByOrNull { it.createdAt }
 
-        return suggested?.let {
-            TaskSuggestion(task = it, isHabitBased = bestEntry != null && bestEntry.value > 0)
+        return suggested?.let { task ->
+            val habitBased = bestEntry != null && bestEntry.value > 0
+            val slotLabel = TaskDefaultRulesBuilder.formatSlot(now, zoneId)
+            TaskSuggestion(
+                task = task,
+                isHabitBased = habitBased,
+                showSuggestedNow = habitBased,
+                explanation = if (habitBased) {
+                    "Based on your recent shifts around $slotLabel"
+                } else {
+                    "Last used ${task.name}"
+                },
+            )
         }
     }
 }

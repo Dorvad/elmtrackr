@@ -33,17 +33,20 @@ interface TaskDao {
     suspend fun adoptLegacyUser(userId: String)
 
     @Query(
-        "SELECT * FROM tasks WHERE userId = :userId AND isArchived = 0 AND deletedAt IS NULL ORDER BY createdAt DESC",
+        "SELECT * FROM tasks WHERE userId = :userId AND isArchived = 0 AND deletedAt IS NULL " +
+            "ORDER BY COALESCE(lastUsedAt, 0) DESC, createdAt DESC",
     )
     fun observeActiveTasks(userId: String): Flow<List<TaskEntity>>
 
     @Query(
-        "SELECT * FROM tasks WHERE userId = :userId AND deletedAt IS NULL ORDER BY isArchived ASC, createdAt DESC",
+        "SELECT * FROM tasks WHERE userId = :userId AND deletedAt IS NULL " +
+            "ORDER BY isArchived ASC, COALESCE(lastUsedAt, 0) DESC, createdAt DESC",
     )
     fun observeAllTasks(userId: String): Flow<List<TaskEntity>>
 
     @Query(
-        "SELECT * FROM tasks WHERE userId = :userId AND isArchived = 0 AND deletedAt IS NULL ORDER BY createdAt DESC",
+        "SELECT * FROM tasks WHERE userId = :userId AND isArchived = 0 AND deletedAt IS NULL " +
+            "ORDER BY COALESCE(lastUsedAt, 0) DESC, createdAt DESC",
     )
     suspend fun getActiveTasks(userId: String): List<TaskEntity>
 

@@ -17,13 +17,14 @@ import com.elmtrackr.app.domain.WeeklyBreakdownBuilder
 import com.elmtrackr.app.domain.ReportInsightsBuilder
 import com.elmtrackr.app.domain.time.WorkTimezone
 import com.elmtrackr.app.domain.model.MonthlyReport
+import com.elmtrackr.app.domain.model.TaskMonthlyBreakdown
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.repository.ReportsRepository
 import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.RefundReceiptStorage
 import com.elmtrackr.app.domain.repository.SettingsRepository
-import com.elmtrackr.app.domain.repository.ShiftsRepository
+import com.elmtrackr.app.domain.repository.TasksRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -44,6 +45,7 @@ import java.time.format.DateTimeFormatter
 class ReportsViewModel(
     private val reportsRepository: ReportsRepository,
     private val shiftsRepository: ShiftsRepository,
+    private val tasksRepository: TasksRepository,
     private val settingsRepository: SettingsRepository,
     private val currentUserProvider: CurrentUserProvider,
     private val refundsRepository: RefundsRepository,
@@ -124,7 +126,8 @@ class ReportsViewModel(
                         }
                     },
                     compensationProfilesRepository.observeProfiles(userId),
-                ) { inputs, profiles ->
+                    tasksRepository.observeAllTasks(userId),
+                ) { inputs, profiles, tasks ->
                     val completedShifts = inputs.shifts.filter { it.isCompleted }
                     when {
                         inputs.settings == null -> ReportsUiState.Loading
@@ -146,6 +149,12 @@ class ReportsViewModel(
                             val dailyInsights = settings.takeIf { it.featuresInsights }
                                 ?.let { DailyInsightsBuilder.build(completedShifts, it, safeReport.totalMinutes, profiles) }
                                 ?: emptyList()
+                            val taskBreakdown = TaskMonthlyReportBuilder.build(
+                                shifts = completedShifts,
+                                settings = settings,
+                                tasks = tasks.filter { !it.isArchived },
+                                profiles = profiles,
+                            )
                             ReportsUiState.Ready(
                                 year = year,
                                 month = month,
@@ -168,6 +177,7 @@ class ReportsViewModel(
                                 },
                                 allShifts = inputs.allShifts,
                                 refundClaims = inputs.claims,
+                                taskBreakdown = taskBreakdown,
                             )
                         }
                     }
@@ -271,6 +281,7 @@ class ReportsViewModel(
                 ReportsViewModel(
                     app.reportsRepository,
                     app.shiftsRepository,
+                    app.tasksRepository,
                     app.settingsRepository,
                     app.currentUserProvider,
                     app.refundsRepository,

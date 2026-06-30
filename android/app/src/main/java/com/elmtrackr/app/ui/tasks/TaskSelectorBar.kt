@@ -28,12 +28,16 @@ import com.elmtrackr.app.ui.theme.CornerRadius
 fun TaskSelectorBar(
     tasks: List<Task>,
     selectedTaskId: String?,
-    habitSuggested: Boolean,
+    suggestedTaskId: String?,
+    showSuggestedNow: Boolean,
+    suggestionExplanation: String?,
     onSelectTask: (String) -> Unit,
     onManageTasks: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (tasks.isEmpty()) return
+
+    val displayTasks = sortedTasksForDisplay(tasks, suggestedTaskId)
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -49,27 +53,48 @@ fun TaskSelectorBar(
                 modifier = Modifier.clickable(onClick = onManageTasks),
             )
         }
-        if (habitSuggested) {
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Suggested based on your recent shifts",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        if (showSuggestedNow && suggestedTaskId != null) {
+            Spacer(Modifier.height(6.dp))
+            Surface(
+                shape = RoundedCornerShape(CornerRadius.Small),
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f),
+            ) {
+                Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                    Text(
+                        "Suggested now",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                    suggestionExplanation?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+                        )
+                    }
+                }
+            }
         }
         Spacer(Modifier.height(8.dp))
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            tasks.forEach { task ->
+            displayTasks.forEach { task ->
+                val isSuggested = showSuggestedNow && task.id == suggestedTaskId
                 FilterChip(
                     selected = task.id == selectedTaskId,
                     onClick = { onSelectTask(task.id) },
                     label = {
-                        Text("${task.icon} ${task.name}")
+                        Text(buildString {
+                            if (isSuggested) append("✨ ")
+                            append("${task.icon} ${task.name}")
+                        })
                     },
-                    leadingIcon = null,
+                    leadingIcon = {
+                        TaskChipColorLeading(parseTaskColor(task.color))
+                    },
                 )
             }
         }
@@ -78,7 +103,8 @@ fun TaskSelectorBar(
                 Spacer(Modifier.height(8.dp))
                 Surface(
                     shape = RoundedCornerShape(CornerRadius.Small),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = parseTaskColor(selected.color)?.copy(alpha = 0.18f)
+                        ?: MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
@@ -98,19 +124,21 @@ fun ActiveShiftTaskBadge(
     icon: String?,
     name: String?,
     rate: Double?,
+    colorHex: String? = null,
     modifier: Modifier = Modifier,
 ) {
     if (name.isNullOrBlank()) return
+    val tint = parseTaskColor(colorHex)
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(CornerRadius.Small),
-        color = MaterialTheme.colorScheme.primaryContainer,
+        color = tint?.copy(alpha = 0.22f) ?: MaterialTheme.colorScheme.primaryContainer,
     ) {
         Text(
             "${icon.orEmpty()} $name${rate?.let { " · ${formatRate(it)}/hr" }.orEmpty()}",
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = tint ?: MaterialTheme.colorScheme.onPrimaryContainer,
         )
     }
 }
