@@ -58,8 +58,6 @@ import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.theme.Spacing
 import kotlin.math.roundToInt
 
-private val DAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-
 @Composable
 fun CompensationSettingsScreen(
     onBack: () -> Unit,

@@ -21,7 +21,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -190,7 +193,7 @@ internal fun ShiftEditFormContent(
                 IconButton(onClick = onClose) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
-                Column(modifier = Modifier.padding(start = 4.dp)) {
+                Column(modifier = Modifier.padding(start = 4.dp).weight(1f)) {
                     Text(
                         if (isEdit) "Edit shift" else "New shift",
                         style = MaterialTheme.typography.titleLarge,
@@ -199,7 +202,12 @@ internal fun ShiftEditFormContent(
                     Text(
                         startZdt.format(dateSubtitleFmt),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .padding(top = 2.dp)
+                            .clip(RoundedCornerShape(CornerRadius.Small))
+                            .clickable(onClick = onPickStartDate)
+                            .padding(vertical = 4.dp),
                     )
                 }
             }
@@ -223,39 +231,43 @@ internal fun ShiftEditFormContent(
                 )
 
                 FormSectionCard(title = "WHEN") {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        DateTimeBox(
-                            label = "Start",
-                            time = Instant.ofEpochMilli(startMillis).atZone(zone).format(timeBoxFmt),
-                            date = Instant.ofEpochMilli(startMillis).atZone(zone).format(dateBoxFmt),
-                            onClick = onPickStartTime,
-                            onDateClick = onPickStartDate,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        if (hasEndTime) {
-                            DateTimeBox(
-                                label = "End",
-                                time = Instant.ofEpochMilli(endMillis).atZone(zone).format(timeBoxFmt),
-                                date = Instant.ofEpochMilli(endMillis).atZone(zone).format(dateBoxFmt),
-                                onClick = onPickEndTime,
-                                onDateClick = onPickEndDate,
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            DateTimeFieldGroup(
+                                label = "Start",
+                                date = Instant.ofEpochMilli(startMillis).atZone(zone).format(dateBoxFmt),
+                                time = Instant.ofEpochMilli(startMillis).atZone(zone).format(timeBoxFmt),
+                                onPickDate = onPickStartDate,
+                                onPickTime = onPickStartTime,
                                 modifier = Modifier.weight(1f),
                             )
-                        } else {
-                            ActiveEndPlaceholder(
-                                onEnableEnd = { onHasEndTimeChange(true) },
-                                modifier = Modifier.weight(1f),
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier
+                                    .padding(top = 36.dp)
+                                    .size(20.dp),
                             )
+                            if (hasEndTime) {
+                                DateTimeFieldGroup(
+                                    label = "End",
+                                    date = Instant.ofEpochMilli(endMillis).atZone(zone).format(dateBoxFmt),
+                                    time = Instant.ofEpochMilli(endMillis).atZone(zone).format(timeBoxFmt),
+                                    onPickDate = onPickEndDate,
+                                    onPickTime = onPickEndTime,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            } else {
+                                ActiveEndPlaceholder(
+                                    onEnableEnd = { onHasEndTimeChange(true) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
                         }
                     }
 
@@ -535,31 +547,69 @@ private fun FormSectionCard(
 }
 
 @Composable
-private fun DateTimeBox(
+private fun DateTimeFieldGroup(
     label: String,
-    time: String,
     date: String,
-    onClick: () -> Unit,
-    onDateClick: () -> Unit,
+    time: String,
+    onPickDate: () -> Unit,
+    onPickTime: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    Column(modifier = modifier) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(6.dp))
+        DateTimePickerRow(
+            value = date,
+            icon = Icons.Filled.CalendarToday,
+            contentDescription = "Pick $label date",
+            onClick = onPickDate,
+        )
+        Spacer(Modifier.height(8.dp))
+        DateTimePickerRow(
+            value = time,
+            icon = Icons.Filled.Schedule,
+            contentDescription = "Pick $label time",
+            onClick = onPickTime,
+        )
+    }
+}
+
+@Composable
+private fun DateTimePickerRow(
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
     val shape = RoundedCornerShape(CornerRadius.Medium)
-    Column(
-        modifier = modifier
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
             .clip(shape)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
             .background(auroraSurfaceSub())
             .clickable(onClick = onClick)
-            .padding(Spacing.md),
+            .padding(start = Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(time, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text(
-            date,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.clickable(onClick = onDateClick),
+            value,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
         )
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier.size(48.dp),
+        ) {
+            Icon(icon, contentDescription = contentDescription, modifier = Modifier.size(20.dp))
+        }
     }
 }
 
