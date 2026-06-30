@@ -858,7 +858,7 @@ internal fun HoursReport(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
-            state.rawShifts.sortedBy { it.startTime }.forEachIndexed { index, shift ->
+            state.rawShifts.sortedByDescending { it.startTime }.forEachIndexed { index, shift ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 ShiftReportRow(shift, settings, state.profiles)
             }

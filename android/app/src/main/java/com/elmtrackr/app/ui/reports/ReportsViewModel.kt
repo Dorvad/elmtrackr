@@ -212,7 +212,7 @@ class ReportsViewModel(
         month: Int = selectedYearMonth.value.second,
     ): String {
         val reportSettings = settings ?: UserSettings(id = "export", userId = "export")
-        val completed = shifts.filter { it.isCompleted }.sortedBy { it.startTime }
+        val completed = shifts.filter { it.isCompleted }.sortedByDescending { it.startTime }
         val breakdowns = completed.map { MonthlyReportBuilder.buildShiftBreakdown(it, reportSettings) }
         val lines = mutableListOf(
             "Date,Start Time,End Time,Break (min),Total Hours,Regular Hours,Overtime Hours,Weekend Hours,Overnight,Notes",
