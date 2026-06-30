@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -465,10 +466,10 @@ internal fun HelpDetailScreen(
     authState: AuthUiState?,
     onBack: () -> Unit,
     onReplayOnboarding: () -> Unit,
-    onOpenPrivacy: () -> Unit,
     onOpenTerms: () -> Unit,
     onSyncNow: () -> Unit,
 ) {
+    val context = LocalContext.current
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
@@ -483,7 +484,7 @@ internal fun HelpDetailScreen(
                 SettingsNavRow(
                     title = "Privacy Policy",
                     subtitle = "How we handle your data",
-                    onClick = onOpenPrivacy,
+                    onClick = { openExternalUrl(context, LegalDocuments.PRIVACY_POLICY_URL) },
                 )
                 Spacer(Modifier.height(8.dp))
                 SettingsNavRow(
