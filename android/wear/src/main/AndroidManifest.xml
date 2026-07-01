@@ -9,6 +9,7 @@
     <application
         android:name=".ElmTrackrWearApp"
         android:allowBackup="false"
+        android:enableOnBackInvokedCallback="true"
         android:icon="@drawable/ic_complication"
         android:label="@string/app_name"
         android:supportsRtl="true"

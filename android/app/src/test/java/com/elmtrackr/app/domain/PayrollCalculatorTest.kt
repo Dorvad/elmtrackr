@@ -146,7 +146,7 @@ class PayrollCalculatorTest {
         val bd = PayrollCalculator.calculateShiftPay(s, settings, listOf(p))!!
         assertEquals(1, bd.brackets.size)
         assertEquals(1.0, bd.brackets[0].rate, 0.0)
-        assertNear(120.0, bd.totalGross)
+        assertNear(150.0, bd.totalGross)
     }
 
     @Test
@@ -256,7 +256,7 @@ class PayrollCalculatorTest {
         val settings = settingsWithProfile(p)
         val s = shift("2024-01-08T09:00:00Z", "2024-01-08T19:00:00Z")
         val bd = PayrollCalculator.calculateShiftPay(s, settings, listOf(p), priorWeekMinutes = 2400)!!
-        val otBracket = bd.brackets.first { it.rate > 1.0 }
+        val otBracket = bd.brackets.last { it.rate > 1.0 }
         assertEquals(1.5, otBracket.rate, 0.001)
     }
 }

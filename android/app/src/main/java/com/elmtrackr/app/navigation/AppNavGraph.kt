@@ -1,20 +1,27 @@
 ﻿package com.elmtrackr.app.navigation
 
+import android.animation.ValueAnimator
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
+import com.elmtrackr.app.ui.auth.AuthScreen
+import com.elmtrackr.app.ui.components.states.LoadingState
+import com.elmtrackr.app.ui.auth.AuthViewModel
+import com.elmtrackr.app.ui.design.AuroraEaseOut
+import com.elmtrackr.app.ui.design.AuroraMotion
+import com.elmtrackr.app.ui.onboarding.OnboardingScreen
+import com.elmtrackr.app.ui.shell.AppNavState
+import com.elmtrackr.app.ui.shell.AppShellViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.elmtrackr.app.ui.auth.AuthScreen
-import com.elmtrackr.app.ui.components.states.LoadingState
-import com.elmtrackr.app.ui.auth.AuthViewModel
-import com.elmtrackr.app.ui.onboarding.OnboardingScreen
-import com.elmtrackr.app.ui.shell.AppNavState
-import com.elmtrackr.app.ui.shell.AppShellViewModel
 
 @Composable
 fun AppNavGraph() {
@@ -38,6 +45,10 @@ fun AppNavGraph() {
     NavHost(
         navController = navController,
         startDestination = AppRoute.LOADING,
+        enterTransition = { rootEnterTransition() },
+        exitTransition = { rootExitTransition() },
+        popEnterTransition = { rootPopEnterTransition() },
+        popExitTransition = { rootPopExitTransition() },
     ) {
         composable(AppRoute.LOADING) { LoadingState() }
         composable(AppRoute.AUTH) {
@@ -51,4 +62,34 @@ fun AppNavGraph() {
         }
     }
 }
+
+private fun rootEnterTransition() =
+    if (!ValueAnimator.areAnimatorsEnabled()) {
+        fadeIn(tween(0))
+    } else {
+        fadeIn(tween(AuroraMotion.ContentCrossfadeMillis, easing = AuroraEaseOut))
+    }
+
+private fun rootExitTransition() =
+    if (!ValueAnimator.areAnimatorsEnabled()) {
+        fadeOut(tween(0))
+    } else {
+        fadeOut(tween(AuroraMotion.ContentCrossfadeMillis))
+    }
+
+private fun rootPopEnterTransition() =
+    if (!ValueAnimator.areAnimatorsEnabled()) {
+        fadeIn(tween(0))
+    } else {
+        slideInHorizontally(tween(250, easing = AuroraEaseOut)) { it / 5 } +
+            fadeIn(tween(AuroraMotion.FadeMillis, easing = AuroraEaseOut))
+    }
+
+private fun rootPopExitTransition() =
+    if (!ValueAnimator.areAnimatorsEnabled()) {
+        fadeOut(tween(0))
+    } else {
+        slideOutHorizontally(tween(180, easing = AuroraEaseOut)) { -it / 5 } +
+            fadeOut(tween(AuroraMotion.PressMillis))
+    }
 

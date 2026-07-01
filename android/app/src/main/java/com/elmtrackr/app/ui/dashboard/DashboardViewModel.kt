@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -83,14 +84,12 @@ class DashboardViewModel @Inject constructor(
                         } else {
                             val zone = WorkTimezone.zoneFor(settings)
                             val today = LocalDate.now(zone)
-                            combine(
-                                shiftsRepository.observeShiftsByMonthInZone(
+                            shiftsRepository.observeShiftsByMonthInZone(
                                     profile.id,
                                     today.year,
                                     today.monthValue,
                                     zone,
-                                ),
-                            ) { monthShifts ->
+                                ).map { monthShifts ->
                                 val report = MonthlyReportBuilder.buildMonthlyReport(
                                     year = today.year,
                                     month = today.monthValue,

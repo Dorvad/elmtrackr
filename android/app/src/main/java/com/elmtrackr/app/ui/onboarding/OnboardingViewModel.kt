@@ -2,7 +2,7 @@ package com.elmtrackr.app.ui.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
+import com.elmtrackr.app.data.local.preferences.OnboardingPreferences
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.repository.AuthRepository
@@ -27,7 +27,7 @@ import javax.inject.Inject
 class OnboardingViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
-    private val appPreferences: AppPreferencesRepository,
+    private val appPreferences: OnboardingPreferences,
     private val authRepository: AuthRepository,
 ) : ViewModel() {
 

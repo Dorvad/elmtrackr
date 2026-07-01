@@ -5,6 +5,8 @@ import com.elmtrackr.app.fake.FakeReportsRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeCurrentUserProvider
 import com.elmtrackr.app.fake.FakeShiftsRepository
+import com.elmtrackr.app.fake.FakeRefundsRepository
+import com.elmtrackr.app.fake.FakeRefundReceiptStorage
 import com.elmtrackr.app.fake.FakeTasksRepository
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
@@ -47,6 +49,7 @@ class ReportsViewModelTest {
             FakeCurrentUserProvider(),
             FakeRefundsRepository(),
             FakeCompensationProfilesRepository(),
+            FakeRefundReceiptStorage(),
         )
     }
 

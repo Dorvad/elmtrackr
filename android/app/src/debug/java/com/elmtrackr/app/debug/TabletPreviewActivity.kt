@@ -110,6 +110,9 @@ private fun TabletReportsPreview() {
         )
         HoursReport(
             state = sampleReportsState(),
+            onPreviousMonth = {},
+            onNextMonth = {},
+            canGoNext = true,
             onExportCsv = {},
             onExportPdf = {},
         )

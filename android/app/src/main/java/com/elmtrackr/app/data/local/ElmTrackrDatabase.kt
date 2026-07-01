@@ -20,7 +20,7 @@ import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import com.elmtrackr.app.data.local.dao.TaskDao
 import com.elmtrackr.app.data.local.entity.TaskEntity
-import net.sqlcipher.database.SupportFactory
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 @Database(
     entities = [
@@ -59,7 +59,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
             System.loadLibrary("sqlcipher")
             val passphrase = DatabasePassphraseStore(context).getOrCreatePassphrase()
             PlaintextDatabaseMigrator.migrateIfNeeded(context, passphrase)
-            val factory = SupportFactory(passphrase)
+            val factory = SupportOpenHelperFactory(passphrase)
             return Room.databaseBuilder(
                 context,
                 ElmTrackrDatabase::class.java,

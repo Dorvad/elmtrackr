@@ -3,6 +3,7 @@ package com.elmtrackr.app.ui.dashboard
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -98,7 +99,7 @@ import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
-import com.elmtrackr.app.ui.components.motion.LiveClockTimer
+import com.elmtrackr.app.ui.components.motion.ShiftElapsedDisplay
 import com.elmtrackr.app.ui.components.motion.activeShiftPulse
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraScreen
@@ -109,7 +110,9 @@ import com.elmtrackr.app.ui.design.ElmCardPadded
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.design.ElmStatCard
 import com.elmtrackr.app.ui.design.ElmStatVariant
+import com.elmtrackr.app.ui.design.AuroraStateCrossfade
 import com.elmtrackr.app.ui.design.auroraEnter
+import com.elmtrackr.app.ui.design.auroraSubScreenTransition
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.auroraSecondaryText
 import com.elmtrackr.app.ui.theme.auroraWeekendBackground
@@ -152,29 +155,54 @@ fun DashboardScreen(
     val showCelebration by viewModel.showFirstClockInCelebration.collectAsState()
     var showTasks by rememberSaveable { mutableStateOf(false) }
 
-    if (showTasks) {
-        com.elmtrackr.app.ui.tasks.TaskManagementScreen(onBack = { showTasks = false })
-        return
-    }
+    BackHandler(enabled = showTasks) { showTasks = false }
 
-    Surface(
+    AnimatedContent(
+        targetState = showTasks,
+        transitionSpec = {
+            auroraSubScreenTransition(targetState)
+        },
         modifier = Modifier.fillMaxSize(),
-        color    = Color.Transparent,
-    ) {
-        when (val state = uiState) {
-            is DashboardUiState.Loading -> DashboardSkeleton()
-            is DashboardUiState.Ready  -> DashboardReady(
-                state           = state,
-                onClockIn       = viewModel::clockIn,
-                onClockOut      = viewModel::clockOut,
-                onEditStartTime = viewModel::editActiveShiftStartTime,
-                onNavigateToReports = onNavigateToReports,
-                onSelectTask    = viewModel::selectTask,
-                onManageTasks   = { showTasks = true },
-                showFirstClockInCelebration = showCelebration,
-                onDismissFirstClockInCelebration = viewModel::dismissFirstClockInCelebration,
-            )
-            is DashboardUiState.Error  -> ErrorState(message = state.message, onRetry = viewModel::retry)
+        label = "dashboard-tasks",
+    ) { tasksOpen ->
+        if (tasksOpen) {
+            com.elmtrackr.app.ui.tasks.TaskManagementScreen(onBack = { showTasks = false })
+        } else {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = Color.Transparent,
+            ) {
+                AuroraStateCrossfade(
+                    targetState = uiState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentKey = { state ->
+                        when (state) {
+                            is DashboardUiState.Loading -> "loading"
+                            is DashboardUiState.Ready -> "ready"
+                            is DashboardUiState.Error -> "error"
+                        }
+                    },
+                ) { key ->
+                    when (key) {
+                        "loading" -> DashboardSkeleton()
+                        "ready" -> DashboardReady(
+                            state = uiState as DashboardUiState.Ready,
+                            onClockIn = viewModel::clockIn,
+                            onClockOut = viewModel::clockOut,
+                            onEditStartTime = viewModel::editActiveShiftStartTime,
+                            onNavigateToReports = onNavigateToReports,
+                            onSelectTask = viewModel::selectTask,
+                            onManageTasks = { showTasks = true },
+                            showFirstClockInCelebration = showCelebration,
+                            onDismissFirstClockInCelebration = viewModel::dismissFirstClockInCelebration,
+                        )
+                        else -> ErrorState(
+                            message = (uiState as DashboardUiState.Error).message,
+                            onRetry = viewModel::retry,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -700,11 +728,11 @@ private fun ClassicClockCard(
                         }
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text       = formatElapsedTime(elapsedSeconds),
-                            style      = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color      = if (isOvertime) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        ShiftElapsedDisplay(
+                            elapsedSeconds = elapsedSeconds,
+                            running = true,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = if (isOvertime) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                         )
                         if (isOvertime) {
                             Text(
@@ -780,12 +808,13 @@ private fun MinimalClockCard(
         modifier            = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text       = if (activeShift != null) formatElapsedTime(elapsedSeconds) else "00:00",
-            style      = MaterialTheme.typography.displayLarge,
-            fontWeight = FontWeight.Thin,
-            color      = if (activeShift != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-            textAlign  = TextAlign.Center,
+        ShiftElapsedDisplay(
+            elapsedSeconds = elapsedSeconds,
+            running = activeShift != null,
+            style = MaterialTheme.typography.displayLarge.copy(fontWeight = FontWeight.Thin),
+            color = if (activeShift != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
         if (activeShift != null) {
             Spacer(Modifier.height(8.dp))
@@ -857,11 +886,11 @@ private fun AuroraClockCard(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (activeShift != null) {
-                Text(
-                    text       = formatElapsedTime(elapsedSeconds),
-                    style      = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color      = Color.White,
+                ShiftElapsedDisplay(
+                    elapsedSeconds = elapsedSeconds,
+                    running = true,
+                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White,
                 )
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1163,13 +1192,31 @@ private fun ExpressiveClockCard(
                         else -> Unit
                     }
                 }
-                Text(
-                    if (running) formatElapsedTime(elapsedSeconds) else LocalTime.now().format(timeFormatter),
-                    style = if (style == SupportedClockStyle.BOLD) MaterialTheme.typography.displayLarge else if (style == SupportedClockStyle.FOCUS) MaterialTheme.typography.displayMedium else MaterialTheme.typography.displaySmall,
-                    fontWeight = if (style == SupportedClockStyle.FOCUS) FontWeight.Light else FontWeight.Bold,
-                    color = foreground,
-                    textAlign = TextAlign.Center,
-                )
+                if (running) {
+                    ShiftElapsedDisplay(
+                        elapsedSeconds = elapsedSeconds,
+                        running = true,
+                        style = when (style) {
+                            SupportedClockStyle.BOLD -> MaterialTheme.typography.displayLarge
+                            SupportedClockStyle.FOCUS -> MaterialTheme.typography.displayMedium
+                            else -> MaterialTheme.typography.displaySmall
+                        }.let { base ->
+                            base.copy(
+                                fontWeight = if (style == SupportedClockStyle.FOCUS) FontWeight.Light else FontWeight.Bold,
+                            )
+                        },
+                        color = foreground,
+                        textAlign = TextAlign.Center,
+                    )
+                } else {
+                    Text(
+                        LocalTime.now().format(timeFormatter),
+                        style = if (style == SupportedClockStyle.BOLD) MaterialTheme.typography.displayLarge else if (style == SupportedClockStyle.FOCUS) MaterialTheme.typography.displayMedium else MaterialTheme.typography.displaySmall,
+                        fontWeight = if (style == SupportedClockStyle.FOCUS) FontWeight.Light else FontWeight.Bold,
+                        color = foreground,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
             if (activeShift != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

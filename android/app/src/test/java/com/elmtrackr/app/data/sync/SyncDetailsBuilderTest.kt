@@ -16,6 +16,7 @@ class SyncDetailsBuilderTest {
             userId = "u1",
             name = "Client work",
             icon = "💼",
+            color = null,
             hourlyRate = 50.0,
             isArchived = false,
             lastUsedAt = null,

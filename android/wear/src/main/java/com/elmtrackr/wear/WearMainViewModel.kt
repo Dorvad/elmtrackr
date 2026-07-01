@@ -80,4 +80,8 @@ class WearMainViewModel(
             }
         }
     }
+
+    fun dismissConfirmation() {
+        app.wearStateRepository.dismissConfirmation()
+    }
 }

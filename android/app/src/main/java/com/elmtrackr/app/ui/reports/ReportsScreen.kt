@@ -93,6 +93,7 @@ import com.elmtrackr.app.domain.model.TaskMonthlyBreakdown
 import com.elmtrackr.app.domain.model.WeeklyTotals
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraScreen
+import com.elmtrackr.app.ui.design.AuroraStateCrossfade
 import com.elmtrackr.app.ui.layout.isTabletLayout
 import com.elmtrackr.app.ui.design.ElmEmptyState
 import com.elmtrackr.app.ui.design.ElmStatCard
@@ -210,17 +211,31 @@ fun ReportsScreen(
             )
         }
 
-        when (val state = uiState) {
-                    ReportsUiState.Loading -> ReportsSkeleton()
-                    ReportsUiState.Empty -> ReportsEmptyContent()
-                    is ReportsUiState.Error -> ErrorState(
-                        state.message,
-                        onRetry = viewModel::retry,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(260.dp),
-                    )
-                    is ReportsUiState.Ready -> Column(Modifier.fillMaxWidth()) {
+        AuroraStateCrossfade(
+            targetState = uiState,
+            modifier = Modifier.fillMaxWidth(),
+            contentKey = { state ->
+                when (state) {
+                    ReportsUiState.Loading -> "loading"
+                    ReportsUiState.Empty -> "empty"
+                    is ReportsUiState.Error -> "error"
+                    is ReportsUiState.Ready -> "ready"
+                }
+            },
+        ) { key ->
+            when (key) {
+                "loading" -> ReportsSkeleton()
+                "empty" -> ReportsEmptyContent()
+                "error" -> ErrorState(
+                    (uiState as ReportsUiState.Error).message,
+                    onRetry = viewModel::retry,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp),
+                )
+                else -> {
+                    val state = uiState as ReportsUiState.Ready
+                    Column(Modifier.fillMaxWidth()) {
                         when (effectiveTab) {
                             ReportTab.REFUNDS -> RefundReview(
                                 state = state,
@@ -261,6 +276,8 @@ fun ReportsScreen(
                         }
                     }
                 }
+            }
+        }
     }
 }
 

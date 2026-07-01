@@ -11,6 +11,7 @@ import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.OvernightShiftDetector
 import com.elmtrackr.app.domain.WeeklyBreakdownBuilder
 import com.elmtrackr.app.domain.ReportInsightsBuilder
+import com.elmtrackr.app.domain.TaskMonthlyReportBuilder
 import com.elmtrackr.app.domain.time.WorkTimezone
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.TaskMonthlyBreakdown

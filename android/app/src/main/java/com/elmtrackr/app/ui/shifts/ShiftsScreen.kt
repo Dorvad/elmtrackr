@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.shifts
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
+import com.elmtrackr.app.ui.design.AuroraStateCrossfade
+import com.elmtrackr.app.ui.design.auroraSubScreenTransition
 import com.elmtrackr.app.ui.design.ElmEmptyState
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.ui.theme.Spacing
@@ -76,90 +79,109 @@ fun ShiftsScreen(
 
     BackHandler(enabled = formTarget != null) { viewModel.closeForm() }
 
-    if (formTarget != null) {
-        ShiftFormContent(
-            navState = formTarget!!,
-            settings = (uiState as? ShiftsUiState.Ready)?.settings,
-            profiles = (uiState as? ShiftsUiState.Ready)?.profiles.orEmpty(),
-            tasks = (uiState as? ShiftsUiState.Ready)?.tasks.orEmpty(),
-            errors = formErrors,
-            featuresTravelRefunds = featuresTravelRefunds,
-            onSuggestTaskForStart = viewModel::suggestTaskForStart,
-            onSave = { input ->
-                when (val t = formTarget!!) {
-                    is ShiftFormNavState.Create -> viewModel.createShift(input)
-                    is ShiftFormNavState.Edit -> viewModel.saveEditedShift(t.shift.id, input)
-                }
-            },
-            onDelete = { shiftId ->
-                viewModel.deleteShift(shiftId)
-                viewModel.closeForm()
-            },
-            onClose = viewModel::closeForm,
-        )
-        return
-    }
-
-    AuroraListScreen {
-        when (val state = uiState) {
-            is ShiftsUiState.Loading -> Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.screenH),
-            ) {
-                ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
-                ShiftsMonthPicker(
-                    month = selectedMonth,
-                    onPrevious = viewModel::previousMonth,
-                    onNext = viewModel::nextMonth,
-                )
-                ShiftsSkeleton()
-            }
-
-            is ShiftsUiState.Empty -> Column(
-                Modifier
-                    .fillMaxWidth()
-                    .fillMaxSize()
-                    .padding(horizontal = Spacing.screenH),
-            ) {
-                ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
-                Spacer(Modifier.height(Spacing.sm))
-                ShiftsHeroSummaryCard(
-                    shifts = emptyList(),
-                    activeShift = null,
-                    settings = null,
-                    month = selectedMonth,
-                    onPreviousMonth = viewModel::previousMonth,
-                    onNextMonth = viewModel::nextMonth,
-                )
-                Spacer(Modifier.height(Spacing.md))
-                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    ElmEmptyState(
-                        icon = Icons.Filled.AccessTime,
-                        title = "No shifts this month",
-                        subtitle = "Clock in from the home screen or add a shift manually.",
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                ShiftsAddPastShiftButton(
-                    onClick = viewModel::showCreateForm,
-                    modifier = Modifier.padding(bottom = Spacing.xl),
-                )
-            }
-
-            is ShiftsUiState.Ready -> ShiftsListContent(
-                state = state,
-                selectedMonth = selectedMonth,
-                onPreviousMonth = viewModel::previousMonth,
-                onNextMonth = viewModel::nextMonth,
-                onAddShift = viewModel::showCreateForm,
-                onEditShift = viewModel::showEditForm,
+    AnimatedContent(
+        targetState = formTarget != null,
+        transitionSpec = { auroraSubScreenTransition(targetState) },
+        modifier = Modifier.fillMaxSize(),
+        label = "shifts-form",
+    ) { showingForm ->
+        if (showingForm) {
+            ShiftFormContent(
+                navState = formTarget!!,
+                settings = (uiState as? ShiftsUiState.Ready)?.settings,
+                profiles = (uiState as? ShiftsUiState.Ready)?.profiles.orEmpty(),
+                tasks = (uiState as? ShiftsUiState.Ready)?.tasks.orEmpty(),
+                errors = formErrors,
+                featuresTravelRefunds = featuresTravelRefunds,
+                onSuggestTaskForStart = viewModel::suggestTaskForStart,
+                onSave = { input ->
+                    when (val t = formTarget!!) {
+                        is ShiftFormNavState.Create -> viewModel.createShift(input)
+                        is ShiftFormNavState.Edit -> viewModel.saveEditedShift(t.shift.id, input)
+                    }
+                },
+                onDelete = { shiftId ->
+                    viewModel.deleteShift(shiftId)
+                    viewModel.closeForm()
+                },
+                onClose = viewModel::closeForm,
             )
+        } else {
+            AuroraListScreen {
+                AuroraStateCrossfade(
+                    targetState = uiState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentKey = { state ->
+                        when (state) {
+                            is ShiftsUiState.Loading -> "loading"
+                            is ShiftsUiState.Empty -> "empty"
+                            is ShiftsUiState.Ready -> "ready"
+                            is ShiftsUiState.Error -> "error"
+                        }
+                    },
+                ) { key ->
+                    when (key) {
+                        "loading" -> Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.screenH),
+                        ) {
+                            ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
+                            ShiftsMonthPicker(
+                                month = selectedMonth,
+                                onPrevious = viewModel::previousMonth,
+                                onNext = viewModel::nextMonth,
+                            )
+                            ShiftsSkeleton()
+                        }
 
-            is ShiftsUiState.Error -> ErrorState(
-                message = state.message,
-                onRetry = viewModel::retry,
-            )
+                        "empty" -> Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .fillMaxSize()
+                                .padding(horizontal = Spacing.screenH),
+                        ) {
+                            ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
+                            Spacer(Modifier.height(Spacing.sm))
+                            ShiftsHeroSummaryCard(
+                                shifts = emptyList(),
+                                activeShift = null,
+                                settings = null,
+                                month = selectedMonth,
+                                onPreviousMonth = viewModel::previousMonth,
+                                onNextMonth = viewModel::nextMonth,
+                            )
+                            Spacer(Modifier.height(Spacing.md))
+                            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                ElmEmptyState(
+                                    icon = Icons.Filled.AccessTime,
+                                    title = "No shifts this month",
+                                    subtitle = "Clock in from the home screen or add a shift manually.",
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                            ShiftsAddPastShiftButton(
+                                onClick = viewModel::showCreateForm,
+                                modifier = Modifier.padding(bottom = Spacing.xl),
+                            )
+                        }
+
+                        "ready" -> ShiftsListContent(
+                            state = uiState as ShiftsUiState.Ready,
+                            selectedMonth = selectedMonth,
+                            onPreviousMonth = viewModel::previousMonth,
+                            onNextMonth = viewModel::nextMonth,
+                            onAddShift = viewModel::showCreateForm,
+                            onEditShift = viewModel::showEditForm,
+                        )
+
+                        else -> ErrorState(
+                            message = (uiState as ShiftsUiState.Error).message,
+                            onRetry = viewModel::retry,
+                        )
+                    }
+                }
+            }
         }
     }
 }

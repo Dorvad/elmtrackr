@@ -92,23 +92,28 @@ class SyncRepositoryImpl @Inject constructor(
 
     override fun observeLastSyncStatus(): Flow<String?> = lastSyncStatus.asStateFlow()
 
-    override fun observeSyncDetails(userId: String): Flow<SyncDetails> = combine(
-        taskDao.observeAllTasks(userId),
-        shiftDao.observeShifts(userId),
-        refundClaimDao.observeClaimsForUser(userId),
-        settingsDao.observeSettings(userId),
-        compensationProfileDao.observeProfiles(userId),
-        lastSyncStatus,
-    ) { tasks, shifts, claims, settings, profiles, status ->
-        SyncDetailsBuilder.build(
-            tasks = tasks,
-            shifts = shifts,
-            claims = claims,
-            settings = settings,
-            profiles = profiles,
-            lastSyncStatus = status,
-        )
-    }
+    override fun observeSyncDetails(userId: String): Flow<SyncDetails> =
+        combine(
+            combine(
+                taskDao.observeAllTasks(userId),
+                shiftDao.observeShifts(userId),
+                refundClaimDao.observeClaimsForUser(userId),
+            ) { tasks, shifts, claims -> Triple(tasks, shifts, claims) },
+            combine(
+                settingsDao.observeSettings(userId),
+                compensationProfileDao.observeProfiles(userId),
+                lastSyncStatus,
+            ) { settings, profiles, status -> Triple(settings, profiles, status) },
+        ) { pending, meta ->
+            SyncDetailsBuilder.build(
+                tasks = pending.first,
+                shifts = pending.second,
+                claims = pending.third,
+                settings = meta.first,
+                profiles = meta.second,
+                lastSyncStatus = meta.third,
+            )
+        }
 
     override suspend fun exportLocalBackup(userId: String): String =
         LocalBackupExporter.export(

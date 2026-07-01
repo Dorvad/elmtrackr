@@ -5,6 +5,7 @@ import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeAuthRepository
+import com.elmtrackr.app.fake.FakeOnboardingPreferences
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,12 +30,12 @@ class OnboardingViewModelTest {
         setProfile(Profile("u1", "test@test.com", null, Instant.EPOCH, Instant.EPOCH))
     }
     private val compensationRepo = FakeCompensationProfilesRepository()
-    private var completionCalled = false
+    private val onboardingPrefs = FakeOnboardingPreferences()
 
     private fun buildVm() = OnboardingViewModel(
         settingsRepository = settingsRepo,
         compensationProfilesRepository = compensationRepo,
-        markOnboardingCompleted = { completionCalled = true },
+        appPreferences = onboardingPrefs,
         authRepository = authRepo,
     )
 
@@ -50,14 +51,10 @@ class OnboardingViewModelTest {
         hourlyRate = hourlyRate,
     )
 
-    // ---- Initial state ----
-
     @Test
     fun `initial state is Welcome`() {
         assertEquals(OnboardingUiState.Welcome, buildVm().uiState.value)
     }
-
-    // ---- Validation errors ----
 
     @Test
     fun `zero daily OT hours → ValidationError`() {
@@ -108,8 +105,6 @@ class OnboardingViewModelTest {
         assertNotNull(state.errors["displayName"])
     }
 
-    // ---- Save flow ----
-
     @Test
     fun `valid input → Completed state and onboarding marked`() = runTest {
         val vm = buildVm()
@@ -120,7 +115,7 @@ class OnboardingViewModelTest {
         advanceUntilIdle()
 
         assertEquals(OnboardingUiState.Completed, states.last())
-        assertTrue(completionCalled)
+        assertTrue(onboardingPrefs.onboardingCompleted)
         job.cancel()
     }
 
@@ -238,7 +233,6 @@ class OnboardingViewModelTest {
         vm.completeOnboarding(validInput(displayName = "Alice"))
         advanceUntilIdle()
 
-        // FakeAuthRepository.saveProfile updates the stored profile
         assertEquals("Alice", authRepo.getCurrentProfile()?.fullName)
     }
 

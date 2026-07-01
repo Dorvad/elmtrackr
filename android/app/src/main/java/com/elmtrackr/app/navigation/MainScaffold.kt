@@ -2,6 +2,7 @@ package com.elmtrackr.app.navigation
 
 import android.animation.ValueAnimator
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -90,6 +91,7 @@ fun MainScaffold(authViewModel: AuthViewModel) {
     var replayOnboarding by rememberSaveable { mutableStateOf(false) }
     var pendingShiftEditId by rememberSaveable { mutableStateOf<String?>(null) }
     if (replayOnboarding) {
+        BackHandler { replayOnboarding = false }
         OnboardingScreen(replay = true, onCompleted = { replayOnboarding = false })
         return
     }
