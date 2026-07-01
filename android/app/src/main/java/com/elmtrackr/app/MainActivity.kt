@@ -18,16 +18,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import com.elmtrackr.app.data.local.preferences.AppPreferenceValues
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
+import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.navigation.AppNavGraph
 import com.elmtrackr.app.notification.NotificationPermissionCoordinator
 import com.elmtrackr.app.security.AppLockController
-import com.elmtrackr.app.startup.DynamicShortcutsRefresher
 import com.elmtrackr.app.ui.security.AppLockGate
 import com.elmtrackr.app.ui.design.LocalReduceMotion
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.update.InAppUpdateHost
 import com.elmtrackr.app.update.InAppUpdateManager
+import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -35,8 +36,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
 
-    @Inject lateinit var authRepository: AuthRepository
-    @Inject lateinit var dynamicShortcutsRefresher: DynamicShortcutsRefresher
+    @Inject lateinit var authRepository: Lazy<AuthRepository>
     @Inject lateinit var appPreferences: AppPreferencesRepository
 
     val notificationPermissionLauncher = registerForActivityResult(
@@ -102,7 +102,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onResume() {
         super.onResume()
-        dynamicShortcutsRefresher.refresh()
+        AppEntryPoints.background(this).dynamicShortcutsRefresher().refresh()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -113,7 +113,7 @@ class MainActivity : FragmentActivity() {
 
     private fun handleDeepLink(uriString: String) {
         lifecycleScope.launch {
-            authRepository.handleDeepLink(uriString)
+            authRepository.get().handleDeepLink(uriString)
         }
     }
 

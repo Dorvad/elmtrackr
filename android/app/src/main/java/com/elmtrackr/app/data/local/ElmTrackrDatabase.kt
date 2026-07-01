@@ -48,20 +48,37 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
 
     companion object {
         @Volatile private var INSTANCE: ElmTrackrDatabase? = null
+        @Volatile private var preWarmStarted = false
+
+        /** Opens the database on a background thread as early as possible. */
+        fun preWarm(context: Context) {
+            if (INSTANCE != null || preWarmStarted) return
+            synchronized(this) {
+                if (INSTANCE != null || preWarmStarted) return
+                preWarmStarted = true
+                Thread(
+                    { getInstance(context) },
+                    "elmtrackr-db-prewarm",
+                ).start()
+            }
+        }
 
         fun getInstance(context: Context): ElmTrackrDatabase =
             INSTANCE ?: synchronized(this) {
-                INSTANCE ?: buildEncryptedDatabase(context.applicationContext)
+                INSTANCE ?: buildEncryptedDatabase(context.appContext())
                     .also { INSTANCE = it }
             }
 
+        private fun Context.appContext(): Context = applicationContext ?: this
+
         private fun buildEncryptedDatabase(context: Context): ElmTrackrDatabase {
+            val appContext = context.appContext()
             System.loadLibrary("sqlcipher")
-            val passphrase = DatabasePassphraseStore(context).getOrCreatePassphrase()
-            PlaintextDatabaseMigrator.migrateIfNeeded(context, passphrase)
+            val passphrase = DatabasePassphraseStore(appContext).getOrCreatePassphrase()
+            PlaintextDatabaseMigrator.migrateIfNeeded(appContext, passphrase)
             val factory = SupportOpenHelperFactory(passphrase)
             return Room.databaseBuilder(
-                context,
+                appContext,
                 ElmTrackrDatabase::class.java,
                 "elmtrackr.db",
             )

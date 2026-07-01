@@ -11,6 +11,7 @@ import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
+import com.elmtrackr.app.sideeffects.ActiveShiftSideEffectsCoordinator
 import com.elmtrackr.app.startup.DynamicShortcutsRefresher
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -31,4 +32,5 @@ interface BackgroundEntryPoint {
     fun appPreferences(): AppPreferencesRepository
     fun refundReceiptStorage(): RefundReceiptStorage?
     fun dynamicShortcutsRefresher(): DynamicShortcutsRefresher
+    fun activeShiftSideEffectsCoordinator(): ActiveShiftSideEffectsCoordinator
 }
