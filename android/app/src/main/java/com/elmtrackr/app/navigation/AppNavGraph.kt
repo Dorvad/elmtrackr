@@ -10,6 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.elmtrackr.app.ui.auth.AuthScreen
 import com.elmtrackr.app.ui.components.states.LoadingState
 import com.elmtrackr.app.ui.auth.AuthViewModel
@@ -22,9 +25,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.android.awaitFrame
 
 @Composable
 fun AppNavGraph() {
+    var ready by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        awaitFrame()
+        ready = true
+    }
+    if (!ready) {
+        LoadingState()
+        return
+    }
+
     val shellViewModel: AppShellViewModel = hiltViewModel()
     val authViewModel: AuthViewModel = hiltViewModel()
     val navController = rememberNavController()
