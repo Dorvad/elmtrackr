@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import android.content.res.Configuration
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +24,7 @@ import com.elmtrackr.app.notification.NotificationPermissionCoordinator
 import com.elmtrackr.app.security.AppLockController
 import com.elmtrackr.app.startup.DynamicShortcutsRefresher
 import com.elmtrackr.app.ui.security.AppLockGate
+import com.elmtrackr.app.ui.design.LocalReduceMotion
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.update.InAppUpdateHost
 import com.elmtrackr.app.update.InAppUpdateManager
@@ -69,20 +71,22 @@ class MainActivity : FragmentActivity() {
             @Suppress("UNUSED_VARIABLE")
             val refreshLock = unlockNonce
             ElmTrackrTheme(darkTheme = darkTheme) {
-                AppLockGate(
-                    activity = this,
-                    lockEnabled = preferences.appLockEnabled,
-                    onUnlocked = { unlockNonce++ },
-                ) {
-                    InAppUpdateHost(
-                        updateReady = flexibleUpdateReady,
-                        onInstall = {
-                            flexibleUpdateReady = false
-                            inAppUpdateManager.completeFlexibleUpdate()
-                        },
-                        onDismiss = { flexibleUpdateReady = false },
+                CompositionLocalProvider(LocalReduceMotion provides preferences.reduceMotionEnabled) {
+                    AppLockGate(
+                        activity = this,
+                        lockEnabled = preferences.appLockEnabled,
+                        onUnlocked = { unlockNonce++ },
                     ) {
-                        AppNavGraph()
+                        InAppUpdateHost(
+                            updateReady = flexibleUpdateReady,
+                            onInstall = {
+                                flexibleUpdateReady = false
+                                inAppUpdateManager.completeFlexibleUpdate()
+                            },
+                            onDismiss = { flexibleUpdateReady = false },
+                        ) {
+                            AppNavGraph()
+                        }
                     }
                 }
             }

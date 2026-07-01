@@ -158,6 +158,7 @@ fun SettingsScreen(
                             onDismissAccountFeedback = viewModel::clearAccountActionFeedback,
                             onSyncNow = viewModel::syncNow,
                             onSetAppLockEnabled = viewModel::setAppLockEnabled,
+                            onReduceMotionChange = viewModel::setReduceMotion,
                         )
                         else -> ErrorState(
                             message = (uiState as SettingsUiState.Error).message,
@@ -187,6 +188,7 @@ private fun SettingsFormHost(
     onDismissAccountFeedback: () -> Unit,
     onSyncNow: () -> Unit,
     onSetAppLockEnabled: (Boolean) -> Unit,
+    onReduceMotionChange: (Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     val activity = context as FragmentActivity
@@ -329,6 +331,8 @@ private fun SettingsFormHost(
                 onClockStyleChange = { clockStyle = it },
                 clockStylesEnabled = clockStyles,
                 onClockStylesEnabledChange = { clockStyles = it },
+                reduceMotionEnabled = state.reduceMotionEnabled,
+                onReduceMotionChange = onReduceMotionChange,
                 onBack = onNavigateBack,
                 onTheme = onTheme,
             )
@@ -409,6 +413,7 @@ private fun SettingsScreenPreview() {
             onDismissAccountFeedback = {},
             onSyncNow = {},
             onSetAppLockEnabled = {},
+            onReduceMotionChange = {},
         )
     }
 }

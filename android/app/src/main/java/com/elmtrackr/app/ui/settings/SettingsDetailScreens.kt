@@ -7,6 +7,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,12 +26,15 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.MotionPhotosOff
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -48,9 +56,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.BuildConfig
 import com.elmtrackr.app.domain.model.ClockStyle
+import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.theme.AuroraAqua
@@ -490,6 +500,8 @@ internal fun AppearanceDetailScreen(
     onClockStyleChange: (ClockStyle) -> Unit,
     clockStylesEnabled: Boolean,
     onClockStylesEnabledChange: (Boolean) -> Unit,
+    reduceMotionEnabled: Boolean,
+    onReduceMotionChange: (Boolean) -> Unit,
     onBack: () -> Unit,
     onTheme: (String) -> Unit,
 ) {
@@ -513,7 +525,63 @@ internal fun AppearanceDetailScreen(
                 iconTint = AuroraPlum,
             )
         }
+        item {
+            SettingsToggleRow(
+                title = "Reduce motion",
+                description = "Minimize animations across the app",
+                checked = reduceMotionEnabled,
+                onCheckedChange = onReduceMotionChange,
+                icon = Icons.Filled.MotionPhotosOff,
+                iconTint = AuroraPlum,
+            )
+        }
         if (clockStylesEnabled) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Preview",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    AnimatedContent(
+                        targetState = clockStyle,
+                        transitionSpec = {
+                            fadeIn(tween(220, easing = AuroraEaseOut)) togetherWith
+                                fadeOut(tween(160, easing = AuroraEaseOut))
+                        },
+                        label = "appearance-clock-hero",
+                    ) { style ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(CornerRadius.Medium),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            ),
+                        ) {
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                WatchFacePreview(style, selected = true)
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    style.name.lowercase().replaceFirstChar(Char::uppercase),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    watchFaceDescription(style),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             item {
                 ClockStyleDropdown(selected = clockStyle, onSelect = onClockStyleChange)
             }

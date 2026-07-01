@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
@@ -297,9 +298,13 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
     val pulse by transition.animateFloat(
         initialValue = 0.35f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(if (selected) 900 else 1800), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(
+            tween(if (selected) 900 else 1800),
+            RepeatMode.Reverse,
+        ),
         label = "watch-pulse",
     )
+    val animatedPulse = if (auroraMotionEnabled()) pulse else 1f
     val darkFace = style in listOf(ClockStyle.FOCUS, ClockStyle.NIGHT, ClockStyle.RETRO, ClockStyle.PULSE)
     val faceBackground = if (darkFace) Color(0xFF11162A) else MaterialTheme.colorScheme.surface
     val accent = when (style) {
@@ -321,11 +326,11 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
                     drawArc(accent, -90f, 260f, false, Offset(center.x - radius, center.y - radius), Size(radius * 2, radius * 2), style = Stroke(5f, cap = StrokeCap.Round))
                 }
                 ClockStyle.NIGHT -> repeat(12) { i ->
-                    drawCircle(Color.White.copy(alpha = if (i % 3 == 0) pulse else .35f), 1.5f, Offset((i * 31 % 97) / 100f * size.width, (i * 47 % 89) / 100f * size.height))
+                    drawCircle(Color.White.copy(alpha = if (i % 3 == 0) animatedPulse else .35f), 1.5f, Offset((i * 31 % 97) / 100f * size.width, (i * 47 % 89) / 100f * size.height))
                 }
                 ClockStyle.RETRO -> drawRoundRect(accent.copy(alpha = .55f), style = Stroke(2f))
                 ClockStyle.PULSE -> repeat(3) { i ->
-                    drawCircle(accent.copy(alpha = pulse / (i + 2)), radius * (.55f + i * .28f), center, style = Stroke(2f))
+                    drawCircle(accent.copy(alpha = animatedPulse / (i + 2)), radius * (.55f + i * .28f), center, style = Stroke(2f))
                 }
                 ClockStyle.DIAL -> repeat(12) { i ->
                     val a = Math.toRadians((i * 30 - 90).toDouble())
@@ -365,7 +370,7 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
                     }
                     drawPath(bottomSand, accent.copy(alpha = .55f))
                     repeat(2) { i ->
-                        drawCircle(accent.copy(alpha = .4f + pulse * .3f), 1.5f, Offset(center.x, mid + (i - 0.5f) * 4.dp.toPx()))
+                        drawCircle(accent.copy(alpha = .4f + animatedPulse * .3f), 1.5f, Offset(center.x, mid + (i - 0.5f) * 4.dp.toPx()))
                     }
                 }
                 ClockStyle.BLOCKS -> {

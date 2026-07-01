@@ -17,4 +17,8 @@ class FakeAppLockPreferencesStore(
     override suspend fun setAppLockEnabled(enabled: Boolean) {
         state.value = state.value.copy(appLockEnabled = enabled)
     }
+
+    override suspend fun setReduceMotion(enabled: Boolean) {
+        state.value = state.value.copy(reduceMotionEnabled = enabled)
+    }
 }

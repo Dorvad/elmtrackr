@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.navigation
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +35,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -41,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.elmtrackr.app.navigation.BottomNavItem
+import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.auroraPressScale
 import com.elmtrackr.app.ui.theme.AuroraAqua
@@ -49,11 +54,14 @@ import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.AuroraWhite
 import com.elmtrackr.app.ui.theme.CornerRadius
-import com.elmtrackr.app.ui.theme.auroraNavSelectedLabel
 import com.elmtrackr.app.ui.theme.auroraNavUnselectedIcon
 import com.elmtrackr.app.ui.theme.auroraNavUnselectedLabel
 
 private val logoGradient = Brush.linearGradient(
+    colorStops = arrayOf(0f to AuroraIndigo, 0.42f to AuroraPlum, 1f to AuroraAqua),
+)
+
+private val sideNavPillGradient = Brush.linearGradient(
     colorStops = arrayOf(0f to AuroraIndigo, 0.42f to AuroraPlum, 1f to AuroraAqua),
 )
 
@@ -148,13 +156,24 @@ private fun SideNavItem(
 ) {
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
-    val backgroundColor = if (isSelected) {
-        AuroraIndigo.copy(alpha = 0.12f)
-    } else {
-        Color.Transparent
-    }
-    val contentColor = if (isSelected) auroraNavSelectedLabel() else auroraNavUnselectedLabel()
-    val iconColor = if (isSelected) AuroraIndigo else auroraNavUnselectedIcon()
+    val pillAlpha by animateFloatAsState(
+        targetValue = if (isSelected) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = if (isSelected) 250 else 150,
+            easing = AuroraEaseOut,
+        ),
+        label = "side-nav-pill-alpha",
+    )
+    val pillScale by animateFloatAsState(
+        targetValue = if (isSelected) 1f else 0.94f,
+        animationSpec = tween(
+            durationMillis = if (isSelected) 250 else 150,
+            easing = AuroraEaseOut,
+        ),
+        label = "side-nav-pill-scale",
+    )
+    val contentColor = if (isSelected) Color.White else auroraNavUnselectedLabel()
+    val iconColor = if (isSelected) Color.White else auroraNavUnselectedIcon()
 
     Row(
         modifier = Modifier
@@ -173,22 +192,50 @@ private fun SideNavItem(
                     onClick()
                 },
             )
-            .background(backgroundColor, RoundedCornerShape(CornerRadius.Medium))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(
-            imageVector = item.icon,
-            contentDescription = null,
-            tint = iconColor,
-            modifier = Modifier.size(22.dp),
-        )
-        Text(
-            text = item.label,
-            fontSize = 14.sp,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-            color = contentColor,
-        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .background(Color.Transparent, RoundedCornerShape(CornerRadius.Medium))
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .graphicsLayer {
+                        alpha = pillAlpha
+                        scaleX = pillScale
+                        scaleY = pillScale
+                    }
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(CornerRadius.Medium),
+                        ambientColor = AuroraIndigo.copy(alpha = 0.2f),
+                        spotColor = AuroraIndigo.copy(alpha = 0.6f),
+                    )
+                    .background(sideNavPillGradient, RoundedCornerShape(CornerRadius.Medium)),
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(22.dp),
+                )
+                Text(
+                    text = item.label,
+                    fontSize = 14.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = contentColor,
+                )
+            }
+        }
     }
 }
