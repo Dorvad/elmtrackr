@@ -8,7 +8,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -57,13 +56,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.ui.theme.AuroraIndigo
@@ -263,36 +258,6 @@ internal fun ClockStyleDropdown(selected: ClockStyle, onSelect: (ClockStyle) -> 
 
 @Composable
 internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
-    if (style == ClockStyle.FELLOWSHIP) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(68.dp)
-                .clip(RoundedCornerShape(CornerRadius.Medium)),
-        ) {
-            Image(
-                painter = painterResource(R.drawable.fellowship_bg_shire),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.25f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    "01:23",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Serif,
-                    color = Color(0xFFD4AF37),
-                )
-            }
-        }
-        return
-    }
     val transition = rememberInfiniteTransition(label = "watch-${style.name}")
     val pulse by transition.animateFloat(
         initialValue = 0.35f,
@@ -419,7 +384,6 @@ internal fun watchFaceDescription(style: ClockStyle): String = when (style) {
     ClockStyle.SAND -> "Flowing hourglass"
     ClockStyle.BLOCKS -> "Hour-by-hour blocks"
     ClockStyle.ORBIT -> "Orbiting satellite"
-    ClockStyle.FELLOWSHIP -> "Quest through Middle-earth"
 }
 
 @Composable

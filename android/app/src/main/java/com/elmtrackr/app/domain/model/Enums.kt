@@ -42,7 +42,7 @@ enum class RefundDirection {
 
 enum class ClockStyle {
     CLASSIC, MINIMAL, FOCUS, BOLD, NIGHT, RETRO, AURORA, PULSE, DIAL, STRAND, PRISM,
-    SAND, BLOCKS, ORBIT, FELLOWSHIP,
+    SAND, BLOCKS, ORBIT,
     ;
 
     companion object {
@@ -50,6 +50,7 @@ enum class ClockStyle {
         fun fromPersisted(raw: String?): ClockStyle {
             if (raw.isNullOrBlank()) return CLASSIC
             val normalized = raw.trim().uppercase()
+            if (normalized == "FELLOWSHIP") return CLASSIC
             return entries.find { it.name == normalized } ?: CLASSIC
         }
     }
