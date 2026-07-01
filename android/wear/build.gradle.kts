@@ -55,6 +55,8 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation("androidx.concurrent:concurrent-futures-ktx:1.2.0")
 
+    implementation(platform(libs.androidx.compose.bom))
+    implementation("androidx.compose.animation:animation")
     implementation(libs.androidx.wear.compose.material3)
     implementation(libs.androidx.wear.compose.foundation)
     implementation(libs.androidx.wear.compose.navigation)

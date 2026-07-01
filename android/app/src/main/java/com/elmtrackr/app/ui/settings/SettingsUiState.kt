@@ -26,6 +26,7 @@ sealed interface SettingsUiState {
         val isDeletingAccount: Boolean = false,
         val accountActionFeedback: String? = null,
         val appLockEnabled: Boolean = false,
+        val reduceMotionEnabled: Boolean = false,
     ) : SettingsUiState
 
     data class Error(val message: String) : SettingsUiState

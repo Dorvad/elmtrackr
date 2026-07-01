@@ -3,7 +3,6 @@ package com.elmtrackr.app.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
-import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.AuthResult
@@ -79,6 +78,7 @@ class SettingsViewModel @Inject constructor(
         val isDeletingAccount: Boolean,
         val accountActionFeedback: String?,
         val appLockEnabled: Boolean,
+        val reduceMotionEnabled: Boolean,
     )
 
     private val syncHealthFlow = authRepository.observeCurrentProfile().flatMapLatest { profile ->
@@ -102,7 +102,7 @@ class SettingsViewModel @Inject constructor(
                 themeStore.observeTheme(),
                 appPreferences.preferences,
             ) { profile, theme, prefs ->
-                Triple(profile, theme, prefs.appLockEnabled)
+                Triple(profile, theme, prefs)
             },
             combine(
                 _isSaving,
@@ -115,7 +115,8 @@ class SettingsViewModel @Inject constructor(
             SyncExtras(
                 profile = profileMeta.first,
                 theme = profileMeta.second,
-                appLockEnabled = profileMeta.third,
+                appLockEnabled = profileMeta.third.appLockEnabled,
+                reduceMotionEnabled = profileMeta.third.reduceMotionEnabled,
                 isSaving = syncMeta.first,
                 isSyncing = syncMeta.second,
                 syncHealth = syncMeta.third,
@@ -156,6 +157,7 @@ class SettingsViewModel @Inject constructor(
             account.deleting,
             account.accountFeedback,
             syncExtras.appLockEnabled,
+            syncExtras.reduceMotionEnabled,
         )
     }
 
@@ -163,6 +165,7 @@ class SettingsViewModel @Inject constructor(
         val profile: Profile?,
         val theme: String,
         val appLockEnabled: Boolean,
+        val reduceMotionEnabled: Boolean,
         val isSaving: Boolean,
         val isSyncing: Boolean,
         val syncHealth: SyncHealth?,
@@ -188,6 +191,7 @@ class SettingsViewModel @Inject constructor(
             isDeletingAccount = extras.isDeletingAccount,
             accountActionFeedback = extras.accountActionFeedback,
             appLockEnabled = extras.appLockEnabled,
+            reduceMotionEnabled = extras.reduceMotionEnabled,
         )
     }.catch { e ->
         emit(SettingsUiState.Error(e.message ?: "Unknown error"))
@@ -393,6 +397,12 @@ class SettingsViewModel @Inject constructor(
             if (enabled) {
                 AppLockController.unlock()
             }
+        }
+    }
+
+    fun setReduceMotion(enabled: Boolean) {
+        viewModelScope.launch {
+            appPreferences.setReduceMotion(enabled)
         }
     }
 

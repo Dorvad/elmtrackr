@@ -1,6 +1,5 @@
 package com.elmtrackr.app.ui.components.motion
 
-import android.animation.ValueAnimator
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -30,18 +29,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.design.AuroraSoftEase
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import kotlinx.coroutines.delay
 
 @Composable
 fun FirstClockInCelebrationDialog(onDismiss: () -> Unit) {
     var animateIn by remember { mutableStateOf(false) }
-    val motionEnabled = !LocalInspectionMode.current && ValueAnimator.areAnimatorsEnabled()
+    val motionEnabled = auroraMotionEnabled()
 
     LaunchedEffect(Unit) {
         if (motionEnabled) delay(50)
