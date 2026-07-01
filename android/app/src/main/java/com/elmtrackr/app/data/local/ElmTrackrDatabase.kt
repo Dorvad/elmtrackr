@@ -31,7 +31,7 @@ import net.sqlcipher.database.SupportFactory
         CompensationProfileEntity::class,
         TaskEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -66,7 +66,15 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                 "elmtrackr.db",
             )
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(
+                    MIGRATION_1_2,
+                    MIGRATION_2_3,
+                    MIGRATION_3_4,
+                    MIGRATION_4_5,
+                    MIGRATION_5_6,
+                    MIGRATION_6_7,
+                    MIGRATION_7_8,
+                )
                 .build()
         }
 
@@ -162,6 +170,34 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
         internal val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE tasks ADD COLUMN color TEXT")
+            }
+        }
+
+        internal val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_shifts_userId_syncStatus ON shifts(userId, syncStatus)",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_shifts_remoteId ON shifts(remoteId)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_tasks_userId_syncStatus ON tasks(userId, syncStatus)",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_remoteId ON tasks(remoteId)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_refund_claims_userId_syncStatus " +
+                        "ON refund_claims(userId, syncStatus)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_refund_claims_remoteId ON refund_claims(remoteId)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_compensation_profiles_userId_syncStatus " +
+                        "ON compensation_profiles(userId, syncStatus)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_compensation_profiles_remoteId " +
+                        "ON compensation_profiles(remoteId)",
+                )
             }
         }
     }

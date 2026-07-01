@@ -63,6 +63,12 @@ interface RefundClaimDao {
     suspend fun getPendingSyncClaims(userId: String): List<RefundClaimEntity>
 
     @Query(
+        "SELECT EXISTS(SELECT 1 FROM refund_claims WHERE userId = :userId AND syncStatus IN " +
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED') LIMIT 1)",
+    )
+    suspend fun hasPendingSyncClaims(userId: String): Boolean
+
+    @Query(
         "UPDATE refund_claims SET syncStatus = :syncStatus, remoteId = :remoteId, " +
             "lastSyncedAt = :lastSyncedAt, lastSyncError = :lastSyncError " +
             "WHERE localId = :localId"

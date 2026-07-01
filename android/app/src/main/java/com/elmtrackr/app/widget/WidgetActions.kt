@@ -14,10 +14,12 @@ object WidgetActions {
         val app = context.applicationContext as ElmTrackrApp
         val userId = app.currentUserProvider.currentUserId() ?: return false
         return runCatching {
+            val settings = app.settingsRepository.getSettings(userId)
             val task = TaskClockInHelper.resolveAutoTask(app.tasksRepository, app.shiftsRepository, userId)
             val params = TaskClockInHelper.paramsFromTask(task)
             app.shiftsRepository.clockIn(
                 userId = userId,
+                compensationProfileId = settings?.defaultCompensationProfileId,
                 taskId = params.taskId,
                 taskNameSnapshot = params.taskNameSnapshot,
                 taskIconSnapshot = params.taskIconSnapshot,

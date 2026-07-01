@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
+import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.domain.model.MonthlyReport
@@ -84,14 +85,19 @@ class DashboardViewModel(
                             val zone = WorkTimezone.zoneFor(settings)
                             val today = LocalDate.now(zone)
                             combine(
-                                reportsRepository.observeMonthlyReport(profile.id, today.year, today.monthValue),
                                 shiftsRepository.observeShiftsByMonthInZone(
                                     profile.id,
                                     today.year,
                                     today.monthValue,
                                     zone,
                                 ),
-                            ) { report, monthShifts ->
+                            ) { monthShifts ->
+                                val report = MonthlyReportBuilder.buildMonthlyReport(
+                                    year = today.year,
+                                    month = today.monthValue,
+                                    shifts = monthShifts,
+                                    settings = settings,
+                                )
                                 RawData(activeShift, report, settings, monthShifts, emptyList(), emptyList(), emptyList())
                             }
                         }

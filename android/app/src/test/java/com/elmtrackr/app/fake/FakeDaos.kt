@@ -59,6 +59,20 @@ class FakeShiftDao : ShiftDao {
     override suspend fun getAllShiftsForUser(userId: String): List<ShiftEntity> =
         store.values.filter { it.userId == userId && it.deletedAt == null }
 
+    override suspend fun hasAnyShifts(userId: String): Boolean =
+        store.values.any { it.userId == userId && it.deletedAt == null }
+
+    override suspend fun hasPendingSyncShifts(userId: String): Boolean =
+        store.values.any {
+            it.userId == userId &&
+                it.syncStatus in listOf(
+                    SyncStatus.PENDING_CREATE,
+                    SyncStatus.PENDING_UPDATE,
+                    SyncStatus.PENDING_DELETE,
+                    SyncStatus.FAILED,
+                )
+        }
+
     override suspend fun getActiveShifts(userId: String): List<ShiftEntity> =
         store.values.filter { it.userId == userId && it.endTime == null && it.deletedAt == null }
 
@@ -122,6 +136,9 @@ class FakeRefundClaimDao : RefundClaimDao {
     override suspend fun getPendingSyncClaims(userId: String): List<RefundClaimEntity> =
         store.values.filter { it.userId == userId && it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
 
+    override suspend fun hasPendingSyncClaims(userId: String): Boolean =
+        store.values.any { it.userId == userId && it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
+
     override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) {
         store[localId]?.let { store[localId] = it.copy(syncStatus = syncStatus, remoteId = remoteId, lastSyncedAt = lastSyncedAt, lastSyncError = lastSyncError) }
         refresh()
@@ -175,6 +192,9 @@ class FakeSettingsDao : SettingsDao {
 
     override suspend fun getPendingSyncSettings(userId: String): List<UserSettingsEntity> =
         store.values.filter { it.userId == userId && it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
+
+    override suspend fun hasPendingSyncSettings(userId: String): Boolean =
+        store.values.any { it.userId == userId && it.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED) }
 
     override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) {
         store[localId]?.let { store[localId] = it.copy(syncStatus = syncStatus, remoteId = remoteId, lastSyncedAt = lastSyncedAt, lastSyncError = lastSyncError) }
@@ -268,6 +288,13 @@ class FakeCompensationProfileDao : com.elmtrackr.app.data.local.dao.Compensation
             )
         }
 
+    override suspend fun hasPendingSyncProfiles(userId: String): Boolean =
+        store.values.any {
+            it.userId == userId && it.syncStatus in listOf(
+                SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED,
+            )
+        }
+
     override fun observePendingSyncProfiles(userId: String): Flow<List<com.elmtrackr.app.data.local.entity.CompensationProfileEntity>> =
         _flow.map {
             it.filter { e ->
@@ -346,6 +373,9 @@ class FakeTaskDao : com.elmtrackr.app.data.local.dao.TaskDao {
 
     override suspend fun getPendingSyncTasks(userId: String) =
         store.values.filter { it.userId == userId && it.syncStatus != SyncStatus.SYNCED && it.deletedAt == null }
+
+    override suspend fun hasPendingSyncTasks(userId: String): Boolean =
+        store.values.any { it.userId == userId && it.syncStatus != SyncStatus.SYNCED && it.deletedAt == null }
 
     override fun observePendingSyncTasks(userId: String) =
         _flow.map { it.filter { e -> e.userId == userId && e.syncStatus != SyncStatus.SYNCED && e.deletedAt == null } }

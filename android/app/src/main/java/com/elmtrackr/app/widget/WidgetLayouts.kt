@@ -110,12 +110,13 @@ internal fun WidgetStatusBadge(state: WidgetPreferences.DisplayState) {
 }
 
 @androidx.compose.runtime.Composable
-internal fun WidgetProgressBar(percent: Int, barWidthDp: Int = 130) {
-    val filled = (barWidthDp * percent / 100).coerceAtLeast(4)
-    val empty = (barWidthDp - filled).coerceAtLeast(0)
+internal fun WidgetProgressBar(percent: Int, barWidthDp: Int = 0) {
+    val width = if (barWidthDp > 0) barWidthDp else 130
+    val filled = (width * percent / 100).coerceAtLeast(4)
+    val empty = (width - filled).coerceAtLeast(0)
     Row(
         modifier = GlanceModifier
-            .width(barWidthDp.dp)
+            .fillMaxWidth()
             .height(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -243,11 +244,11 @@ internal fun SingleToggleWidgetContent(state: WidgetPreferences.DisplayState) {
 
         Row(
             modifier = GlanceModifier
-                .width(155.dp)
+                .fillMaxWidth()
                 .clickable(openAppClick()),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = GlanceModifier.width(88.dp)) {
+            Column(modifier = GlanceModifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     WidgetStatusDot(state.isActive)
                     Spacer(GlanceModifier.width(4.dp))
@@ -317,7 +318,7 @@ internal fun ProgressWidgetContent(state: WidgetPreferences.DisplayState) {
 
         Column(
             modifier = GlanceModifier
-                .width(155.dp)
+                .fillMaxWidth()
                 .padding(horizontal = 8.dp)
                 .clickable(openAppClick()),
         ) {
@@ -406,7 +407,7 @@ internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
                 text = state.primaryTimeLabel,
                 style = TextStyle(
                     color = ColorProvider(Color.White),
-                    fontSize = 36.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                 ),
             )
@@ -488,9 +489,10 @@ internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
     }
 }
 
-/** 1×1 progress ring (mockup: open ring → filled ring when active). */
+/** 1×1 progress ring (mockup: open ring → filled ring when active or progressing). */
 @androidx.compose.runtime.Composable
 internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
+    val showProgressRing = state.isActive || state.progressPercent > 0
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -500,10 +502,10 @@ internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
     ) {
         Box(
             modifier = GlanceModifier
-                .size(72.dp)
+                .size(52.dp)
                 .background(
                     ImageProvider(
-                        if (state.isActive) R.drawable.widget_ring_progress
+                        if (showProgressRing) R.drawable.widget_ring_progress
                         else R.drawable.widget_ring_open,
                     ),
                 ),
@@ -511,28 +513,32 @@ internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 if (state.isActive) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        WidgetStatusDot(true)
-                        Spacer(GlanceModifier.width(4.dp))
-                        Text(
-                            text = "ON SHIFT",
-                            style = TextStyle(
-                                color = ColorProvider(Color.White),
-                                fontSize = 7.sp,
-                                fontWeight = FontWeight.Bold,
-                            ),
-                        )
-                    }
                     Text(
                         text = state.elapsedHms.ifEmpty { "0:00" },
                         style = TextStyle(
                             color = ColorProvider(Color.White),
-                            fontSize = 16.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                         ),
                     )
                     Text(
-                        text = "tap to stop",
+                        text = "${state.progressPercent}%",
+                        style = TextStyle(
+                            color = ColorProvider(Color.White.copy(alpha = 0.75f)),
+                            fontSize = 7.sp,
+                        ),
+                    )
+                } else if (state.progressPercent > 0) {
+                    Text(
+                        text = "${state.progressPercent}%",
+                        style = TextStyle(
+                            color = ColorProvider(Color.White),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    )
+                    Text(
+                        text = "today",
                         style = TextStyle(
                             color = ColorProvider(Color.White.copy(alpha = 0.7f)),
                             fontSize = 7.sp,
@@ -549,7 +555,7 @@ internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
                         text = "PUNCH IN",
                         style = TextStyle(
                             color = ColorProvider(Color.White),
-                            fontSize = 9.sp,
+                            fontSize = 8.sp,
                             fontWeight = FontWeight.Bold,
                         ),
                     )
@@ -570,37 +576,19 @@ internal fun BigActionWidgetContent(state: WidgetPreferences.DisplayState) {
         contentAlignment = Alignment.Center,
     ) {
         if (state.isActive) {
-            Column(
-                modifier = GlanceModifier.fillMaxSize().padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Row(modifier = GlanceModifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        WidgetStatusDot(true)
-                        Spacer(GlanceModifier.width(3.dp))
-                        Text(
-                            text = "CLOCKED IN",
-                            style = TextStyle(
-                                color = ColorProvider(Color.White),
-                                fontSize = 7.sp,
-                                fontWeight = FontWeight.Bold,
-                            ),
-                        )
-                    }
-                    Spacer(GlanceModifier.width(4.dp))
-                    Text(
-                        text = state.elapsedHms.ifEmpty { "0:00" },
-                        style = TextStyle(
-                            color = ColorProvider(Color.White),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                    )
-                }
-                Spacer(GlanceModifier.height(8.dp))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = state.elapsedHms.ifEmpty { "0:00" },
+                    style = TextStyle(
+                        color = ColorProvider(Color.White),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+                Spacer(GlanceModifier.height(6.dp))
                 Box(
                     modifier = GlanceModifier
-                        .size(44.dp)
+                        .size(40.dp)
                         .background(ImageProvider(R.drawable.widget_button_round_outline)),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -615,7 +603,7 @@ internal fun BigActionWidgetContent(state: WidgetPreferences.DisplayState) {
                     text = "PUNCH OUT",
                     style = TextStyle(
                         color = ColorProvider(Color.White),
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                     ),
                 )
@@ -624,7 +612,7 @@ internal fun BigActionWidgetContent(state: WidgetPreferences.DisplayState) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = GlanceModifier
-                        .size(52.dp)
+                        .size(48.dp)
                         .background(ImageProvider(R.drawable.widget_button_round_white)),
                     contentAlignment = Alignment.Center,
                 ) {
