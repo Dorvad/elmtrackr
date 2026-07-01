@@ -245,6 +245,7 @@ class SyncRepositoryImplTest {
         override suspend fun softDeleteClaim(localId: String, deletedAt: Long, syncStatus: SyncStatus, updatedAt: Long) = Unit
         override fun observePendingSyncClaims(userId: String): Flow<List<RefundClaimEntity>> = emptyFlow()
         override suspend fun getPendingSyncClaims(userId: String): List<RefundClaimEntity> = emptyList()
+        override suspend fun hasPendingSyncClaims(userId: String): Boolean = false
         override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) = Unit
         override suspend fun getAllClaimsForUser(userId: String): List<RefundClaimEntity> = emptyList()
         override suspend fun deleteAllForUser(userId: String) = Unit
@@ -260,6 +261,7 @@ class SyncRepositoryImplTest {
         override suspend fun upsertSettings(settings: UserSettingsEntity) = Unit
         override fun observePendingSyncSettings(userId: String): Flow<List<UserSettingsEntity>> = emptyFlow()
         override suspend fun getPendingSyncSettings(userId: String): List<UserSettingsEntity> = emptyList()
+        override suspend fun hasPendingSyncSettings(userId: String): Boolean = false
         override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) = Unit
         override suspend fun getAllSettingsForUser(userId: String): List<UserSettingsEntity> = emptyList()
         override suspend fun deleteAllForUser(userId: String) = Unit
@@ -274,6 +276,7 @@ class SyncRepositoryImplTest {
         override suspend fun getById(userId: String, localId: String): CompensationProfileEntity? = null
         override suspend fun getByRemoteId(remoteId: String): CompensationProfileEntity? = null
         override suspend fun getPendingSyncProfiles(userId: String): List<CompensationProfileEntity> = emptyList()
+        override suspend fun hasPendingSyncProfiles(userId: String): Boolean = false
         override fun observePendingSyncProfiles(userId: String): Flow<List<CompensationProfileEntity>> = emptyFlow()
         override suspend fun getAllProfilesForUser(userId: String): List<CompensationProfileEntity> = emptyList()
         override suspend fun insert(profile: CompensationProfileEntity) = Unit
@@ -292,6 +295,7 @@ class SyncRepositoryImplTest {
         override suspend fun getById(userId: String, localId: String): TaskEntity? = null
         override suspend fun getByRemoteId(remoteId: String): TaskEntity? = null
         override suspend fun getPendingSyncTasks(userId: String): List<TaskEntity> = emptyList()
+        override suspend fun hasPendingSyncTasks(userId: String): Boolean = false
         override fun observePendingSyncTasks(userId: String): Flow<List<TaskEntity>> = emptyFlow()
         override suspend fun getAllTasksForUser(userId: String): List<TaskEntity> = emptyList()
         override suspend fun upsert(task: TaskEntity) = Unit
@@ -441,6 +445,12 @@ class SyncRepositoryImplTest {
 
         override suspend fun getAllShiftsForUser(userId: String): List<ShiftEntity> =
             shifts.value.filter { it.userId == userId && it.deletedAt == null }
+
+        override suspend fun hasAnyShifts(userId: String): Boolean =
+            shifts.value.any { it.userId == userId && it.deletedAt == null }
+
+        override suspend fun hasPendingSyncShifts(userId: String): Boolean =
+            shifts.value.any { it.userId == userId && it.syncStatus in pendingStatuses }
 
         override suspend fun deleteAllForUser(userId: String) {
             shifts.value = shifts.value.filterNot { it.userId == userId }

@@ -2,6 +2,7 @@ package com.elmtrackr.app.widget
 
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.time.WorkTimezone
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -13,7 +14,7 @@ object WidgetStateMapper {
     private val dateFormatter = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
 
     fun map(context: WidgetContext): WidgetShiftState {
-        val zone = ZoneId.systemDefault()
+        val zone = context.settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.systemDefault()
         val today = LocalDate.now(zone)
         val now = Instant.now().atZone(zone)
         val dateLabel = now.format(dateFormatter)

@@ -33,6 +33,12 @@ interface CompensationProfileDao {
     @Query("SELECT * FROM compensation_profiles WHERE userId = :userId AND syncStatus IN ('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')")
     suspend fun getPendingSyncProfiles(userId: String): List<CompensationProfileEntity>
 
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM compensation_profiles WHERE userId = :userId AND syncStatus IN " +
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED') LIMIT 1)",
+    )
+    suspend fun hasPendingSyncProfiles(userId: String): Boolean
+
     @Query("SELECT * FROM compensation_profiles WHERE userId = :userId AND syncStatus IN ('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')")
     fun observePendingSyncProfiles(userId: String): Flow<List<CompensationProfileEntity>>
 

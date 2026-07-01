@@ -3,6 +3,7 @@ package com.elmtrackr.app.wear
 import android.content.Context
 import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.widget.WidgetContext
+import com.elmtrackr.app.widget.WidgetContextLoader
 import com.elmtrackr.app.widget.WidgetShiftState
 import com.elmtrackr.app.widget.WidgetStateMapper
 import com.elmtrackr.wear.sync.WearMessages
@@ -13,8 +14,6 @@ import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
-import java.time.LocalDate
-import java.time.ZoneId
 
 object WearSyncPublisher {
 
@@ -52,26 +51,8 @@ object WearSyncPublisher {
             publishSnapshot(context, WearShiftSnapshot.signedOut())
             return
         }
-        val shift = app.shiftsRepository.observeActiveShift(userId).first()
-        val lastCompleted = app.shiftsRepository
-            .observeRecentCompletedShifts(userId, limit = 1)
-            .first()
-            .firstOrNull()
-        val zone = ZoneId.systemDefault()
-        val today = LocalDate.now(zone)
-        val todayShifts = app.shiftsRepository
-            .observeShiftsByMonth(userId, today.year, today.monthValue)
-            .first()
-        val settings = app.settingsRepository.getSettings(userId)
-        publishFromWidgetContext(
-            context,
-            WidgetContext(
-                activeShift = shift,
-                lastCompletedShift = lastCompleted,
-                todayShifts = todayShifts,
-                settings = settings,
-            ),
-        )
+        val widgetContext = WidgetContextLoader.load(app, userId)
+        publishFromWidgetContext(context, widgetContext)
     }
 
     private suspend fun nudgeConnectedNodes(context: Context) {
