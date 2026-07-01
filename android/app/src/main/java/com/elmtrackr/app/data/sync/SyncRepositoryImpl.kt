@@ -28,8 +28,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.time.Instant
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class SyncRepositoryImpl(
+@Singleton
+class SyncRepositoryImpl @Inject constructor(
     private val shiftDao: ShiftDao,
     private val refundClaimDao: RefundClaimDao,
     private val settingsDao: SettingsDao,

@@ -16,10 +16,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class LocalRefundsRepository(
+@Singleton
+class LocalRefundsRepository @Inject constructor(
     private val refundClaimDao: RefundClaimDao,
-    private val syncTrigger: SyncTrigger = com.elmtrackr.app.data.sync.NoOpSyncTrigger,
+    private val syncTrigger: SyncTrigger,
 ) : RefundsRepository {
 
     override fun observeClaimsForUser(userId: String): Flow<List<RefundClaim>> =

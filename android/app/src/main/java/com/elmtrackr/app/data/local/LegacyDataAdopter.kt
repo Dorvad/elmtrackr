@@ -2,8 +2,11 @@ package com.elmtrackr.app.data.local
 
 import androidx.room.withTransaction
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class LegacyDataAdopter(
+@Singleton
+class LegacyDataAdopter @Inject constructor(
     private val database: ElmTrackrDatabase,
     private val appPreferences: AppPreferencesRepository,
 ) {

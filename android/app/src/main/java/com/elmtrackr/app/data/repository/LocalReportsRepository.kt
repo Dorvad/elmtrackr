@@ -15,9 +15,12 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class LocalReportsRepository(
+@Singleton
+class LocalReportsRepository @Inject constructor(
     private val shiftDao: ShiftDao,
     private val settingsDao: SettingsDao,
 ) : ReportsRepository {

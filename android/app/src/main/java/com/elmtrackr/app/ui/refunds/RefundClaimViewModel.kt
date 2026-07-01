@@ -3,11 +3,7 @@ package com.elmtrackr.app.ui.refunds
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.data.receipts.PhotoFileManager
 import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.model.RefundAction
@@ -30,18 +26,23 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 import java.time.Instant
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
 
-class RefundClaimViewModel(
-    context: Context,
+@HiltViewModel
+class RefundClaimViewModel @Inject constructor(
+    @ApplicationContext context: Context,
     private val getRefundClaimsForShift: GetRefundClaimsForShift,
     private val upsertRefundClaim: UpsertRefundClaim,
     private val deleteRefundClaim: DeleteRefundClaim,
     private val shiftsRepository: ShiftsRepository,
     private val refundReceiptStorage: RefundReceiptStorage?,
-    private val photoFileManager: PhotoFileManager = PhotoFileManager(context),
 ) : ViewModel() {
 
-    private val appContext = context.applicationContext
+    private val photoFileManager = PhotoFileManager(context)
+
+    private val appContext = context
     private var claimsJob: Job? = null
 
     private val _uiState = MutableStateFlow(RefundClaimUiState())
@@ -316,34 +317,5 @@ class RefundClaimViewModel(
 
     private fun cleanupPendingPhoto(path: String?) {
         photoFileManager.delete(path)
-    }
-
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                @Suppress("UNCHECKED_CAST")
-                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
-                val getClaims = GetRefundClaimsForShift(app.refundsRepository)
-                val upsert = UpsertRefundClaim(
-                    app.refundsRepository,
-                    app.shiftsRepository,
-                    app.currentUserProvider,
-                    app.refundReceiptStorage,
-                )
-                val delete = DeleteRefundClaim(
-                    app.refundsRepository,
-                    app.shiftsRepository,
-                    app.refundReceiptStorage,
-                )
-                RefundClaimViewModel(
-                    context = app,
-                    getRefundClaimsForShift = getClaims,
-                    upsertRefundClaim = upsert,
-                    deleteRefundClaim = delete,
-                    shiftsRepository = app.shiftsRepository,
-                    refundReceiptStorage = app.refundReceiptStorage,
-                )
-            }
-        }
     }
 }

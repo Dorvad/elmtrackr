@@ -12,10 +12,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class LocalTasksRepository(
+@Singleton
+class LocalTasksRepository @Inject constructor(
     private val taskDao: TaskDao,
-    private val syncTrigger: SyncTrigger = com.elmtrackr.app.data.sync.NoOpSyncTrigger,
+    private val syncTrigger: SyncTrigger,
 ) : TasksRepository {
 
     override fun observeActiveTasks(userId: String): Flow<List<Task>> =

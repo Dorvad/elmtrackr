@@ -4,7 +4,7 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,9 +26,9 @@ abstract class BaseElmTrackrWidgetReceiver : GlanceAppWidgetReceiver() {
     }
 
     private suspend fun refreshWidgets(context: Context) {
-        val app = context.applicationContext as ElmTrackrApp
-        val userId = app.currentUserProvider.currentUserId() ?: return
-        val widgetContext = WidgetContextLoader.load(app, userId)
+        val deps = AppEntryPoints.background(context)
+        val userId = deps.currentUserProvider().currentUserId() ?: return
+        val widgetContext = WidgetContextLoader.load(deps, userId)
         ElmTrackrWidgetUpdater.update(context, widgetContext)
     }
 }

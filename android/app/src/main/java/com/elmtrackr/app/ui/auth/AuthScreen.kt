@@ -49,7 +49,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.ui.design.AppLogo
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraEnter
@@ -60,7 +60,7 @@ private enum class AuthMode { SIGN_IN, SIGN_UP, FORGOT_PASSWORD }
 
 @Composable
 fun AuthScreen(
-    viewModel: AuthViewModel = viewModel(factory = AuthViewModel.Factory),
+    viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
 

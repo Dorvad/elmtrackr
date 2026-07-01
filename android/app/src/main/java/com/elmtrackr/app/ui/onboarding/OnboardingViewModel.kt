@@ -1,11 +1,8 @@
 package com.elmtrackr.app.ui.onboarding
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.repository.AuthRepository
@@ -22,12 +19,15 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
 import java.util.UUID
 import kotlin.math.roundToInt
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class OnboardingViewModel(
+@HiltViewModel
+class OnboardingViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
-    private val markOnboardingCompleted: suspend () -> Unit,
+    private val appPreferences: AppPreferencesRepository,
     private val authRepository: AuthRepository,
 ) : ViewModel() {
 
@@ -119,7 +119,7 @@ class OnboardingViewModel(
                         profile.id,
                     )
                 }
-                markOnboardingCompleted()
+                appPreferences.setOnboardingCompleted(true)
                 _uiState.value = OnboardingUiState.Completed
             } catch (e: Exception) {
                 _uiState.value = OnboardingUiState.ValidationError(
@@ -149,20 +149,5 @@ class OnboardingViewModel(
             errors["weekendDays"] = "Select at least one weekend day"
         }
         return errors
-    }
-
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                @Suppress("UNCHECKED_CAST")
-                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
-                OnboardingViewModel(
-                    settingsRepository = app.settingsRepository,
-                    compensationProfilesRepository = app.compensationProfilesRepository,
-                    markOnboardingCompleted = { app.appPreferences.setOnboardingCompleted(true) },
-                    authRepository = app.authRepository,
-                )
-            }
-        }
     }
 }

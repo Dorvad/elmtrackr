@@ -73,7 +73,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.DailyInsight
 import com.elmtrackr.app.domain.InsightColor
 import com.elmtrackr.app.domain.MoneyFormatter
@@ -150,7 +150,7 @@ private val InsightColor.subTextColor: Color
 
 @Composable
 fun ReportsScreen(
-    viewModel: ReportsViewModel = viewModel(factory = ReportsViewModel.Factory),
+    viewModel: ReportsViewModel = hiltViewModel(),
     onNavigateToShift: (String) -> Unit = {},
 ) {
     val context = LocalContext.current

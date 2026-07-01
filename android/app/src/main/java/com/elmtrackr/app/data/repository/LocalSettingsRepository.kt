@@ -13,10 +13,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class LocalSettingsRepository(
+@Singleton
+class LocalSettingsRepository @Inject constructor(
     private val settingsDao: SettingsDao,
-    private val syncTrigger: SyncTrigger = com.elmtrackr.app.data.sync.NoOpSyncTrigger,
+    private val syncTrigger: SyncTrigger,
 ) : SettingsRepository {
 
     override fun observeSettings(userId: String): Flow<UserSettings?> =

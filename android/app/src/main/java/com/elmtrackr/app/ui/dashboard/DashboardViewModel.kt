@@ -1,11 +1,7 @@
 package com.elmtrackr.app.ui.dashboard
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.PayrollCalculator
@@ -38,9 +34,12 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class DashboardViewModel(
+@HiltViewModel
+class DashboardViewModel @Inject constructor(
     private val shiftsRepository: ShiftsRepository,
     private val settingsRepository: SettingsRepository,
     private val reportsRepository: ReportsRepository,
@@ -268,23 +267,5 @@ class DashboardViewModel(
 
     fun retry() {
         _refreshNonce.value++
-    }
-
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                @Suppress("UNCHECKED_CAST")
-                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
-                DashboardViewModel(
-                    app.shiftsRepository,
-                    app.settingsRepository,
-                    app.reportsRepository,
-                    app.authRepository,
-                    app.compensationProfilesRepository,
-                    app.tasksRepository,
-                    app.appPreferences,
-                )
-            }
-        }
     }
 }

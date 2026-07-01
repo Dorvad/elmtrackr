@@ -1,11 +1,7 @@
 package com.elmtrackr.app.ui.settings
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.compensation.RegionPresets
@@ -26,9 +22,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class CompensationSettingsViewModel(
+@HiltViewModel
+class CompensationSettingsViewModel @Inject constructor(
     private val compensationProfilesRepository: CompensationProfilesRepository,
     private val settingsRepository: SettingsRepository,
     private val authRepository: AuthRepository,
@@ -126,20 +125,6 @@ class CompensationSettingsViewModel(
 
     fun clearSaveMessage() {
         _saveMessage.value = null
-    }
-
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                @Suppress("UNCHECKED_CAST")
-                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
-                CompensationSettingsViewModel(
-                    compensationProfilesRepository = app.compensationProfilesRepository,
-                    settingsRepository = app.settingsRepository,
-                    authRepository = app.authRepository,
-                )
-            }
-        }
     }
 }
 

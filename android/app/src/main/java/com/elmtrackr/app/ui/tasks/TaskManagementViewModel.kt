@@ -1,11 +1,7 @@
 package com.elmtrackr.app.ui.tasks
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
@@ -24,6 +20,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
 import java.util.UUID
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 sealed interface TaskManagementUiState {
     data object Loading : TaskManagementUiState
@@ -37,7 +35,8 @@ sealed interface TaskManagementUiState {
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class TaskManagementViewModel(
+@HiltViewModel
+class TaskManagementViewModel @Inject constructor(
     private val tasksRepository: TasksRepository,
     private val shiftsRepository: ShiftsRepository,
     private val currentUserProvider: CurrentUserProvider,
@@ -115,16 +114,6 @@ class TaskManagementViewModel(
             val userId = currentUserProvider.currentUserId() ?: return@launch
             tasksRepository.archiveTask(userId, taskId)
             _message.value = "Task archived"
-        }
-    }
-
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                @Suppress("UNCHECKED_CAST")
-                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
-                TaskManagementViewModel(app.tasksRepository, app.shiftsRepository, app.currentUserProvider)
-            }
         }
     }
 }

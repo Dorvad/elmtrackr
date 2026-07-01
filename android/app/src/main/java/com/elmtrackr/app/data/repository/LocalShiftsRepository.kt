@@ -19,10 +19,13 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.YearMonth
 import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class LocalShiftsRepository(
+@Singleton
+class LocalShiftsRepository @Inject constructor(
     private val shiftDao: ShiftDao,
-    private val syncTrigger: SyncTrigger = com.elmtrackr.app.data.sync.NoOpSyncTrigger,
+    private val syncTrigger: SyncTrigger,
 ) : ShiftsRepository {
 
     override fun observeShifts(userId: String): Flow<List<Shift>> =

@@ -6,6 +6,8 @@ import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon
 import com.elmtrackr.app.R
+import com.elmtrackr.app.domain.CurrentUserProvider
+import com.elmtrackr.app.di.ApplicationScope
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.repository.SettingsRepository
@@ -31,19 +33,24 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Splits active-shift side effects into focused observers so notification work
  * is not blocked by widget/Wear refreshes (and vice versa).
  */
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
-class ActiveShiftSideEffectsCoordinator(
+@Singleton
+class ActiveShiftSideEffectsCoordinator @Inject constructor(
     private val app: Application,
-    private val scope: CoroutineScope,
+    @ApplicationScope private val scope: CoroutineScope,
     private val shiftsRepository: ShiftsRepository,
     private val settingsRepository: SettingsRepository,
-    private val observeUserId: kotlinx.coroutines.flow.Flow<String?>,
+    currentUserProvider: CurrentUserProvider,
 ) {
+
+    private val observeUserId = currentUserProvider.userId
 
     fun start() {
         startNotificationObserver()

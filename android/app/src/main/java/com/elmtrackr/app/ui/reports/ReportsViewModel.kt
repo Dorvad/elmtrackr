@@ -1,11 +1,7 @@
 package com.elmtrackr.app.ui.reports
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.DailyInsightsBuilder
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
@@ -24,6 +20,7 @@ import com.elmtrackr.app.domain.repository.ReportsRepository
 import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.RefundReceiptStorage
 import com.elmtrackr.app.domain.repository.SettingsRepository
+import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,9 +37,12 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ReportsViewModel(
+@HiltViewModel
+class ReportsViewModel @Inject constructor(
     private val reportsRepository: ReportsRepository,
     private val shiftsRepository: ShiftsRepository,
     private val tasksRepository: TasksRepository,
@@ -50,7 +50,7 @@ class ReportsViewModel(
     private val currentUserProvider: CurrentUserProvider,
     private val refundsRepository: RefundsRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
-    private val refundReceiptStorage: RefundReceiptStorage? = null,
+    private val refundReceiptStorage: RefundReceiptStorage?,
 ) : ViewModel() {
 
     private val _selectedYear = MutableStateFlow(YearMonth.now(ZoneOffset.UTC).year)
@@ -272,23 +272,4 @@ class ReportsViewModel(
         if (value.contains(',') || value.contains('"') || value.contains('\n')) {
             "\"${value.replace("\"", "\"\"")}\""
         } else value
-
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                @Suppress("UNCHECKED_CAST")
-                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
-                ReportsViewModel(
-                    app.reportsRepository,
-                    app.shiftsRepository,
-                    app.tasksRepository,
-                    app.settingsRepository,
-                    app.currentUserProvider,
-                    app.refundsRepository,
-                    app.compensationProfilesRepository,
-                    app.refundReceiptStorage,
-                )
-            }
-        }
-    }
 }

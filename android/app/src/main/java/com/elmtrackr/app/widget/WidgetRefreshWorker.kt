@@ -1,19 +1,27 @@
 package com.elmtrackr.app.widget
 
 import android.content.Context
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.domain.CurrentUserProvider
+import com.elmtrackr.app.domain.repository.SettingsRepository
+import com.elmtrackr.app.domain.repository.ShiftsRepository
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 
-class WidgetRefreshWorker(
-    appContext: Context,
-    params: WorkerParameters,
-) : CoroutineWorker(appContext, params) {
+@HiltWorker
+class WidgetRefreshWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val currentUserProvider: CurrentUserProvider,
+    private val shiftsRepository: ShiftsRepository,
+    private val settingsRepository: SettingsRepository,
+) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        val app = applicationContext as ElmTrackrApp
-        val userId = app.currentUserProvider.currentUserId() ?: return Result.success()
-        val widgetContext = WidgetContextLoader.load(app, userId)
+        val userId = currentUserProvider.currentUserId() ?: return Result.success()
+        val widgetContext = WidgetContextLoader.load(shiftsRepository, settingsRepository, userId)
         if (widgetContext.activeShift == null) {
             WidgetTimerScheduler.cancel(applicationContext)
             return Result.success()

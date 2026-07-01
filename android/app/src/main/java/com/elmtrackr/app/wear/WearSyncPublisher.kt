@@ -1,7 +1,7 @@
 package com.elmtrackr.app.wear
 
 import android.content.Context
-import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.widget.WidgetContext
 import com.elmtrackr.app.widget.WidgetContextLoader
 import com.elmtrackr.app.widget.WidgetShiftState
@@ -12,7 +12,6 @@ import com.elmtrackr.wear.sync.WearShiftSnapshot
 import com.elmtrackr.wear.sync.WearSnapshotCodec
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 
 object WearSyncPublisher {
@@ -30,8 +29,8 @@ object WearSyncPublisher {
     }
 
     suspend fun publishFromWidgetContext(context: Context, widgetContext: WidgetContext) {
-        val app = context.applicationContext as ElmTrackrApp
-        val userId = app.currentUserProvider.currentUserId()
+        val deps = AppEntryPoints.background(context)
+        val userId = deps.currentUserProvider().currentUserId()
         if (userId == null) {
             publishSnapshot(context, WearShiftSnapshot.signedOut())
             return
@@ -45,13 +44,13 @@ object WearSyncPublisher {
     }
 
     suspend fun refresh(context: Context) {
-        val app = context.applicationContext as ElmTrackrApp
-        val userId = app.currentUserProvider.currentUserId()
+        val deps = AppEntryPoints.background(context)
+        val userId = deps.currentUserProvider().currentUserId()
         if (userId == null) {
             publishSnapshot(context, WearShiftSnapshot.signedOut())
             return
         }
-        val widgetContext = WidgetContextLoader.load(app, userId)
+        val widgetContext = WidgetContextLoader.load(deps, userId)
         publishFromWidgetContext(context, widgetContext)
     }
 

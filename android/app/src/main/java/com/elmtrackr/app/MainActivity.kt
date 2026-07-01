@@ -16,16 +16,26 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import com.elmtrackr.app.data.local.preferences.AppPreferenceValues
+import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
+import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.navigation.AppNavGraph
 import com.elmtrackr.app.notification.NotificationPermissionCoordinator
 import com.elmtrackr.app.security.AppLockController
+import com.elmtrackr.app.startup.DynamicShortcutsRefresher
 import com.elmtrackr.app.ui.security.AppLockGate
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.update.InAppUpdateHost
 import com.elmtrackr.app.update.InAppUpdateManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject lateinit var authRepository: AuthRepository
+    @Inject lateinit var dynamicShortcutsRefresher: DynamicShortcutsRefresher
+    @Inject lateinit var appPreferences: AppPreferencesRepository
 
     val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -46,9 +56,8 @@ class MainActivity : ComponentActivity() {
         inAppUpdateManager = InAppUpdateManager(this) { flexibleUpdateReady = true }
         intent?.data?.toString()?.let { handleDeepLink(it) }
         setContent {
-            val app = application as ElmTrackrApp
             val configuration = LocalConfiguration.current
-            val preferences by app.appPreferences.preferences
+            val preferences by appPreferences.preferences
                 .collectAsState(initial = AppPreferenceValues())
             val systemDark = (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
                 Configuration.UI_MODE_NIGHT_YES
@@ -89,7 +98,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        (application as ElmTrackrApp).refreshDynamicShortcuts()
+        dynamicShortcutsRefresher.refresh()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -100,7 +109,7 @@ class MainActivity : ComponentActivity() {
 
     private fun handleDeepLink(uriString: String) {
         lifecycleScope.launch {
-            (application as ElmTrackrApp).authRepository.handleDeepLink(uriString)
+            authRepository.handleDeepLink(uriString)
         }
     }
 
