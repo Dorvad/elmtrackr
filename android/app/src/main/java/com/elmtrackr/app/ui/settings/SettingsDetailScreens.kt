@@ -105,6 +105,11 @@ internal fun SettingsHub(
                     title = "Features",
                     subtitle = featuresSummary(travelRefunds, insights, clockStyles, overtimeReminders),
                     onClick = { onNavigate(SettingsDestination.FEATURES) },
+                )
+                SettingsHubNavRow(
+                    title = "Security",
+                    subtitle = "App lock & encrypted storage",
+                    onClick = { onNavigate(SettingsDestination.SECURITY) },
                     showDivider = false,
                 )
             }

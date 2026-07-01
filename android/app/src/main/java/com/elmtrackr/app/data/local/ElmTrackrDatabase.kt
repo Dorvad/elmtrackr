@@ -20,6 +20,7 @@ import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import com.elmtrackr.app.data.local.dao.TaskDao
 import com.elmtrackr.app.data.local.entity.TaskEntity
+import net.sqlcipher.database.SupportFactory
 
 @Database(
     entities = [
@@ -50,14 +51,24 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
 
         fun getInstance(context: Context): ElmTrackrDatabase =
             INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    ElmTrackrDatabase::class.java,
-                    "elmtrackr.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
-                    .build()
+                INSTANCE ?: buildEncryptedDatabase(context.applicationContext)
                     .also { INSTANCE = it }
             }
+
+        private fun buildEncryptedDatabase(context: Context): ElmTrackrDatabase {
+            System.loadLibrary("sqlcipher")
+            val passphrase = DatabasePassphraseStore(context).getOrCreatePassphrase()
+            PlaintextDatabaseMigrator.migrateIfNeeded(context, passphrase)
+            val factory = SupportFactory(passphrase)
+            return Room.databaseBuilder(
+                context,
+                ElmTrackrDatabase::class.java,
+                "elmtrackr.db",
+            )
+                .openHelperFactory(factory)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .build()
+        }
 
         internal val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {

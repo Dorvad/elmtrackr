@@ -11,12 +11,15 @@ import androidx.lifecycle.lifecycleScope
 import android.content.res.Configuration
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import com.elmtrackr.app.data.local.preferences.AppPreferenceValues
 import com.elmtrackr.app.navigation.AppNavGraph
 import com.elmtrackr.app.notification.NotificationPermissionCoordinator
+import com.elmtrackr.app.security.AppLockController
+import com.elmtrackr.app.ui.security.AppLockGate
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.update.InAppUpdateHost
 import com.elmtrackr.app.update.InAppUpdateManager
@@ -33,11 +36,9 @@ class MainActivity : ComponentActivity() {
 
     var onNotificationPermissionResult: ((Boolean) -> Unit)? = null
 
-    // True once a flexible Play update has finished downloading and is awaiting a restart.
     private var flexibleUpdateReady by mutableStateOf(false)
-
-    // Checks Google Play for updates on every resume and drives the update flow.
     private lateinit var inAppUpdateManager: InAppUpdateManager
+    private var unlockNonce by mutableIntStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,18 +57,33 @@ class MainActivity : ComponentActivity() {
                 "light" -> false
                 else -> systemDark
             }
+            @Suppress("UNUSED_VARIABLE")
+            val refreshLock = unlockNonce
             ElmTrackrTheme(darkTheme = darkTheme) {
-                InAppUpdateHost(
-                    updateReady = flexibleUpdateReady,
-                    onInstall = {
-                        flexibleUpdateReady = false
-                        inAppUpdateManager.completeFlexibleUpdate()
-                    },
-                    onDismiss = { flexibleUpdateReady = false },
+                AppLockGate(
+                    activity = this,
+                    lockEnabled = preferences.appLockEnabled,
+                    onUnlocked = { unlockNonce++ },
                 ) {
-                    AppNavGraph()
+                    InAppUpdateHost(
+                        updateReady = flexibleUpdateReady,
+                        onInstall = {
+                            flexibleUpdateReady = false
+                            inAppUpdateManager.completeFlexibleUpdate()
+                        },
+                        onDismiss = { flexibleUpdateReady = false },
+                    ) {
+                        AppNavGraph()
+                    }
                 }
             }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) {
+            AppLockController.lock()
         }
     }
 
