@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -27,6 +28,9 @@ object AuroraMotion {
     const val FadeMillis = 250
     const val RiseMillis = 350
     const val StaggerMillis = 50L
+    const val ContentCrossfadeMillis = 200
+    const val SubScreenEnterMillis = 280
+    const val SubScreenExitMillis = 200
 }
 
 @Composable
@@ -35,7 +39,7 @@ fun Modifier.auroraEnter(
     offsetY: Dp = 10.dp,
     durationMillis: Int = AuroraMotion.RiseMillis,
 ): Modifier {
-    if (!ValueAnimator.areAnimatorsEnabled()) return this
+    if (LocalInspectionMode.current || !ValueAnimator.areAnimatorsEnabled()) return this
 
     var visible by remember { mutableStateOf(false) }
     val alpha by animateFloatAsState(

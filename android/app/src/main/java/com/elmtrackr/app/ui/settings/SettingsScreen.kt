@@ -3,6 +3,7 @@
 package com.elmtrackr.app.ui.settings
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,6 +36,8 @@ import com.elmtrackr.app.security.BiometricCapability
 import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
+import com.elmtrackr.app.ui.design.AuroraStateCrossfade
+import com.elmtrackr.app.ui.design.auroraSubScreenTransition
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.ui.theme.Spacing
 import java.time.Instant
@@ -60,6 +63,21 @@ internal fun SettingsDestination.backDestination(): SettingsDestination? = when 
     else -> SettingsDestination.HUB
 }
 
+/** Used to pick slide direction for [AnimatedContent] transitions between settings screens. */
+internal fun SettingsDestination.motionOrder(): Int = when (this) {
+    SettingsDestination.HUB -> 0
+    SettingsDestination.PROFILE -> 1
+    SettingsDestination.PAY -> 2
+    SettingsDestination.COMPENSATION -> 3
+    SettingsDestination.TASKS -> 4
+    SettingsDestination.APPEARANCE -> 5
+    SettingsDestination.FEATURES -> 6
+    SettingsDestination.HELP -> 7
+    SettingsDestination.TERMS -> 8
+    SettingsDestination.SYNC_DETAILS -> 9
+    SettingsDestination.SECURITY -> 10
+}
+
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -73,65 +91,80 @@ fun SettingsScreen(
         destination = destination.backDestination() ?: SettingsDestination.HUB
     }
 
-    when (destination) {
-        SettingsDestination.COMPENSATION -> {
-            CompensationSettingsScreen(onBack = { destination = SettingsDestination.PAY })
-            return
-        }
-        SettingsDestination.TASKS -> {
-            com.elmtrackr.app.ui.tasks.TaskManagementScreen(onBack = { destination = SettingsDestination.PAY })
-            return
-        }
-        SettingsDestination.TERMS -> {
-            LegalDocumentScreen(
-                title = "Terms of Service",
-                sections = LegalDocuments.termsOfService,
-                lastUpdated = LegalDocuments.LAST_UPDATED,
-                onBack = { destination = SettingsDestination.HELP },
-            )
-            return
-        }
-        SettingsDestination.SYNC_DETAILS -> {
-            SyncDetailsScreen(onBack = { destination = SettingsDestination.HELP })
-            return
-        }
-        else -> Unit
-    }
-
     val uiState by viewModel.uiState.collectAsState()
     LaunchedEffect(Unit) { viewModel.ensureSettingsExist() }
 
-    AuroraListScreen {
-        when (val state = uiState) {
-            is SettingsUiState.Loading -> Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.screenH),
-            ) {
-                SettingsPageHeader()
-                SettingsSkeleton()
+    AnimatedContent(
+        targetState = destination,
+        transitionSpec = {
+            auroraSubScreenTransition(targetState.motionOrder() > initialState.motionOrder())
+        },
+        modifier = Modifier.fillMaxSize(),
+        label = "settings-destination",
+    ) { dest ->
+        when (dest) {
+            SettingsDestination.COMPENSATION -> {
+                CompensationSettingsScreen(onBack = { destination = SettingsDestination.PAY })
             }
-            is SettingsUiState.Ready -> SettingsFormHost(
-                state = state,
-                destination = destination,
-                authState = authState,
-                onNavigate = { destination = it },
-                onNavigateBack = { destination = SettingsDestination.HUB },
-                onSave = viewModel::saveSettings,
-                onSignOut = onSignOut,
-                onTheme = viewModel::saveTheme,
-                onResetPassword = viewModel::resetPassword,
-                onReplayOnboarding = onReplayOnboarding,
-                onDismissSaveFeedback = viewModel::clearSaveFeedback,
-                onDeleteAccount = viewModel::deleteAccount,
-                onDismissAccountFeedback = viewModel::clearAccountActionFeedback,
-                onSyncNow = viewModel::syncNow,
-                onSetAppLockEnabled = viewModel::setAppLockEnabled,
-            )
-            is SettingsUiState.Error -> ErrorState(
-                message = state.message,
-                onRetry = viewModel::ensureSettingsExist,
-            )
+            SettingsDestination.TASKS -> {
+                com.elmtrackr.app.ui.tasks.TaskManagementScreen(onBack = { destination = SettingsDestination.PAY })
+            }
+            SettingsDestination.TERMS -> {
+                LegalDocumentScreen(
+                    title = "Terms of Service",
+                    sections = LegalDocuments.termsOfService,
+                    lastUpdated = LegalDocuments.LAST_UPDATED,
+                    onBack = { destination = SettingsDestination.HELP },
+                )
+            }
+            SettingsDestination.SYNC_DETAILS -> {
+                SyncDetailsScreen(onBack = { destination = SettingsDestination.HELP })
+            }
+            else -> AuroraListScreen {
+                AuroraStateCrossfade(
+                    targetState = uiState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentKey = { state ->
+                        when (state) {
+                            is SettingsUiState.Loading -> "loading"
+                            is SettingsUiState.Ready -> "ready"
+                            is SettingsUiState.Error -> "error"
+                        }
+                    },
+                ) { key ->
+                    when (key) {
+                        "loading" -> Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.screenH),
+                        ) {
+                            SettingsPageHeader()
+                            SettingsSkeleton()
+                        }
+                        "ready" -> SettingsFormHost(
+                            state = uiState as SettingsUiState.Ready,
+                            destination = dest,
+                            authState = authState,
+                            onNavigate = { destination = it },
+                            onNavigateBack = { destination = SettingsDestination.HUB },
+                            onSave = viewModel::saveSettings,
+                            onSignOut = onSignOut,
+                            onTheme = viewModel::saveTheme,
+                            onResetPassword = viewModel::resetPassword,
+                            onReplayOnboarding = onReplayOnboarding,
+                            onDismissSaveFeedback = viewModel::clearSaveFeedback,
+                            onDeleteAccount = viewModel::deleteAccount,
+                            onDismissAccountFeedback = viewModel::clearAccountActionFeedback,
+                            onSyncNow = viewModel::syncNow,
+                            onSetAppLockEnabled = viewModel::setAppLockEnabled,
+                        )
+                        else -> ErrorState(
+                            message = (uiState as SettingsUiState.Error).message,
+                            onRetry = viewModel::ensureSettingsExist,
+                        )
+                    }
+                }
+            }
         }
     }
 }

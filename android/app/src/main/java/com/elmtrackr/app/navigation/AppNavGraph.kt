@@ -67,14 +67,14 @@ private fun rootEnterTransition() =
     if (!ValueAnimator.areAnimatorsEnabled()) {
         fadeIn(tween(0))
     } else {
-        fadeIn(tween(AuroraMotion.FadeMillis, easing = AuroraEaseOut))
+        fadeIn(tween(AuroraMotion.ContentCrossfadeMillis, easing = AuroraEaseOut))
     }
 
 private fun rootExitTransition() =
     if (!ValueAnimator.areAnimatorsEnabled()) {
         fadeOut(tween(0))
     } else {
-        fadeOut(tween(AuroraMotion.PressMillis))
+        fadeOut(tween(AuroraMotion.ContentCrossfadeMillis))
     }
 
 private fun rootPopEnterTransition() =

@@ -1,6 +1,11 @@
 package com.elmtrackr.app.ui.auth
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,11 +58,40 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.ui.design.AppLogo
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.design.AuroraMotion
+import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.auroraEnter
+import com.elmtrackr.app.ui.design.auroraSubScreenTransition
 
 private const val MIN_PASSWORD_LENGTH = 6
 
 private enum class AuthMode { SIGN_IN, SIGN_UP, FORGOT_PASSWORD }
+
+private fun authMotionOrder(state: AuthUiState): Int = when (state) {
+    AuthUiState.Loading -> 0
+    AuthUiState.NotConfigured -> 1
+    is AuthUiState.SignedOut -> 2
+    AuthUiState.PasswordResetSent -> 3
+    is AuthUiState.SignUpConfirmation -> 4
+    is AuthUiState.PasswordRecovery -> 5
+    is AuthUiState.SignedIn -> 6
+}
+
+private fun authContentKey(state: AuthUiState): String = when (state) {
+    AuthUiState.Loading -> "loading"
+    AuthUiState.NotConfigured -> "not-configured"
+    is AuthUiState.SignedOut -> "signed-out"
+    is AuthUiState.SignedIn -> "signed-in"
+    AuthUiState.PasswordResetSent -> "password-reset-sent"
+    is AuthUiState.PasswordRecovery -> "password-recovery"
+    is AuthUiState.SignUpConfirmation -> "sign-up-confirmation"
+}
+
+private fun authModeOrder(mode: AuthMode): Int = when (mode) {
+    AuthMode.SIGN_IN -> 0
+    AuthMode.SIGN_UP -> 1
+    AuthMode.FORGOT_PASSWORD -> 2
+}
 
 @Composable
 fun AuthScreen(
@@ -69,45 +103,60 @@ fun AuthScreen(
         modifier = Modifier.fillMaxSize(),
         color    = MaterialTheme.colorScheme.background,
     ) {
-        when (val s = state) {
-            is AuthUiState.Loading       -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
-            is AuthUiState.NotConfigured -> NotConfiguredContent()
-            is AuthUiState.SignedIn      -> SignedInContent(
-                profile   = s.profile,
-                isLoading = s.isLoading,
-                onSignOut = viewModel::signOut,
-            )
-            is AuthUiState.SignedOut -> SignedOutContent(
-                isLoading       = s.isLoading,
-                errorMessage    = s.errorMessage,
-                onSignIn        = { email, password -> viewModel.signIn(email, password) },
-                onSignUp        = { email, password -> viewModel.signUp(email, password) },
-                onResetPassword = { email -> viewModel.resetPassword(email) },
-                onClearError    = viewModel::clearError,
-            )
-            is AuthUiState.PasswordResetSent -> {
-                BackHandler(onBack = viewModel::dismissPasswordReset)
-                PasswordResetSentContent(
-                    onBack = viewModel::dismissPasswordReset,
+        AnimatedContent(
+            targetState = state,
+            contentKey = { authContentKey(it) },
+            transitionSpec = {
+                if (initialState is AuthUiState.Loading || targetState is AuthUiState.Loading) {
+                    fadeIn(tween(AuroraMotion.ContentCrossfadeMillis, easing = AuroraEaseOut)) togetherWith
+                        fadeOut(tween(AuroraMotion.ContentCrossfadeMillis))
+                } else {
+                    auroraSubScreenTransition(authMotionOrder(targetState) > authMotionOrder(initialState))
+                }
+            },
+            modifier = Modifier.fillMaxSize(),
+            label = "auth-screen",
+        ) { s ->
+            when (s) {
+                is AuthUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+                is AuthUiState.NotConfigured -> NotConfiguredContent()
+                is AuthUiState.SignedIn -> SignedInContent(
+                    profile = s.profile,
+                    isLoading = s.isLoading,
+                    onSignOut = viewModel::signOut,
                 )
-            }
-            is AuthUiState.PasswordRecovery -> {
-                BackHandler(onBack = viewModel::dismissPasswordRecovery)
-                PasswordRecoveryContent(
+                is AuthUiState.SignedOut -> SignedOutContent(
                     isLoading = s.isLoading,
                     errorMessage = s.errorMessage,
-                    onUpdatePassword = viewModel::updatePassword,
-                    onBack = viewModel::dismissPasswordRecovery,
+                    onSignIn = { email, password -> viewModel.signIn(email, password) },
+                    onSignUp = { email, password -> viewModel.signUp(email, password) },
+                    onResetPassword = { email -> viewModel.resetPassword(email) },
+                    onClearError = viewModel::clearError,
                 )
-            }
-            is AuthUiState.SignUpConfirmation -> {
-                BackHandler(onBack = viewModel::dismissSignUpConfirmation)
-                SignUpConfirmationContent(
-                    email = s.email,
-                    onBack = viewModel::dismissSignUpConfirmation,
-                )
+                is AuthUiState.PasswordResetSent -> {
+                    BackHandler(onBack = viewModel::dismissPasswordReset)
+                    PasswordResetSentContent(
+                        onBack = viewModel::dismissPasswordReset,
+                    )
+                }
+                is AuthUiState.PasswordRecovery -> {
+                    BackHandler(onBack = viewModel::dismissPasswordRecovery)
+                    PasswordRecoveryContent(
+                        isLoading = s.isLoading,
+                        errorMessage = s.errorMessage,
+                        onUpdatePassword = viewModel::updatePassword,
+                        onBack = viewModel::dismissPasswordRecovery,
+                    )
+                }
+                is AuthUiState.SignUpConfirmation -> {
+                    BackHandler(onBack = viewModel::dismissSignUpConfirmation)
+                    SignUpConfirmationContent(
+                        email = s.email,
+                        onBack = viewModel::dismissSignUpConfirmation,
+                    )
+                }
             }
         }
     }
@@ -262,139 +311,149 @@ internal fun SignedOutContent(
 
             Spacer(Modifier.height(40.dp))
 
-            Text(
-                text       = when (mode) {
-                    AuthMode.SIGN_IN        -> "Sign in"
-                    AuthMode.SIGN_UP        -> "Create account"
-                    AuthMode.FORGOT_PASSWORD -> "Reset password"
+            AnimatedContent(
+                targetState = mode,
+                transitionSpec = {
+                    auroraSubScreenTransition(authModeOrder(targetState) > authModeOrder(initialState))
                 },
-                style      = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
-                modifier   = Modifier.fillMaxWidth(),
-            )
+                label = "auth-mode",
+            ) { currentMode ->
+                Column(Modifier.fillMaxWidth()) {
+                    Text(
+                        text = when (currentMode) {
+                            AuthMode.SIGN_IN -> "Sign in"
+                            AuthMode.SIGN_UP -> "Create account"
+                            AuthMode.FORGOT_PASSWORD -> "Reset password"
+                        },
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
 
-            Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(20.dp))
 
-            OutlinedTextField(
-                value        = email,
-                onValueChange = { email = it; onClearError() },
-                label        = { Text("Email") },
-                leadingIcon  = { Icon(Icons.Filled.Email, contentDescription = null, tint = MaterialTheme.colorScheme.outline) },
-                isError      = emailError != null,
-                supportingText = emailError?.let { { Text(it) } },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction    = if (mode == AuthMode.FORGOT_PASSWORD) ImeAction.Done else ImeAction.Next,
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = { passwordFocusRequester.requestFocus() },
-                    onDone = {
-                        focusManager.clearFocus()
-                        if (canSubmit) onResetPassword(email)
-                    },
-                ),
-                singleLine = true,
-                modifier   = Modifier.fillMaxWidth(),
-            )
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it; onClearError() },
+                        label = { Text("Email") },
+                        leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null, tint = MaterialTheme.colorScheme.outline) },
+                        isError = emailError != null,
+                        supportingText = emailError?.let { { Text(it) } },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = if (currentMode == AuthMode.FORGOT_PASSWORD) ImeAction.Done else ImeAction.Next,
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { passwordFocusRequester.requestFocus() },
+                            onDone = {
+                                focusManager.clearFocus()
+                                if (canSubmit) onResetPassword(email)
+                            },
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
 
-            if (mode != AuthMode.FORGOT_PASSWORD) {
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value        = password,
-                    onValueChange = { password = it; onClearError() },
-                    label        = { Text("Password") },
-                    isError      = passwordError != null,
-                    supportingText = passwordError?.let { { Text(it) } },
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                imageVector        = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                tint               = MaterialTheme.colorScheme.outline,
-                            )
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction    = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
+                    if (currentMode != AuthMode.FORGOT_PASSWORD) {
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it; onClearError() },
+                            label = { Text("Password") },
+                            isError = passwordError != null,
+                            supportingText = passwordError?.let { { Text(it) } },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                        contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                        tint = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    focusManager.clearFocus()
+                                    if (canSubmit) {
+                                        if (currentMode == AuthMode.SIGN_IN) onSignIn(email, password)
+                                        else onSignUp(email, password)
+                                    }
+                                },
+                            ),
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(passwordFocusRequester),
+                        )
+                    }
+
+                    errorMessage?.let {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = it,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    ElmGradientButton(
+                        onClick = {
                             focusManager.clearFocus()
-                            if (canSubmit) {
-                                if (mode == AuthMode.SIGN_IN) onSignIn(email, password)
-                                else onSignUp(email, password)
+                            when (currentMode) {
+                                AuthMode.SIGN_IN -> onSignIn(email, password)
+                                AuthMode.SIGN_UP -> onSignUp(email, password)
+                                AuthMode.FORGOT_PASSWORD -> onResetPassword(email)
                             }
                         },
-                    ),
-                    singleLine = true,
-                    modifier   = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(passwordFocusRequester),
-                )
-            }
-
-            errorMessage?.let {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text     = it,
-                    color    = MaterialTheme.colorScheme.error,
-                    style    = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            ElmGradientButton(
-                onClick  = {
-                    focusManager.clearFocus()
-                    when (mode) {
-                        AuthMode.SIGN_IN         -> onSignIn(email, password)
-                        AuthMode.SIGN_UP         -> onSignUp(email, password)
-                        AuthMode.FORGOT_PASSWORD -> onResetPassword(email)
+                        enabled = canSubmit,
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White,
+                            )
+                        } else {
+                            Text(
+                                when (currentMode) {
+                                    AuthMode.SIGN_IN -> "Sign in"
+                                    AuthMode.SIGN_UP -> "Create account"
+                                    AuthMode.FORGOT_PASSWORD -> "Send reset email"
+                                },
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     }
-                },
-                enabled  = canSubmit,
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier    = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color       = Color.White,
-                    )
-                } else {
-                    Text(
-                        when (mode) {
-                            AuthMode.SIGN_IN         -> "Sign in"
-                            AuthMode.SIGN_UP         -> "Create account"
-                            AuthMode.FORGOT_PASSWORD -> "Send reset email"
-                        },
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
 
-            Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(8.dp))
 
-            when (mode) {
-                AuthMode.SIGN_IN -> {
-                    TextButton(onClick = { mode = AuthMode.SIGN_UP; onClearError() }) {
-                        Text("Don't have an account? Sign up", color = MaterialTheme.colorScheme.primary)
-                    }
-                    TextButton(onClick = { mode = AuthMode.FORGOT_PASSWORD; onClearError() }) {
-                        Text("Forgot password?", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                AuthMode.SIGN_UP -> {
-                    TextButton(onClick = { mode = AuthMode.SIGN_IN; onClearError() }) {
-                        Text("Already have an account? Sign in", color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-                AuthMode.FORGOT_PASSWORD -> {
-                    TextButton(onClick = { mode = AuthMode.SIGN_IN; onClearError() }) {
-                        Text("Back to sign in", color = MaterialTheme.colorScheme.primary)
+                    when (currentMode) {
+                        AuthMode.SIGN_IN -> {
+                            TextButton(onClick = { mode = AuthMode.SIGN_UP; onClearError() }) {
+                                Text("Don't have an account? Sign up", color = MaterialTheme.colorScheme.primary)
+                            }
+                            TextButton(onClick = { mode = AuthMode.FORGOT_PASSWORD; onClearError() }) {
+                                Text("Forgot password?", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        AuthMode.SIGN_UP -> {
+                            TextButton(onClick = { mode = AuthMode.SIGN_IN; onClearError() }) {
+                                Text("Already have an account? Sign in", color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                        AuthMode.FORGOT_PASSWORD -> {
+                            TextButton(onClick = { mode = AuthMode.SIGN_IN; onClearError() }) {
+                                Text("Back to sign in", color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
                     }
                 }
             }
