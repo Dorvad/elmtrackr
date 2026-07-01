@@ -224,6 +224,7 @@ private fun ShiftsListContent(
                                 shift = shift,
                                 settings = state.settings,
                                 profiles = state.profiles,
+                                allShiftsForPay = state.shifts,
                                 showRefunds = state.featuresTravelRefunds,
                                 grouped = true,
                                 entranceIndex = rowIndex,

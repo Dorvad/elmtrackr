@@ -3,6 +3,7 @@ package com.elmtrackr.app.domain.compensation
 import com.elmtrackr.app.domain.WeekendRules
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CompensationSnapshot
+import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.ResolvedCompensation
 import com.elmtrackr.app.domain.model.Shift
@@ -44,6 +45,16 @@ object CompensationResolver {
             dailyStandardMinutes = settings.dailyOvertimeThresholdMinutes,
             weeklyStandardMinutes = settings.weeklyOvertimeThresholdMinutes,
             weekendDays = settings.weekendDays,
+            dailyOvertimeTiers = remapOvertimeTiers(
+                preset.rules.dailyOvertimeTiers,
+                preset.rules.dailyStandardMinutes,
+                settings.dailyOvertimeThresholdMinutes,
+            ),
+            weeklyOvertimeTiers = remapOvertimeTiers(
+                preset.rules.weeklyOvertimeTiers,
+                preset.rules.weeklyStandardMinutes,
+                settings.weeklyOvertimeThresholdMinutes,
+            ),
         )
         return ResolvedCompensation(
             profileId = null,
@@ -56,6 +67,16 @@ object CompensationResolver {
             stackingPolicy = preset.stackingPolicy,
             fromSnapshot = false,
         )
+    }
+
+    private fun remapOvertimeTiers(
+        tiers: List<OvertimeTier>,
+        presetStandardMinutes: Int,
+        userStandardMinutes: Int,
+    ): List<OvertimeTier> {
+        if (tiers.isEmpty() || presetStandardMinutes == userStandardMinutes) return tiers
+        val delta = userStandardMinutes - presetStandardMinutes
+        return tiers.map { OvertimeTier(it.afterMinutes + delta, it.multiplier) }
     }
 
     fun isWeekendShift(
@@ -157,6 +178,7 @@ object CompensationCurrency {
         regionCode == RegionCode.IL || timezone == "Asia/Jerusalem" -> "ILS"
         regionCode == RegionCode.GB -> "GBP"
         regionCode == RegionCode.EU -> "EUR"
+        regionCode == RegionCode.US || regionCode == RegionCode.US_CA -> "USD"
         else -> "USD"
     }
 }

@@ -46,7 +46,7 @@ object TaskMonthlyReportBuilder {
                 regularMinutes += breakdown.regularMinutes
                 overtimeMinutes += breakdown.overtimeMinutes
                 weekendMinutes += breakdown.weekendMinutes
-                PayrollCalculator.calculateShiftPay(shift, settings, profiles)?.let { pay ->
+                PayrollCalculator.calculateShiftPayInContext(shift, completed, settings, profiles)?.let { pay ->
                     totalPay += pay.totalGross
                     payKnown = true
                 }

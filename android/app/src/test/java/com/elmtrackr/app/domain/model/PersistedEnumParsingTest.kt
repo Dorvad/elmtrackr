@@ -28,6 +28,7 @@ class PersistedEnumParsingTest {
     @Test
     fun regionCode_fromPersisted_handles_web_values() {
         assertEquals(RegionCode.GB, RegionCode.fromPersisted("gb"))
+        assertEquals(RegionCode.US_CA, RegionCode.fromPersisted("us_ca"))
         assertEquals(RegionCode.IL, RegionCode.fromPersisted("unknown"))
     }
 
