@@ -92,7 +92,7 @@ class ScreenshotRegressionTest {
     @Test
     fun onboardingWorkWeek() = verify("onboarding-work-week") {
         OnboardingTestColumn(4) {
-            WorkWeekStep(listOf(5, 6), "8", "40", "Asia/Jerusalem", {}, {}, {}, true, {}, {})
+            WorkWeekStep(listOf(5, 6), "8", "40", "Asia/Jerusalem", {}, {}, {}, {}, true, {}, {})
         }
     }
 

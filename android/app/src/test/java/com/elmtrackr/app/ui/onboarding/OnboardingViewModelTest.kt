@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.onboarding
 
+import com.elmtrackr.app.ScreenshotTestApplication
+import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.UserSettings
@@ -17,9 +19,15 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33], application = ScreenshotTestApplication::class)
 class OnboardingViewModelTest {
 
     @get:Rule
