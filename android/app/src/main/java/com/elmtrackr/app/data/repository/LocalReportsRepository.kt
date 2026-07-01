@@ -11,8 +11,11 @@ import com.elmtrackr.app.domain.repository.ReportsRepository
 import com.elmtrackr.app.domain.time.WorkTimezone
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class LocalReportsRepository(
+@Singleton
+class LocalReportsRepository @Inject constructor(
     private val shiftDao: ShiftDao,
     private val settingsDao: SettingsDao,
 ) : ReportsRepository {

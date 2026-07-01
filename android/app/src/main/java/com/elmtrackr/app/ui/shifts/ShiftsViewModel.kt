@@ -1,11 +1,7 @@
 package com.elmtrackr.app.ui.shifts
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.domain.CurrentUserProvider
@@ -41,16 +37,19 @@ import com.elmtrackr.app.domain.tasks.TaskSnapshotApplier
 import java.time.Instant
 import java.time.YearMonth
 import java.util.UUID
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ShiftsViewModel(
+@HiltViewModel
+class ShiftsViewModel @Inject constructor(
     private val shiftsRepository: ShiftsRepository,
     private val settingsRepository: SettingsRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
     private val tasksRepository: TasksRepository,
     private val currentUserProvider: CurrentUserProvider,
     private val refundsRepository: RefundsRepository,
-    private val refundReceiptStorage: RefundReceiptStorage? = null,
+    private val refundReceiptStorage: RefundReceiptStorage?,
 ) : ViewModel() {
 
     private val _formTarget = MutableStateFlow<ShiftFormNavState?>(null)
@@ -370,23 +369,5 @@ class ShiftsViewModel(
             errors["breakMinutes"] = "Break minutes must be zero or positive"
         }
         return errors
-    }
-
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                @Suppress("UNCHECKED_CAST")
-                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
-                ShiftsViewModel(
-                    app.shiftsRepository,
-                    app.settingsRepository,
-                    app.compensationProfilesRepository,
-                    app.tasksRepository,
-                    app.currentUserProvider,
-                    app.refundsRepository,
-                    app.refundReceiptStorage,
-                )
-            }
-        }
     }
 }

@@ -1,11 +1,7 @@
 package com.elmtrackr.app.ui.settings
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.data.sync.SyncDetails
 import com.elmtrackr.app.data.sync.SyncRepository
 import com.elmtrackr.app.data.sync.SyncTrigger
@@ -19,6 +15,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 sealed interface SyncDetailsUiState {
     data object Loading : SyncDetailsUiState
@@ -32,7 +30,8 @@ sealed interface SyncDetailsUiState {
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class SyncDetailsViewModel(
+@HiltViewModel
+class SyncDetailsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val syncRepository: SyncRepository,
     private val syncTrigger: SyncTrigger,
@@ -100,15 +99,5 @@ class SyncDetailsViewModel(
 
     fun clearMessage() {
         _message.value = null
-    }
-
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                @Suppress("UNCHECKED_CAST")
-                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
-                SyncDetailsViewModel(app.authRepository, app.syncRepository, app.syncTrigger)
-            }
-        }
     }
 }

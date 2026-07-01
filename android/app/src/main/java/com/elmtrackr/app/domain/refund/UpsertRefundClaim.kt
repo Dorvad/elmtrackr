@@ -12,6 +12,7 @@ import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import kotlinx.coroutines.flow.first
 import java.time.Instant
+import javax.inject.Inject
 
 data class RefundClaimUpsertInput(
     val shiftId: String,
@@ -29,7 +30,7 @@ data class RefundClaimUpsertResult(
     val receiptUploadFailed: Boolean,
 )
 
-class UpsertRefundClaim(
+class UpsertRefundClaim @Inject constructor(
     private val refundsRepository: RefundsRepository,
     private val shiftsRepository: ShiftsRepository,
     private val currentUserProvider: CurrentUserProvider,

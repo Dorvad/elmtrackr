@@ -1,22 +1,30 @@
 package com.elmtrackr.app.widget
 
 import android.content.Context
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.domain.CurrentUserProvider
+import com.elmtrackr.app.domain.repository.SettingsRepository
+import com.elmtrackr.app.domain.repository.ShiftsRepository
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.ZoneId
 
-class WidgetRefreshWorker(
-    appContext: Context,
-    params: WorkerParameters,
-) : CoroutineWorker(appContext, params) {
+@HiltWorker
+class WidgetRefreshWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val currentUserProvider: CurrentUserProvider,
+    private val shiftsRepository: ShiftsRepository,
+    private val settingsRepository: SettingsRepository,
+) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        val app = applicationContext as ElmTrackrApp
-        val userId = app.currentUserProvider.currentUserId() ?: return Result.success()
-        val active = app.shiftsRepository.observeActiveShift(userId).first()
+        val userId = currentUserProvider.currentUserId() ?: return Result.success()
+        val active = shiftsRepository.observeActiveShift(userId).first()
         if (active == null) {
             WidgetTimerScheduler.cancel(applicationContext)
             return Result.success()
@@ -24,14 +32,14 @@ class WidgetRefreshWorker(
 
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
-        val todayShifts = app.shiftsRepository
+        val todayShifts = shiftsRepository
             .observeShiftsByMonth(userId, today.year, today.monthValue)
             .first()
-        val lastCompleted = app.shiftsRepository
+        val lastCompleted = shiftsRepository
             .observeRecentCompletedShifts(userId, limit = 1)
             .first()
             .firstOrNull()
-        val settings = app.settingsRepository.getSettings(userId)
+        val settings = settingsRepository.getSettings(userId)
         ElmTrackrWidgetUpdater.update(
             applicationContext,
             WidgetContext(

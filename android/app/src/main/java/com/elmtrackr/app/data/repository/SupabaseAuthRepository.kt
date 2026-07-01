@@ -5,6 +5,7 @@ import com.elmtrackr.app.data.auth.AuthCallbackParser
 import com.elmtrackr.app.data.auth.AuthCallbackPayload
 import com.elmtrackr.app.data.auth.AuthErrorMapper
 import com.elmtrackr.app.data.auth.AuthOperation
+import com.elmtrackr.app.data.auth.AuthSessionCoordinator
 import com.elmtrackr.app.data.local.dao.ProfileDao
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.mapper.toDomain
@@ -37,13 +38,18 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import java.time.Instant
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class SupabaseAuthRepository(
+@Singleton
+class SupabaseAuthRepository @Inject constructor(
     private val profileDao: ProfileDao,
     private val appPrefs: AppPreferencesRepository,
     private val localUserDataCleaner: LocalUserDataCleaner,
-    private val onAuthenticated: suspend (String) -> Unit = {},
+    authSessionCoordinator: AuthSessionCoordinator,
 ) : AuthRepository {
+
+    private val onAuthenticated: suspend (String) -> Unit = authSessionCoordinator::onUserAuthenticated
 
     private companion object {
         const val AUTH_CALLBACK = "elmtrackr://auth/callback"

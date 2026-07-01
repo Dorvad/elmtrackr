@@ -1,11 +1,10 @@
 package com.elmtrackr.app.wear
 
 import android.content.Context
-import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.security.AppLockActionGuard
 import com.elmtrackr.app.shortcuts.ClockOutActions
 import com.elmtrackr.app.domain.tasks.TaskClockInHelper
-import com.elmtrackr.app.wear.WearSyncPublisher
 import com.elmtrackr.wear.sync.PunchResult
 
 object WearActions {
@@ -14,14 +13,18 @@ object WearActions {
         if (AppLockActionGuard.blockIfLocked(context)) {
             return PunchResult(success = false, errorCode = "app_locked")
         }
-        val app = context.applicationContext as ElmTrackrApp
-        val userId = app.currentUserProvider.currentUserId()
+        val deps = AppEntryPoints.background(context)
+        val userId = deps.currentUserProvider().currentUserId()
             ?: return PunchResult(success = false, errorCode = "not_signed_in")
-        val settings = app.settingsRepository.getSettings(userId)
+        val settings = deps.settingsRepository().getSettings(userId)
         return runCatching {
-            val task = TaskClockInHelper.resolveAutoTask(app.tasksRepository, app.shiftsRepository, userId)
+            val task = TaskClockInHelper.resolveAutoTask(
+                deps.tasksRepository(),
+                deps.shiftsRepository(),
+                userId,
+            )
             val params = TaskClockInHelper.paramsFromTask(task)
-            app.shiftsRepository.clockIn(
+            deps.shiftsRepository().clockIn(
                 userId = userId,
                 compensationProfileId = settings?.defaultCompensationProfileId,
                 taskId = params.taskId,
@@ -29,7 +32,7 @@ object WearActions {
                 taskIconSnapshot = params.taskIconSnapshot,
                 taskHourlyRateSnapshot = params.taskHourlyRateSnapshot,
             )
-            task?.let { app.tasksRepository.markTaskUsed(userId, it.id) }
+            task?.let { deps.tasksRepository().markTaskUsed(userId, it.id) }
             WearSyncPublisher.refresh(context)
             PunchResult(success = true)
         }.getOrElse {

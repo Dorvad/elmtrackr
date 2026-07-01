@@ -66,7 +66,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.RegionCode
@@ -88,7 +88,7 @@ private val DAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 fun OnboardingScreen(
     replay: Boolean = false,
     onCompleted: () -> Unit = {},
-    viewModel: OnboardingViewModel = viewModel(factory = OnboardingViewModel.Factory),
+    viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
     val initialSettings by viewModel.initialSettings.collectAsState()

@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt.android)
 }
 
 val localPropsFile = rootProject.file("local.properties")
@@ -136,6 +137,11 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.sqlcipher.android)
     implementation(libs.androidx.sqlite)
+
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.work)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

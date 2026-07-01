@@ -25,7 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.UserSettings
@@ -54,7 +54,7 @@ internal enum class SettingsDestination {
 
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
+    viewModel: SettingsViewModel = hiltViewModel(),
     authState: AuthUiState? = null,
     onSignOut: () -> Unit = {},
     onReplayOnboarding: () -> Unit = {},

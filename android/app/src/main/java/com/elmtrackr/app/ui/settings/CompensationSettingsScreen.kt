@@ -44,7 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.compensation.COMPENSATION_DISCLAIMER
 import com.elmtrackr.app.domain.compensation.COMPENSATION_PROFILE_HELPER
 import com.elmtrackr.app.domain.compensation.COMPENSATION_RULES_GUIDANCE
@@ -64,7 +64,7 @@ import kotlin.math.roundToInt
 @Composable
 fun CompensationSettingsScreen(
     onBack: () -> Unit,
-    viewModel: CompensationSettingsViewModel = viewModel(factory = CompensationSettingsViewModel.Factory),
+    viewModel: CompensationSettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     LaunchedEffect(Unit) { viewModel.ensureLoaded() }

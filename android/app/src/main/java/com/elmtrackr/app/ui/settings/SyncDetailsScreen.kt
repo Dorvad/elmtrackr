@@ -25,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.data.sync.SyncDetails
 import com.elmtrackr.app.data.sync.SyncFailedRow
 import com.elmtrackr.app.data.sync.SyncPendingByType
@@ -40,7 +40,7 @@ import java.util.Locale
 @Composable
 fun SyncDetailsScreen(
     onBack: () -> Unit,
-    viewModel: SyncDetailsViewModel = viewModel(factory = SyncDetailsViewModel.Factory),
+    viewModel: SyncDetailsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current

@@ -91,7 +91,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.MoneyFormatter
@@ -145,7 +145,7 @@ private val headerGradient = Brush.linearGradient(
 
 @Composable
 fun DashboardScreen(
-    viewModel: DashboardViewModel = viewModel(factory = DashboardViewModel.Factory),
+    viewModel: DashboardViewModel = hiltViewModel(),
     onNavigateToReports: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()

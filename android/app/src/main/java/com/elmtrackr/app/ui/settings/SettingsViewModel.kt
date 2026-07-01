@@ -1,11 +1,7 @@
 package com.elmtrackr.app.ui.settings
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.elmtrackr.app.ElmTrackrApp
 import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
@@ -33,6 +29,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
 import kotlin.math.roundToInt
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 enum class FeatureFlag { TRAVEL_REFUNDS, PAID_PROJECTS, INSIGHTS, CLOCK_STYLES, OVERTIME_REMINDERS }
 
@@ -45,7 +43,8 @@ data class SettingsFeatureFlags(
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class SettingsViewModel(
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val authRepository: AuthRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
@@ -407,23 +406,5 @@ class SettingsViewModel(
         }
         if (hourlyRate != null && hourlyRate < 0.0) errors["hourlyRate"] = "Must be zero or positive"
         return errors
-    }
-
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                @Suppress("UNCHECKED_CAST")
-                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ElmTrackrApp
-                SettingsViewModel(
-                    settingsRepository = app.settingsRepository,
-                    authRepository = app.authRepository,
-                    compensationProfilesRepository = app.compensationProfilesRepository,
-                    themeStore = AppThemePreferenceStore(app.appPreferences),
-                    syncRepository = app.syncRepository,
-                    syncTrigger = app.syncTrigger,
-                    appPreferences = app.appPreferences,
-                )
-            }
-        }
     }
 }

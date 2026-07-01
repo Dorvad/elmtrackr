@@ -70,7 +70,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.model.CurrencyCode
@@ -97,7 +97,7 @@ fun RefundClaimsSection(
     shift: Shift,
     currency: CurrencyCode,
     modifier: Modifier = Modifier,
-    viewModel: RefundClaimViewModel = viewModel(factory = RefundClaimViewModel.Factory),
+    viewModel: RefundClaimViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(shift) { viewModel.setShift(shift) }
     val state by viewModel.uiState.collectAsState()

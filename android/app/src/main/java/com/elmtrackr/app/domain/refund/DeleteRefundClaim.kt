@@ -6,12 +6,13 @@ import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import kotlinx.coroutines.flow.first
 import java.time.Instant
+import javax.inject.Inject
 
 data class DeleteRefundClaimResult(
     val receiptDeleteFailed: Boolean,
 )
 
-class DeleteRefundClaim(
+class DeleteRefundClaim @Inject constructor(
     private val refundsRepository: RefundsRepository,
     private val shiftsRepository: ShiftsRepository,
     private val refundReceiptStorage: RefundReceiptStorage?,

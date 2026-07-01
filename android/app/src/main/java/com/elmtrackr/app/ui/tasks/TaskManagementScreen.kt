@@ -44,7 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.tasks.TaskDefaultRulesBuilder
 import com.elmtrackr.app.ui.components.states.ErrorState
@@ -58,7 +58,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun TaskManagementScreen(
     onBack: () -> Unit,
-    viewModel: TaskManagementViewModel = viewModel(factory = TaskManagementViewModel.Factory),
+    viewModel: TaskManagementViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
 

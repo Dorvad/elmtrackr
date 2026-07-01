@@ -3,7 +3,7 @@ package com.elmtrackr.app.notification
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,20 +25,20 @@ class ClockOutReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                val app = context.applicationContext as ElmTrackrApp
-                val userId = app.currentUserProvider.currentUserId()
+                val deps = AppEntryPoints.background(context)
+                val userId = deps.currentUserProvider().currentUserId()
                 if (userId != null) {
-                    val shift = app.shiftsRepository.getShiftById(shiftId)
-                    val settings = app.settingsRepository.getSettings(userId)
+                    val shift = deps.shiftsRepository().getShiftById(shiftId)
+                    val settings = deps.settingsRepository().getSettings(userId)
                     if (shift != null && settings != null) {
-                        val profiles = app.compensationProfilesRepository.getProfiles(userId)
+                        val profiles = deps.compensationProfilesRepository().getProfiles(userId)
                         val snapshot = ShiftCompensationHelper.buildClockOutSnapshot(shift, settings, profiles)
-                        app.shiftsRepository.clockOut(shiftId, compensationSnapshot = snapshot)
+                        deps.shiftsRepository().clockOut(shiftId, compensationSnapshot = snapshot)
                     } else {
-                        app.shiftsRepository.clockOut(shiftId)
+                        deps.shiftsRepository().clockOut(shiftId)
                     }
                 } else {
-                    app.shiftsRepository.clockOut(shiftId)
+                    deps.shiftsRepository().clockOut(shiftId)
                 }
                 val nm = ActiveShiftNotificationManager(context.applicationContext)
                 nm.cancelActiveShiftNotification()

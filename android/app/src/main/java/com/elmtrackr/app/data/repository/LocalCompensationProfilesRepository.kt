@@ -18,11 +18,14 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Instant
 import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class LocalCompensationProfilesRepository(
+@Singleton
+class LocalCompensationProfilesRepository @Inject constructor(
     private val profileDao: CompensationProfileDao,
     private val settingsRepository: SettingsRepository,
-    private val syncTrigger: SyncTrigger = com.elmtrackr.app.data.sync.NoOpSyncTrigger,
+    private val syncTrigger: SyncTrigger,
 ) : CompensationProfilesRepository {
 
     private val migrationMutex = Mutex()

@@ -6,9 +6,12 @@ import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.dao.TaskDao
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /** Removes all Room rows for a user after account deletion or local wipe. */
-class LocalUserDataCleaner(
+@Singleton
+class LocalUserDataCleaner @Inject constructor(
     private val shiftDao: ShiftDao,
     private val settingsDao: SettingsDao,
     private val profileDao: ProfileDao,

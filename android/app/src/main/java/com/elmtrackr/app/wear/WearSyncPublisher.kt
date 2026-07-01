@@ -1,7 +1,7 @@
 package com.elmtrackr.app.wear
 
 import android.content.Context
-import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.widget.WidgetContext
 import com.elmtrackr.app.widget.WidgetShiftState
 import com.elmtrackr.app.widget.WidgetStateMapper
@@ -31,8 +31,8 @@ object WearSyncPublisher {
     }
 
     suspend fun publishFromWidgetContext(context: Context, widgetContext: WidgetContext) {
-        val app = context.applicationContext as ElmTrackrApp
-        val userId = app.currentUserProvider.currentUserId()
+        val deps = AppEntryPoints.background(context)
+        val userId = deps.currentUserProvider().currentUserId()
         if (userId == null) {
             publishSnapshot(context, WearShiftSnapshot.signedOut())
             return
@@ -46,23 +46,23 @@ object WearSyncPublisher {
     }
 
     suspend fun refresh(context: Context) {
-        val app = context.applicationContext as ElmTrackrApp
-        val userId = app.currentUserProvider.currentUserId()
+        val deps = AppEntryPoints.background(context)
+        val userId = deps.currentUserProvider().currentUserId()
         if (userId == null) {
             publishSnapshot(context, WearShiftSnapshot.signedOut())
             return
         }
-        val shift = app.shiftsRepository.observeActiveShift(userId).first()
-        val lastCompleted = app.shiftsRepository
+        val shift = deps.shiftsRepository().observeActiveShift(userId).first()
+        val lastCompleted = deps.shiftsRepository()
             .observeRecentCompletedShifts(userId, limit = 1)
             .first()
             .firstOrNull()
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
-        val todayShifts = app.shiftsRepository
+        val todayShifts = deps.shiftsRepository()
             .observeShiftsByMonth(userId, today.year, today.monthValue)
             .first()
-        val settings = app.settingsRepository.getSettings(userId)
+        val settings = deps.settingsRepository().getSettings(userId)
         publishFromWidgetContext(
             context,
             WidgetContext(

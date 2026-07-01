@@ -1,8 +1,10 @@
 package com.elmtrackr.app.notification
 
-import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.repository.SettingsRepository
+import com.elmtrackr.app.domain.repository.ShiftsRepository
 import kotlinx.coroutines.flow.firstOrNull
 
 internal data class OvertimeReminderContext(
@@ -12,10 +14,14 @@ internal data class OvertimeReminderContext(
 )
 
 internal object OvertimeReminderSupport {
-    suspend fun loadContext(app: ElmTrackrApp): OvertimeReminderContext? {
-        val userId = app.currentUserProvider.currentUserId() ?: return null
-        val shift = app.shiftsRepository.observeActiveShift(userId).firstOrNull() ?: return null
-        val settings = app.settingsRepository.getSettings(userId) ?: return null
+    suspend fun loadContext(
+        currentUserProvider: CurrentUserProvider,
+        shiftsRepository: ShiftsRepository,
+        settingsRepository: SettingsRepository,
+    ): OvertimeReminderContext? {
+        val userId = currentUserProvider.currentUserId() ?: return null
+        val shift = shiftsRepository.observeActiveShift(userId).firstOrNull() ?: return null
+        val settings = settingsRepository.getSettings(userId) ?: return null
         if (!settings.featuresOvertimeReminders) return null
         val threshold = settings.dailyOvertimeThresholdMinutes
             .takeIf { it > 0 }

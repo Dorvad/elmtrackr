@@ -37,7 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.ElmEmptyState
@@ -52,7 +52,7 @@ import java.time.YearMonth
 
 @Composable
 fun ShiftsScreen(
-    viewModel: ShiftsViewModel = viewModel(factory = ShiftsViewModel.Factory),
+    viewModel: ShiftsViewModel = hiltViewModel(),
     pendingEditShiftId: String? = null,
     onPendingEditConsumed: () -> Unit = {},
     onFormVisibilityChanged: (Boolean) -> Unit = {},
