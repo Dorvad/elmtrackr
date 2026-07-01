@@ -39,7 +39,7 @@ fun Modifier.auroraEnter(
     offsetY: Dp = 10.dp,
     durationMillis: Int = AuroraMotion.RiseMillis,
 ): Modifier {
-    if (LocalInspectionMode.current || !ValueAnimator.areAnimatorsEnabled()) return this
+    if (!auroraMotionEnabled()) return this
 
     var visible by remember { mutableStateOf(false) }
     val alpha by animateFloatAsState(
@@ -72,7 +72,7 @@ fun Modifier.auroraPressScale(
 ): Modifier {
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed && ValueAnimator.areAnimatorsEnabled()) pressedScale else 1f,
+        targetValue = if (pressed && auroraMotionEnabled()) pressedScale else 1f,
         animationSpec = tween(AuroraMotion.PressMillis, easing = AuroraSoftEase),
         label = "aurora-press-scale",
     )

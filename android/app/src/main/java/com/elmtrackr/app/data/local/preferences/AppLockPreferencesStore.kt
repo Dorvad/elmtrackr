@@ -7,4 +7,5 @@ import kotlinx.coroutines.flow.asStateFlow
 interface AppLockPreferencesStore {
     val preferences: Flow<AppPreferenceValues>
     suspend fun setAppLockEnabled(enabled: Boolean)
+    suspend fun setReduceMotion(enabled: Boolean)
 }

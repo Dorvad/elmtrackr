@@ -92,8 +92,10 @@ import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.model.TaskMonthlyBreakdown
 import com.elmtrackr.app.domain.model.WeeklyTotals
 import com.elmtrackr.app.ui.components.states.ErrorState
+import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraScreen
 import com.elmtrackr.app.ui.design.AuroraStateCrossfade
+import com.elmtrackr.app.ui.design.LocalReduceMotion
 import com.elmtrackr.app.ui.layout.isTabletLayout
 import com.elmtrackr.app.ui.design.ElmEmptyState
 import com.elmtrackr.app.ui.design.ElmStatCard
@@ -904,7 +906,7 @@ internal fun HoursReport(
                     Modifier.padding(vertical = 10.dp),
                     color = MaterialTheme.colorScheme.outlineVariant,
                 )
-                WeekRow(week, maxMinutes, state.settings)
+                WeekRow(week, maxMinutes, state.settings, rowIndex = index)
             }
         }
     }
@@ -1236,9 +1238,18 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: CurrencyCode)
 // ── Weekly breakdown row ──────────────────────────────────────────────────────
 
 @Composable
-private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?) {
+private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?, rowIndex: Int) {
     val pct = if (maxMinutes > 0) (week.totalMinutes.toFloat() / maxMinutes).coerceIn(0f, 1f) else 0f
-    val animatedPct by animateFloatAsState(pct, animationSpec = tween(700), label = "bar-${week.label}")
+    val reduceMotion = LocalReduceMotion.current
+    val animatedPct by animateFloatAsState(
+        targetValue = pct,
+        animationSpec = if (reduceMotion) {
+            tween(0)
+        } else {
+            tween(durationMillis = 700, delayMillis = rowIndex * 40, easing = AuroraEaseOut)
+        },
+        label = "bar-${week.label}",
+    )
     val showDelta = week.prevMonthMinutes > 0
     val delta = week.totalMinutes - week.prevMonthMinutes
 

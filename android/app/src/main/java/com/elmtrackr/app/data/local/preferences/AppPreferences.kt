@@ -24,6 +24,7 @@ object AppPreferenceKeys {
     val LEGACY_DATA_ADOPTED = booleanPreferencesKey("legacy_data_adopted")
     val NOTIFICATION_PERMISSION_PROMPTED = booleanPreferencesKey("notification_permission_prompted")
     val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
+    val REDUCE_MOTION = booleanPreferencesKey("reduce_motion")
 }
 
 data class AppPreferenceValues(
@@ -34,6 +35,7 @@ data class AppPreferenceValues(
     val deviceId: String? = null,
     val legacyDataAdopted: Boolean = false,
     val appLockEnabled: Boolean = false,
+    val reduceMotionEnabled: Boolean = false,
 )
 
 class AppPreferencesRepository(private val context: Context) :
@@ -51,6 +53,7 @@ class AppPreferencesRepository(private val context: Context) :
                 deviceId = prefs[AppPreferenceKeys.DEVICE_ID],
                 legacyDataAdopted = prefs[AppPreferenceKeys.LEGACY_DATA_ADOPTED] ?: false,
                 appLockEnabled = prefs[AppPreferenceKeys.APP_LOCK_ENABLED] ?: false,
+                reduceMotionEnabled = prefs[AppPreferenceKeys.REDUCE_MOTION] ?: false,
             )
         }
 
@@ -85,5 +88,9 @@ class AppPreferencesRepository(private val context: Context) :
 
     override suspend fun setAppLockEnabled(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.APP_LOCK_ENABLED] = enabled }
+    }
+
+    override suspend fun setReduceMotion(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[AppPreferenceKeys.REDUCE_MOTION] = enabled }
     }
 }

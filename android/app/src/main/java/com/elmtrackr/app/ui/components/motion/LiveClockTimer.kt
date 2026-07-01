@@ -1,6 +1,5 @@
 package com.elmtrackr.app.ui.components.motion
 
-import android.animation.ValueAnimator
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -19,10 +18,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import com.elmtrackr.app.ui.design.AuroraSoftEase
+import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import java.time.Duration
 
 @Composable
@@ -85,7 +84,7 @@ private fun AnimatedDigitPair(
     color: Color,
     textAlign: TextAlign?,
 ) {
-    val animationsEnabled = !LocalInspectionMode.current && ValueAnimator.areAnimatorsEnabled()
+    val animationsEnabled = auroraMotionEnabled()
     value.forEach { digit ->
         if (animationsEnabled) {
             AnimatedContent(
@@ -105,7 +104,7 @@ private fun AnimatedDigitPair(
 
 @Composable
 fun Modifier.activeShiftPulse(active: Boolean): Modifier {
-    if (!active || LocalInspectionMode.current || !ValueAnimator.areAnimatorsEnabled()) return this
+    if (!active || !auroraMotionEnabled()) return this
     val infiniteTransition = rememberInfiniteTransition(label = "active-shift-pulse")
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
