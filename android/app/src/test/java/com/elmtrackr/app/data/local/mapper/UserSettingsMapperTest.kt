@@ -73,9 +73,9 @@ class UserSettingsMapperTest {
     }
 
     @Test
-    fun `toDomain parses FELLOWSHIP clockStyle`() {
-        assertEquals(ClockStyle.FELLOWSHIP, entity(clockStyle = "FELLOWSHIP").toDomain().clockStyle)
-        assertEquals(ClockStyle.FELLOWSHIP, entity(clockStyle = "fellowship").toDomain().clockStyle)
+    fun `toDomain maps removed FELLOWSHIP clockStyle to CLASSIC`() {
+        assertEquals(ClockStyle.CLASSIC, entity(clockStyle = "FELLOWSHIP").toDomain().clockStyle)
+        assertEquals(ClockStyle.CLASSIC, entity(clockStyle = "fellowship").toDomain().clockStyle)
     }
 
     @Test
