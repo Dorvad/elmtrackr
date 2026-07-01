@@ -43,6 +43,12 @@ interface SettingsDao {
     suspend fun getPendingSyncSettings(userId: String): List<UserSettingsEntity>
 
     @Query(
+        "SELECT EXISTS(SELECT 1 FROM user_settings WHERE userId = :userId AND syncStatus IN " +
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED') LIMIT 1)",
+    )
+    suspend fun hasPendingSyncSettings(userId: String): Boolean
+
+    @Query(
         "UPDATE user_settings SET syncStatus = :syncStatus, remoteId = :remoteId, " +
             "lastSyncedAt = :lastSyncedAt, lastSyncError = :lastSyncError " +
             "WHERE localId = :localId"

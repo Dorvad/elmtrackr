@@ -21,6 +21,12 @@ interface TaskDao {
     suspend fun getPendingSyncTasks(userId: String): List<TaskEntity>
 
     @Query(
+        "SELECT EXISTS(SELECT 1 FROM tasks WHERE userId = :userId AND syncStatus IN " +
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED') LIMIT 1)",
+    )
+    suspend fun hasPendingSyncTasks(userId: String): Boolean
+
+    @Query(
         "SELECT * FROM tasks WHERE userId = :userId AND syncStatus IN " +
             "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')",
     )

@@ -2,6 +2,7 @@ package com.elmtrackr.app.domain
 
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.model.ShiftBreakdown
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.TaskMonthlyBreakdown
 import com.elmtrackr.app.domain.model.UserSettings
@@ -18,6 +19,12 @@ object TaskMonthlyReportBuilder {
         if (completed.isEmpty()) return emptyList()
 
         val taskById = tasks.associateBy { it.id }
+        val breakdownCache = mutableMapOf<String, ShiftBreakdown>()
+        fun breakdownFor(shift: Shift): ShiftBreakdown =
+            breakdownCache.getOrPut(shift.id) {
+                MonthlyReportBuilder.buildShiftBreakdown(shift, settings)
+            }
+
         val grouped = completed.groupBy { shift ->
             shift.taskId?.let { "id:$it" }
                 ?: shift.taskNameSnapshot?.let { "name:${it.trim().lowercase()}" }
@@ -41,7 +48,7 @@ object TaskMonthlyReportBuilder {
             var payKnown = false
 
             for (shift in groupShifts) {
-                val breakdown = MonthlyReportBuilder.buildShiftBreakdown(shift, settings)
+                val breakdown = breakdownFor(shift)
                 totalMinutes += breakdown.totalMinutes
                 regularMinutes += breakdown.regularMinutes
                 overtimeMinutes += breakdown.overtimeMinutes
