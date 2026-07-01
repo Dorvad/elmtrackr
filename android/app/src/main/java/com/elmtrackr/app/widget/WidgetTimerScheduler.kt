@@ -10,12 +10,14 @@ object WidgetTimerScheduler {
 
     private const val WORK_NAME = "elmtrackr_widget_timer_refresh"
 
+    private const val REFRESH_INTERVAL_SECONDS = 10L
+
     fun schedule(context: Context) {
         WorkManager.getInstance(context).enqueueUniqueWork(
             WORK_NAME,
             ExistingWorkPolicy.REPLACE,
             OneTimeWorkRequestBuilder<WidgetRefreshWorker>()
-                .setInitialDelay(60, TimeUnit.SECONDS)
+                .setInitialDelay(REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS)
                 .build(),
         )
     }

@@ -155,6 +155,12 @@ class LocalShiftsRepositoryTest {
         override suspend fun getAllShiftsForUser(userId: String): List<ShiftEntity> =
             shifts.value.filter { it.userId == userId && it.deletedAt == null }
 
+        override suspend fun hasAnyShifts(userId: String): Boolean =
+            shifts.value.any { it.userId == userId && it.deletedAt == null }
+
+        override suspend fun hasPendingSyncShifts(userId: String): Boolean =
+            shifts.value.any { it.userId == userId && it.syncStatus in pendingStatuses }
+
         override suspend fun deleteAllForUser(userId: String) {
             shifts.value = shifts.value.filterNot { it.userId == userId }
         }

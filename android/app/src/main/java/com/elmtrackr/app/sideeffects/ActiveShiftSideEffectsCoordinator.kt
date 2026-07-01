@@ -101,21 +101,18 @@ class ActiveShiftSideEffectsCoordinator @Inject constructor(
                         settingsRepository.observeSettings(userId),
                     ) { active, settings -> Triple(userId, active, settings) }
                 }
-                .map { (userId, active, settings) ->
-                    WidgetPayload(userId, active?.id, settings?.timezone)
+                .distinctUntilChanged { old, new ->
+                    old.second?.id == new.second?.id && old.third?.timezone == new.third?.timezone
                 }
-                .distinctUntilChanged()
                 .debounce(WIDGET_DEBOUNCE_MS)
-                .flatMapLatest { payload ->
-                    val zone = WorkTimezone.zoneId(payload.timezone)
+                .flatMapLatest { (userId, active, settings) ->
+                    val zone = WorkTimezone.zoneId(settings?.timezone)
                     val today = LocalDate.now(zone)
-                    val todayShiftsFlow = shiftsRepository.observeShiftsForDay(payload.userId, zone, today)
+                    val todayShiftsFlow = shiftsRepository.observeShiftsForDay(userId, zone, today)
                     combine(
                         todayShiftsFlow,
-                        shiftsRepository.observeRecentCompletedShifts(payload.userId, 1),
-                        shiftsRepository.observeActiveShift(payload.userId),
-                        settingsRepository.observeSettings(payload.userId),
-                    ) { todayShifts, lastCompleted, active, settings ->
+                        shiftsRepository.observeRecentCompletedShifts(userId, 1),
+                    ) { todayShifts, lastCompleted ->
                         WidgetRefresh(active, lastCompleted.firstOrNull(), todayShifts, settings)
                     }
                 }
@@ -142,21 +139,18 @@ class ActiveShiftSideEffectsCoordinator @Inject constructor(
                         settingsRepository.observeSettings(userId),
                     ) { active, settings -> Triple(userId, active, settings) }
                 }
-                .map { (userId, active, settings) ->
-                    WidgetPayload(userId, active?.id, settings?.timezone)
+                .distinctUntilChanged { old, new ->
+                    old.second?.id == new.second?.id && old.third?.timezone == new.third?.timezone
                 }
-                .distinctUntilChanged()
                 .debounce(WEAR_DEBOUNCE_MS)
-                .flatMapLatest { payload ->
-                    val zone = WorkTimezone.zoneId(payload.timezone)
+                .flatMapLatest { (userId, active, settings) ->
+                    val zone = WorkTimezone.zoneId(settings?.timezone)
                     val today = LocalDate.now(zone)
-                    val todayShiftsFlow = shiftsRepository.observeShiftsForDay(payload.userId, zone, today)
+                    val todayShiftsFlow = shiftsRepository.observeShiftsForDay(userId, zone, today)
                     combine(
                         todayShiftsFlow,
-                        shiftsRepository.observeRecentCompletedShifts(payload.userId, 1),
-                        shiftsRepository.observeActiveShift(payload.userId),
-                        settingsRepository.observeSettings(payload.userId),
-                    ) { todayShifts, lastCompleted, active, settings ->
+                        shiftsRepository.observeRecentCompletedShifts(userId, 1),
+                    ) { todayShifts, lastCompleted ->
                         WidgetRefresh(active, lastCompleted.firstOrNull(), todayShifts, settings)
                     }
                 }
@@ -211,12 +205,6 @@ class ActiveShiftSideEffectsCoordinator @Inject constructor(
         val userId: String,
         val activeShift: Shift?,
         val settings: UserSettings?,
-    )
-
-    private data class WidgetPayload(
-        val userId: String,
-        val activeShiftId: String?,
-        val timezone: String?,
     )
 
     private data class WidgetRefresh(

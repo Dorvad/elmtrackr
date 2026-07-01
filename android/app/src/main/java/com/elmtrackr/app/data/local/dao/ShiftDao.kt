@@ -78,6 +78,17 @@ interface ShiftDao {
     @Query("SELECT * FROM shifts WHERE userId = :userId AND deletedAt IS NULL")
     suspend fun getAllShiftsForUser(userId: String): List<ShiftEntity>
 
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM shifts WHERE userId = :userId AND deletedAt IS NULL LIMIT 1)",
+    )
+    suspend fun hasAnyShifts(userId: String): Boolean
+
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM shifts WHERE userId = :userId AND syncStatus IN " +
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED') LIMIT 1)",
+    )
+    suspend fun hasPendingSyncShifts(userId: String): Boolean
+
     @Query("DELETE FROM shifts WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
 

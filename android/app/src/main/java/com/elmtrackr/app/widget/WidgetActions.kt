@@ -14,6 +14,7 @@ object WidgetActions {
         val deps = AppEntryPoints.background(context)
         val userId = deps.currentUserProvider().currentUserId() ?: return false
         return runCatching {
+            val settings = deps.settingsRepository().getSettings(userId)
             val task = TaskClockInHelper.resolveAutoTask(
                 deps.tasksRepository(),
                 deps.shiftsRepository(),
@@ -22,6 +23,7 @@ object WidgetActions {
             val params = TaskClockInHelper.paramsFromTask(task)
             deps.shiftsRepository().clockIn(
                 userId = userId,
+                compensationProfileId = settings?.defaultCompensationProfileId,
                 taskId = params.taskId,
                 taskNameSnapshot = params.taskNameSnapshot,
                 taskIconSnapshot = params.taskIconSnapshot,

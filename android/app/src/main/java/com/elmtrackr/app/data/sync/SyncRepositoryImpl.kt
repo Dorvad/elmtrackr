@@ -50,34 +50,43 @@ class SyncRepositoryImpl @Inject constructor(
     private val lastSyncStatus = MutableStateFlow<String?>(null)
     private var tasksRemoteEnabled = true
 
-    override fun observePendingCount(userId: String): Flow<Int> =
-        combine(
-            shiftDao.observePendingSyncShifts(userId),
-            refundClaimDao.observePendingSyncClaims(userId),
-            settingsDao.observePendingSyncSettings(userId),
-            compensationProfileDao.observePendingSyncProfiles(userId),
-            taskDao.observePendingSyncTasks(userId),
-        ) { shifts, claims, settings, profiles, tasks ->
-            shifts.size + claims.size + settings.size + profiles.size + tasks.size
-        }
+    private data class PendingSyncSnapshot(
+        val shifts: List<ShiftEntity>,
+        val claims: List<RefundClaimEntity>,
+        val settings: List<UserSettingsEntity>,
+        val profiles: List<CompensationProfileEntity>,
+        val tasks: List<TaskEntity>,
+    ) {
+        val pendingCount: Int
+            get() = shifts.size + claims.size + settings.size + profiles.size + tasks.size
 
-    override fun observeSyncHealth(userId: String): Flow<SyncHealth> =
-        combine(
-            shiftDao.observePendingSyncShifts(userId),
-            refundClaimDao.observePendingSyncClaims(userId),
-            settingsDao.observePendingSyncSettings(userId),
-            compensationProfileDao.observePendingSyncProfiles(userId),
-            taskDao.observePendingSyncTasks(userId),
-        ) { shifts, claims, settings, profiles, tasks ->
-            val pendingCount = shifts.size + claims.size + settings.size + profiles.size + tasks.size
-            val failedCount = shifts.count { it.syncStatus == SyncStatus.FAILED } +
+        val failedCount: Int
+            get() = shifts.count { it.syncStatus == SyncStatus.FAILED } +
                 claims.count { it.syncStatus == SyncStatus.FAILED } +
                 settings.count { it.syncStatus == SyncStatus.FAILED } +
                 profiles.count { it.syncStatus == SyncStatus.FAILED } +
                 tasks.count { it.syncStatus == SyncStatus.FAILED }
+    }
+
+    private fun observePendingSnapshot(userId: String): Flow<PendingSyncSnapshot> =
+        combine(
+            shiftDao.observePendingSyncShifts(userId),
+            refundClaimDao.observePendingSyncClaims(userId),
+            settingsDao.observePendingSyncSettings(userId),
+            compensationProfileDao.observePendingSyncProfiles(userId),
+            taskDao.observePendingSyncTasks(userId),
+        ) { shifts, claims, settings, profiles, tasks ->
+            PendingSyncSnapshot(shifts, claims, settings, profiles, tasks)
+        }
+
+    override fun observePendingCount(userId: String): Flow<Int> =
+        observePendingSnapshot(userId).map { it.pendingCount }
+
+    override fun observeSyncHealth(userId: String): Flow<SyncHealth> =
+        observePendingSnapshot(userId).map { snapshot ->
             SyncHealth(
-                pendingCount = pendingCount,
-                failedCount = failedCount,
+                pendingCount = snapshot.pendingCount,
+                failedCount = snapshot.failedCount,
             )
         }
 
@@ -113,11 +122,11 @@ class SyncRepositoryImpl @Inject constructor(
         )
 
     override suspend fun hasPendingWork(userId: String): Boolean =
-        shiftDao.getPendingSyncShifts(userId).isNotEmpty() ||
-            refundClaimDao.getPendingSyncClaims(userId).isNotEmpty() ||
-            settingsDao.getPendingSyncSettings(userId).isNotEmpty() ||
-            compensationProfileDao.getPendingSyncProfiles(userId).isNotEmpty() ||
-            taskDao.getPendingSyncTasks(userId).isNotEmpty()
+        shiftDao.hasPendingSyncShifts(userId) ||
+            refundClaimDao.hasPendingSyncClaims(userId) ||
+            settingsDao.hasPendingSyncSettings(userId) ||
+            compensationProfileDao.hasPendingSyncProfiles(userId) ||
+            taskDao.hasPendingSyncTasks(userId)
 
     override suspend fun syncAll(userId: String): SyncResult {
         if (remoteTasks == null || remoteShifts == null || remoteRefundClaims == null ||

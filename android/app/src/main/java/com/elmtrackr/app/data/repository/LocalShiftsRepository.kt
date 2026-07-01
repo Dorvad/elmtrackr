@@ -160,7 +160,7 @@ class LocalShiftsRepository @Inject constructor(
         shiftDao.observeRecentCompletedShifts(userId, limit).map { entities -> entities.mapToDomain { it.toDomain() } }
 
     override suspend fun hasAnyShifts(userId: String): Boolean =
-        shiftDao.getAllShiftsForUser(userId).isNotEmpty()
+        shiftDao.hasAnyShifts(userId)
 
     private fun syncStatusForMutation(existing: ShiftEntity): SyncStatus = when {
         existing.syncStatus == SyncStatus.PENDING_CREATE -> SyncStatus.PENDING_CREATE

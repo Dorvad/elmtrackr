@@ -8,10 +8,7 @@ import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.ZoneId
 
 abstract class BaseElmTrackrWidgetReceiver : GlanceAppWidgetReceiver() {
 
@@ -31,26 +28,8 @@ abstract class BaseElmTrackrWidgetReceiver : GlanceAppWidgetReceiver() {
     private suspend fun refreshWidgets(context: Context) {
         val deps = AppEntryPoints.background(context)
         val userId = deps.currentUserProvider().currentUserId() ?: return
-        val zone = ZoneId.systemDefault()
-        val today = LocalDate.now(zone)
-        val shift = deps.shiftsRepository().observeActiveShift(userId).first()
-        val lastCompleted = deps.shiftsRepository()
-            .observeRecentCompletedShifts(userId, limit = 1)
-            .first()
-            .firstOrNull()
-        val todayShifts = deps.shiftsRepository()
-            .observeShiftsByMonth(userId, today.year, today.monthValue)
-            .first()
-        val settings = deps.settingsRepository().getSettings(userId)
-        ElmTrackrWidgetUpdater.update(
-            context,
-            WidgetContext(
-                activeShift = shift,
-                lastCompletedShift = lastCompleted,
-                todayShifts = todayShifts,
-                settings = settings,
-            ),
-        )
+        val widgetContext = WidgetContextLoader.load(deps, userId)
+        ElmTrackrWidgetUpdater.update(context, widgetContext)
     }
 }
 
