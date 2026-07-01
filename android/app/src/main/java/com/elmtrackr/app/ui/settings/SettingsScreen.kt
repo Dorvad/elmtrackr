@@ -216,11 +216,11 @@ private fun SettingsFormHost(
         ).count { it }
         SettingsDestination.APPEARANCE -> listOf(
             clockStyle != supportedClockStyleOf(state.settings.clockStyle),
+            clockStyles != state.settings.featuresClockStyles,
         ).count { it }
         SettingsDestination.FEATURES -> listOf(
             travelRefunds != state.settings.featuresTravelRefunds,
             insights != state.settings.featuresInsights,
-            clockStyles != state.settings.featuresClockStyles,
             overtimeReminders != state.settings.featuresOvertimeReminders,
         ).count { it }
         else -> 0
@@ -278,6 +278,7 @@ private fun SettingsFormHost(
                 clockStyle = clockStyle,
                 onClockStyleChange = { clockStyle = it },
                 clockStylesEnabled = clockStyles,
+                onClockStylesEnabledChange = { clockStyles = it },
                 onBack = onNavigateBack,
                 onTheme = onTheme,
             )
@@ -286,8 +287,6 @@ private fun SettingsFormHost(
                 onTravelRefundsChange = { travelRefunds = it },
                 insights = insights,
                 onInsightsChange = { insights = it },
-                clockStyles = clockStyles,
-                onClockStylesChange = { clockStyles = it },
                 overtimeReminders = overtimeReminders,
                 onOvertimeRemindersChange = { overtimeReminders = it },
                 onBack = onNavigateBack,

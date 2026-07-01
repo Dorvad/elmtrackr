@@ -123,16 +123,14 @@ fun ShiftsScreen(
                     .padding(horizontal = Spacing.screenH),
             ) {
                 ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
-                ShiftsMonthPicker(
-                    month = selectedMonth,
-                    onPrevious = viewModel::previousMonth,
-                    onNext = viewModel::nextMonth,
-                )
+                Spacer(Modifier.height(Spacing.sm))
                 ShiftsHeroSummaryCard(
                     shifts = emptyList(),
                     activeShift = null,
                     settings = null,
                     month = selectedMonth,
+                    onPreviousMonth = viewModel::previousMonth,
+                    onNextMonth = viewModel::nextMonth,
                 )
                 Spacer(Modifier.height(Spacing.md))
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -192,19 +190,14 @@ private fun ShiftsListContent(
     ) {
         item { ShiftsPageHeader(onAddShift = onAddShift) }
         item {
-            ShiftsMonthPicker(
-                month = selectedMonth,
-                onPrevious = onPreviousMonth,
-                onNext = onNextMonth,
-            )
-        }
-        item {
             ShiftsHeroSummaryCard(
                 shifts = state.shifts,
                 activeShift = state.activeShift,
                 settings = state.settings,
                 month = selectedMonth,
                 profiles = state.profiles,
+                onPreviousMonth = onPreviousMonth,
+                onNextMonth = onNextMonth,
             )
         }
 

@@ -13,11 +13,24 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -33,13 +46,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.BuildConfig
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.ui.auth.AuthUiState
+import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
+import com.elmtrackr.app.ui.theme.AuroraPeachDeep
+import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
 
@@ -91,6 +108,8 @@ internal fun SettingsHub(
                     ),
                     onClick = { onNavigate(SettingsDestination.PAY) },
                     showDivider = false,
+                    icon = Icons.Filled.CreditCard,
+                    iconTint = AuroraIndigo,
                 )
             }
         }
@@ -100,17 +119,23 @@ internal fun SettingsHub(
                     title = "Appearance & clock",
                     subtitle = appearanceSummary(state.selectedTheme, clockStyle, clockStyles),
                     onClick = { onNavigate(SettingsDestination.APPEARANCE) },
+                    icon = Icons.Filled.Schedule,
+                    iconTint = AuroraPlum,
                 )
                 SettingsHubNavRow(
                     title = "Features",
                     subtitle = featuresSummary(travelRefunds, insights, clockStyles, overtimeReminders),
                     onClick = { onNavigate(SettingsDestination.FEATURES) },
+                    icon = Icons.Filled.Tune,
+                    iconTint = AuroraAqua,
                 )
                 SettingsHubNavRow(
                     title = "Security",
                     subtitle = "App lock & encrypted storage",
                     onClick = { onNavigate(SettingsDestination.SECURITY) },
                     showDivider = false,
+                    icon = Icons.Filled.Shield,
+                    iconTint = AuroraIndigo,
                 )
             }
         }
@@ -121,6 +146,8 @@ internal fun SettingsHub(
                     subtitle = "Version ${BuildConfig.VERSION_NAME} · sync & legal",
                     onClick = { onNavigate(SettingsDestination.HELP) },
                     showDivider = false,
+                    icon = Icons.Outlined.Info,
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -134,6 +161,12 @@ internal fun SettingsHub(
                         .padding(top = Spacing.sm),
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         if (authState.isLoading) "Signing out…" else "Sign out",
                         fontWeight = FontWeight.SemiBold,
@@ -169,6 +202,22 @@ internal fun ProfileDetailScreen(
                     .padding(horizontal = Spacing.screenH)
                     .padding(bottom = Spacing.xl),
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            MaterialTheme.colorScheme.errorContainer,
+                            RoundedCornerShape(CornerRadius.Medium),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Filled.DeleteOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
                 Text(
                     "Delete account?",
                     style = MaterialTheme.typography.titleLarge,
@@ -183,16 +232,23 @@ internal fun ProfileDetailScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(24.dp))
-                OutlinedButton(
+                Button(
                     onClick = {
                         showDeleteSheet = false
                         onDeleteAccount()
                     },
                     enabled = !state.isDeletingAccount,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(CornerRadius.Medium),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
                 ) {
-                    Text(if (state.isDeletingAccount) "Deleting account…" else "Delete account")
+                    Text(
+                        if (state.isDeletingAccount) "Deleting account…" else "Delete account",
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
                 Spacer(Modifier.height(8.dp))
                 TextButton(
@@ -213,69 +269,108 @@ internal fun ProfileDetailScreen(
     ) {
         item { SettingsDetailHeader(title = "Profile", onBack = onBack) }
         item {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center,
-            ) {
+            SettingsSectionCardPlain {
                 Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .background(AuroraIndigo.copy(alpha = 0.12f), CircleShape),
+                    modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        initial,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = AuroraIndigo,
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .background(SettingsAvatarGradient, RoundedCornerShape(percent = 30)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            initial,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                    }
                 }
             }
         }
         item {
-            OutlinedTextField(
-                value = displayName,
-                onValueChange = onDisplayNameChange,
-                label = { Text("Display name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(CornerRadius.Medium),
-            )
+            SettingsSectionCardPlain {
+                SettingsSubsectionLabel("Display name")
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = displayName,
+                    onValueChange = onDisplayNameChange,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(CornerRadius.Medium),
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Used for your home-screen greeting.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         item {
-            OutlinedTextField(
-                value = state.profile?.email ?: "",
-                onValueChange = {},
-                label = { Text("Email") },
-                readOnly = true,
-                enabled = false,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(CornerRadius.Medium),
-            )
+            SettingsSectionCardPlain {
+                SettingsSubsectionLabel("Security")
+                Spacer(Modifier.height(8.dp))
+                SettingsInfoRow("Email", state.profile?.email ?: "—")
+                if (authState is AuthUiState.SignedIn) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = onResetPassword,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(CornerRadius.Medium),
+                    ) {
+                        Text("Send password reset email", fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        state.passwordResetFeedback ?: "We'll email you a secure reset link.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (state.passwordResetFeedback != null) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
+            }
         }
         if (authState is AuthUiState.SignedIn) {
             item {
-                OutlinedButton(onClick = onResetPassword, modifier = Modifier.fillMaxWidth()) {
-                    Text("Reset password")
-                }
-                state.passwordResetFeedback?.let { feedback ->
+                SettingsSectionCardPlain {
                     Text(
-                        text = feedback,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp),
+                        "DANGER ZONE",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error,
                     )
-                }
-            }
-            item {
-                OutlinedButton(
-                    onClick = { showDeleteSheet = true },
-                    enabled = !authState.isLoading && !state.isDeletingAccount,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Text("Delete account")
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Permanently delete your cloud account, shifts, settings, refund claims, " +
+                            "and receipt photos.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = { showDeleteSheet = true },
+                        enabled = !authState.isLoading && !state.isDeletingAccount,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(CornerRadius.Medium),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                    ) {
+                        Icon(Icons.Filled.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Delete account", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         } else if (authState is AuthUiState.NotConfigured) {
@@ -394,6 +489,7 @@ internal fun AppearanceDetailScreen(
     clockStyle: ClockStyle,
     onClockStyleChange: (ClockStyle) -> Unit,
     clockStylesEnabled: Boolean,
+    onClockStylesEnabledChange: (Boolean) -> Unit,
     onBack: () -> Unit,
     onTheme: (String) -> Unit,
 ) {
@@ -406,6 +502,16 @@ internal fun AppearanceDetailScreen(
         item { SettingsDetailHeader(title = "Appearance & clock", onBack = onBack) }
         item {
             ThemeSegmentedControl(selected = state.selectedTheme, onSelect = onTheme)
+        }
+        item {
+            SettingsToggleRow(
+                title = "Clock faces",
+                description = "14 styles for your home clock",
+                checked = clockStylesEnabled,
+                onCheckedChange = onClockStylesEnabledChange,
+                icon = Icons.Filled.Schedule,
+                iconTint = AuroraPlum,
+            )
         }
         if (clockStylesEnabled) {
             item {
@@ -422,8 +528,6 @@ internal fun FeaturesDetailScreen(
     onTravelRefundsChange: (Boolean) -> Unit,
     insights: Boolean,
     onInsightsChange: (Boolean) -> Unit,
-    clockStyles: Boolean,
-    onClockStylesChange: (Boolean) -> Unit,
     overtimeReminders: Boolean,
     onOvertimeRemindersChange: (Boolean) -> Unit,
     onBack: () -> Unit,
@@ -438,32 +542,41 @@ internal fun FeaturesDetailScreen(
         item {
             SettingsToggleRow(
                 title = "Travel refunds",
-                description = "Track and manage travel refund claims",
+                description = "Track transport refunds for late-night or holiday shifts",
                 checked = travelRefunds,
                 onCheckedChange = onTravelRefundsChange,
+                icon = Icons.Filled.LocalShipping,
+                iconTint = AuroraPeachDeep,
             )
             SettingsToggleRow(
-                title = "Insights",
-                description = "View trends and patterns in your work history",
+                title = "Insights & analytics",
+                description = "Smart summaries, weekly trends, and daily coaching nudges",
                 checked = insights,
                 onCheckedChange = onInsightsChange,
-            )
-            SettingsToggleRow(
-                title = "Clock styles",
-                description = "Choose from different clock display styles",
-                checked = clockStyles,
-                onCheckedChange = onClockStylesChange,
+                icon = Icons.AutoMirrored.Filled.ShowChart,
+                iconTint = FeaturesInsightsGreen,
             )
             SettingsToggleRow(
                 title = "Overtime reminders",
                 description = "Notify 30 minutes before overtime and hourly while in overtime",
                 checked = overtimeReminders,
                 onCheckedChange = onOvertimeRemindersChange,
+                icon = Icons.Filled.NotificationsActive,
+                iconTint = AuroraIndigo,
+            )
+        }
+        item {
+            Text(
+                "Clock faces moved to Appearance. Turning a feature off hides its tabs and cards across the app.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         item { Spacer(Modifier.height(88.dp)) }
     }
 }
+
+private val FeaturesInsightsGreen = Color(0xFF1E9E63)
 
 @Composable
 internal fun HelpDetailScreen(

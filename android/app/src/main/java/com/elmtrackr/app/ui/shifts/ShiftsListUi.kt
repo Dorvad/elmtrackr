@@ -103,12 +103,28 @@ internal fun ShiftsMonthPicker(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
-    val canGoNext = month < YearMonth.now()
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = Spacing.md),
         horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MonthNavRow(month = month, onPrevious = onPrevious, onNext = onNext, spread = false)
+    }
+}
+
+@Composable
+private fun MonthNavRow(
+    month: YearMonth,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    spread: Boolean,
+) {
+    val canGoNext = month < YearMonth.now()
+    Row(
+        modifier = if (spread) Modifier.fillMaxWidth() else Modifier,
+        horizontalArrangement = if (spread) Arrangement.SpaceBetween else Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
@@ -148,6 +164,8 @@ internal fun ShiftsHeroSummaryCard(
     settings: UserSettings?,
     month: YearMonth,
     profiles: List<CompensationProfile> = emptyList(),
+    onPreviousMonth: (() -> Unit)? = null,
+    onNextMonth: (() -> Unit)? = null,
 ) {
     val completed = shifts.filter { it.isCompleted }
     val activeMinutes = activeShift?.let {
@@ -183,6 +201,10 @@ internal fun ShiftsHeroSummaryCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(Modifier.padding(Spacing.lg)) {
+            if (onPreviousMonth != null && onNextMonth != null) {
+                MonthNavRow(month = month, onPrevious = onPreviousMonth, onNext = onNextMonth, spread = true)
+                Spacer(Modifier.height(Spacing.md))
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -400,7 +422,10 @@ internal fun ShiftRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
-                modifier = Modifier.width(48.dp),
+                modifier = Modifier
+                    .width(48.dp)
+                    .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small))
+                    .padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
@@ -490,6 +515,7 @@ private fun ActiveShiftRow(
 ) {
     val zone = ZoneId.systemDefault()
     val startText = shift.startTime.atZone(zone).format(timeFmt)
+    val dayNumber = shift.startTime.atZone(zone).dayOfMonth.toString()
     val bgColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
         ShiftActiveGreenBgDark
     } else {
@@ -517,10 +543,33 @@ private fun ActiveShiftRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.md, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .width(48.dp)
+                        .background(ShiftActiveGreen.copy(alpha = 0.14f), RoundedCornerShape(CornerRadius.Small))
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        "NOW",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = ShiftActiveGreen,
+                    )
+                    Text(
+                        dayNumber,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = ShiftActiveGreen,
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = Spacing.sm),
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             Modifier
@@ -535,8 +584,8 @@ private fun ActiveShiftRow(
                         )
                         ShiftTypeBadge(
                             label = "LIVE",
-                            background = ShiftActiveGreen,
-                            color = Color.White,
+                            background = ShiftActiveGreen.copy(alpha = 0.16f),
+                            color = ShiftActiveGreen,
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
