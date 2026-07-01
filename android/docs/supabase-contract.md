@@ -190,6 +190,7 @@ Only Classic, Minimal, and Aurora render natively on Android dashboard; others p
 |-------------------------|---------|
 | `il` | `IL` |
 | `us` | `US` |
+| `us_ca` | `US_CA` |
 | `gb` | `GB` |
 | `eu` | `EU` |
 | `custom` | `CUSTOM` |

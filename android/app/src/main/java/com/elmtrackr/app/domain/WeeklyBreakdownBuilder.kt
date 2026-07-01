@@ -68,7 +68,9 @@ object WeeklyBreakdownBuilder {
                 val threshold = resolved.rules.dailyStandardMinutes
                 b.overtimeMin += maxOf(0, mins - threshold)
                 if (hasPay) {
-                    b.pay += PayrollCalculator.calculateShiftPay(shift, settings, profiles)?.totalGross ?: 0.0
+                    b.pay += PayrollCalculator.calculateShiftPayInContext(
+                        shift, shifts, settings, profiles,
+                    )?.totalGross ?: 0.0
                 }
             }
             val date = WorkTimezone.shiftLocalDate(shift, zone).toString()

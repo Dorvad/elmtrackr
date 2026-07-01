@@ -50,7 +50,7 @@ object ReportInsightsBuilder {
         var highestEarningAmount: Double? = null
         var hasPay = false
         for (shift in completed) {
-            val pay = PayrollCalculator.calculateShiftPay(shift, settings, profiles)?.totalGross
+            val pay = PayrollCalculator.calculateShiftPayInContext(shift, completed, settings, profiles)?.totalGross
             if (pay != null && pay > 0) {
                 hasPay = true
                 totalPay += pay

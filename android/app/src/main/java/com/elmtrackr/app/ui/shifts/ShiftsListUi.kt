@@ -350,6 +350,7 @@ internal fun ShiftRow(
     shift: Shift,
     settings: UserSettings?,
     profiles: List<CompensationProfile> = emptyList(),
+    allShiftsForPay: List<Shift> = emptyList(),
     showRefunds: Boolean,
     grouped: Boolean = false,
     entranceIndex: Int = 0,
@@ -370,7 +371,14 @@ internal fun ShiftRow(
     val weekend = settings?.let { CompensationResolver.isWeekendShift(shift, it, profiles) } == true
     val breakdown = settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it) }
     val hasOt = (breakdown?.overtimeMinutes ?: 0) > 0 && !shift.isSpecialDay && !weekend
-    val pay = settings?.let { PayrollCalculator.calculateShiftPay(shift, it, profiles) }
+    val pay = settings?.let {
+        PayrollCalculator.calculateShiftPayInContext(
+            shift,
+            allShiftsForPay.ifEmpty { listOf(shift) },
+            it,
+            profiles,
+        )
+    }
 
     val rowModifier = if (grouped) {
         Modifier.fillMaxWidth().auroraEnter(entranceIndex)

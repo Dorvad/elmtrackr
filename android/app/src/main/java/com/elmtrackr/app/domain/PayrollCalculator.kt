@@ -3,6 +3,7 @@ package com.elmtrackr.app.domain
 import com.elmtrackr.app.domain.compensation.COMPENSATION_ESTIMATE_NOTE
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.PayBracket
 import com.elmtrackr.app.domain.model.ResolvedCompensation
@@ -24,6 +25,7 @@ object PayrollCalculator {
         shift: Shift,
         settings: UserSettings,
         profiles: List<CompensationProfile> = emptyList(),
+        priorWeekMinutes: Int = 0,
     ): ShiftPayBreakdown? {
         if (shift.endTime == null) return null
         val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
@@ -41,7 +43,7 @@ object PayrollCalculator {
             shift.isSpecialDay
         val isSpecial = isHoliday || startOnWeekend
 
-        val tiers = buildTiers(resolved, isSpecial, net)
+        val tiers = buildTiers(resolved, isSpecial, net, priorWeekMinutes)
         val brackets = mutableListOf<PayBracket>()
         var remaining = net
         var regularGross = 0.0
@@ -96,6 +98,18 @@ object PayrollCalculator {
         )
     }
 
+    fun calculateShiftPayInContext(
+        shift: Shift,
+        allCompletedShifts: List<Shift>,
+        settings: UserSettings,
+        profiles: List<CompensationProfile> = emptyList(),
+    ): ShiftPayBreakdown? {
+        val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+        val zone = WorkTimezone.zoneFor(resolved, settings)
+        val prior = PayWeekMinutes.priorMinutesBefore(shift, allCompletedShifts, zone)
+        return calculateShiftPay(shift, settings, profiles, prior)
+    }
+
     fun sumMonthlyPay(
         shifts: List<Shift>,
         settings: UserSettings,
@@ -112,8 +126,11 @@ object PayrollCalculator {
         var netGross = 0.0
         var currencyCode = "USD"
 
-        for (shift in shifts) {
-            val bd = calculateShiftPay(shift, settings, profiles) ?: continue
+        PayWeekMinutes.forEachWithPriorWeekMinutes(shifts, { shift ->
+            val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+            WorkTimezone.zoneFor(resolved, settings)
+        }) { shift, prior ->
+            val bd = calculateShiftPay(shift, settings, profiles, prior) ?: return@forEachWithPriorWeekMinutes
             totalGross += bd.totalGross
             regularGross += bd.regularGross
             overtimeGross += bd.overtimeGross
@@ -132,7 +149,12 @@ object PayrollCalculator {
         )
     }
 
-    private fun buildTiers(resolved: ResolvedCompensation, isSpecial: Boolean, net: Int): List<Tier> {
+    private fun buildTiers(
+        resolved: ResolvedCompensation,
+        isSpecial: Boolean,
+        net: Int,
+        priorWeekMinutes: Int,
+    ): List<Tier> {
         val rules = resolved.rules
         if (isSpecial) {
             rules.holidayTiers?.takeIf { it.isNotEmpty() }?.let { return tiersFromAfterMinutes(it, "Holiday") }
@@ -144,25 +166,102 @@ object PayrollCalculator {
             }
         }
 
-        val tiers = mutableListOf(Tier("100% — Regular", rules.dailyStandardMinutes, 1.0))
-        if (rules.overtimeEnabled) {
-            val sorted = rules.dailyOvertimeTiers.sortedBy { it.afterMinutes }
-            for (i in sorted.indices) {
-                val tier = sorted[i]
-                val nextAfter = sorted.getOrNull(i + 1)?.afterMinutes ?: Int.MAX_VALUE
-                val cap = if (nextAfter == Int.MAX_VALUE) Int.MAX_VALUE else nextAfter - tier.afterMinutes
-                tiers += Tier("${(tier.multiplier * 100).toInt()}% — Overtime", cap, tier.multiplier)
+        if (!rules.overtimeEnabled) {
+            return listOf(Tier("100% — Regular", Int.MAX_VALUE, 1.0))
+        }
+
+        val segments = buildCombinedRateSegments(resolved, net, priorWeekMinutes)
+        if (segments.isEmpty()) {
+            return listOf(Tier("100% — Regular", Int.MAX_VALUE, 1.0))
+        }
+
+        return segments.map { (minutes, rate) ->
+            val label = if (rate <= 1.0 + 1e-9) "100% — Regular" else "${(rate * 100).toInt()}% — Overtime"
+            Tier(label, minutes, rate)
+        }
+    }
+
+    /**
+     * Builds consecutive (length, effectiveMultiplier) segments for a shift, combining daily and
+     * weekly overtime ladders per [StackingPolicy].
+     */
+    internal fun buildCombinedRateSegments(
+        resolved: ResolvedCompensation,
+        net: Int,
+        priorWeekMinutes: Int,
+    ): List<Pair<Int, Double>> {
+        if (net <= 0) return emptyList()
+
+        val rules = resolved.rules
+        val policy = resolved.stackingPolicy
+        val dailyStandard = rules.dailyStandardMinutes
+
+        val bounds = sortedSetOf(1, net + 1)
+        bounds += min(net + 1, dailyStandard + 1)
+        rules.dailyOvertimeTiers.forEach { tier ->
+            val boundary = tier.afterMinutes + 1
+            if (boundary in 2..net) bounds += boundary
+        }
+        val weeklyStandardBoundary = rules.weeklyStandardMinutes - priorWeekMinutes + 1
+        if (weeklyStandardBoundary in 2..net) bounds += weeklyStandardBoundary
+        rules.weeklyOvertimeTiers.forEach { tier ->
+            val boundary = tier.afterMinutes - priorWeekMinutes + 1
+            if (boundary in 2..net) bounds += boundary
+        }
+
+        val sortedBounds = bounds.sorted()
+        val segments = mutableListOf<Pair<Int, Double>>()
+
+        for (i in 0 until sortedBounds.size - 1) {
+            val segmentEnd = sortedBounds[i + 1] - 1
+            val length = sortedBounds[i + 1] - sortedBounds[i]
+            if (length <= 0) continue
+
+            val dailyMult = dailyMultiplier(segmentEnd, rules, dailyStandard)
+            val weeklyMult = weeklyMultiplier(priorWeekMinutes + segmentEnd, rules)
+            val effective = combineRates(dailyMult, weeklyMult, policy)
+
+            if (segments.isNotEmpty() && segments.last().second == effective) {
+                val last = segments.removeAt(segments.lastIndex)
+                segments += (last.first + length) to effective
+            } else {
+                segments += length to effective
             }
         }
-        if (
-            tiers.size == 1 &&
-            net > rules.dailyStandardMinutes &&
-            rules.dailyOvertimeTiers.isNotEmpty()
-        ) {
-            tiers += Tier("150% — Overtime", Int.MAX_VALUE, 1.5)
-        }
-        return tiers
+
+        return segments
     }
+
+    internal fun dailyMultiplier(
+        minuteInShift: Int,
+        rules: CompensationRules,
+        dailyStandard: Int = rules.dailyStandardMinutes,
+    ): Double {
+        if (rules.dailyOvertimeTiers.isEmpty()) return 1.0
+        if (minuteInShift <= dailyStandard) return 1.0
+        val matched = overtimeTierMultiplier(minuteInShift, rules.dailyOvertimeTiers)
+        if (matched > 1.0) return matched
+        return rules.dailyOvertimeTiers.minBy { it.afterMinutes }.multiplier
+    }
+
+    internal fun weeklyMultiplier(minuteInWeek: Int, rules: CompensationRules): Double {
+        if (rules.weeklyOvertimeTiers.isEmpty()) return 1.0
+        if (minuteInWeek <= rules.weeklyStandardMinutes) return 1.0
+        val matched = overtimeTierMultiplier(minuteInWeek, rules.weeklyOvertimeTiers)
+        if (matched > 1.0) return matched
+        return rules.weeklyOvertimeTiers.minBy { it.afterMinutes }.multiplier
+    }
+
+    internal fun overtimeTierMultiplier(cumulativeMinutes: Int, tiers: List<OvertimeTier>): Double {
+        val applicable = tiers.filter { cumulativeMinutes > it.afterMinutes }.maxByOrNull { it.afterMinutes }
+        return applicable?.multiplier ?: 1.0
+    }
+
+    internal fun combineRates(daily: Double, weekly: Double, policy: StackingPolicy): Double =
+        when (policy) {
+            StackingPolicy.HIGHEST_ONLY -> maxOf(daily, weekly)
+            StackingPolicy.ADDITIVE -> 1.0 + maxOf(0.0, daily - 1.0) + maxOf(0.0, weekly - 1.0)
+        }
 
     private fun tiersFromAfterMinutes(tierDefs: List<OvertimeTier>, label: String): List<Tier> {
         val sorted = tierDefs.sortedBy { it.afterMinutes }

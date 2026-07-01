@@ -3,7 +3,7 @@ package com.elmtrackr.app.domain.model
 import java.time.Instant
 
 enum class RegionCode {
-    IL, US, GB, EU, CUSTOM;
+    IL, US, US_CA, GB, EU, CUSTOM;
 
     companion object {
         /** Parse web/Room persisted values without crashing on unknown or lowercase codes. */

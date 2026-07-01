@@ -877,7 +877,7 @@ internal fun HoursReport(
         ) {
             state.rawShifts.sortedByDescending { it.startTime }.forEachIndexed { index, shift ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                ShiftReportRow(shift, settings, state.profiles)
+                ShiftReportRow(shift, settings, state.profiles, state.rawShifts)
             }
         }
     }
@@ -1284,12 +1284,18 @@ private fun ShiftReportRow(
     shift: Shift,
     settings: UserSettings,
     profiles: List<CompensationProfile> = emptyList(),
+    allShifts: List<Shift> = emptyList(),
 ) {
     val breakdown = MonthlyReportBuilder.buildShiftBreakdown(shift, settings)
     val date = shift.startTime.atOffset(ZoneOffset.UTC).toLocalDate()
     val weekend = CompensationResolver.isWeekendShift(shift, settings, profiles)
     val overnight = OvernightShiftDetector.isOvernight(shift)
-    val pay = PayrollCalculator.calculateShiftPay(shift, settings, profiles)
+    val pay = PayrollCalculator.calculateShiftPayInContext(
+        shift,
+        allShifts.ifEmpty { listOf(shift) },
+        settings,
+        profiles,
+    )
     val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
     val otThreshold = resolved.rules.dailyStandardMinutes
     val otMins = maxOf(0, (ShiftDurationCalculator.netMinutes(shift) ?: 0) - otThreshold)
