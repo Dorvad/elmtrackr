@@ -76,7 +76,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -101,7 +100,9 @@ import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.ui.components.motion.ShiftElapsedDisplay
 import com.elmtrackr.app.ui.components.motion.activeShiftPulse
+import com.elmtrackr.app.ui.components.motion.FirstClockInCelebrationDialog
 import com.elmtrackr.app.ui.components.states.ErrorState
+import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.AuroraScreen
 import com.elmtrackr.app.ui.layout.isTabletLayout
 import com.elmtrackr.app.ui.design.ElmGradientButton
@@ -228,7 +229,7 @@ private fun DashboardReady(
     var pendingClockIn by rememberSaveable { mutableStateOf(false) }
 
     fun performClockIn() {
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        AuroraHaptics.clockIn(haptic)
         onClockIn()
     }
 
@@ -292,7 +293,7 @@ private fun DashboardReady(
     val handleClockOut: () -> Unit = {
         val shift = activeShift
         if (shift != null) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            AuroraHaptics.clockOut(haptic)
             onClockOut(shift.id)
         }
     }
@@ -638,43 +639,7 @@ private fun FirstRunWelcomeCard(onClockIn: () -> Unit) {
     }
 }
 
-@Composable
-private fun FirstClockInCelebrationDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Box(
-                Modifier
-                    .size(56.dp)
-                    .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.Bolt,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(28.dp),
-                )
-            }
-        },
-        title = {
-            Text("You're tracking!", textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-        },
-        text = {
-            Text(
-                "Your hours, pay estimate, and overtime are live on the home screen. Keep the shift running — or clock out when you're done.",
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            ElmGradientButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text("Got it", fontWeight = FontWeight.SemiBold)
-            }
-        },
-    )
-}
-// â”€â”€ Classic clock card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Classic clock card ────────────────────────────────────────────────────────
 
 @Composable
 private fun ClassicClockCard(

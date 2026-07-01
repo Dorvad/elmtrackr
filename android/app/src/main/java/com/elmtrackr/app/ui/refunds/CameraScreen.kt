@@ -43,12 +43,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.elmtrackr.app.ui.design.AuroraHaptics
 import java.io.File
 
 @SuppressLint("MissingPermission")
@@ -61,6 +63,7 @@ fun CameraScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var hasPermission by remember {
         mutableStateOf(
@@ -133,6 +136,7 @@ fun CameraScreen(
 
         Button(
             onClick = {
+                AuroraHaptics.shutter(haptic)
                 outputFile.parentFile?.mkdirs()
                 val options = ImageCapture.OutputFileOptions.Builder(outputFile).build()
                 cameraController.takePicture(

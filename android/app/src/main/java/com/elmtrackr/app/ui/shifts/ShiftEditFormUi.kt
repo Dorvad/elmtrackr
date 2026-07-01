@@ -49,6 +49,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -65,6 +66,7 @@ import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.refunds.RefundClaimsSection
 import com.elmtrackr.app.ui.theme.AuroraAqua
@@ -130,6 +132,7 @@ internal fun ShiftEditFormContent(
     val zone = ZoneId.systemDefault()
     val startZdt = Instant.ofEpochMilli(startMillis).atZone(zone)
     val currency = settings?.currency ?: CurrencyCode.ILS
+    val haptic = LocalHapticFeedback.current
 
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
     var showRefundExpanded by rememberSaveable { mutableStateOf(false) }
@@ -173,6 +176,7 @@ internal fun ShiftEditFormContent(
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
+                    AuroraHaptics.destructive(haptic)
                     onDelete((navState as ShiftFormNavState.Edit).shift.id)
                 }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
@@ -446,7 +450,10 @@ internal fun ShiftEditFormContent(
         if (unsavedCount > 0) {
             FloatingSaveBar(
                 unsavedCount = unsavedCount,
-                onSave = { onSave(buildInput()) },
+                onSave = {
+                    AuroraHaptics.success(haptic)
+                    onSave(buildInput())
+                },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         } else {
@@ -456,7 +463,10 @@ internal fun ShiftEditFormContent(
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.screenH, vertical = Spacing.md),
             ) {
-                ElmGradientButton(onClick = { onSave(buildInput()) }) {
+                ElmGradientButton(onClick = {
+                    AuroraHaptics.success(haptic)
+                    onSave(buildInput())
+                }) {
                     Text("Save", fontWeight = FontWeight.SemiBold)
                 }
             }
