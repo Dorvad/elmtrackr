@@ -97,14 +97,29 @@ class SettingsViewModel @Inject constructor(
 
     private val extras = combine(
         combine(
-            authRepository.observeCurrentProfile(),
-            themeStore.observeTheme(),
-            appPreferences.preferences,
-            _isSaving,
-            _isSyncing,
-            syncHealthFlow,
-        ) { profile, theme, prefs, saving, syncing, health ->
-            SyncExtras(profile, theme, prefs.appLockEnabled, saving, syncing, health)
+            combine(
+                authRepository.observeCurrentProfile(),
+                themeStore.observeTheme(),
+                appPreferences.preferences,
+            ) { profile, theme, prefs ->
+                Triple(profile, theme, prefs.appLockEnabled)
+            },
+            combine(
+                _isSaving,
+                _isSyncing,
+                syncHealthFlow,
+            ) { saving, syncing, health ->
+                Triple(saving, syncing, health)
+            },
+        ) { profileMeta, syncMeta ->
+            SyncExtras(
+                profile = profileMeta.first,
+                theme = profileMeta.second,
+                appLockEnabled = profileMeta.third,
+                isSaving = syncMeta.first,
+                isSyncing = syncMeta.second,
+                syncHealth = syncMeta.third,
+            )
         },
         combine(
             lastSyncFlow,

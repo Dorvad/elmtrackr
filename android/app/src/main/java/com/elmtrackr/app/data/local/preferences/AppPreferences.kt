@@ -38,7 +38,7 @@ data class AppPreferenceValues(
 
 class AppPreferencesRepository(private val context: Context) : AppPreferencesStore, AppLockPreferencesStore {
 
-    val preferences: Flow<AppPreferenceValues> =
+    override val preferences: Flow<AppPreferenceValues> =
         context.appPreferencesDataStore.data.map { prefs ->
             AppPreferenceValues(
                 selectedTheme = prefs[AppPreferenceKeys.SELECTED_THEME] ?: "system",
@@ -80,7 +80,7 @@ class AppPreferencesRepository(private val context: Context) : AppPreferencesSto
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.LEGACY_DATA_ADOPTED] = adopted }
     }
 
-    suspend fun setAppLockEnabled(enabled: Boolean) {
+    override suspend fun setAppLockEnabled(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.APP_LOCK_ENABLED] = enabled }
     }
 }

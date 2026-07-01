@@ -81,7 +81,7 @@ fun TaskManagementScreen(
 }
 
 @Composable
-private fun TaskManagementContent(
+internal fun TaskManagementContent(
     state: TaskManagementUiState.Ready,
     onBack: () -> Unit,
     onSave: (String?, String, String, String?, Double) -> Unit,

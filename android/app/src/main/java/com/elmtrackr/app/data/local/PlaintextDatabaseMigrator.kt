@@ -2,7 +2,7 @@ package com.elmtrackr.app.data.local
 
 import android.content.Context
 import android.util.Log
-import net.sqlcipher.database.SQLiteDatabase
+import net.zetetic.database.sqlcipher.SQLiteDatabase
 import java.io.File
 import java.io.FileInputStream
 
@@ -27,7 +27,7 @@ object PlaintextDatabaseMigrator {
             return
         }
 
-        SQLiteDatabase.loadLibs(appContext)
+        System.loadLibrary("sqlcipher")
         val passphraseChars = passphrase.toPassphraseChars()
         val tempFile = File(dbFile.parentFile, "$DB_NAME.encrypting")
         if (tempFile.exists()) tempFile.delete()
@@ -39,6 +39,7 @@ object PlaintextDatabaseMigrator {
                 "",
                 null,
                 SQLiteDatabase.OPEN_READWRITE,
+                null,
             )
             val escapedPath = tempFile.absolutePath.replace("'", "''")
             plaintextDb.execSQL(

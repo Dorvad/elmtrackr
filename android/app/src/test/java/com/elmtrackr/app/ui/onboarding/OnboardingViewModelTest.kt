@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.onboarding
 
+import com.elmtrackr.app.ScreenshotTestApplication
+import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.UserSettings
@@ -16,9 +18,15 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33], application = ScreenshotTestApplication::class)
 class OnboardingViewModelTest {
 
     @get:Rule
@@ -29,12 +37,12 @@ class OnboardingViewModelTest {
         setProfile(Profile("u1", "test@test.com", null, Instant.EPOCH, Instant.EPOCH))
     }
     private val compensationRepo = FakeCompensationProfilesRepository()
-    private var completionCalled = false
+    private val appPrefs = AppPreferencesRepository(RuntimeEnvironment.getApplication())
 
     private fun buildVm() = OnboardingViewModel(
         settingsRepository = settingsRepo,
         compensationProfilesRepository = compensationRepo,
-        markOnboardingCompleted = { completionCalled = true },
+        appPreferences = appPrefs,
         authRepository = authRepo,
     )
 
@@ -120,7 +128,7 @@ class OnboardingViewModelTest {
         advanceUntilIdle()
 
         assertEquals(OnboardingUiState.Completed, states.last())
-        assertTrue(completionCalled)
+        assertTrue(appPrefs.currentPreferences().onboardingCompleted)
         job.cancel()
     }
 

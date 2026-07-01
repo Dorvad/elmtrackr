@@ -358,6 +358,7 @@ private fun SettingsScreenPreview() {
             onDeleteAccount = {},
             onDismissAccountFeedback = {},
             onSyncNow = {},
+            onSetAppLockEnabled = {},
         )
     }
 }
