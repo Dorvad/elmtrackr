@@ -124,6 +124,9 @@ class ScreenshotRegressionTest {
                     settings = settings,
                     previousMonthMinutes = 840,
                 ),
+                onPreviousMonth = {},
+                onNextMonth = {},
+                canGoNext = true,
                 onExportCsv = {},
                 onExportPdf = {},
             )
@@ -146,6 +149,9 @@ class ScreenshotRegressionTest {
                     settings = settings,
                     previousMonthMinutes = 840,
                 ),
+                onPreviousMonth = {},
+                onNextMonth = {},
+                canGoNext = true,
                 onExportCsv = {},
                 onExportPdf = {},
             )

@@ -15,10 +15,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -36,15 +37,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
+import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
+
+internal val SettingsAvatarGradient = Brush.linearGradient(
+    colorStops = arrayOf(0f to AuroraIndigo, 0.42f to AuroraPlum, 1f to AuroraAqua),
+)
 
 @Composable
 internal fun SettingsPageHeader() {
@@ -86,14 +95,14 @@ internal fun SettingsProfileHeroCard(
             Box(
                 modifier = Modifier
                     .size(52.dp)
-                    .background(AuroraIndigo.copy(alpha = 0.12f), CircleShape),
+                    .background(SettingsAvatarGradient, RoundedCornerShape(percent = 30)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     initial,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = AuroraIndigo,
+                    color = Color.White,
                 )
             }
             Column(modifier = Modifier.padding(start = Spacing.md).weight(1f)) {
@@ -153,6 +162,8 @@ internal fun SettingsHubNavRow(
     subtitle: String,
     onClick: () -> Unit,
     showDivider: Boolean = true,
+    icon: ImageVector? = null,
+    iconTint: Color = AuroraIndigo,
 ) {
     Column {
         Row(
@@ -162,6 +173,17 @@ internal fun SettingsHubNavRow(
                 .padding(horizontal = Spacing.md, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (icon != null) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(iconTint.copy(alpha = 0.12f), RoundedCornerShape(CornerRadius.Small)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
+                }
+                Spacer(Modifier.width(Spacing.md))
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 Text(
@@ -232,6 +254,22 @@ internal fun SettingsSectionCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = Spacing.sm),
             )
+            content()
+        }
+    }
+}
+
+@Composable
+internal fun SettingsSectionCardPlain(
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CornerRadius.Large),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(Modifier.padding(Spacing.md)) {
             content()
         }
     }
@@ -360,6 +398,8 @@ internal fun SettingsToggleRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     enabled: Boolean = true,
+    icon: ImageVector? = null,
+    iconTint: Color = AuroraIndigo,
 ) {
     Row(
         modifier = Modifier
@@ -367,6 +407,22 @@ internal fun SettingsToggleRow(
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (icon != null) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(iconTint.copy(alpha = if (enabled) 0.14f else 0.06f), RoundedCornerShape(CornerRadius.Small)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = iconTint.copy(alpha = if (enabled) 1f else 0.4f),
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.width(Spacing.md))
+        }
         Column(modifier = Modifier.weight(1f).padding(end = Spacing.sm)) {
             Text(
                 title,

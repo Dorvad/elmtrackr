@@ -80,6 +80,9 @@ class TabletScreenshotTest {
             )
             HoursReport(
                 state = sampleReportsState(),
+                onPreviousMonth = {},
+                onNextMonth = {},
+                canGoNext = true,
                 onExportCsv = {},
                 onExportPdf = {},
             )

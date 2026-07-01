@@ -199,7 +199,8 @@ fun ReportsScreen(
             refundsEnabled = refundsEnabled,
             onSelect = { activeTab = it },
         )
-        if (effectiveTab == ReportTab.HOURS) {
+        val embedNavInHoursCard = effectiveTab == ReportTab.HOURS && ready?.report?.shiftCount?.let { it > 0 } == true
+        if (effectiveTab == ReportTab.HOURS && !embedNavInHoursCard) {
             MonthNavigator(
                 selectedYearMonth.first,
                 selectedYearMonth.second,
@@ -237,6 +238,9 @@ fun ReportsScreen(
                             } else {
                                 HoursReport(
                                     state = state,
+                                    onPreviousMonth = viewModel::previousMonth,
+                                    onNextMonth = viewModel::nextMonth,
+                                    canGoNext = canGoNext,
                                     onExportCsv = {
                                         ReportExporter.shareCsv(
                                             context,
@@ -326,37 +330,46 @@ private fun MonthNavigator(year: Int, month: Int, onPrev: () -> Unit, onNext: ()
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(
-                onClick = onPrev,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
-            ) {
-                Icon(Icons.Filled.ChevronLeft, "Previous month", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(
-                "${Month.of(month).displayName()} $year",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            MonthNavRow(year = year, month = month, onPrev = onPrev, onNext = onNext, canGoNext = canGoNext)
+        }
+    }
+}
+
+@Composable
+private fun MonthNavRow(year: Int, month: Int, onPrev: () -> Unit, onNext: () -> Unit, canGoNext: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(
+            onClick = onPrev,
+            modifier = Modifier
+                .size(48.dp)
+                .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
+        ) {
+            Icon(Icons.Filled.ChevronLeft, "Previous month", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(
+            "${Month.of(month).displayName()} $year",
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        IconButton(
+            onClick = onNext,
+            enabled = canGoNext,
+            modifier = Modifier
+                .size(48.dp)
+                .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
+        ) {
+            Icon(
+                Icons.Filled.ChevronRight,
+                "Next month",
+                tint = if (canGoNext) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline,
             )
-            IconButton(
-                onClick = onNext,
-                enabled = canGoNext,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
-            ) {
-                Icon(
-                    Icons.Filled.ChevronRight,
-                    "Next month",
-                    tint = if (canGoNext) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline,
-                )
-            }
         }
     }
 }
@@ -374,10 +387,19 @@ private fun ReportsEmptyContent() = ElmEmptyState(
 @Composable
 private fun PhoneHoursReportTop(
     report: com.elmtrackr.app.domain.model.MonthlyReport,
+    year: Int,
+    month: Int,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    canGoNext: Boolean,
     onExportCsv: () -> Unit,
     onExportPdf: () -> Unit,
 ) {
     ReportCard {
+        MonthNavRow(year = year, month = month, onPrev = onPreviousMonth, onNext = onNextMonth, canGoNext = canGoNext)
+        Spacer(Modifier.height(12.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Spacer(Modifier.height(12.dp))
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val stackActions = maxWidth < 340.dp
             if (stackActions) {
@@ -438,10 +460,29 @@ private fun TabletHoursReportTop(
     state: ReportsUiState.Ready,
     report: com.elmtrackr.app.domain.model.MonthlyReport,
     currency: CurrencyCode,
+    year: Int,
+    month: Int,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    canGoNext: Boolean,
     onExportCsv: () -> Unit,
     onExportPdf: () -> Unit,
 ) {
     val totalPct = report.totalMinutes.takeIf { it > 0 }
+    val navShape = RoundedCornerShape(CornerRadius.Large)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, navShape),
+        shape = navShape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+            MonthNavRow(year = year, month = month, onPrev = onPreviousMonth, onNext = onNextMonth, canGoNext = canGoNext)
+        }
+    }
+    Spacer(Modifier.height(12.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         ElmStatCard(
             label = "Total",
@@ -592,6 +633,9 @@ private fun TabletHoursReportTop(
 @Composable
 internal fun HoursReport(
     state: ReportsUiState.Ready,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    canGoNext: Boolean,
     onExportCsv: () -> Unit,
     onExportPdf: () -> Unit,
 ) {
@@ -605,12 +649,22 @@ internal fun HoursReport(
             state = state,
             report = report,
             currency = currency,
+            year = state.year,
+            month = state.month,
+            onPreviousMonth = onPreviousMonth,
+            onNextMonth = onNextMonth,
+            canGoNext = canGoNext,
             onExportCsv = onExportCsv,
             onExportPdf = onExportPdf,
         )
     } else {
         PhoneHoursReportTop(
             report = report,
+            year = state.year,
+            month = state.month,
+            onPreviousMonth = onPreviousMonth,
+            onNextMonth = onNextMonth,
+            canGoNext = canGoNext,
             onExportCsv = onExportCsv,
             onExportPdf = onExportPdf,
         )
