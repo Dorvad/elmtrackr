@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.elmtrackr.app.navigation.BottomNavItem
+import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.auroraPressScale
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraHair
@@ -144,6 +146,7 @@ private fun SideNavItem(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
+    val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val backgroundColor = if (isSelected) {
         AuroraIndigo.copy(alpha = 0.12f)
@@ -165,7 +168,10 @@ private fun SideNavItem(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick,
+                onClick = {
+                    AuroraHaptics.navigationTap(haptic)
+                    onClick()
+                },
             )
             .background(backgroundColor, RoundedCornerShape(CornerRadius.Medium))
             .padding(horizontal = 14.dp, vertical = 12.dp),

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -186,6 +187,7 @@ fun ShiftsScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ShiftsListContent(
     state: ShiftsUiState.Ready,
@@ -210,23 +212,29 @@ private fun ShiftsListContent(
             .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        item { ShiftsPageHeader(onAddShift = onAddShift) }
         item {
-            ShiftsHeroSummaryCard(
-                shifts = state.shifts,
-                activeShift = state.activeShift,
-                settings = state.settings,
-                month = selectedMonth,
-                profiles = state.profiles,
-                onPreviousMonth = onPreviousMonth,
-                onNextMonth = onNextMonth,
-            )
+            ShiftsPageHeader(onAddShift = onAddShift)
+        }
+        item {
+            Box(Modifier.animateItem()) {
+                ShiftsHeroSummaryCard(
+                    shifts = state.shifts,
+                    activeShift = state.activeShift,
+                    settings = state.settings,
+                    month = selectedMonth,
+                    profiles = state.profiles,
+                    onPreviousMonth = onPreviousMonth,
+                    onNextMonth = onNextMonth,
+                )
+            }
         }
 
         weekSections.forEach { section ->
-            item {
+            item(key = "week-${section.label}") {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateItem(),
                     shape = RoundedCornerShape(com.elmtrackr.app.ui.theme.CornerRadius.Medium),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),

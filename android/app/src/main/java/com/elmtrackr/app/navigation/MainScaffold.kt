@@ -40,6 +40,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -75,6 +76,7 @@ import com.elmtrackr.app.ui.theme.auroraNavSelectedLabel
 import com.elmtrackr.app.ui.theme.auroraNavUnselectedIcon
 import com.elmtrackr.app.ui.theme.auroraNavUnselectedLabel
 import com.elmtrackr.app.ui.design.AuroraEaseOut
+import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.AuroraMeshBackground
 import com.elmtrackr.app.ui.design.AuroraMotion
 import com.elmtrackr.app.ui.design.auroraPressScale
@@ -261,6 +263,7 @@ private fun ElmBottomNav(
     onNavigate: (String) -> Unit,
 ) {
   val navShape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+  val haptic = LocalHapticFeedback.current
   Box(
     modifier = Modifier
       .fillMaxWidth()
@@ -332,7 +335,10 @@ private fun ElmBottomNav(
               .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-              ) { onNavigate(item.route) }
+              ) {
+                AuroraHaptics.navigationTap(haptic)
+                onNavigate(item.route)
+              }
               .padding(vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp),

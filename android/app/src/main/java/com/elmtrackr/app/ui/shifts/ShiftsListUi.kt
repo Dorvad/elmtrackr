@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.shifts
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -49,9 +51,11 @@ import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.ElmDashedButton
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraEnter
+import com.elmtrackr.app.ui.design.auroraPressScale
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeach
@@ -407,12 +411,18 @@ internal fun ShiftRow(
     } else {
         Modifier.fillMaxWidth().padding(horizontal = 12.dp).auroraEnter(entranceIndex)
     }
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
 
     @Suppress("UNUSED_PARAMETER") val _refunds = showRefunds
 
     Surface(
-        onClick = onClick,
-        modifier = rowModifier,
+        onClick = {
+            AuroraHaptics.navigationTap(haptic)
+            onClick()
+        },
+        interactionSource = interactionSource,
+        modifier = rowModifier.auroraPressScale(interactionSource),
         color = MaterialTheme.colorScheme.surface,
     ) {
         Row(
@@ -521,10 +531,16 @@ private fun ActiveShiftRow(
     } else {
         ShiftActiveGreenBg
     }
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
 
     Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().auroraEnter(entranceIndex),
+        onClick = {
+            AuroraHaptics.navigationTap(haptic)
+            onClick()
+        },
+        interactionSource = interactionSource,
+        modifier = Modifier.fillMaxWidth().auroraEnter(entranceIndex).auroraPressScale(interactionSource),
         color = bgColor,
     ) {
         Row(

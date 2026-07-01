@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +50,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.tasks.TaskDefaultRulesBuilder
 import com.elmtrackr.app.ui.components.states.ErrorState
+import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.ElmCardPadded
 import com.elmtrackr.app.ui.design.ElmGradientButton
@@ -80,6 +83,7 @@ fun TaskManagementScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun TaskManagementContent(
     state: TaskManagementUiState.Ready,
@@ -90,6 +94,7 @@ internal fun TaskManagementContent(
 ) {
     var editingId by remember { mutableStateOf<String?>(null) }
     var showForm by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
 
     if (state.message != null) {
         androidx.compose.runtime.LaunchedEffect(state.message) {
@@ -174,7 +179,11 @@ internal fun TaskManagementContent(
             TaskRow(
                 task = task,
                 onEdit = { editingId = task.id; showForm = false },
-                onArchive = { onArchive(task.id) },
+                onArchive = {
+                    AuroraHaptics.destructive(haptic)
+                    onArchive(task.id)
+                },
+                modifier = Modifier.animateItem(),
             )
         }
 
@@ -200,8 +209,9 @@ private fun TaskRow(
     archived: Boolean = false,
     onEdit: () -> Unit,
     onArchive: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    ElmCardPadded(Modifier.padding(horizontal = 16.dp)) {
+    ElmCardPadded(modifier.padding(horizontal = 16.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(task.icon, style = MaterialTheme.typography.headlineSmall)
             TaskColorDot(

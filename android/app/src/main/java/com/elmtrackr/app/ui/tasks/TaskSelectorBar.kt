@@ -1,6 +1,5 @@
 package com.elmtrackr.app.ui.tasks
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -18,9 +17,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.domain.model.Task
+import com.elmtrackr.app.ui.design.AuroraHaptics
+import com.elmtrackr.app.ui.design.auroraRowClickable
 import com.elmtrackr.app.ui.theme.CornerRadius
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -38,6 +40,7 @@ fun TaskSelectorBar(
     if (tasks.isEmpty()) return
 
     val displayTasks = sortedTasksForDisplay(tasks, suggestedTaskId)
+    val haptic = LocalHapticFeedback.current
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -50,7 +53,7 @@ fun TaskSelectorBar(
                 "Manage",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(onClick = onManageTasks),
+                modifier = Modifier.auroraRowClickable(onClick = onManageTasks),
             )
         }
         if (showSuggestedNow && suggestedTaskId != null) {
@@ -85,7 +88,10 @@ fun TaskSelectorBar(
                 val isSuggested = showSuggestedNow && task.id == suggestedTaskId
                 FilterChip(
                     selected = task.id == selectedTaskId,
-                    onClick = { onSelectTask(task.id) },
+                    onClick = {
+                        AuroraHaptics.toggle(haptic)
+                        onSelectTask(task.id)
+                    },
                     label = {
                         Text(buildString {
                             if (isSuggested) append("✨ ")

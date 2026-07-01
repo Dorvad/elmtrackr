@@ -35,6 +35,7 @@ import com.elmtrackr.app.security.BiometricAuthPrompt
 import com.elmtrackr.app.security.BiometricCapability
 import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.components.states.ErrorState
+import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.AuroraStateCrossfade
 import com.elmtrackr.app.ui.design.auroraSubScreenTransition
@@ -210,8 +211,12 @@ private fun SettingsFormHost(
     var weekendDays by remember(state.settings.weekendDays) { mutableStateOf(state.settings.weekendDays) }
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     LaunchedEffect(state.saveFeedback) {
         val feedback = state.saveFeedback ?: return@LaunchedEffect
+        if (!feedback.isError) {
+            AuroraHaptics.success(haptic)
+        }
         snackbarHostState.showSnackbar(
             message = feedback.message,
             duration = if (feedback.isError) SnackbarDuration.Long else SnackbarDuration.Short,

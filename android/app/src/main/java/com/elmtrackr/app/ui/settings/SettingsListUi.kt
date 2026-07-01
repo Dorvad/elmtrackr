@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,8 +34,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -43,7 +46,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.design.auroraPressScale
+import com.elmtrackr.app.ui.design.auroraRowClickable
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
@@ -76,11 +82,18 @@ internal fun SettingsProfileHeroCard(
 ) {
     val shape = RoundedCornerShape(CornerRadius.Large)
     val initial = displayName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
 
     Card(
-        onClick = onClick,
+        onClick = {
+            AuroraHaptics.navigationTap(haptic)
+            onClick()
+        },
+        interactionSource = interactionSource,
         modifier = Modifier
             .fillMaxWidth()
+            .auroraPressScale(interactionSource)
             .shadow(8.dp, shape, ambientColor = Color.Black.copy(0.06f), spotColor = Color.Black.copy(0.08f)),
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -169,7 +182,7 @@ internal fun SettingsHubNavRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .auroraRowClickable(onClick = onClick)
                 .padding(horizontal = Spacing.md, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -358,7 +371,7 @@ internal fun SettingsNavRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .clickable(onClick = onClick)
+            .auroraRowClickable(onClick = onClick)
             .background(auroraSurfaceSub(), shape)
             .padding(horizontal = Spacing.md, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -401,6 +414,7 @@ internal fun SettingsToggleRow(
     icon: ImageVector? = null,
     iconTint: Color = AuroraIndigo,
 ) {
+    val haptic = LocalHapticFeedback.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -439,7 +453,10 @@ internal fun SettingsToggleRow(
         }
         Switch(
             checked = checked,
-            onCheckedChange = onCheckedChange,
+            onCheckedChange = { value ->
+                AuroraHaptics.toggle(haptic)
+                onCheckedChange(value)
+            },
             enabled = enabled,
         )
     }
@@ -471,6 +488,7 @@ internal fun SettingsFloatingSaveBar(
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptic = LocalHapticFeedback.current
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -491,7 +509,14 @@ internal fun SettingsFloatingSaveBar(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            ElmGradientButton(onClick = onSave, enabled = !isSaving, compact = true) {
+            ElmGradientButton(
+                onClick = {
+                    AuroraHaptics.success(haptic)
+                    onSave()
+                },
+                enabled = !isSaving,
+                compact = true,
+            ) {
                 Text(if (isSaving) "Saving…" else "Save", fontWeight = FontWeight.SemiBold)
             }
         }
