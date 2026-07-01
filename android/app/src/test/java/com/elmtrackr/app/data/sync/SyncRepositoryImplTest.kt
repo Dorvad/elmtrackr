@@ -114,6 +114,63 @@ class SyncRepositoryImplTest {
     }
 
     @Test
+    fun `empty full sync does not tombstone local shifts when remote returns no rows`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = FakeRemoteShiftDataSource()
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        dao.insertShift(
+            shiftEntity(
+                localId = "local-synced",
+                syncStatus = SyncStatus.SYNCED,
+                remoteId = "remote-existing",
+            ),
+        )
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        assertEquals(1, dao.currentShifts.size)
+        assertEquals("remote-existing", dao.currentShifts.first().remoteId)
+        assertEquals(null, dao.currentShifts.first().deletedAt)
+    }
+
+    @Test
+    fun `pull restores soft deleted shift when remote row matches`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = FakeRemoteShiftDataSource(
+            initial = listOf(
+                RemoteShiftRow(
+                    id = "remote-1",
+                    userId = "user-1",
+                    startTime = "2024-06-01T08:00:00Z",
+                    endTime = "2024-06-01T16:00:00Z",
+                    breakMinutes = 0,
+                    createdAt = "2024-06-01T08:00:00Z",
+                    updatedAt = "2024-06-01T16:00:00Z",
+                ),
+            ),
+        )
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        dao.insertShift(
+            shiftEntity(
+                localId = "local-1",
+                syncStatus = SyncStatus.SYNCED,
+                remoteId = "remote-1",
+                startTime = 1_716_230_400_000L,
+                endTime = 1_716_259_200_000L,
+            ).copy(deletedAt = 9_999L),
+        )
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        assertEquals(1, dao.currentShifts.size)
+        assertEquals(null, dao.currentShifts.first().deletedAt)
+    }
+
+    @Test
     fun `syncAll still pulls shifts when tasks table is missing`() = runTest {
         val dao = InMemoryShiftDao()
         val remote = FakeRemoteShiftDataSource(
