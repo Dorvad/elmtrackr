@@ -21,12 +21,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.security.BiometricAuthPrompt
+import com.elmtrackr.app.security.BiometricCapability
 import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
@@ -41,6 +45,7 @@ internal enum class SettingsDestination {
     APPEARANCE,
     FEATURES,
     HELP,
+    SECURITY,
     COMPENSATION,
     TASKS,
     TERMS,
@@ -109,6 +114,7 @@ fun SettingsScreen(
                 onDeleteAccount = viewModel::deleteAccount,
                 onDismissAccountFeedback = viewModel::clearAccountActionFeedback,
                 onSyncNow = viewModel::syncNow,
+                onSetAppLockEnabled = viewModel::setAppLockEnabled,
             )
             is SettingsUiState.Error -> ErrorState(
                 message = state.message,
@@ -134,7 +140,11 @@ private fun SettingsFormHost(
     onDeleteAccount: () -> Unit,
     onDismissAccountFeedback: () -> Unit,
     onSyncNow: () -> Unit,
+    onSetAppLockEnabled: (Boolean) -> Unit,
 ) {
+    val context = LocalContext.current
+    val activity = context as FragmentActivity
+    val biometricAvailability = remember { BiometricCapability.check(context) }
     var displayName by remember(state.profile?.fullName) { mutableStateOf(state.profile?.fullName ?: "") }
     var dailyOtText by remember(state.settings.dailyOvertimeThresholdMinutes) {
         mutableStateOf(minutesToHours(state.settings.dailyOvertimeThresholdMinutes))
@@ -290,6 +300,24 @@ private fun SettingsFormHost(
                 onOpenTerms = { onNavigate(SettingsDestination.TERMS) },
                 onOpenSyncDetails = { onNavigate(SettingsDestination.SYNC_DETAILS) },
                 onSyncNow = onSyncNow,
+            )
+            SettingsDestination.SECURITY -> SecurityDetailScreen(
+                appLockEnabled = state.appLockEnabled,
+                biometricAvailability = biometricAvailability,
+                onBack = onNavigateBack,
+                onAppLockChange = { enabled ->
+                    BiometricAuthPrompt.show(
+                        activity = activity,
+                        title = if (enabled) "Enable app lock" else "Disable app lock",
+                        subtitle = if (enabled) {
+                            "Confirm to require biometric unlock when opening ElmTrackr"
+                        } else {
+                            "Confirm to turn off biometric app lock"
+                        },
+                        onSuccess = { onSetAppLockEnabled(enabled) },
+                        onFailure = { },
+                    )
+                },
             )
             else -> Unit
         }

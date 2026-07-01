@@ -143,6 +143,19 @@
 }
 
 # ============================================================
+# SQLCipher — native library loaded at runtime
+# ============================================================
+-keep class net.sqlcipher.** { *; }
+-dontwarn net.sqlcipher.**
+
+# ============================================================
+# AndroidX Security Crypto & Biometric
+# ============================================================
+-keep class androidx.security.crypto.** { *; }
+-keep class androidx.biometric.** { *; }
+-dontwarn androidx.security.crypto.**
+
+# ============================================================
 # Suppress miscellaneous warnings from transitive dependencies
 # ============================================================
 -dontwarn com.sun.nio.file.**

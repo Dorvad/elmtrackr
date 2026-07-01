@@ -29,8 +29,10 @@ import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.PreferencesCurrentUserProvider
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.notification.NotificationChannels
+import com.elmtrackr.app.security.AppLockController
 import com.elmtrackr.app.sideeffects.ActiveShiftSideEffectsCoordinator
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -173,6 +175,14 @@ class ElmTrackrApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        applicationScope.launch(Dispatchers.IO) {
+            val prefs = appPreferences.currentPreferences()
+            AppLockController.configure(
+                enabled = prefs.appLockEnabled,
+                initiallyUnlocked = !prefs.appLockEnabled,
+            )
+            database
+        }
         NotificationChannels.createAll(this)
         RefundReceiptPhotoCleanupWorker.schedule(this)
         if (SupabaseClientProvider.isConfigured()) {

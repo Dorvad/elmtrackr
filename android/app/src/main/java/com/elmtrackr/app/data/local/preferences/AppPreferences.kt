@@ -23,6 +23,7 @@ object AppPreferenceKeys {
     val DEVICE_ID = stringPreferencesKey("device_id")
     val LEGACY_DATA_ADOPTED = booleanPreferencesKey("legacy_data_adopted")
     val NOTIFICATION_PERMISSION_PROMPTED = booleanPreferencesKey("notification_permission_prompted")
+    val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
 }
 
 data class AppPreferenceValues(
@@ -32,9 +33,10 @@ data class AppPreferenceValues(
     val lastActiveUserId: String? = null,
     val deviceId: String? = null,
     val legacyDataAdopted: Boolean = false,
+    val appLockEnabled: Boolean = false,
 )
 
-class AppPreferencesRepository(private val context: Context) : AppPreferencesStore {
+class AppPreferencesRepository(private val context: Context) : AppPreferencesStore, AppLockPreferencesStore {
 
     val preferences: Flow<AppPreferenceValues> =
         context.appPreferencesDataStore.data.map { prefs ->
@@ -45,6 +47,7 @@ class AppPreferencesRepository(private val context: Context) : AppPreferencesSto
                 lastActiveUserId = prefs[AppPreferenceKeys.LAST_ACTIVE_USER_ID],
                 deviceId = prefs[AppPreferenceKeys.DEVICE_ID],
                 legacyDataAdopted = prefs[AppPreferenceKeys.LEGACY_DATA_ADOPTED] ?: false,
+                appLockEnabled = prefs[AppPreferenceKeys.APP_LOCK_ENABLED] ?: false,
             )
         }
 
@@ -75,5 +78,9 @@ class AppPreferencesRepository(private val context: Context) : AppPreferencesSto
 
     suspend fun setLegacyDataAdopted(adopted: Boolean) {
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.LEGACY_DATA_ADOPTED] = adopted }
+    }
+
+    suspend fun setAppLockEnabled(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[AppPreferenceKeys.APP_LOCK_ENABLED] = enabled }
     }
 }

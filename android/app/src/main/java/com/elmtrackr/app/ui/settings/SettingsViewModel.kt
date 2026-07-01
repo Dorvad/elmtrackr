@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elmtrackr.app.ElmTrackrApp
+import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
+import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.AuthResult
@@ -18,6 +20,7 @@ import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.data.sync.SyncHealth
 import com.elmtrackr.app.data.sync.SyncRepository
 import com.elmtrackr.app.data.sync.SyncTrigger
+import com.elmtrackr.app.security.AppLockController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -49,6 +52,7 @@ class SettingsViewModel(
     private val themeStore: ThemePreferenceStore,
     private val syncRepository: SyncRepository,
     private val syncTrigger: SyncTrigger,
+    private val appPreferences: AppLockPreferencesStore,
 ) : ViewModel() {
 
     private val _isSaving = MutableStateFlow(false)
@@ -75,6 +79,7 @@ class SettingsViewModel(
         val saveFeedback: SettingsSaveFeedback?,
         val isDeletingAccount: Boolean,
         val accountActionFeedback: String?,
+        val appLockEnabled: Boolean,
     )
 
     private val syncHealthFlow = authRepository.observeCurrentProfile().flatMapLatest { profile ->
@@ -95,11 +100,12 @@ class SettingsViewModel(
         combine(
             authRepository.observeCurrentProfile(),
             themeStore.observeTheme(),
+            appPreferences.preferences,
             _isSaving,
             _isSyncing,
             syncHealthFlow,
-        ) { profile, theme, saving, syncing, health ->
-            SyncExtras(profile, theme, saving, syncing, health)
+        ) { profile, theme, prefs, saving, syncing, health ->
+            SyncExtras(profile, theme, prefs.appLockEnabled, saving, syncing, health)
         },
         combine(
             lastSyncFlow,
@@ -135,12 +141,14 @@ class SettingsViewModel(
             account.saveFeedback,
             account.deleting,
             account.accountFeedback,
+            syncExtras.appLockEnabled,
         )
     }
 
     private data class SyncExtras(
         val profile: Profile?,
         val theme: String,
+        val appLockEnabled: Boolean,
         val isSaving: Boolean,
         val isSyncing: Boolean,
         val syncHealth: SyncHealth?,
@@ -165,6 +173,7 @@ class SettingsViewModel(
             saveFeedback = extras.saveFeedback,
             isDeletingAccount = extras.isDeletingAccount,
             accountActionFeedback = extras.accountActionFeedback,
+            appLockEnabled = extras.appLockEnabled,
         )
     }.catch { e ->
         emit(SettingsUiState.Error(e.message ?: "Unknown error"))
@@ -363,6 +372,16 @@ class SettingsViewModel(
         }
     }
 
+    fun setAppLockEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            appPreferences.setAppLockEnabled(enabled)
+            AppLockController.configure(enabled, initiallyUnlocked = true)
+            if (enabled) {
+                AppLockController.unlock()
+            }
+        }
+    }
+
     fun ensureSettingsExist() {
         viewModelScope.launch {
             val userId = authRepository.getCurrentProfile()?.id ?: return@launch
@@ -402,6 +421,7 @@ class SettingsViewModel(
                     themeStore = AppThemePreferenceStore(app.appPreferences),
                     syncRepository = app.syncRepository,
                     syncTrigger = app.syncTrigger,
+                    appPreferences = app.appPreferences,
                 )
             }
         }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ElmTrackr</string>
+    <string name="app_lock_action_blocked">Unlock ElmTrackr in the app to use this action</string>
     <string name="shortcut_new_shift_short">New Shift</string>
     <string name="shortcut_new_shift_long">Log a Manual Shift</string>
     <string name="shortcut_clock_in_short">Clock In</string>

@@ -11,6 +11,7 @@ import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.notification.ActiveShiftNotificationManager
 import com.elmtrackr.app.notification.NotificationChannels
+import com.elmtrackr.app.security.AppLockActionGuard
 import com.elmtrackr.app.widget.ElmTrackrWidgetUpdater
 import kotlinx.coroutines.flow.first
 
@@ -22,6 +23,7 @@ object ClockOutActions {
     }
 
     suspend fun clockOutActiveShift(context: Context): Result {
+        if (AppLockActionGuard.blockIfLocked(context)) return Result.NO_ACTIVE_SHIFT
         val app = context.applicationContext as ElmTrackrApp
         val userId = app.currentUserProvider.currentUserId() ?: return Result.NO_ACTIVE_SHIFT
         val activeShift = app.shiftsRepository.observeActiveShift(userId).first() ?: return Result.NO_ACTIVE_SHIFT
