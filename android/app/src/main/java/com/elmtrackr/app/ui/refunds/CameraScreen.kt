@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.refunds
 
+import androidx.activity.compose.BackHandler
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
@@ -76,6 +77,8 @@ fun CameraScreen(
     LaunchedEffect(Unit) {
         if (!hasPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
     }
+
+    BackHandler(onBack = onClose)
 
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         if (!hasPermission) {

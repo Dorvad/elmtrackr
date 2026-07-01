@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.onboarding
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -136,6 +137,18 @@ fun OnboardingScreen(
 
     LaunchedEffect(state) { if (state is OnboardingUiState.Completed) onCompleted() }
     LaunchedEffect(step) { scrollState.scrollTo(0) }
+
+    BackHandler(enabled = replay && step == 1) { onCompleted() }
+    BackHandler(enabled = step > 1) {
+        step = when (step) {
+            7 -> 6
+            6 -> 5
+            5 -> 4
+            4 -> 3
+            3 -> 2
+            else -> 1
+        }
+    }
 
     val hourlyRate = hourlyRateText.toDoubleOrNull()
     val dailyOt = dailyOtText.toDoubleOrNull()

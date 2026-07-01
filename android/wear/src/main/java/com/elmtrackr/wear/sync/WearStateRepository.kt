@@ -94,6 +94,10 @@ class WearStateRepository(
         _confirmationMessage.value = null
     }
 
+    fun dismissConfirmation() {
+        _confirmationMessage.value = null
+    }
+
     fun setPunchInProgress(inProgress: Boolean) {
         _isPunchInProgress.value = inProgress
     }

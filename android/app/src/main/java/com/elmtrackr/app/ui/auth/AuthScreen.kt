@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.auth
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -86,19 +87,28 @@ fun AuthScreen(
                 onResetPassword = { email -> viewModel.resetPassword(email) },
                 onClearError    = viewModel::clearError,
             )
-            is AuthUiState.PasswordResetSent -> PasswordResetSentContent(
-                onBack = viewModel::dismissPasswordReset,
-            )
-            is AuthUiState.PasswordRecovery -> PasswordRecoveryContent(
-                isLoading = s.isLoading,
-                errorMessage = s.errorMessage,
-                onUpdatePassword = viewModel::updatePassword,
-                onBack = viewModel::dismissPasswordRecovery,
-            )
-            is AuthUiState.SignUpConfirmation -> SignUpConfirmationContent(
-                email = s.email,
-                onBack = viewModel::dismissSignUpConfirmation,
-            )
+            is AuthUiState.PasswordResetSent -> {
+                BackHandler(onBack = viewModel::dismissPasswordReset)
+                PasswordResetSentContent(
+                    onBack = viewModel::dismissPasswordReset,
+                )
+            }
+            is AuthUiState.PasswordRecovery -> {
+                BackHandler(onBack = viewModel::dismissPasswordRecovery)
+                PasswordRecoveryContent(
+                    isLoading = s.isLoading,
+                    errorMessage = s.errorMessage,
+                    onUpdatePassword = viewModel::updatePassword,
+                    onBack = viewModel::dismissPasswordRecovery,
+                )
+            }
+            is AuthUiState.SignUpConfirmation -> {
+                BackHandler(onBack = viewModel::dismissSignUpConfirmation)
+                SignUpConfirmationContent(
+                    email = s.email,
+                    onBack = viewModel::dismissSignUpConfirmation,
+                )
+            }
         }
     }
 }
@@ -204,6 +214,11 @@ internal fun SignedOutContent(
     var email          by rememberSaveable { mutableStateOf("") }
     var password       by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
+
+    BackHandler(enabled = mode != AuthMode.SIGN_IN) {
+        mode = AuthMode.SIGN_IN
+        onClearError()
+    }
 
     val passwordFocusRequester = FocusRequester()
     val focusManager           = LocalFocusManager.current

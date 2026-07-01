@@ -3,6 +3,7 @@ package com.elmtrackr.app.ui.dashboard
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -151,6 +152,8 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val showCelebration by viewModel.showFirstClockInCelebration.collectAsState()
     var showTasks by rememberSaveable { mutableStateOf(false) }
+
+    BackHandler(enabled = showTasks) { showTasks = false }
 
     if (showTasks) {
         com.elmtrackr.app.ui.tasks.TaskManagementScreen(onBack = { showTasks = false })

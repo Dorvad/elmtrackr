@@ -2,6 +2,7 @@
 
 package com.elmtrackr.app.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -52,6 +53,13 @@ internal enum class SettingsDestination {
     SYNC_DETAILS,
 }
 
+internal fun SettingsDestination.backDestination(): SettingsDestination? = when (this) {
+    SettingsDestination.HUB -> null
+    SettingsDestination.COMPENSATION, SettingsDestination.TASKS -> SettingsDestination.PAY
+    SettingsDestination.TERMS, SettingsDestination.SYNC_DETAILS -> SettingsDestination.HELP
+    else -> SettingsDestination.HUB
+}
+
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -60,6 +68,10 @@ fun SettingsScreen(
     onReplayOnboarding: () -> Unit = {},
 ) {
     var destination by rememberSaveable { mutableStateOf(SettingsDestination.HUB) }
+
+    BackHandler(enabled = destination != SettingsDestination.HUB) {
+        destination = destination.backDestination() ?: SettingsDestination.HUB
+    }
 
     when (destination) {
         SettingsDestination.COMPENSATION -> {

@@ -2,6 +2,7 @@ package com.elmtrackr.wear
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,9 @@ class WearMainActivity : ComponentActivity() {
                 val snapshot = display.snapshot
 
                 Box(modifier = Modifier.fillMaxSize()) {
+                    if (confirmation != null) {
+                        BackHandler { viewModel.dismissConfirmation() }
+                    }
                     when {
                         confirmation != null -> ConfirmationOverlay(confirmation!!)
                         !snapshot.signedIn -> SetupScreen(onRefresh = viewModel::refresh)
