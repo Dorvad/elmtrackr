@@ -12,6 +12,7 @@ import com.elmtrackr.app.domain.model.ShiftPayBreakdown
 import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.time.WorkTimezone
+import kotlin.math.min
 
 /**
  * Compensation estimation based on user-configured profiles.

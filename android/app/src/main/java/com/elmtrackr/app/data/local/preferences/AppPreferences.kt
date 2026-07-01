@@ -36,9 +36,12 @@ data class AppPreferenceValues(
     val appLockEnabled: Boolean = false,
 )
 
-class AppPreferencesRepository(private val context: Context) : AppPreferencesStore, AppLockPreferencesStore {
+class AppPreferencesRepository(private val context: Context) :
+    AppPreferencesStore,
+    AppLockPreferencesStore,
+    OnboardingPreferences {
 
-    val preferences: Flow<AppPreferenceValues> =
+    override val preferences: Flow<AppPreferenceValues> =
         context.appPreferencesDataStore.data.map { prefs ->
             AppPreferenceValues(
                 selectedTheme = prefs[AppPreferenceKeys.SELECTED_THEME] ?: "system",
@@ -55,7 +58,7 @@ class AppPreferencesRepository(private val context: Context) : AppPreferencesSto
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.SELECTED_THEME] = theme }
     }
 
-    suspend fun setOnboardingCompleted(completed: Boolean) {
+    override suspend fun setOnboardingCompleted(completed: Boolean) {
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.ONBOARDING_COMPLETED] = completed }
     }
 
@@ -80,7 +83,7 @@ class AppPreferencesRepository(private val context: Context) : AppPreferencesSto
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.LEGACY_DATA_ADOPTED] = adopted }
     }
 
-    suspend fun setAppLockEnabled(enabled: Boolean) {
+    override suspend fun setAppLockEnabled(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.APP_LOCK_ENABLED] = enabled }
     }
 }

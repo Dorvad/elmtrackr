@@ -96,7 +96,7 @@ private fun BoxCentered(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun CompensationSettingsContent(
+internal fun CompensationSettingsContent(
     state: CompensationSettingsUiState.Ready,
     onBack: () -> Unit,
     onSave: (

@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.elmtrackr.wear"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.elmlaunch.myapp"
         minSdk = 30
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 9
         versionName = "1.0.7"
     }

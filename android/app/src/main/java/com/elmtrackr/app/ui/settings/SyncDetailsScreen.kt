@@ -82,7 +82,7 @@ fun SyncDetailsScreen(
 }
 
 @Composable
-private fun SyncDetailsContent(
+internal fun SyncDetailsContent(
     details: SyncDetails,
     isSyncing: Boolean,
     isExporting: Boolean,

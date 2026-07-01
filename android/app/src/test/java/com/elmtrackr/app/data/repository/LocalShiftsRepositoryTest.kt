@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
+import com.elmtrackr.app.fake.FakeSyncTrigger
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -16,7 +17,7 @@ class LocalShiftsRepositoryTest {
     fun `clockIn returns existing active shift instead of creating duplicate`() = runTest {
         val dao = InMemoryShiftDao()
         dao.insertShift(shiftEntity(localId = "active-1", startTime = 1_000L))
-        val repository = LocalShiftsRepository(dao)
+        val repository = LocalShiftsRepository(dao, FakeSyncTrigger())
 
         val shift = repository.clockIn(
             userId = "u1",
@@ -34,7 +35,7 @@ class LocalShiftsRepositoryTest {
     @Test
     fun `clockIn creates shift with compensation profile when no active shift exists`() = runTest {
         val dao = InMemoryShiftDao()
-        val repository = LocalShiftsRepository(dao)
+        val repository = LocalShiftsRepository(dao, FakeSyncTrigger())
 
         val shift = repository.clockIn(
             userId = "u1",

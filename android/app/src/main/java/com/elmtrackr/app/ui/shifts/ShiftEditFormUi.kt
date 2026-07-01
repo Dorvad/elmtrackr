@@ -72,8 +72,9 @@ import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.tasks.TaskChipColorLeading
-import com.elmtrackr.app.ui.tasks.TaskSorting
+import com.elmtrackr.app.domain.tasks.TaskSorting
 import com.elmtrackr.app.ui.tasks.parseTaskColor
+import com.elmtrackr.app.ui.theme.Spacing
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import java.time.Instant
 import java.time.ZoneId
