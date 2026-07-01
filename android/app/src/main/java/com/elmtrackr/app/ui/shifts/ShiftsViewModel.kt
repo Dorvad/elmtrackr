@@ -40,6 +40,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.elmtrackr.app.domain.tasks.TaskSnapshotApplier
 import java.time.Instant
 import java.time.YearMonth
+import java.time.ZoneId
 import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -83,35 +84,43 @@ class ShiftsViewModel(
     val uiState: StateFlow<ShiftsUiState> = _refreshNonce
         .flatMapLatest {
             currentUserProvider.userId
-        .filterNotNull()
-        .flatMapLatest { userId ->
-            combine(
-                _selectedMonth.flatMapLatest { month ->
-                    shiftsRepository.observeShiftsByMonth(userId, month.year, month.monthValue)
-                },
-                shiftsRepository.observeActiveShift(userId),
-                settingsRepository.observeSettings(userId),
-                compensationProfilesRepository.observeProfiles(userId),
-                tasksRepository.observeAllTasks(userId),
-            ) { shifts, activeShift, settings, profiles, tasks ->
-                if (shifts.isEmpty()) ShiftsUiState.Empty
-                else ShiftsUiState.Ready(
-                    shifts = shifts,
-                    activeShift = activeShift,
-                    featuresTravelRefunds = settings?.featuresTravelRefunds ?: false,
-                    settings = settings,
-                    profiles = profiles,
-                    tasks = tasks,
-                )
-            }
-        }
+                .filterNotNull()
+                .flatMapLatest { userId ->
+                    combine(
+                        combine(_selectedMonth, settingsRepository.observeSettings(userId)) { month, settings ->
+                            month to settings
+                        }.flatMapLatest { (month, settings) ->
+                            val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.of("UTC")
+                            shiftsRepository.observeShiftsByMonthInZone(
+                                userId,
+                                month.year,
+                                month.monthValue,
+                                zone,
+                            )
+                        },
+                        shiftsRepository.observeActiveShift(userId),
+                        settingsRepository.observeSettings(userId),
+                        compensationProfilesRepository.observeProfiles(userId),
+                        tasksRepository.observeAllTasks(userId),
+                    ) { shifts, activeShift, settings, profiles, tasks ->
+                        if (shifts.isEmpty()) ShiftsUiState.Empty
+                        else ShiftsUiState.Ready(
+                            shifts = shifts,
+                            activeShift = activeShift,
+                            featuresTravelRefunds = settings?.featuresTravelRefunds ?: false,
+                            settings = settings,
+                            profiles = profiles,
+                            tasks = tasks,
+                        )
+                    }
+                }
         }.catch { e ->
-        emit(ShiftsUiState.Error(e.message ?: "Unknown error"))
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = ShiftsUiState.Loading,
-    )
+            emit(ShiftsUiState.Error(e.message ?: "Unknown error"))
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = ShiftsUiState.Loading,
+        )
 
     fun previousMonth() { _selectedMonth.value = _selectedMonth.value.minusMonths(1) }
 

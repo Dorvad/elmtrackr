@@ -226,7 +226,14 @@ class SyncRepositoryImpl(
         while (true) {
             val sinceIso = syncCursorStore.sinceIso(cursor)
             val batch = fetchPage(sinceIso)
-            if (batch.isEmpty()) break
+            if (batch.isEmpty()) {
+                // Avoid repeating full-sync tombstone passes when the server returns no rows
+                // (e.g. auth/RLS not ready yet). Epoch 0 makes the next pull incremental.
+                if (isFullSync && cursor == null) {
+                    syncCursorStore.setLastPulledAt(userId, entity, 0L)
+                }
+                break
+            }
             allRows += batch
             val maxEpoch = batch.maxOf { isoToEpoch(updatedAtIso(it)) }
             cursor = maxOf(cursor ?: 0L, maxEpoch)
@@ -310,7 +317,7 @@ class SyncRepositoryImpl(
                 taskDao.upsert(remote.toLocalEntity())
             }
 
-            if (isFullSync) {
+            if (isFullSync && remoteRows.isNotEmpty()) {
                 val now = Instant.now().toEpochMilli()
                 taskDao.getAllTasksForUser(userId)
                     .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
@@ -396,7 +403,8 @@ class SyncRepositoryImpl(
             val existing = shiftDao.getShiftByRemoteId(remote.id)
             if (existing != null) {
                 if (existing.syncStatus != SyncStatus.SYNCED) continue
-                if (isoToEpoch(remote.updatedAt) > existing.updatedAt) {
+                val remoteNewer = isoToEpoch(remote.updatedAt) > existing.updatedAt
+                if (remoteNewer || existing.deletedAt != null) {
                     shiftDao.upsertShift(
                         remote.toLocalEntity(
                             existingLocalId = existing.localId,
@@ -417,7 +425,7 @@ class SyncRepositoryImpl(
             )
         }
 
-        if (isFullSync) {
+        if (isFullSync && remoteRows.isNotEmpty()) {
             val now = Instant.now().toEpochMilli()
             shiftDao.getAllShiftsForUser(userId)
                 .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
@@ -500,7 +508,7 @@ class SyncRepositoryImpl(
             refundClaimDao.insertClaim(remote.toLocalEntity(shiftLocalId = shiftLocalId))
         }
 
-        if (isFullSync) {
+        if (isFullSync && remoteRows.isNotEmpty()) {
             val now = Instant.now().toEpochMilli()
             refundClaimDao.getAllClaimsForUser(userId)
                 .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
@@ -575,7 +583,7 @@ class SyncRepositoryImpl(
             compensationProfileDao.insert(remote.toLocalEntity())
         }
 
-        if (isFullSync) {
+        if (isFullSync && remoteRows.isNotEmpty()) {
             val now = Instant.now().toEpochMilli()
             compensationProfileDao.getAllProfilesForUser(userId)
                 .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
