@@ -224,57 +224,54 @@ fun ReportsScreen(
                     is ReportsUiState.Ready -> "ready"
                 }
             },
-        ) { key ->
-            when (key) {
-                "loading" -> ReportsSkeleton()
-                "empty" -> ReportsEmptyContent()
-                "error" -> ErrorState(
-                    (uiState as ReportsUiState.Error).message,
+        ) { state ->
+            when (state) {
+                ReportsUiState.Loading -> ReportsSkeleton()
+                ReportsUiState.Empty -> ReportsEmptyContent()
+                is ReportsUiState.Error -> ErrorState(
+                    state.message,
                     onRetry = viewModel::retry,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(260.dp),
                 )
-                else -> {
-                    val state = uiState as ReportsUiState.Ready
-                    Column(Modifier.fillMaxWidth()) {
-                        when (effectiveTab) {
-                            ReportTab.REFUNDS -> RefundReview(
+                is ReportsUiState.Ready -> Column(Modifier.fillMaxWidth()) {
+                    when (effectiveTab) {
+                        ReportTab.REFUNDS -> RefundReview(
+                            state = state,
+                            viewModel = viewModel,
+                            onViewReceipt = { path ->
+                                scope.launch {
+                                    val url = viewModel.receiptUrl(path)
+                                    if (url != null) receiptPreviewUrl = url
+                                }
+                            },
+                            onNavigateToShift = onNavigateToShift,
+                        )
+                        ReportTab.HOURS -> if (state.report.shiftCount == 0) {
+                            ReportsEmptyContent()
+                        } else {
+                            HoursReport(
                                 state = state,
-                                viewModel = viewModel,
-                                onViewReceipt = { path ->
-                                    scope.launch {
-                                        val url = viewModel.receiptUrl(path)
-                                        if (url != null) receiptPreviewUrl = url
-                                    }
+                                onPreviousMonth = viewModel::previousMonth,
+                                onNextMonth = viewModel::nextMonth,
+                                canGoNext = canGoNext,
+                                onExportCsv = {
+                                    ReportExporter.shareCsv(
+                                        context,
+                                        viewModel.buildCsvContent(
+                                            state.rawShifts,
+                                            state.settings,
+                                            state.year,
+                                            state.month,
+                                        ),
+                                        viewModel.csvFilename(state.year, state.month),
+                                    )
                                 },
-                                onNavigateToShift = onNavigateToShift,
+                                onExportPdf = {
+                                    ReportExporter.shareShiftPdf(context, state)
+                                },
                             )
-                            ReportTab.HOURS -> if (state.report.shiftCount == 0) {
-                                ReportsEmptyContent()
-                            } else {
-                                HoursReport(
-                                    state = state,
-                                    onPreviousMonth = viewModel::previousMonth,
-                                    onNextMonth = viewModel::nextMonth,
-                                    canGoNext = canGoNext,
-                                    onExportCsv = {
-                                        ReportExporter.shareCsv(
-                                            context,
-                                            viewModel.buildCsvContent(
-                                                state.rawShifts,
-                                                state.settings,
-                                                state.year,
-                                                state.month,
-                                            ),
-                                            viewModel.csvFilename(state.year, state.month),
-                                        )
-                                    },
-                                    onExportPdf = {
-                                        ReportExporter.shareShiftPdf(context, state)
-                                    },
-                                )
-                            }
                         }
                     }
                 }

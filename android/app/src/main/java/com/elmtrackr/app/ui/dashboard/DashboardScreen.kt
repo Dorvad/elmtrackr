@@ -184,11 +184,11 @@ fun DashboardScreen(
                             is DashboardUiState.Error -> "error"
                         }
                     },
-                ) { key ->
-                    when (key) {
-                        "loading" -> DashboardSkeleton()
-                        "ready" -> DashboardReady(
-                            state = uiState as DashboardUiState.Ready,
+                ) { state ->
+                    when (state) {
+                        is DashboardUiState.Loading -> DashboardSkeleton()
+                        is DashboardUiState.Ready -> DashboardReady(
+                            state = state,
                             onClockIn = viewModel::clockIn,
                             onClockOut = viewModel::clockOut,
                             onEditStartTime = viewModel::editActiveShiftStartTime,
@@ -198,8 +198,8 @@ fun DashboardScreen(
                             showFirstClockInCelebration = showCelebration,
                             onDismissFirstClockInCelebration = viewModel::dismissFirstClockInCelebration,
                         )
-                        else -> ErrorState(
-                            message = (uiState as DashboardUiState.Error).message,
+                        is DashboardUiState.Error -> ErrorState(
+                            message = state.message,
                             onRetry = viewModel::retry,
                         )
                     }
