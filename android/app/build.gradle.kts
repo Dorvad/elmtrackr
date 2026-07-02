@@ -7,12 +7,21 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
+    alias(libs.plugins.sentry.android.gradle)
     id("app.cash.paparazzi") version "1.3.5"
 }
 
 val localPropsFile = rootProject.file("local.properties")
 val localProps = Properties().apply {
     if (localPropsFile.exists()) load(localPropsFile.inputStream())
+}
+val sentryDsn = localProps.getProperty("sentry.dsn", "")
+
+sentry {
+    autoUploadProguardMapping.set(false)
+    autoUploadNativeSymbols.set(false)
+    includeSourceContext.set(false)
+    telemetry.set(false)
 }
 
 android {
@@ -29,6 +38,7 @@ android {
 
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("supabase.anon.key", "")}\"")
+        buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
 
         vectorDrawables {
             useSupportLibrary = true

@@ -8,6 +8,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.elmtrackr.app.data.local.ElmTrackrDatabase
 import com.elmtrackr.app.startup.AppStartupCoordinator
+import com.elmtrackr.app.startup.SentryBootstrap
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -25,6 +26,7 @@ class ElmTrackrApp : Application(), Configuration.Provider {
     }
 
     override fun onCreate() {
+        SentryBootstrap.install(this)
         super.onCreate()
         mainHandler.post { appStartup.onCreate(this) }
     }

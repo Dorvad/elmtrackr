@@ -171,6 +171,16 @@
                 tools:node="remove" />
         </provider>
 
+        <!-- Sentry auto-init crashes without a DSN; we initialize manually in [ElmTrackrApp]. -->
+        <provider
+            android:name="io.sentry.android.core.SentryInitProvider"
+            android:authorities="${applicationId}.SentryInitProvider"
+            tools:node="remove" />
+        <provider
+            android:name="io.sentry.android.core.SentryPerformanceProvider"
+            android:authorities="${applicationId}.SentryPerformanceProvider"
+            tools:node="remove" />
+
     </application>
 
 </manifest>
