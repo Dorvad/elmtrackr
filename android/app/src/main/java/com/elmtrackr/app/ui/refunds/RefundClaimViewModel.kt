@@ -5,16 +5,22 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.data.receipts.PhotoFileManager
+import com.elmtrackr.app.data.receipt.ReceiptImageStore
+import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.RefundPolicy
+import com.elmtrackr.app.domain.model.Receipt
+import com.elmtrackr.app.domain.model.ReceiptParseConfidence
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.receipt.ReceiptScanPipeline
 import com.elmtrackr.app.domain.refund.DeleteRefundClaim
 import com.elmtrackr.app.domain.refund.GetRefundClaimsForShift
 import com.elmtrackr.app.domain.refund.RefundClaimUpsertInput
 import com.elmtrackr.app.domain.refund.UpsertRefundClaim
+import com.elmtrackr.app.domain.repository.ReceiptsRepository
 import com.elmtrackr.app.domain.repository.RefundReceiptStorage
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import kotlinx.coroutines.Job
@@ -26,6 +32,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 import java.time.Instant
+import java.util.UUID
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -38,6 +45,10 @@ class RefundClaimViewModel @Inject constructor(
     private val deleteRefundClaim: DeleteRefundClaim,
     private val shiftsRepository: ShiftsRepository,
     private val refundReceiptStorage: RefundReceiptStorage?,
+    private val receiptsRepository: ReceiptsRepository,
+    private val receiptScanPipeline: ReceiptScanPipeline,
+    private val receiptImageStore: ReceiptImageStore,
+    private val currentUserProvider: CurrentUserProvider,
 ) : ViewModel() {
 
     private val photoFileManager = PhotoFileManager(context)
@@ -81,6 +92,7 @@ class RefundClaimViewModel @Inject constructor(
             it.copy(
                 errorMessage = null,
                 noticeMessage = null,
+                receiptReview = null,
                 form = RefundClaimFormUiState(
                     claimId = claim?.id,
                     direction = direction,
@@ -97,7 +109,7 @@ class RefundClaimViewModel @Inject constructor(
     fun dismissForm() {
         cleanupPendingPhoto(_uiState.value.form?.pendingPhotoPath)
         cleanupPendingPhoto(_uiState.value.camera?.outputPath)
-        _uiState.update { it.copy(form = null, camera = null, isSaving = false) }
+        _uiState.update { it.copy(form = null, camera = null, receiptReview = null, isSaving = false) }
     }
 
     fun updateProvider(provider: RefundProvider) {
@@ -116,6 +128,30 @@ class RefundClaimViewModel @Inject constructor(
 
     fun updateNotes(value: String) {
         updateForm { it.copy(notes = value) }
+    }
+
+    fun requestDocumentScan() {
+        if (_uiState.value.form == null) return
+        _uiState.update { it.copy(launchDocumentScanner = true, errorMessage = null) }
+    }
+
+    fun onDocumentScannerLaunched() {
+        _uiState.update { it.copy(launchDocumentScanner = false) }
+    }
+
+    fun onDocumentScannerFailed(message: String?) {
+        _uiState.update {
+            it.copy(
+                launchDocumentScanner = false,
+                errorMessage = message ?: "Unable to open the receipt scanner",
+            )
+        }
+    }
+
+    fun onDocumentScanned(uri: Uri?) {
+        _uiState.update { it.copy(launchDocumentScanner = false) }
+        if (uri == null) return
+        processReceiptImage(uri)
     }
 
     fun startCameraCapture() {
@@ -146,8 +182,8 @@ class RefundClaimViewModel @Inject constructor(
             }
             return
         }
-        updateForm { it.copy(pendingPhotoPath = path, pendingPhotoName = file.name) }
         _uiState.update { it.copy(camera = null, errorMessage = null) }
+        viewModelScope.launch { processReceiptImageFromPath(path) }
     }
 
     fun photoCaptureFailed(message: String?) {
@@ -158,29 +194,107 @@ class RefundClaimViewModel @Inject constructor(
     }
 
     fun importReceiptPhoto(uri: Uri) {
-        val shift = _uiState.value.shift ?: return
-        val form = _uiState.value.form ?: return
-        viewModelScope.launch {
-            val previous = form.pendingPhotoPath
-            val copied = photoFileManager.copyUriToPendingPhoto(appContext, uri, shift.id, form.direction)
-            if (copied == null) {
-                _uiState.update { it.copy(errorMessage = "Choose an image smaller than 10 MB.") }
-                return@launch
-            }
-            cleanupPendingPhoto(previous)
-            updateForm {
-                it.copy(
-                    pendingPhotoPath = copied.absolutePath,
-                    pendingPhotoName = copied.name,
-                )
-            }
-            _uiState.update { it.copy(errorMessage = null) }
-        }
+        processReceiptImage(uri)
     }
 
     fun removePendingPhoto() {
         cleanupPendingPhoto(_uiState.value.form?.pendingPhotoPath)
-        updateForm { it.copy(pendingPhotoPath = null, pendingPhotoName = null) }
+        updateForm {
+            it.copy(
+                pendingPhotoPath = null,
+                pendingPhotoName = null,
+                localReceiptImagePath = null,
+            )
+        }
+    }
+
+    fun dismissReceiptReview() {
+        val review = _uiState.value.receiptReview ?: return
+        if (review.receiptId == null) {
+            receiptImageStore.delete(review.localImagePath)
+        }
+        _uiState.update { it.copy(receiptReview = null) }
+    }
+
+    fun updateReceiptReviewMerchant(value: String) {
+        updateReceiptReview { it.copy(merchantName = value) }
+    }
+
+    fun updateReceiptReviewAmount(value: String) {
+        if (value.count { it == '.' } <= 1 && value.all { it.isDigit() || it == '.' }) {
+            updateReceiptReview { it.copy(amountText = value) }
+        }
+    }
+
+    fun updateReceiptReviewCurrency(value: String) {
+        updateReceiptReview { it.copy(currency = value.uppercase().take(3)) }
+    }
+
+    fun updateReceiptReviewDate(millis: Long?) {
+        updateReceiptReview { it.copy(receiptDateMillis = millis) }
+    }
+
+    fun saveReceiptReview() {
+        val review = _uiState.value.receiptReview ?: return
+        val form = _uiState.value.form ?: return
+        viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(receiptReview = review.copy(isSaving = true), errorMessage = null)
+            }
+
+            runCatching {
+                val amount = review.amountText.toDoubleOrNull()
+                val now = Instant.now()
+                val receiptId = review.receiptId ?: UUID.randomUUID().toString()
+                receiptsRepository.save(
+                    Receipt(
+                        id = receiptId,
+                        userId = currentUserProvider.currentUserId(),
+                        refundClaimId = form.claimId,
+                        localImageUri = review.localImagePath,
+                        merchantName = review.merchantName.ifBlank { null },
+                        amount = amount,
+                        currency = review.currency.ifBlank { null },
+                        receiptDate = review.receiptDateMillis?.let(Instant::ofEpochMilli),
+                        rawOcrText = review.rawOcrText,
+                        parserVersion = com.elmtrackr.app.domain.receipt.ReceiptParser.VERSION,
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+            }.onSuccess { saved ->
+                val file = File(saved.localImageUri)
+                updateForm {
+                    it.copy(
+                        linkedReceiptId = saved.id,
+                        localReceiptImagePath = saved.localImageUri,
+                        pendingPhotoPath = saved.localImageUri,
+                        pendingPhotoName = file.name,
+                        amountText = saved.amount?.toString() ?: it.amountText,
+                        rideAtMillis = saved.receiptDate?.toEpochMilli() ?: it.rideAtMillis,
+                        notes = buildNotesWithMerchant(it.notes, saved.merchantName),
+                    )
+                }
+
+                _uiState.update {
+                    it.copy(
+                        receiptReview = null,
+                        noticeMessage = if (saved.amount == null) {
+                            "Receipt saved locally. Enter the refund amount before submitting the claim."
+                        } else {
+                            "Receipt saved locally. Verify the claim details before submitting."
+                        },
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        receiptReview = review.copy(isSaving = false),
+                        errorMessage = error.message ?: "Unable to save receipt locally",
+                    )
+                }
+            }
+        }
     }
 
     fun saveForm() {
@@ -216,7 +330,10 @@ class RefundClaimViewModel @Inject constructor(
                     ),
                 )
             }.onSuccess { result ->
-                cleanupPendingPhoto(form.pendingPhotoPath)
+                form.linkedReceiptId?.let { receiptId ->
+                    receiptsRepository.linkToClaim(receiptId, result.claim.id)
+                }
+                cleanupPendingPhoto(form.pendingPhotoPath?.takeIf { it != form.localReceiptImagePath })
                 refreshShift(shift.id)
                 _uiState.update {
                     it.copy(
@@ -293,6 +410,50 @@ class RefundClaimViewModel @Inject constructor(
         _uiState.update { it.copy(errorMessage = null, noticeMessage = null) }
     }
 
+    private fun processReceiptImage(uri: Uri) {
+        val shift = _uiState.value.shift ?: return
+        val form = _uiState.value.form ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isProcessingReceipt = true, errorMessage = null) }
+            val previousPath = form.pendingPhotoPath?.takeIf { it != form.localReceiptImagePath }
+            val copied = receiptImageStore.copyToLocalStorage(uri, shift.id, form.direction)
+            if (copied == null) {
+                _uiState.update {
+                    it.copy(
+                        isProcessingReceipt = false,
+                        errorMessage = "Choose an image smaller than 10 MB.",
+                    )
+                }
+                return@launch
+            }
+            cleanupPendingPhoto(previousPath)
+            processReceiptImageFromPath(copied.absolutePath)
+        }
+    }
+
+    private suspend fun processReceiptImageFromPath(path: String) {
+        _uiState.update { it.copy(isProcessingReceipt = true, errorMessage = null) }
+        val parseResult = receiptScanPipeline.recognizeAndParse(path)
+        val ocrFailed = parseResult.confidence == ReceiptParseConfidence.NONE &&
+            parseResult.rawOcrText.isBlank()
+
+        _uiState.update {
+            it.copy(
+                isProcessingReceipt = false,
+                receiptReview = ReceiptReviewUiState(
+                    localImagePath = path,
+                    merchantName = parseResult.merchantName.orEmpty(),
+                    amountText = parseResult.amount?.toString().orEmpty(),
+                    currency = parseResult.currency.orEmpty(),
+                    receiptDateMillis = parseResult.receiptDate?.toEpochMilli(),
+                    rawOcrText = parseResult.rawOcrText,
+                    confidence = parseResult.confidence,
+                    ocrFailed = ocrFailed,
+                ),
+            )
+        }
+    }
+
     private suspend fun refreshShift(shiftId: String) {
         shiftsRepository.getShiftById(shiftId)?.let { updateShiftState(it, isLoading = false) }
     }
@@ -312,6 +473,25 @@ class RefundClaimViewModel @Inject constructor(
         _uiState.update { state ->
             val form = state.form ?: return@update state
             state.copy(form = transform(form))
+        }
+    }
+
+    private fun updateReceiptReview(transform: (ReceiptReviewUiState) -> ReceiptReviewUiState) {
+        _uiState.update { state ->
+            val review = state.receiptReview ?: return@update state
+            state.copy(receiptReview = transform(review))
+        }
+    }
+
+    private fun buildNotesWithMerchant(existingNotes: String, merchantName: String?): String {
+        if (merchantName.isNullOrBlank()) return existingNotes
+        val marker = "Merchant: $merchantName"
+        return if (existingNotes.contains(merchantName, ignoreCase = true)) {
+            existingNotes
+        } else if (existingNotes.isBlank()) {
+            marker
+        } else {
+            "$existingNotes\n$marker"
         }
     }
 

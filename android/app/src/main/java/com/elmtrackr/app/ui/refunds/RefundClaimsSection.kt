@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
@@ -103,6 +104,46 @@ fun RefundClaimsSection(
     val state by viewModel.uiState.collectAsState()
     var receiptPreviewUrl by rememberSaveable { mutableStateOf<String?>(null) }
 
+    val launchDocumentScanner = rememberDocumentScannerLauncher(
+        onScanStarted = viewModel::onDocumentScannerLaunched,
+        onScanFailed = viewModel::onDocumentScannerFailed,
+        onScanResult = viewModel::onDocumentScanned,
+    )
+
+    LaunchedEffect(state.launchDocumentScanner) {
+        if (state.launchDocumentScanner) {
+            launchDocumentScanner()
+        }
+    }
+
+    state.receiptReview?.let { review ->
+        ReceiptReviewDialog(
+            review = review,
+            defaultCurrency = currency,
+            onMerchantChange = viewModel::updateReceiptReviewMerchant,
+            onAmountChange = viewModel::updateReceiptReviewAmount,
+            onCurrencyChange = viewModel::updateReceiptReviewCurrency,
+            onReceiptDateChange = viewModel::updateReceiptReviewDate,
+            onDismiss = viewModel::dismissReceiptReview,
+            onSave = viewModel::saveReceiptReview,
+        )
+    }
+
+    if (state.isProcessingReceipt) {
+        Dialog(onDismissRequest = {}) {
+            Surface(shape = RoundedCornerShape(CornerRadius.Medium)) {
+                Row(
+                    Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                    Text("Reading receipt text…")
+                }
+            }
+        }
+    }
+
     receiptPreviewUrl?.let { url ->
         ReceiptPreviewDialog(
             receiptUrl = url,
@@ -134,6 +175,7 @@ fun RefundClaimsSection(
             onRideAtChange = viewModel::updateRideAt,
             onNotesChange = viewModel::updateNotes,
             onTakePhoto = viewModel::startCameraCapture,
+            onScanReceipt = viewModel::requestDocumentScan,
             onPickPhoto = viewModel::importReceiptPhoto,
             onRemovePendingPhoto = viewModel::removePendingPhoto,
             onViewReceipt = { path ->
@@ -354,6 +396,7 @@ fun RefundClaimFormDialog(
     onRideAtChange: (Long) -> Unit,
     onNotesChange: (String) -> Unit,
     onTakePhoto: () -> Unit,
+    onScanReceipt: () -> Unit,
     onPickPhoto: (Uri) -> Unit,
     onRemovePendingPhoto: () -> Unit,
     onViewReceipt: (String) -> Unit,
@@ -439,6 +482,7 @@ fun RefundClaimFormDialog(
                     pendingPhotoName = form.pendingPhotoName,
                     existingReceiptPath = form.existingReceiptPath,
                     onTakePhoto = onTakePhoto,
+                    onScanReceipt = onScanReceipt,
                     onPickPhoto = onPickPhoto,
                     onRemovePendingPhoto = onRemovePendingPhoto,
                     onViewReceipt = onViewReceipt,
@@ -470,6 +514,7 @@ fun ReceiptPhotoArea(
     pendingPhotoName: String?,
     existingReceiptPath: String?,
     onTakePhoto: () -> Unit,
+    onScanReceipt: () -> Unit,
     onPickPhoto: (Uri) -> Unit,
     onRemovePendingPhoto: () -> Unit,
     onViewReceipt: (String) -> Unit,
@@ -537,16 +582,22 @@ fun ReceiptPhotoArea(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onTakePhoto, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                    Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                Button(onClick = onScanReceipt, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                    Icon(Icons.Filled.DocumentScanner, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(if (pendingPhotoPath == null) "Camera" else "Retake")
+                    Text("Scan receipt")
                 }
                 OutlinedButton(onClick = { picker.launch("image/*") }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
                     Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Gallery")
+                    Text("Attach receipt")
                 }
+            }
+
+            OutlinedButton(onClick = onTakePhoto, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(if (pendingPhotoPath == null) "Use device camera" else "Retake with camera")
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
