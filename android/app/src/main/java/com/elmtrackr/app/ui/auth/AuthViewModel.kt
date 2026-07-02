@@ -11,10 +11,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
@@ -70,7 +73,11 @@ class AuthViewModel @Inject constructor(
             _isLoading.value = true
             _error.value = null
             when (val result = authRepository.signIn(email, password)) {
-                is AuthResult.Success -> Unit // profile flow drives navigation to SignedIn
+                // Profile flow drives navigation to SignedIn — keep the spinner
+                // up until it emits so the form never looks idle mid-transition.
+                is AuthResult.Success -> withTimeoutOrNull(SIGN_IN_PROPAGATION_TIMEOUT_MS) {
+                    authRepository.observeCurrentProfile().filterNotNull().first()
+                }
                 is AuthResult.NotConfigured -> _error.value = "Supabase is not configured"
                 is AuthResult.Error -> _error.value = result.message
             }
@@ -146,4 +153,8 @@ class AuthViewModel @Inject constructor(
     }
 
     private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+    private companion object {
+        const val SIGN_IN_PROPAGATION_TIMEOUT_MS = 10_000L
+    }
 }

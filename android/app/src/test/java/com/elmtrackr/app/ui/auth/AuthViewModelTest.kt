@@ -6,7 +6,9 @@ import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -69,6 +71,47 @@ class AuthViewModelTest {
         val signedIn = states.filterIsInstance<AuthUiState.SignedIn>().lastOrNull()
         assertNotNull(signedIn)
         assertEquals("test@example.com", signedIn!!.profile.email)
+        job.cancel()
+    }
+
+    @Test
+    fun `signIn keeps loading until profile propagates`() = runTest {
+        repo.signInSetsProfile = false
+        val vm = buildVm()
+        val states = mutableListOf<AuthUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+        runCurrent()
+
+        vm.signIn("test@example.com", "password123")
+        runCurrent()
+
+        val signedOut = states.filterIsInstance<AuthUiState.SignedOut>().last()
+        assertTrue(signedOut.isLoading)
+
+        repo.setProfile(
+            Profile("user-1", "test@example.com", null, Instant.EPOCH, Instant.EPOCH),
+        )
+        advanceUntilIdle()
+
+        assertTrue(states.last() is AuthUiState.SignedIn)
+        job.cancel()
+    }
+
+    @Test
+    fun `signIn stops loading if profile never propagates`() = runTest {
+        repo.signInSetsProfile = false
+        val vm = buildVm()
+        val states = mutableListOf<AuthUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+        runCurrent()
+
+        vm.signIn("test@example.com", "password123")
+        runCurrent()
+        advanceTimeBy(11_000)
+        runCurrent()
+
+        val signedOut = states.filterIsInstance<AuthUiState.SignedOut>().last()
+        assertEquals(false, signedOut.isLoading)
         job.cancel()
     }
 
