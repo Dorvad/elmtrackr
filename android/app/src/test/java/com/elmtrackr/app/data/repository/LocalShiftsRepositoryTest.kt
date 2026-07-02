@@ -99,6 +99,9 @@ class LocalShiftsRepositoryTest {
         override suspend fun getShiftById(localId: String): ShiftEntity? =
             shifts.value.firstOrNull { it.localId == localId }
 
+        override suspend fun getShiftByStartTime(userId: String, startTime: Long): ShiftEntity? =
+            shifts.value.firstOrNull { it.userId == userId && it.startTime == startTime && it.deletedAt == null }
+
         override suspend fun insertShift(shift: ShiftEntity) {
             shifts.value = shifts.value.filterNot { it.localId == shift.localId } + shift
         }
