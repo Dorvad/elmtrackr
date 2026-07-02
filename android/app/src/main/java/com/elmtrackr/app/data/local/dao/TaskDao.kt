@@ -32,6 +32,12 @@ interface TaskDao {
     )
     fun observePendingSyncTasks(userId: String): Flow<List<TaskEntity>>
 
+    @Query(
+        "UPDATE tasks SET syncStatus = 'PENDING_CREATE' WHERE userId = :userId " +
+            "AND remoteId IS NULL AND syncStatus = 'SYNCED' AND deletedAt IS NULL",
+    )
+    suspend fun markNeverSyncedPendingCreate(userId: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(task: TaskEntity)
 

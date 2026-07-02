@@ -11,6 +11,8 @@ import androidx.room.PrimaryKey
         Index(value = ["userId", "endTime"]),
         Index(value = ["userId", "startTime"]),
         Index(value = ["syncStatus"]),
+        Index(value = ["userId", "syncStatus"]),
+        Index(value = ["remoteId"]),
     ],
 )
 data class ShiftEntity(

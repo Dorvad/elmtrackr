@@ -61,6 +61,12 @@ interface SettingsDao {
         lastSyncError: String?,
     )
 
+    @Query(
+        "UPDATE user_settings SET syncStatus = 'PENDING_CREATE' WHERE userId = :userId " +
+            "AND remoteId IS NULL AND syncStatus = 'SYNCED' AND deletedAt IS NULL"
+    )
+    suspend fun markNeverSyncedPendingCreate(userId: String)
+
     @Query("SELECT * FROM user_settings WHERE userId = :userId")
     suspend fun getAllSettingsForUser(userId: String): List<UserSettingsEntity>
 

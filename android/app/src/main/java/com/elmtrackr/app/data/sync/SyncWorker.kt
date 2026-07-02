@@ -19,14 +19,24 @@ class SyncWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         val userId = currentUserProvider.currentUserId() ?: return Result.success()
-        return when (val result = syncRepository.syncAll(userId)) {
-            is SyncResult.Success, SyncResult.NotConfigured -> {
+        return when (syncRepository.syncAll(userId)) {
+            is SyncResult.Success -> {
                 if (syncRepository.hasPendingWork(userId)) {
-                    syncScheduler.schedule()
+                    syncScheduler.scheduleFollowUp()
                 }
                 Result.success()
             }
-            is SyncResult.Error -> Result.retry()
+            // Without a remote backend there is nothing a follow-up run could do;
+            // rescheduling here would spin sync workers forever.
+            SyncResult.NotConfigured -> Result.success()
+            // Backoff retries are capped; periodic sync keeps retrying after that
+            // without hammering the backend from an ever-growing retry chain.
+            is SyncResult.Error ->
+                if (runAttemptCount >= MAX_RETRY_ATTEMPTS) Result.failure() else Result.retry()
         }
+    }
+
+    private companion object {
+        const val MAX_RETRY_ATTEMPTS = 5
     }
 }

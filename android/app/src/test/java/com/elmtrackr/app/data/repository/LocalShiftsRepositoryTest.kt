@@ -153,6 +153,18 @@ class LocalShiftsRepositoryTest {
             }
         }
 
+        override suspend fun markNeverSyncedPendingCreate(userId: String) {
+            shifts.value = shifts.value.map {
+                if (it.userId == userId && it.remoteId == null &&
+                    it.syncStatus == SyncStatus.SYNCED && it.deletedAt == null
+                ) {
+                    it.copy(syncStatus = SyncStatus.PENDING_CREATE)
+                } else {
+                    it
+                }
+            }
+        }
+
         override suspend fun getAllShiftsForUser(userId: String): List<ShiftEntity> =
             shifts.value.filter { it.userId == userId && it.deletedAt == null }
 

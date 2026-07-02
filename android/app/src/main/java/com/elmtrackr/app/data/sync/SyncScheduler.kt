@@ -14,7 +14,20 @@ class SyncScheduler(
     private val context: Context,
 ) : SyncTrigger {
 
+    // KEEP: a burst of local edits enqueues one sync instead of chaining one per edit.
+    // Edits that land while a sync is already running are picked up by the follow-up
+    // sync the worker schedules when pending work remains.
     override fun schedule() {
+        enqueueOneTime(ExistingWorkPolicy.KEEP)
+    }
+
+    // APPEND_OR_REPLACE: called from inside the running worker, where KEEP would be
+    // dropped because the current work is still active.
+    fun scheduleFollowUp() {
+        enqueueOneTime(ExistingWorkPolicy.APPEND_OR_REPLACE)
+    }
+
+    private fun enqueueOneTime(policy: ExistingWorkPolicy) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
@@ -24,7 +37,7 @@ class SyncScheduler(
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             ONE_TIME_WORK_NAME,
-            ExistingWorkPolicy.APPEND_OR_REPLACE,
+            policy,
             request,
         )
     }

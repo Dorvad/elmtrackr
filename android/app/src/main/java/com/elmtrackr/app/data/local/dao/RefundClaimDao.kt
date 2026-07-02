@@ -81,6 +81,12 @@ interface RefundClaimDao {
         lastSyncError: String?,
     )
 
+    @Query(
+        "UPDATE refund_claims SET syncStatus = 'PENDING_CREATE' WHERE userId = :userId " +
+            "AND remoteId IS NULL AND syncStatus = 'SYNCED' AND deletedAt IS NULL"
+    )
+    suspend fun markNeverSyncedPendingCreate(userId: String)
+
     @Query("SELECT * FROM refund_claims WHERE userId = :userId AND deletedAt IS NULL")
     suspend fun getAllClaimsForUser(userId: String): List<RefundClaimEntity>
 

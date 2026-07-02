@@ -75,6 +75,12 @@ interface ShiftDao {
         lastSyncError: String?,
     )
 
+    @Query(
+        "UPDATE shifts SET syncStatus = 'PENDING_CREATE' WHERE userId = :userId " +
+            "AND remoteId IS NULL AND syncStatus = 'SYNCED' AND deletedAt IS NULL"
+    )
+    suspend fun markNeverSyncedPendingCreate(userId: String)
+
     @Query("SELECT * FROM shifts WHERE userId = :userId AND deletedAt IS NULL")
     suspend fun getAllShiftsForUser(userId: String): List<ShiftEntity>
 
