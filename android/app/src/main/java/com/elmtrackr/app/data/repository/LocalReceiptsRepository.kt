@@ -4,6 +4,7 @@ import com.elmtrackr.app.data.local.dao.ReceiptDao
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.data.local.mapper.toDomainOrNull
+import com.elmtrackr.app.data.receipt.ReceiptImageStore
 import com.elmtrackr.app.domain.model.Receipt
 import com.elmtrackr.app.domain.repository.ReceiptsRepository
 import kotlinx.coroutines.flow.Flow
@@ -15,6 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class LocalReceiptsRepository @Inject constructor(
     private val receiptDao: ReceiptDao,
+    private val receiptImageStore: ReceiptImageStore,
 ) : ReceiptsRepository {
 
     override suspend fun getById(id: String): Receipt? =
@@ -43,6 +45,21 @@ class LocalReceiptsRepository @Inject constructor(
     }
 
     override suspend fun deleteById(id: String) {
+        val receipt = receiptDao.getById(id) ?: return
         receiptDao.deleteById(id)
+        receiptImageStore.delete(receipt.localImageUri)
+    }
+
+    override suspend fun deleteByRefundClaimId(refundClaimId: String): Boolean {
+        val receipt = receiptDao.getByRefundClaimId(refundClaimId) ?: return false
+        receiptDao.deleteById(receipt.id)
+        return runCatching { receiptImageStore.delete(receipt.localImageUri) }.isFailure
+    }
+
+    override suspend fun deleteAllForUser(userId: String) {
+        receiptDao.getAllForUser(userId).forEach { receipt ->
+            receiptImageStore.delete(receipt.localImageUri)
+        }
+        receiptDao.deleteAllForUser(userId)
     }
 }

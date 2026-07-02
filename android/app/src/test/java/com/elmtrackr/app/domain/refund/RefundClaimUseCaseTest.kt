@@ -6,6 +6,7 @@ import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.fake.FakeCurrentUserProvider
+import com.elmtrackr.app.fake.FakeReceiptsRepository
 import com.elmtrackr.app.fake.FakeRefundReceiptStorage
 import com.elmtrackr.app.fake.FakeRefundsRepository
 import com.elmtrackr.app.fake.FakeShiftsRepository
@@ -23,6 +24,7 @@ class RefundClaimUseCaseTest {
     private val shiftsRepository = FakeShiftsRepository()
     private val currentUserProvider = FakeCurrentUserProvider("local-user")
     private val receiptStorage = FakeRefundReceiptStorage()
+    private val receiptsRepository = FakeReceiptsRepository()
 
     private fun upsertUseCase() = UpsertRefundClaim(
         refundsRepository = refundsRepository,
@@ -35,6 +37,7 @@ class RefundClaimUseCaseTest {
         refundsRepository = refundsRepository,
         shiftsRepository = shiftsRepository,
         refundReceiptStorage = receiptStorage,
+        receiptsRepository = receiptsRepository,
     )
 
     @Test
@@ -106,6 +109,50 @@ class RefundClaimUseCaseTest {
         assertEquals(listOf("claim", "file"), events)
         assertTrue(refundsRepository.observeClaimsForShift(shift.id).first().isEmpty())
         assertNull(shiftsRepository.getShiftById(shift.id)?.refundAction)
+    }
+
+    @Test
+    fun `delete removes linked local receipt`() = runTest {
+        val shift = specialDayShift()
+        shiftsRepository.setShifts(shift.copy(refundAction = RefundAction.SUBMITTED))
+        val claim = refundsRepository.addClaim(
+            shiftLocalId = shift.id,
+            userId = shift.userId,
+            direction = RefundDirection.TO_WORK,
+            provider = RefundProvider.TAXI,
+            amount = 20.0,
+            rideAt = shift.startTime,
+        )
+        receiptsRepository.seedForClaim(claim.id, "/tmp/local-receipt.jpg")
+
+        val result = deleteUseCase()(claim.id)
+
+        assertFalse(result.localReceiptDeleteFailed)
+        assertNull(receiptsRepository.getByRefundClaimId(claim.id))
+        assertEquals(listOf(claim.id), receiptsRepository.deletedClaimIds)
+        assertEquals(listOf("/tmp/local-receipt.jpg"), receiptsRepository.deletedImagePaths)
+        assertTrue(refundsRepository.observeClaimsForShift(shift.id).first().isEmpty())
+    }
+
+    @Test
+    fun `delete reports local receipt cleanup failure`() = runTest {
+        val shift = specialDayShift()
+        shiftsRepository.setShifts(shift)
+        val claim = refundsRepository.addClaim(
+            shiftLocalId = shift.id,
+            userId = shift.userId,
+            direction = RefundDirection.TO_WORK,
+            provider = RefundProvider.TAXI,
+            amount = 20.0,
+            rideAt = shift.startTime,
+        )
+        receiptsRepository.seedForClaim(claim.id, "/tmp/local-receipt.jpg")
+        receiptsRepository.deleteFileFailed = true
+
+        val result = deleteUseCase()(claim.id)
+
+        assertTrue(result.localReceiptDeleteFailed)
+        assertNull(receiptsRepository.getByRefundClaimId(claim.id))
     }
 
     private fun specialDayShift() = Shift(

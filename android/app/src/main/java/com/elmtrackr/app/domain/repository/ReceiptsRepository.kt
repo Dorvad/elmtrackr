@@ -10,4 +10,6 @@ interface ReceiptsRepository {
     suspend fun save(receipt: Receipt): Receipt
     suspend fun linkToClaim(receiptId: String, refundClaimId: String?)
     suspend fun deleteById(id: String)
+    suspend fun deleteByRefundClaimId(refundClaimId: String): Boolean
+    suspend fun deleteAllForUser(userId: String)
 }

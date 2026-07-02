@@ -102,7 +102,6 @@ fun RefundClaimsSection(
 ) {
     LaunchedEffect(shift) { viewModel.setShift(shift) }
     val state by viewModel.uiState.collectAsState()
-    var receiptPreviewUrl by rememberSaveable { mutableStateOf<String?>(null) }
 
     val launchDocumentScanner = rememberDocumentScannerLauncher(
         onScanStarted = viewModel::onDocumentScannerLaunched,
@@ -144,10 +143,10 @@ fun RefundClaimsSection(
         }
     }
 
-    receiptPreviewUrl?.let { url ->
+    state.receiptPreview?.let { preview ->
         ReceiptPreviewDialog(
-            receiptUrl = url,
-            onDismiss = { receiptPreviewUrl = null },
+            preview = preview,
+            onDismiss = viewModel::dismissReceiptPreview,
         )
     }
 
@@ -178,11 +177,8 @@ fun RefundClaimsSection(
             onScanReceipt = viewModel::requestDocumentScan,
             onPickPhoto = viewModel::importReceiptPhoto,
             onRemovePendingPhoto = viewModel::removePendingPhoto,
-            onViewReceipt = { path ->
-                viewModel.openReceipt(path) { url ->
-                    receiptPreviewUrl = url
-                }
-            },
+            onViewCloudReceipt = viewModel::openReceipt,
+            onViewLocalReceipt = viewModel::openLocalReceipt,
             onDismiss = viewModel::dismissForm,
             onSave = viewModel::saveForm,
         )
@@ -205,24 +201,22 @@ fun RefundClaimsSection(
             )
         } else {
             directions.forEach { (direction, eligibility) ->
+                val claim = state.claims.firstOrNull { it.direction == direction }
                 RefundClaimCard(
                     shift = shift,
-                    claim = state.claims.firstOrNull { it.direction == direction },
+                    claim = claim,
                     direction = direction,
                     eligibility = eligibility,
                     currency = currency,
-                    isDeleting = state.deletingClaimId == state.claims.firstOrNull { it.direction == direction }?.id,
+                    hasLocalReceipt = claim?.id?.let { state.localReceiptsByClaimId.containsKey(it) } == true,
+                    isDeleting = state.deletingClaimId == claim?.id,
                     onAdd = { viewModel.openForm(direction) },
-                    onEdit = { claim -> viewModel.openForm(direction, claim) },
-                    onDelete = { claim -> viewModel.deleteClaim(claim.id) },
+                    onEdit = { edited -> viewModel.openForm(direction, edited) },
+                    onDelete = { deleted -> viewModel.deleteClaim(deleted.id) },
                     onNoRide = { viewModel.updateRefundAction(RefundAction.NO_RIDE_TAKEN) },
                     onRemindLater = { viewModel.updateRefundAction(RefundAction.REMIND_LATER) },
                     onUndoAction = { viewModel.updateRefundAction(null) },
-                    onViewReceipt = { path ->
-                        viewModel.openReceipt(path) { url ->
-                            receiptPreviewUrl = url
-                        }
-                    },
+                    onViewReceipt = viewModel::openReceiptForClaim,
                 )
             }
         }
@@ -256,6 +250,7 @@ fun RefundClaimCard(
     direction: RefundDirection,
     eligibility: RefundPolicy.Eligibility,
     currency: CurrencyCode,
+    hasLocalReceipt: Boolean,
     isDeleting: Boolean,
     onAdd: () -> Unit,
     onEdit: (RefundClaim) -> Unit,
@@ -263,7 +258,7 @@ fun RefundClaimCard(
     onNoRide: () -> Unit,
     onRemindLater: () -> Unit,
     onUndoAction: () -> Unit,
-    onViewReceipt: (String) -> Unit,
+    onViewReceipt: (RefundClaim) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -339,9 +334,9 @@ fun RefundClaimCard(
                         enabled = !isDeleting,
                         modifier = Modifier.heightIn(min = 48.dp),
                     ) { Text("Edit") }
-                    claim.receiptPath?.let { path ->
+                    if (claim.receiptPath != null || hasLocalReceipt) {
                         TextButton(
-                            onClick = { onViewReceipt(path) },
+                            onClick = { onViewReceipt(claim) },
                             enabled = !isDeleting,
                             modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text("View receipt") }
@@ -399,7 +394,8 @@ fun RefundClaimFormDialog(
     onScanReceipt: () -> Unit,
     onPickPhoto: (Uri) -> Unit,
     onRemovePendingPhoto: () -> Unit,
-    onViewReceipt: (String) -> Unit,
+    onViewCloudReceipt: (String) -> Unit,
+    onViewLocalReceipt: (String) -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
 ) {
@@ -481,11 +477,13 @@ fun RefundClaimFormDialog(
                     pendingPhotoPath = form.pendingPhotoPath,
                     pendingPhotoName = form.pendingPhotoName,
                     existingReceiptPath = form.existingReceiptPath,
+                    localReceiptImagePath = form.localReceiptImagePath,
                     onTakePhoto = onTakePhoto,
                     onScanReceipt = onScanReceipt,
                     onPickPhoto = onPickPhoto,
                     onRemovePendingPhoto = onRemovePendingPhoto,
-                    onViewReceipt = onViewReceipt,
+                    onViewCloudReceipt = onViewCloudReceipt,
+                    onViewLocalReceipt = onViewLocalReceipt,
                 )
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -513,11 +511,13 @@ fun ReceiptPhotoArea(
     pendingPhotoPath: String?,
     pendingPhotoName: String?,
     existingReceiptPath: String?,
+    localReceiptImagePath: String?,
     onTakePhoto: () -> Unit,
     onScanReceipt: () -> Unit,
     onPickPhoto: (Uri) -> Unit,
     onRemovePendingPhoto: () -> Unit,
-    onViewReceipt: (String) -> Unit,
+    onViewCloudReceipt: (String) -> Unit,
+    onViewLocalReceipt: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -573,7 +573,11 @@ fun ReceiptPhotoArea(
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            if (existingReceiptPath == null) "No receipt attached yet" else "Existing receipt attached",
+                            when {
+                                pendingPhotoPath != null || localReceiptImagePath != null -> "Receipt attached"
+                                existingReceiptPath != null -> "Cloud receipt attached"
+                                else -> "No receipt attached yet"
+                            },
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                         )
@@ -607,12 +611,20 @@ fun ReceiptPhotoArea(
                         Spacer(Modifier.width(4.dp))
                         Text("Remove photo", color = MaterialTheme.colorScheme.error)
                     }
-                }
-                if (pendingPhotoPath == null && existingReceiptPath != null) {
-                    TextButton(onClick = { onViewReceipt(existingReceiptPath) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    TextButton(
+                        onClick = { onViewLocalReceipt(pendingPhotoPath) },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) {
                         Icon(Icons.Filled.Visibility, contentDescription = "View receipt", modifier = Modifier.size(17.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("View existing receipt")
+                        Text("View receipt")
+                    }
+                }
+                if (pendingPhotoPath == null && existingReceiptPath != null) {
+                    TextButton(onClick = { onViewCloudReceipt(existingReceiptPath) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Icon(Icons.Filled.Visibility, contentDescription = "View receipt", modifier = Modifier.size(17.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("View cloud receipt")
                     }
                 }
             }
