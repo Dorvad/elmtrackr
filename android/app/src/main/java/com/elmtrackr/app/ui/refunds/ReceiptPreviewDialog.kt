@@ -28,46 +28,29 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
 @Composable
 fun ReceiptPreviewDialog(
-    receiptUrl: String,
+    preview: ReceiptPreviewUiState,
     onDismiss: () -> Unit,
 ) {
-    var bitmap by remember(receiptUrl) { mutableStateOf<ImageBitmap?>(null) }
-    var failed by remember(receiptUrl) { mutableStateOf(false) }
+    var bitmap by remember(preview.localImagePath, preview.signedUrl) { mutableStateOf<ImageBitmap?>(null) }
+    var failed by remember(preview.localImagePath, preview.signedUrl) { mutableStateOf(false) }
 
-    LaunchedEffect(receiptUrl) {
+    LaunchedEffect(preview.localImagePath, preview.signedUrl) {
         failed = false
+        bitmap = null
+        if (preview.isLoading) return@LaunchedEffect
+
         bitmap = withContext(Dispatchers.IO) {
-            runCatching {
-                var connection = URL(receiptUrl).openConnection() as HttpURLConnection
-                connection.apply {
-                    connectTimeout = 15_000
-                    readTimeout = 30_000
-                    instanceFollowRedirects = true
-                    setRequestProperty("User-Agent", "ElmTrackr-Android/1.0")
-                }
-                // Manually follow redirects across HTTP→HTTPS
-                var redirects = 0
-                while (connection.responseCode in 300..399 && redirects < 5) {
-                    val location = connection.getHeaderField("Location") ?: break
-                    connection.disconnect()
-                    connection = URL(location).openConnection() as HttpURLConnection
-                    connection.apply {
-                        connectTimeout = 15_000
-                        readTimeout = 30_000
-                        instanceFollowRedirects = true
-                        setRequestProperty("User-Agent", "ElmTrackr-Android/1.0")
-                    }
-                    redirects++
-                }
-                connection.inputStream.use { input ->
-                    BitmapFactory.decodeStream(input)?.asImageBitmap()
-                }
-            }.getOrNull()
+            when {
+                preview.localImagePath != null -> loadLocalBitmap(preview.localImagePath)
+                preview.signedUrl != null -> loadRemoteBitmap(preview.signedUrl)
+                else -> null
+            }
         }
         failed = bitmap == null
     }
@@ -83,6 +66,7 @@ fun ReceiptPreviewDialog(
                 contentAlignment = Alignment.Center,
             ) {
                 when {
+                    preview.isLoading -> CircularProgressIndicator()
                     bitmap != null -> {
                         Column(Modifier.verticalScroll(rememberScrollState())) {
                             Image(
@@ -95,7 +79,7 @@ fun ReceiptPreviewDialog(
                     }
                     failed -> {
                         Text(
-                            "Receipt preview could not be loaded. Try again in a moment.",
+                            "Receipt preview could not be loaded. The file may have been removed.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(12.dp),
                         )
@@ -107,5 +91,48 @@ fun ReceiptPreviewDialog(
         confirmButton = {
             TextButton(onClick = onDismiss) { Text("Close") }
         },
+    )
+}
+
+private fun loadLocalBitmap(path: String): ImageBitmap? {
+    val file = File(path)
+    if (!file.exists() || !file.isFile || file.length() <= 0) return null
+    return BitmapFactory.decodeFile(path)?.asImageBitmap()
+}
+
+private fun loadRemoteBitmap(receiptUrl: String): ImageBitmap? = runCatching {
+    var connection = URL(receiptUrl).openConnection() as HttpURLConnection
+    connection.apply {
+        connectTimeout = 15_000
+        readTimeout = 30_000
+        instanceFollowRedirects = true
+        setRequestProperty("User-Agent", "ElmTrackr-Android/1.0")
+    }
+    var redirects = 0
+    while (connection.responseCode in 300..399 && redirects < 5) {
+        val location = connection.getHeaderField("Location") ?: break
+        connection.disconnect()
+        connection = URL(location).openConnection() as HttpURLConnection
+        connection.apply {
+            connectTimeout = 15_000
+            readTimeout = 30_000
+            instanceFollowRedirects = true
+            setRequestProperty("User-Agent", "ElmTrackr-Android/1.0")
+        }
+        redirects++
+    }
+    connection.inputStream.use { input ->
+        BitmapFactory.decodeStream(input)?.asImageBitmap()
+    }
+}.getOrNull()
+
+@Composable
+fun ReceiptPreviewDialog(
+    receiptUrl: String,
+    onDismiss: () -> Unit,
+) {
+    ReceiptPreviewDialog(
+        preview = ReceiptPreviewUiState(signedUrl = receiptUrl),
+        onDismiss = onDismiss,
     )
 }

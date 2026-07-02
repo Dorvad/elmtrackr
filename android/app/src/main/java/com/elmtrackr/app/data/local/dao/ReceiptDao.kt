@@ -29,6 +29,9 @@ interface ReceiptDao {
     @Query("UPDATE receipts SET refundClaimId = :refundClaimId, updatedAt = :updatedAt WHERE id = :id")
     suspend fun linkToClaim(id: String, refundClaimId: String?, updatedAt: Long)
 
+    @Query("SELECT * FROM receipts WHERE userId = :userId")
+    suspend fun getAllForUser(userId: String): List<ReceiptEntity>
+
     @Query("DELETE FROM receipts WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
 

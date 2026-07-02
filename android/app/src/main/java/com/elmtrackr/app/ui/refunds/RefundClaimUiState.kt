@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.refunds
 
 import com.elmtrackr.app.domain.RefundPolicy
+import com.elmtrackr.app.domain.model.Receipt
 import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
@@ -21,6 +22,8 @@ data class RefundClaimUiState(
     val receiptReview: ReceiptReviewUiState? = null,
     val isProcessingReceipt: Boolean = false,
     val launchDocumentScanner: Boolean = false,
+    val localReceiptsByClaimId: Map<String, Receipt> = emptyMap(),
+    val receiptPreview: ReceiptPreviewUiState? = null,
 )
 
 data class RefundClaimFormUiState(

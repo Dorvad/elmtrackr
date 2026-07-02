@@ -76,7 +76,14 @@ class RefundClaimViewModel @Inject constructor(
                     }
                 }
                 .collect { claims ->
-                    _uiState.update { it.copy(claims = claims, isLoading = false) }
+                    val localReceipts = loadLocalReceiptsForClaims(claims)
+                    _uiState.update {
+                        it.copy(
+                            claims = claims,
+                            localReceiptsByClaimId = localReceipts,
+                            isLoading = false,
+                        )
+                    }
                 }
         }
     }
@@ -103,6 +110,9 @@ class RefundClaimViewModel @Inject constructor(
                     existingReceiptPath = claim?.receiptPath,
                 ),
             )
+        }
+        if (claim != null) {
+            viewModelScope.launch { restoreLocalReceiptIntoForm(claim.id) }
         }
     }
 
@@ -286,6 +296,9 @@ class RefundClaimViewModel @Inject constructor(
                         },
                     )
                 }
+                if (form.claimId != null) {
+                    refreshLocalReceipts()
+                }
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(
@@ -335,6 +348,7 @@ class RefundClaimViewModel @Inject constructor(
                 }
                 cleanupPendingPhoto(form.pendingPhotoPath?.takeIf { it != form.localReceiptImagePath })
                 refreshShift(shift.id)
+                refreshLocalReceipts()
                 _uiState.update {
                     it.copy(
                         isSaving = false,
@@ -358,13 +372,22 @@ class RefundClaimViewModel @Inject constructor(
             _uiState.update { it.copy(deletingClaimId = claimId, errorMessage = null, noticeMessage = null) }
             runCatching { deleteRefundClaim(claimId) }
                 .onSuccess { result ->
-                    if (shiftId != null) refreshShift(shiftId)
+                    if (shiftId != null) {
+                        refreshShift(shiftId)
+                        refreshLocalReceipts()
+                    }
                     _uiState.update {
                         it.copy(
                             deletingClaimId = null,
-                            noticeMessage = if (result.receiptDeleteFailed) {
-                                "Claim deleted. Receipt cleanup will retry later."
-                            } else null,
+                            noticeMessage = when {
+                                result.receiptDeleteFailed && result.localReceiptDeleteFailed ->
+                                    "Claim deleted. Some receipt cleanup will retry later."
+                                result.receiptDeleteFailed ->
+                                    "Claim deleted. Cloud receipt cleanup will retry later."
+                                result.localReceiptDeleteFailed ->
+                                    "Claim deleted. Local receipt file cleanup failed."
+                                else -> null
+                            },
                         )
                     }
                 }
@@ -393,21 +416,104 @@ class RefundClaimViewModel @Inject constructor(
         }
     }
 
-    fun openReceipt(path: String, onOpen: (String) -> Unit) {
+    fun openReceiptForClaim(claim: RefundClaim) {
         viewModelScope.launch {
-            val url = refundReceiptStorage?.let { storage ->
-                runCatching { storage.createSignedUrl(path) }.getOrNull()
+            val localReceipt = receiptsRepository.getByRefundClaimId(claim.id)
+                ?: _uiState.value.localReceiptsByClaimId[claim.id]
+            if (localReceipt != null && File(localReceipt.localImageUri).exists()) {
+                _uiState.update {
+                    it.copy(
+                        receiptPreview = ReceiptPreviewUiState(localImagePath = localReceipt.localImageUri),
+                        errorMessage = null,
+                    )
+                }
+                return@launch
             }
-            if (url == null) {
-                _uiState.update { it.copy(errorMessage = "Receipt preview is unavailable right now.") }
-            } else {
-                onOpen(url)
+
+            val cloudPath = claim.receiptPath
+            if (cloudPath == null) {
+                _uiState.update { it.copy(errorMessage = "No receipt is attached to this claim.") }
+                return@launch
             }
+            openCloudReceipt(cloudPath)
         }
+    }
+
+    fun openReceipt(path: String) {
+        viewModelScope.launch { openCloudReceipt(path) }
+    }
+
+    fun openLocalReceipt(imagePath: String) {
+        if (!File(imagePath).exists()) {
+            _uiState.update { it.copy(errorMessage = "The receipt image file is missing.") }
+            return
+        }
+        _uiState.update {
+            it.copy(
+                receiptPreview = ReceiptPreviewUiState(localImagePath = imagePath),
+                errorMessage = null,
+            )
+        }
+    }
+
+    fun dismissReceiptPreview() {
+        _uiState.update { it.copy(receiptPreview = null) }
     }
 
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, noticeMessage = null) }
+    }
+
+    private suspend fun openCloudReceipt(path: String) {
+        _uiState.update {
+            it.copy(
+                receiptPreview = ReceiptPreviewUiState(isLoading = true),
+                errorMessage = null,
+            )
+        }
+        val url = refundReceiptStorage?.let { storage ->
+            runCatching { storage.createSignedUrl(path) }.getOrNull()
+        }
+        if (url == null) {
+            _uiState.update {
+                it.copy(
+                    receiptPreview = null,
+                    errorMessage = "Receipt preview is unavailable right now.",
+                )
+            }
+        } else {
+            _uiState.update {
+                it.copy(receiptPreview = ReceiptPreviewUiState(signedUrl = url))
+            }
+        }
+    }
+
+    private suspend fun restoreLocalReceiptIntoForm(claimId: String) {
+        val receipt = receiptsRepository.getByRefundClaimId(claimId) ?: return
+        val file = File(receipt.localImageUri)
+        if (!file.exists()) return
+
+        updateForm { form ->
+            form.copy(
+                linkedReceiptId = receipt.id,
+                localReceiptImagePath = receipt.localImageUri,
+                pendingPhotoPath = receipt.localImageUri,
+                pendingPhotoName = file.name,
+                amountText = receipt.amount?.toString() ?: form.amountText,
+                rideAtMillis = receipt.receiptDate?.toEpochMilli() ?: form.rideAtMillis,
+                notes = buildNotesWithMerchant(form.notes, receipt.merchantName),
+            )
+        }
+    }
+
+    private suspend fun loadLocalReceiptsForClaims(claims: List<RefundClaim>): Map<String, Receipt> =
+        claims.mapNotNull { claim ->
+            receiptsRepository.getByRefundClaimId(claim.id)?.let { claim.id to it }
+        }.toMap()
+
+    private suspend fun refreshLocalReceipts() {
+        val claims = _uiState.value.claims
+        _uiState.update { it.copy(localReceiptsByClaimId = loadLocalReceiptsForClaims(claims)) }
     }
 
     private fun processReceiptImage(uri: Uri) {

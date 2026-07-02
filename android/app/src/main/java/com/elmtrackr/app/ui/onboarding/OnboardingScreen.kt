@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Card
@@ -56,6 +57,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -82,6 +84,7 @@ import androidx.fragment.app.FragmentActivity
 import com.elmtrackr.app.security.BiometricAuthPrompt
 import com.elmtrackr.app.security.BiometricAvailability
 import com.elmtrackr.app.security.BiometricCapability
+import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.Spacing
 import java.util.TimeZone

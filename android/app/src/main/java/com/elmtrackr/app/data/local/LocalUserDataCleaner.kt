@@ -2,11 +2,11 @@ package com.elmtrackr.app.data.local
 
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.ProfileDao
-import com.elmtrackr.app.data.local.dao.ReceiptDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.dao.TaskDao
+import com.elmtrackr.app.domain.repository.ReceiptsRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,14 +17,14 @@ class LocalUserDataCleaner @Inject constructor(
     private val settingsDao: SettingsDao,
     private val profileDao: ProfileDao,
     private val refundClaimDao: RefundClaimDao,
-    private val receiptDao: ReceiptDao,
+    private val receiptsRepository: ReceiptsRepository,
     private val compensationProfileDao: CompensationProfileDao,
     private val taskDao: TaskDao,
 ) {
     suspend fun clearUserData(userId: String) {
         shiftDao.deleteAllForUser(userId)
         refundClaimDao.deleteAllForUser(userId)
-        receiptDao.deleteAllForUser(userId)
+        receiptsRepository.deleteAllForUser(userId)
         settingsDao.deleteAllForUser(userId)
         compensationProfileDao.deleteAllForUser(userId)
         taskDao.deleteAllForUser(userId)

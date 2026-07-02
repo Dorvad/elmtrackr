@@ -1,6 +1,7 @@
 package com.elmtrackr.app.domain.refund
 
 import com.elmtrackr.app.domain.model.RefundAction
+import com.elmtrackr.app.domain.repository.ReceiptsRepository
 import com.elmtrackr.app.domain.repository.RefundReceiptStorage
 import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
@@ -10,12 +11,14 @@ import javax.inject.Inject
 
 data class DeleteRefundClaimResult(
     val receiptDeleteFailed: Boolean,
+    val localReceiptDeleteFailed: Boolean = false,
 )
 
 class DeleteRefundClaim @Inject constructor(
     private val refundsRepository: RefundsRepository,
     private val shiftsRepository: ShiftsRepository,
     private val refundReceiptStorage: RefundReceiptStorage?,
+    private val receiptsRepository: ReceiptsRepository,
 ) {
     suspend operator fun invoke(claimId: String): DeleteRefundClaimResult {
         val claim = refundsRepository.getClaimById(claimId) ?: return DeleteRefundClaimResult(false)
@@ -39,6 +42,11 @@ class DeleteRefundClaim @Inject constructor(
             } ?: false
         } ?: false
 
-        return DeleteRefundClaimResult(receiptDeleteFailed)
+        val localReceiptDeleteFailed = receiptsRepository.deleteByRefundClaimId(claimId)
+
+        return DeleteRefundClaimResult(
+            receiptDeleteFailed = receiptDeleteFailed,
+            localReceiptDeleteFailed = localReceiptDeleteFailed,
+        )
     }
 }
