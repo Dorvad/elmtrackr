@@ -21,4 +21,5 @@ data class OnboardingInput(
     val featuresClockStyles: Boolean = true,
     val clockStyle: ClockStyle = ClockStyle.CLASSIC,
     val preserveExisting: Boolean = false,
+    val enableAppLock: Boolean = false,
 )

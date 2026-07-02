@@ -7,11 +7,12 @@ import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeAuthRepository
+import com.elmtrackr.app.fake.FakeAppLockPreferencesStore
 import com.elmtrackr.app.fake.FakeOnboardingPreferences
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -39,11 +40,13 @@ class OnboardingViewModelTest {
     }
     private val compensationRepo = FakeCompensationProfilesRepository()
     private val onboardingPrefs = FakeOnboardingPreferences()
+    private val appLockPrefs = FakeAppLockPreferencesStore()
 
     private fun buildVm() = OnboardingViewModel(
         settingsRepository = settingsRepo,
         compensationProfilesRepository = compensationRepo,
         appPreferences = onboardingPrefs,
+        appLockPreferences = appLockPrefs,
         authRepository = authRepo,
     )
 
@@ -242,6 +245,15 @@ class OnboardingViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Alice", authRepo.getCurrentProfile()?.fullName)
+    }
+
+    @Test
+    fun `valid input with app lock enabled persists preference`() = runTest {
+        val vm = buildVm()
+        vm.completeOnboarding(validInput().copy(enableAppLock = true))
+        advanceUntilIdle()
+
+        assertTrue(appLockPrefs.preferences.first().appLockEnabled)
     }
 
     @Test

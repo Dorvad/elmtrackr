@@ -98,7 +98,7 @@ class ScreenshotRegressionTest {
 
     @Test
     fun onboardingReview() = verify("onboarding-review") {
-        OnboardingTestColumn(7) {
+        OnboardingTestColumn(8) {
             ReviewStep("Dor", 50.0, CurrencyCode.ILS, "Israel", listOf(5, 6), 2, null, {}, {})
         }
     }

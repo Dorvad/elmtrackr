@@ -2,6 +2,7 @@ package com.elmtrackr.app.ui.shell
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.data.auth.SessionBootstrapGate
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,21 +22,26 @@ import kotlinx.coroutines.flow.stateIn
 class AppShellViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val settingsRepository: SettingsRepository,
+    private val sessionBootstrapGate: SessionBootstrapGate,
 ) : ViewModel() {
 
     val navState: StateFlow<AppNavState> = combine(
         authRepository.observePasswordRecoveryRequired(),
         authRepository.observeCurrentProfile(),
-    ) { recoveryRequired, profile ->
-        recoveryRequired to profile
-    }.flatMapLatest { (recoveryRequired, profile) ->
+        sessionBootstrapGate.sessionBootstrapComplete,
+    ) { recoveryRequired, profile, bootstrapComplete ->
+        Triple(recoveryRequired, profile, bootstrapComplete)
+    }.flatMapLatest { (recoveryRequired, profile, bootstrapComplete) ->
         when {
             !authRepository.isConfigured() -> flowOf(AppNavState.Auth)
             recoveryRequired -> flowOf(AppNavState.Auth)
             profile == null -> flowOf(AppNavState.Auth)
             else -> settingsRepository.observeSettings(profile.id).map { settings ->
-                if (settings?.onboardingCompleted == true) AppNavState.Main
-                else AppNavState.Onboarding
+                when {
+                    settings == null && !bootstrapComplete -> AppNavState.Loading
+                    settings?.onboardingCompleted == true -> AppNavState.Main
+                    else -> AppNavState.Onboarding
+                }
             }
         }
     }

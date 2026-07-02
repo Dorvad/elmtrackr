@@ -2,11 +2,13 @@ package com.elmtrackr.app.ui.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
 import com.elmtrackr.app.data.local.preferences.OnboardingPreferences
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
+import com.elmtrackr.app.security.AppLockController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +30,7 @@ class OnboardingViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
     private val appPreferences: OnboardingPreferences,
+    private val appLockPreferences: AppLockPreferencesStore,
     private val authRepository: AuthRepository,
 ) : ViewModel() {
 
@@ -118,6 +121,11 @@ class OnboardingViewModel @Inject constructor(
                         profile.copy(fullName = input.displayName),
                         profile.id,
                     )
+                }
+                if (input.enableAppLock) {
+                    appLockPreferences.setAppLockEnabled(true)
+                    AppLockController.configure(enabled = true, initiallyUnlocked = true)
+                    AppLockController.unlock()
                 }
                 appPreferences.setOnboardingCompleted(true)
                 _uiState.value = OnboardingUiState.Completed

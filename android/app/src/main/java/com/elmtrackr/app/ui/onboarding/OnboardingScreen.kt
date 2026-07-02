@@ -32,7 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -77,12 +77,16 @@ import com.elmtrackr.app.ui.design.AppLogo
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.settings.IanaTimezonePicker
 import com.elmtrackr.app.ui.settings.WatchFacePreview
-import com.elmtrackr.app.ui.theme.AuroraAqua
+import androidx.compose.ui.platform.LocalContext
+import androidx.fragment.app.FragmentActivity
+import com.elmtrackr.app.security.BiometricAuthPrompt
+import com.elmtrackr.app.security.BiometricAvailability
+import com.elmtrackr.app.security.BiometricCapability
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.Spacing
 import java.util.TimeZone
 
-private const val TOTAL_STEPS = 7
+private const val TOTAL_STEPS = 8
 private val DAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
 @Composable
@@ -109,7 +113,12 @@ fun OnboardingScreen(
     var insights by rememberSaveable { mutableStateOf(true) }
     var clockStyles by rememberSaveable { mutableStateOf(true) }
     var clockStyle by rememberSaveable { mutableStateOf(ClockStyle.CLASSIC) }
+    var enableAppLock by rememberSaveable { mutableStateOf(false) }
     var initializedFromSettings by rememberSaveable { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val activity = context as FragmentActivity
+    val biometricAvailability = remember { BiometricCapability.check(context) }
 
     val scrollState = rememberScrollState()
 
@@ -141,6 +150,7 @@ fun OnboardingScreen(
     BackHandler(enabled = replay && step == 1) { onCompleted() }
     BackHandler(enabled = step > 1) {
         step = when (step) {
+            8 -> 7
             7 -> 6
             6 -> 5
             5 -> 4
@@ -248,15 +258,34 @@ fun OnboardingScreen(
                                 { travelRefunds = it }, { insights = it },
                                 onBack = { step = 5 }, onNext = { step = 7 },
                             )
+                            7 -> SecurityStep(
+                                appLockEnabled = enableAppLock,
+                                biometricAvailability = biometricAvailability,
+                                onAppLockChange = { enabled ->
+                                    if (!enabled) {
+                                        enableAppLock = false
+                                        return@SecurityStep
+                                    }
+                                    BiometricAuthPrompt.show(
+                                        activity = activity,
+                                        title = "Enable app lock",
+                                        subtitle = "Confirm to require biometric unlock when opening ElmTrackr",
+                                        onSuccess = { enableAppLock = true },
+                                        onFailure = { },
+                                    )
+                                },
+                                onBack = { step = 6 },
+                                onNext = { step = 8 },
+                            )
                             else -> ReviewStep(
                                 displayName = displayName.trim(),
                                 hourlyRate = hourlyRate,
                                 currency = currency,
                                 regionLabel = RegionPresets.forRegion(regionCode).label,
                                 weekendDays = weekendDays,
-                                enabledCount = listOf(travelRefunds, insights).count { it },
+                                enabledCount = listOf(travelRefunds, insights, enableAppLock).count { it },
                                 error = (state as? OnboardingUiState.ValidationError)?.errors?.values?.firstOrNull(),
-                                onBack = { step = 6 },
+                                onBack = { step = 7 },
                                 onFinish = {
                                     viewModel.completeOnboarding(
                                         OnboardingInput(
@@ -275,6 +304,7 @@ fun OnboardingScreen(
                                             featuresClockStyles = true,
                                             clockStyle = ClockStyle.CLASSIC,
                                             preserveExisting = replay,
+                                            enableAppLock = enableAppLock,
                                         ),
                                     )
                                 },
@@ -334,6 +364,7 @@ private fun stepTitle(step: Int): String = when (step) {
     4 -> "Pay preferences"
     5 -> "Work week"
     6 -> "Features"
+    7 -> "Security"
     else -> "Review"
 }
 
@@ -708,6 +739,48 @@ private fun WelcomeBenefit(icon: androidx.compose.ui.graphics.vector.ImageVector
         Text(text, fontWeight = FontWeight.SemiBold)
     }
     if (showDivider) Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+}
+
+@Composable
+internal fun SecurityStep(
+    appLockEnabled: Boolean,
+    biometricAvailability: BiometricAvailability,
+    onAppLockChange: (Boolean) -> Unit,
+    onBack: () -> Unit,
+    onNext: () -> Unit,
+) {
+    SetupHero(
+        Icons.Filled.Fingerprint,
+        "Protect your data",
+        "Optionally require fingerprint, face unlock, or your device PIN to open ElmTrackr.",
+    )
+    SetupCard {
+        val canEnable = biometricAvailability == BiometricAvailability.AVAILABLE
+        FeatureCard(
+            title = "Require biometric to open",
+            description = when (biometricAvailability) {
+                BiometricAvailability.AVAILABLE ->
+                    "Lock pay rates, receipts, and shift history when the app is in the background"
+                BiometricAvailability.NOT_ENROLLED ->
+                    "Set up fingerprint, face unlock, or a device PIN in system settings first"
+                BiometricAvailability.UNAVAILABLE ->
+                    "Biometric or device credential unlock is not available on this device"
+            },
+            enabled = appLockEnabled,
+            onChange = { enabled ->
+                if (canEnable || !enabled) onAppLockChange(enabled)
+            },
+            comingSoon = !canEnable && !appLockEnabled,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "You can change this anytime in Settings → Security.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    Spacer(Modifier.height(18.dp))
+    NavRow(onBack, onNext)
 }
 
 @Composable
