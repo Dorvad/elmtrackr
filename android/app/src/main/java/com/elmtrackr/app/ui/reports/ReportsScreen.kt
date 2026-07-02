@@ -221,7 +221,7 @@ fun ReportsScreen(
                     ReportsUiState.Loading -> "loading"
                     ReportsUiState.Empty -> "empty"
                     is ReportsUiState.Error -> "error"
-                    is ReportsUiState.Ready -> "ready"
+                    is ReportsUiState.Ready -> "ready-${state.year}-${state.month}"
                 }
             },
         ) { state ->

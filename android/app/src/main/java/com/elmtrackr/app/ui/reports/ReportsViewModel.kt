@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -104,85 +105,95 @@ class ReportsViewModel @Inject constructor(
                     shiftsRepository.observeShifts(userId),
                     refundsRepository.observeClaimsForUser(userId),
                 ) { allShifts, claims -> allShifts to claims }
-                combine(
+                flow {
+                    emit(ReportsUiState.Loading)
                     combine(
-                        reportsRepository.observeMonthlyReport(userId, year, month),
-                        settingsRepository.observeSettings(userId),
-                    ) { report, settings ->
-                        report to settings
-                    }.flatMapLatest { (report, settings) ->
-                        val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneOffset.UTC
                         combine(
-                            shiftsRepository.observeShiftsByMonthInZone(userId, year, month, zone),
-                            shiftsRepository.observeShiftsByMonthInZone(
-                                userId,
-                                previous.year,
-                                previous.monthValue,
-                                zone,
-                            ),
-                            refundData,
-                        ) { shifts, previousShifts, refundPair ->
-                            val (allShifts, claims) = refundPair
-                            ReportInputs(report, shifts, settings, previousShifts, allShifts, claims)
-                        }
-                    },
-                    compensationProfilesRepository.observeProfiles(userId),
-                    tasksRepository.observeAllTasks(userId),
-                ) { inputs, profiles, tasks ->
-                    val completedShifts = inputs.shifts.filter { it.isCompleted }
-                    when {
-                        inputs.settings == null -> ReportsUiState.Loading
-                        else -> {
-                            val settings = inputs.settings
-                            val safeReport = inputs.report ?: MonthlyReportBuilder.buildMonthlyReport(
-                                year = year,
-                                month = month,
-                                shifts = inputs.shifts,
-                                settings = settings,
-                            )
-                            val paySummary = settings.takeIf {
-                                (it.hourlyRate ?: 0.0) > 0.0 ||
-                                    profiles.any { p -> (p.baseHourlyRate ?: 0.0) > 0.0 }
-                            }?.let { PayrollCalculator.sumMonthlyPay(completedShifts, it, profiles) }
-                            val prevCompleted = inputs.previousShifts.filter { it.isCompleted }
-                            val insights = settings.takeIf { it.featuresInsights }
-                                ?.let { ReportInsightsBuilder.build(completedShifts, it, profiles) }
-                            val dailyInsights = settings.takeIf { it.featuresInsights }
-                                ?.let { DailyInsightsBuilder.build(completedShifts, it, safeReport.totalMinutes, profiles) }
-                                ?: emptyList()
-                            val taskBreakdown = TaskMonthlyReportBuilder.build(
-                                shifts = completedShifts,
-                                settings = settings,
-                                tasks = tasks.filter { !it.isArchived },
-                                profiles = profiles,
-                            )
-                            ReportsUiState.Ready(
-                                year = year,
-                                month = month,
-                                report = safeReport,
-                                weeklyTotals = WeeklyBreakdownBuilder.groupByWeek(
+                            reportsRepository.observeMonthlyReport(userId, year, month),
+                            settingsRepository.observeSettings(userId),
+                        ) { report, settings ->
+                            report to settings
+                        }.flatMapLatest { (report, settings) ->
+                            val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneOffset.UTC
+                            combine(
+                                shiftsRepository.observeShiftsByMonthInZone(userId, year, month, zone),
+                                shiftsRepository.observeShiftsByMonthInZone(
+                                    userId,
+                                    previous.year,
+                                    previous.monthValue,
+                                    zone,
+                                ),
+                                refundData,
+                            ) { shifts, previousShifts, refundPair ->
+                                val (allShifts, claims) = refundPair
+                                ReportInputs(report, shifts, settings, previousShifts, allShifts, claims)
+                            }
+                        },
+                        compensationProfilesRepository.observeProfiles(userId),
+                        tasksRepository.observeAllTasks(userId),
+                    ) { inputs, profiles, tasks ->
+                        val completedShifts = inputs.shifts.filter { it.isCompleted }
+                        when {
+                            inputs.settings == null -> ReportsUiState.Loading
+                            else -> {
+                                val settings = inputs.settings
+                                val safeReport = inputs.report ?: MonthlyReportBuilder.buildMonthlyReport(
+                                    year = year,
+                                    month = month,
+                                    shifts = inputs.shifts,
+                                    settings = settings,
+                                )
+                                val paySummary = settings.takeIf {
+                                    (it.hourlyRate ?: 0.0) > 0.0 ||
+                                        profiles.any { p -> (p.baseHourlyRate ?: 0.0) > 0.0 }
+                                }?.let { PayrollCalculator.sumMonthlyPay(completedShifts, it, profiles) }
+                                val prevCompleted = inputs.previousShifts.filter { it.isCompleted }
+                                val insights = settings.takeIf { it.featuresInsights }
+                                    ?.let { ReportInsightsBuilder.build(completedShifts, it, profiles) }
+                                val dailyInsights = settings.takeIf { it.featuresInsights }
+                                    ?.let {
+                                        DailyInsightsBuilder.build(
+                                            completedShifts,
+                                            it,
+                                            safeReport.totalMinutes,
+                                            profiles,
+                                        )
+                                    }
+                                    ?: emptyList()
+                                val taskBreakdown = TaskMonthlyReportBuilder.build(
                                     shifts = completedShifts,
                                     settings = settings,
+                                    tasks = tasks.filter { !it.isArchived },
                                     profiles = profiles,
-                                    prevMonthShifts = prevCompleted,
-                                ),
-                                paySummary = paySummary,
-                                rawShifts = completedShifts,
-                                settings = settings,
-                                profiles = profiles,
-                                featuresTravelRefunds = settings.featuresTravelRefunds,
-                                insights = insights,
-                                dailyInsights = dailyInsights,
-                                previousMonthMinutes = prevCompleted.sumOf {
-                                    ShiftDurationCalculator.netMinutes(it) ?: 0
-                                },
-                                allShifts = inputs.allShifts,
-                                refundClaims = inputs.claims,
-                                taskBreakdown = taskBreakdown,
-                                zone = WorkTimezone.zoneFor(settings),
-                            )
+                                )
+                                ReportsUiState.Ready(
+                                    year = year,
+                                    month = month,
+                                    report = safeReport,
+                                    weeklyTotals = WeeklyBreakdownBuilder.groupByWeek(
+                                        shifts = completedShifts,
+                                        settings = settings,
+                                        profiles = profiles,
+                                        prevMonthShifts = prevCompleted,
+                                    ),
+                                    paySummary = paySummary,
+                                    rawShifts = completedShifts,
+                                    settings = settings,
+                                    profiles = profiles,
+                                    featuresTravelRefunds = settings.featuresTravelRefunds,
+                                    insights = insights,
+                                    dailyInsights = dailyInsights,
+                                    previousMonthMinutes = prevCompleted.sumOf {
+                                        ShiftDurationCalculator.netMinutes(it) ?: 0
+                                    },
+                                    allShifts = inputs.allShifts,
+                                    refundClaims = inputs.claims,
+                                    taskBreakdown = taskBreakdown,
+                                    zone = WorkTimezone.zoneFor(settings),
+                                )
+                            }
                         }
-                    }
+                    }.collect { emit(it) }
                 }
             }
         }
