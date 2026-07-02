@@ -1,9 +1,9 @@
 package com.elmtrackr.app.ui.design
 
 import android.animation.ValueAnimator
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -36,17 +36,22 @@ fun <T> AuroraStateCrossfade(
     targetState: T,
     modifier: Modifier = Modifier,
     contentKey: (T) -> Any,
-    content: @Composable (key: Any) -> Unit,
+    content: @Composable (state: T) -> Unit,
 ) {
     if (LocalInspectionMode.current || !ValueAnimator.areAnimatorsEnabled()) {
-        content(contentKey(targetState))
+        content(targetState)
         return
     }
-    Crossfade(
-        targetState = contentKey(targetState),
-        animationSpec = tween(AuroraMotion.ContentCrossfadeMillis, easing = AuroraEaseOut),
+    AnimatedContent(
+        targetState = targetState,
         modifier = modifier,
+        transitionSpec = {
+            fadeIn(tween(AuroraMotion.ContentCrossfadeMillis, easing = AuroraEaseOut)) togetherWith
+                fadeOut(tween(AuroraMotion.ContentCrossfadeMillis, easing = AuroraEaseOut))
+        },
+        contentKey = contentKey,
         label = "aurora-state-crossfade",
-        content = content,
-    )
+    ) { state ->
+        content(state)
+    }
 }

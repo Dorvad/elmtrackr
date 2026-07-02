@@ -134,9 +134,9 @@ fun ShiftsScreen(
                             is ShiftsUiState.Error -> "error"
                         }
                     },
-                ) { key ->
-                    when (key) {
-                        "loading" -> Column(
+                ) { state ->
+                    when (state) {
+                        is ShiftsUiState.Loading -> Column(
                             Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = Spacing.screenH),
@@ -150,7 +150,7 @@ fun ShiftsScreen(
                             ShiftsSkeleton()
                         }
 
-                        "empty" -> Column(
+                        is ShiftsUiState.Empty -> Column(
                             Modifier
                                 .fillMaxWidth()
                                 .fillMaxSize()
@@ -181,8 +181,8 @@ fun ShiftsScreen(
                             )
                         }
 
-                        "ready" -> ShiftsListContent(
-                            state = uiState as ShiftsUiState.Ready,
+                        is ShiftsUiState.Ready -> ShiftsListContent(
+                            state = state,
                             selectedMonth = selectedMonth,
                             onPreviousMonth = viewModel::previousMonth,
                             onNextMonth = viewModel::nextMonth,
@@ -190,8 +190,8 @@ fun ShiftsScreen(
                             onEditShift = viewModel::showEditForm,
                         )
 
-                        else -> ErrorState(
-                            message = (uiState as ShiftsUiState.Error).message,
+                        is ShiftsUiState.Error -> ErrorState(
+                            message = state.message,
                             onRetry = viewModel::retry,
                         )
                     }

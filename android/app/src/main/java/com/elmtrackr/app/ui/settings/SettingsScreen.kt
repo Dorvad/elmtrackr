@@ -132,9 +132,9 @@ fun SettingsScreen(
                             is SettingsUiState.Error -> "error"
                         }
                     },
-                ) { key ->
-                    when (key) {
-                        "loading" -> Column(
+                ) { state ->
+                    when (state) {
+                        is SettingsUiState.Loading -> Column(
                             Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = Spacing.screenH),
@@ -142,8 +142,8 @@ fun SettingsScreen(
                             SettingsPageHeader()
                             SettingsSkeleton()
                         }
-                        "ready" -> SettingsFormHost(
-                            state = uiState as SettingsUiState.Ready,
+                        is SettingsUiState.Ready -> SettingsFormHost(
+                            state = state,
                             destination = dest,
                             authState = authState,
                             onNavigate = { destination = it },
@@ -160,8 +160,8 @@ fun SettingsScreen(
                             onSetAppLockEnabled = viewModel::setAppLockEnabled,
                             onReduceMotionChange = viewModel::setReduceMotion,
                         )
-                        else -> ErrorState(
-                            message = (uiState as SettingsUiState.Error).message,
+                        is SettingsUiState.Error -> ErrorState(
+                            message = state.message,
                             onRetry = viewModel::ensureSettingsExist,
                         )
                     }
