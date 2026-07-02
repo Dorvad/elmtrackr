@@ -171,6 +171,32 @@ class SyncRepositoryImplTest {
     }
 
     @Test
+    fun `pull terminates when a full page shares a single updated_at timestamp`() = runTest {
+        val dao = InMemoryShiftDao()
+        // 200 rows (a full pull page) that all share the same updated_at. The
+        // gte cursor can never advance past this page, so without the stalled
+        // cursor guard the pull loop would fetch the same page forever.
+        val rows = (1..200).map { index ->
+            RemoteShiftRow(
+                id = "remote-$index",
+                userId = "user-1",
+                startTime = "2024-06-01T08:00:00Z",
+                endTime = "2024-06-01T16:00:00Z",
+                breakMinutes = 0,
+                createdAt = "2024-06-01T08:00:00Z",
+                updatedAt = "2024-06-01T16:00:00Z",
+            )
+        }
+        val remote = FakeRemoteShiftDataSource(initial = rows)
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        assertEquals(200, dao.currentShifts.size)
+    }
+
+    @Test
     fun `syncAll still pulls shifts when tasks table is missing`() = runTest {
         val dao = InMemoryShiftDao()
         val remote = FakeRemoteShiftDataSource(

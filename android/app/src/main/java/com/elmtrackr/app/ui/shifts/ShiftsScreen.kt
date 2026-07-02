@@ -28,11 +28,14 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -66,6 +69,15 @@ fun ShiftsScreen(
     val formErrors by viewModel.formErrors.collectAsState()
     val featuresTravelRefunds by viewModel.featuresTravelRefunds.collectAsState()
     val selectedMonth by viewModel.selectedMonth.collectAsState()
+    val userMessage by viewModel.userMessage.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(userMessage) {
+        userMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.consumeUserMessage()
+        }
+    }
 
     LaunchedEffect(formTarget) {
         onFormVisibilityChanged(formTarget != null)
@@ -80,6 +92,7 @@ fun ShiftsScreen(
 
     BackHandler(enabled = formTarget != null) { viewModel.closeForm() }
 
+    Box(Modifier.fillMaxSize()) {
     AnimatedContent(
         targetState = formTarget != null,
         transitionSpec = { auroraSubScreenTransition(targetState) },
@@ -184,6 +197,13 @@ fun ShiftsScreen(
                 }
             }
         }
+    }
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .padding(bottom = Spacing.md),
+    )
     }
 }
 

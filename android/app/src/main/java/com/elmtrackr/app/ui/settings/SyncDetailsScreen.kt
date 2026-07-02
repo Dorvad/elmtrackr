@@ -119,7 +119,7 @@ internal fun SyncDetailsContent(
                 SettingsInfoRow("When", label)
                 details.lastSyncStatus?.let { status ->
                     Spacer(Modifier.height(8.dp))
-                    SettingsInfoRow("Latest run", status)
+                    SettingsInfoRow("Latest run", SyncStatusText.format(status) ?: status)
                 }
             }
         }

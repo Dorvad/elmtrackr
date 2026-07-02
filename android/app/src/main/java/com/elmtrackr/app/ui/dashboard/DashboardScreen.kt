@@ -602,8 +602,8 @@ private fun RefundReminderBanner(
                     )
                 }
             }
-            IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Filled.Close, contentDescription = "Dismiss", tint = AuroraPlum, modifier = Modifier.size(16.dp))
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Filled.Close, contentDescription = "Dismiss refund reminder", tint = AuroraPlum, modifier = Modifier.size(16.dp))
             }
         }
     }
