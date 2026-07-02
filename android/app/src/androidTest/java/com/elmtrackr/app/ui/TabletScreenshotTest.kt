@@ -168,6 +168,7 @@ class TabletScreenshotTest {
             settings = settings,
             previousMonthMinutes = 4620,
             insights = com.elmtrackr.app.domain.ReportInsightsBuilder.build(shifts, settings),
+            zone = java.time.ZoneOffset.UTC,
         )
     }
 

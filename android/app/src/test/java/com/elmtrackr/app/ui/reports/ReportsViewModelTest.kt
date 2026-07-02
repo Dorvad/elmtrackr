@@ -24,6 +24,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
+import java.time.YearMonth
+import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReportsViewModelTest {
@@ -143,6 +145,33 @@ class ReportsViewModelTest {
 
         val ready = states.filterIsInstance<ReportsUiState.Ready>().last()
         assertTrue(ready.rawShifts.none { it.isActive })
+        job.cancel()
+    }
+
+    // ── Timezone ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `initial selected month uses the device timezone not UTC`() = runTest {
+        val vm = buildVm()
+        val expected = YearMonth.now(ZoneId.systemDefault())
+        assertEquals(expected.year to expected.monthValue, vm.selectedYearMonth.value)
+    }
+
+    @Test
+    fun `ready state carries the work timezone from settings`() = runTest {
+        settingsRepo.setSettings(
+            UserSettings(id = "s", userId = "u1", timezone = "Asia/Jerusalem"),
+        )
+        val vm = buildVm(ensureSettings = false)
+        val states = mutableListOf<ReportsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        shiftsRepo.setShifts(completedShift())
+        reportsRepo.setReport(reportWith(shiftCount = 1))
+        advanceUntilIdle()
+
+        val ready = states.filterIsInstance<ReportsUiState.Ready>().last()
+        assertEquals(ZoneId.of("Asia/Jerusalem"), ready.zone)
         job.cancel()
     }
 

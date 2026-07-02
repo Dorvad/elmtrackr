@@ -119,7 +119,7 @@ import com.elmtrackr.app.ui.theme.auroraWeekendBackground
 import com.elmtrackr.app.ui.tasks.parseTaskColor
 import java.time.Month
 import java.time.YearMonth
-import java.time.ZoneOffset
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
@@ -849,7 +849,7 @@ internal fun HoursReport(
                 icon = "📏",
                 label = "Longest Shift",
                 value = ShiftDurationCalculator.formatMinutes(insights.longestShiftMinutes),
-                sub = insights.longestShift?.startTime?.atOffset(ZoneOffset.UTC)
+                sub = insights.longestShift?.startTime?.atZone(state.zone)
                     ?.format(DateTimeFormatter.ofPattern("MMM d")),
                 accentColor = Color(0xFF10B981),
                 bgColor = Color(0xFF10B981).copy(alpha = 0.10f),
@@ -871,7 +871,7 @@ internal fun HoursReport(
                 icon = "🏆",
                 label = "Best Shift",
                 value = if (insights.highestEarningAmount != null) MoneyFormatter.format(insights.highestEarningAmount, currency2) else "—",
-                sub = insights.highestEarningShift?.startTime?.atOffset(ZoneOffset.UTC)
+                sub = insights.highestEarningShift?.startTime?.atZone(state.zone)
                     ?.format(DateTimeFormatter.ofPattern("MMM d"))
                     ?: if (insights.highestEarningAmount == null) "set rate to unlock" else null,
                 accentColor = AuroraPlum,
@@ -950,7 +950,7 @@ internal fun HoursReport(
         ) {
             state.rawShifts.sortedByDescending { it.startTime }.forEachIndexed { index, shift ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                ShiftReportRow(shift, settings, state.profiles, state.rawShifts)
+                ShiftReportRow(shift, settings, state.profiles, state.rawShifts, state.zone)
             }
         }
     }
@@ -1367,9 +1367,10 @@ private fun ShiftReportRow(
     settings: UserSettings,
     profiles: List<CompensationProfile> = emptyList(),
     allShifts: List<Shift> = emptyList(),
+    zone: ZoneId = ZoneId.systemDefault(),
 ) {
     val breakdown = MonthlyReportBuilder.buildShiftBreakdown(shift, settings)
-    val date = shift.startTime.atOffset(ZoneOffset.UTC).toLocalDate()
+    val date = shift.startTime.atZone(zone).toLocalDate()
     val weekend = CompensationResolver.isWeekendShift(shift, settings, profiles)
     val overnight = OvernightShiftDetector.isOvernight(shift)
     val pay = PayrollCalculator.calculateShiftPayInContext(
@@ -1402,16 +1403,16 @@ private fun ShiftReportRow(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        shift.startTime.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("EEE, MMM d")),
+                        shift.startTime.atZone(zone).format(DateTimeFormatter.ofPattern("EEE, MMM d")),
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     val breakStr = if (shift.breakMinutes > 0) " · ${shift.breakMinutes}m break" else ""
                     Text(
-                        shift.startTime.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("HH:mm")) +
+                        shift.startTime.atZone(zone).format(DateTimeFormatter.ofPattern("HH:mm")) +
                             " — " +
-                            (shift.endTime?.atOffset(ZoneOffset.UTC)?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "") +
+                            (shift.endTime?.atZone(zone)?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "") +
                             breakStr,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1477,7 +1478,7 @@ private fun RefundReview(
         ElmEmptyState(Icons.Filled.PictureAsPdf, "No eligible shifts yet", "Late-night, weekend, and holiday shifts can qualify for travel reimbursement.", Modifier.fillMaxWidth())
         return
     }
-    if (claims.isNotEmpty()) RefundAnalytics(claims, state.allShifts, state.settings, state.profiles)
+    if (claims.isNotEmpty()) RefundAnalytics(claims, state.allShifts, state.settings, state.profiles, state.zone)
     val exportRows = submittedExportRows(state.allShifts, claims)
     if (exportRows.isNotEmpty()) {
         Spacer(Modifier.height(14.dp))
@@ -1490,7 +1491,7 @@ private fun RefundReview(
                             val bitmap = claim.receiptPath?.let { viewModel.receiptUrl(it) }?.let { ReportExporter.loadReceipt(it) }
                             RefundPdfRow(shift, claim, bitmap)
                         }
-                        ReportExporter.shareRefundPdf(context, pdfRows, "all-months", "All months", currency)
+                        ReportExporter.shareRefundPdf(context, pdfRows, "all-months", "All months", currency, state.zone)
                     } finally { exportingAll = false }
                 }
             },
@@ -1518,14 +1519,14 @@ private fun RefundReview(
     }
     Spacer(Modifier.height(18.dp)); ElmSectionHeader("All Eligible Months"); Spacer(Modifier.height(4.dp))
     Text(
-        "Showing ${monthsLabelCount(eligible)} with eligible rides.",
+        "Showing ${monthsLabelCount(eligible, state.zone)} with eligible rides.",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     Spacer(Modifier.height(8.dp))
-    val months = eligible.map { YearMonth.from(it.startTime.atOffset(ZoneOffset.UTC)) }.distinct().sortedDescending()
+    val months = eligible.map { YearMonth.from(it.startTime.atZone(state.zone)) }.distinct().sortedDescending()
     months.forEach { month ->
-        val monthShifts = eligible.filter { YearMonth.from(it.startTime.atOffset(ZoneOffset.UTC)) == month }
+        val monthShifts = eligible.filter { YearMonth.from(it.startTime.atZone(state.zone)) == month }
         val monthShiftIds = monthShifts.mapTo(mutableSetOf()) { it.id }
         RefundMonthCard(
             month = month,
@@ -1540,11 +1541,12 @@ private fun RefundReview(
                             val bitmap = claim.receiptPath?.let { viewModel.receiptUrl(it) }?.let { ReportExporter.loadReceipt(it) }
                             RefundPdfRow(shift, claim, bitmap)
                         }
-                        ReportExporter.shareRefundPdf(context, pdfRows, month.year, month.monthValue, currency)
+                        ReportExporter.shareRefundPdf(context, pdfRows, month.year, month.monthValue, currency, state.zone)
                     } finally { onDone() }
                 }
             },
             currency = currency,
+            zone = state.zone,
         )
         Spacer(Modifier.height(12.dp))
     }
@@ -1556,6 +1558,7 @@ private fun RefundAnalytics(
     shifts: List<Shift>,
     settings: UserSettings?,
     profiles: List<CompensationProfile> = emptyList(),
+    zone: ZoneId = ZoneId.systemDefault(),
 ) {
     val total = claims.sumOf { it.amount }
     val currency = settings?.currency ?: CurrencyCode.ILS
@@ -1567,7 +1570,7 @@ private fun RefundAnalytics(
         Column(Modifier.padding(18.dp)) {
             Text("TOTAL REFUNDED", style = MaterialTheme.typography.labelSmall, color = Color(0xffd8d3ff), fontWeight = FontWeight.Bold)
             Text(MoneyFormatter.format(total, currency), style = MaterialTheme.typography.headlineLarge, color = Color.White, fontWeight = FontWeight.ExtraBold)
-            val activeMonths = claims.map { YearMonth.from(it.rideAt.atOffset(ZoneOffset.UTC)) }.distinct().size
+            val activeMonths = claims.map { YearMonth.from(it.rideAt.atZone(zone)) }.distinct().size
             Text("${claims.size} rides - $activeMonths months", color = Color(0xffd8d3ff), style = MaterialTheme.typography.bodySmall)
             if (salary != null && salary > 0) {
                 HorizontalDivider(Modifier.padding(vertical = 12.dp), color = Color.White.copy(alpha = .2f))
@@ -1604,6 +1607,7 @@ private fun RefundMonthCard(
     onNavigateToShift: (String) -> Unit,
     onExport: (List<Pair<Shift, RefundClaim>>, () -> Unit) -> Unit,
     currency: CurrencyCode,
+    zone: ZoneId = ZoneId.systemDefault(),
 ) {
     val submitted = shifts.count { it.refundAction == RefundAction.SUBMITTED }
     val pending = shifts.count { it.refundAction == null }
@@ -1623,7 +1627,7 @@ private fun RefundMonthCard(
             val shiftClaims = claims.filter { it.shiftId == shift.id }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
-                    Text(shift.startTime.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("EEE, d MMM")), fontWeight = FontWeight.SemiBold)
+                    Text(shift.startTime.atZone(zone).format(DateTimeFormatter.ofPattern("EEE, d MMM")), fontWeight = FontWeight.SemiBold)
                     shiftClaims.forEach { claim ->
                         Text(
                             "${if (claim.direction == com.elmtrackr.app.domain.model.RefundDirection.TO_WORK) "To work" else "From work"} - ${claim.provider.name.lowercase()} - ${MoneyFormatter.format(claim.amount, currency)}${if (claim.receiptPath != null) " - receipt" else ""}",
@@ -1914,8 +1918,8 @@ private fun submittedExportRows(
     shifts.filter { it.refundAction == RefundAction.SUBMITTED }
         .flatMap { shift -> claims.filter { it.shiftId == shift.id }.map { shift to it } }
 
-private fun monthsLabelCount(shifts: List<Shift>): String {
-    val count = shifts.map { YearMonth.from(it.startTime.atOffset(ZoneOffset.UTC)) }.distinct().size
+private fun monthsLabelCount(shifts: List<Shift>, zone: ZoneId): String {
+    val count = shifts.map { YearMonth.from(it.startTime.atZone(zone)) }.distinct().size
     return "$count month${if (count == 1) "" else "s"}"
 }
 

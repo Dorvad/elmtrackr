@@ -303,6 +303,7 @@ class FullAppScreenshotJvmTest {
                     settings = settings,
                     previousMonthMinutes = 4620,
                     insights = if (insights) ReportInsightsBuilder.build(shifts, settings) else null,
+                    zone = java.time.ZoneOffset.UTC,
                 ),
                 onPreviousMonth = {}, onNextMonth = {}, canGoNext = true,
                 onExportCsv = {}, onExportPdf = {},

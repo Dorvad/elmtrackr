@@ -155,6 +155,7 @@ private fun sampleReportsState(): ReportsUiState.Ready {
         settings = settings,
         previousMonthMinutes = 4620,
         insights = ReportInsightsBuilder.build(shifts, settings),
+        zone = java.time.ZoneOffset.UTC,
     )
 }
 
