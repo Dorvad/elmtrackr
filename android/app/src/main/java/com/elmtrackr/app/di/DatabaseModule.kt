@@ -4,6 +4,7 @@ import android.content.Context
 import com.elmtrackr.app.data.local.ElmTrackrDatabase
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.ProfileDao
+import com.elmtrackr.app.data.local.dao.ReceiptDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
@@ -35,6 +36,9 @@ object DatabaseModule {
 
     @Provides
     fun provideRefundClaimDao(database: ElmTrackrDatabase): RefundClaimDao = database.refundClaimDao()
+
+    @Provides
+    fun provideReceiptDao(database: ElmTrackrDatabase): ReceiptDao = database.receiptDao()
 
     @Provides
     fun provideCompensationProfileDao(database: ElmTrackrDatabase): CompensationProfileDao =

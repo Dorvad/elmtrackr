@@ -10,11 +10,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.elmtrackr.app.data.local.converter.Converters
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.ProfileDao
+import com.elmtrackr.app.data.local.dao.ReceiptDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
 import com.elmtrackr.app.data.local.entity.ProfileEntity
+import com.elmtrackr.app.data.local.entity.ReceiptEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
@@ -28,10 +30,11 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         UserSettingsEntity::class,
         ProfileEntity::class,
         RefundClaimEntity::class,
+        ReceiptEntity::class,
         CompensationProfileEntity::class,
         TaskEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -41,6 +44,8 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
     abstract fun profileDao(): ProfileDao
     abstract fun refundClaimDao(): RefundClaimDao
+
+    abstract fun receiptDao(): ReceiptDao
 
     abstract fun compensationProfileDao(): CompensationProfileDao
 
@@ -92,6 +97,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_6_7,
                     MIGRATION_7_8,
                     MIGRATION_8_9,
+                    MIGRATION_9_10,
                 )
                 .build()
         }
@@ -249,6 +255,32 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     "CREATE INDEX IF NOT EXISTS index_compensation_profiles_remoteId " +
                         "ON compensation_profiles(remoteId)",
                 )
+            }
+        }
+
+        internal val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS receipts (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        userId TEXT,
+                        refundClaimId TEXT,
+                        localImageUri TEXT NOT NULL,
+                        merchantName TEXT,
+                        amount REAL,
+                        currency TEXT,
+                        receiptDate INTEGER,
+                        rawOcrText TEXT,
+                        parserVersion TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        FOREIGN KEY(refundClaimId) REFERENCES refund_claims(localId) ON DELETE SET NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_receipts_userId ON receipts(userId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_receipts_refundClaimId ON receipts(refundClaimId)")
             }
         }
     }
