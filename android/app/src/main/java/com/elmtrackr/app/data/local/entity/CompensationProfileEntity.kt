@@ -6,7 +6,11 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "compensation_profiles",
-    indices = [Index(value = ["userId"])],
+    indices = [
+        Index(value = ["userId"]),
+        Index(value = ["userId", "syncStatus"]),
+        Index(value = ["remoteId"]),
+    ],
 )
 data class CompensationProfileEntity(
     @PrimaryKey val localId: String,

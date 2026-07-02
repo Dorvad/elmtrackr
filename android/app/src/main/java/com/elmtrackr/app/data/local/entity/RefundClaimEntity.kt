@@ -10,6 +10,8 @@ import androidx.room.PrimaryKey
         Index(value = ["userId"]),
         Index(value = ["shiftLocalId"]),
         Index(value = ["syncStatus"]),
+        Index(value = ["userId", "syncStatus"]),
+        Index(value = ["remoteId"]),
     ],
 )
 data class RefundClaimEntity(

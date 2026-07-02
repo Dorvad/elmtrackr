@@ -31,7 +31,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         CompensationProfileEntity::class,
         TaskEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -91,6 +91,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_5_6,
                     MIGRATION_6_7,
                     MIGRATION_7_8,
+                    MIGRATION_8_9,
                 )
                 .build()
         }
@@ -191,6 +192,39 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
         }
 
         internal val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_shifts_userId_syncStatus ON shifts(userId, syncStatus)",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_shifts_remoteId ON shifts(remoteId)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_tasks_userId_syncStatus ON tasks(userId, syncStatus)",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_remoteId ON tasks(remoteId)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_refund_claims_userId_syncStatus " +
+                        "ON refund_claims(userId, syncStatus)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_refund_claims_remoteId ON refund_claims(remoteId)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_compensation_profiles_userId_syncStatus " +
+                        "ON compensation_profiles(userId, syncStatus)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_compensation_profiles_remoteId " +
+                        "ON compensation_profiles(remoteId)",
+                )
+            }
+        }
+
+        // MIGRATION_7_8 created indexes that were never declared on the entities, so
+        // Room's post-migration schema validation rejected upgraded databases while
+        // fresh installs never got the indexes at all. Version 9 declares them on the
+        // entities; IF NOT EXISTS makes this a no-op for databases that came through
+        // the 7→8 path and creates them for databases first created at version 8.
+        internal val MIGRATION_8_9 = object : Migration(8, 9) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_shifts_userId_syncStatus ON shifts(userId, syncStatus)",

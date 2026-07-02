@@ -56,6 +56,19 @@ class FakeShiftDao : ShiftDao {
         refresh()
     }
 
+    override suspend fun markNeverSyncedPendingCreate(userId: String) {
+        store.replaceAll { _, value ->
+            if (value.userId == userId && value.remoteId == null &&
+                value.syncStatus == SyncStatus.SYNCED && value.deletedAt == null
+            ) {
+                value.copy(syncStatus = SyncStatus.PENDING_CREATE)
+            } else {
+                value
+            }
+        }
+        refresh()
+    }
+
     override suspend fun getAllShiftsForUser(userId: String): List<ShiftEntity> =
         store.values.filter { it.userId == userId && it.deletedAt == null }
 
@@ -144,6 +157,19 @@ class FakeRefundClaimDao : RefundClaimDao {
         refresh()
     }
 
+    override suspend fun markNeverSyncedPendingCreate(userId: String) {
+        store.replaceAll { _, value ->
+            if (value.userId == userId && value.remoteId == null &&
+                value.syncStatus == SyncStatus.SYNCED && value.deletedAt == null
+            ) {
+                value.copy(syncStatus = SyncStatus.PENDING_CREATE)
+            } else {
+                value
+            }
+        }
+        refresh()
+    }
+
     override suspend fun getAllClaimsForUser(userId: String): List<RefundClaimEntity> =
         store.values.filter { it.userId == userId && it.deletedAt == null }
 
@@ -198,6 +224,19 @@ class FakeSettingsDao : SettingsDao {
 
     override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) {
         store[localId]?.let { store[localId] = it.copy(syncStatus = syncStatus, remoteId = remoteId, lastSyncedAt = lastSyncedAt, lastSyncError = lastSyncError) }
+        refresh()
+    }
+
+    override suspend fun markNeverSyncedPendingCreate(userId: String) {
+        store.replaceAll { _, value ->
+            if (value.userId == userId && value.remoteId == null &&
+                value.syncStatus == SyncStatus.SYNCED && value.deletedAt == null
+            ) {
+                value.copy(syncStatus = SyncStatus.PENDING_CREATE)
+            } else {
+                value
+            }
+        }
         refresh()
     }
 
@@ -304,6 +343,19 @@ class FakeCompensationProfileDao : com.elmtrackr.app.data.local.dao.Compensation
             }
         }
 
+    override suspend fun markNeverSyncedPendingCreate(userId: String) {
+        store.replaceAll { _, value ->
+            if (value.userId == userId && value.remoteId == null &&
+                value.syncStatus == SyncStatus.SYNCED && value.deletedAt == null
+            ) {
+                value.copy(syncStatus = SyncStatus.PENDING_CREATE)
+            } else {
+                value
+            }
+        }
+        refresh()
+    }
+
     override suspend fun getAllProfilesForUser(userId: String): List<com.elmtrackr.app.data.local.entity.CompensationProfileEntity> =
         store.values.filter { it.userId == userId && it.deletedAt == null }
 
@@ -379,6 +431,19 @@ class FakeTaskDao : com.elmtrackr.app.data.local.dao.TaskDao {
 
     override fun observePendingSyncTasks(userId: String) =
         _flow.map { it.filter { e -> e.userId == userId && e.syncStatus != SyncStatus.SYNCED && e.deletedAt == null } }
+
+    override suspend fun markNeverSyncedPendingCreate(userId: String) {
+        store.replaceAll { _, value ->
+            if (value.userId == userId && value.remoteId == null &&
+                value.syncStatus == SyncStatus.SYNCED && value.deletedAt == null
+            ) {
+                value.copy(syncStatus = SyncStatus.PENDING_CREATE)
+            } else {
+                value
+            }
+        }
+        refresh()
+    }
 
     override suspend fun getAllTasksForUser(userId: String) =
         store.values.filter { it.userId == userId && it.deletedAt == null }

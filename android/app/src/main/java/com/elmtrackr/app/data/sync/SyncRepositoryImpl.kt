@@ -14,6 +14,7 @@ import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import com.elmtrackr.app.data.remote.RemoteCompensationProfileDataSource
 import com.elmtrackr.app.data.remote.RemoteRefundClaimDataSource
 import com.elmtrackr.app.data.remote.RemoteShiftDataSource
+import com.elmtrackr.app.data.remote.RemoteShiftRow
 import com.elmtrackr.app.data.remote.RemoteSyncErrors
 import com.elmtrackr.app.data.remote.RemoteTaskDataSource
 import com.elmtrackr.app.data.remote.RemoteUserSettingsDataSource
@@ -28,6 +29,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -49,6 +52,9 @@ class SyncRepositoryImpl @Inject constructor(
 
     private val idMapper = SyncIdMapper(shiftDao, compensationProfileDao, taskDao)
     private val lastSyncStatus = MutableStateFlow<String?>(null)
+    // syncAll can be invoked concurrently (WorkManager, auth bootstrap, manual retry);
+    // without serialization two runs can push the same PENDING_CREATE row twice.
+    private val syncMutex = Mutex()
     private var tasksRemoteEnabled = true
 
     private data class PendingSyncSnapshot(
@@ -142,6 +148,15 @@ class SyncRepositoryImpl @Inject constructor(
             return SyncResult.NotConfigured
         }
 
+        return syncMutex.withLock {
+            // Re-probe tasks sync every run so applying the missing Supabase migration
+            // takes effect on the next sync instead of requiring an app restart.
+            tasksRemoteEnabled = true
+            runSyncPipeline(userId)
+        }
+    }
+
+    private suspend fun runSyncPipeline(userId: String): SyncResult {
         return runCatching {
             val errors = mutableListOf<String>()
             val warnings = mutableListOf<String>()
@@ -211,40 +226,44 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun reconcileNeverSynced(userId: String) {
-        taskDao.getAllTasksForUser(userId)
-            .filter { it.remoteId == null && it.syncStatus == SyncStatus.SYNCED && it.deletedAt == null }
-            .forEach { taskDao.upsert(it.copy(syncStatus = SyncStatus.PENDING_CREATE)) }
-
-        shiftDao.getAllShiftsForUser(userId)
-            .filter { it.remoteId == null && it.syncStatus == SyncStatus.SYNCED && it.deletedAt == null }
-            .forEach { shiftDao.upsertShift(it.copy(syncStatus = SyncStatus.PENDING_CREATE)) }
-
-        refundClaimDao.getAllClaimsForUser(userId)
-            .filter { it.remoteId == null && it.syncStatus == SyncStatus.SYNCED }
-            .forEach { refundClaimDao.upsertClaim(it.copy(syncStatus = SyncStatus.PENDING_CREATE)) }
-
-        settingsDao.getAllSettingsForUser(userId)
-            .filter { it.remoteId == null && it.syncStatus == SyncStatus.SYNCED && it.deletedAt == null }
-            .forEach { settingsDao.upsertSettings(it.copy(syncStatus = SyncStatus.PENDING_CREATE)) }
-
-        compensationProfileDao.getAllProfilesForUser(userId)
-            .filter { it.remoteId == null && it.syncStatus == SyncStatus.SYNCED }
-            .forEach { compensationProfileDao.upsert(it.copy(syncStatus = SyncStatus.PENDING_CREATE)) }
+        taskDao.markNeverSyncedPendingCreate(userId)
+        shiftDao.markNeverSyncedPendingCreate(userId)
+        refundClaimDao.markNeverSyncedPendingCreate(userId)
+        settingsDao.markNeverSyncedPendingCreate(userId)
+        compensationProfileDao.markNeverSyncedPendingCreate(userId)
     }
 
+    private data class PullOutcome(
+        val seenRemoteIds: Set<String>,
+        val isFullSync: Boolean,
+    ) {
+        val pulledAnyRows: Boolean get() = seenRemoteIds.isNotEmpty()
+    }
+
+    /**
+     * Fetches remote rows updated since the stored cursor, one page at a time. Each
+     * page is applied via [applyRow] before the cursor advances, so a failure or
+     * process death mid-pull re-fetches those rows instead of skipping them forever.
+     * [applyRow] returns false when a row cannot be applied yet (e.g. its local
+     * parent row is missing); the cursor is then held at that row's updated_at so a
+     * later sync re-fetches it (the remote query uses gte).
+     */
     private suspend fun <Row> pullIncremental(
         userId: String,
         entity: String,
         fetchPage: suspend (sinceIso: String?) -> List<Row>,
         updatedAtIso: (Row) -> String,
-    ): Pair<List<Row>, Boolean> {
-        val isFullSync = syncCursorStore.lastPulledAt(userId, entity) == null
-        var cursor = syncCursorStore.lastPulledAt(userId, entity)
-        val allRows = mutableListOf<Row>()
+        remoteIdOf: (Row) -> String,
+        applyRow: suspend (Row) -> Boolean,
+    ): PullOutcome {
+        val initialCursor = syncCursorStore.lastPulledAt(userId, entity)
+        val isFullSync = initialCursor == null
+        var cursor = initialCursor
+        var holdEpoch: Long? = null
+        val seenRemoteIds = mutableSetOf<String>()
 
         while (true) {
-            val sinceIso = syncCursorStore.sinceIso(cursor)
-            val batch = fetchPage(sinceIso)
+            val batch = fetchPage(syncCursorStore.sinceIso(cursor))
             if (batch.isEmpty()) {
                 // Avoid repeating full-sync tombstone passes when the server returns no rows
                 // (e.g. auth/RLS not ready yet). Epoch 0 makes the next pull incremental.
@@ -256,11 +275,18 @@ class SyncRepositoryImpl @Inject constructor(
                 }
                 break
             }
-            allRows += batch
-            val maxEpoch = batch.maxOf { isoToEpoch(updatedAtIso(it)) }
+            var maxEpoch = cursor ?: 0L
+            for (row in batch) {
+                seenRemoteIds += remoteIdOf(row)
+                val rowEpoch = isoToEpoch(updatedAtIso(row))
+                if (!applyRow(row)) {
+                    holdEpoch = minOf(holdEpoch ?: rowEpoch, rowEpoch)
+                }
+                maxEpoch = maxOf(maxEpoch, rowEpoch)
+            }
             val previousCursor = cursor
-            cursor = maxOf(cursor ?: 0L, maxEpoch)
-            syncCursorStore.setLastPulledAt(userId, entity, cursor)
+            cursor = maxEpoch
+            syncCursorStore.setLastPulledAt(userId, entity, holdEpoch?.coerceAtMost(cursor) ?: cursor)
             if (batch.size < PULL_PAGE_SIZE) break
             // A full page whose newest row does not advance the cursor means every
             // remaining fetch would return the same page (updated_at uses gte) — bail
@@ -268,7 +294,7 @@ class SyncRepositoryImpl @Inject constructor(
             if (cursor == previousCursor) break
         }
 
-        return allRows to isFullSync
+        return PullOutcome(seenRemoteIds = seenRemoteIds, isFullSync = isFullSync)
     }
 
     // ── Tasks ───────────────────────────────────────────────────────────────
@@ -278,14 +304,14 @@ class SyncRepositoryImpl @Inject constructor(
         val now = Instant.now().toEpochMilli()
         for (task in taskDao.getPendingSyncTasks(userId)) {
             runCatching {
-                when (task.syncStatus) {
-                    SyncStatus.PENDING_DELETE -> pushTaskDelete(task, now)
-                    SyncStatus.PENDING_CREATE, SyncStatus.FAILED -> {
-                        if (task.remoteId == null) pushTaskCreate(task, now)
-                        else pushTaskUpdate(task, now)
-                    }
-                    SyncStatus.PENDING_UPDATE -> pushTaskUpdate(task, now)
-                    SyncStatus.SYNCED -> Unit
+                // The operation derives from row state, not the status enum, so a FAILED
+                // row keeps its original intent (a failed delete must stay a delete —
+                // pushing it as an update would resurrect the row remotely).
+                when {
+                    task.syncStatus == SyncStatus.SYNCED -> Unit
+                    task.deletedAt != null -> pushTaskDelete(task, now)
+                    task.remoteId == null -> pushTaskCreate(task, now)
+                    else -> pushTaskUpdate(task, now)
                 }
             }.onFailure { error ->
                 if (RemoteSyncErrors.isMissingRemoteTable(error, ENTITY_TASKS)) {
@@ -322,33 +348,28 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pullTasks(userId: String, warnings: MutableList<String>) {
         if (!tasksRemoteEnabled) return
         runCatching {
-            val (remoteRows, isFullSync) = pullIncremental(
+            val outcome = pullIncremental(
                 userId = userId,
                 entity = ENTITY_TASKS,
                 fetchPage = { since -> remoteTasks!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
                 updatedAtIso = { it.updatedAt },
-            )
-            val remoteIds = remoteRows.map { it.id }.toSet()
-
-            for (remote in remoteRows) {
+                remoteIdOf = { it.id },
+            ) { remote ->
                 val existing = taskDao.getByRemoteId(remote.id)
-                if (existing != null) {
-                    if (existing.syncStatus != SyncStatus.SYNCED) continue
-                    if (isoToEpoch(remote.updatedAt) > existing.updatedAt) {
-                        taskDao.upsert(
-                            remote.toLocalEntity(existingLocalId = existing.localId),
-                        )
-                    }
-                    continue
+                when {
+                    existing == null -> taskDao.upsert(remote.toLocalEntity())
+                    existing.syncStatus != SyncStatus.SYNCED -> Unit
+                    isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                        taskDao.upsert(remote.toLocalEntity(existingLocalId = existing.localId))
                 }
-                taskDao.upsert(remote.toLocalEntity())
+                true
             }
 
-            if (isFullSync && remoteRows.isNotEmpty()) {
+            if (outcome.isFullSync && outcome.pulledAnyRows) {
                 val now = Instant.now().toEpochMilli()
                 taskDao.getAllTasksForUser(userId)
                     .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
-                    .filter { it.remoteId !in remoteIds }
+                    .filter { it.remoteId !in outcome.seenRemoteIds }
                     .forEach {
                         taskDao.upsert(
                             it.copy(isArchived = true, deletedAt = now, updatedAt = now, syncStatus = SyncStatus.SYNCED),
@@ -370,14 +391,11 @@ class SyncRepositoryImpl @Inject constructor(
         val now = Instant.now().toEpochMilli()
         for (shift in shiftDao.getPendingSyncShifts(userId)) {
             runCatching {
-                when (shift.syncStatus) {
-                    SyncStatus.PENDING_DELETE -> pushShiftDelete(shift, now)
-                    SyncStatus.PENDING_CREATE, SyncStatus.FAILED -> {
-                        if (shift.remoteId == null) pushShiftCreate(shift, now)
-                        else pushShiftUpdate(shift, now)
-                    }
-                    SyncStatus.PENDING_UPDATE -> pushShiftUpdate(shift, now)
-                    SyncStatus.SYNCED -> Unit
+                when {
+                    shift.syncStatus == SyncStatus.SYNCED -> Unit
+                    shift.deletedAt != null -> pushShiftDelete(shift, now)
+                    shift.remoteId == null -> pushShiftCreate(shift, now)
+                    else -> pushShiftUpdate(shift, now)
                 }
             }.onFailure { markShiftFailed(shift, it) }
         }
@@ -434,76 +452,86 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pullShifts(userId: String) {
-        val (remoteRows, isFullSync) = pullIncremental(
+        val localActiveExists = shiftDao.getActiveShifts(userId).isNotEmpty()
+
+        val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_SHIFTS,
             fetchPage = { since -> remoteShifts!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
-        )
-        val remoteIds = remoteRows.map { it.id }.toSet()
-        val localActiveExists = shiftDao.getActiveShifts(userId).isNotEmpty()
+            remoteIdOf = { it.id },
+        ) { remote ->
+            applyRemoteShift(userId, remote, localActiveExists)
+        }
 
-        for (remote in remoteRows) {
-            val existing = shiftDao.getShiftByRemoteId(remote.id)
-            if (existing != null) {
-                if (existing.syncStatus != SyncStatus.SYNCED) continue
-                val remoteNewer = isoToEpoch(remote.updatedAt) > existing.updatedAt
-                if (remoteNewer || existing.deletedAt != null) {
+        if (outcome.isFullSync && outcome.pulledAnyRows) {
+            val now = Instant.now().toEpochMilli()
+            shiftDao.getAllShiftsForUser(userId)
+                .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
+                .filter { it.remoteId !in outcome.seenRemoteIds }
+                .forEach { shiftDao.softDeleteShift(it.localId, now, SyncStatus.SYNCED, now) }
+        }
+    }
+
+    private suspend fun applyRemoteShift(
+        userId: String,
+        remote: RemoteShiftRow,
+        localActiveExists: Boolean,
+    ): Boolean {
+        val existing = shiftDao.getShiftByRemoteId(remote.id)
+        if (existing != null) {
+            if (existing.syncStatus != SyncStatus.SYNCED) return true
+            val remoteNewer = isoToEpoch(remote.updatedAt) > existing.updatedAt
+            if (remoteNewer || existing.deletedAt != null) {
+                shiftDao.upsertShift(
+                    remote.toLocalEntity(
+                        existingLocalId = existing.localId,
+                        compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
+                        taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
+                        syncStatus = SyncStatus.SYNCED,
+                    ),
+                )
+            }
+            return true
+        }
+
+        val existingByStartTime = shiftDao.getShiftByStartTime(userId, isoToEpoch(remote.startTime))
+        if (existingByStartTime != null) {
+            when (existingByStartTime.syncStatus) {
+                SyncStatus.SYNCED -> {
                     shiftDao.upsertShift(
                         remote.toLocalEntity(
-                            existingLocalId = existing.localId,
+                            existingLocalId = existingByStartTime.localId,
                             compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
                             taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
                             syncStatus = SyncStatus.SYNCED,
                         ),
                     )
                 }
-                continue
-            }
-
-            val existingByStartTime = shiftDao.getShiftByStartTime(userId, isoToEpoch(remote.startTime))
-            if (existingByStartTime != null) {
-                when (existingByStartTime.syncStatus) {
-                    SyncStatus.SYNCED -> {
-                        shiftDao.upsertShift(
-                            remote.toLocalEntity(
-                                existingLocalId = existingByStartTime.localId,
-                                compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
-                                taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
-                                syncStatus = SyncStatus.SYNCED,
-                            ),
-                        )
-                    }
-                    SyncStatus.PENDING_CREATE, SyncStatus.FAILED -> {
-                        shiftDao.updateSyncState(
-                            existingByStartTime.localId,
-                            SyncStatus.SYNCED,
-                            remote.id,
-                            isoToEpoch(remote.updatedAt),
-                            null,
-                        )
-                    }
-                    else -> Unit
+                SyncStatus.PENDING_CREATE, SyncStatus.FAILED -> {
+                    shiftDao.updateSyncState(
+                        existingByStartTime.localId,
+                        SyncStatus.SYNCED,
+                        remote.id,
+                        isoToEpoch(remote.updatedAt),
+                        null,
+                    )
                 }
-                continue
+                else -> Unit
             }
-
-            if (remote.endTime == null && localActiveExists) continue
-            shiftDao.insertShift(
-                remote.toLocalEntity(
-                    compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
-                    taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
-                ),
-            )
+            return true
         }
 
-        if (isFullSync && remoteRows.isNotEmpty()) {
-            val now = Instant.now().toEpochMilli()
-            shiftDao.getAllShiftsForUser(userId)
-                .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
-                .filter { it.remoteId !in remoteIds }
-                .forEach { shiftDao.softDeleteShift(it.localId, now, SyncStatus.SYNCED, now) }
-        }
+        // Never materialize a second running shift; hold the cursor so this row is
+        // pulled once the local active shift ends (or the remote one is clocked out).
+        if (remote.endTime == null && localActiveExists) return false
+        shiftDao.insertShift(
+            remote.toLocalEntity(
+                compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
+                taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
+            ),
+        )
+        return true
     }
 
     // ── Refund claims ─────────────────────────────────────────────────────────
@@ -512,16 +540,16 @@ class SyncRepositoryImpl @Inject constructor(
         val now = Instant.now().toEpochMilli()
         for (claim in refundClaimDao.getPendingSyncClaims(userId)) {
             runCatching {
-                when (claim.syncStatus) {
-                    SyncStatus.PENDING_DELETE -> pushRefundClaimDelete(claim, now)
-                    SyncStatus.PENDING_CREATE, SyncStatus.FAILED -> {
+                when {
+                    claim.syncStatus == SyncStatus.SYNCED -> Unit
+                    claim.deletedAt != null -> pushRefundClaimDelete(claim, now)
+                    claim.remoteId == null -> {
+                        // Parent shift not pushed yet: leave the claim pending for a later sync.
                         val shiftRemoteId = idMapper.shiftLocalToRemote(claim.shiftLocalId)
                             ?: return@runCatching
-                        if (claim.remoteId == null) pushRefundClaimCreate(claim, shiftRemoteId, now)
-                        else pushRefundClaimUpdate(claim, now)
+                        pushRefundClaimCreate(claim, shiftRemoteId, now)
                     }
-                    SyncStatus.PENDING_UPDATE -> pushRefundClaimUpdate(claim, now)
-                    SyncStatus.SYNCED -> Unit
+                    else -> pushRefundClaimUpdate(claim, now)
                 }
             }.onFailure { markRefundClaimFailed(claim, it) }
         }
@@ -554,37 +582,38 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pullRefundClaims(userId: String) {
-        val (remoteRows, isFullSync) = pullIncremental(
+        val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_REFUND_CLAIMS,
             fetchPage = { since -> remoteRefundClaims!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
-        )
-        val remoteIds = remoteRows.map { it.id }.toSet()
-
-        for (remote in remoteRows) {
-            val shiftLocalId = idMapper.shiftRemoteToLocal(remote.shiftId) ?: continue
+            remoteIdOf = { it.id },
+        ) { remote ->
+            // Parent shift not pulled yet (e.g. the shifts step failed this run):
+            // hold the cursor so the claim is re-fetched once the shift exists.
+            val shiftLocalId = idMapper.shiftRemoteToLocal(remote.shiftId)
+                ?: return@pullIncremental false
             val existing = refundClaimDao.getClaimByRemoteId(remote.id)
-            if (existing != null) {
-                if (existing.syncStatus != SyncStatus.SYNCED) continue
-                if (isoToEpoch(remote.updatedAt) > existing.updatedAt) {
+            when {
+                existing == null ->
+                    refundClaimDao.insertClaim(remote.toLocalEntity(shiftLocalId = shiftLocalId))
+                existing.syncStatus != SyncStatus.SYNCED -> Unit
+                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
                     refundClaimDao.upsertClaim(
                         remote.toLocalEntity(
                             shiftLocalId = shiftLocalId,
                             existingLocalId = existing.localId,
                         ),
                     )
-                }
-                continue
             }
-            refundClaimDao.insertClaim(remote.toLocalEntity(shiftLocalId = shiftLocalId))
+            true
         }
 
-        if (isFullSync && remoteRows.isNotEmpty()) {
+        if (outcome.isFullSync && outcome.pulledAnyRows) {
             val now = Instant.now().toEpochMilli()
             refundClaimDao.getAllClaimsForUser(userId)
                 .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
-                .filter { it.remoteId !in remoteIds }
+                .filter { it.remoteId !in outcome.seenRemoteIds }
                 .forEach { refundClaimDao.softDeleteClaim(it.localId, now, SyncStatus.SYNCED, now) }
         }
     }
@@ -595,14 +624,11 @@ class SyncRepositoryImpl @Inject constructor(
         val now = Instant.now().toEpochMilli()
         for (profile in compensationProfileDao.getPendingSyncProfiles(userId)) {
             runCatching {
-                when (profile.syncStatus) {
-                    SyncStatus.PENDING_DELETE -> pushCompensationProfileDelete(profile, now)
-                    SyncStatus.PENDING_CREATE, SyncStatus.FAILED -> {
-                        if (profile.remoteId == null) pushCompensationProfileCreate(profile, now)
-                        else pushCompensationProfileUpdate(profile, now)
-                    }
-                    SyncStatus.PENDING_UPDATE -> pushCompensationProfileUpdate(profile, now)
-                    SyncStatus.SYNCED -> Unit
+                when {
+                    profile.syncStatus == SyncStatus.SYNCED -> Unit
+                    profile.deletedAt != null -> pushCompensationProfileDelete(profile, now)
+                    profile.remoteId == null -> pushCompensationProfileCreate(profile, now)
+                    else -> pushCompensationProfileUpdate(profile, now)
                 }
             }.onFailure { markCompensationProfileFailed(profile, it) }
         }
@@ -633,33 +659,30 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pullCompensationProfiles(userId: String) {
-        val (remoteRows, isFullSync) = pullIncremental(
+        val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_COMPENSATION_PROFILES,
             fetchPage = { since -> remoteCompensationProfiles!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
-        )
-        val remoteIds = remoteRows.map { it.id }.toSet()
-
-        for (remote in remoteRows) {
+            remoteIdOf = { it.id },
+        ) { remote ->
             val existing = compensationProfileDao.getByRemoteId(remote.id)
-            if (existing != null) {
-                if (existing.syncStatus != SyncStatus.SYNCED) continue
-                if (isoToEpoch(remote.updatedAt) > existing.updatedAt) {
+            when {
+                existing == null -> compensationProfileDao.insert(remote.toLocalEntity())
+                existing.syncStatus != SyncStatus.SYNCED -> Unit
+                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
                     compensationProfileDao.upsert(
                         remote.toLocalEntity(existingLocalId = existing.localId),
                     )
-                }
-                continue
             }
-            compensationProfileDao.insert(remote.toLocalEntity())
+            true
         }
 
-        if (isFullSync && remoteRows.isNotEmpty()) {
+        if (outcome.isFullSync && outcome.pulledAnyRows) {
             val now = Instant.now().toEpochMilli()
             compensationProfileDao.getAllProfilesForUser(userId)
                 .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
-                .filter { it.remoteId !in remoteIds }
+                .filter { it.remoteId !in outcome.seenRemoteIds }
                 .forEach {
                     compensationProfileDao.upsert(
                         it.copy(isArchived = true, deletedAt = now, updatedAt = now, syncStatus = SyncStatus.SYNCED),
@@ -675,18 +698,14 @@ class SyncRepositoryImpl @Inject constructor(
         for (settings in settingsDao.getPendingSyncSettings(userId)) {
             runCatching {
                 val profileRemoteId = idMapper.profileLocalToRemote(settings.defaultCompensationProfileId)
-                when (settings.syncStatus) {
-                    SyncStatus.PENDING_DELETE -> pushUserSettingsDelete(settings, now)
-                    SyncStatus.PENDING_CREATE, SyncStatus.FAILED -> {
-                        if (settings.remoteId == null) {
-                            val remote = remoteSettings!!.upsert(settings.toRemoteUpsert(profileRemoteId))
-                            settingsDao.updateSyncState(settings.localId, SyncStatus.SYNCED, remote.id, now, null)
-                        } else {
-                            pushUserSettingsUpdate(settings, profileRemoteId, now)
-                        }
+                when {
+                    settings.syncStatus == SyncStatus.SYNCED -> Unit
+                    settings.deletedAt != null -> pushUserSettingsDelete(settings, now)
+                    settings.remoteId == null -> {
+                        val remote = remoteSettings!!.upsert(settings.toRemoteUpsert(profileRemoteId))
+                        settingsDao.updateSyncState(settings.localId, SyncStatus.SYNCED, remote.id, now, null)
                     }
-                    SyncStatus.PENDING_UPDATE -> pushUserSettingsUpdate(settings, profileRemoteId, now)
-                    SyncStatus.SYNCED -> Unit
+                    else -> pushUserSettingsUpdate(settings, profileRemoteId, now)
                 }
             }.onFailure { markUserSettingsFailed(settings, it) }
         }
@@ -713,32 +732,31 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pullUserSettings(userId: String) {
-        val (remoteRows, _) = pullIncremental(
+        pullIncremental(
             userId = userId,
             entity = ENTITY_USER_SETTINGS,
             fetchPage = { since -> remoteSettings!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
-        )
-
-        for (remote in remoteRows) {
+            remoteIdOf = { it.id },
+        ) { remote ->
             val profileLocalId = idMapper.profileRemoteToLocal(remote.defaultCompensationProfileId)
             val existing = settingsDao.getSettingsByRemoteId(remote.id)
                 ?: settingsDao.getSettings(userId)
-            if (existing != null) {
-                if (existing.syncStatus != SyncStatus.SYNCED) continue
-                if (isoToEpoch(remote.updatedAt) > existing.updatedAt) {
+            when {
+                existing == null ->
+                    settingsDao.insertSettings(
+                        remote.toLocalEntity(defaultCompensationProfileLocalId = profileLocalId),
+                    )
+                existing.syncStatus != SyncStatus.SYNCED -> Unit
+                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
                     settingsDao.upsertSettings(
                         remote.toLocalEntity(
                             existingLocalId = existing.localId,
                             defaultCompensationProfileLocalId = profileLocalId,
                         ),
                     )
-                }
-                continue
             }
-            settingsDao.insertSettings(
-                remote.toLocalEntity(defaultCompensationProfileLocalId = profileLocalId),
-            )
+            true
         }
     }
 

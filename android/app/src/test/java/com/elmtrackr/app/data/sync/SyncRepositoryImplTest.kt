@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -175,12 +176,14 @@ class SyncRepositoryImplTest {
         val dao = InMemoryShiftDao()
         // 200 rows (a full pull page) that all share the same updated_at. The
         // gte cursor can never advance past this page, so without the stalled
-        // cursor guard the pull loop would fetch the same page forever.
+        // cursor guard the pull loop would fetch the same page forever. Start
+        // times are distinct so start-time dedup doesn't collapse the rows.
         val rows = (1..200).map { index ->
+            val start = java.time.Instant.parse("2024-06-01T08:00:00Z").plusSeconds(index * 60L)
             RemoteShiftRow(
                 id = "remote-$index",
                 userId = "user-1",
-                startTime = "2024-06-01T08:00:00Z",
+                startTime = start.toString(),
                 endTime = "2024-06-01T16:00:00Z",
                 breakMinutes = 0,
                 createdAt = "2024-06-01T08:00:00Z",
@@ -198,7 +201,8 @@ class SyncRepositoryImplTest {
 
     @Test
     fun `pull links remote shift to local row with matching start time`() = runTest {
-        val startEpoch = 1_716_230_400_000L
+        // Must equal isoToEpoch("2024-06-01T08:00:00Z") for the start-time match to apply.
+        val startEpoch = 1_717_228_800_000L
         val dao = InMemoryShiftDao()
         val remote = FakeRemoteShiftDataSource(
             initial = listOf(
@@ -221,7 +225,7 @@ class SyncRepositoryImplTest {
                 syncStatus = SyncStatus.SYNCED,
                 remoteId = null,
                 startTime = startEpoch,
-                endTime = 1_716_259_200_000L,
+                endTime = 1_717_257_600_000L,
             ),
         )
 
@@ -235,7 +239,8 @@ class SyncRepositoryImplTest {
 
     @Test
     fun `push links to existing remote shift with matching start time instead of inserting`() = runTest {
-        val startEpoch = 1_716_230_400_000L
+        // Must equal isoToEpoch("2024-06-01T08:00:00Z") for the start-time match to apply.
+        val startEpoch = 1_717_228_800_000L
         val dao = InMemoryShiftDao()
         val remote = FakeRemoteShiftDataSource(
             initial = listOf(
@@ -257,7 +262,7 @@ class SyncRepositoryImplTest {
                 localId = "local-1",
                 syncStatus = SyncStatus.PENDING_CREATE,
                 startTime = startEpoch,
-                endTime = 1_716_259_200_000L,
+                endTime = 1_717_257_600_000L,
             ),
         )
 
@@ -295,6 +300,80 @@ class SyncRepositoryImplTest {
         assertTrue(result is SyncResult.Success)
         assertEquals(1, dao.currentShifts.size)
         assertEquals("remote-99", dao.currentShifts.first().remoteId)
+    }
+
+    @Test
+    fun `failed delete is retried as delete instead of resurrecting the remote row`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = FakeRemoteShiftDataSource(
+            initial = listOf(
+                RemoteShiftRow(
+                    id = "remote-1",
+                    userId = "user-1",
+                    startTime = "2024-06-01T08:00:00Z",
+                    endTime = "2024-06-01T16:00:00Z",
+                    breakMinutes = 0,
+                    createdAt = "2024-06-01T08:00:00Z",
+                    updatedAt = "2024-06-01T16:00:00Z",
+                ),
+            ),
+        )
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        // A soft-deleted shift whose delete push already failed once.
+        dao.insertShift(
+            shiftEntity(
+                localId = "local-1",
+                syncStatus = SyncStatus.FAILED,
+                remoteId = "remote-1",
+                startTime = 1_716_230_400_000L,
+                endTime = 1_716_259_200_000L,
+            ).copy(deletedAt = 9_999L),
+        )
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        assertEquals(0, remote.updates.size)
+        assertNull(remote.findById("remote-1"))
+        assertEquals(SyncStatus.SYNCED, dao.getShiftById("local-1")!!.syncStatus)
+    }
+
+    @Test
+    fun `remote active shift held while local active exists is pulled after local clock-out`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = FakeRemoteShiftDataSource(
+            initial = listOf(
+                RemoteShiftRow(
+                    id = "remote-active",
+                    userId = "user-1",
+                    startTime = "2024-06-02T08:00:00Z",
+                    endTime = null,
+                    breakMinutes = 0,
+                    createdAt = "2024-06-02T08:00:00Z",
+                    updatedAt = "2024-06-02T08:00:00Z",
+                ),
+            ),
+        )
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        dao.insertShift(
+            shiftEntity(
+                localId = "local-active",
+                syncStatus = SyncStatus.PENDING_CREATE,
+                startTime = 1_716_000_000_000L,
+                endTime = null,
+            ),
+        )
+
+        repository.syncAll("user-1")
+        assertEquals(null, dao.getShiftByRemoteId("remote-active"))
+
+        // Clock out locally; the held cursor must re-fetch the remote active shift.
+        dao.updateShift(dao.getShiftById("local-active")!!.copy(endTime = 1_716_030_000_000L))
+        repository.syncAll("user-1")
+
+        assertNotNull(dao.getShiftByRemoteId("remote-active"))
     }
 
     private fun createRepository(
@@ -352,7 +431,10 @@ class SyncRepositoryImplTest {
     ) : RemoteShiftDataSource {
         private val rows = initial.toMutableList()
         val inserts = mutableListOf<RemoteShiftInsert>()
+        val updates = mutableListOf<Pair<String, RemoteShiftUpdate>>()
         private var nextId = 1
+
+        fun findById(id: String): RemoteShiftRow? = rows.firstOrNull { it.id == id }
 
         override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteShiftRow> =
             rows.filter { sinceIso == null || it.updatedAt >= sinceIso }.take(limit)
@@ -387,7 +469,9 @@ class SyncRepositoryImplTest {
             return row
         }
 
-        override suspend fun update(remoteId: String, shift: RemoteShiftUpdate) = Unit
+        override suspend fun update(remoteId: String, shift: RemoteShiftUpdate) {
+            updates += remoteId to shift
+        }
 
         override suspend fun delete(remoteId: String) {
             rows.removeAll { it.id == remoteId }
@@ -410,6 +494,7 @@ class SyncRepositoryImplTest {
         override suspend fun getAllClaimsForUser(userId: String): List<RefundClaimEntity> = emptyList()
         override suspend fun deleteAllForUser(userId: String) = Unit
         override suspend fun getClaimByRemoteId(remoteId: String): RefundClaimEntity? = null
+        override suspend fun markNeverSyncedPendingCreate(userId: String) = Unit
     }
 
     private class EmptySettingsDao : SettingsDao {
@@ -426,6 +511,7 @@ class SyncRepositoryImplTest {
         override suspend fun getAllSettingsForUser(userId: String): List<UserSettingsEntity> = emptyList()
         override suspend fun deleteAllForUser(userId: String) = Unit
         override suspend fun getSettingsByRemoteId(remoteId: String): UserSettingsEntity? = null
+        override suspend fun markNeverSyncedPendingCreate(userId: String) = Unit
     }
 
     private class EmptyCompensationProfileDao : CompensationProfileDao {
@@ -445,6 +531,7 @@ class SyncRepositoryImplTest {
         override suspend fun updateSyncState(localId: String, status: SyncStatus, remoteId: String?, syncedAt: Long?, error: String?) = Unit
         override suspend fun clearDefaultForUser(userId: String) = Unit
         override suspend fun deleteAllForUser(userId: String) = Unit
+        override suspend fun markNeverSyncedPendingCreate(userId: String) = Unit
     }
 
     private class EmptyTaskDao : TaskDao {
@@ -464,6 +551,7 @@ class SyncRepositoryImplTest {
         override suspend fun updateSyncState(localId: String, status: SyncStatus, remoteId: String?, syncedAt: Long?, error: String?) = Unit
         override suspend fun updateLastUsed(localId: String, lastUsedAt: Long, updatedAt: Long) = Unit
         override suspend fun deleteAllForUser(userId: String) = Unit
+        override suspend fun markNeverSyncedPendingCreate(userId: String) = Unit
     }
 
     private class InMemorySyncCursorStore : SyncCursorStore {
@@ -597,6 +685,18 @@ class SyncRepositoryImplTest {
                         lastSyncedAt = lastSyncedAt,
                         lastSyncError = lastSyncError,
                     )
+                } else {
+                    it
+                }
+            }
+        }
+
+        override suspend fun markNeverSyncedPendingCreate(userId: String) {
+            shifts.value = shifts.value.map {
+                if (it.userId == userId && it.remoteId == null &&
+                    it.syncStatus == SyncStatus.SYNCED && it.deletedAt == null
+                ) {
+                    it.copy(syncStatus = SyncStatus.PENDING_CREATE)
                 } else {
                     it
                 }

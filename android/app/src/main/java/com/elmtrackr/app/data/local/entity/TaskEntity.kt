@@ -6,7 +6,11 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "tasks",
-    indices = [Index(value = ["userId"])],
+    indices = [
+        Index(value = ["userId"]),
+        Index(value = ["userId", "syncStatus"]),
+        Index(value = ["remoteId"]),
+    ],
 )
 data class TaskEntity(
     @PrimaryKey val localId: String,
