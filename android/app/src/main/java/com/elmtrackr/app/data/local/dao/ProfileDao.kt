@@ -52,6 +52,24 @@ interface ProfileDao {
     @Query("SELECT * FROM profiles WHERE remoteId = :remoteId LIMIT 1")
     suspend fun getProfileByRemoteId(remoteId: String): ProfileEntity?
 
+    @Query(
+        "UPDATE profiles SET syncStatus = 'PENDING_UPDATE' WHERE userId = :userId " +
+            "AND syncStatus = 'SYNCED' AND lastSyncedAt IS NULL AND deletedAt IS NULL",
+    )
+    suspend fun markNeverSyncedPendingUpdate(userId: String)
+
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM profiles WHERE userId = :userId AND syncStatus IN " +
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED') LIMIT 1)",
+    )
+    suspend fun hasPendingSyncProfiles(userId: String): Boolean
+
+    @Query(
+        "SELECT * FROM profiles WHERE userId = :userId AND syncStatus IN " +
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')",
+    )
+    fun observePendingSyncProfiles(userId: String): Flow<List<ProfileEntity>>
+
     @Query("DELETE FROM profiles WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
 }

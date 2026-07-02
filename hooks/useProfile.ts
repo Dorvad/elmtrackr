@@ -37,7 +37,24 @@ export function useProfile(): UseProfileReturn {
 
   const updateProfile = useCallback(
     async (data: { full_name: string | null }) => {
-      if (!profile) return;
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const user = userData.user;
+      if (userError || !user) throw new Error("Not signed in");
+
+      if (!profile) {
+        const email = user.email;
+        if (!email) throw new Error("Account email is missing");
+
+        const { data: upserted, error } = await supabase
+          .from("profiles")
+          .upsert({ id: user.id, email, full_name: data.full_name })
+          .select()
+          .single();
+        if (error) throw new Error(error.message);
+        setProfile(upserted as Profile);
+        return;
+      }
+
       const { data: updated, error } = await supabase
         .from("profiles")
         .update(data)
@@ -47,7 +64,7 @@ export function useProfile(): UseProfileReturn {
       if (error) throw new Error(error.message);
       setProfile(updated as Profile);
     },
-    [profile]
+    [profile, supabase]
   );
 
   return { profile, loading, updateProfile };

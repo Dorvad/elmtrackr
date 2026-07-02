@@ -11,6 +11,7 @@ import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
+import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.domain.model.AuthResult
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.repository.AuthRepository
@@ -47,6 +48,7 @@ class SupabaseAuthRepository @Inject constructor(
     private val appPrefs: AppPreferencesRepository,
     private val localUserDataCleaner: LocalUserDataCleaner,
     private val authSessionCoordinator: AuthSessionCoordinator,
+    private val syncTrigger: SyncTrigger,
 ) : AuthRepository {
 
     private val onAuthenticated: suspend (String) -> Unit = authSessionCoordinator::onUserAuthenticated
@@ -84,9 +86,12 @@ class SupabaseAuthRepository @Inject constructor(
                                     profileDao.upsertProfile(
                                         authProfile.toEntity(
                                             userId = authProfile.id,
-                                            syncStatus = SyncStatus.SYNCED,
+                                            syncStatus = if (isConfigured()) {
+                                                SyncStatus.PENDING_UPDATE
+                                            } else {
+                                                SyncStatus.SYNCED
+                                            },
                                             remoteId = authProfile.id,
-                                            lastSyncedAt = Instant.now().toEpochMilli(),
                                         ),
                                     )
                                 }
@@ -110,13 +115,16 @@ class SupabaseAuthRepository @Inject constructor(
     }
 
     override suspend fun saveProfile(profile: Profile, userId: String) {
+        val existing = profileDao.getProfile(userId)
         profileDao.upsertProfile(
             profile.toEntity(
                 userId = userId,
-                syncStatus = SyncStatus.SYNCED,
+                syncStatus = SyncStatus.PENDING_UPDATE,
                 remoteId = userId,
+                lastSyncedAt = existing?.lastSyncedAt,
             ),
         )
+        syncTrigger.schedule()
     }
 
     override suspend fun signIn(email: String, password: String): AuthResult {

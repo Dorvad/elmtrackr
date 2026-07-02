@@ -288,6 +288,43 @@ class FakeProfileDao : ProfileDao {
     override suspend fun getProfileByRemoteId(remoteId: String): ProfileEntity? =
         store.values.firstOrNull { it.remoteId == remoteId }
 
+    override suspend fun markNeverSyncedPendingUpdate(userId: String) {
+        store.replaceAll { _, value ->
+            if (value.userId == userId && value.syncStatus == SyncStatus.SYNCED &&
+                value.lastSyncedAt == null && value.deletedAt == null
+            ) {
+                value.copy(syncStatus = SyncStatus.PENDING_UPDATE)
+            } else {
+                value
+            }
+        }
+        refresh()
+    }
+
+    override suspend fun hasPendingSyncProfiles(userId: String): Boolean =
+        store.values.any {
+            it.userId == userId &&
+                it.syncStatus in listOf(
+                    SyncStatus.PENDING_CREATE,
+                    SyncStatus.PENDING_UPDATE,
+                    SyncStatus.PENDING_DELETE,
+                    SyncStatus.FAILED,
+                )
+        }
+
+    override fun observePendingSyncProfiles(userId: String): Flow<List<ProfileEntity>> =
+        _flow.map {
+            it.filter { e ->
+                e.userId == userId &&
+                    e.syncStatus in listOf(
+                        SyncStatus.PENDING_CREATE,
+                        SyncStatus.PENDING_UPDATE,
+                        SyncStatus.PENDING_DELETE,
+                        SyncStatus.FAILED,
+                    )
+            }
+        }
+
     override suspend fun deleteAllForUser(userId: String) {
         store.entries.removeIf { it.value.userId == userId }
         refresh()

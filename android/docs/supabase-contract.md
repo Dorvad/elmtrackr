@@ -126,7 +126,10 @@ Push and pull phases run in order:
 2. shifts  
 3. refund claims  
 4. user settings  
-5. compensation profiles  
+5. **profiles** (display name / `full_name`)  
+6. compensation profiles  
+
+Pull runs profiles before compensation profiles and user settings so the display name is available early.
 
 Incremental pull uses `updated_at > lastPulledAt` per entity (see `SyncCursorStore`). Remote rows missing locally are treated as deletes until server-side `deleted_at` tombstones land.
 

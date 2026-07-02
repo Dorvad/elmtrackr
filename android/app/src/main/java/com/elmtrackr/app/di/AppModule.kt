@@ -6,12 +6,14 @@ import com.elmtrackr.app.data.auth.SessionBootstrapGate
 import com.elmtrackr.app.data.auth.SupabaseClientProvider
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.remote.SupabaseCompensationProfilesDataSource
+import com.elmtrackr.app.data.remote.SupabaseProfilesDataSource
 import com.elmtrackr.app.data.remote.SupabaseRefundClaimsDataSource
 import com.elmtrackr.app.data.remote.SupabaseRefundReceiptStorage
 import com.elmtrackr.app.data.remote.SupabaseShiftsDataSource
 import com.elmtrackr.app.data.remote.SupabaseTasksDataSource
 import com.elmtrackr.app.data.remote.SupabaseUserSettingsDataSource
 import com.elmtrackr.app.data.remote.RemoteCompensationProfileDataSource
+import com.elmtrackr.app.data.remote.RemoteProfileDataSource
 import com.elmtrackr.app.data.remote.RemoteRefundClaimDataSource
 import com.elmtrackr.app.data.remote.RemoteShiftDataSource
 import com.elmtrackr.app.data.remote.RemoteTaskDataSource
@@ -84,6 +86,10 @@ object AppModule {
     @Provides
     fun provideRemoteCompensationProfilesDataSource(): RemoteCompensationProfileDataSource? =
         SupabaseClientProvider.get()?.let { SupabaseCompensationProfilesDataSource(it) }
+
+    @Provides
+    fun provideRemoteProfilesDataSource(): RemoteProfileDataSource? =
+        SupabaseClientProvider.get()?.let { SupabaseProfilesDataSource(it) }
 
     @Provides
     fun provideRefundReceiptStorage(): RefundReceiptStorage? =

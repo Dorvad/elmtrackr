@@ -1,11 +1,13 @@
 package com.elmtrackr.app.data.sync
 
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
+import com.elmtrackr.app.data.local.dao.ProfileDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.dao.TaskDao
 import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
+import com.elmtrackr.app.data.local.entity.ProfileEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
@@ -15,6 +17,9 @@ import com.elmtrackr.app.data.remote.RemoteCompensationProfileDataSource
 import com.elmtrackr.app.data.remote.RemoteCompensationProfileInsert
 import com.elmtrackr.app.data.remote.RemoteCompensationProfileRow
 import com.elmtrackr.app.data.remote.RemoteCompensationProfileUpdate
+import com.elmtrackr.app.data.remote.RemoteProfileDataSource
+import com.elmtrackr.app.data.remote.RemoteProfileRow
+import com.elmtrackr.app.data.remote.RemoteProfileUpdate
 import com.elmtrackr.app.data.remote.RemoteRefundClaimDataSource
 import com.elmtrackr.app.data.remote.RemoteRefundClaimInsert
 import com.elmtrackr.app.data.remote.RemoteRefundClaimRow
@@ -376,23 +381,76 @@ class SyncRepositoryImplTest {
         assertNotNull(dao.getShiftByRemoteId("remote-active"))
     }
 
+    @Test
+    fun `push updates remote profile display name`() = runTest {
+        val dao = InMemoryProfileDao()
+        val remote = FakeRemoteProfileDataSource()
+        val repository = createRepository(profileDao = dao, remoteProfiles = remote)
+
+        dao.upsertProfile(
+            profileEntity(
+                localId = "user-1",
+                fullName = "Alex",
+                syncStatus = SyncStatus.PENDING_UPDATE,
+            ),
+        )
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        val synced = dao.getProfile("user-1")
+        assertNotNull(synced)
+        assertEquals(SyncStatus.SYNCED, synced!!.syncStatus)
+        assertEquals("Alex", synced.fullName)
+        assertEquals(1, remote.updates.size)
+        assertEquals("Alex", remote.updates.first().second.fullName)
+    }
+
+    @Test
+    fun `pull restores profile display name for reinstall scenario`() = runTest {
+        val dao = InMemoryProfileDao()
+        val remote = FakeRemoteProfileDataSource(
+            initial = listOf(
+                RemoteProfileRow(
+                    id = "user-1",
+                    email = "alex@example.com",
+                    fullName = "Alex Remote",
+                    createdAt = "2024-06-01T08:00:00Z",
+                    updatedAt = "2024-06-01T16:00:00Z",
+                ),
+            ),
+        )
+        val repository = createRepository(profileDao = dao, remoteProfiles = remote)
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        val profile = dao.getProfile("user-1")
+        assertNotNull(profile)
+        assertEquals("Alex Remote", profile!!.fullName)
+    }
+
     private fun createRepository(
         shiftDao: ShiftDao = InMemoryShiftDao(),
         remoteShifts: RemoteShiftDataSource = FakeRemoteShiftDataSource(),
         syncCursorStore: SyncCursorStore = InMemorySyncCursorStore(),
         remoteTasks: RemoteTaskDataSource = EmptyRemoteTaskDataSource(),
+        profileDao: ProfileDao = InMemoryProfileDao(),
+        remoteProfiles: RemoteProfileDataSource = FakeRemoteProfileDataSource(),
     ) = SyncRepositoryImpl(
         shiftDao = shiftDao,
         refundClaimDao = EmptyRefundClaimDao(),
         settingsDao = EmptySettingsDao(),
         compensationProfileDao = EmptyCompensationProfileDao(),
         taskDao = EmptyTaskDao(),
+        profileDao = profileDao,
         syncCursorStore = syncCursorStore,
         remoteTasks = remoteTasks,
         remoteShifts = remoteShifts,
         remoteRefundClaims = EmptyRemoteRefundClaimDataSource(),
         remoteSettings = EmptyRemoteUserSettingsDataSource(),
         remoteCompensationProfiles = EmptyRemoteCompensationProfileDataSource(),
+        remoteProfiles = remoteProfiles,
     )
 
     private fun shiftEntity(
@@ -425,6 +483,57 @@ class SyncRepositoryImplTest {
         lastSyncError = null,
         lastSyncedAt = null,
     )
+
+    private fun profileEntity(
+        localId: String,
+        userId: String = "user-1",
+        email: String = "user@example.com",
+        fullName: String? = null,
+        syncStatus: SyncStatus,
+        remoteId: String? = localId,
+        updatedAt: Long = 1_000L,
+    ) = ProfileEntity(
+        localId = localId,
+        remoteId = remoteId,
+        userId = userId,
+        email = email,
+        fullName = fullName,
+        createdAt = updatedAt,
+        updatedAt = updatedAt,
+        deletedAt = null,
+        syncStatus = syncStatus,
+        lastSyncError = null,
+        lastSyncedAt = null,
+    )
+
+    private class FakeRemoteProfileDataSource(
+        initial: List<RemoteProfileRow> = emptyList(),
+    ) : RemoteProfileDataSource {
+        private val rows = initial.toMutableList()
+        val updates = mutableListOf<Pair<String, RemoteProfileUpdate>>()
+
+        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteProfileRow> =
+            rows.filter { sinceIso == null || it.updatedAt >= sinceIso }.take(limit)
+
+        override suspend fun update(userId: String, profile: RemoteProfileUpdate): RemoteProfileRow {
+            updates += userId to profile
+            val existing = rows.firstOrNull { it.id == userId }
+            val updated = RemoteProfileRow(
+                id = userId,
+                email = existing?.email ?: "user@example.com",
+                fullName = profile.fullName,
+                createdAt = existing?.createdAt ?: "2024-06-01T08:00:00Z",
+                updatedAt = "2024-06-01T16:00:00Z",
+            )
+            if (existing == null) {
+                rows += updated
+            } else {
+                val index = rows.indexOfFirst { it.id == userId }
+                rows[index] = updated
+            }
+            return updated
+        }
+    }
 
     private class FakeRemoteShiftDataSource(
         initial: List<RemoteShiftRow> = emptyList(),
@@ -761,6 +870,97 @@ class SyncRepositoryImplTest {
                 SyncStatus.PENDING_DELETE,
                 SyncStatus.FAILED,
             )
+        }
+    }
+
+    private class InMemoryProfileDao : ProfileDao {
+        private val profiles = MutableStateFlow<List<ProfileEntity>>(emptyList())
+
+        override suspend fun adoptLegacyUser(userId: String) = Unit
+
+        override fun observeProfile(userId: String): Flow<ProfileEntity?> =
+            profiles.map { list -> list.firstOrNull { it.userId == userId && it.deletedAt == null } }
+
+        override suspend fun getProfile(userId: String): ProfileEntity? =
+            profiles.value.firstOrNull { it.userId == userId && it.deletedAt == null }
+
+        override suspend fun insertProfile(profile: ProfileEntity) {
+            upsertProfile(profile)
+        }
+
+        override suspend fun updateProfile(profile: ProfileEntity) {
+            upsertProfile(profile)
+        }
+
+        override suspend fun upsertProfile(profile: ProfileEntity) {
+            profiles.value = profiles.value.filterNot { it.localId == profile.localId } + profile
+        }
+
+        override suspend fun getPendingSyncProfiles(userId: String): List<ProfileEntity> =
+            profiles.value.filter {
+                it.userId == userId &&
+                    it.syncStatus in setOf(
+                        SyncStatus.PENDING_CREATE,
+                        SyncStatus.PENDING_UPDATE,
+                        SyncStatus.PENDING_DELETE,
+                        SyncStatus.FAILED,
+                    )
+            }
+
+        override suspend fun updateSyncState(
+            localId: String,
+            syncStatus: SyncStatus,
+            remoteId: String?,
+            lastSyncedAt: Long?,
+            lastSyncError: String?,
+        ) {
+            profiles.value = profiles.value.map {
+                if (it.localId == localId) {
+                    it.copy(
+                        syncStatus = syncStatus,
+                        remoteId = remoteId,
+                        lastSyncedAt = lastSyncedAt,
+                        lastSyncError = lastSyncError,
+                    )
+                } else {
+                    it
+                }
+            }
+        }
+
+        override suspend fun getProfileByRemoteId(remoteId: String): ProfileEntity? =
+            profiles.value.firstOrNull { it.remoteId == remoteId }
+
+        override suspend fun markNeverSyncedPendingUpdate(userId: String) {
+            profiles.value = profiles.value.map {
+                if (it.userId == userId && it.syncStatus == SyncStatus.SYNCED &&
+                    it.lastSyncedAt == null && it.deletedAt == null
+                ) {
+                    it.copy(syncStatus = SyncStatus.PENDING_UPDATE)
+                } else {
+                    it
+                }
+            }
+        }
+
+        override suspend fun hasPendingSyncProfiles(userId: String): Boolean =
+            getPendingSyncProfiles(userId).isNotEmpty()
+
+        override fun observePendingSyncProfiles(userId: String): Flow<List<ProfileEntity>> =
+            profiles.map { list ->
+                list.filter {
+                    it.userId == userId &&
+                        it.syncStatus in setOf(
+                            SyncStatus.PENDING_CREATE,
+                            SyncStatus.PENDING_UPDATE,
+                            SyncStatus.PENDING_DELETE,
+                            SyncStatus.FAILED,
+                        )
+                }
+            }
+
+        override suspend fun deleteAllForUser(userId: String) {
+            profiles.value = profiles.value.filterNot { it.userId == userId }
         }
     }
 }
