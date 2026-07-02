@@ -94,14 +94,14 @@ fun ShiftsScreen(
 
     Box(Modifier.fillMaxSize()) {
     AnimatedContent(
-        targetState = formTarget != null,
-        transitionSpec = { auroraSubScreenTransition(targetState) },
+        targetState = formTarget,
+        transitionSpec = { auroraSubScreenTransition(targetState != null) },
         modifier = Modifier.fillMaxSize(),
         label = "shifts-form",
-    ) { showingForm ->
-        if (showingForm) {
+    ) { navState ->
+        if (navState != null) {
             ShiftFormContent(
-                navState = formTarget!!,
+                navState = navState,
                 settings = (uiState as? ShiftsUiState.Ready)?.settings,
                 profiles = (uiState as? ShiftsUiState.Ready)?.profiles.orEmpty(),
                 tasks = (uiState as? ShiftsUiState.Ready)?.tasks.orEmpty(),
@@ -109,9 +109,9 @@ fun ShiftsScreen(
                 featuresTravelRefunds = featuresTravelRefunds,
                 onSuggestTaskForStart = viewModel::suggestTaskForStart,
                 onSave = { input ->
-                    when (val t = formTarget!!) {
+                    when (navState) {
                         is ShiftFormNavState.Create -> viewModel.createShift(input)
-                        is ShiftFormNavState.Edit -> viewModel.saveEditedShift(t.shift.id, input)
+                        is ShiftFormNavState.Edit -> viewModel.saveEditedShift(navState.shift.id, input)
                     }
                 },
                 onDelete = { shiftId ->
