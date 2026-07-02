@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
-    id("app.cash.paparazzi") version "1.3.5"
+    id("app.cash.paparazzi") version "2.0.0-alpha02"
 }
 
 val localPropsFile = rootProject.file("local.properties")
