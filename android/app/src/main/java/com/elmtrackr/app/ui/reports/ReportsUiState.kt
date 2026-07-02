@@ -10,6 +10,7 @@ import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.model.WeeklyTotals
 import com.elmtrackr.app.domain.DailyInsight
 import com.elmtrackr.app.domain.ReportInsights
+import java.time.ZoneId
 
 sealed interface ReportsUiState {
     data object Loading : ReportsUiState
@@ -31,6 +32,7 @@ sealed interface ReportsUiState {
         val allShifts: List<Shift> = emptyList(),
         val refundClaims: List<RefundClaim> = emptyList(),
         val taskBreakdown: List<TaskMonthlyBreakdown> = emptyList(),
+        val zone: ZoneId = ZoneId.systemDefault(),
     ) : ReportsUiState
 
     data class Error(val message: String) : ReportsUiState

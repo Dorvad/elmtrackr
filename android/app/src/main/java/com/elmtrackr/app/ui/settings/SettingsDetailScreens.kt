@@ -706,7 +706,7 @@ internal fun HelpDetailScreen(
                     SettingsInfoRow("Status", statusLine)
                     state.lastSyncStatus?.let { last ->
                         Spacer(Modifier.height(8.dp))
-                        SettingsInfoRow("Last sync", last)
+                        SettingsInfoRow("Last sync", SyncStatusText.format(last) ?: last)
                     }
                     Spacer(Modifier.height(8.dp))
                     SettingsNavRow(

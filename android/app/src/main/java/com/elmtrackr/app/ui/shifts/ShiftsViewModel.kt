@@ -62,6 +62,13 @@ class ShiftsViewModel @Inject constructor(
     private val _refundNotice = MutableStateFlow<String?>(null)
     val refundNotice: StateFlow<String?> = _refundNotice.asStateFlow()
 
+    private val _userMessage = MutableStateFlow<String?>(null)
+    val userMessage: StateFlow<String?> = _userMessage.asStateFlow()
+
+    fun consumeUserMessage() {
+        _userMessage.value = null
+    }
+
     val refundClaims: StateFlow<List<RefundClaim>> = _formTarget
         .flatMapLatest { target ->
             val shiftId = (target as? ShiftFormNavState.Edit)?.shift?.id
@@ -195,6 +202,7 @@ class ShiftsViewModel @Inject constructor(
             }
             shiftsRepository.createManualShift(shift)
             closeForm()
+            _userMessage.value = "Shift added"
         }
     }
 
@@ -236,11 +244,15 @@ class ShiftsViewModel @Inject constructor(
             }
             shiftsRepository.updateShift(finalShift)
             closeForm()
+            _userMessage.value = "Shift updated"
         }
     }
 
     fun deleteShift(shiftId: String) {
-        viewModelScope.launch { shiftsRepository.deleteShift(shiftId) }
+        viewModelScope.launch {
+            shiftsRepository.deleteShift(shiftId)
+            _userMessage.value = "Shift deleted"
+        }
     }
 
     fun saveRefundClaim(

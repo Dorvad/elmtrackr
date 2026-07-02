@@ -20,7 +20,6 @@ import java.io.File
 import java.net.URL
 import java.time.Month
 import java.time.ZoneId
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -213,6 +212,7 @@ object ReportExporter {
         year: Int,
         month: Int,
         currency: CurrencyCode,
+        zone: ZoneId = ZoneId.systemDefault(),
     ) {
         shareRefundPdf(
             context = context,
@@ -220,6 +220,7 @@ object ReportExporter {
             filenameSuffix = "$year-${month.toString().padStart(2, '0')}",
             periodLabel = "$year-${month.toString().padStart(2, '0')}",
             currency = currency,
+            zone = zone,
         )
     }
 
@@ -229,6 +230,7 @@ object ReportExporter {
         filenameSuffix: String,
         periodLabel: String,
         currency: CurrencyCode,
+        zone: ZoneId = ZoneId.systemDefault(),
     ) {
         val filename = "elmtrackr-rides-$filenameSuffix.pdf"
         val file = exportFile(context, filename)
@@ -241,7 +243,7 @@ object ReportExporter {
         val body = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 9f }
         val muted = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 8f; color = 0xff777785.toInt() }
         val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xffddddE5.toInt(); strokeWidth = 1f }
-        val dateFormat = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm").withZone(ZoneOffset.UTC)
+        val dateFormat = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm").withZone(zone)
 
         var pageNumber = 1
         var page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())

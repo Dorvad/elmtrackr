@@ -14,10 +14,15 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.domain.model.Task
@@ -53,7 +58,10 @@ fun TaskSelectorBar(
                 "Manage",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.auroraRowClickable(onClick = onManageTasks),
+                modifier = Modifier
+                    .minimumInteractiveComponentSize()
+                    .auroraRowClickable(onClick = onManageTasks)
+                    .semantics { role = Role.Button },
             )
         }
         if (showSuggestedNow && suggestedTaskId != null) {
@@ -93,10 +101,19 @@ fun TaskSelectorBar(
                         onSelectTask(task.id)
                     },
                     label = {
-                        Text(buildString {
-                            if (isSuggested) append("✨ ")
-                            append("${task.icon} ${task.name}")
-                        })
+                        Text(
+                            buildString {
+                                if (isSuggested) append("✨ ")
+                                append("${task.icon} ${task.name}")
+                            },
+                            modifier = Modifier.semantics {
+                                contentDescription = buildString {
+                                    append(task.name)
+                                    append(", ${formatRate(task.hourlyRate)} per hour")
+                                    if (isSuggested) append(", suggested now")
+                                }
+                            },
+                        )
                     },
                     leadingIcon = {
                         TaskChipColorLeading(parseTaskColor(task.color))

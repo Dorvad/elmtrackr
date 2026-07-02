@@ -108,6 +108,27 @@ fun EmptyState(
     }
 }
 
+/**
+ * Rewrites raw exception text into calm, human wording. Messages that already
+ * read like a sentence pass through; class names, stack-trace-ish text, and
+ * well-known network failures get a plain-language replacement.
+ */
+internal fun humanizeErrorMessage(raw: String?): String {
+    val message = raw?.trim().orEmpty()
+    val lower = message.lowercase()
+    return when {
+        lower.contains("unknownhost") || lower.contains("unable to resolve host") ||
+            lower.contains("connect") && lower.contains("timed out") ||
+            lower.contains("timeout") || lower.contains("failed to connect") ->
+            "We couldn't reach the server. Check your connection and try again."
+        message.isBlank() || lower == "unknown error" ||
+            message.contains("Exception") || message.contains("java.") ||
+            message.contains("kotlin") || message.contains("$") ->
+            "We couldn't load your data. Please try again."
+        else -> message
+    }
+}
+
 @Composable
 fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     val iconScale = rememberStateEntranceScale()
@@ -135,7 +156,7 @@ fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifi
         )
         Spacer(Modifier.height(Spacing.sm))
         Text(
-            text = message,
+            text = humanizeErrorMessage(message),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

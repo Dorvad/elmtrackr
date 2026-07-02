@@ -54,8 +54,8 @@ class ReportsViewModel @Inject constructor(
     private val refundReceiptStorage: RefundReceiptStorage?,
 ) : ViewModel() {
 
-    private val _selectedYear = MutableStateFlow(YearMonth.now(ZoneOffset.UTC).year)
-    private val _selectedMonth = MutableStateFlow(YearMonth.now(ZoneOffset.UTC).monthValue)
+    private val _selectedYear = MutableStateFlow(YearMonth.now(ZoneId.systemDefault()).year)
+    private val _selectedMonth = MutableStateFlow(YearMonth.now(ZoneId.systemDefault()).monthValue)
     private val _refreshNonce = MutableStateFlow(0)
 
     private data class ReportInputs(
@@ -179,6 +179,7 @@ class ReportsViewModel @Inject constructor(
                                 allShifts = inputs.allShifts,
                                 refundClaims = inputs.claims,
                                 taskBreakdown = taskBreakdown,
+                                zone = WorkTimezone.zoneFor(settings),
                             )
                         }
                     }

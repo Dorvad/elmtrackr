@@ -247,6 +247,9 @@ class SyncRepositoryImpl @Inject constructor(
             if (batch.isEmpty()) {
                 // Avoid repeating full-sync tombstone passes when the server returns no rows
                 // (e.g. auth/RLS not ready yet). Epoch 0 makes the next pull incremental.
+                // Known trade-off: once this happens, isFullSync never becomes true again for
+                // this entity, so remote hard-deletes made before the next pull are never
+                // tombstoned locally. Acceptable: keeping local data beats deleting it.
                 if (isFullSync && cursor == null) {
                     syncCursorStore.setLastPulledAt(userId, entity, 0L)
                 }
@@ -254,9 +257,14 @@ class SyncRepositoryImpl @Inject constructor(
             }
             allRows += batch
             val maxEpoch = batch.maxOf { isoToEpoch(updatedAtIso(it)) }
+            val previousCursor = cursor
             cursor = maxOf(cursor ?: 0L, maxEpoch)
             syncCursorStore.setLastPulledAt(userId, entity, cursor)
             if (batch.size < PULL_PAGE_SIZE) break
+            // A full page whose newest row does not advance the cursor means every
+            // remaining fetch would return the same page (updated_at uses gte) — bail
+            // out instead of looping forever.
+            if (cursor == previousCursor) break
         }
 
         return allRows to isFullSync
