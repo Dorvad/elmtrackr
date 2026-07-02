@@ -12,4 +12,14 @@ object RemoteSyncErrors {
             message.contains("'$table'", ignoreCase = true) ||
             message.contains(".$table", ignoreCase = true)
     }
+
+    fun isUniqueViolation(error: Throwable): Boolean {
+        val message = buildString {
+            append(error.message.orEmpty())
+            error.cause?.message?.let { append(' ').append(it) }
+        }
+        return message.contains("23505", ignoreCase = true) ||
+            message.contains("duplicate key", ignoreCase = true) ||
+            message.contains("shifts_user_id_start_time_uidx", ignoreCase = true)
+    }
 }

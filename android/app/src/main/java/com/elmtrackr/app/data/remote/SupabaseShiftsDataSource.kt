@@ -15,6 +15,18 @@ class SupabaseShiftsDataSource(
             limit(limit.toLong())
         }.decodeList<RemoteShiftRow>()
 
+    override suspend fun findByUserAndStartTime(
+        userId: String,
+        startTimeIso: String,
+    ): RemoteShiftRow? =
+        client.from(TABLE).select {
+            filter {
+                eq(COLUMN_USER_ID, userId)
+                eq(COLUMN_START_TIME, startTimeIso)
+            }
+            limit(1)
+        }.decodeList<RemoteShiftRow>().firstOrNull()
+
     override suspend fun insert(shift: RemoteShiftInsert): RemoteShiftRow =
         client.from(TABLE).insert(shift) {
             select()
@@ -35,6 +47,8 @@ class SupabaseShiftsDataSource(
     private companion object {
         const val TABLE = "shifts"
         const val COLUMN_ID = "id"
+        const val COLUMN_USER_ID = "user_id"
+        const val COLUMN_START_TIME = "start_time"
         const val COLUMN_UPDATED_AT = "updated_at"
     }
 }

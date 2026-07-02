@@ -7,6 +7,11 @@ import {
   buildCompensationSnapshot,
   resolveShiftCompensation,
 } from "@/lib/compensation/profile";
+import {
+  duplicateShiftError,
+  findShiftAtStartTime,
+  isDuplicateShiftError,
+} from "@/lib/shifts/duplicate";
 
 export interface UseShiftsReturn {
   shifts: Shift[];
@@ -108,6 +113,14 @@ export function useShifts(): UseShiftsReturn {
         );
       }
 
+      const userId = (await supabase.auth.getUser()).data.user!.id;
+      const existing = await findShiftAtStartTime(
+        supabase,
+        userId,
+        data.start_time
+      );
+      if (existing) throw duplicateShiftError();
+
       const { data: created, error: err } = await supabase
         .from("shifts")
         .insert({
@@ -121,11 +134,14 @@ export function useShifts(): UseShiftsReturn {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             compensation_snapshot_json: snapshot as any,
           }),
-          user_id: (await supabase.auth.getUser()).data.user!.id,
+          user_id: userId,
         })
         .select()
         .single();
-      if (err) throw new Error(err.message);
+      if (err) {
+        if (isDuplicateShiftError(err)) throw duplicateShiftError();
+        throw new Error(err.message);
+      }
       await refresh();
       return created as Shift;
     },
@@ -173,6 +189,16 @@ export function useShifts(): UseShiftsReturn {
         ) ?? null;
       }
 
+      if ("start_time" in data && data.start_time && data.start_time !== existing?.start_time) {
+        const userId = (await supabase.auth.getUser()).data.user!.id;
+        const duplicate = await findShiftAtStartTime(
+          supabase,
+          userId,
+          data.start_time
+        );
+        if (duplicate && duplicate.id !== id) throw duplicateShiftError();
+      }
+
       const { data: updated, error: err } = await supabase
         .from("shifts")
         .update({
@@ -187,7 +213,10 @@ export function useShifts(): UseShiftsReturn {
         .eq("id", id)
         .select()
         .single();
-      if (err) throw new Error(err.message);
+      if (err) {
+        if (isDuplicateShiftError(err)) throw duplicateShiftError();
+        throw new Error(err.message);
+      }
       await refresh();
       return updated as Shift;
     },
