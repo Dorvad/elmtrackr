@@ -189,6 +189,11 @@ class ReportsViewModelTest {
         vm.previousMonth()
         advanceUntilIdle()
 
+        assertTrue(states.any { it is ReportsUiState.Loading })
+        val ready = states.filterIsInstance<ReportsUiState.Ready>().lastOrNull()
+        assertNotNull(ready)
+        assertEquals(vm.selectedYearMonth.value.first, ready!!.year)
+        assertEquals(vm.selectedYearMonth.value.second, ready.month)
         assertTrue(states.size > 1)
         job.cancel()
     }
