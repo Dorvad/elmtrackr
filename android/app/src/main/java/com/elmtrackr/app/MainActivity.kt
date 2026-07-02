@@ -12,7 +12,6 @@ import android.content.res.Configuration
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
@@ -50,7 +49,6 @@ class MainActivity : FragmentActivity() {
 
     private var flexibleUpdateReady by mutableStateOf(false)
     private lateinit var inAppUpdateManager: InAppUpdateManager
-    private var unlockNonce by mutableIntStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,14 +66,11 @@ class MainActivity : FragmentActivity() {
                 "light" -> false
                 else -> systemDark
             }
-            @Suppress("UNUSED_VARIABLE")
-            val refreshLock = unlockNonce
             ElmTrackrTheme(darkTheme = darkTheme) {
                 CompositionLocalProvider(LocalReduceMotion provides preferences.reduceMotionEnabled) {
                     AppLockGate(
                         activity = this,
                         lockEnabled = preferences.appLockEnabled,
-                        onUnlocked = { unlockNonce++ },
                     ) {
                         InAppUpdateHost(
                             updateReady = flexibleUpdateReady,

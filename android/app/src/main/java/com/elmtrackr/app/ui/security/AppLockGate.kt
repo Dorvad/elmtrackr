@@ -27,7 +27,6 @@ import com.elmtrackr.app.security.BiometricAuthPrompt
 fun AppLockGate(
     activity: FragmentActivity,
     lockEnabled: Boolean,
-    onUnlocked: () -> Unit,
     content: @Composable () -> Unit,
 ) {
     val needsUnlock = lockEnabled && !AppLockController.isUnlocked()
@@ -38,10 +37,7 @@ fun AppLockGate(
                 activity = activity,
                 title = "Unlock ElmTrackr",
                 subtitle = "Confirm your identity to view pay and shift data",
-                onSuccess = {
-                    AppLockController.unlock()
-                    onUnlocked()
-                },
+                onSuccess = { AppLockController.unlock() },
                 onFailure = { },
             )
         }
@@ -80,10 +76,7 @@ fun AppLockGate(
                         activity = activity,
                         title = "Unlock ElmTrackr",
                         subtitle = "Confirm your identity to view pay and shift data",
-                        onSuccess = {
-                            AppLockController.unlock()
-                            onUnlocked()
-                        },
+                        onSuccess = { AppLockController.unlock() },
                         onFailure = { },
                     )
                 },

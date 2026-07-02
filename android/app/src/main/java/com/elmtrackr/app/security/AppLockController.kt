@@ -1,34 +1,41 @@
 package com.elmtrackr.app.security
 
-import java.util.concurrent.atomic.AtomicBoolean
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 /**
  * In-process lock session for biometric app-lock.
  * When enabled, backgrounding the app clears [isUnlocked] until the user re-authenticates.
+ *
+ * State is backed by Compose snapshot state so that reads inside a composable (e.g. the
+ * app-lock gate) are observed: calling [unlock]/[lock] invalidates the reading composable and
+ * triggers recomposition. A plain [java.util.concurrent.atomic.AtomicBoolean] would be invisible
+ * to Compose, so the gate would never leave the lock screen after a successful unlock.
  */
 object AppLockController {
 
-    private val lockEnabled = AtomicBoolean(false)
-    private val unlocked = AtomicBoolean(true)
+    private var lockEnabled by mutableStateOf(false)
+    private var unlocked by mutableStateOf(true)
 
     fun configure(enabled: Boolean, initiallyUnlocked: Boolean = !enabled) {
-        lockEnabled.set(enabled)
-        unlocked.set(initiallyUnlocked || !enabled)
+        lockEnabled = enabled
+        unlocked = initiallyUnlocked || !enabled
     }
 
-    fun isLockEnabled(): Boolean = lockEnabled.get()
+    fun isLockEnabled(): Boolean = lockEnabled
 
-    fun isUnlocked(): Boolean = !lockEnabled.get() || unlocked.get()
+    fun isUnlocked(): Boolean = !lockEnabled || unlocked
 
     fun lock() {
-        if (lockEnabled.get()) {
-            unlocked.set(false)
+        if (lockEnabled) {
+            unlocked = false
         }
     }
 
     fun unlock() {
-        unlocked.set(true)
+        unlocked = true
     }
 
-    fun shouldBlockSensitiveActions(): Boolean = lockEnabled.get() && !unlocked.get()
+    fun shouldBlockSensitiveActions(): Boolean = lockEnabled && !unlocked
 }
