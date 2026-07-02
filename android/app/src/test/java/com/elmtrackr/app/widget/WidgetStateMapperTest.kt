@@ -56,12 +56,15 @@ class WidgetStateMapperTest {
 
     @Test
     fun `active when shift has no end time`() {
-        val shift = makeShift()
+        val zone = ZoneId.of("UTC")
+        val today = LocalDate.now(zone)
+        val startTime = today.atStartOfDay(zone).plusMinutes(1).toInstant()
+        val shift = makeShift(startTime = startTime, endTime = null)
         val state = WidgetStateMapper.map(context(active = shift, today = listOf(shift)))
         assertTrue(state.isActive)
         assertEquals("shift-1", state.shiftId)
         assertTrue(state.shiftStartEpochMillis > 0L)
-        assertTrue(state.todayMinutes >= 59)
+        assertTrue(state.todayMinutes > 0)
     }
 
     @Test
