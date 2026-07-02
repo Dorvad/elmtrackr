@@ -76,11 +76,16 @@ class SupabaseAuthRepository @Inject constructor(
 
     // Shared so the many ViewModels observing the profile drive a single
     // session pipeline (one bootstrap, one Room observer) instead of one each.
+    private val currentProfile: Flow<Profile?> = buildCurrentProfileFlow()
+
+    override fun observeCurrentProfile(): Flow<Profile?> = currentProfile
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val currentProfile: Flow<Profile?> = client?.let { c ->
-        c.auth.sessionStatus
+    private fun buildCurrentProfileFlow(): Flow<Profile?> {
+        val c = client ?: return flowOf(null)
+        return c.auth.sessionStatus
             .filter { it !is SessionStatus.Initializing }
-            .flatMapLatest { status ->
+            .flatMapLatest<SessionStatus, Profile?> { status ->
                 when (status) {
                     is SessionStatus.Authenticated -> {
                         val user = status.session.user ?: return@flatMapLatest flowOf(null)
@@ -121,9 +126,7 @@ class SupabaseAuthRepository @Inject constructor(
                 ),
                 replay = 1,
             )
-    } ?: flowOf(null)
-
-    override fun observeCurrentProfile(): Flow<Profile?> = currentProfile
+    }
 
     override suspend fun getCurrentProfile(): Profile? {
         val authProfile = client?.auth?.currentUserOrNull()?.toProfile() ?: return null
