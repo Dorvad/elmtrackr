@@ -46,7 +46,6 @@ import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
-import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Shift
@@ -171,30 +170,32 @@ internal fun ShiftsHeroSummaryCard(
     onPreviousMonth: (() -> Unit)? = null,
     onNextMonth: (() -> Unit)? = null,
 ) {
-    val completed = shifts.filter { it.isCompleted }
-    val activeMinutes = activeShift?.let {
-        ((Instant.now().toEpochMilli() - it.startTime.toEpochMilli()) / 60_000).toInt().coerceAtLeast(0)
-    } ?: 0
-    val completedMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
-    val totalMinutes = completedMinutes + activeMinutes
-
-    val report = settings?.let {
-        MonthlyReportBuilder.buildMonthlyReport(month.year, month.monthValue, completed, it)
-    }
-
-    val regularMin = report?.regularMinutes ?: 0
-    val overtimeMin = report?.overtimeMinutes ?: 0
-    val weekendMin = report?.weekendMinutes ?: 0
-    val categoryTotal = (regularMin + overtimeMin + weekendMin).coerceAtLeast(1)
-
-    val pay = settings?.let { s ->
-        val hasRate = (s.hourlyRate ?: 0.0) > 0.0 ||
-            profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
-        if (hasRate) PayrollCalculator.sumMonthlyPay(completed, s, profiles).totalGross else null
+    val completed = remember(shifts) { shifts.filter { it.isCompleted } }
+    val summary = remember(completed, settings, month, profiles) {
+        val completedMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
+        val report = settings?.let {
+            MonthlyReportBuilder.buildMonthlyReport(month.year, month.monthValue, completed, it)
+        }
+        val regularMin = report?.regularMinutes ?: 0
+        val overtimeMin = report?.overtimeMinutes ?: 0
+        val weekendMin = report?.weekendMinutes ?: 0
+        val pay = settings?.let { s ->
+            val hasRate = (s.hourlyRate ?: 0.0) > 0.0 ||
+                profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
+            if (hasRate) PayrollCalculator.sumMonthlyPay(completed, s, profiles).totalGross else null
+        }
+        HeroSummaryData(
+            completedMinutes = completedMinutes,
+            regularMin = regularMin,
+            overtimeMin = overtimeMin,
+            weekendMin = weekendMin,
+            pay = pay,
+        )
     }
 
     val currency = settings?.currency ?: CurrencyCode.ILS
     val shape = RoundedCornerShape(CornerRadius.Large)
+    val categoryTotal = (summary.regularMin + summary.overtimeMin + summary.weekendMin).coerceAtLeast(1)
 
     Card(
         modifier = Modifier
@@ -220,13 +221,12 @@ internal fun ShiftsHeroSummaryCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold,
                     )
-                    Text(
-                        "${formatHoursDecimal(totalMinutes)}h",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold,
+                    HeroHoursTracked(
+                        completedMinutes = summary.completedMinutes,
+                        activeShift = activeShift,
                     )
                 }
-                pay?.let {
+                summary.pay?.let {
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             "EST. GROSS",
@@ -243,23 +243,76 @@ internal fun ShiftsHeroSummaryCard(
                 }
             }
 
-            if (totalMinutes > 0) {
-                Spacer(Modifier.height(Spacing.md))
-                SegmentedHoursBar(
-                    regularFraction = regularMin.toFloat() / categoryTotal,
-                    overtimeFraction = overtimeMin.toFloat() / categoryTotal,
-                    weekendFraction = weekendMin.toFloat() / categoryTotal,
+            if (summary.completedMinutes > 0 || activeShift != null) {
+                HeroHoursBreakdown(
+                    activeShift = activeShift,
+                    completedMinutes = summary.completedMinutes,
+                    regularMin = summary.regularMin,
+                    overtimeMin = summary.overtimeMin,
+                    weekendMin = summary.weekendMin,
+                    categoryTotal = categoryTotal,
                 )
-                Spacer(Modifier.height(Spacing.sm))
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    HoursLegendDot(color = AuroraIndigo, label = "Regular")
-                    HoursLegendDot(color = AuroraPeach, label = "Overtime")
-                    HoursLegendDot(color = AuroraAqua, label = "Weekend")
-                }
             }
         }
     }
 }
+
+@Composable
+private fun HeroHoursTracked(completedMinutes: Int, activeShift: Shift?) {
+    if (activeShift == null) {
+        Text(
+            "${formatHoursDecimal(completedMinutes)}h",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.ExtraBold,
+        )
+        return
+    }
+    var activeMinutes by remember(activeShift.startTime) { mutableLongStateOf(0L) }
+    LaunchedEffect(activeShift.startTime) {
+        while (true) {
+            activeMinutes = ((Instant.now().toEpochMilli() - activeShift.startTime.toEpochMilli()) / 60_000)
+                .coerceAtLeast(0)
+            delay(1_000)
+        }
+    }
+    Text(
+        "${formatHoursDecimal(completedMinutes + activeMinutes.toInt())}h",
+        style = MaterialTheme.typography.headlineMedium,
+        fontWeight = FontWeight.ExtraBold,
+    )
+}
+
+@Composable
+private fun HeroHoursBreakdown(
+    activeShift: Shift?,
+    completedMinutes: Int,
+    regularMin: Int,
+    overtimeMin: Int,
+    weekendMin: Int,
+    categoryTotal: Int,
+) {
+    if (completedMinutes <= 0 && activeShift == null) return
+    Spacer(Modifier.height(Spacing.md))
+    SegmentedHoursBar(
+        regularFraction = regularMin.toFloat() / categoryTotal,
+        overtimeFraction = overtimeMin.toFloat() / categoryTotal,
+        weekendFraction = weekendMin.toFloat() / categoryTotal,
+    )
+    Spacer(Modifier.height(Spacing.sm))
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        HoursLegendDot(color = AuroraIndigo, label = "Regular")
+        HoursLegendDot(color = AuroraPeach, label = "Overtime")
+        HoursLegendDot(color = AuroraAqua, label = "Weekend")
+    }
+}
+
+private data class HeroSummaryData(
+    val completedMinutes: Int,
+    val regularMin: Int,
+    val overtimeMin: Int,
+    val weekendMin: Int,
+    val pay: Double?,
+)
 
 /** Kept for screenshot regression — delegates to [ShiftsHeroSummaryCard]. */
 @Composable
@@ -380,34 +433,18 @@ internal fun ShiftRow(
     showRefunds: Boolean,
     grouped: Boolean = false,
     entranceIndex: Int = 0,
+    display: ShiftRowDisplayModel? = null,
     onClick: () -> Unit,
 ) {
     if (shift.isActive) {
-        ActiveShiftRow(shift = shift, onClick = onClick, entranceIndex = entranceIndex)
+        ActiveShiftRow(shift = shift, onClick = onClick, animateEntrance = !grouped)
         return
     }
 
-    val zone = ZoneId.systemDefault()
-    val zdt = shift.startTime.atZone(zone)
-    val weekday = zdt.format(weekdayShortFmt).uppercase(Locale.getDefault())
-    val dayNumber = zdt.dayOfMonth.toString()
-    val startText = zdt.format(timeFmt)
-    val endText = shift.endTime?.atZone(zone)?.format(timeFmt) ?: ""
-    val netMinutes = ShiftDurationCalculator.netMinutes(shift) ?: 0
-    val weekend = settings?.let { CompensationResolver.isWeekendShift(shift, it, profiles) } == true
-    val breakdown = settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it) }
-    val hasOt = (breakdown?.overtimeMinutes ?: 0) > 0 && !shift.isSpecialDay && !weekend
-    val pay = settings?.let {
-        PayrollCalculator.calculateShiftPayInContext(
-            shift,
-            allShiftsForPay.ifEmpty { listOf(shift) },
-            it,
-            profiles,
-        )
-    }
+    val rowDisplay = display ?: buildShiftRowDisplay(shift, settings, profiles, allShiftsForPay)
 
     val rowModifier = if (grouped) {
-        Modifier.fillMaxWidth().auroraEnter(entranceIndex)
+        Modifier.fillMaxWidth()
     } else {
         Modifier.fillMaxWidth().padding(horizontal = 12.dp).auroraEnter(entranceIndex)
     }
@@ -439,13 +476,13 @@ internal fun ShiftRow(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    weekday,
+                    rowDisplay.weekday,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    dayNumber,
+                    rowDisplay.dayNumber,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                 )
@@ -457,23 +494,23 @@ internal fun ShiftRow(
                     .padding(horizontal = Spacing.sm),
             ) {
                 Text(
-                    "${formatHoursDecimal(netMinutes)} h",
+                    "${formatHoursDecimal(rowDisplay.netMinutes)} h",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
-                if (weekend || hasOt || shift.isSpecialDay) {
+                if (rowDisplay.weekend || rowDisplay.hasOt || shift.isSpecialDay) {
                     Row(
                         modifier = Modifier.padding(top = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        if (weekend || shift.isSpecialDay) {
+                        if (rowDisplay.weekend || shift.isSpecialDay) {
                             ShiftTypeBadge(
                                 label = if (shift.isSpecialDay) "HOLIDAY" else "WEEKEND",
                                 background = auroraWeekendBackground(),
                                 color = MaterialTheme.colorScheme.secondary,
                             )
                         }
-                        if (hasOt) {
+                        if (rowDisplay.hasOt) {
                             ShiftTypeBadge(
                                 label = "OT",
                                 background = auroraOvertimeBackground(),
@@ -483,7 +520,7 @@ internal fun ShiftRow(
                     }
                 }
                 Text(
-                    "$startText - $endText",
+                    "${rowDisplay.startText} - ${rowDisplay.endText}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),
@@ -498,9 +535,9 @@ internal fun ShiftRow(
             }
 
             Column(horizontalAlignment = Alignment.End) {
-                pay?.let {
+                rowDisplay.payGross?.let {
                     Text(
-                        MoneyFormatter.format(it.totalGross, settings?.currency ?: CurrencyCode.ILS),
+                        MoneyFormatter.format(it, settings?.currency ?: CurrencyCode.ILS),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -521,7 +558,7 @@ internal fun ShiftRow(
 private fun ActiveShiftRow(
     shift: Shift,
     onClick: () -> Unit,
-    entranceIndex: Int,
+    animateEntrance: Boolean,
 ) {
     val zone = ZoneId.systemDefault()
     val startText = shift.startTime.atZone(zone).format(timeFmt)
@@ -540,7 +577,10 @@ private fun ActiveShiftRow(
             onClick()
         },
         interactionSource = interactionSource,
-        modifier = Modifier.fillMaxWidth().auroraEnter(entranceIndex).auroraPressScale(interactionSource),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (animateEntrance) Modifier.auroraEnter(0) else Modifier)
+            .auroraPressScale(interactionSource),
         color = bgColor,
     ) {
         Row(

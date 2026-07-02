@@ -104,6 +104,7 @@ import com.elmtrackr.app.ui.components.motion.FirstClockInCelebrationDialog
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.AuroraScreen
+import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.layout.isTabletLayout
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmCard
@@ -298,15 +299,6 @@ private fun DashboardReady(
         }
     }
 
-    var elapsedSeconds by remember(activeShift?.id) { mutableLongStateOf(0L) }
-    LaunchedEffect(activeShift?.id) {
-        val shift = activeShift ?: return@LaunchedEffect
-        while (true) {
-            elapsedSeconds = (Instant.now().toEpochMilli() - shift.startTime.toEpochMilli()) / 1000L
-            delay(1_000L)
-        }
-    }
-
     if (showEditDialog && activeShift != null) {
         EditStartTimeDialog(
             currentStartTime = activeShift.startTime,
@@ -386,60 +378,14 @@ private fun DashboardReady(
             }
 
             val clockCard = @Composable {
-                Box(modifier = Modifier.fillMaxWidth().auroraEnter(index = 1)) {
-                    AnimatedContent(
-                        targetState = clockStyle,
-                        transitionSpec = {
-                            (fadeIn(tween(300)) + scaleIn(tween(350), initialScale = .96f)) togetherWith
-                                (fadeOut(tween(160)) + scaleOut(tween(160), targetScale = .98f))
-                        },
-                        label = "watch-face-change",
-                    ) { renderStyle ->
-                    when (renderStyle) {
-                        SupportedClockStyle.CLASSIC -> ClassicClockCard(
-                            activeShift       = activeShift,
-                            elapsedSeconds    = elapsedSeconds,
-                            dailyOtMinutes    = dailyOtMinutes,
-                            onClockIn         = handleClockIn,
-                            onClockOut        = handleClockOut,
-                            onEditStartTime   = { showEditDialog = true },
-                        )
-                        SupportedClockStyle.MINIMAL -> MinimalClockCard(
-                            activeShift     = activeShift,
-                            elapsedSeconds  = elapsedSeconds,
-                            onClockIn       = handleClockIn,
-                            onClockOut      = handleClockOut,
-                            onEditStartTime = { showEditDialog = true },
-                        )
-                        SupportedClockStyle.AURORA -> AuroraClockCard(
-                            activeShift     = activeShift,
-                            elapsedSeconds  = elapsedSeconds,
-                            onClockIn       = handleClockIn,
-                            onClockOut      = handleClockOut,
-                            onEditStartTime = { showEditDialog = true },
-                        )
-                        SupportedClockStyle.FOCUS,
-                        SupportedClockStyle.BOLD,
-                        SupportedClockStyle.NIGHT,
-                        SupportedClockStyle.RETRO,
-                        SupportedClockStyle.PULSE,
-                        SupportedClockStyle.DIAL,
-                        SupportedClockStyle.STRAND,
-                        SupportedClockStyle.PRISM,
-                        SupportedClockStyle.SAND,
-                        SupportedClockStyle.BLOCKS,
-                        SupportedClockStyle.ORBIT -> ExpressiveClockCard(
-                            style = renderStyle,
-                            activeShift = activeShift,
-                            elapsedSeconds = elapsedSeconds,
-                            dailyOtMinutes = dailyOtMinutes,
-                            onClockIn = handleClockIn,
-                            onClockOut = handleClockOut,
-                            onEditStartTime = { showEditDialog = true },
-                        )
-                    }
-                    }
-                }
+                DashboardClockSection(
+                    clockStyle = clockStyle,
+                    activeShift = activeShift,
+                    dailyOtMinutes = dailyOtMinutes,
+                    onClockIn = handleClockIn,
+                    onClockOut = handleClockOut,
+                    onEditStartTime = { showEditDialog = true },
+                )
             }
 
             if (isTablet) {
@@ -633,6 +579,80 @@ private fun FirstRunWelcomeCard(onClockIn: () -> Unit) {
 }
 
 // ── Classic clock card ────────────────────────────────────────────────────────
+
+@Composable
+private fun DashboardClockSection(
+    clockStyle: SupportedClockStyle,
+    activeShift: Shift?,
+    dailyOtMinutes: Int,
+    onClockIn: () -> Unit,
+    onClockOut: () -> Unit,
+    onEditStartTime: () -> Unit,
+) {
+    var elapsedSeconds by remember(activeShift?.id) { mutableLongStateOf(0L) }
+    LaunchedEffect(activeShift?.id) {
+        val shift = activeShift ?: return@LaunchedEffect
+        while (true) {
+            elapsedSeconds = (Instant.now().toEpochMilli() - shift.startTime.toEpochMilli()) / 1000L
+            delay(1_000L)
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxWidth().auroraEnter(index = 1)) {
+        AnimatedContent(
+            targetState = clockStyle,
+            transitionSpec = {
+                (fadeIn(tween(300)) + scaleIn(tween(350), initialScale = .96f)) togetherWith
+                    (fadeOut(tween(160)) + scaleOut(tween(160), targetScale = .98f))
+            },
+            label = "watch-face-change",
+        ) { renderStyle ->
+            when (renderStyle) {
+                SupportedClockStyle.CLASSIC -> ClassicClockCard(
+                    activeShift = activeShift,
+                    elapsedSeconds = elapsedSeconds,
+                    dailyOtMinutes = dailyOtMinutes,
+                    onClockIn = onClockIn,
+                    onClockOut = onClockOut,
+                    onEditStartTime = onEditStartTime,
+                )
+                SupportedClockStyle.MINIMAL -> MinimalClockCard(
+                    activeShift = activeShift,
+                    elapsedSeconds = elapsedSeconds,
+                    onClockIn = onClockIn,
+                    onClockOut = onClockOut,
+                    onEditStartTime = onEditStartTime,
+                )
+                SupportedClockStyle.AURORA -> AuroraClockCard(
+                    activeShift = activeShift,
+                    elapsedSeconds = elapsedSeconds,
+                    onClockIn = onClockIn,
+                    onClockOut = onClockOut,
+                    onEditStartTime = onEditStartTime,
+                )
+                SupportedClockStyle.FOCUS,
+                SupportedClockStyle.BOLD,
+                SupportedClockStyle.NIGHT,
+                SupportedClockStyle.RETRO,
+                SupportedClockStyle.PULSE,
+                SupportedClockStyle.DIAL,
+                SupportedClockStyle.STRAND,
+                SupportedClockStyle.PRISM,
+                SupportedClockStyle.SAND,
+                SupportedClockStyle.BLOCKS,
+                SupportedClockStyle.ORBIT -> ExpressiveClockCard(
+                    style = renderStyle,
+                    activeShift = activeShift,
+                    elapsedSeconds = elapsedSeconds,
+                    dailyOtMinutes = dailyOtMinutes,
+                    onClockIn = onClockIn,
+                    onClockOut = onClockOut,
+                    onEditStartTime = onEditStartTime,
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun ClassicClockCard(
@@ -924,12 +944,7 @@ private fun ExpressiveClockCard(
         (elapsedSeconds / (dailyOtMinutes * 60f)).coerceIn(0f, 1f)
     } else 0f
     val overtime = running && elapsedSeconds > dailyOtMinutes * 60L
-    val transition = rememberInfiniteTransition(label = "${style.name}-clock")
-    val pulse by transition.animateFloat(
-        0f, 1f,
-        infiniteRepeatable(tween(1800, easing = LinearEasing), RepeatMode.Restart),
-        label = "clock-motion",
-    )
+    ExpressiveClockPulse(running = running) { pulse ->
     val background = when (style) {
         SupportedClockStyle.BOLD -> Color(0xff222038)
         SupportedClockStyle.NIGHT -> Color(0xff080b25)
@@ -1205,6 +1220,26 @@ private fun ExpressiveClockCard(
             ) { Text(if (running) "Clock Out" else "Clock In", fontWeight = FontWeight.Bold) }
         }
     }
+    }
+}
+
+@Composable
+private fun ExpressiveClockPulse(
+    running: Boolean,
+    content: @Composable (pulse: Float) -> Unit,
+) {
+    if (!auroraMotionEnabled() || !running) {
+        content(0f)
+        return
+    }
+    val transition = rememberInfiniteTransition(label = "expressive-clock-pulse")
+    val pulse by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1800, easing = LinearEasing), RepeatMode.Restart),
+        label = "clock-motion",
+    )
+    content(pulse)
 }
 
 @Composable
