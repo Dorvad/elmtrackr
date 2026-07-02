@@ -156,8 +156,12 @@
 -dontwarn androidx.security.crypto.**
 
 # ============================================================
-# Suppress miscellaneous warnings from transitive dependencies
+# ML Kit — text recognition and document scanner
 # ============================================================
+-keep class com.google.mlkit.** { *; }
+-dontwarn com.google.mlkit.**
+-keep class com.google.android.gms.internal.mlkit_** { *; }
+-dontwarn com.google.android.gms.internal.mlkit_**
 -dontwarn com.sun.nio.file.**
 -dontwarn org.slf4j.**
 -dontwarn javax.annotation.**

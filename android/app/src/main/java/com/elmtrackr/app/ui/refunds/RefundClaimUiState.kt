@@ -18,6 +18,9 @@ data class RefundClaimUiState(
     val noticeMessage: String? = null,
     val form: RefundClaimFormUiState? = null,
     val camera: ReceiptCameraUiState? = null,
+    val receiptReview: ReceiptReviewUiState? = null,
+    val isProcessingReceipt: Boolean = false,
+    val launchDocumentScanner: Boolean = false,
 )
 
 data class RefundClaimFormUiState(
@@ -30,6 +33,8 @@ data class RefundClaimFormUiState(
     val existingReceiptPath: String? = null,
     val pendingPhotoPath: String? = null,
     val pendingPhotoName: String? = null,
+    val linkedReceiptId: String? = null,
+    val localReceiptImagePath: String? = null,
 )
 
 data class ReceiptCameraUiState(
