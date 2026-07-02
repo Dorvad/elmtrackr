@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
@@ -217,69 +218,103 @@ private fun ShiftsListContent(
     onAddShift: () -> Unit,
     onEditShift: (String) -> Unit,
 ) {
-    val weekSections = ShiftWeekGrouper.groupByWeek(
-        shifts = state.shifts,
-        activeShift = state.activeShift,
-        month = selectedMonth,
-        settings = state.settings,
-        profiles = state.profiles,
-    )
-    var entranceIndex = 0
+    val listItems = remember(
+        state.shifts,
+        state.activeShift,
+        selectedMonth,
+        state.settings,
+        state.profiles,
+    ) {
+        buildShiftsLazyListItems(
+            shifts = state.shifts,
+            activeShift = state.activeShift,
+            month = selectedMonth,
+            settings = state.settings,
+            profiles = state.profiles,
+        )
+    }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = Spacing.screenH),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        item {
+        item(key = "header") {
             ShiftsPageHeader(onAddShift = onAddShift)
         }
-        item {
-            Box(Modifier.animateItem()) {
-                ShiftsHeroSummaryCard(
-                    shifts = state.shifts,
-                    activeShift = state.activeShift,
-                    settings = state.settings,
-                    month = selectedMonth,
-                    profiles = state.profiles,
-                    onPreviousMonth = onPreviousMonth,
-                    onNextMonth = onNextMonth,
-                )
-            }
+        item(key = "hero") {
+            Spacer(Modifier.height(Spacing.md))
+            ShiftsHeroSummaryCard(
+                shifts = state.shifts,
+                activeShift = state.activeShift,
+                settings = state.settings,
+                month = selectedMonth,
+                profiles = state.profiles,
+                onPreviousMonth = onPreviousMonth,
+                onNextMonth = onNextMonth,
+            )
+            Spacer(Modifier.height(Spacing.md))
         }
 
-        weekSections.forEach { section ->
-            item(key = "week-${section.label}") {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateItem(),
-                    shape = RoundedCornerShape(com.elmtrackr.app.ui.theme.CornerRadius.Medium),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                ) {
-                    Column {
-                        ShiftsWeekSectionHeader(section = section, settings = state.settings)
-                        section.shifts.forEach { shift ->
-                            val rowIndex = entranceIndex++
-                            ShiftRow(
-                                shift = shift,
-                                settings = state.settings,
-                                profiles = state.profiles,
-                                allShiftsForPay = state.shifts,
-                                showRefunds = state.featuresTravelRefunds,
-                                grouped = true,
-                                entranceIndex = rowIndex,
-                                onClick = { onEditShift(shift.id) },
-                            )
-                        }
+        items(
+            items = listItems,
+            key = { it.key },
+            contentType = { item ->
+                when (item) {
+                    is ShiftsLazyListItem.SectionHeader -> "header"
+                    is ShiftsLazyListItem.ShiftEntry -> "shift"
+                }
+            },
+        ) { item ->
+            when (item) {
+                is ShiftsLazyListItem.SectionHeader -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(
+                            topStart = com.elmtrackr.app.ui.theme.CornerRadius.Medium,
+                            topEnd = com.elmtrackr.app.ui.theme.CornerRadius.Medium,
+                        ),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    ) {
+                        ShiftsWeekSectionHeader(section = item.section, settings = state.settings)
+                    }
+                }
+
+                is ShiftsLazyListItem.ShiftEntry -> {
+                    val bottomShape = if (item.isLastInSection) {
+                        RoundedCornerShape(
+                            bottomStart = com.elmtrackr.app.ui.theme.CornerRadius.Medium,
+                            bottomEnd = com.elmtrackr.app.ui.theme.CornerRadius.Medium,
+                        )
+                    } else {
+                        RoundedCornerShape(0.dp)
+                    }
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = bottomShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = if (item.isLastInSection) 1.dp else 0.dp),
+                    ) {
+                        ShiftRow(
+                            shift = item.shift,
+                            settings = state.settings,
+                            profiles = state.profiles,
+                            allShiftsForPay = state.shifts,
+                            showRefunds = state.featuresTravelRefunds,
+                            grouped = true,
+                            display = item.display,
+                            onClick = { onEditShift(item.shift.id) },
+                        )
+                    }
+                    if (item.isLastInSection) {
+                        Spacer(Modifier.height(Spacing.md))
                     }
                 }
             }
         }
 
-        item {
+        item(key = "add-past") {
             ShiftsAddPastShiftButton(
                 onClick = onAddShift,
                 modifier = Modifier.padding(bottom = Spacing.xl),

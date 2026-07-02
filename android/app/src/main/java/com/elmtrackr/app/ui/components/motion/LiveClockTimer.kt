@@ -68,38 +68,14 @@ fun LiveClockTimer(
     val ss = (safeElapsed.seconds % 60).toString().padStart(2, '0')
     val resolvedColor = if (color == Color.Unspecified) LocalContentColor.current else color
 
-    Row(modifier = modifier) {
-        AnimatedDigitPair(hh, style = style, color = resolvedColor, textAlign = textAlign)
-        Text(":", style = style, color = resolvedColor, textAlign = textAlign)
-        AnimatedDigitPair(mm, style = style, color = resolvedColor, textAlign = textAlign)
-        Text(":", style = style, color = resolvedColor, textAlign = textAlign)
-        AnimatedDigitPair(ss, style = style, color = resolvedColor, textAlign = textAlign)
-    }
-}
-
-@Composable
-private fun AnimatedDigitPair(
-    value: String,
-    style: TextStyle,
-    color: Color,
-    textAlign: TextAlign?,
-) {
-    val animationsEnabled = auroraMotionEnabled()
-    value.forEach { digit ->
-        if (animationsEnabled) {
-            AnimatedContent(
-                targetState = digit,
-                transitionSpec = {
-                    slideInVertically { it } togetherWith slideOutVertically { -it }
-                },
-                label = "clock-digit",
-            ) { d ->
-                Text(d.toString(), style = style, color = color, textAlign = textAlign)
-            }
-        } else {
-            Text(digit.toString(), style = style, color = color, textAlign = textAlign)
-        }
-    }
+    // Ticking clocks update every second; per-digit AnimatedContent is too expensive.
+    Text(
+        text = "$hh:$mm:$ss",
+        style = style,
+        color = resolvedColor,
+        textAlign = textAlign,
+        modifier = modifier,
+    )
 }
 
 @Composable

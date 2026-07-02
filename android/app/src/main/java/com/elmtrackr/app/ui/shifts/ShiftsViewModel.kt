@@ -93,31 +93,33 @@ class ShiftsViewModel @Inject constructor(
                 .filterNotNull()
                 .flatMapLatest { userId ->
                     combine(
-                        combine(_selectedMonth, settingsRepository.observeSettings(userId)) { month, settings ->
-                            month to settings
-                        }.flatMapLatest { (month, settings) ->
-                            val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.of("UTC")
+                        _selectedMonth,
+                        settingsRepository.observeSettings(userId),
+                    ) { month, settings ->
+                        month to settings
+                    }.flatMapLatest { (month, settings) ->
+                        val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.of("UTC")
+                        combine(
                             shiftsRepository.observeShiftsByMonthInZone(
                                 userId,
                                 month.year,
                                 month.monthValue,
                                 zone,
+                            ),
+                            shiftsRepository.observeActiveShift(userId),
+                            compensationProfilesRepository.observeProfiles(userId),
+                            tasksRepository.observeAllTasks(userId),
+                        ) { shifts, activeShift, profiles, tasks ->
+                            if (shifts.isEmpty()) ShiftsUiState.Empty
+                            else ShiftsUiState.Ready(
+                                shifts = shifts,
+                                activeShift = activeShift,
+                                featuresTravelRefunds = settings?.featuresTravelRefunds ?: false,
+                                settings = settings,
+                                profiles = profiles,
+                                tasks = tasks,
                             )
-                        },
-                        shiftsRepository.observeActiveShift(userId),
-                        settingsRepository.observeSettings(userId),
-                        compensationProfilesRepository.observeProfiles(userId),
-                        tasksRepository.observeAllTasks(userId),
-                    ) { shifts, activeShift, settings, profiles, tasks ->
-                        if (shifts.isEmpty()) ShiftsUiState.Empty
-                        else ShiftsUiState.Ready(
-                            shifts = shifts,
-                            activeShift = activeShift,
-                            featuresTravelRefunds = settings?.featuresTravelRefunds ?: false,
-                            settings = settings,
-                            profiles = profiles,
-                            tasks = tasks,
-                        )
+                        }
                     }
                 }
         }.catch { e ->
