@@ -1,6 +1,8 @@
 package com.elmtrackr.app.di
 
 import android.content.Context
+import com.elmtrackr.app.data.auth.AuthSessionCoordinator
+import com.elmtrackr.app.data.auth.SessionBootstrapGate
 import com.elmtrackr.app.data.auth.SupabaseClientProvider
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.remote.SupabaseCompensationProfilesDataSource
@@ -32,6 +34,11 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    @Provides
+    @Singleton
+    fun provideSessionBootstrapGate(coordinator: AuthSessionCoordinator): SessionBootstrapGate =
+        coordinator
 
     @Provides
     @Singleton

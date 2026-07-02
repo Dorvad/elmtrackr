@@ -2,6 +2,7 @@ package com.elmtrackr.app.ui.shell
 
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.fake.FakeAuthRepository
+import com.elmtrackr.app.fake.FakeSessionBootstrapGate
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.util.MainDispatcherRule
@@ -22,8 +23,9 @@ class AppShellViewModelTest {
 
     private val authRepo = FakeAuthRepository()
     private val settingsRepo = FakeSettingsRepository()
+    private val sessionBootstrapGate = FakeSessionBootstrapGate()
 
-    private fun buildVm() = AppShellViewModel(authRepo, settingsRepo)
+    private fun buildVm() = AppShellViewModel(authRepo, settingsRepo, sessionBootstrapGate)
 
     private fun setOnboarding(completed: Boolean) {
         settingsRepo.setSettings(
@@ -114,6 +116,59 @@ class AppShellViewModelTest {
         val vm = buildVm()
         val states = mutableListOf<AppNavState>()
         val job = launch { vm.navState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        assertEquals(AppNavState.Main, states.last())
+        job.cancel()
+    }
+
+    @Test
+    fun `session exists + no settings while bootstrap pending → Loading`() = runTest {
+        authRepo.configured = true
+        authRepo.setProfile(testProfile())
+        settingsRepo.setSettings(null)
+        sessionBootstrapGate.setBootstrapComplete(false)
+
+        val vm = buildVm()
+        val states = mutableListOf<AppNavState>()
+        val job = launch { vm.navState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        assertEquals(AppNavState.Loading, states.last())
+        job.cancel()
+    }
+
+    @Test
+    fun `session exists + no settings after bootstrap completes → Onboarding`() = runTest {
+        authRepo.configured = true
+        authRepo.setProfile(testProfile())
+        settingsRepo.setSettings(null)
+        sessionBootstrapGate.setBootstrapComplete(true)
+
+        val vm = buildVm()
+        val states = mutableListOf<AppNavState>()
+        val job = launch { vm.navState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        assertEquals(AppNavState.Onboarding, states.last())
+        job.cancel()
+    }
+
+    @Test
+    fun `existing user settings arrive after bootstrap → Main`() = runTest {
+        authRepo.configured = true
+        authRepo.setProfile(testProfile())
+        settingsRepo.setSettings(null)
+        sessionBootstrapGate.setBootstrapComplete(false)
+
+        val vm = buildVm()
+        val states = mutableListOf<AppNavState>()
+        val job = launch { vm.navState.collect { states.add(it) } }
+        advanceUntilIdle()
+        assertEquals(AppNavState.Loading, states.last())
+
+        setOnboarding(true)
+        sessionBootstrapGate.setBootstrapComplete(true)
         advanceUntilIdle()
 
         assertEquals(AppNavState.Main, states.last())

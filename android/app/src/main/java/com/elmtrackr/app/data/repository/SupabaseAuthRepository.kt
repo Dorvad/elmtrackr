@@ -46,7 +46,7 @@ class SupabaseAuthRepository @Inject constructor(
     private val profileDao: ProfileDao,
     private val appPrefs: AppPreferencesRepository,
     private val localUserDataCleaner: LocalUserDataCleaner,
-    authSessionCoordinator: AuthSessionCoordinator,
+    private val authSessionCoordinator: AuthSessionCoordinator,
 ) : AuthRepository {
 
     private val onAuthenticated: suspend (String) -> Unit = authSessionCoordinator::onUserAuthenticated
@@ -153,6 +153,7 @@ class SupabaseAuthRepository @Inject constructor(
             // Best-effort — still clear local references below
         }
         _passwordRecoveryRequired.value = false
+        authSessionCoordinator.resetSession()
         appPrefs.setLastActiveUserId(null)
     }
 

@@ -123,7 +123,7 @@ class FullAppScreenshotTest {
     }
 
     @Test fun onboardingReview() = capture("07-onboarding-review") {
-        OnboardingColumn(7) {
+        OnboardingColumn(8) {
             ReviewStep("Dor", 50.0, CurrencyCode.ILS, "Israel", listOf(5, 6), 2, null, {}, {})
         }
     }
