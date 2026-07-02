@@ -438,6 +438,8 @@ class FullAppScreenshotTest {
                 onClockStyleChange = {},
                 clockStylesEnabled = true,
                 onClockStylesEnabledChange = {},
+                reduceMotionEnabled = false,
+                onReduceMotionChange = {},
                 onBack = {},
                 onTheme = {},
             )
