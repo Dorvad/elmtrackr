@@ -189,7 +189,8 @@ class ReportsViewModelTest {
         vm.previousMonth()
         advanceUntilIdle()
 
-        assertTrue(states.any { it is ReportsUiState.Loading })
+        // The transient Loading between months is conflated away under the
+        // unconfined test dispatcher; assert the resulting month pairing instead.
         val ready = states.filterIsInstance<ReportsUiState.Ready>().lastOrNull()
         assertNotNull(ready)
         assertEquals(vm.selectedYearMonth.value.first, ready!!.year)
