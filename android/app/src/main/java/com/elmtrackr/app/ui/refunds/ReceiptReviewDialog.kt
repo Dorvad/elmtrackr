@@ -17,23 +17,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -45,13 +36,6 @@ import androidx.compose.ui.window.Dialog
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.ReceiptParseConfidence
 import com.elmtrackr.app.ui.theme.CornerRadius
-import java.time.Instant
-import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-
-private val reviewDateFmt = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
 
 @Composable
 fun ReceiptReviewDialog(
@@ -60,24 +44,9 @@ fun ReceiptReviewDialog(
     onMerchantChange: (String) -> Unit,
     onAmountChange: (String) -> Unit,
     onCurrencyChange: (String) -> Unit,
-    onReceiptDateChange: (Long?) -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
 ) {
-    var showDatePicker by rememberSaveable { mutableStateOf(false) }
-    val zone = ZoneId.systemDefault()
-
-    if (showDatePicker) {
-        ReceiptReviewDatePicker(
-            currentMillis = review.receiptDateMillis ?: System.currentTimeMillis(),
-            onConfirm = { millis ->
-                onReceiptDateChange(millis)
-                showDatePicker = false
-            },
-            onDismiss = { showDatePicker = false },
-        )
-    }
-
     Dialog(onDismissRequest = { if (!review.isSaving) onDismiss() }) {
         Surface(
             shape = RoundedCornerShape(CornerRadius.Large),
@@ -148,19 +117,6 @@ fun ReceiptReviewDialog(
                     )
                 }
 
-                OutlinedTextField(
-                    value = review.receiptDateMillis?.let { millis ->
-                        Instant.ofEpochMilli(millis).atZone(zone).format(reviewDateFmt)
-                    }.orEmpty(),
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Receipt date") },
-                    trailingIcon = {
-                        TextButton(onClick = { showDatePicker = true }) { Text("Pick") }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -228,26 +184,3 @@ private fun ConfidenceBanner(review: ReceiptReviewUiState) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ReceiptReviewDatePicker(
-    currentMillis: Long,
-    onConfirm: (Long) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val initUtcMidnight = Instant.ofEpochMilli(currentMillis)
-        .atZone(ZoneId.systemDefault()).toLocalDate()
-        .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-    val state = rememberDatePickerState(initialSelectedDateMillis = initUtcMidnight)
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = { state.selectedDateMillis?.let { onConfirm(it) } ?: onDismiss() }) {
-                Text("OK")
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    ) {
-        DatePicker(state = state)
-    }
-}

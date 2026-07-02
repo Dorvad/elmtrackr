@@ -73,6 +73,36 @@ class ReceiptParserTest {
     }
 
     @Test
+    fun `parse ride receipt without any total keyword picks the largest decimal amount`() {
+        // The on-device recognizer is Latin-only, so Hebrew labels often come out
+        // garbled and no total keyword survives; the fare must still be found.
+        val text = """
+            Bird
+            08:12
+            1.00
+            11.50
+            12.50
+        """.trimIndent()
+
+        val result = parser.parse(text)
+
+        assertEquals(12.5, result.amount!!, 0.001)
+    }
+
+    @Test
+    fun `parse ride receipt with integer total near keyword`() {
+        val text = """
+            Yango ride
+            Total 24
+            Thank you
+        """.trimIndent()
+
+        val result = parser.parse(text)
+
+        assertEquals(24.0, result.amount!!, 0.001)
+    }
+
+    @Test
     fun `parse returns none confidence for empty text`() {
         val result = parser.parse("   \n\t  ")
 

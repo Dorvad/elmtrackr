@@ -122,7 +122,6 @@ fun RefundClaimsSection(
             onMerchantChange = viewModel::updateReceiptReviewMerchant,
             onAmountChange = viewModel::updateReceiptReviewAmount,
             onCurrencyChange = viewModel::updateReceiptReviewCurrency,
-            onReceiptDateChange = viewModel::updateReceiptReviewDate,
             onDismiss = viewModel::dismissReceiptReview,
             onSave = viewModel::saveReceiptReview,
         )
