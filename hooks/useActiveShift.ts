@@ -7,6 +7,11 @@ import {
   buildCompensationSnapshot,
   resolveShiftCompensation,
 } from "@/lib/compensation/profile";
+import {
+  duplicateShiftError,
+  findShiftAtStartTime,
+  isDuplicateShiftError,
+} from "@/lib/shifts/duplicate";
 
 export interface UseActiveShiftReturn {
   activeShift: Shift | null;
@@ -55,15 +60,26 @@ export function useActiveShift(): UseActiveShiftReturn {
       setError(null);
       try {
         const { data: user } = await supabase.auth.getUser();
+        const startTime = new Date().toISOString();
+        const existing = await findShiftAtStartTime(
+          supabase,
+          user.user!.id,
+          startTime
+        );
+        if (existing) throw duplicateShiftError();
+
         const { error: err } = await supabase.from("shifts").insert({
           user_id: user.user!.id,
-          start_time: new Date().toISOString(),
+          start_time: startTime,
           end_time: null,
           break_minutes: 0,
           notes: null,
           compensation_profile_id: compensationProfileId ?? null,
         });
-        if (err) throw new Error(err.message);
+        if (err) {
+          if (isDuplicateShiftError(err)) throw duplicateShiftError();
+          throw new Error(err.message);
+        }
         await refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Clock in failed.");
@@ -81,11 +97,24 @@ export function useActiveShift(): UseActiveShiftReturn {
       setLoading(true);
       setError(null);
       try {
+        const { data: user } = await supabase.auth.getUser();
+        const existing = await findShiftAtStartTime(
+          supabase,
+          user.user!.id,
+          newStartIso
+        );
+        if (existing && existing.id !== activeShift.id) {
+          throw duplicateShiftError();
+        }
+
         const { error: err } = await supabase
           .from("shifts")
           .update({ start_time: newStartIso })
           .eq("id", activeShift.id);
-        if (err) throw new Error(err.message);
+        if (err) {
+          if (isDuplicateShiftError(err)) throw duplicateShiftError();
+          throw new Error(err.message);
+        }
         await refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Update failed.");

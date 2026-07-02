@@ -17,6 +17,7 @@ import com.elmtrackr.app.data.remote.RemoteShiftDataSource
 import com.elmtrackr.app.data.remote.RemoteSyncErrors
 import com.elmtrackr.app.data.remote.RemoteTaskDataSource
 import com.elmtrackr.app.data.remote.RemoteUserSettingsDataSource
+import com.elmtrackr.app.data.remote.epochToIso
 import com.elmtrackr.app.data.remote.isoToEpoch
 import com.elmtrackr.app.data.remote.toLocalEntity
 import com.elmtrackr.app.data.remote.toRemoteInsert
@@ -383,13 +384,30 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pushShiftCreate(shift: ShiftEntity, syncedAt: Long) {
-        val remote = remoteShifts!!.insert(
-            shift.toRemoteInsert(
-                compensationProfileRemoteId = idMapper.profileLocalToRemote(shift.compensationProfileId),
-                taskRemoteId = idMapper.taskLocalToRemote(shift.taskId),
-            ),
-        )
-        shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
+        val startTimeIso = epochToIso(shift.startTime)
+        val existingRemote = remoteShifts!!.findByUserAndStartTime(shift.userId, startTimeIso)
+        if (existingRemote != null) {
+            shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, existingRemote.id, syncedAt, null)
+            return
+        }
+
+        runCatching {
+            val remote = remoteShifts!!.insert(
+                shift.toRemoteInsert(
+                    compensationProfileRemoteId = idMapper.profileLocalToRemote(shift.compensationProfileId),
+                    taskRemoteId = idMapper.taskLocalToRemote(shift.taskId),
+                ),
+            )
+            shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
+        }.onFailure { error ->
+            if (RemoteSyncErrors.isUniqueViolation(error)) {
+                val linked = remoteShifts!!.findByUserAndStartTime(shift.userId, startTimeIso)
+                    ?: throw error
+                shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, linked.id, syncedAt, null)
+            } else {
+                throw error
+            }
+        }
     }
 
     private suspend fun pushShiftUpdate(shift: ShiftEntity, syncedAt: Long) {
@@ -442,6 +460,34 @@ class SyncRepositoryImpl @Inject constructor(
                 }
                 continue
             }
+
+            val existingByStartTime = shiftDao.getShiftByStartTime(userId, isoToEpoch(remote.startTime))
+            if (existingByStartTime != null) {
+                when (existingByStartTime.syncStatus) {
+                    SyncStatus.SYNCED -> {
+                        shiftDao.upsertShift(
+                            remote.toLocalEntity(
+                                existingLocalId = existingByStartTime.localId,
+                                compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
+                                taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
+                                syncStatus = SyncStatus.SYNCED,
+                            ),
+                        )
+                    }
+                    SyncStatus.PENDING_CREATE, SyncStatus.FAILED -> {
+                        shiftDao.updateSyncState(
+                            existingByStartTime.localId,
+                            SyncStatus.SYNCED,
+                            remote.id,
+                            isoToEpoch(remote.updatedAt),
+                            null,
+                        )
+                    }
+                    else -> Unit
+                }
+                continue
+            }
+
             if (remote.endTime == null && localActiveExists) continue
             shiftDao.insertShift(
                 remote.toLocalEntity(

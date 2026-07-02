@@ -146,6 +146,9 @@ $$;
 create index if not exists shifts_user_id_start_time_idx
   on public.shifts (user_id, start_time desc);
 
+create unique index if not exists shifts_user_id_start_time_uidx
+  on public.shifts (user_id, start_time);
+
 create index if not exists shifts_active_idx
   on public.shifts (user_id, end_time)
   where end_time is null;

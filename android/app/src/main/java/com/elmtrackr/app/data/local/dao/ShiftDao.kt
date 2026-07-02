@@ -101,6 +101,12 @@ interface ShiftDao {
     suspend fun getShiftByRemoteId(remoteId: String): ShiftEntity?
 
     @Query(
+        "SELECT * FROM shifts WHERE userId = :userId AND startTime = :startTime " +
+            "AND deletedAt IS NULL LIMIT 1",
+    )
+    suspend fun getShiftByStartTime(userId: String, startTime: Long): ShiftEntity?
+
+    @Query(
         "SELECT * FROM shifts WHERE userId = :userId " +
             "AND endTime IS NOT NULL AND deletedAt IS NULL " +
             "ORDER BY startTime DESC LIMIT :limit"

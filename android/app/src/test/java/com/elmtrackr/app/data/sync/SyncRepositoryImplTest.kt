@@ -197,6 +197,78 @@ class SyncRepositoryImplTest {
     }
 
     @Test
+    fun `pull links remote shift to local row with matching start time`() = runTest {
+        val startEpoch = 1_716_230_400_000L
+        val dao = InMemoryShiftDao()
+        val remote = FakeRemoteShiftDataSource(
+            initial = listOf(
+                RemoteShiftRow(
+                    id = "remote-dup",
+                    userId = "user-1",
+                    startTime = "2024-06-01T08:00:00Z",
+                    endTime = "2024-06-01T16:00:00Z",
+                    breakMinutes = 0,
+                    createdAt = "2024-06-01T08:00:00Z",
+                    updatedAt = "2024-06-01T16:00:00Z",
+                ),
+            ),
+        )
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        dao.insertShift(
+            shiftEntity(
+                localId = "local-1",
+                syncStatus = SyncStatus.SYNCED,
+                remoteId = null,
+                startTime = startEpoch,
+                endTime = 1_716_259_200_000L,
+            ),
+        )
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        assertEquals(1, dao.currentShifts.size)
+        assertEquals("local-1", dao.currentShifts.first().localId)
+        assertEquals("remote-dup", dao.currentShifts.first().remoteId)
+    }
+
+    @Test
+    fun `push links to existing remote shift with matching start time instead of inserting`() = runTest {
+        val startEpoch = 1_716_230_400_000L
+        val dao = InMemoryShiftDao()
+        val remote = FakeRemoteShiftDataSource(
+            initial = listOf(
+                RemoteShiftRow(
+                    id = "remote-existing",
+                    userId = "user-1",
+                    startTime = "2024-06-01T08:00:00Z",
+                    endTime = "2024-06-01T16:00:00Z",
+                    breakMinutes = 0,
+                    createdAt = "2024-06-01T08:00:00Z",
+                    updatedAt = "2024-06-01T16:00:00Z",
+                ),
+            ),
+        )
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        dao.insertShift(
+            shiftEntity(
+                localId = "local-1",
+                syncStatus = SyncStatus.PENDING_CREATE,
+                startTime = startEpoch,
+                endTime = 1_716_259_200_000L,
+            ),
+        )
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        assertEquals(0, remote.inserts.size)
+        assertEquals("remote-existing", dao.getShiftById("local-1")!!.remoteId)
+    }
+
+    @Test
     fun `syncAll still pulls shifts when tasks table is missing`() = runTest {
         val dao = InMemoryShiftDao()
         val remote = FakeRemoteShiftDataSource(
@@ -284,6 +356,11 @@ class SyncRepositoryImplTest {
 
         override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteShiftRow> =
             rows.filter { sinceIso == null || it.updatedAt >= sinceIso }.take(limit)
+
+        override suspend fun findByUserAndStartTime(
+            userId: String,
+            startTimeIso: String,
+        ): RemoteShiftRow? = rows.firstOrNull { it.userId == userId && it.startTime == startTimeIso }
 
         override suspend fun insert(shift: RemoteShiftInsert): RemoteShiftRow {
             inserts += shift
@@ -544,6 +621,11 @@ class SyncRepositoryImplTest {
 
         override suspend fun getShiftByRemoteId(remoteId: String): ShiftEntity? =
             shifts.value.firstOrNull { it.remoteId == remoteId }
+
+        override suspend fun getShiftByStartTime(userId: String, startTime: Long): ShiftEntity? =
+            shifts.value.firstOrNull {
+                it.userId == userId && it.startTime == startTime && it.deletedAt == null
+            }
 
         override fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<ShiftEntity>> =
             shifts.map { list ->
