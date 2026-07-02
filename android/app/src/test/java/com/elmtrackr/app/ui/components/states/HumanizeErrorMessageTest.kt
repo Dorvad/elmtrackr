@@ -22,7 +22,7 @@ class HumanizeErrorMessageTest {
         assertEquals(expected, humanizeErrorMessage("Unknown error"))
         assertEquals(expected, humanizeErrorMessage("NullPointerException"))
         assertEquals(expected, humanizeErrorMessage("kotlinx.serialization.MissingFieldException: field x"))
-        assertEquals(expected, humanizeErrorMessage("com.elmtrackr.app.SomeClass$Inner failed"))
+        assertEquals(expected, humanizeErrorMessage("com.elmtrackr.app.SomeClass\$Inner failed"))
     }
 
     @Test
