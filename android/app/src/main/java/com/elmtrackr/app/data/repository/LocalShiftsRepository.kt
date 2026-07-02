@@ -101,7 +101,7 @@ class LocalShiftsRepository @Inject constructor(
     }
 
     override suspend fun createManualShift(shift: Shift): Shift {
-        shiftDao.getShiftByStartTime(shift.userId, shift.startTime)?.let { existing ->
+        shiftDao.getShiftByStartTime(shift.userId, shift.startTime.toEpochMilli())?.let { existing ->
             return existing.toDomain()
         }
         val entity = shift.toEntity(syncStatus = SyncStatus.PENDING_CREATE)

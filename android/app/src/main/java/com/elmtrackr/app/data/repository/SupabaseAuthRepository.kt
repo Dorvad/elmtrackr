@@ -16,6 +16,7 @@ import com.elmtrackr.app.domain.model.AuthResult
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.data.local.LocalUserDataCleaner
+import com.elmtrackr.app.di.ApplicationScope
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
@@ -23,11 +24,13 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emitAll
@@ -36,6 +39,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import java.time.Instant
@@ -49,6 +53,7 @@ class SupabaseAuthRepository @Inject constructor(
     private val localUserDataCleaner: LocalUserDataCleaner,
     private val authSessionCoordinator: AuthSessionCoordinator,
     private val syncTrigger: SyncTrigger,
+    @ApplicationScope private val applicationScope: CoroutineScope,
 ) : AuthRepository {
 
     private val onAuthenticated: suspend (String) -> Unit = authSessionCoordinator::onUserAuthenticated
@@ -69,12 +74,18 @@ class SupabaseAuthRepository @Inject constructor(
 
     override fun isConfigured(): Boolean = client != null
 
+    // Shared so the many ViewModels observing the profile drive a single
+    // session pipeline (one bootstrap, one Room observer) instead of one each.
+    private val currentProfile: Flow<Profile?> = buildCurrentProfileFlow()
+
+    override fun observeCurrentProfile(): Flow<Profile?> = currentProfile
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    override fun observeCurrentProfile(): Flow<Profile?> {
+    private fun buildCurrentProfileFlow(): Flow<Profile?> {
         val c = client ?: return flowOf(null)
         return c.auth.sessionStatus
             .filter { it !is SessionStatus.Initializing }
-            .flatMapLatest { status ->
+            .flatMapLatest<SessionStatus, Profile?> { status ->
                 when (status) {
                     is SessionStatus.Authenticated -> {
                         val user = status.session.user ?: return@flatMapLatest flowOf(null)
@@ -107,6 +118,14 @@ class SupabaseAuthRepository @Inject constructor(
                     else -> flowOf(null)
                 }
             }
+            .shareIn(
+                scope = applicationScope,
+                started = SharingStarted.WhileSubscribed(
+                    stopTimeoutMillis = 5_000,
+                    replayExpirationMillis = 0,
+                ),
+                replay = 1,
+            )
     }
 
     override suspend fun getCurrentProfile(): Profile? {

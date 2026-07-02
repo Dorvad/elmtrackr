@@ -18,6 +18,7 @@ class FakeAuthRepository : AuthRepository {
 
     var configured: Boolean = true
     var signInResult: AuthResult = AuthResult.Success
+    var signInSetsProfile: Boolean = true
     var signUpResult: AuthResult = AuthResult.Success
     var resetPasswordResult: AuthResult = AuthResult.Success
     var updatePasswordResult: AuthResult = AuthResult.Success
@@ -43,7 +44,7 @@ class FakeAuthRepository : AuthRepository {
     }
 
     override suspend fun signIn(email: String, password: String): AuthResult {
-        if (signInResult is AuthResult.Success) {
+        if (signInResult is AuthResult.Success && signInSetsProfile) {
             _profile.value = Profile(
                 id = "user-1",
                 email = email,

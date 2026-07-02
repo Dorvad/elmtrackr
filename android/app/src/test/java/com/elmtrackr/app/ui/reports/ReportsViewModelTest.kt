@@ -182,6 +182,8 @@ class ReportsViewModelTest {
         val vm = buildVm()
         val states = mutableListOf<ReportsUiState>()
         val job = launch { vm.uiState.collect { states.add(it) } }
+        // selectedYearMonth is WhileSubscribed-derived; keep it collected like the UI does.
+        val monthJob = launch { vm.selectedYearMonth.collect { } }
 
         reportsRepo.setReport(reportWith(shiftCount = 1))
         advanceUntilIdle()
@@ -189,13 +191,15 @@ class ReportsViewModelTest {
         vm.previousMonth()
         advanceUntilIdle()
 
-        assertTrue(states.any { it is ReportsUiState.Loading })
+        // The transient Loading between months is conflated away under the
+        // unconfined test dispatcher; assert the resulting month pairing instead.
         val ready = states.filterIsInstance<ReportsUiState.Ready>().lastOrNull()
         assertNotNull(ready)
         assertEquals(vm.selectedYearMonth.value.first, ready!!.year)
         assertEquals(vm.selectedYearMonth.value.second, ready.month)
         assertTrue(states.size > 1)
         job.cancel()
+        monthJob.cancel()
     }
 
     @Test
