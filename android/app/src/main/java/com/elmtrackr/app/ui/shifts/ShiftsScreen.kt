@@ -129,8 +129,8 @@ fun ShiftsScreen(
                     contentKey = { state ->
                         when (state) {
                             is ShiftsUiState.Loading -> "loading"
-                            is ShiftsUiState.Empty -> "empty"
-                            is ShiftsUiState.Ready -> "ready"
+                            is ShiftsUiState.Empty -> "empty-${state.month}"
+                            is ShiftsUiState.Ready -> "ready-${state.month}"
                             is ShiftsUiState.Error -> "error"
                         }
                     },
@@ -162,7 +162,7 @@ fun ShiftsScreen(
                                 shifts = emptyList(),
                                 activeShift = null,
                                 settings = null,
-                                month = selectedMonth,
+                                month = state.month,
                                 onPreviousMonth = viewModel::previousMonth,
                                 onNextMonth = viewModel::nextMonth,
                             )
@@ -183,7 +183,6 @@ fun ShiftsScreen(
 
                         is ShiftsUiState.Ready -> ShiftsListContent(
                             state = state,
-                            selectedMonth = selectedMonth,
                             onPreviousMonth = viewModel::previousMonth,
                             onNextMonth = viewModel::nextMonth,
                             onAddShift = viewModel::showCreateForm,
@@ -212,7 +211,6 @@ fun ShiftsScreen(
 @Composable
 private fun ShiftsListContent(
     state: ShiftsUiState.Ready,
-    selectedMonth: YearMonth,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onAddShift: () -> Unit,
@@ -221,14 +219,14 @@ private fun ShiftsListContent(
     val listItems = remember(
         state.shifts,
         state.activeShift,
-        selectedMonth,
+        state.month,
         state.settings,
         state.profiles,
     ) {
         buildShiftsLazyListItems(
             shifts = state.shifts,
             activeShift = state.activeShift,
-            month = selectedMonth,
+            month = state.month,
             settings = state.settings,
             profiles = state.profiles,
         )
@@ -248,7 +246,7 @@ private fun ShiftsListContent(
                 shifts = state.shifts,
                 activeShift = state.activeShift,
                 settings = state.settings,
-                month = selectedMonth,
+                month = state.month,
                 profiles = state.profiles,
                 onPreviousMonth = onPreviousMonth,
                 onNextMonth = onNextMonth,

@@ -29,6 +29,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
+import java.time.YearMonth
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ShiftsViewModelTest {
@@ -83,6 +84,52 @@ class ShiftsViewModelTest {
         advanceUntilIdle()
 
         assertTrue(states.any { it is ShiftsUiState.Empty })
+        job.cancel()
+    }
+
+    @Test
+    fun `empty state includes selected month`() = runTest {
+        val vm = buildVm()
+        advanceUntilIdle()
+
+        val empty = vm.uiState.value as ShiftsUiState.Empty
+        assertEquals(vm.selectedMonth.value, empty.month)
+    }
+
+    @Test
+    fun `ready state includes selected month`() = runTest {
+        shiftsRepo.setShifts(
+            Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z")),
+        )
+        val vm = buildVm()
+        advanceUntilIdle()
+
+        val ready = vm.uiState.value as ShiftsUiState.Ready
+        assertEquals(vm.selectedMonth.value, ready.month)
+    }
+
+    @Test
+    fun `month navigation emits loading while switching months`() = runTest {
+        seedSettings()
+        shiftsRepo.setShifts(
+            Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z")),
+        )
+        val vm = buildVm()
+        val states = mutableListOf<ShiftsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+        advanceUntilIdle()
+
+        vm.previousMonth()
+        advanceUntilIdle()
+
+        assertTrue(states.any { it is ShiftsUiState.Loading })
+        val latest = states.last()
+        assertTrue(latest is ShiftsUiState.Empty || latest is ShiftsUiState.Ready)
+        when (latest) {
+            is ShiftsUiState.Empty -> assertEquals(vm.selectedMonth.value, latest.month)
+            is ShiftsUiState.Ready -> assertEquals(vm.selectedMonth.value, latest.month)
+            else -> Unit
+        }
         job.cancel()
     }
 

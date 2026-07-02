@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
@@ -99,26 +100,33 @@ class ShiftsViewModel @Inject constructor(
                         month to settings
                     }.flatMapLatest { (month, settings) ->
                         val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.of("UTC")
-                        combine(
-                            shiftsRepository.observeShiftsByMonthInZone(
-                                userId,
-                                month.year,
-                                month.monthValue,
-                                zone,
-                            ),
-                            shiftsRepository.observeActiveShift(userId),
-                            compensationProfilesRepository.observeProfiles(userId),
-                            tasksRepository.observeAllTasks(userId),
-                        ) { shifts, activeShift, profiles, tasks ->
-                            if (shifts.isEmpty()) ShiftsUiState.Empty
-                            else ShiftsUiState.Ready(
-                                shifts = shifts,
-                                activeShift = activeShift,
-                                featuresTravelRefunds = settings?.featuresTravelRefunds ?: false,
-                                settings = settings,
-                                profiles = profiles,
-                                tasks = tasks,
-                            )
+                        flow {
+                            emit(ShiftsUiState.Loading)
+                            combine(
+                                shiftsRepository.observeShiftsByMonthInZone(
+                                    userId,
+                                    month.year,
+                                    month.monthValue,
+                                    zone,
+                                ),
+                                shiftsRepository.observeActiveShift(userId),
+                                compensationProfilesRepository.observeProfiles(userId),
+                                tasksRepository.observeAllTasks(userId),
+                            ) { shifts, activeShift, profiles, tasks ->
+                                if (shifts.isEmpty()) {
+                                    ShiftsUiState.Empty(month)
+                                } else {
+                                    ShiftsUiState.Ready(
+                                        month = month,
+                                        shifts = shifts,
+                                        activeShift = activeShift,
+                                        featuresTravelRefunds = settings?.featuresTravelRefunds ?: false,
+                                        settings = settings,
+                                        profiles = profiles,
+                                        tasks = tasks,
+                                    )
+                                }
+                            }.collect { emit(it) }
                         }
                     }
                 }
