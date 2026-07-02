@@ -7,6 +7,9 @@ supabase.url=
 # Your Supabase anon/public key
 supabase.anon.key=
 
+# Optional Sentry DSN for crash reporting. Leave blank to disable Sentry.
+# sentry.dsn=https://examplePublicKey@o0.ingest.sentry.io/0
+
 # --- Release signing (required for Play Store uploads) ---
 # Must match the upload key registered in Play Console (App integrity → App signing).
 # Verify with: keytool -list -v -keystore <path> -alias <alias>

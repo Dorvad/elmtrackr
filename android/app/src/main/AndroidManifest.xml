@@ -23,6 +23,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ElmTrackr">
 
+        <meta-data
+            android:name="io.sentry.auto-init"
+            android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
