@@ -61,8 +61,19 @@ class RefundClaimViewModel @Inject constructor(
 
     fun setShift(shift: Shift) {
         val previousShiftId = _uiState.value.shift?.id
-        updateShiftState(shift, isLoading = false)
-        if (previousShiftId == shift.id) return
+        if (previousShiftId == shift.id) {
+            updateShiftState(shift, isLoading = false)
+            return
+        }
+
+        dismissForm()
+        updateShiftState(shift, isLoading = true)
+        _uiState.update {
+            it.copy(
+                claims = emptyList(),
+                localReceiptsByClaimId = emptyMap(),
+            )
+        }
 
         claimsJob?.cancel()
         claimsJob = viewModelScope.launch {

@@ -28,4 +28,6 @@ interface RefundsRepository {
     suspend fun updateClaim(claim: RefundClaim): RefundClaim
 
     suspend fun deleteClaim(localId: String)
+
+    suspend fun deleteClaimsForShift(shiftLocalId: String)
 }

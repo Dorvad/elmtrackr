@@ -1468,7 +1468,10 @@ private fun RefundReview(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val eligible = remember(state.allShifts) { state.allShifts.filter(::isRefundEligible) }
-    val claims = state.refundClaims
+    val activeShiftIds = remember(state.allShifts) { state.allShifts.map { it.id }.toSet() }
+    val claims = remember(state.refundClaims, activeShiftIds) {
+        state.refundClaims.filter { it.shiftId in activeShiftIds }
+    }
     val currency = state.settings?.currency ?: CurrencyCode.ILS
     var exportingAll by rememberSaveable { mutableStateOf(false) }
     if (eligible.isEmpty()) {

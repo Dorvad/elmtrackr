@@ -512,12 +512,20 @@ function ClaimCard({
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!claim) return;
-    setProvider(claim.provider as RefundProvider);
-    setRideAt(toLocalDateTimeInput(claim.ride_at));
-    setNotes(claim.notes ?? "");
-    setAmount(String(claim.amount));
-  }, [claim]);
+    if (claim) {
+      setProvider(claim.provider as RefundProvider);
+      setRideAt(toLocalDateTimeInput(claim.ride_at));
+      setNotes(claim.notes ?? "");
+      setAmount(String(claim.amount));
+      return;
+    }
+    setProvider("Lime");
+    setRideAt(toLocalDateTimeInput(defaultTime));
+    setNotes("");
+    setAmount("");
+    setReceiptFile(null);
+    setShowForm(false);
+  }, [claim, defaultTime]);
 
   async function handleActionClick(action: Shift["refund_action"]) {
     if (!onActionChange) return;
@@ -878,6 +886,7 @@ export function RefundSection({ shift, onActionChange }: Props) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {toEligibility.eligible && (
           <ClaimCard
+            key={`${shift.id}-to_work`}
             direction="to_work" label="Ride to work"
             defaultTime={shift.start_time}
             eligibilityReasons={toEligibility.reasons}
@@ -889,6 +898,7 @@ export function RefundSection({ shift, onActionChange }: Props) {
         )}
         {fromEligibility.eligible && (
           <ClaimCard
+            key={`${shift.id}-from_work`}
             direction="from_work" label="Ride from work"
             defaultTime={shift.end_time ?? shift.start_time}
             eligibilityReasons={fromEligibility.reasons}
