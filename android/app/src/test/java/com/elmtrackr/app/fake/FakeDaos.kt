@@ -146,6 +146,22 @@ class FakeRefundClaimDao : RefundClaimDao {
         refresh()
     }
 
+    override suspend fun softDeleteClaimsForShift(
+        shiftLocalId: String,
+        deletedAt: Long,
+        syncStatus: SyncStatus,
+        updatedAt: Long,
+    ) {
+        store.replaceAll { _, value ->
+            if (value.shiftLocalId == shiftLocalId && value.deletedAt == null) {
+                value.copy(deletedAt = deletedAt, syncStatus = syncStatus, updatedAt = updatedAt)
+            } else {
+                value
+            }
+        }
+        refresh()
+    }
+
     override fun observePendingSyncClaims(userId: String): Flow<List<RefundClaimEntity>> =
         _flow.map { it.filter { e -> e.userId == userId && e.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE) } }
 
