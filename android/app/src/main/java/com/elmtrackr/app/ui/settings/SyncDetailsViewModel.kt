@@ -2,10 +2,12 @@ package com.elmtrackr.app.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.data.sync.BackupImportException
 import com.elmtrackr.app.data.sync.SyncDetails
 import com.elmtrackr.app.data.sync.SyncRepository
 import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.domain.repository.AuthRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +16,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -24,6 +27,7 @@ sealed interface SyncDetailsUiState {
         val details: SyncDetails,
         val isSyncing: Boolean,
         val isExporting: Boolean,
+        val isImporting: Boolean = false,
         val message: String? = null,
     ) : SyncDetailsUiState
     data class Error(val message: String) : SyncDetailsUiState
@@ -39,6 +43,7 @@ class SyncDetailsViewModel @Inject constructor(
 
     private val _isSyncing = MutableStateFlow(false)
     private val _isExporting = MutableStateFlow(false)
+    private val _isImporting = MutableStateFlow(false)
     private val _message = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<SyncDetailsUiState> = authRepository.observeCurrentProfile()
@@ -48,12 +53,14 @@ class SyncDetailsViewModel @Inject constructor(
                 syncRepository.observeSyncDetails(profile.id),
                 _isSyncing,
                 _isExporting,
+                _isImporting,
                 _message,
-            ) { details, syncing, exporting, message ->
+            ) { details, syncing, exporting, importing, message ->
                 SyncDetailsUiState.Ready(
                     details = details,
                     isSyncing = syncing,
                     isExporting = exporting,
+                    isImporting = importing,
                     message = message,
                 ) as SyncDetailsUiState
             }
@@ -94,6 +101,40 @@ class SyncDetailsViewModel @Inject constructor(
                     _message.value = error.message ?: "Could not export backup"
                 }
             _isExporting.value = false
+        }
+    }
+
+    /**
+     * [readJson] runs on a background dispatcher and should return the backup
+     * file's contents, or null when it can't be read.
+     */
+    fun importBackup(readJson: suspend () -> String?) {
+        viewModelScope.launch {
+            val userId = authRepository.getCurrentProfile()?.id ?: return@launch
+            _isImporting.value = true
+            _message.value = null
+            runCatching {
+                val json = withContext(Dispatchers.IO) { readJson() }
+                    ?: throw BackupImportException("Could not read the selected file.")
+                syncRepository.importLocalBackup(userId, json)
+            }
+                .onSuccess { summary ->
+                    _message.value = when {
+                        summary.importedTotal == 0 && summary.skipped > 0 ->
+                            "Nothing to import — everything in this backup already exists."
+                        summary.importedTotal == 0 -> "The backup contained no data to import."
+                        else -> buildString {
+                            append("Imported ${summary.importedTotal} items")
+                            if (summary.skipped > 0) append(" (${summary.skipped} already existed)")
+                            append(".")
+                        }
+                    }
+                    if (summary.importedTotal > 0) syncTrigger.schedule()
+                }
+                .onFailure { error ->
+                    _message.value = error.message ?: "Could not import backup"
+                }
+            _isImporting.value = false
         }
     }
 
