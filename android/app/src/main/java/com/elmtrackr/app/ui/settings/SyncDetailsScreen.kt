@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,6 +39,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+private const val MAX_BACKUP_IMPORT_BYTES = 25 * 1024 * 1024
+
 @Composable
 fun SyncDetailsScreen(
     onBack: () -> Unit,
@@ -62,10 +66,24 @@ fun SyncDetailsScreen(
                         viewModel.clearMessage()
                     }
                 }
+                val importPicker = rememberLauncherForActivityResult(
+                    ActivityResultContracts.OpenDocument(),
+                ) { uri ->
+                    if (uri != null) {
+                        viewModel.importBackup {
+                            context.contentResolver.openInputStream(uri)?.use { input ->
+                                input.readBytes()
+                                    .takeIf { it.size <= MAX_BACKUP_IMPORT_BYTES }
+                                    ?.toString(Charsets.UTF_8)
+                            }
+                        }
+                    }
+                }
                 SyncDetailsContent(
                     details = state.details,
                     isSyncing = state.isSyncing,
                     isExporting = state.isExporting,
+                    isImporting = state.isImporting,
                     message = state.message,
                     onBack = onBack,
                     onRetryAll = viewModel::retryAll,
@@ -74,6 +92,11 @@ fun SyncDetailsScreen(
                             val stamp = java.time.LocalDate.now().toString()
                             SyncBackupShare.shareJson(context, json, "elmtrackr-backup-$stamp.json")
                         }
+                    },
+                    onImportBackup = {
+                        // JSON backups often come back as text/* or octet-stream from
+                        // Drive and file managers; accept broad types and validate content.
+                        importPicker.launch(arrayOf("application/json", "text/*", "application/octet-stream"))
                     },
                 )
             }
@@ -86,10 +109,12 @@ internal fun SyncDetailsContent(
     details: SyncDetails,
     isSyncing: Boolean,
     isExporting: Boolean,
+    isImporting: Boolean,
     message: String?,
     onBack: () -> Unit,
     onRetryAll: () -> Unit,
     onExportBackup: () -> Unit,
+    onImportBackup: () -> Unit,
 ) {
     val formatter = DateTimeFormatter.ofPattern("MMM d, yyyy · HH:mm", Locale.getDefault())
 
@@ -187,6 +212,27 @@ internal fun SyncDetailsContent(
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "JSON snapshot of local tasks, shifts, claims, settings, and pay profiles for support.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = onImportBackup,
+                    enabled = !isSyncing && !isExporting && !isImporting,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (isImporting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(if (isImporting) "Importing…" else "Import local backup")
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Restore a previously exported backup file. Existing items are never overwritten.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

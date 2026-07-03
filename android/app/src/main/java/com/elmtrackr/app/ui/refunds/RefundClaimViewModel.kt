@@ -193,7 +193,29 @@ class RefundClaimViewModel @Inject constructor(
             return
         }
         _uiState.update { it.copy(camera = null, errorMessage = null) }
-        viewModelScope.launch { processReceiptImageFromPath(path) }
+        viewModelScope.launch {
+            // Move the capture out of the pending-photos directory (purged by the
+            // orphan cleanup worker) into permanent receipt storage before OCR.
+            val shift = _uiState.value.shift
+            val form = _uiState.value.form
+            if (shift == null || form == null) {
+                cleanupPendingPhoto(path)
+                return@launch
+            }
+            _uiState.update { it.copy(isProcessingReceipt = true, errorMessage = null) }
+            val stored = receiptImageStore.copyToLocalStorage(Uri.fromFile(file), shift.id, form.direction)
+            cleanupPendingPhoto(path)
+            if (stored == null) {
+                _uiState.update {
+                    it.copy(
+                        isProcessingReceipt = false,
+                        errorMessage = "The receipt photo could not be stored. Try again.",
+                    )
+                }
+                return@launch
+            }
+            processReceiptImageFromPath(stored.absolutePath)
+        }
     }
 
     fun photoCaptureFailed(message: String?) {
@@ -240,10 +262,6 @@ class RefundClaimViewModel @Inject constructor(
         updateReceiptReview { it.copy(currency = value.uppercase().take(3)) }
     }
 
-    fun updateReceiptReviewDate(millis: Long?) {
-        updateReceiptReview { it.copy(receiptDateMillis = millis) }
-    }
-
     fun saveReceiptReview() {
         val review = _uiState.value.receiptReview ?: return
         val form = _uiState.value.form ?: return
@@ -281,7 +299,8 @@ class RefundClaimViewModel @Inject constructor(
                         pendingPhotoPath = saved.localImageUri,
                         pendingPhotoName = file.name,
                         amountText = saved.amount?.toString() ?: it.amountText,
-                        rideAtMillis = saved.receiptDate?.toEpochMilli() ?: it.rideAtMillis,
+                        // rideAtMillis stays seeded from the shift start/end times;
+                        // the receipt date is stored as metadata only.
                         notes = buildNotesWithMerchant(it.notes, saved.merchantName),
                     )
                 }
@@ -500,7 +519,6 @@ class RefundClaimViewModel @Inject constructor(
                 pendingPhotoPath = receipt.localImageUri,
                 pendingPhotoName = file.name,
                 amountText = receipt.amount?.toString() ?: form.amountText,
-                rideAtMillis = receipt.receiptDate?.toEpochMilli() ?: form.rideAtMillis,
                 notes = buildNotesWithMerchant(form.notes, receipt.merchantName),
             )
         }

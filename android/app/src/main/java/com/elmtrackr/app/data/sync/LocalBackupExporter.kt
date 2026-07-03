@@ -11,7 +11,6 @@ import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.TaskEntity
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
@@ -35,6 +34,7 @@ object LocalBackupExporter {
         appVersion: String,
     ): String {
         val backup = LocalBackupDocument(
+            formatVersion = BACKUP_FORMAT_VERSION,
             exportedAt = Instant.now().toString(),
             userId = userId,
             appVersion = appVersion,
@@ -46,106 +46,7 @@ object LocalBackupExporter {
         )
         return json.encodeToString(backup)
     }
-
-    private fun TaskEntity.toBackupRow() = BackupRow(
-        localId = localId,
-        remoteId = remoteId,
-        syncStatus = syncStatus.name,
-        lastSyncError = lastSyncError,
-        lastSyncedAt = lastSyncedAt,
-        summary = name,
-        payload = mapOf(
-            "name" to name,
-            "icon" to icon,
-            "hourlyRate" to hourlyRate.toString(),
-            "isArchived" to isArchived.toString(),
-        ),
-    )
-
-    private fun ShiftEntity.toBackupRow() = BackupRow(
-        localId = localId,
-        remoteId = remoteId,
-        syncStatus = syncStatus.name,
-        lastSyncError = lastSyncError,
-        lastSyncedAt = lastSyncedAt,
-        summary = formatShiftSummary(startTime),
-        payload = mapOf(
-            "startTime" to startTime.toString(),
-            "endTime" to (endTime?.toString() ?: ""),
-            "breakMinutes" to breakMinutes.toString(),
-            "taskNameSnapshot" to (taskNameSnapshot ?: ""),
-        ),
-    )
-
-    private fun RefundClaimEntity.toBackupRow() = BackupRow(
-        localId = localId,
-        remoteId = remoteId,
-        syncStatus = syncStatus.name,
-        lastSyncError = lastSyncError,
-        lastSyncedAt = lastSyncedAt,
-        summary = "$direction · $amount",
-        payload = mapOf(
-            "shiftLocalId" to shiftLocalId,
-            "direction" to direction,
-            "amount" to amount.toString(),
-        ),
-    )
-
-    private fun UserSettingsEntity.toBackupRow() = BackupRow(
-        localId = localId,
-        remoteId = remoteId,
-        syncStatus = syncStatus.name,
-        lastSyncError = lastSyncError,
-        lastSyncedAt = lastSyncedAt,
-        summary = "User settings",
-        payload = mapOf(
-            "timezone" to timezone,
-            "currency" to currency,
-        ),
-    )
-
-    private fun CompensationProfileEntity.toBackupRow() = BackupRow(
-        localId = localId,
-        remoteId = remoteId,
-        syncStatus = syncStatus.name,
-        lastSyncError = lastSyncError,
-        lastSyncedAt = lastSyncedAt,
-        summary = name,
-        payload = mapOf(
-            "name" to name,
-            "currencyCode" to currencyCode,
-            "isDefault" to isDefault.toString(),
-        ),
-    )
-
-    private fun formatShiftSummary(startMillis: Long): String {
-        val zoned = Instant.ofEpochMilli(startMillis).atZone(ZoneOffset.UTC)
-        return DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").format(zoned) + " UTC"
-    }
 }
-
-@Serializable
-private data class LocalBackupDocument(
-    val exportedAt: String,
-    val userId: String,
-    val appVersion: String,
-    val tasks: List<BackupRow>,
-    val shifts: List<BackupRow>,
-    val refundClaims: List<BackupRow>,
-    val userSettings: List<BackupRow>,
-    val compensationProfiles: List<BackupRow>,
-)
-
-@Serializable
-private data class BackupRow(
-    val localId: String,
-    val remoteId: String? = null,
-    val syncStatus: String,
-    val lastSyncError: String? = null,
-    val lastSyncedAt: Long? = null,
-    val summary: String,
-    val payload: Map<String, String> = emptyMap(),
-)
 
 object SyncDetailsBuilder {
 

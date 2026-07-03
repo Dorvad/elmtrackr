@@ -46,6 +46,9 @@ fun AuroraScreen(
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = if (showMeshBackground) Color.Transparent else MaterialTheme.colorScheme.background,
+            // A transparent Surface can't derive a content color, so text without an
+            // explicit color (e.g. the Reports title) stays black in dark mode without this.
+            contentColor = MaterialTheme.colorScheme.onBackground,
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -94,6 +97,9 @@ fun AuroraListScreen(
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = if (showMeshBackground) Color.Transparent else MaterialTheme.colorScheme.background,
+            // A transparent Surface can't derive a content color, so text without an
+            // explicit color (e.g. the Reports title) stays black in dark mode without this.
+            contentColor = MaterialTheme.colorScheme.onBackground,
         ) {
             Box(
                 modifier = modifier

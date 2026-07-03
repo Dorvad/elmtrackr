@@ -153,6 +153,17 @@ class SyncRepositoryImpl @Inject constructor(
             appVersion = com.elmtrackr.app.BuildConfig.VERSION_NAME,
         )
 
+    override suspend fun importLocalBackup(userId: String, json: String): BackupImportSummary =
+        LocalBackupImporter.import(
+            rawJson = json,
+            currentUserId = userId,
+            taskDao = taskDao,
+            shiftDao = shiftDao,
+            refundClaimDao = refundClaimDao,
+            settingsDao = settingsDao,
+            compensationProfileDao = compensationProfileDao,
+        )
+
     override suspend fun hasPendingWork(userId: String): Boolean =
         shiftDao.hasPendingSyncShifts(userId) ||
             refundClaimDao.hasPendingSyncClaims(userId) ||

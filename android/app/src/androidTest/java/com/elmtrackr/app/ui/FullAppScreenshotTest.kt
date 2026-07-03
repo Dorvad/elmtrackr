@@ -247,10 +247,12 @@ class FullAppScreenshotTest {
             ),
             isSyncing = false,
             isExporting = false,
+            isImporting = false,
             message = null,
             onBack = {},
             onRetryAll = {},
             onExportBackup = {},
+            onImportBackup = {},
         )
     }
 
@@ -438,6 +440,8 @@ class FullAppScreenshotTest {
                 onClockStyleChange = {},
                 clockStylesEnabled = true,
                 onClockStylesEnabledChange = {},
+                reduceMotionEnabled = false,
+                onReduceMotionChange = {},
                 onBack = {},
                 onTheme = {},
             )

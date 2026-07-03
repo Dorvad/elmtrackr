@@ -214,10 +214,12 @@ class FullAppScreenshotJvmTest {
             ),
             isSyncing = false,
             isExporting = false,
+            isImporting = false,
             message = null,
             onBack = {},
             onRetryAll = {},
             onExportBackup = {},
+            onImportBackup = {},
         )
     }
 

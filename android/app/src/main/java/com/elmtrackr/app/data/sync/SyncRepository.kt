@@ -11,6 +11,7 @@ interface SyncRepository {
     suspend fun syncAll(userId: String): SyncResult
     suspend fun hasPendingWork(userId: String): Boolean
     suspend fun exportLocalBackup(userId: String): String
+    suspend fun importLocalBackup(userId: String, json: String): BackupImportSummary
     fun observePendingCount(userId: String): Flow<Int>
     fun observeSyncHealth(userId: String): Flow<SyncHealth>
     fun observeLastSyncStatus(): Flow<String?>

@@ -1,5 +1,6 @@
 package com.elmtrackr.app.fake
 
+import com.elmtrackr.app.data.sync.BackupImportSummary
 import com.elmtrackr.app.data.sync.SyncDetails
 import com.elmtrackr.app.data.sync.SyncDetailsBuilder
 import com.elmtrackr.app.data.sync.SyncHealth
@@ -32,6 +33,9 @@ class FakeSyncRepository : SyncRepository {
     override suspend fun hasPendingWork(userId: String): Boolean = health.value.pendingCount > 0
 
     override suspend fun exportLocalBackup(userId: String): String = """{"userId":"$userId"}"""
+
+    override suspend fun importLocalBackup(userId: String, json: String): BackupImportSummary =
+        BackupImportSummary()
 
     override fun observePendingCount(userId: String): Flow<Int> =
         flowOf(health.value.pendingCount)
