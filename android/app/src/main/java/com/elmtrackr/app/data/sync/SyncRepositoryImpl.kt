@@ -13,7 +13,13 @@ import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.TaskEntity
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
+import com.elmtrackr.app.data.local.dao.PremiumProfileDao
+import com.elmtrackr.app.data.local.entity.PremiumProfileEntity
 import com.elmtrackr.app.data.remote.RemoteCompensationProfileDataSource
+import com.elmtrackr.app.data.remote.RemotePremiumProfileDataSource
+import com.elmtrackr.app.data.remote.toLocalEntity
+import com.elmtrackr.app.data.remote.toRemoteInsert
+import com.elmtrackr.app.data.remote.toRemoteUpdate
 import com.elmtrackr.app.data.remote.RemoteProfileDataSource
 import com.elmtrackr.app.data.remote.RemoteRefundClaimDataSource
 import com.elmtrackr.app.data.remote.RemoteShiftDataSource
@@ -44,6 +50,7 @@ class SyncRepositoryImpl @Inject constructor(
     private val refundClaimDao: RefundClaimDao,
     private val settingsDao: SettingsDao,
     private val compensationProfileDao: CompensationProfileDao,
+    private val premiumProfileDao: PremiumProfileDao,
     private val taskDao: TaskDao,
     private val profileDao: ProfileDao,
     private val syncCursorStore: SyncCursorStore,
@@ -52,10 +59,11 @@ class SyncRepositoryImpl @Inject constructor(
     private val remoteRefundClaims: RemoteRefundClaimDataSource?,
     private val remoteSettings: RemoteUserSettingsDataSource?,
     private val remoteCompensationProfiles: RemoteCompensationProfileDataSource?,
+    private val remotePremiumProfiles: RemotePremiumProfileDataSource?,
     private val remoteProfiles: RemoteProfileDataSource?,
 ) : SyncRepository {
 
-    private val idMapper = SyncIdMapper(shiftDao, compensationProfileDao, taskDao)
+    private val idMapper = SyncIdMapper(shiftDao, compensationProfileDao, premiumProfileDao, taskDao)
     private val lastSyncStatus = MutableStateFlow<String?>(null)
     // syncAll can be invoked concurrently (WorkManager, auth bootstrap, manual retry);
     // without serialization two runs can push the same PENDING_CREATE row twice.
@@ -67,11 +75,13 @@ class SyncRepositoryImpl @Inject constructor(
         val claims: List<RefundClaimEntity>,
         val settings: List<UserSettingsEntity>,
         val profiles: List<CompensationProfileEntity>,
+        val premiumProfiles: List<PremiumProfileEntity>,
         val tasks: List<TaskEntity>,
         val userProfiles: List<ProfileEntity>,
     ) {
         val pendingCount: Int
-            get() = shifts.size + claims.size + settings.size + profiles.size + tasks.size +
+            get() = shifts.size + claims.size + settings.size + profiles.size + premiumProfiles.size +
+                tasks.size +
                 userProfiles.size
 
         val failedCount: Int
@@ -79,6 +89,7 @@ class SyncRepositoryImpl @Inject constructor(
                 claims.count { it.syncStatus == SyncStatus.FAILED } +
                 settings.count { it.syncStatus == SyncStatus.FAILED } +
                 profiles.count { it.syncStatus == SyncStatus.FAILED } +
+                premiumProfiles.count { it.syncStatus == SyncStatus.FAILED } +
                 tasks.count { it.syncStatus == SyncStatus.FAILED } +
                 userProfiles.count { it.syncStatus == SyncStatus.FAILED }
     }
@@ -90,13 +101,18 @@ class SyncRepositoryImpl @Inject constructor(
                 refundClaimDao.observePendingSyncClaims(userId),
                 settingsDao.observePendingSyncSettings(userId),
                 compensationProfileDao.observePendingSyncProfiles(userId),
-                taskDao.observePendingSyncTasks(userId),
-            ) { shifts, claims, settings, profiles, tasks ->
+                combine(
+                    premiumProfileDao.observePendingSyncProfiles(userId),
+                    taskDao.observePendingSyncTasks(userId),
+                ) { premiumProfiles, tasks -> premiumProfiles to tasks },
+            ) { shifts, claims, settings, profiles, premiumAndTasks ->
+                val (premiumProfiles, tasks) = premiumAndTasks
                 PendingSyncSnapshot(
                     shifts = shifts,
                     claims = claims,
                     settings = settings,
                     profiles = profiles,
+                    premiumProfiles = premiumProfiles,
                     tasks = tasks,
                     userProfiles = emptyList(),
                 )
@@ -169,12 +185,14 @@ class SyncRepositoryImpl @Inject constructor(
             refundClaimDao.hasPendingSyncClaims(userId) ||
             settingsDao.hasPendingSyncSettings(userId) ||
             compensationProfileDao.hasPendingSyncProfiles(userId) ||
+            premiumProfileDao.hasPendingSyncProfiles(userId) ||
             taskDao.hasPendingSyncTasks(userId) ||
             profileDao.hasPendingSyncProfiles(userId)
 
     override suspend fun syncAll(userId: String): SyncResult {
         if (remoteTasks == null || remoteShifts == null || remoteRefundClaims == null ||
-            remoteSettings == null || remoteCompensationProfiles == null || remoteProfiles == null
+            remoteSettings == null || remoteCompensationProfiles == null ||
+            remotePremiumProfiles == null || remoteProfiles == null
         ) {
             lastSyncStatus.value = "Not configured"
             return SyncResult.NotConfigured
@@ -196,12 +214,14 @@ class SyncRepositoryImpl @Inject constructor(
             runSyncStep("reconcile", errors) { reconcileNeverSynced(userId) }
             runSyncStep("push tasks", errors) { pushTasks(userId, warnings) }
             runSyncStep("push compensation profiles", errors) { pushCompensationProfiles(userId) }
+            runSyncStep("push premium profiles", errors) { pushPremiumProfiles(userId) }
             runSyncStep("push shifts", errors) { pushShifts(userId) }
             runSyncStep("push refund claims", errors) { pushRefundClaims(userId) }
             runSyncStep("push user settings", errors) { pushUserSettings(userId) }
             runSyncStep("push profiles", errors) { pushProfiles(userId) }
             runSyncStep("pull profiles", errors) { pullProfiles(userId) }
             runSyncStep("pull compensation profiles", errors) { pullCompensationProfiles(userId) }
+            runSyncStep("pull premium profiles", errors) { pullPremiumProfiles(userId) }
             runSyncStep("pull user settings", errors) { pullUserSettings(userId) }
             runSyncStep("pull shifts", errors) { pullShifts(userId) }
             runSyncStep("pull refund claims", errors) { pullRefundClaims(userId) }
@@ -448,6 +468,7 @@ class SyncRepositoryImpl @Inject constructor(
             val remote = remoteShifts!!.insert(
                 shift.toRemoteInsert(
                     compensationProfileRemoteId = idMapper.profileLocalToRemote(shift.compensationProfileId),
+                    premiumProfileRemoteId = idMapper.premiumProfileLocalToRemote(shift.premiumProfileId),
                     taskRemoteId = idMapper.taskLocalToRemote(shift.taskId),
                 ),
             )
@@ -469,6 +490,7 @@ class SyncRepositoryImpl @Inject constructor(
             remoteId,
             shift.toRemoteUpdate(
                 compensationProfileRemoteId = idMapper.profileLocalToRemote(shift.compensationProfileId),
+                premiumProfileRemoteId = idMapper.premiumProfileLocalToRemote(shift.premiumProfileId),
                 taskRemoteId = idMapper.taskLocalToRemote(shift.taskId),
             ),
         )
@@ -522,6 +544,7 @@ class SyncRepositoryImpl @Inject constructor(
                     remote.toLocalEntity(
                         existingLocalId = existing.localId,
                         compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
+                        premiumProfileLocalId = idMapper.premiumProfileRemoteToLocal(remote.premiumProfileId),
                         taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
                         syncStatus = SyncStatus.SYNCED,
                     ),
@@ -538,6 +561,7 @@ class SyncRepositoryImpl @Inject constructor(
                         remote.toLocalEntity(
                             existingLocalId = existingByStartTime.localId,
                             compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
+                            premiumProfileLocalId = idMapper.premiumProfileRemoteToLocal(remote.premiumProfileId),
                             taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
                             syncStatus = SyncStatus.SYNCED,
                         ),
@@ -563,6 +587,7 @@ class SyncRepositoryImpl @Inject constructor(
         shiftDao.insertShift(
             remote.toLocalEntity(
                 compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
+                premiumProfileLocalId = idMapper.premiumProfileRemoteToLocal(remote.premiumProfileId),
                 taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
             ),
         )
@@ -726,6 +751,79 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
+    // ── Premium profiles ────────────────────────────────────────────────────
+
+    private suspend fun pushPremiumProfiles(userId: String) {
+        val now = Instant.now().toEpochMilli()
+        for (profile in premiumProfileDao.getPendingSyncProfiles(userId)) {
+            runCatching {
+                when {
+                    profile.syncStatus == SyncStatus.SYNCED -> Unit
+                    profile.deletedAt != null -> pushPremiumProfileDelete(profile, now)
+                    profile.remoteId == null -> pushPremiumProfileCreate(profile, now)
+                    else -> pushPremiumProfileUpdate(profile, now)
+                }
+            }.onFailure { markPremiumProfileFailed(profile, it) }
+        }
+    }
+
+    private suspend fun pushPremiumProfileCreate(profile: PremiumProfileEntity, syncedAt: Long) {
+        val remote = remotePremiumProfiles!!.insert(profile.toRemoteInsert())
+        premiumProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
+    }
+
+    private suspend fun pushPremiumProfileUpdate(profile: PremiumProfileEntity, syncedAt: Long) {
+        val remoteId = profile.remoteId ?: error("Missing remoteId for premium profile ${profile.localId}")
+        remotePremiumProfiles!!.update(remoteId, profile.toRemoteUpdate())
+        premiumProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pushPremiumProfileDelete(profile: PremiumProfileEntity, syncedAt: Long) {
+        profile.remoteId?.let { remotePremiumProfiles!!.delete(it) }
+        premiumProfileDao.updateSyncState(
+            profile.localId, SyncStatus.SYNCED, profile.remoteId, syncedAt, null,
+        )
+    }
+
+    private suspend fun markPremiumProfileFailed(profile: PremiumProfileEntity, error: Throwable) {
+        premiumProfileDao.updateSyncState(
+            profile.localId, SyncStatus.FAILED, profile.remoteId, profile.lastSyncedAt, error.message,
+        )
+    }
+
+    private suspend fun pullPremiumProfiles(userId: String) {
+        val outcome = pullIncremental(
+            userId = userId,
+            entity = ENTITY_PREMIUM_PROFILES,
+            fetchPage = { since -> remotePremiumProfiles!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            updatedAtIso = { it.updatedAt },
+            remoteIdOf = { it.id },
+        ) { remote ->
+            val existing = premiumProfileDao.getByRemoteId(remote.id)
+            when {
+                existing == null -> premiumProfileDao.insert(remote.toLocalEntity())
+                existing.syncStatus != SyncStatus.SYNCED -> Unit
+                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                    premiumProfileDao.upsert(
+                        remote.toLocalEntity(existingLocalId = existing.localId),
+                    )
+            }
+            true
+        }
+
+        if (outcome.isFullSync && outcome.pulledAnyRows) {
+            val now = Instant.now().toEpochMilli()
+            premiumProfileDao.getAllProfilesForUser(userId)
+                .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
+                .filter { it.remoteId !in outcome.seenRemoteIds }
+                .forEach {
+                    premiumProfileDao.upsert(
+                        it.copy(isArchived = true, deletedAt = now, updatedAt = now, syncStatus = SyncStatus.SYNCED),
+                    )
+                }
+        }
+    }
+
     // ── User settings ─────────────────────────────────────────────────────────
 
     private suspend fun pushUserSettings(userId: String) {
@@ -859,6 +957,7 @@ class SyncRepositoryImpl @Inject constructor(
         const val ENTITY_SHIFTS = "shifts"
         const val ENTITY_REFUND_CLAIMS = "refund_claims"
         const val ENTITY_COMPENSATION_PROFILES = "compensation_profiles"
+        const val ENTITY_PREMIUM_PROFILES = "premium_profiles"
         const val ENTITY_USER_SETTINGS = "user_settings"
         const val ENTITY_PROFILES = "profiles"
         const val TASKS_TABLE_MISSING_WARNING =

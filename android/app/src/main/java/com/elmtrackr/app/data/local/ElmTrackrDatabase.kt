@@ -14,7 +14,9 @@ import com.elmtrackr.app.data.local.dao.ReceiptDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
+import com.elmtrackr.app.data.local.dao.PremiumProfileDao
 import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
+import com.elmtrackr.app.data.local.entity.PremiumProfileEntity
 import com.elmtrackr.app.data.local.entity.ProfileEntity
 import com.elmtrackr.app.data.local.entity.ReceiptEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
@@ -32,9 +34,10 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         RefundClaimEntity::class,
         ReceiptEntity::class,
         CompensationProfileEntity::class,
+        PremiumProfileEntity::class,
         TaskEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -48,6 +51,8 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
     abstract fun receiptDao(): ReceiptDao
 
     abstract fun compensationProfileDao(): CompensationProfileDao
+
+    abstract fun premiumProfileDao(): PremiumProfileDao
 
     abstract fun taskDao(): TaskDao
 
@@ -98,6 +103,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_7_8,
                     MIGRATION_8_9,
                     MIGRATION_9_10,
+                    MIGRATION_10_11,
                 )
                 .build()
         }
@@ -281,6 +287,38 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_receipts_userId ON receipts(userId)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_receipts_refundClaimId ON receipts(refundClaimId)")
+            }
+        }
+
+        internal val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS premium_profiles (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        multiplier REAL NOT NULL,
+                        premiumType TEXT NOT NULL,
+                        isDefault INTEGER NOT NULL,
+                        isArchived INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_premium_profiles_userId ON premium_profiles(userId)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_premium_profiles_userId_syncStatus " +
+                        "ON premium_profiles(userId, syncStatus)",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_premium_profiles_remoteId ON premium_profiles(remoteId)")
+                db.execSQL("ALTER TABLE shifts ADD COLUMN premiumProfileId TEXT")
             }
         }
     }

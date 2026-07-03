@@ -25,6 +25,7 @@ When changing the contract:
 | `shifts` | Time entries (core entity) |
 | `refund_claims` | Travel refund receipts per shift direction |
 | `compensation_profiles` | Named pay-rule profiles |
+| `premium_profiles` | Reusable shift premium multipliers and stacking types |
 | `tasks` | Paid-project tasks for clock-in (synced per user) |
 
 Full DDL: [`supabase/schema.sql`](../../supabase/schema.sql)
@@ -62,6 +63,7 @@ Full DDL: [`supabase/schema.sql`](../../supabase/schema.sql)
 | `break_minutes` | int | ≥ 0 | int |
 | `notes` | text | nullable | string? |
 | `is_special_day` | bool | | bool |
+| `premium_profile_id` | uuid | nullable FK → `premium_profiles.id` | string? |
 | `refund_action` | text | see RefundAction | `RefundAction.fromPersisted()` |
 | `compensation_profile_id` | uuid | nullable | string? |
 | `compensation_snapshot_json` | jsonb | snapshot at clock-out | JSON string in Room |
@@ -100,6 +102,30 @@ Unique: `(shift_id, direction)`
 | `stacking_policy` | text | `highest_only`, `additive` | `StackingPolicy` |
 | `effective_from` / `effective_until` | timestamptz | ISO-8601 | Instant |
 | `is_default` / `is_archived` | bool | | bool |
+
+---
+
+## `premium_profiles`
+
+| Column | Type | Wire format | Android |
+|--------|------|-------------|---------|
+| `name` | text | non-empty | string |
+| `multiplier` | numeric | e.g. `1.5` = 150% | double |
+| `premium_type` | text | see PremiumType | `PremiumType.fromPersisted()` |
+| `is_default` / `is_archived` | bool | | bool |
+
+### PremiumType (wire → Android)
+
+| Wire value | Android |
+|------------|---------|
+| `highest_only` | `HIGHEST_ONLY` |
+| `additive` | `ADDITIVE` |
+| `multiplicative` | `MULTIPLICATIVE` |
+| `base_plus_premium` | `BASE_PLUS_PREMIUM` |
+| `premium_in_regular_rate` | `PREMIUM_IN_REGULAR_RATE` |
+| `excluded_from_regular_rate` | `EXCLUDED_FROM_REGULAR_RATE` |
+
+Default profile: name `"Premium"`, multiplier `1.5`, type `highest_only`.
 
 ---
 

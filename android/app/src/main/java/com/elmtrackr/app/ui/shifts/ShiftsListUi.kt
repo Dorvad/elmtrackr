@@ -498,14 +498,14 @@ internal fun ShiftRow(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
-                if (rowDisplay.weekend || rowDisplay.hasOt || shift.isSpecialDay) {
+                if (rowDisplay.weekend || rowDisplay.hasOt || shift.isSpecialDay || shift.premiumProfileId != null) {
                     Row(
                         modifier = Modifier.padding(top = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        if (rowDisplay.weekend || shift.isSpecialDay) {
+                        if (rowDisplay.weekend || shift.isSpecialDay || shift.premiumProfileId != null) {
                             ShiftTypeBadge(
-                                label = if (shift.isSpecialDay) "HOLIDAY" else "WEEKEND",
+                                label = if (shift.premiumProfileId != null || shift.isSpecialDay) "PREMIUM" else "WEEKEND",
                                 background = auroraWeekendBackground(),
                                 color = MaterialTheme.colorScheme.secondary,
                             )

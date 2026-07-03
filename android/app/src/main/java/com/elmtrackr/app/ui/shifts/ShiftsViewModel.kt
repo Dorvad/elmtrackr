@@ -3,6 +3,7 @@ package com.elmtrackr.app.ui.shifts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
+import com.elmtrackr.app.data.repository.PremiumProfilesRepository
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.RefundPolicy
@@ -48,6 +49,7 @@ class ShiftsViewModel @Inject constructor(
     private val shiftsRepository: ShiftsRepository,
     private val settingsRepository: SettingsRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
+    private val premiumProfilesRepository: PremiumProfilesRepository,
     private val tasksRepository: TasksRepository,
     private val currentUserProvider: CurrentUserProvider,
     private val refundsRepository: RefundsRepository,
@@ -111,8 +113,9 @@ class ShiftsViewModel @Inject constructor(
                                 ),
                                 shiftsRepository.observeActiveShift(userId),
                                 compensationProfilesRepository.observeProfiles(userId),
+                                premiumProfilesRepository.observeProfiles(userId),
                                 tasksRepository.observeAllTasks(userId),
-                            ) { shifts, activeShift, profiles, tasks ->
+                            ) { shifts, activeShift, profiles, premiumProfiles, tasks ->
                                 if (shifts.isEmpty()) {
                                     ShiftsUiState.Empty(month)
                                 } else {
@@ -123,6 +126,7 @@ class ShiftsViewModel @Inject constructor(
                                         featuresTravelRefunds = settings?.featuresTravelRefunds ?: false,
                                         settings = settings,
                                         profiles = profiles,
+                                        premiumProfiles = premiumProfiles,
                                         tasks = tasks,
                                     )
                                 }
@@ -186,6 +190,7 @@ class ShiftsViewModel @Inject constructor(
             val userId = currentUserProvider.currentUserId() ?: return@launch
             val settings = settingsRepository.getSettings(userId) ?: return@launch
             compensationProfilesRepository.ensureMigrated(userId)
+            premiumProfilesRepository.ensureDefaults(userId)
             val profiles = compensationProfilesRepository.getProfiles(userId)
             val now = Instant.now()
             var shift = Shift(
@@ -195,7 +200,8 @@ class ShiftsViewModel @Inject constructor(
                 endTime = input.endTime,
                 breakMinutes = input.breakMinutes,
                 notes = input.notes.ifBlank { null },
-                isSpecialDay = input.isSpecialDay,
+                isSpecialDay = input.premiumProfileId != null,
+                premiumProfileId = input.premiumProfileId,
                 refundAction = input.refundAction,
                 compensationProfileId = input.compensationProfileId ?: settings.defaultCompensationProfileId,
                 createdAt = now,
@@ -230,7 +236,8 @@ class ShiftsViewModel @Inject constructor(
                 endTime = input.endTime,
                 breakMinutes = input.breakMinutes,
                 notes = input.notes.ifBlank { null },
-                isSpecialDay = input.isSpecialDay,
+                isSpecialDay = input.premiumProfileId != null,
+                premiumProfileId = input.premiumProfileId,
                 refundAction = existing.refundAction,
                 compensationProfileId = input.compensationProfileId ?: existing.compensationProfileId,
                 updatedAt = Instant.now(),
@@ -240,6 +247,7 @@ class ShiftsViewModel @Inject constructor(
                 updated.endTime != existing.endTime ||
                 updated.breakMinutes != existing.breakMinutes ||
                 updated.isSpecialDay != existing.isSpecialDay ||
+                updated.premiumProfileId != existing.premiumProfileId ||
                 updated.compensationProfileId != existing.compensationProfileId ||
                 updated.taskId != existing.taskId ||
                 updated.taskHourlyRateSnapshot != existing.taskHourlyRateSnapshot

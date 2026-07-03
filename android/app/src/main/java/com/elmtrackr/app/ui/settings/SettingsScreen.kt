@@ -52,6 +52,7 @@ internal enum class SettingsDestination {
     HELP,
     SECURITY,
     COMPENSATION,
+    PREMIUM,
     TASKS,
     TERMS,
     SYNC_DETAILS,
@@ -59,7 +60,7 @@ internal enum class SettingsDestination {
 
 internal fun SettingsDestination.backDestination(): SettingsDestination? = when (this) {
     SettingsDestination.HUB -> null
-    SettingsDestination.COMPENSATION, SettingsDestination.TASKS -> SettingsDestination.PAY
+    SettingsDestination.COMPENSATION, SettingsDestination.PREMIUM, SettingsDestination.TASKS -> SettingsDestination.PAY
     SettingsDestination.TERMS, SettingsDestination.SYNC_DETAILS -> SettingsDestination.HELP
     else -> SettingsDestination.HUB
 }
@@ -70,13 +71,14 @@ internal fun SettingsDestination.motionOrder(): Int = when (this) {
     SettingsDestination.PROFILE -> 1
     SettingsDestination.PAY -> 2
     SettingsDestination.COMPENSATION -> 3
-    SettingsDestination.TASKS -> 4
-    SettingsDestination.APPEARANCE -> 5
-    SettingsDestination.FEATURES -> 6
-    SettingsDestination.HELP -> 7
-    SettingsDestination.TERMS -> 8
-    SettingsDestination.SYNC_DETAILS -> 9
-    SettingsDestination.SECURITY -> 10
+    SettingsDestination.PREMIUM -> 4
+    SettingsDestination.TASKS -> 5
+    SettingsDestination.APPEARANCE -> 6
+    SettingsDestination.FEATURES -> 7
+    SettingsDestination.HELP -> 8
+    SettingsDestination.TERMS -> 9
+    SettingsDestination.SYNC_DETAILS -> 10
+    SettingsDestination.SECURITY -> 11
 }
 
 @Composable
@@ -106,6 +108,9 @@ fun SettingsScreen(
         when (dest) {
             SettingsDestination.COMPENSATION -> {
                 CompensationSettingsScreen(onBack = { destination = SettingsDestination.PAY })
+            }
+            SettingsDestination.PREMIUM -> {
+                PremiumProfilesScreen(onBack = { destination = SettingsDestination.PAY })
             }
             SettingsDestination.TASKS -> {
                 com.elmtrackr.app.ui.tasks.TaskManagementScreen(onBack = { destination = SettingsDestination.PAY })
@@ -323,6 +328,7 @@ private fun SettingsFormHost(
                 onTimezoneChange = { timezone = it },
                 onBack = onNavigateBack,
                 onOpenCompensation = { onNavigate(SettingsDestination.COMPENSATION) },
+                onOpenPremiumProfiles = { onNavigate(SettingsDestination.PREMIUM) },
                 onOpenTasks = { onNavigate(SettingsDestination.TASKS) },
             )
             SettingsDestination.APPEARANCE -> AppearanceDetailScreen(

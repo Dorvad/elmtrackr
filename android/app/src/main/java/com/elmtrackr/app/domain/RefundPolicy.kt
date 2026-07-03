@@ -28,7 +28,7 @@ object RefundPolicy {
         if ((hour == 23 && minute >= 30) || hour < 10) reasons += "Late night / early morning start"
         if (jsDay == 5 && hour >= 17) reasons += "Friday night shift"
         if (jsDay == 6) reasons += "Saturday shift"
-        if (shift.isSpecialDay) reasons += "Holiday shift"
+        if (shift.isSpecialDay || shift.premiumProfileId != null) reasons += "Premium shift"
 
         return Eligibility(reasons.isNotEmpty(), reasons)
     }
@@ -48,7 +48,7 @@ object RefundPolicy {
         if ((hour == 23 && minute >= 30) || hour < 10) reasons += "Late night / early morning shift"
         if (jsDay == 5 && hour >= 17) reasons += "Friday night shift"
         if (jsDay == 6) reasons += "Saturday shift"
-        if (shift.isSpecialDay) reasons += "Holiday shift"
+        if (shift.isSpecialDay || shift.premiumProfileId != null) reasons += "Premium shift"
 
         return Eligibility(reasons.isNotEmpty(), reasons)
     }

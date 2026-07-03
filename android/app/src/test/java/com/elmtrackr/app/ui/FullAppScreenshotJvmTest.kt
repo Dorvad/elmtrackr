@@ -330,7 +330,7 @@ class FullAppScreenshotJvmTest {
             )
             SettingsDestination.PAY -> PayDetailScreen(
                 state, "50.0", {}, CurrencyCode.ILS, {}, "8", {}, "40", {}, listOf(5, 6), {},
-                "Asia/Jerusalem", {}, {}, {}, {},
+                "Asia/Jerusalem", {}, {}, {}, {}, {},
             )
             SettingsDestination.APPEARANCE -> AppearanceDetailScreen(
                 state, ClockStyle.MINIMAL, {}, true, {}, false, {}, {}, {},

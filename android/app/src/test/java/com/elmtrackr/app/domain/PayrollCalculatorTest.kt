@@ -4,6 +4,8 @@ import com.elmtrackr.app.domain.compensation.RegionPresets
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.OvertimeTier
+import com.elmtrackr.app.domain.model.PremiumProfile
+import com.elmtrackr.app.domain.model.PremiumType
 import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.domain.model.Shift
@@ -126,6 +128,27 @@ class PayrollCalculatorTest {
         val bd = PayrollCalculator.calculateShiftPay(s, defaultSettings)!!
         assertTrue(bd.isSpecial)
         assertEquals(1.5, bd.brackets[0].rate, 0.0)
+    }
+
+    @Test
+    fun `calculateShiftPay - premium profile applies configured multiplier`() {
+        val premium = PremiumProfile(
+            id = "prem-1",
+            userId = "u1",
+            name = "Holiday",
+            multiplier = 1.5,
+            premiumType = PremiumType.HIGHEST_ONLY,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        val s = shift("2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z").copy(
+            premiumProfileId = "prem-1",
+            isSpecialDay = true,
+        )
+        val bd = PayrollCalculator.calculateShiftPay(s, defaultSettings, premiumProfiles = listOf(premium))!!
+        assertTrue(bd.isSpecial)
+        assertEquals(1.5, bd.brackets[0].rate, 0.0)
+        assertTrue(bd.brackets[0].label.contains("Premium"))
     }
 
     @Test
