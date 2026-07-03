@@ -604,6 +604,12 @@ class SyncRepositoryImplTest {
         override suspend fun updateClaim(claim: RefundClaimEntity) = Unit
         override suspend fun upsertClaim(claim: RefundClaimEntity) = Unit
         override suspend fun softDeleteClaim(localId: String, deletedAt: Long, syncStatus: SyncStatus, updatedAt: Long) = Unit
+        override suspend fun softDeleteClaimsForShift(
+            shiftLocalId: String,
+            deletedAt: Long,
+            syncStatus: SyncStatus,
+            updatedAt: Long,
+        ) = Unit
         override fun observePendingSyncClaims(userId: String): Flow<List<RefundClaimEntity>> = emptyFlow()
         override suspend fun getPendingSyncClaims(userId: String): List<RefundClaimEntity> = emptyList()
         override suspend fun hasPendingSyncClaims(userId: String): Boolean = false
