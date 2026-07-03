@@ -1,5 +1,6 @@
 package com.elmtrackr.app.data.sync
 
+import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.PremiumProfileDao
 import com.elmtrackr.app.data.local.entity.PremiumProfileEntity
 import com.elmtrackr.app.data.remote.RemotePremiumProfileDataSource

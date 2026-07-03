@@ -9,6 +9,7 @@ import com.elmtrackr.app.domain.model.PayBracket
 import com.elmtrackr.app.domain.model.ResolvedCompensation
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.ShiftPayBreakdown
+import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.PremiumType
 import com.elmtrackr.app.domain.premium.PremiumStacking

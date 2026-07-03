@@ -1,5 +1,6 @@
 package com.elmtrackr.app.di
 
+import com.elmtrackr.app.data.repository.LocalCompensationProfilesRepository
 import com.elmtrackr.app.data.repository.LocalPremiumProfilesRepository
 import com.elmtrackr.app.data.repository.PremiumProfilesRepository
 import com.elmtrackr.app.data.repository.LocalRefundsRepository

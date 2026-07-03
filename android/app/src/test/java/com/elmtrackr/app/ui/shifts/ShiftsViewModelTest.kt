@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.shifts
 
+import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakePremiumProfilesRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeCurrentUserProvider
@@ -9,6 +10,7 @@ import com.elmtrackr.app.fake.FakeShiftsRepository
 import com.elmtrackr.app.fake.FakeTasksRepository
 import com.elmtrackr.app.domain.compensation.RegionPresets
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.ReceiptUpload
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.RefundDirection
@@ -316,7 +318,7 @@ class ShiftsViewModelTest {
     fun `validation rejects equal start and end time`() {
         val vm = buildVm()
         val t = Instant.parse("2024-01-08T09:00:00Z")
-        val input = ShiftFormInput(t, t, 0, "", false, null)
+        val input = ShiftFormInput(t, t, 0, "", null, null)
         val errors = vm.validate(input)
         assertTrue(errors.containsKey("endTime"))
     }

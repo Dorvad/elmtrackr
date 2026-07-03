@@ -5,6 +5,7 @@ import com.elmtrackr.app.data.auth.AuthSessionCoordinator
 import com.elmtrackr.app.data.auth.SessionBootstrapGate
 import com.elmtrackr.app.data.auth.SupabaseClientProvider
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
+import com.elmtrackr.app.data.remote.RemoteCompensationProfileDataSource
 import com.elmtrackr.app.data.remote.SupabaseCompensationProfilesDataSource
 import com.elmtrackr.app.data.remote.SupabaseProfilesDataSource
 import com.elmtrackr.app.data.remote.SupabaseRefundClaimsDataSource
