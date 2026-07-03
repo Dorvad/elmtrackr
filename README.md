@@ -1,58 +1,52 @@
-# ElmTrackr
+# ElmTrackr iOS Port
 
-Shift tracking and payroll insights for hourly workers — **native Android** with offline-first sync to Supabase.
+This local repository is for converting the existing native Android ElmTrackr app into an iOS app.
 
-> **Product direction (June 2026):** Android leads development. The Next.js web app is frozen. See [ANDROID_FIRST.md](./ANDROID_FIRST.md).
+The Android app remains useful as the reference implementation, but new iOS app code should live under `ios/`. Do not change Android files, Supabase migrations, or Xcode project files unless a task specifically asks for that.
 
-## Quick start (Android)
+## iOS Starter
 
-```bash
-cd android
-cp local.properties.example local.properties   # add Supabase URL + anon key
-./gradlew :app:assembleDebug
-./gradlew testDebugUnitTest
+The first iOS module is a local Swift Package:
+
+```text
+ios/ElmTrackrCore
 ```
 
-Install: `adb install app/build/outputs/apk/debug/app-debug.apk`
+It exposes one public SwiftUI entry point:
 
-Full build, CI, Play Store, and architecture docs: **[android/README.md](./android/README.md)**
+```swift
+RootView()
+```
 
-## Repository layout
+A tiny Xcode iOS app shell can add this local package and show `RootView` from `ContentView.swift`.
+
+For setup details, start here:
+
+- [ios/README.md](./ios/README.md)
+- [ios/DAD_XCODE_SETUP.md](./ios/DAD_XCODE_SETUP.md)
+
+## Repository Layout
 
 | Path | Role |
 |------|------|
-| [`android/`](./android/) | **Active** — Kotlin + Jetpack Compose app |
-| [`supabase/`](./supabase/) | **Active** — Postgres schema and migrations |
-| [`android/docs/supabase-contract.md`](./android/docs/supabase-contract.md) | Canonical Supabase wire formats (owned by Android) |
-| [`app/`](./app/) | **Frozen** — legacy Next.js web UI ([ARCHIVED.md](./app/ARCHIVED.md)) |
-| [`.github/workflows/android.yml`](./.github/workflows/android.yml) | CI — debug APK + unit tests on every Android PR |
+| [`ios/`](./ios/) | New iOS app package and setup notes |
+| [`ios/ElmTrackrCore/`](./ios/ElmTrackrCore/) | Swift Package containing most future iOS app code |
+| [`android/`](./android/) | Existing native Android app, used as the reference implementation |
+| [`supabase/`](./supabase/) | Existing database schema and migrations |
+| [`app/`](./app/) | Frozen legacy Next.js web UI |
 
-## Default branch
+## Current iOS Status
 
-**`Main`** is the canonical GitHub default branch for this repository (Android + Supabase).
+The iOS package is intentionally small. It currently has:
 
-Feature branches should target `Main`. The legacy name `elmtrackr-android` may still appear in older docs or forks; treat **`Main`** as the source of truth for CI, releases, and PRs.
+- A buildable Swift Package named `ElmTrackrCore`
+- A public `RootView`
+- A native SwiftUI `TabView`
+- Placeholder tabs for Dashboard, Shifts, Reports, and Settings
 
-## Contributing
+Not added yet:
 
-1. Read [ANDROID_FIRST.md](./ANDROID_FIRST.md) before opening a PR.
-2. Target **`Main`** unless you have a specific reason not to.
-3. Schema or enum changes: update `supabase/migrations/`, `android/docs/supabase-contract.md`, and Android `fromPersisted()` parsers in the same PR.
-4. Web changes require the `android-approved` label — see the PR template.
-
-## Supabase
-
-Both clients share one Supabase project. Android is the source of truth for new schema and persisted value formats going forward.
-
-Local schema reference: [`supabase/schema.sql`](./supabase/schema.sql)
-
-## Web app (frozen)
-
-The web app under `app/` is not actively developed. It remains in the repo for reference. Do not add product features there without Android team approval.
-
-To run locally (reference only):
-
-```bash
-npm install
-npm run dev
-```
+- Supabase
+- Local persistence
+- Authentication
+- An `.xcodeproj`
