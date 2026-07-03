@@ -29,4 +29,8 @@ class FakeRefundsRepository : RefundsRepository {
         onDeleteClaim?.invoke(localId)
         claims.value = claims.value.filterNot { it.id == localId }
     }
+
+    override suspend fun deleteClaimsForShift(shiftLocalId: String) {
+        claims.value = claims.value.filterNot { it.shiftId == shiftLocalId }
+    }
 }

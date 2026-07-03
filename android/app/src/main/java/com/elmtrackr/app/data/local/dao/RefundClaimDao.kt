@@ -51,6 +51,17 @@ interface RefundClaimDao {
     )
 
     @Query(
+        "UPDATE refund_claims SET deletedAt = :deletedAt, syncStatus = :syncStatus, " +
+            "updatedAt = :updatedAt WHERE shiftLocalId = :shiftLocalId AND deletedAt IS NULL"
+    )
+    suspend fun softDeleteClaimsForShift(
+        shiftLocalId: String,
+        deletedAt: Long,
+        syncStatus: SyncStatus,
+        updatedAt: Long,
+    )
+
+    @Query(
         "SELECT * FROM refund_claims WHERE userId = :userId AND syncStatus IN " +
             "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')"
     )

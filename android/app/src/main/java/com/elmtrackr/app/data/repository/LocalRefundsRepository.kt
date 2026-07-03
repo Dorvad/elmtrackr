@@ -91,6 +91,17 @@ class LocalRefundsRepository @Inject constructor(
         syncTrigger.schedule()
     }
 
+    override suspend fun deleteClaimsForShift(shiftLocalId: String) {
+        val now = Instant.now().toEpochMilli()
+        refundClaimDao.softDeleteClaimsForShift(
+            shiftLocalId = shiftLocalId,
+            deletedAt = now,
+            syncStatus = SyncStatus.PENDING_DELETE,
+            updatedAt = now,
+        )
+        syncTrigger.schedule()
+    }
+
     private fun syncStatusForMutation(existing: RefundClaimEntity): SyncStatus = when {
         existing.syncStatus == SyncStatus.PENDING_CREATE -> SyncStatus.PENDING_CREATE
         existing.syncStatus == SyncStatus.PENDING_DELETE -> SyncStatus.PENDING_DELETE

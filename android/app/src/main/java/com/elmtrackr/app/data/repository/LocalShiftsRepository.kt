@@ -11,6 +11,7 @@ import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.domain.compensation.CompensationRulesCodec
 import com.elmtrackr.app.domain.model.CompensationSnapshot
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.time.WorkTimezone
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +26,7 @@ import javax.inject.Singleton
 @Singleton
 class LocalShiftsRepository @Inject constructor(
     private val shiftDao: ShiftDao,
+    private val refundsRepository: RefundsRepository,
     private val syncTrigger: SyncTrigger,
 ) : ShiftsRepository {
 
@@ -124,6 +126,7 @@ class LocalShiftsRepository @Inject constructor(
 
     override suspend fun deleteShift(localId: String) {
         val now = Instant.now().toEpochMilli()
+        refundsRepository.deleteClaimsForShift(localId)
         shiftDao.softDeleteShift(
             localId = localId,
             deletedAt = now,

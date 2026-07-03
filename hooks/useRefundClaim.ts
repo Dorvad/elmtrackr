@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RefundClaim, RefundDirection, RefundProvider } from "@/types";
 
@@ -22,14 +22,19 @@ export function useRefundClaim(shiftId: string) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<RefundDirection | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const shiftIdRef = useRef(shiftId);
+  shiftIdRef.current = shiftId;
 
   const load = useCallback(async () => {
+    const requestedShiftId = shiftId;
     setLoading(true);
     setError(null);
+    setClaims({ to_work: null, from_work: null });
     const { data, error: err } = await supabase
       .from("refund_claims")
       .select("*")
-      .eq("shift_id", shiftId);
+      .eq("shift_id", requestedShiftId);
+    if (requestedShiftId !== shiftIdRef.current) return;
     if (err) {
       setError(err.message);
     } else {
@@ -40,7 +45,7 @@ export function useRefundClaim(shiftId: string) {
       });
     }
     setLoading(false);
-  }, [shiftId]);
+  }, [shiftId, supabase]);
 
   useEffect(() => { load(); }, [load]);
 

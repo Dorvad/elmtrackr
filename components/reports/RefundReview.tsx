@@ -48,9 +48,6 @@ function MonthSection({ monthKey, shifts, allClaims, claimsLoading }: {
   claimsLoading: boolean;
 }) {
   const [year, month] = monthKey.split("-").map(Number);
-  const from = new Date(year, month - 1, 1).toISOString();
-  const to   = new Date(year, month,     1).toISOString();
-  const claims = allClaims.filter((c) => c.ride_at >= from && c.ride_at < to);
   const loading = claimsLoading;
   const { profile } = useProfile();
   const [exporting, setExporting] = useState(false);
@@ -58,6 +55,8 @@ function MonthSection({ monthKey, shifts, allClaims, claimsLoading }: {
   const eligibleShifts = shifts.filter(
     (s) => s.end_time && shiftMonthKey(s) === monthKey && checkRefundEligibility(s).eligible
   );
+  const monthShiftIds = new Set(eligibleShifts.map((s) => s.id));
+  const claims = allClaims.filter((c) => monthShiftIds.has(c.shift_id));
 
   const submitted    = eligibleShifts.filter((s) => s.refund_action === "submitted");
   const pending      = eligibleShifts.filter((s) => s.refund_action == null);
@@ -237,6 +236,8 @@ function MonthSection({ monthKey, shifts, allClaims, claimsLoading }: {
 
 export function RefundReview({ shifts, settings, profiles }: Props) {
   const { claims: allClaims, loading: claimsLoading } = useAllRefundClaims();
+  const shiftIds = new Set(shifts.map((s) => s.id));
+  const visibleClaims = allClaims.filter((c) => shiftIds.has(c.shift_id));
 
   const seen = new Set<string>();
   for (const s of shifts) {
@@ -262,12 +263,12 @@ export function RefundReview({ shifts, settings, profiles }: Props) {
     <div className="flex flex-col gap-4">
 
       {/* Analytics section — shown once claims are loaded */}
-      {!claimsLoading && allClaims.length > 0 && (
-        <RefundAnalytics claims={allClaims} shifts={shifts} settings={settings} profiles={profiles} />
+      {!claimsLoading && visibleClaims.length > 0 && (
+        <RefundAnalytics claims={visibleClaims} shifts={shifts} settings={settings} profiles={profiles} />
       )}
 
       {/* Divider before per-month breakdown */}
-      {allClaims.length > 0 && (
+      {visibleClaims.length > 0 && (
         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">
           Month by Month
         </h2>
@@ -294,7 +295,7 @@ export function RefundReview({ shifts, settings, profiles }: Props) {
 
       {/* Per-month sections */}
       {months.map((key) => (
-        <MonthSection key={key} monthKey={key} shifts={shifts} allClaims={allClaims} claimsLoading={claimsLoading} />
+        <MonthSection key={key} monthKey={key} shifts={shifts} allClaims={visibleClaims} claimsLoading={claimsLoading} />
       ))}
     </div>
   );
