@@ -14,6 +14,7 @@ data class Shift(
     val breakMinutes: Int = 0,
     val notes: String? = null,
     val isSpecialDay: Boolean = false,
+    val premiumProfileId: String? = null,
     val refundAction: RefundAction? = null,
     val compensationProfileId: String? = null,
     val compensationSnapshot: com.elmtrackr.app.domain.model.CompensationSnapshot? = null,

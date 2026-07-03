@@ -12,6 +12,7 @@ private val snapshotJson = Json { ignoreUnknownKeys = true }
 
 fun ShiftEntity.toRemoteInsert(
     compensationProfileRemoteId: String? = null,
+    premiumProfileRemoteId: String? = null,
     taskRemoteId: String? = null,
 ): RemoteShiftInsert = RemoteShiftInsert(
     userId = userId,
@@ -20,6 +21,7 @@ fun ShiftEntity.toRemoteInsert(
     breakMinutes = breakMinutes,
     notes = notes,
     isSpecialDay = isSpecialDay,
+    premiumProfileId = premiumProfileRemoteId,
     refundAction = refundAction?.let(::refundActionToWire),
     compensationProfileId = compensationProfileRemoteId,
     compensationSnapshotJson = compensationSnapshotJson?.toJsonElement(),
@@ -31,6 +33,7 @@ fun ShiftEntity.toRemoteInsert(
 
 fun ShiftEntity.toRemoteUpdate(
     compensationProfileRemoteId: String? = null,
+    premiumProfileRemoteId: String? = null,
     taskRemoteId: String? = null,
 ): RemoteShiftUpdate = RemoteShiftUpdate(
     startTime = epochToIso(startTime),
@@ -38,6 +41,7 @@ fun ShiftEntity.toRemoteUpdate(
     breakMinutes = breakMinutes,
     notes = notes,
     isSpecialDay = isSpecialDay,
+    premiumProfileId = premiumProfileRemoteId,
     refundAction = refundAction?.let(::refundActionToWire),
     compensationProfileId = compensationProfileRemoteId,
     compensationSnapshotJson = compensationSnapshotJson?.toJsonElement(),
@@ -50,6 +54,7 @@ fun ShiftEntity.toRemoteUpdate(
 fun RemoteShiftRow.toLocalEntity(
     existingLocalId: String? = null,
     compensationProfileLocalId: String? = compensationProfileId,
+    premiumProfileLocalId: String? = premiumProfileId,
     taskLocalId: String? = taskId,
     syncStatus: SyncStatus = SyncStatus.SYNCED,
 ): ShiftEntity {
@@ -64,6 +69,7 @@ fun RemoteShiftRow.toLocalEntity(
         breakMinutes = breakMinutes,
         notes = notes,
         isSpecialDay = isSpecialDay,
+        premiumProfileId = premiumProfileLocalId,
         refundAction = RefundAction.fromPersisted(refundAction)?.name,
         compensationProfileId = compensationProfileLocalId,
         compensationSnapshotJson = compensationSnapshotJson?.toSnapshotString(),

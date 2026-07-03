@@ -104,6 +104,7 @@ fun ShiftsScreen(
             ShiftFormContent(
                 navState = navState,
                 settings = (uiState as? ShiftsUiState.Ready)?.settings,
+                premiumProfiles = (uiState as? ShiftsUiState.Ready)?.premiumProfiles.orEmpty(),
                 profiles = (uiState as? ShiftsUiState.Ready)?.profiles.orEmpty(),
                 tasks = (uiState as? ShiftsUiState.Ready)?.tasks.orEmpty(),
                 errors = formErrors,
@@ -326,6 +327,7 @@ private fun ShiftsListContent(
 private fun ShiftFormContent(
     navState: ShiftFormNavState,
     settings: com.elmtrackr.app.domain.model.UserSettings?,
+    premiumProfiles: List<com.elmtrackr.app.domain.model.PremiumProfile>,
     profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
     tasks: List<com.elmtrackr.app.domain.model.Task>,
     errors: Map<String, String>,
@@ -347,7 +349,12 @@ private fun ShiftFormContent(
     var endMillis by rememberSaveable { mutableStateOf(defaultEnd.toEpochMilli()) }
     var breakMinutes by rememberSaveable { mutableStateOf(initialShift?.breakMinutes ?: 0) }
     var notesText by rememberSaveable { mutableStateOf(initialShift?.notes ?: "") }
-    var isSpecialDay by rememberSaveable { mutableStateOf(initialShift?.isSpecialDay ?: false) }
+    var premiumProfileId by rememberSaveable {
+        mutableStateOf(
+            initialShift?.premiumProfileId
+                ?: if (initialShift?.isSpecialDay == true) null else null,
+        )
+    }
     var compensationProfileId by rememberSaveable {
         mutableStateOf(initialShift?.compensationProfileId ?: settings?.defaultCompensationProfileId)
     }
@@ -416,8 +423,9 @@ private fun ShiftFormContent(
             onBreakMinutesChange = { breakMinutes = it },
             notesText = notesText,
             onNotesChange = { notesText = it },
-            isSpecialDay = isSpecialDay,
-            onSpecialDayChange = { isSpecialDay = it },
+            premiumProfileId = premiumProfileId,
+            onPremiumProfileIdChange = { premiumProfileId = it },
+            premiumProfiles = premiumProfiles,
             profiles = profiles,
             compensationProfileId = compensationProfileId,
             onCompensationProfileIdChange = { compensationProfileId = it },

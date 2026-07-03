@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.shifts
 
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
+import com.elmtrackr.app.fake.FakePremiumProfilesRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeCurrentUserProvider
 import com.elmtrackr.app.fake.FakeRefundsRepository
@@ -9,11 +10,13 @@ import com.elmtrackr.app.fake.FakeShiftsRepository
 import com.elmtrackr.app.fake.FakeTasksRepository
 import com.elmtrackr.app.domain.compensation.RegionPresets
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.ReceiptUpload
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
-import com.elmtrackr.app.domain.model.RegionCode
+import com.elmtrackr.app.domain.model.PremiumProfile
+import com.elmtrackr.app.domain.model.PremiumType
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.util.MainDispatcherRule
@@ -40,6 +43,7 @@ class ShiftsViewModelTest {
     private val shiftsRepo = FakeShiftsRepository()
     private val settingsRepo = FakeSettingsRepository()
     private val compensationRepo = FakeCompensationProfilesRepository()
+    private val premiumRepo = FakePremiumProfilesRepository()
     private val tasksRepo = FakeTasksRepository()
     private val currentUser = FakeCurrentUserProvider()
     private val refundsRepo = FakeRefundsRepository()
@@ -49,6 +53,7 @@ class ShiftsViewModelTest {
         shiftsRepo,
         settingsRepo,
         compensationRepo,
+        premiumRepo,
         tasksRepo,
         currentUser,
         refundsRepo,
@@ -184,7 +189,7 @@ class ShiftsViewModelTest {
             endTime = Instant.parse("2024-01-08T17:00:00Z"),
             breakMinutes = 30,
             notes = "Test shift",
-            isSpecialDay = false,
+            premiumProfileId = null,
             refundAction = null,
         )
         vm.createShift(input)
@@ -205,7 +210,7 @@ class ShiftsViewModelTest {
             endTime = Instant.parse("2024-01-08T17:00:00Z"),
             breakMinutes = 0,
             notes = "",
-            isSpecialDay = false,
+            premiumProfileId = null,
             refundAction = null,
         )
         vm.createShift(input)
@@ -219,6 +224,18 @@ class ShiftsViewModelTest {
     @Test
     fun `edit shift updates locally`() = runTest {
         seedSettings()
+        premiumRepo.setProfiles(
+            PremiumProfile(
+                id = "premium-1",
+                userId = "u1",
+                name = "Premium",
+                multiplier = 1.5,
+                premiumType = PremiumType.HIGHEST_ONLY,
+                isDefault = true,
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            ),
+        )
         val original = Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z"), breakMinutes = 0)
         shiftsRepo.setShifts(original)
         val vm = buildVm()
@@ -228,7 +245,7 @@ class ShiftsViewModelTest {
             endTime = original.endTime,
             breakMinutes = 45,
             notes = "Updated",
-            isSpecialDay = true,
+            premiumProfileId = "premium-1",
             refundAction = null,
         )
         vm.saveEditedShift("s1", input)
@@ -238,6 +255,7 @@ class ShiftsViewModelTest {
         assertEquals(45, saved.breakMinutes)
         assertEquals("Updated", saved.notes)
         assertTrue(saved.isSpecialDay)
+        assertEquals("premium-1", saved.premiumProfileId)
     }
 
     @Test
@@ -251,7 +269,7 @@ class ShiftsViewModelTest {
             endTime = null,
             breakMinutes = 0,
             notes = "",
-            isSpecialDay = false,
+            premiumProfileId = null,
             refundAction = null,
         )
         vm.saveEditedShift("s1", input)
@@ -289,7 +307,7 @@ class ShiftsViewModelTest {
             endTime = Instant.parse("2024-01-08T09:00:00Z"),
             breakMinutes = 0,
             notes = "",
-            isSpecialDay = false,
+            premiumProfileId = null,
             refundAction = null,
         )
         val errors = vm.validate(input)
@@ -300,7 +318,7 @@ class ShiftsViewModelTest {
     fun `validation rejects equal start and end time`() {
         val vm = buildVm()
         val t = Instant.parse("2024-01-08T09:00:00Z")
-        val input = ShiftFormInput(t, t, 0, "", false, null)
+        val input = ShiftFormInput(t, t, 0, "", null, null)
         val errors = vm.validate(input)
         assertTrue(errors.containsKey("endTime"))
     }
@@ -313,7 +331,7 @@ class ShiftsViewModelTest {
             endTime = Instant.parse("2024-01-09T06:00:00Z"),
             breakMinutes = 0,
             notes = "",
-            isSpecialDay = false,
+            premiumProfileId = null,
             refundAction = null,
         )
         val errors = vm.validate(input)
@@ -328,7 +346,7 @@ class ShiftsViewModelTest {
             endTime = Instant.parse("2024-01-08T17:00:00Z"),
             breakMinutes = -1,
             notes = "",
-            isSpecialDay = false,
+            premiumProfileId = null,
             refundAction = null,
         )
         val errors = vm.validate(input)
@@ -343,7 +361,7 @@ class ShiftsViewModelTest {
             endTime = null,
             breakMinutes = 0,
             notes = "",
-            isSpecialDay = false,
+            premiumProfileId = null,
             refundAction = null,
         )
         val errors = vm.validate(input)
@@ -360,7 +378,7 @@ class ShiftsViewModelTest {
             endTime = Instant.parse("2024-01-08T09:00:00Z"),
             breakMinutes = 0,
             notes = "",
-            isSpecialDay = false,
+            premiumProfileId = null,
             refundAction = null,
         )
         vm.createShift(input)
@@ -540,7 +558,7 @@ class ShiftsViewModelTest {
                 endTime = Instant.parse("2024-01-08T17:00:00Z"),
                 breakMinutes = 0,
                 notes = "",
-                isSpecialDay = false,
+                premiumProfileId = null,
                 refundAction = null,
                 compensationProfileId = "profile-b",
             ),
@@ -555,6 +573,7 @@ class ShiftsViewModelTest {
         userId = "local-user",
         startTime = Instant.parse("2024-01-08T12:00:00Z"),
         endTime = Instant.parse("2024-01-08T17:00:00Z"),
+        premiumProfileId = "premium-1",
         isSpecialDay = true,
     )
 }

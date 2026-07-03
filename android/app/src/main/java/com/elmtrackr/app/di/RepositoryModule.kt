@@ -1,6 +1,8 @@
 package com.elmtrackr.app.di
 
 import com.elmtrackr.app.data.repository.LocalCompensationProfilesRepository
+import com.elmtrackr.app.data.repository.LocalPremiumProfilesRepository
+import com.elmtrackr.app.data.repository.PremiumProfilesRepository
 import com.elmtrackr.app.data.repository.LocalRefundsRepository
 import com.elmtrackr.app.data.repository.LocalReportsRepository
 import com.elmtrackr.app.data.repository.LocalSettingsRepository
@@ -47,6 +49,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindTasksRepository(impl: LocalTasksRepository): TasksRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPremiumProfilesRepository(
+        impl: LocalPremiumProfilesRepository,
+    ): PremiumProfilesRepository
 
     @Binds
     @Singleton

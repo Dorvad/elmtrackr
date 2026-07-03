@@ -432,6 +432,7 @@ class FullAppScreenshotTest {
                 onTimezoneChange = {},
                 onBack = {},
                 onOpenCompensation = {},
+                onOpenPremiumProfiles = {},
                 onOpenTasks = {},
             )
             SettingsDestination.APPEARANCE -> AppearanceDetailScreen(

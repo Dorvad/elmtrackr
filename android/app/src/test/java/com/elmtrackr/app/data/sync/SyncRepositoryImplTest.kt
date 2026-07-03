@@ -1,6 +1,12 @@
 package com.elmtrackr.app.data.sync
 
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
+import com.elmtrackr.app.data.local.dao.PremiumProfileDao
+import com.elmtrackr.app.data.local.entity.PremiumProfileEntity
+import com.elmtrackr.app.data.remote.RemotePremiumProfileDataSource
+import com.elmtrackr.app.data.remote.RemotePremiumProfileInsert
+import com.elmtrackr.app.data.remote.RemotePremiumProfileRow
+import com.elmtrackr.app.data.remote.RemotePremiumProfileUpdate
 import com.elmtrackr.app.data.local.dao.ProfileDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
@@ -442,6 +448,7 @@ class SyncRepositoryImplTest {
         refundClaimDao = EmptyRefundClaimDao(),
         settingsDao = EmptySettingsDao(),
         compensationProfileDao = EmptyCompensationProfileDao(),
+        premiumProfileDao = EmptyPremiumProfileDao(),
         taskDao = EmptyTaskDao(),
         profileDao = profileDao,
         syncCursorStore = syncCursorStore,
@@ -450,6 +457,7 @@ class SyncRepositoryImplTest {
         remoteRefundClaims = EmptyRemoteRefundClaimDataSource(),
         remoteSettings = EmptyRemoteUserSettingsDataSource(),
         remoteCompensationProfiles = EmptyRemoteCompensationProfileDataSource(),
+        remotePremiumProfiles = EmptyRemotePremiumProfileDataSource(),
         remoteProfiles = remoteProfiles,
     )
 
@@ -643,6 +651,23 @@ class SyncRepositoryImplTest {
         override suspend fun markNeverSyncedPendingCreate(userId: String) = Unit
     }
 
+    private class EmptyPremiumProfileDao : PremiumProfileDao {
+        override fun observeProfiles(userId: String): Flow<List<PremiumProfileEntity>> = emptyFlow()
+        override suspend fun getByUser(userId: String): List<PremiumProfileEntity> = emptyList()
+        override suspend fun getByLocalId(localId: String): PremiumProfileEntity? = null
+        override suspend fun getById(userId: String, localId: String): PremiumProfileEntity? = null
+        override suspend fun getByRemoteId(remoteId: String): PremiumProfileEntity? = null
+        override suspend fun getPendingSyncProfiles(userId: String): List<PremiumProfileEntity> = emptyList()
+        override suspend fun hasPendingSyncProfiles(userId: String): Boolean = false
+        override fun observePendingSyncProfiles(userId: String): Flow<List<PremiumProfileEntity>> = emptyFlow()
+        override suspend fun getAllProfilesForUser(userId: String): List<PremiumProfileEntity> = emptyList()
+        override suspend fun upsert(profile: PremiumProfileEntity) = Unit
+        override suspend fun insert(profile: PremiumProfileEntity) = Unit
+        override suspend fun updateSyncState(localId: String, status: SyncStatus, remoteId: String?, syncedAt: Long?, error: String?) = Unit
+        override suspend fun clearDefaultForUser(userId: String) = Unit
+        override suspend fun deleteAllForUser(userId: String) = Unit
+    }
+
     private class EmptyTaskDao : TaskDao {
         override fun observeActiveTasks(userId: String): Flow<List<TaskEntity>> = emptyFlow()
         override fun observeAllTasks(userId: String): Flow<List<TaskEntity>> = emptyFlow()
@@ -723,6 +748,15 @@ class SyncRepositoryImplTest {
         override suspend fun insert(profile: RemoteCompensationProfileInsert): RemoteCompensationProfileRow =
             error("not used")
         override suspend fun update(remoteId: String, profile: RemoteCompensationProfileUpdate) = Unit
+        override suspend fun delete(remoteId: String) = Unit
+    }
+
+    private class EmptyRemotePremiumProfileDataSource : RemotePremiumProfileDataSource {
+        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemotePremiumProfileRow> =
+            emptyList()
+        override suspend fun insert(profile: RemotePremiumProfileInsert): RemotePremiumProfileRow =
+            error("not used")
+        override suspend fun update(remoteId: String, profile: RemotePremiumProfileUpdate) = Unit
         override suspend fun delete(remoteId: String) = Unit
     }
 

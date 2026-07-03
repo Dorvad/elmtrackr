@@ -63,6 +63,7 @@ import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
@@ -117,8 +118,9 @@ internal fun ShiftEditFormContent(
     onBreakMinutesChange: (Int) -> Unit,
     notesText: String,
     onNotesChange: (String) -> Unit,
-    isSpecialDay: Boolean,
-    onSpecialDayChange: (Boolean) -> Unit,
+    premiumProfileId: String?,
+    onPremiumProfileIdChange: (String?) -> Unit,
+    premiumProfiles: List<PremiumProfile>,
     profiles: List<CompensationProfile>,
     compensationProfileId: String?,
     onCompensationProfileIdChange: (String?) -> Unit,
@@ -141,7 +143,7 @@ internal fun ShiftEditFormContent(
     val selectedTask = activeTasks.firstOrNull { it.id == taskId }
 
     val unsavedCount = remember(
-        navState, startMillis, endMillis, hasEndTime, breakMinutes, notesText, isSpecialDay,
+        navState, startMillis, endMillis, hasEndTime, breakMinutes, notesText, premiumProfileId,
         compensationProfileId, taskId,
     ) {
         countUnsavedChanges(
@@ -151,7 +153,7 @@ internal fun ShiftEditFormContent(
             hasEndTime = hasEndTime,
             breakMinutes = breakMinutes,
             notesText = notesText,
-            isSpecialDay = isSpecialDay,
+            premiumProfileId = premiumProfileId,
             compensationProfileId = compensationProfileId,
             taskId = taskId,
         )
@@ -162,7 +164,7 @@ internal fun ShiftEditFormContent(
         endTime = if (hasEndTime) Instant.ofEpochMilli(endMillis) else null,
         breakMinutes = breakMinutes,
         notes = notesText,
-        isSpecialDay = isSpecialDay,
+        premiumProfileId = premiumProfileId,
         refundAction = initialShift?.refundAction,
         compensationProfileId = compensationProfileId,
         taskId = taskId,
@@ -228,9 +230,10 @@ internal fun ShiftEditFormContent(
                     endMillis = endMillis,
                     hasEndTime = hasEndTime,
                     breakMinutes = breakMinutes,
-                    isSpecialDay = isSpecialDay,
+                    premiumProfileId = premiumProfileId,
                     settings = settings,
                     profiles = profiles,
+                    premiumProfiles = premiumProfiles,
                     compensationProfileId = compensationProfileId,
                     selectedTask = selectedTask,
                     initialShift = initialShift,
@@ -310,7 +313,8 @@ internal fun ShiftEditFormContent(
                             startTime = previewStart,
                             endTime = previewEnd,
                             breakMinutes = breakMinutes,
-                            isSpecialDay = isSpecialDay,
+                            isSpecialDay = premiumProfileId != null,
+                            premiumProfileId = premiumProfileId,
                         )
                         val workedMin = if (previewEnd != null) {
                             ShiftDurationCalculator.grossMinutes(previewShift)
@@ -326,30 +330,19 @@ internal fun ShiftEditFormContent(
                     }
                 }
 
-                FormSectionCard(title = "BREAK & DAY TYPE") {
+                FormSectionCard(title = "BREAK & PREMIUM") {
                     BreakStepper(
                         minutes = breakMinutes,
                         onChange = onBreakMinutesChange,
                     )
                     errors["breakMinutes"]?.let { FormFieldError(it) }
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = Spacing.sm),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Holiday / Shabbat", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                            Text(
-                                "Higher-rate or special day",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(checked = isSpecialDay, onCheckedChange = onSpecialDayChange)
-                    }
+                    PremiumProfilePicker(
+                        profiles = premiumProfiles,
+                        selectedId = premiumProfileId,
+                        onSelect = onPremiumProfileIdChange,
+                        modifier = Modifier.padding(top = Spacing.sm),
+                    )
                 }
 
                 if (profiles.isNotEmpty() || activeTasks.isNotEmpty()) {
@@ -480,9 +473,10 @@ private fun LivePayPreviewCard(
     endMillis: Long,
     hasEndTime: Boolean,
     breakMinutes: Int,
-    isSpecialDay: Boolean,
+    premiumProfileId: String?,
     settings: UserSettings?,
     profiles: List<CompensationProfile>,
+    premiumProfiles: List<PremiumProfile>,
     compensationProfileId: String?,
     selectedTask: Task?,
     initialShift: Shift?,
@@ -498,7 +492,8 @@ private fun LivePayPreviewCard(
         startTime = previewStart,
         endTime = previewEnd,
         breakMinutes = breakMinutes,
-        isSpecialDay = isSpecialDay,
+        isSpecialDay = premiumProfileId != null,
+        premiumProfileId = premiumProfileId,
         compensationProfileId = compensationProfileId,
         taskId = selectedTask?.id,
         taskNameSnapshot = selectedTask?.name,
@@ -506,7 +501,7 @@ private fun LivePayPreviewCard(
         taskHourlyRateSnapshot = selectedTask?.hourlyRate,
     )
     val previewPay = settings?.let {
-        PayrollCalculator.calculateShiftPay(previewShift, it, profiles)
+        PayrollCalculator.calculateShiftPay(previewShift, it, profiles, premiumProfiles = premiumProfiles)
     } ?: return
 
     Card(
@@ -805,7 +800,7 @@ private fun countUnsavedChanges(
     hasEndTime: Boolean,
     breakMinutes: Int,
     notesText: String,
-    isSpecialDay: Boolean,
+    premiumProfileId: String?,
     compensationProfileId: String?,
     taskId: String?,
 ): Int {
@@ -820,7 +815,7 @@ private fun countUnsavedChanges(
         if (hasEndTime && kotlin.math.abs(endMillis - now.toEpochMilli()) > 60_000) count++
         if (breakMinutes > 0) count++
         if (notesText.isNotBlank()) count++
-        if (isSpecialDay) count++
+        if (premiumProfileId != null) count++
         if (compensationProfileId != null) count++
         if (taskId != null) count++
         return count
@@ -832,7 +827,7 @@ private fun countUnsavedChanges(
     if (hasEndTime && endMillis != (initial.endTime?.toEpochMilli() ?: 0L)) count++
     if (breakMinutes != initial.breakMinutes) count++
     if (notesText != (initial.notes ?: "")) count++
-    if (isSpecialDay != initial.isSpecialDay) count++
+    if (premiumProfileId != initial.premiumProfileId) count++
     if (compensationProfileId != initial.compensationProfileId) count++
     if (taskId != initial.taskId) count++
     return count

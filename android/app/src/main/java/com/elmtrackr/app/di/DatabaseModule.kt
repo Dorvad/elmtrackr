@@ -5,6 +5,7 @@ import com.elmtrackr.app.data.local.ElmTrackrDatabase
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.ProfileDao
 import com.elmtrackr.app.data.local.dao.ReceiptDao
+import com.elmtrackr.app.data.local.dao.PremiumProfileDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
@@ -43,6 +44,10 @@ object DatabaseModule {
     @Provides
     fun provideCompensationProfileDao(database: ElmTrackrDatabase): CompensationProfileDao =
         database.compensationProfileDao()
+
+    @Provides
+    fun providePremiumProfileDao(database: ElmTrackrDatabase): PremiumProfileDao =
+        database.premiumProfileDao()
 
     @Provides
     fun provideTaskDao(database: ElmTrackrDatabase): TaskDao = database.taskDao()

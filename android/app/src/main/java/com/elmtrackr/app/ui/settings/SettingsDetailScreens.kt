@@ -413,6 +413,7 @@ internal fun PayDetailScreen(
     onTimezoneChange: (String) -> Unit,
     onBack: () -> Unit,
     onOpenCompensation: () -> Unit,
+    onOpenPremiumProfiles: () -> Unit,
     onOpenTasks: () -> Unit,
 ) {
     LazyColumn(
@@ -427,6 +428,13 @@ internal fun PayDetailScreen(
                 title = "Compensation rules",
                 subtitle = "Region presets, overtime tiers, and premiums",
                 onClick = onOpenCompensation,
+            )
+        }
+        item {
+            SettingsNavRow(
+                title = "Premium profiles",
+                subtitle = "Custom multipliers for special shifts",
+                onClick = onOpenPremiumProfiles,
             )
         }
         item {
