@@ -349,12 +349,11 @@ private fun ShiftFormContent(
     var endMillis by rememberSaveable { mutableStateOf(defaultEnd.toEpochMilli()) }
     var breakMinutes by rememberSaveable { mutableStateOf(initialShift?.breakMinutes ?: 0) }
     var notesText by rememberSaveable { mutableStateOf(initialShift?.notes ?: "") }
-    var premiumProfileId by rememberSaveable {
-        mutableStateOf(
-            initialShift?.premiumProfileId
-                ?: if (initialShift?.isSpecialDay == true) null else null,
-        )
+    // rememberSaveable cannot persist null in a Bundle; use empty string for "no premium".
+    var premiumProfileIdRaw by rememberSaveable {
+        mutableStateOf(initialShift?.premiumProfileId.orEmpty())
     }
+    val premiumProfileId = premiumProfileIdRaw.takeIf { it.isNotEmpty() }
     var compensationProfileId by rememberSaveable {
         mutableStateOf(initialShift?.compensationProfileId ?: settings?.defaultCompensationProfileId)
     }
@@ -424,7 +423,7 @@ private fun ShiftFormContent(
             notesText = notesText,
             onNotesChange = { notesText = it },
             premiumProfileId = premiumProfileId,
-            onPremiumProfileIdChange = { premiumProfileId = it },
+            onPremiumProfileIdChange = { premiumProfileIdRaw = it.orEmpty() },
             premiumProfiles = premiumProfiles,
             profiles = profiles,
             compensationProfileId = compensationProfileId,
