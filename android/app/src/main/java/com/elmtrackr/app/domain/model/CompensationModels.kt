@@ -49,12 +49,18 @@ data class CompensationRules(
     val weeklyOvertimeTiers: List<OvertimeTier> = emptyList(),
     val weekendEnabled: Boolean = true,
     val weekendMultiplier: Double = 1.5,
+    /** Local time when weekly rest begins on the pre-rest day (e.g. Friday 17:00 before Shabbat). */
+    val weeklyRestStartTime: String? = null,
+    /** Daily OT threshold on the calendar day before weekly rest (e.g. Friday day shift). */
+    val dayBeforeRestDailyStandardMinutes: Int? = null,
     val weekendStacking: StackingPolicy = StackingPolicy.HIGHEST_ONLY,
     val holidayEnabled: Boolean = true,
     val holidayManualSpecialDayEnabled: Boolean = true,
     val holidayMultiplier: Double = 1.5,
     val holidayTiers: List<OvertimeTier>? = null,
     val holidayStacking: StackingPolicy = StackingPolicy.HIGHEST_ONLY,
+    /** When set and the shift is predominantly at night, daily OT uses this threshold instead of [dailyStandardMinutes]. */
+    val nightDailyStandardMinutes: Int? = null,
     val nightEnabled: Boolean = false,
     val nightStartTime: String = "22:00",
     val nightEndTime: String = "06:00",

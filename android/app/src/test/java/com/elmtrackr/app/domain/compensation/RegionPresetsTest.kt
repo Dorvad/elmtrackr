@@ -20,8 +20,13 @@ class RegionPresetsTest {
     fun `Israel preset uses 5-day week daily standard and weekly tiers`() {
         val il = RegionPresets.forRegion(RegionCode.IL).rules
         assertEquals(516, il.dailyStandardMinutes)
+        assertEquals(420, il.nightDailyStandardMinutes)
+        assertEquals(420, il.dayBeforeRestDailyStandardMinutes)
+        assertEquals("17:00", il.weeklyRestStartTime)
+        assertTrue(il.nightEnabled)
         assertEquals(2, il.weekendDays.size)
         assertTrue(il.weeklyOvertimeTiers.isNotEmpty())
+        assertEquals(null, il.holidayTiers)
     }
 
     @Test

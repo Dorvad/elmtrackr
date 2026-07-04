@@ -39,6 +39,8 @@ object CompensationRulesCodec {
             put("enabled", rules.weekendEnabled)
             put("days", JSONArray(rules.weekendDays))
             put("multiplier", rules.weekendMultiplier)
+            rules.weeklyRestStartTime?.let { put("restStartTime", it) }
+            rules.dayBeforeRestDailyStandardMinutes?.let { put("dayBeforeRestDailyStandardMinutes", it) }
             put("stacking", rules.weekendStacking.name.lowercase())
         })
         put("holiday", JSONObject().apply {
@@ -50,6 +52,7 @@ object CompensationRulesCodec {
         })
         put("night", JSONObject().apply {
             put("enabled", rules.nightEnabled)
+            rules.nightDailyStandardMinutes?.let { put("dailyStandardMinutes", it) }
             put("startTime", rules.nightStartTime)
             put("endTime", rules.nightEndTime)
             put("multiplier", rules.nightMultiplier)
@@ -96,6 +99,8 @@ object CompensationRulesCodec {
             weeklyOvertimeTiers = decodeTiers(overtime.optJSONArray("weeklyTiers")),
             weekendEnabled = weekend.optBoolean("enabled", true),
             weekendMultiplier = weekend.optDouble("multiplier", 1.5),
+            weeklyRestStartTime = weekend.optString("restStartTime").takeIf { it.isNotBlank() },
+            dayBeforeRestDailyStandardMinutes = weekend.optNullableInt("dayBeforeRestDailyStandardMinutes"),
             weekendStacking = weekend.optString("stacking", "highest_only").toStackingPolicy(),
             holidayEnabled = holiday.optBoolean("enabled", true),
             holidayManualSpecialDayEnabled = holiday.optBoolean("manualSpecialDayEnabled", true),
@@ -103,6 +108,7 @@ object CompensationRulesCodec {
             holidayTiers = holiday.optJSONArray("tiers")?.let { decodeTiers(it) },
             holidayStacking = holiday.optString("stacking", "highest_only").toStackingPolicy(),
             nightEnabled = night.optBoolean("enabled", false),
+            nightDailyStandardMinutes = night.optNullableInt("dailyStandardMinutes"),
             nightStartTime = night.optString("startTime", "22:00"),
             nightEndTime = night.optString("endTime", "06:00"),
             nightMultiplier = night.optDouble("multiplier", 1.25),

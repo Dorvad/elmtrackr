@@ -2,11 +2,13 @@ package com.elmtrackr.app.domain
 
 import com.elmtrackr.app.domain.compensation.COMPENSATION_ESTIMATE_NOTE
 import com.elmtrackr.app.domain.compensation.CompensationResolver
+import com.elmtrackr.app.domain.compensation.IsraeliCompensationEngine
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.PayBracket
 import com.elmtrackr.app.domain.model.ResolvedCompensation
+import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.ShiftPayBreakdown
 import com.elmtrackr.app.domain.model.StackingPolicy
@@ -31,9 +33,97 @@ object PayrollCalculator {
         profiles: List<CompensationProfile> = emptyList(),
         priorWeekMinutes: Int = 0,
         premiumProfiles: List<PremiumProfile> = emptyList(),
+        allShiftsInWeek: List<Shift> = emptyList(),
     ): ShiftPayBreakdown? {
         if (shift.endTime == null) return null
         val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+        if (resolved.regionCode == RegionCode.IL) {
+            return if (allShiftsInWeek.isNotEmpty()) {
+                IsraeliCompensationEngine.calculateIsraeliShiftPay(
+                    shift, allShiftsInWeek, settings, profiles, premiumProfiles,
+                )
+            } else {
+                calculateIsraeliShiftPayWithPriorRegularMinutes(
+                    shift, resolved, settings, profiles, priorWeekMinutes, premiumProfiles,
+                )
+            }
+        }
+        return calculateGenericShiftPay(
+            shift, settings, profiles, priorWeekMinutes, premiumProfiles, resolved,
+        )
+    }
+
+    private fun calculateIsraeliShiftPayWithPriorRegularMinutes(
+        shift: Shift,
+        resolved: ResolvedCompensation,
+        settings: UserSettings,
+        profiles: List<CompensationProfile>,
+        priorWeekRegularMinutes: Int,
+        premiumProfiles: List<PremiumProfile>,
+    ): ShiftPayBreakdown? {
+        val hourlyRate = resolved.baseHourlyRate?.takeIf { it > 0 } ?: return null
+        val zone = WorkTimezone.zoneFor(resolved, settings)
+        val segments = IsraeliCompensationEngine.classifyShiftSegments(
+            shift = shift,
+            weeklyRegularMinutesBefore = priorWeekRegularMinutes,
+            weeklyOvertimeMinutesBefore = 0,
+            resolved = resolved,
+            zone = zone,
+            premiumProfiles = premiumProfiles,
+        )
+        if (segments.isEmpty()) return null
+
+        val ratePerMinute = hourlyRate / 60.0
+        var regularGross = 0.0
+        var overtimeGross = 0.0
+        var weekendGross = 0.0
+        var holidayGross = 0.0
+
+        val brackets = segments.map { segment ->
+            val amount = segment.minutes * ratePerMinute * segment.multiplier
+            when {
+                segment.label.contains("Premium", ignoreCase = true) -> holidayGross += amount
+                segment.isWeeklyRest && segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
+                    weekendGross += amount
+                segment.isWeeklyRest && segment.bucket != IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
+                    overtimeGross += amount
+                segment.isWeeklyOvertime -> overtimeGross += amount
+                segment.isDailyOvertime -> overtimeGross += amount
+                segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR -> regularGross += amount
+                else -> overtimeGross += amount
+            }
+            PayBracket(segment.label, segment.minutes, segment.multiplier, amount)
+        }
+
+        val isSpecial = segments.any { it.isWeeklyRest } ||
+            (shift.isSpecialDay && resolved.rules.holidayManualSpecialDayEnabled)
+
+        return ShiftPayBreakdown(
+            brackets = brackets,
+            totalGross = brackets.sumOf { it.amount },
+            regularGross = regularGross,
+            overtimeGross = overtimeGross,
+            weekendGross = weekendGross,
+            holidayGross = holidayGross,
+            nightGross = 0.0,
+            deductionsGross = 0.0,
+            netGross = brackets.sumOf { it.amount },
+            isSpecial = isSpecial,
+            profileId = resolved.profileId,
+            profileName = resolved.profileName,
+            currencyCode = resolved.currencyCode,
+            disclaimer = COMPENSATION_ESTIMATE_NOTE,
+        )
+    }
+
+    private fun calculateGenericShiftPay(
+        shift: Shift,
+        settings: UserSettings,
+        profiles: List<CompensationProfile>,
+        priorWeekMinutes: Int,
+        premiumProfiles: List<PremiumProfile>,
+        resolved: ResolvedCompensation,
+    ): ShiftPayBreakdown? {
         val hourlyRate = resolved.baseHourlyRate?.takeIf { it > 0 } ?: return null
         val net = ShiftDurationCalculator.netMinutes(shift)?.takeIf { it > 0 } ?: return null
 
@@ -52,7 +142,17 @@ object PayrollCalculator {
                 shift.isSpecialDay)
         val isSpecial = isHoliday || startOnWeekend
 
-        val tiers = buildTiers(resolved, isSpecial, net, priorWeekMinutes, shiftPremium)
+        val tiers = buildTiers(
+            resolved = resolved,
+            isSpecial = isSpecial,
+            isHoliday = isHoliday,
+            startOnWeekend = startOnWeekend,
+            net = net,
+            priorWeekMinutes = priorWeekMinutes,
+            shiftPremium = shiftPremium,
+            shift = shift,
+            zone = zone,
+        )
         val brackets = mutableListOf<PayBracket>()
         var remaining = net
         var regularGross = 0.0
@@ -75,7 +175,10 @@ object PayrollCalculator {
             brackets += PayBracket(tier.label, mins, effectiveRate, amount)
 
             when {
+                tier.label.contains("Premium", ignoreCase = true) -> holidayGross += amount - nightPremium
+                tier.label.contains("overtime", ignoreCase = true) -> overtimeGross += amount - nightPremium
                 tier.label.contains("Holiday", ignoreCase = true) -> holidayGross += amount - nightPremium
+                tier.label.contains("Weekly rest", ignoreCase = true) -> weekendGross += amount - nightPremium
                 tier.label.contains("Weekend", ignoreCase = true) -> weekendGross += amount - nightPremium
                 tier.label.contains("Overtime", ignoreCase = true) -> overtimeGross += amount - nightPremium
                 else -> regularGross += amount - nightPremium
@@ -121,6 +224,11 @@ object PayrollCalculator {
         premiumProfiles: List<PremiumProfile> = emptyList(),
     ): ShiftPayBreakdown? {
         val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+        if (resolved.regionCode == RegionCode.IL) {
+            return IsraeliCompensationEngine.calculateIsraeliShiftPay(
+                shift, allCompletedShifts, settings, profiles, premiumProfiles,
+            )
+        }
         val zone = WorkTimezone.zoneFor(resolved, settings)
         val prior = PayWeekMinutes.priorMinutesBefore(shift, allCompletedShifts, zone)
         return calculateShiftPay(shift, settings, profiles, prior, premiumProfiles)
@@ -146,9 +254,14 @@ object PayrollCalculator {
         PayWeekMinutes.forEachWithPriorWeekMinutes(shifts, { shift ->
             val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
             WorkTimezone.zoneFor(resolved, settings)
-        }) { shift, prior ->
-            val bd = calculateShiftPay(shift, settings, profiles, prior, premiumProfiles)
-                ?: return@forEachWithPriorWeekMinutes
+        }) { shift, _ ->
+            val bd = if (CompensationResolver.resolveShiftCompensation(shift, settings, profiles).regionCode == RegionCode.IL) {
+                IsraeliCompensationEngine.calculateIsraeliShiftPay(
+                    shift, shifts, settings, profiles, premiumProfiles,
+                )
+            } else {
+                calculateShiftPayInContext(shift, shifts, settings, profiles, premiumProfiles)
+            } ?: return@forEachWithPriorWeekMinutes
             totalGross += bd.totalGross
             regularGross += bd.regularGross
             overtimeGross += bd.overtimeGross
@@ -170,17 +283,46 @@ object PayrollCalculator {
     private fun buildTiers(
         resolved: ResolvedCompensation,
         isSpecial: Boolean,
+        isHoliday: Boolean,
+        startOnWeekend: Boolean,
         net: Int,
         priorWeekMinutes: Int,
         shiftPremium: PremiumProfile? = null,
+        shift: Shift? = null,
+        zone: java.time.ZoneId? = null,
     ): List<Tier> {
         val rules = resolved.rules
-        if (isSpecial) {
-            shiftPremium?.let {
-                val pct = (it.multiplier * 100).toInt()
-                return listOf(Tier("$pct% — Premium (${it.name})", Int.MAX_VALUE, it.multiplier))
+        shiftPremium?.let {
+            val pct = (it.multiplier * 100).toInt()
+            return listOf(Tier("$pct% — Premium (${it.name})", Int.MAX_VALUE, it.multiplier))
+        }
+
+        if (isSpecial && rules.overtimeEnabled) {
+            // Weekly-rest / holiday premium does not automatically imply overtime.
+            // Apply the rest base rate to all hours, then layer daily/weekly OT on top.
+            val restBase = when {
+                isHoliday && rules.holidayEnabled -> rules.holidayMultiplier
+                startOnWeekend && rules.weekendEnabled -> rules.weekendMultiplier
+                rules.holidayEnabled -> rules.holidayMultiplier
+                else -> rules.weekendMultiplier
             }
-            rules.holidayTiers?.takeIf { it.isNotEmpty() }?.let { return tiersFromAfterMinutes(it, "Holiday") }
+            val restKind = if (isHoliday && !startOnWeekend) "Holiday" else "Weekly rest"
+            val dailyStandard = if (shift != null && zone != null) {
+                effectiveDailyStandardMinutes(rules, shift, zone)
+            } else {
+                rules.dailyStandardMinutes
+            }
+            return buildWeeklyRestWithOvertimeTiers(
+                resolved = resolved,
+                net = net,
+                priorWeekMinutes = priorWeekMinutes,
+                restBase = restBase,
+                restKind = restKind,
+                dailyStandard = dailyStandard,
+            )
+        }
+
+        if (isSpecial) {
             if (rules.holidayEnabled) {
                 return listOf(Tier("${(rules.holidayMultiplier * 100).toInt()}% — Holiday", Int.MAX_VALUE, rules.holidayMultiplier))
             }
@@ -197,12 +339,18 @@ object PayrollCalculator {
             PremiumStacking.regularRateForOvertime(1.0, it.multiplier, it.premiumType)
         } ?: 1.0
 
+        val dailyStandard = if (shift != null && zone != null) {
+            effectiveDailyStandardMinutes(rules, shift, zone)
+        } else {
+            rules.dailyStandardMinutes
+        }
+
         val segments = if (otBaseMultiplier > 1.0 + 1e-9) {
-            buildCombinedRateSegments(resolved, net, priorWeekMinutes).map { (minutes, rate) ->
+            buildCombinedRateSegments(resolved, net, priorWeekMinutes, dailyStandard).map { (minutes, rate) ->
                 minutes to rate * otBaseMultiplier
             }
         } else {
-            buildCombinedRateSegments(resolved, net, priorWeekMinutes)
+            buildCombinedRateSegments(resolved, net, priorWeekMinutes, dailyStandard)
         }
         if (segments.isEmpty()) {
             return listOf(Tier("100% — Regular", Int.MAX_VALUE, 1.0))
@@ -215,6 +363,72 @@ object PayrollCalculator {
     }
 
     /**
+     * Maps daily/weekly overtime segments onto a weekly-rest or holiday base rate.
+     * Regular rest hours stay at [restBase]; OT hours add the OT premium above 1×
+     * (e.g. 150% rest + 25% OT = 175%, 150% rest + 50% OT = 200%).
+     */
+    internal fun buildWeeklyRestWithOvertimeTiers(
+        resolved: ResolvedCompensation,
+        net: Int,
+        priorWeekMinutes: Int,
+        restBase: Double,
+        restKind: String,
+        dailyStandard: Int,
+    ): List<Tier> {
+        val segments = buildCombinedRateSegments(resolved, net, priorWeekMinutes, dailyStandard)
+        if (segments.isEmpty()) {
+            return listOf(
+                Tier("${(restBase * 100).toInt()}% — $restKind regular", Int.MAX_VALUE, restBase),
+            )
+        }
+        return segments.map { (minutes, otRate) ->
+            val isOvertime = otRate > 1.0 + 1e-9
+            val rate = if (isOvertime) restBase + (otRate - 1.0) else restBase
+            val label = if (isOvertime) {
+                "${(rate * 100).toInt()}% — $restKind overtime"
+            } else {
+                "${(rate * 100).toInt()}% — $restKind regular"
+            }
+            Tier(label, minutes, rate)
+        }
+    }
+
+    internal fun effectiveDailyStandardMinutes(
+        rules: CompensationRules,
+        shift: Shift,
+        zone: java.time.ZoneId,
+    ): Int {
+        val nightStandard = rules.nightDailyStandardMinutes
+        if (nightStandard != null && isPredominantlyNightShift(shift, rules, zone)) {
+            return nightStandard
+        }
+        return rules.dailyStandardMinutes
+    }
+
+    internal fun isPredominantlyNightShift(
+        shift: Shift,
+        rules: CompensationRules,
+        zone: java.time.ZoneId,
+    ): Boolean {
+        if (!rules.nightEnabled || rules.nightDailyStandardMinutes == null || shift.endTime == null) {
+            return false
+        }
+        val net = ShiftDurationCalculator.netMinutes(shift) ?: return false
+        if (net <= 0) return false
+        val nightMinutes = countNightMinutes(shift, rules.nightStartTime, rules.nightEndTime, zone)
+        return nightMinutes * 2 >= net
+    }
+
+    internal fun effectiveDailyOvertimeTiers(
+        rules: CompensationRules,
+        dailyStandard: Int,
+    ): List<OvertimeTier> {
+        if (rules.dailyOvertimeTiers.isEmpty()) return emptyList()
+        val delta = dailyStandard - rules.dailyStandardMinutes
+        return rules.dailyOvertimeTiers.map { OvertimeTier(it.afterMinutes + delta, it.multiplier) }
+    }
+
+    /**
      * Builds consecutive (length, effectiveMultiplier) segments for a shift, combining daily and
      * weekly overtime ladders per [StackingPolicy].
      */
@@ -222,16 +436,17 @@ object PayrollCalculator {
         resolved: ResolvedCompensation,
         net: Int,
         priorWeekMinutes: Int,
+        dailyStandard: Int = resolved.rules.dailyStandardMinutes,
     ): List<Pair<Int, Double>> {
         if (net <= 0) return emptyList()
 
         val rules = resolved.rules
         val policy = resolved.stackingPolicy
-        val dailyStandard = rules.dailyStandardMinutes
+        val dailyTiers = effectiveDailyOvertimeTiers(rules, dailyStandard)
 
         val bounds = sortedSetOf(1, net + 1)
         bounds += min(net + 1, dailyStandard + 1)
-        rules.dailyOvertimeTiers.forEach { tier ->
+        dailyTiers.forEach { tier ->
             val boundary = tier.afterMinutes + 1
             if (boundary in 2..net) bounds += boundary
         }
@@ -250,7 +465,7 @@ object PayrollCalculator {
             val length = sortedBounds[i + 1] - sortedBounds[i]
             if (length <= 0) continue
 
-            val dailyMult = dailyMultiplier(segmentEnd, rules, dailyStandard)
+            val dailyMult = dailyMultiplier(segmentEnd, rules, dailyStandard, dailyTiers)
             val weeklyMult = weeklyMultiplier(priorWeekMinutes + segmentEnd, rules)
             val effective = combineRates(dailyMult, weeklyMult, policy)
 
@@ -269,12 +484,13 @@ object PayrollCalculator {
         minuteInShift: Int,
         rules: CompensationRules,
         dailyStandard: Int = rules.dailyStandardMinutes,
+        dailyTiers: List<OvertimeTier> = effectiveDailyOvertimeTiers(rules, dailyStandard),
     ): Double {
-        if (rules.dailyOvertimeTiers.isEmpty()) return 1.0
+        if (dailyTiers.isEmpty()) return 1.0
         if (minuteInShift <= dailyStandard) return 1.0
-        val matched = overtimeTierMultiplier(minuteInShift, rules.dailyOvertimeTiers)
+        val matched = overtimeTierMultiplier(minuteInShift, dailyTiers)
         if (matched > 1.0) return matched
-        return rules.dailyOvertimeTiers.minBy { it.afterMinutes }.multiplier
+        return dailyTiers.minBy { it.afterMinutes }.multiplier
     }
 
     internal fun weeklyMultiplier(minuteInWeek: Int, rules: CompensationRules): Double {
@@ -295,18 +511,6 @@ object PayrollCalculator {
             StackingPolicy.HIGHEST_ONLY -> maxOf(daily, weekly)
             StackingPolicy.ADDITIVE -> 1.0 + maxOf(0.0, daily - 1.0) + maxOf(0.0, weekly - 1.0)
         }
-
-    private fun tiersFromAfterMinutes(tierDefs: List<OvertimeTier>, label: String): List<Tier> {
-        val sorted = tierDefs.sortedBy { it.afterMinutes }
-        return buildList {
-            for (i in sorted.indices) {
-                val tier = sorted[i]
-                val nextAfter = sorted.getOrNull(i + 1)?.afterMinutes ?: Int.MAX_VALUE
-                val cap = if (nextAfter == Int.MAX_VALUE) Int.MAX_VALUE else nextAfter - tier.afterMinutes
-                add(Tier("${(tier.multiplier * 100).toInt()}% — $label", cap, tier.multiplier))
-            }
-        }
-    }
 
     private fun applyNightPremium(
         baseRate: Double,
