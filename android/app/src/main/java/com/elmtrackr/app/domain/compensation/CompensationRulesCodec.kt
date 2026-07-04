@@ -50,6 +50,7 @@ object CompensationRulesCodec {
         })
         put("night", JSONObject().apply {
             put("enabled", rules.nightEnabled)
+            rules.nightDailyStandardMinutes?.let { put("dailyStandardMinutes", it) }
             put("startTime", rules.nightStartTime)
             put("endTime", rules.nightEndTime)
             put("multiplier", rules.nightMultiplier)
@@ -103,6 +104,7 @@ object CompensationRulesCodec {
             holidayTiers = holiday.optJSONArray("tiers")?.let { decodeTiers(it) },
             holidayStacking = holiday.optString("stacking", "highest_only").toStackingPolicy(),
             nightEnabled = night.optBoolean("enabled", false),
+            nightDailyStandardMinutes = night.optNullableInt("dailyStandardMinutes"),
             nightStartTime = night.optString("startTime", "22:00"),
             nightEndTime = night.optString("endTime", "06:00"),
             nightMultiplier = night.optDouble("multiplier", 1.25),

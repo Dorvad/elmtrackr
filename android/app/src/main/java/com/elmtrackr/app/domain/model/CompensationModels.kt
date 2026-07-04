@@ -55,6 +55,8 @@ data class CompensationRules(
     val holidayMultiplier: Double = 1.5,
     val holidayTiers: List<OvertimeTier>? = null,
     val holidayStacking: StackingPolicy = StackingPolicy.HIGHEST_ONLY,
+    /** When set and the shift is predominantly at night, daily OT uses this threshold instead of [dailyStandardMinutes]. */
+    val nightDailyStandardMinutes: Int? = null,
     val nightEnabled: Boolean = false,
     val nightStartTime: String = "22:00",
     val nightEndTime: String = "06:00",

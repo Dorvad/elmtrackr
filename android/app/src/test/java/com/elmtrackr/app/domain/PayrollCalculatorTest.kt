@@ -111,15 +111,14 @@ class PayrollCalculatorTest {
     // ── Test 4: weekend / special-day shift ───────────────────────────────────
 
     @Test
-    fun `calculateShiftPay - Friday shift uses Shabbat tiers (isSpecial true)`() {
+    fun `calculateShiftPay - Friday shift uses weekly rest rate without auto overtime`() {
         val s = shift("2024-01-05T09:00:00Z", "2024-01-05T17:00:00Z")
         val bd = PayrollCalculator.calculateShiftPay(s, defaultSettings)!!
         assertTrue(bd.isSpecial)
-        assertEquals(3, bd.brackets.size)
-        assertNear(180.0, bd.brackets[0].amount)
-        assertNear(210.0, bd.brackets[1].amount)
-        assertNear(480.0, bd.brackets[2].amount)
-        assertNear(870.0, bd.totalGross)
+        assertEquals(1, bd.brackets.size)
+        assertEquals(1.5, bd.brackets[0].rate, 0.0)
+        assertNear(720.0, bd.totalGross)
+        assertTrue(bd.brackets[0].label.contains("Weekly rest regular", ignoreCase = true))
     }
 
     @Test
@@ -173,13 +172,14 @@ class PayrollCalculatorTest {
     }
 
     @Test
-    fun `calculateShiftPay - 3h Shabbat shift creates two special brackets`() {
+    fun `calculateShiftPay - 3h Shabbat shift stays at weekly rest regular rate`() {
         val s = shift("2024-01-06T09:00:00Z", "2024-01-06T12:00:00Z")
         val bd = PayrollCalculator.calculateShiftPay(s, defaultSettings)!!
         assertTrue(bd.isSpecial)
-        assertEquals(2, bd.brackets.size)
-        assertEquals(120, bd.brackets[0].minutes); assertEquals(1.5, bd.brackets[0].rate, 0.0)
-        assertEquals(60,  bd.brackets[1].minutes); assertEquals(1.75, bd.brackets[1].rate, 0.001)
+        assertEquals(1, bd.brackets.size)
+        assertEquals(180, bd.brackets[0].minutes)
+        assertEquals(1.5, bd.brackets[0].rate, 0.0)
+        assertNear(270.0, bd.totalGross)
     }
 
     // ── Weekly overtime tiers ─────────────────────────────────────────────────
@@ -281,5 +281,117 @@ class PayrollCalculatorTest {
         val bd = PayrollCalculator.calculateShiftPay(s, settings, listOf(p), priorWeekMinutes = 2400)!!
         val otBracket = bd.brackets.last { it.rate > 1.0 }
         assertEquals(1.5, otBracket.rate, 0.001)
+    }
+
+    // ── Israeli weekly rest + overtime ────────────────────────────────────────
+
+    private fun ilProfile(rate: Double = 58.0) = profile(
+        RegionCode.IL,
+        rate = rate,
+        rules = RegionPresets.forRegion(RegionCode.IL).rules,
+        stacking = RegionPresets.forRegion(RegionCode.IL).stackingPolicy,
+        id = "il",
+    ).copy(timezone = "Asia/Jerusalem")
+
+    /** Fri 20:00 → Sat 02:30 Jerusalem (6.5 h, weekly rest + night). */
+    private fun fridayNightShift6_5h() = shift(
+        "2024-03-15T18:00:00Z",
+        "2024-03-16T00:30:00Z",
+    )
+
+    /** Fri 20:00 → Sat 04:00 Jerusalem (8 h, weekly rest + night). */
+    private fun fridayNightShift8h() = shift(
+        "2024-03-15T18:00:00Z",
+        "2024-03-16T02:00:00Z",
+    )
+
+    /** Wed 22:00 → Thu 06:00 Jerusalem (8 h, night, not weekly rest). */
+    private fun weekdayNightShift8h() = shift(
+        "2024-03-13T20:00:00Z",
+        "2024-03-14T04:00:00Z",
+    )
+
+    @Test
+    fun `IL weekly rest - standalone Friday night shift at 150 percent`() {
+        val il = ilProfile()
+        val bd = PayrollCalculator.calculateShiftPay(
+            fridayNightShift6_5h(),
+            settingsWithProfile(il),
+            listOf(il),
+            priorWeekMinutes = 0,
+        )!!
+        assertEquals(1, bd.brackets.size)
+        assertEquals(390, bd.brackets[0].minutes)
+        assertEquals(1.5, bd.brackets[0].rate, 0.001)
+        assertNear(565.50, bd.totalGross)
+        assertTrue(bd.brackets[0].label.contains("Weekly rest regular", ignoreCase = true))
+    }
+
+    @Test
+    fun `IL weekly rest - Friday night after 40 weekly hours uses 150 175 200 tiers`() {
+        val il = ilProfile()
+        val bd = PayrollCalculator.calculateShiftPay(
+            fridayNightShift6_5h(),
+            settingsWithProfile(il),
+            listOf(il),
+            priorWeekMinutes = 40 * 60,
+        )!!
+        assertEquals(3, bd.brackets.size)
+        assertNear(174.0, bd.brackets[0].amount)
+        assertNear(203.0, bd.brackets[1].amount)
+        assertNear(290.0, bd.brackets[2].amount)
+        assertNear(667.00, bd.totalGross)
+    }
+
+    @Test
+    fun `IL weekly rest - Friday night after 42 weekly hours uses 175 and 200 tiers`() {
+        val il = ilProfile()
+        val bd = PayrollCalculator.calculateShiftPay(
+            fridayNightShift6_5h(),
+            settingsWithProfile(il),
+            listOf(il),
+            priorWeekMinutes = 42 * 60,
+        )!!
+        assertEquals(2, bd.brackets.size)
+        assertEquals(120, bd.brackets[0].minutes)
+        assertEquals(1.75, bd.brackets[0].rate, 0.001)
+        assertEquals(270, bd.brackets[1].minutes)
+        assertEquals(2.0, bd.brackets[1].rate, 0.001)
+        assertNear(725.00, bd.totalGross)
+    }
+
+    @Test
+    fun `IL weekly rest - long Friday night crosses night daily OT at 7 hours`() {
+        val il = ilProfile()
+        val bd = PayrollCalculator.calculateShiftPay(
+            fridayNightShift8h(),
+            settingsWithProfile(il),
+            listOf(il),
+            priorWeekMinutes = 0,
+        )!!
+        assertEquals(2, bd.brackets.size)
+        assertEquals(420, bd.brackets[0].minutes)
+        assertEquals(1.5, bd.brackets[0].rate, 0.001)
+        assertEquals(60, bd.brackets[1].minutes)
+        assertEquals(1.75, bd.brackets[1].rate, 0.001)
+        assertNear(710.50, bd.totalGross)
+    }
+
+    @Test
+    fun `IL night - regular weekday night shift uses 100 and 125 tiers`() {
+        val il = ilProfile()
+        val bd = PayrollCalculator.calculateShiftPay(
+            weekdayNightShift8h(),
+            settingsWithProfile(il),
+            listOf(il),
+            priorWeekMinutes = 0,
+        )!!
+        assertFalse(bd.isSpecial)
+        assertEquals(2, bd.brackets.size)
+        assertEquals(420, bd.brackets[0].minutes)
+        assertEquals(1.0, bd.brackets[0].rate, 0.0)
+        assertEquals(60, bd.brackets[1].minutes)
+        assertEquals(1.25, bd.brackets[1].rate, 0.001)
+        assertNear(478.50, bd.totalGross)
     }
 }

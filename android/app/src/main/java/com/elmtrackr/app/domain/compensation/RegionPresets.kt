@@ -24,6 +24,7 @@ object RegionPresets {
     // Israeli law triggers OT on the daily OR weekly threshold, whichever is reached first
     // (HIGHEST_ONLY stacking in PayrollCalculator). weekendDays = Fri+Sat off → 5-day week → 8.6 h/day.
     // Weekly 125%/150% breakpoints are a starting point — verify with payroll/HR.
+    // Weekly-rest premium (150%) is separate from overtime — OT during rest is 175%/200%.
     private val ilRules = CompensationRules(
         dailyStandardMinutes = 516,
         weeklyStandardMinutes = 2520,
@@ -42,11 +43,11 @@ object RegionPresets {
         holidayEnabled = true,
         holidayManualSpecialDayEnabled = true,
         holidayMultiplier = 1.5,
-        holidayTiers = listOf(
-            OvertimeTier(0, 1.5),
-            OvertimeTier(120, 1.75),
-            OvertimeTier(240, 2.0),
-        ),
+        nightDailyStandardMinutes = 420,
+        nightEnabled = true,
+        nightStartTime = "22:00",
+        nightEndTime = "06:00",
+        nightMultiplier = 1.0,
     )
 
     private val usFederalRules = CompensationRules(
