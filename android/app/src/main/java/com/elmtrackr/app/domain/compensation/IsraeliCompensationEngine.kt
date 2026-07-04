@@ -282,9 +282,14 @@ object IsraeliCompensationEngine {
 
         var weeklyRegularAccum = weeklyRegularMinutesBefore
         var weeklyOtAccum = weeklyOvertimeMinutesBefore
+        // A shift is a single workday even when it crosses local midnight — the
+        // daily overtime clock keeps running for the whole shift.
         var dailyMinutesInDay = 0
         var dailyOtMinutesInDay = 0
-        var currentDay = shift.startTime.atZone(zone).toLocalDate()
+
+        // Night work is a property of the whole shift (≥2 h inside the night window
+        // makes the entire workday a shortened night workday), not of each minute.
+        val isNightShift = PayrollCalculator.isNightWorkShift(shift, rules, zone)
 
         val rawSegments = mutableListOf<ClassifiedPaySegment>()
 
@@ -293,14 +298,8 @@ object IsraeliCompensationEngine {
             val instantMs = startMs + (grossOffset * 60_000).toLong()
             val zdt = Instant.ofEpochMilli(instantMs).atZone(zone)
 
-            if (zdt.toLocalDate() != currentDay) {
-                currentDay = zdt.toLocalDate()
-                dailyMinutesInDay = 0
-                dailyOtMinutesInDay = 0
-            }
-
             val isWeeklyRest = isWeeklyRestAt(zdt, rules, manualHoliday)
-            val dailyStandard = dailyStandardAt(zdt, rules, zone, isWeeklyRest)
+            val dailyStandard = dailyStandardAt(zdt, rules, isWeeklyRest, isNightShift)
             val isDailyOt = dailyMinutesInDay >= dailyStandard
             val isWeeklyOt = weeklyRegularAccum >= rules.weeklyStandardMinutes
 
@@ -390,24 +389,16 @@ object IsraeliCompensationEngine {
     internal fun dailyStandardAt(
         zdt: ZonedDateTime,
         rules: CompensationRules,
-        zone: ZoneId,
         isWeeklyRest: Boolean,
+        isNightShift: Boolean,
     ): Int {
-        if (isWeeklyRest) {
-            return if (isNightAt(zdt, rules)) {
-                rules.nightDailyStandardMinutes ?: rules.dailyStandardMinutes
-            } else {
-                rules.dailyStandardMinutes
-            }
+        if (isNightShift) {
+            return rules.nightDailyStandardMinutes ?: rules.dailyStandardMinutes
         }
-        if (isDayBeforeRestAt(zdt, rules)) {
+        if (!isWeeklyRest && isDayBeforeRestAt(zdt, rules)) {
             return rules.dayBeforeRestDailyStandardMinutes ?: rules.dailyStandardMinutes
         }
-        return if (isNightAt(zdt, rules)) {
-            rules.nightDailyStandardMinutes ?: rules.dailyStandardMinutes
-        } else {
-            rules.dailyStandardMinutes
-        }
+        return rules.dailyStandardMinutes
     }
 
     internal fun isDayBeforeRestAt(zdt: ZonedDateTime, rules: CompensationRules): Boolean {

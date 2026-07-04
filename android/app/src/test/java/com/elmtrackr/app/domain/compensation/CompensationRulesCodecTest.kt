@@ -21,4 +21,19 @@ class CompensationRulesCodecTest {
     fun `decodeSnapshot ignores blank json`() {
         assertNull(CompensationRulesCodec.decodeSnapshot("   "))
     }
+
+    @Test
+    fun `seventh day rules survive an encode-decode round trip`() {
+        val original = RegionPresets.forRegion(com.elmtrackr.app.domain.model.RegionCode.US_CA).rules
+        val decoded = CompensationRulesCodec.decode(CompensationRulesCodec.encode(original))
+        assertEquals(original.seventhDayEnabled, decoded.seventhDayEnabled)
+        assertEquals(original.seventhDayTiers, decoded.seventhDayTiers)
+    }
+
+    @Test
+    fun `decode defaults seventh day rules off for legacy json`() {
+        val rules = CompensationRulesCodec.decode("""{"overtime":{"enabled":true}}""")
+        assertEquals(false, rules.seventhDayEnabled)
+        assertEquals(0, rules.seventhDayTiers.size)
+    }
 }

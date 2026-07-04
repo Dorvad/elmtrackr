@@ -2,6 +2,7 @@ package com.elmtrackr.app.domain
 
 import com.elmtrackr.app.domain.model.CurrencyCode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MoneyFormatterTest {
@@ -26,5 +27,17 @@ class MoneyFormatterTest {
     @Test
     fun `unknown persisted currency falls back to ILS`() {
         assertEquals(CurrencyCode.ILS, CurrencyCode.from("unknown"))
+    }
+
+    @Test
+    fun `string overload respects zero-decimal currencies like JPY`() {
+        val formatted = MoneyFormatter.format(1234.5, "JPY")
+        assertTrue("JPY must not show decimal minor units: $formatted", !formatted.contains("."))
+        assertTrue(formatted.contains("1,235"))
+    }
+
+    @Test
+    fun `string overload keeps two decimals for USD`() {
+        assertTrue(MoneyFormatter.format(1234.5, "USD").contains("1,234.50"))
     }
 }

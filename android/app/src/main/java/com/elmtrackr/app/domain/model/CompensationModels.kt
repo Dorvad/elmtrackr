@@ -47,6 +47,13 @@ data class CompensationRules(
     val overtimeEnabled: Boolean = true,
     val dailyOvertimeTiers: List<OvertimeTier> = emptyList(),
     val weeklyOvertimeTiers: List<OvertimeTier> = emptyList(),
+    /**
+     * Premium ladder for the 7th consecutive workday in a single pay week
+     * (California-style: 1.5× for the first 8 h, 2× beyond). [seventhDayTiers]
+     * use afterMinutes relative to the start of that day's shift.
+     */
+    val seventhDayEnabled: Boolean = false,
+    val seventhDayTiers: List<OvertimeTier> = emptyList(),
     val weekendEnabled: Boolean = true,
     val weekendMultiplier: Double = 1.5,
     /** Local time when weekly rest begins on the pre-rest day (e.g. Friday 17:00 before Shabbat). */

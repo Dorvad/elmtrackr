@@ -42,4 +42,21 @@ class RegionPresetsTest {
         assertEquals(2, ca.dailyOvertimeTiers.size)
         assertEquals(2.0, ca.dailyOvertimeTiers.last().multiplier, 0.0)
     }
+
+    @Test
+    fun `US California preset enables 7th consecutive workday premiums`() {
+        val ca = RegionPresets.forRegion(RegionCode.US_CA).rules
+        assertTrue(ca.seventhDayEnabled)
+        assertEquals(2, ca.seventhDayTiers.size)
+        assertEquals(1.5, ca.seventhDayTiers.first().multiplier, 0.0)
+        assertEquals(2.0, ca.seventhDayTiers.last().multiplier, 0.0)
+    }
+
+    @Test
+    fun `GB preset ships without statutory overtime premium`() {
+        val gb = RegionPresets.forRegion(RegionCode.GB).rules
+        assertTrue(!gb.overtimeEnabled)
+        // Contract template stays available for users who enable overtime.
+        assertTrue(gb.weeklyOvertimeTiers.isNotEmpty())
+    }
 }

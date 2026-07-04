@@ -34,6 +34,8 @@ object CompensationRulesCodec {
             put("enabled", rules.overtimeEnabled)
             put("dailyTiers", encodeTiers(rules.dailyOvertimeTiers))
             put("weeklyTiers", encodeTiers(rules.weeklyOvertimeTiers))
+            put("seventhDayEnabled", rules.seventhDayEnabled)
+            put("seventhDayTiers", encodeTiers(rules.seventhDayTiers))
         })
         put("weekend", JSONObject().apply {
             put("enabled", rules.weekendEnabled)
@@ -97,6 +99,8 @@ object CompensationRulesCodec {
             overtimeEnabled = overtime.optBoolean("enabled", true),
             dailyOvertimeTiers = decodeTiers(overtime.optJSONArray("dailyTiers")),
             weeklyOvertimeTiers = decodeTiers(overtime.optJSONArray("weeklyTiers")),
+            seventhDayEnabled = overtime.optBoolean("seventhDayEnabled", false),
+            seventhDayTiers = decodeTiers(overtime.optJSONArray("seventhDayTiers")),
             weekendEnabled = weekend.optBoolean("enabled", true),
             weekendMultiplier = weekend.optDouble("multiplier", 1.5),
             weeklyRestStartTime = weekend.optString("restStartTime").takeIf { it.isNotBlank() },
