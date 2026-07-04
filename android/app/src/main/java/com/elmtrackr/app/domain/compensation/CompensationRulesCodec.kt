@@ -20,6 +20,7 @@ object CompensationRulesCodec {
         put("regular", JSONObject().apply {
             put("dailyStandardMinutes", rules.dailyStandardMinutes)
             put("weeklyStandardMinutes", rules.weeklyStandardMinutes)
+            put("weekStartDay", rules.weekStartDay)
             put("weekendDays", JSONArray(rules.weekendDays))
             put("paidBreaks", rules.paidBreaks)
             put("autoDeductBreakMinutes", rules.autoDeductBreakMinutes ?: JSONObject.NULL)
@@ -87,6 +88,7 @@ object CompensationRulesCodec {
         return CompensationRules(
             dailyStandardMinutes = regular.optInt("dailyStandardMinutes", 480),
             weeklyStandardMinutes = regular.optInt("weeklyStandardMinutes", 2400),
+            weekStartDay = regular.optInt("weekStartDay", 1).coerceIn(0, 6),
             weekendDays = regular.optJSONArray("weekendDays")?.toIntList() ?: listOf(5, 6),
             paidBreaks = regular.optBoolean("paidBreaks", false),
             autoDeductBreakMinutes = regular.optNullableInt("autoDeductBreakMinutes"),

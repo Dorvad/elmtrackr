@@ -28,6 +28,8 @@ object RegionPresets {
     private val ilRules = CompensationRules(
         dailyStandardMinutes = 516,
         weeklyStandardMinutes = 2520,
+        // Israeli work week runs Sunday–Saturday; weekly OT accumulates from Sunday.
+        weekStartDay = 0,
         weekendDays = listOf(5, 6),
         overtimeEnabled = true,
         dailyOvertimeTiers = listOf(
@@ -55,6 +57,8 @@ object RegionPresets {
     private val usFederalRules = CompensationRules(
         dailyStandardMinutes = 480,
         weeklyStandardMinutes = 2400,
+        // FLSA workweeks are employer-defined; Sunday–Saturday is the common default.
+        weekStartDay = 0,
         weekendDays = listOf(0, 6),
         overtimeEnabled = true,
         dailyOvertimeTiers = emptyList(),
@@ -69,6 +73,7 @@ object RegionPresets {
     private val usCaliforniaRules = CompensationRules(
         dailyStandardMinutes = 480,
         weeklyStandardMinutes = 2400,
+        weekStartDay = 0,
         weekendDays = listOf(0, 6),
         overtimeEnabled = true,
         dailyOvertimeTiers = listOf(

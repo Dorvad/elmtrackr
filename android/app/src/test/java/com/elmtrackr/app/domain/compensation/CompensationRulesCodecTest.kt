@@ -36,4 +36,26 @@ class CompensationRulesCodecTest {
         assertEquals(false, rules.seventhDayEnabled)
         assertEquals(0, rules.seventhDayTiers.size)
     }
+
+    @Test
+    fun `week start and time rules survive an encode-decode round trip`() {
+        val original = RegionPresets.forRegion(com.elmtrackr.app.domain.model.RegionCode.IL).rules.copy(
+            paidBreaks = true,
+            autoDeductBreakMinutes = 30,
+            minimumShiftMinutes = 120,
+            rounding = com.elmtrackr.app.domain.model.RoundingRules(
+                enabled = true,
+                incrementMinutes = 6,
+                direction = "up",
+            ),
+        )
+        val decoded = CompensationRulesCodec.decode(CompensationRulesCodec.encode(original))
+        assertEquals(original, decoded)
+    }
+
+    @Test
+    fun `decode defaults week start to Monday for legacy json`() {
+        val rules = CompensationRulesCodec.decode("""{"regular":{"dailyStandardMinutes":480}}""")
+        assertEquals(1, rules.weekStartDay)
+    }
 }

@@ -17,6 +17,15 @@ class RegionPresetsTest {
     }
 
     @Test
+    fun `Israel and US presets anchor the pay week to Sunday`() {
+        assertEquals(0, RegionPresets.forRegion(RegionCode.IL).rules.weekStartDay)
+        assertEquals(0, RegionPresets.forRegion(RegionCode.US).rules.weekStartDay)
+        assertEquals(0, RegionPresets.forRegion(RegionCode.US_CA).rules.weekStartDay)
+        assertEquals(1, RegionPresets.forRegion(RegionCode.GB).rules.weekStartDay)
+        assertEquals(1, RegionPresets.forRegion(RegionCode.EU).rules.weekStartDay)
+    }
+
+    @Test
     fun `Israel preset uses 5-day week daily standard and weekly tiers`() {
         val il = RegionPresets.forRegion(RegionCode.IL).rules
         assertEquals(516, il.dailyStandardMinutes)

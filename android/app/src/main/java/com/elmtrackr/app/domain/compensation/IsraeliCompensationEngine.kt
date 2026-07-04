@@ -78,7 +78,7 @@ object IsraeliCompensationEngine {
             premiumProfiles.firstOrNull { it.id == id || it.remoteId == id }
         }
         shiftPremium?.let { premium ->
-            val net = ShiftDurationCalculator.netMinutes(shift) ?: return emptyList()
+            val net = PayrollCalculator.payableNetMinutes(shift, resolved.rules) ?: return emptyList()
             val pct = (premium.multiplier * 100).toInt()
             return listOf(
                 ClassifiedPaySegment(
@@ -181,11 +181,12 @@ object IsraeliCompensationEngine {
         profiles: List<CompensationProfile>,
         premiumProfiles: List<PremiumProfile>,
     ): WeekPayState {
-        val weekStart = PayWeekMinutes.isoWeekStart(currentShift, zone)
+        val weekStartDay = resolved.rules.weekStartDay
+        val weekStart = PayWeekMinutes.weekStart(currentShift, zone, weekStartDay)
         val priorShifts = allShiftsInWeek
             .asSequence()
             .filter { it.id != currentShift.id && it.endTime != null }
-            .filter { PayWeekMinutes.isoWeekStart(it, zone) == weekStart }
+            .filter { PayWeekMinutes.weekStart(it, zone, weekStartDay) == weekStart }
             .filter { it.startTime.isBefore(currentShift.startTime) }
             .sortedBy { it.startTime }
             .toList()
@@ -226,7 +227,7 @@ object IsraeliCompensationEngine {
         resolved: ResolvedCompensation,
         zone: ZoneId,
     ): List<ClassifiedPaySegment> {
-        val net = ShiftDurationCalculator.netMinutes(shift) ?: return emptyList()
+        val net = PayrollCalculator.payableNetMinutes(shift, resolved.rules) ?: return emptyList()
         val rules = resolved.rules
         val startDate = shift.startTime.atZone(zone).toLocalDate().toString()
         val onWeekend = rules.weekendEnabled && WeekendRules.isWeekendDate(startDate, rules.weekendDays)
@@ -272,7 +273,7 @@ object IsraeliCompensationEngine {
         stackingPolicy: StackingPolicy,
         manualHoliday: Boolean,
     ): List<ClassifiedPaySegment> {
-        val net = ShiftDurationCalculator.netMinutes(shift) ?: return emptyList()
+        val net = PayrollCalculator.payableNetMinutes(shift, rules) ?: return emptyList()
         if (net <= 0) return emptyList()
 
         val startMs = shift.startTime.toEpochMilli()

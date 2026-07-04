@@ -39,6 +39,12 @@ data class RoundingRules(
 data class CompensationRules(
     val dailyStandardMinutes: Int = 480,
     val weeklyStandardMinutes: Int = 2400,
+    /**
+     * First day of the pay week as a JS day index (0=Sun … 6=Sat). Weekly
+     * overtime thresholds accumulate from this day. Israel and most US
+     * workweeks start Sunday; the legacy default is Monday (ISO).
+     */
+    val weekStartDay: Int = 1,
     val weekendDays: List<Int> = listOf(5, 6),
     val paidBreaks: Boolean = false,
     val autoDeductBreakMinutes: Int? = null,
