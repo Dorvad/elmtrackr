@@ -7,6 +7,7 @@ import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.PremiumType
 import com.elmtrackr.app.domain.model.RegionCode
+import com.elmtrackr.app.domain.model.RoundingRules
 import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -188,20 +189,20 @@ class PayrollCalculatorTest {
     fun `weekly OT applies when no single day exceeds daily threshold but week total does`() {
         val il = profile(RegionCode.IL, rate = 60.0)
         val settings = settingsWithProfile(il)
-        // 8.5 h weekdays (510 min) Mon–Thu, then Sunday (skip Fri/Sat weekend)
+        // Israeli pay week runs Sunday–Saturday: 8.5 h days (510 min) Sun–Thu.
         val week = listOf(
-            shift("2024-01-08T09:00:00Z", "2024-01-08T17:30:00Z", id = "d1"),
-            shift("2024-01-09T09:00:00Z", "2024-01-09T17:30:00Z", id = "d2"),
-            shift("2024-01-10T09:00:00Z", "2024-01-10T17:30:00Z", id = "d3"),
-            shift("2024-01-11T09:00:00Z", "2024-01-11T17:30:00Z", id = "d4"),
-            shift("2024-01-14T09:00:00Z", "2024-01-14T17:30:00Z", id = "d5"),
+            shift("2024-01-07T09:00:00Z", "2024-01-07T17:30:00Z", id = "d1"),
+            shift("2024-01-08T09:00:00Z", "2024-01-08T17:30:00Z", id = "d2"),
+            shift("2024-01-09T09:00:00Z", "2024-01-09T17:30:00Z", id = "d3"),
+            shift("2024-01-10T09:00:00Z", "2024-01-10T17:30:00Z", id = "d4"),
+            shift("2024-01-11T09:00:00Z", "2024-01-11T17:30:00Z", id = "d5"),
         )
         val fifth = week.last()
         val isolated = PayrollCalculator.calculateShiftPay(fifth, settings, listOf(il))!!
         assertNear(510.0, isolated.totalGross)
 
         val inContext = PayrollCalculator.calculateShiftPayInContext(fifth, week, settings, listOf(il))!!
-        // 480 min regular + 30 min at 125%
+        // 480 min regular + 30 min at 125% — Sunday's hours count toward the same week.
         assertNear(480.0 + 30 * 1.25, inContext.totalGross)
         assertTrue(inContext.overtimeGross > 0.0)
     }
@@ -238,6 +239,60 @@ class PayrollCalculatorTest {
         assertEquals(240, bd.brackets[1].minutes); assertEquals(1.5, bd.brackets[1].rate, 0.0)
         assertEquals(60,  bd.brackets[2].minutes); assertEquals(2.0, bd.brackets[2].rate, 0.0)
         assertNear(960.0, bd.totalGross)
+    }
+
+    @Test
+    fun `California weekly OT threshold ignores hours already paid as daily OT`() {
+        val ca = profile(RegionCode.US_CA, rate = 30.0)
+        val settings = settingsWithProfile(ca)
+        // Mon–Thu 10 h/day: 32 h straight time + 8 h daily OT before Friday.
+        val week = listOf(
+            shift("2024-01-08T08:00:00Z", "2024-01-08T18:00:00Z", id = "d1"),
+            shift("2024-01-09T08:00:00Z", "2024-01-09T18:00:00Z", id = "d2"),
+            shift("2024-01-10T08:00:00Z", "2024-01-10T18:00:00Z", id = "d3"),
+            shift("2024-01-11T08:00:00Z", "2024-01-11T18:00:00Z", id = "d4"),
+            shift("2024-01-12T08:00:00Z", "2024-01-12T16:00:00Z", id = "d5"),
+        )
+        val friday = week.last()
+        val bd = PayrollCalculator.calculateShiftPayInContext(friday, week, settings, listOf(ca))!!
+        // Only 32 straight-time hours precede Friday, so its 8 h stay regular.
+        assertEquals(1, bd.brackets.size)
+        assertEquals(1.0, bd.brackets[0].rate, 0.0)
+        assertNear(240.0, bd.totalGross)
+    }
+
+    @Test
+    fun `California 7th consecutive workday pays premium from the first minute`() {
+        val ca = profile(RegionCode.US_CA, rate = 30.0)
+        val settings = settingsWithProfile(ca)
+        // US workweek runs Sunday–Saturday: Sun 2024-01-07 … Fri 2024-01-12 are
+        // six 6 h days, then Saturday is the 7th consecutive workday: 10 h.
+        val week = (7..12).map { day ->
+            shift(
+                "2024-01-%02dT08:00:00Z".format(day),
+                "2024-01-%02dT14:00:00Z".format(day),
+                id = "d$day",
+            )
+        } + shift("2024-01-13T08:00:00Z", "2024-01-13T18:00:00Z", id = "d13")
+        val saturday = week.last()
+        val bd = PayrollCalculator.calculateShiftPayInContext(saturday, week, settings, listOf(ca))!!
+        assertEquals(2, bd.brackets.size)
+        assertEquals(480, bd.brackets[0].minutes)
+        assertEquals(1.5, bd.brackets[0].rate, 0.0)
+        assertEquals(120, bd.brackets[1].minutes)
+        assertEquals(2.0, bd.brackets[1].rate, 0.0)
+        assertNear(480.0, bd.totalGross)
+    }
+
+    @Test
+    fun `GB preset pays flat rate past 48h because UK sets no statutory OT premium`() {
+        val gb = profile(RegionCode.GB, rate = 15.0)
+        val settings = settingsWithProfile(gb)
+        val s = shift("2024-01-12T08:00:00Z", "2024-01-12T18:00:00Z")
+        val bd = PayrollCalculator.calculateShiftPay(s, settings, listOf(gb), priorWeekMinutes = 2880)!!
+        assertEquals(1, bd.brackets.size)
+        assertEquals(1.0, bd.brackets[0].rate, 0.0)
+        assertNear(150.0, bd.totalGross)
     }
 
     @Test
@@ -281,6 +336,53 @@ class PayrollCalculatorTest {
         val bd = PayrollCalculator.calculateShiftPay(s, settings, listOf(p), priorWeekMinutes = 2400)!!
         val otBracket = bd.brackets.last { it.rate > 1.0 }
         assertEquals(1.5, otBracket.rate, 0.001)
+    }
+
+    // ── Payable time rules (breaks, rounding, minimum shift) ─────────────────
+
+    @Test
+    fun `paid breaks keep break minutes payable`() {
+        val rules = CompensationRules(paidBreaks = true)
+        val s = shift("2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z", break_ = 30)
+        assertEquals(480, PayrollCalculator.payableNetMinutes(s, rules))
+    }
+
+    @Test
+    fun `auto break deduction applies only when no break was recorded`() {
+        val rules = CompensationRules(autoDeductBreakMinutes = 30)
+        val noBreak = shift("2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z")
+        val withBreak = shift("2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z", break_ = 20)
+        assertEquals(450, PayrollCalculator.payableNetMinutes(noBreak, rules))
+        assertEquals(460, PayrollCalculator.payableNetMinutes(withBreak, rules))
+    }
+
+    @Test
+    fun `rounding and minimum shift adjust payable minutes`() {
+        val rounding = CompensationRules(
+            rounding = RoundingRules(enabled = true, incrementMinutes = 15, direction = "nearest"),
+        )
+        val s = shift("2024-01-08T09:00:00Z", "2024-01-08T16:53:00Z") // 473 min
+        assertEquals(480, PayrollCalculator.payableNetMinutes(s, rounding))
+
+        val minimum = CompensationRules(minimumShiftMinutes = 180)
+        val short = shift("2024-01-08T09:00:00Z", "2024-01-08T10:00:00Z")
+        assertEquals(180, PayrollCalculator.payableNetMinutes(short, minimum))
+    }
+
+    @Test
+    fun `percentage deductions reduce net gross`() {
+        val rules = RegionPresets.forRegion(RegionCode.US).rules.copy(
+            deductionsEnabled = true,
+            deductionsMode = "percentage",
+            deductionsPercentage = 20.0,
+        )
+        val p = profile(RegionCode.US, rate = 30.0, rules = rules)
+        val settings = settingsWithProfile(p)
+        val s = shift("2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z")
+        val bd = PayrollCalculator.calculateShiftPay(s, settings, listOf(p))!!
+        assertNear(240.0, bd.totalGross)
+        assertNear(48.0, bd.deductionsGross)
+        assertNear(192.0, bd.netGross)
     }
 
     // ── Israeli weekly rest + overtime ────────────────────────────────────────
@@ -406,13 +508,17 @@ class PayrollCalculatorTest {
             listOf(il),
             priorWeekMinutes = 0,
         )!!
-        assertFalse(bd.isSpecial)
+        // 08:00–17:06: 7 h regular (day-before-rest standard), 2 h daily OT at 125%,
+        // and the final 6 minutes fall after the 17:00 weekly-rest start while past
+        // the first two OT hours — rest premium plus additional-OT premium → 200%.
+        assertTrue(bd.isSpecial)
         assertEquals(3, bd.brackets.size)
         assertNear(350.0, bd.brackets[0].amount)
         assertNear(125.0, bd.brackets[1].amount)
-        assertNear(7.5, bd.brackets[2].amount)
-        assertNear(482.50, bd.totalGross)
+        assertNear(10.0, bd.brackets[2].amount)
+        assertNear(485.00, bd.totalGross)
         assertTrue(bd.brackets[1].label.contains("Daily overtime", ignoreCase = true))
+        assertTrue(bd.brackets[2].label.contains("Weekly rest", ignoreCase = true))
     }
 
     @Test
@@ -476,6 +582,20 @@ class PayrollCalculatorTest {
         assertEquals(60, bd.brackets[1].minutes)
         assertEquals(1.75, bd.brackets[1].rate, 0.001)
         assertNear(710.50, bd.totalGross)
+    }
+
+    @Test
+    fun `IL night - under two night hours keeps the regular daily standard`() {
+        val il = ilProfile(rate = 60.0)
+        // Wed 14:00 → 23:00 Jerusalem: 9 h with only one hour inside the night
+        // window, so this is not night work — the 8.6 h standard applies.
+        val s = shift("2024-03-13T12:00:00Z", "2024-03-13T21:00:00Z")
+        val bd = PayrollCalculator.calculateShiftPay(s, ilSettings(il), listOf(il), priorWeekMinutes = 0)!!
+        assertEquals(2, bd.brackets.size)
+        assertEquals(516, bd.brackets[0].minutes)
+        assertEquals(1.0, bd.brackets[0].rate, 0.0)
+        assertEquals(24, bd.brackets[1].minutes)
+        assertEquals(1.25, bd.brackets[1].rate, 0.001)
     }
 
     @Test

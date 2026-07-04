@@ -78,7 +78,7 @@ object IsraeliCompensationEngine {
             premiumProfiles.firstOrNull { it.id == id || it.remoteId == id }
         }
         shiftPremium?.let { premium ->
-            val net = ShiftDurationCalculator.netMinutes(shift) ?: return emptyList()
+            val net = PayrollCalculator.payableNetMinutes(shift, resolved.rules) ?: return emptyList()
             val pct = (premium.multiplier * 100).toInt()
             return listOf(
                 ClassifiedPaySegment(
@@ -181,11 +181,12 @@ object IsraeliCompensationEngine {
         profiles: List<CompensationProfile>,
         premiumProfiles: List<PremiumProfile>,
     ): WeekPayState {
-        val weekStart = PayWeekMinutes.isoWeekStart(currentShift, zone)
+        val weekStartDay = resolved.rules.weekStartDay
+        val weekStart = PayWeekMinutes.weekStart(currentShift, zone, weekStartDay)
         val priorShifts = allShiftsInWeek
             .asSequence()
             .filter { it.id != currentShift.id && it.endTime != null }
-            .filter { PayWeekMinutes.isoWeekStart(it, zone) == weekStart }
+            .filter { PayWeekMinutes.weekStart(it, zone, weekStartDay) == weekStart }
             .filter { it.startTime.isBefore(currentShift.startTime) }
             .sortedBy { it.startTime }
             .toList()
@@ -226,7 +227,7 @@ object IsraeliCompensationEngine {
         resolved: ResolvedCompensation,
         zone: ZoneId,
     ): List<ClassifiedPaySegment> {
-        val net = ShiftDurationCalculator.netMinutes(shift) ?: return emptyList()
+        val net = PayrollCalculator.payableNetMinutes(shift, resolved.rules) ?: return emptyList()
         val rules = resolved.rules
         val startDate = shift.startTime.atZone(zone).toLocalDate().toString()
         val onWeekend = rules.weekendEnabled && WeekendRules.isWeekendDate(startDate, rules.weekendDays)
@@ -272,7 +273,7 @@ object IsraeliCompensationEngine {
         stackingPolicy: StackingPolicy,
         manualHoliday: Boolean,
     ): List<ClassifiedPaySegment> {
-        val net = ShiftDurationCalculator.netMinutes(shift) ?: return emptyList()
+        val net = PayrollCalculator.payableNetMinutes(shift, rules) ?: return emptyList()
         if (net <= 0) return emptyList()
 
         val startMs = shift.startTime.toEpochMilli()
@@ -282,9 +283,14 @@ object IsraeliCompensationEngine {
 
         var weeklyRegularAccum = weeklyRegularMinutesBefore
         var weeklyOtAccum = weeklyOvertimeMinutesBefore
+        // A shift is a single workday even when it crosses local midnight — the
+        // daily overtime clock keeps running for the whole shift.
         var dailyMinutesInDay = 0
         var dailyOtMinutesInDay = 0
-        var currentDay = shift.startTime.atZone(zone).toLocalDate()
+
+        // Night work is a property of the whole shift (≥2 h inside the night window
+        // makes the entire workday a shortened night workday), not of each minute.
+        val isNightShift = PayrollCalculator.isNightWorkShift(shift, rules, zone)
 
         val rawSegments = mutableListOf<ClassifiedPaySegment>()
 
@@ -293,14 +299,8 @@ object IsraeliCompensationEngine {
             val instantMs = startMs + (grossOffset * 60_000).toLong()
             val zdt = Instant.ofEpochMilli(instantMs).atZone(zone)
 
-            if (zdt.toLocalDate() != currentDay) {
-                currentDay = zdt.toLocalDate()
-                dailyMinutesInDay = 0
-                dailyOtMinutesInDay = 0
-            }
-
             val isWeeklyRest = isWeeklyRestAt(zdt, rules, manualHoliday)
-            val dailyStandard = dailyStandardAt(zdt, rules, zone, isWeeklyRest)
+            val dailyStandard = dailyStandardAt(zdt, rules, isWeeklyRest, isNightShift)
             val isDailyOt = dailyMinutesInDay >= dailyStandard
             val isWeeklyOt = weeklyRegularAccum >= rules.weeklyStandardMinutes
 
@@ -390,24 +390,16 @@ object IsraeliCompensationEngine {
     internal fun dailyStandardAt(
         zdt: ZonedDateTime,
         rules: CompensationRules,
-        zone: ZoneId,
         isWeeklyRest: Boolean,
+        isNightShift: Boolean,
     ): Int {
-        if (isWeeklyRest) {
-            return if (isNightAt(zdt, rules)) {
-                rules.nightDailyStandardMinutes ?: rules.dailyStandardMinutes
-            } else {
-                rules.dailyStandardMinutes
-            }
+        if (isNightShift) {
+            return rules.nightDailyStandardMinutes ?: rules.dailyStandardMinutes
         }
-        if (isDayBeforeRestAt(zdt, rules)) {
+        if (!isWeeklyRest && isDayBeforeRestAt(zdt, rules)) {
             return rules.dayBeforeRestDailyStandardMinutes ?: rules.dailyStandardMinutes
         }
-        return if (isNightAt(zdt, rules)) {
-            rules.nightDailyStandardMinutes ?: rules.dailyStandardMinutes
-        } else {
-            rules.dailyStandardMinutes
-        }
+        return rules.dailyStandardMinutes
     }
 
     internal fun isDayBeforeRestAt(zdt: ZonedDateTime, rules: CompensationRules): Boolean {

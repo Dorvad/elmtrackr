@@ -20,6 +20,7 @@ object CompensationRulesCodec {
         put("regular", JSONObject().apply {
             put("dailyStandardMinutes", rules.dailyStandardMinutes)
             put("weeklyStandardMinutes", rules.weeklyStandardMinutes)
+            put("weekStartDay", rules.weekStartDay)
             put("weekendDays", JSONArray(rules.weekendDays))
             put("paidBreaks", rules.paidBreaks)
             put("autoDeductBreakMinutes", rules.autoDeductBreakMinutes ?: JSONObject.NULL)
@@ -34,6 +35,8 @@ object CompensationRulesCodec {
             put("enabled", rules.overtimeEnabled)
             put("dailyTiers", encodeTiers(rules.dailyOvertimeTiers))
             put("weeklyTiers", encodeTiers(rules.weeklyOvertimeTiers))
+            put("seventhDayEnabled", rules.seventhDayEnabled)
+            put("seventhDayTiers", encodeTiers(rules.seventhDayTiers))
         })
         put("weekend", JSONObject().apply {
             put("enabled", rules.weekendEnabled)
@@ -85,6 +88,7 @@ object CompensationRulesCodec {
         return CompensationRules(
             dailyStandardMinutes = regular.optInt("dailyStandardMinutes", 480),
             weeklyStandardMinutes = regular.optInt("weeklyStandardMinutes", 2400),
+            weekStartDay = regular.optInt("weekStartDay", 1).coerceIn(0, 6),
             weekendDays = regular.optJSONArray("weekendDays")?.toIntList() ?: listOf(5, 6),
             paidBreaks = regular.optBoolean("paidBreaks", false),
             autoDeductBreakMinutes = regular.optNullableInt("autoDeductBreakMinutes"),
@@ -97,6 +101,8 @@ object CompensationRulesCodec {
             overtimeEnabled = overtime.optBoolean("enabled", true),
             dailyOvertimeTiers = decodeTiers(overtime.optJSONArray("dailyTiers")),
             weeklyOvertimeTiers = decodeTiers(overtime.optJSONArray("weeklyTiers")),
+            seventhDayEnabled = overtime.optBoolean("seventhDayEnabled", false),
+            seventhDayTiers = decodeTiers(overtime.optJSONArray("seventhDayTiers")),
             weekendEnabled = weekend.optBoolean("enabled", true),
             weekendMultiplier = weekend.optDouble("multiplier", 1.5),
             weeklyRestStartTime = weekend.optString("restStartTime").takeIf { it.isNotBlank() },

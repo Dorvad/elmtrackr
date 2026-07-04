@@ -28,6 +28,8 @@ object RegionPresets {
     private val ilRules = CompensationRules(
         dailyStandardMinutes = 516,
         weeklyStandardMinutes = 2520,
+        // Israeli work week runs Sunday–Saturday; weekly OT accumulates from Sunday.
+        weekStartDay = 0,
         weekendDays = listOf(5, 6),
         overtimeEnabled = true,
         dailyOvertimeTiers = listOf(
@@ -55,6 +57,8 @@ object RegionPresets {
     private val usFederalRules = CompensationRules(
         dailyStandardMinutes = 480,
         weeklyStandardMinutes = 2400,
+        // FLSA workweeks are employer-defined; Sunday–Saturday is the common default.
+        weekStartDay = 0,
         weekendDays = listOf(0, 6),
         overtimeEnabled = true,
         dailyOvertimeTiers = emptyList(),
@@ -69,6 +73,7 @@ object RegionPresets {
     private val usCaliforniaRules = CompensationRules(
         dailyStandardMinutes = 480,
         weeklyStandardMinutes = 2400,
+        weekStartDay = 0,
         weekendDays = listOf(0, 6),
         overtimeEnabled = true,
         dailyOvertimeTiers = listOf(
@@ -76,6 +81,12 @@ object RegionPresets {
             OvertimeTier(720, 2.0),
         ),
         weeklyOvertimeTiers = listOf(OvertimeTier(2400, 1.5)),
+        // California Labor Code-style 7th consecutive workday: 1.5× first 8 h, 2× after.
+        seventhDayEnabled = true,
+        seventhDayTiers = listOf(
+            OvertimeTier(0, 1.5),
+            OvertimeTier(480, 2.0),
+        ),
         weekendEnabled = false,
         weekendMultiplier = 1.0,
         holidayEnabled = true,
@@ -83,11 +94,15 @@ object RegionPresets {
         holidayMultiplier = 1.5,
     )
 
+    // UK law sets no statutory overtime or holiday premium — overtime pay is purely
+    // contractual, and the 48 h/week figure is the Working Time Regulations average
+    // cap on hours, not a pay trigger. Overtime therefore ships disabled; the weekly
+    // tier is kept as a ready-made template for users whose contract does pay 1.5×.
     private val gbRules = CompensationRules(
         dailyStandardMinutes = 480,
         weeklyStandardMinutes = 2880,
         weekendDays = listOf(0, 6),
-        overtimeEnabled = true,
+        overtimeEnabled = false,
         weeklyOvertimeTiers = listOf(OvertimeTier(2880, 1.5)),
         weekendEnabled = false,
         holidayEnabled = true,
@@ -124,7 +139,7 @@ object RegionPresets {
         RegionPreset(
             regionCode = RegionCode.US,
             label = "United States (Federal / FLSA)",
-            description = "Weekly overtime only (40 h/week at 1.5×). No daily overtime — edit rules if your state requires daily OT.",
+            description = "Weekly overtime only (1.5× after 40 h/week per the FLSA). No daily overtime — edit rules if your state requires daily OT. Holiday premium applies only to shifts you mark as special; it is not federally mandated.",
             currencyCode = "USD",
             timezone = "America/New_York",
             profileName = "Main job",
@@ -134,7 +149,7 @@ object RegionPresets {
         RegionPreset(
             regionCode = RegionCode.US_CA,
             label = "United States (California)",
-            description = "California-style daily OT (1.5× after 8 h, 2× after 12 h) plus weekly OT at 40 h. Edit to match your workplace.",
+            description = "California-style daily OT (1.5× after 8 h, 2× after 12 h), weekly OT at 40 h, and 7th-consecutive-workday premiums (1.5× first 8 h, 2× after). Edit to match your workplace.",
             currencyCode = "USD",
             timezone = "America/Los_Angeles",
             profileName = "Main job",
@@ -144,7 +159,7 @@ object RegionPresets {
         RegionPreset(
             regionCode = RegionCode.GB,
             label = "United Kingdom",
-            description = "Suggested weekly overtime default — not legally required in the UK. Set rates to match your employment contract.",
+            description = "UK law sets no statutory overtime or bank-holiday premium, so overtime starts disabled — pay follows your contract. A 1.5× after 48 h/week template is ready if you enable overtime; edit it to match your contract.",
             currencyCode = "GBP",
             timezone = "Europe/London",
             profileName = "Main job",

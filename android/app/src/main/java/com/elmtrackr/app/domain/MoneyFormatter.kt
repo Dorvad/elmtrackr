@@ -18,10 +18,15 @@ object MoneyFormatter {
             else -> Locale.US
         }
         return try {
+            val javaCurrency = java.util.Currency.getInstance(code)
+            // Use the currency's own minor-unit count (e.g. JPY has none), not a flat 2.
+            val digits = CurrencyCode.entries.firstOrNull { it.name == code }?.fractionDigits
+                ?: javaCurrency.defaultFractionDigits.coerceAtLeast(0)
             val formatter = java.text.NumberFormat.getCurrencyInstance(locale)
-            formatter.currency = java.util.Currency.getInstance(code)
-            formatter.minimumFractionDigits = 2
-            formatter.maximumFractionDigits = 2
+            formatter.currency = javaCurrency
+            formatter.minimumFractionDigits = digits
+            formatter.maximumFractionDigits = digits
+            formatter.roundingMode = RoundingMode.HALF_UP
             formatter.format(amount)
         } catch (_: Exception) {
             val enumCurrency = CurrencyCode.entries.firstOrNull { it.name == code }

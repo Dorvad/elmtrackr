@@ -17,6 +17,15 @@ class RegionPresetsTest {
     }
 
     @Test
+    fun `Israel and US presets anchor the pay week to Sunday`() {
+        assertEquals(0, RegionPresets.forRegion(RegionCode.IL).rules.weekStartDay)
+        assertEquals(0, RegionPresets.forRegion(RegionCode.US).rules.weekStartDay)
+        assertEquals(0, RegionPresets.forRegion(RegionCode.US_CA).rules.weekStartDay)
+        assertEquals(1, RegionPresets.forRegion(RegionCode.GB).rules.weekStartDay)
+        assertEquals(1, RegionPresets.forRegion(RegionCode.EU).rules.weekStartDay)
+    }
+
+    @Test
     fun `Israel preset uses 5-day week daily standard and weekly tiers`() {
         val il = RegionPresets.forRegion(RegionCode.IL).rules
         assertEquals(516, il.dailyStandardMinutes)
@@ -41,5 +50,22 @@ class RegionPresetsTest {
         val ca = RegionPresets.forRegion(RegionCode.US_CA).rules
         assertEquals(2, ca.dailyOvertimeTiers.size)
         assertEquals(2.0, ca.dailyOvertimeTiers.last().multiplier, 0.0)
+    }
+
+    @Test
+    fun `US California preset enables 7th consecutive workday premiums`() {
+        val ca = RegionPresets.forRegion(RegionCode.US_CA).rules
+        assertTrue(ca.seventhDayEnabled)
+        assertEquals(2, ca.seventhDayTiers.size)
+        assertEquals(1.5, ca.seventhDayTiers.first().multiplier, 0.0)
+        assertEquals(2.0, ca.seventhDayTiers.last().multiplier, 0.0)
+    }
+
+    @Test
+    fun `GB preset ships without statutory overtime premium`() {
+        val gb = RegionPresets.forRegion(RegionCode.GB).rules
+        assertTrue(!gb.overtimeEnabled)
+        // Contract template stays available for users who enable overtime.
+        assertTrue(gb.weeklyOvertimeTiers.isNotEmpty())
     }
 }

@@ -7,13 +7,23 @@ import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
 
 /**
- * ISO Monday-anchored pay-week helpers (same week boundary as [ShiftWeekGrouper]).
+ * Pay-week helpers. The week anchor defaults to ISO Monday (same boundary as
+ * [ShiftWeekGrouper]) but pay calculations pass the profile's configured
+ * [com.elmtrackr.app.domain.model.CompensationRules.weekStartDay].
  */
 object PayWeekMinutes {
 
-    fun isoWeekStart(shift: Shift, zone: ZoneId): LocalDate =
+    private val JS_DAYS = listOf(
+        DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+        DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY,
+    )
+
+    /** First day of the pay week containing [shift], anchored to [weekStartDay] (0=Sun … 6=Sat). */
+    fun weekStart(shift: Shift, zone: ZoneId, weekStartDay: Int): LocalDate =
         shift.startTime.atZone(zone).toLocalDate()
-            .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+            .with(TemporalAdjusters.previousOrSame(JS_DAYS[weekStartDay.coerceIn(0, 6)]))
+
+    fun isoWeekStart(shift: Shift, zone: ZoneId): LocalDate = weekStart(shift, zone, 1)
 
     /**
      * Net minutes already worked in the same ISO week before [shift] starts.

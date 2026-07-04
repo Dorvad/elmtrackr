@@ -39,6 +39,12 @@ data class RoundingRules(
 data class CompensationRules(
     val dailyStandardMinutes: Int = 480,
     val weeklyStandardMinutes: Int = 2400,
+    /**
+     * First day of the pay week as a JS day index (0=Sun … 6=Sat). Weekly
+     * overtime thresholds accumulate from this day. Israel and most US
+     * workweeks start Sunday; the legacy default is Monday (ISO).
+     */
+    val weekStartDay: Int = 1,
     val weekendDays: List<Int> = listOf(5, 6),
     val paidBreaks: Boolean = false,
     val autoDeductBreakMinutes: Int? = null,
@@ -47,6 +53,13 @@ data class CompensationRules(
     val overtimeEnabled: Boolean = true,
     val dailyOvertimeTiers: List<OvertimeTier> = emptyList(),
     val weeklyOvertimeTiers: List<OvertimeTier> = emptyList(),
+    /**
+     * Premium ladder for the 7th consecutive workday in a single pay week
+     * (California-style: 1.5× for the first 8 h, 2× beyond). [seventhDayTiers]
+     * use afterMinutes relative to the start of that day's shift.
+     */
+    val seventhDayEnabled: Boolean = false,
+    val seventhDayTiers: List<OvertimeTier> = emptyList(),
     val weekendEnabled: Boolean = true,
     val weekendMultiplier: Double = 1.5,
     /** Local time when weekly rest begins on the pre-rest day (e.g. Friday 17:00 before Shabbat). */

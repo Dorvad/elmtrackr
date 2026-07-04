@@ -25,7 +25,7 @@ import kotlin.math.min
  */
 object PayrollCalculator {
 
-    private data class Tier(val label: String, val capMinutes: Int, val rate: Double)
+    internal data class Tier(val label: String, val capMinutes: Int, val rate: Double)
 
     fun calculateShiftPay(
         shift: Shift,
@@ -34,6 +34,7 @@ object PayrollCalculator {
         priorWeekMinutes: Int = 0,
         premiumProfiles: List<PremiumProfile> = emptyList(),
         allShiftsInWeek: List<Shift> = emptyList(),
+        isSeventhConsecutiveWorkday: Boolean = false,
     ): ShiftPayBreakdown? {
         if (shift.endTime == null) return null
         val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
@@ -50,6 +51,7 @@ object PayrollCalculator {
         }
         return calculateGenericShiftPay(
             shift, settings, profiles, priorWeekMinutes, premiumProfiles, resolved,
+            isSeventhConsecutiveWorkday,
         )
     }
 
@@ -123,9 +125,10 @@ object PayrollCalculator {
         priorWeekMinutes: Int,
         premiumProfiles: List<PremiumProfile>,
         resolved: ResolvedCompensation,
+        isSeventhConsecutiveWorkday: Boolean = false,
     ): ShiftPayBreakdown? {
         val hourlyRate = resolved.baseHourlyRate?.takeIf { it > 0 } ?: return null
-        val net = ShiftDurationCalculator.netMinutes(shift)?.takeIf { it > 0 } ?: return null
+        val net = payableNetMinutes(shift, resolved.rules)?.takeIf { it > 0 } ?: return null
 
         val ratePerMinute = hourlyRate / 60.0
         val zone = WorkTimezone.zoneFor(resolved, settings)
@@ -152,6 +155,7 @@ object PayrollCalculator {
             shiftPremium = shiftPremium,
             shift = shift,
             zone = zone,
+            isSeventhConsecutiveWorkday = isSeventhConsecutiveWorkday,
         )
         val brackets = mutableListOf<PayBracket>()
         var remaining = net
@@ -230,8 +234,103 @@ object PayrollCalculator {
             )
         }
         val zone = WorkTimezone.zoneFor(resolved, settings)
-        val prior = PayWeekMinutes.priorMinutesBefore(shift, allCompletedShifts, zone)
-        return calculateShiftPay(shift, settings, profiles, prior, premiumProfiles)
+        val prior = priorStraightTimeMinutesBefore(
+            shift, allCompletedShifts, settings, profiles, zone, resolved.rules,
+        )
+        val seventhDay = isSeventhConsecutiveWorkday(shift, allCompletedShifts, resolved.rules, zone)
+        return calculateShiftPay(
+            shift, settings, profiles, prior, premiumProfiles,
+            isSeventhConsecutiveWorkday = seventhDay,
+        )
+    }
+
+    /**
+     * Straight-time minutes worked earlier in the same pay week (anchored to
+     * [anchorRules].weekStartDay). Minutes already paid at a daily overtime
+     * premium do not also count toward the weekly overtime threshold (the
+     * anti-pyramiding rule used by US federal and California overtime law:
+     * each hour is credited against one threshold, not both).
+     */
+    internal fun priorStraightTimeMinutesBefore(
+        shift: Shift,
+        completedShifts: List<Shift>,
+        settings: UserSettings,
+        profiles: List<CompensationProfile>,
+        zone: java.time.ZoneId,
+        anchorRules: CompensationRules,
+    ): Int {
+        val weekStart = PayWeekMinutes.weekStart(shift, zone, anchorRules.weekStartDay)
+        return completedShifts
+            .asSequence()
+            .filter { it.id != shift.id && it.endTime != null }
+            .filter { PayWeekMinutes.weekStart(it, zone, anchorRules.weekStartDay) == weekStart }
+            .filter { it.startTime.isBefore(shift.startTime) }
+            .sumOf { prior ->
+                val rules = CompensationResolver.resolveShiftCompensation(prior, settings, profiles).rules
+                val net = payableNetMinutes(prior, rules) ?: 0
+                if (rules.overtimeEnabled && rules.dailyOvertimeTiers.isNotEmpty()) {
+                    min(net, effectiveDailyStandardMinutes(rules, prior, zone))
+                } else {
+                    net
+                }
+            }
+    }
+
+    /**
+     * True when [shift] falls on the 7th distinct workday of its pay week —
+     * i.e. the person already worked the other six days of the week. Used for
+     * California-style 7th-consecutive-day premiums; requires [CompensationRules.seventhDayEnabled].
+     */
+    internal fun isSeventhConsecutiveWorkday(
+        shift: Shift,
+        completedShifts: List<Shift>,
+        rules: CompensationRules,
+        zone: java.time.ZoneId,
+    ): Boolean {
+        if (!rules.seventhDayEnabled || rules.seventhDayTiers.isEmpty()) return false
+        val weekStart = PayWeekMinutes.weekStart(shift, zone, rules.weekStartDay)
+        val shiftDate = shift.startTime.atZone(zone).toLocalDate()
+        val priorDates = completedShifts
+            .asSequence()
+            .filter { it.id != shift.id && it.endTime != null }
+            .filter { PayWeekMinutes.weekStart(it, zone, rules.weekStartDay) == weekStart }
+            .filter { it.startTime.isBefore(shift.startTime) }
+            .map { it.startTime.atZone(zone).toLocalDate() }
+            .toSet()
+        return shiftDate !in priorDates && priorDates.size >= 6
+    }
+
+    /**
+     * Minutes a shift is paid for, applying the profile's time rules to the
+     * recorded clock time:
+     * - paid breaks: recorded break minutes are not deducted;
+     * - auto break deduction: when no break was recorded, the configured
+     *   unpaid break is deducted automatically (only if the shift is longer
+     *   than the break itself);
+     * - rounding: payable minutes rounded to the configured increment;
+     * - minimum shift: short shifts are topped up to the guaranteed minimum
+     *   (reporting-time / minimum-call pay).
+     * Returns null for active shifts.
+     */
+    internal fun payableNetMinutes(shift: Shift, rules: CompensationRules): Int? {
+        val gross = ShiftDurationCalculator.grossMinutes(shift) ?: return null
+        var net = if (rules.paidBreaks) gross else maxOf(0, gross - shift.breakMinutes)
+        val autoBreak = rules.autoDeductBreakMinutes ?: 0
+        if (!rules.paidBreaks && autoBreak > 0 && shift.breakMinutes == 0 && net > autoBreak) {
+            net -= autoBreak
+        }
+        val rounding = rules.rounding
+        if (rounding.enabled && rounding.incrementMinutes > 0 && net > 0) {
+            val inc = rounding.incrementMinutes
+            net = when (rounding.direction) {
+                "up" -> ((net + inc - 1) / inc) * inc
+                "down" -> (net / inc) * inc
+                else -> ((net + inc / 2) / inc) * inc
+            }
+        }
+        val minimum = rules.minimumShiftMinutes ?: 0
+        if (minimum > 0 && net in 1 until minimum) net = minimum
+        return net
     }
 
     fun sumMonthlyPay(
@@ -290,11 +389,30 @@ object PayrollCalculator {
         shiftPremium: PremiumProfile? = null,
         shift: Shift? = null,
         zone: java.time.ZoneId? = null,
+        isSeventhConsecutiveWorkday: Boolean = false,
     ): List<Tier> {
         val rules = resolved.rules
         shiftPremium?.let {
             val pct = (it.multiplier * 100).toInt()
             return listOf(Tier("$pct% — Premium (${it.name})", Int.MAX_VALUE, it.multiplier))
+        }
+
+        if (!isSpecial && isSeventhConsecutiveWorkday && rules.overtimeEnabled &&
+            rules.seventhDayEnabled && rules.seventhDayTiers.isNotEmpty()
+        ) {
+            // Every minute of the 7th consecutive workday is premium time; the ladder
+            // in seventhDayTiers replaces the regular daily standard and tiers.
+            val segments = buildCombinedRateSegments(
+                resolved = resolved,
+                net = net,
+                priorWeekMinutes = priorWeekMinutes,
+                dailyStandard = 0,
+                dailyTiersOverride = rules.seventhDayTiers,
+            )
+            return segments.map { (minutes, rate) ->
+                val label = if (rate <= 1.0 + 1e-9) "100% — Regular" else "${(rate * 100).toInt()}% — Overtime"
+                Tier(label, minutes, rate)
+            }
         }
 
         if (isSpecial && rules.overtimeEnabled) {
@@ -393,19 +511,27 @@ object PayrollCalculator {
         }
     }
 
+    /** Minimum minutes inside the night window for a shift to count as night work. */
+    internal const val NIGHT_SHIFT_MIN_NIGHT_MINUTES = 120
+
     internal fun effectiveDailyStandardMinutes(
         rules: CompensationRules,
         shift: Shift,
         zone: java.time.ZoneId,
     ): Int {
         val nightStandard = rules.nightDailyStandardMinutes
-        if (nightStandard != null && isPredominantlyNightShift(shift, rules, zone)) {
+        if (nightStandard != null && isNightWorkShift(shift, rules, zone)) {
             return nightStandard
         }
         return rules.dailyStandardMinutes
     }
 
-    internal fun isPredominantlyNightShift(
+    /**
+     * A shift counts as night work when at least two hours of it fall inside the
+     * night window — the definition used by the Israeli Hours of Work and Rest Law
+     * (≥2 h between 22:00 and 06:00 makes the whole workday a 7-hour night workday).
+     */
+    internal fun isNightWorkShift(
         shift: Shift,
         rules: CompensationRules,
         zone: java.time.ZoneId,
@@ -416,7 +542,7 @@ object PayrollCalculator {
         val net = ShiftDurationCalculator.netMinutes(shift) ?: return false
         if (net <= 0) return false
         val nightMinutes = countNightMinutes(shift, rules.nightStartTime, rules.nightEndTime, zone)
-        return nightMinutes * 2 >= net
+        return nightMinutes >= NIGHT_SHIFT_MIN_NIGHT_MINUTES
     }
 
     internal fun effectiveDailyOvertimeTiers(
@@ -437,12 +563,13 @@ object PayrollCalculator {
         net: Int,
         priorWeekMinutes: Int,
         dailyStandard: Int = resolved.rules.dailyStandardMinutes,
+        dailyTiersOverride: List<OvertimeTier>? = null,
     ): List<Pair<Int, Double>> {
         if (net <= 0) return emptyList()
 
         val rules = resolved.rules
         val policy = resolved.stackingPolicy
-        val dailyTiers = effectiveDailyOvertimeTiers(rules, dailyStandard)
+        val dailyTiers = dailyTiersOverride ?: effectiveDailyOvertimeTiers(rules, dailyStandard)
 
         val bounds = sortedSetOf(1, net + 1)
         bounds += min(net + 1, dailyStandard + 1)
