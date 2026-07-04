@@ -2,11 +2,13 @@ package com.elmtrackr.app.domain
 
 import com.elmtrackr.app.domain.compensation.COMPENSATION_ESTIMATE_NOTE
 import com.elmtrackr.app.domain.compensation.CompensationResolver
+import com.elmtrackr.app.domain.compensation.IsraeliCompensationEngine
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.PayBracket
 import com.elmtrackr.app.domain.model.ResolvedCompensation
+import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.ShiftPayBreakdown
 import com.elmtrackr.app.domain.model.StackingPolicy
@@ -31,9 +33,97 @@ object PayrollCalculator {
         profiles: List<CompensationProfile> = emptyList(),
         priorWeekMinutes: Int = 0,
         premiumProfiles: List<PremiumProfile> = emptyList(),
+        allShiftsInWeek: List<Shift> = emptyList(),
     ): ShiftPayBreakdown? {
         if (shift.endTime == null) return null
         val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+        if (resolved.regionCode == RegionCode.IL) {
+            return if (allShiftsInWeek.isNotEmpty()) {
+                IsraeliCompensationEngine.calculateIsraeliShiftPay(
+                    shift, allShiftsInWeek, settings, profiles, premiumProfiles,
+                )
+            } else {
+                calculateIsraeliShiftPayWithPriorRegularMinutes(
+                    shift, resolved, settings, profiles, priorWeekMinutes, premiumProfiles,
+                )
+            }
+        }
+        return calculateGenericShiftPay(
+            shift, settings, profiles, priorWeekMinutes, premiumProfiles, resolved,
+        )
+    }
+
+    private fun calculateIsraeliShiftPayWithPriorRegularMinutes(
+        shift: Shift,
+        resolved: ResolvedCompensation,
+        settings: UserSettings,
+        profiles: List<CompensationProfile>,
+        priorWeekRegularMinutes: Int,
+        premiumProfiles: List<PremiumProfile>,
+    ): ShiftPayBreakdown? {
+        val hourlyRate = resolved.baseHourlyRate?.takeIf { it > 0 } ?: return null
+        val zone = WorkTimezone.zoneFor(resolved, settings)
+        val segments = IsraeliCompensationEngine.classifyShiftSegments(
+            shift = shift,
+            weeklyRegularMinutesBefore = priorWeekRegularMinutes,
+            weeklyOvertimeMinutesBefore = 0,
+            resolved = resolved,
+            zone = zone,
+            premiumProfiles = premiumProfiles,
+        )
+        if (segments.isEmpty()) return null
+
+        val ratePerMinute = hourlyRate / 60.0
+        var regularGross = 0.0
+        var overtimeGross = 0.0
+        var weekendGross = 0.0
+        var holidayGross = 0.0
+
+        val brackets = segments.map { segment ->
+            val amount = segment.minutes * ratePerMinute * segment.multiplier
+            when {
+                segment.label.contains("Premium", ignoreCase = true) -> holidayGross += amount
+                segment.isWeeklyRest && segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
+                    weekendGross += amount
+                segment.isWeeklyRest && segment.bucket != IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
+                    overtimeGross += amount
+                segment.isWeeklyOvertime -> overtimeGross += amount
+                segment.isDailyOvertime -> overtimeGross += amount
+                segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR -> regularGross += amount
+                else -> overtimeGross += amount
+            }
+            PayBracket(segment.label, segment.minutes, segment.multiplier, amount)
+        }
+
+        val isSpecial = segments.any { it.isWeeklyRest } ||
+            (shift.isSpecialDay && resolved.rules.holidayManualSpecialDayEnabled)
+
+        return ShiftPayBreakdown(
+            brackets = brackets,
+            totalGross = brackets.sumOf { it.amount },
+            regularGross = regularGross,
+            overtimeGross = overtimeGross,
+            weekendGross = weekendGross,
+            holidayGross = holidayGross,
+            nightGross = 0.0,
+            deductionsGross = 0.0,
+            netGross = brackets.sumOf { it.amount },
+            isSpecial = isSpecial,
+            profileId = resolved.profileId,
+            profileName = resolved.profileName,
+            currencyCode = resolved.currencyCode,
+            disclaimer = COMPENSATION_ESTIMATE_NOTE,
+        )
+    }
+
+    private fun calculateGenericShiftPay(
+        shift: Shift,
+        settings: UserSettings,
+        profiles: List<CompensationProfile>,
+        priorWeekMinutes: Int,
+        premiumProfiles: List<PremiumProfile>,
+        resolved: ResolvedCompensation,
+    ): ShiftPayBreakdown? {
         val hourlyRate = resolved.baseHourlyRate?.takeIf { it > 0 } ?: return null
         val net = ShiftDurationCalculator.netMinutes(shift)?.takeIf { it > 0 } ?: return null
 
@@ -134,6 +224,11 @@ object PayrollCalculator {
         premiumProfiles: List<PremiumProfile> = emptyList(),
     ): ShiftPayBreakdown? {
         val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+        if (resolved.regionCode == RegionCode.IL) {
+            return IsraeliCompensationEngine.calculateIsraeliShiftPay(
+                shift, allCompletedShifts, settings, profiles, premiumProfiles,
+            )
+        }
         val zone = WorkTimezone.zoneFor(resolved, settings)
         val prior = PayWeekMinutes.priorMinutesBefore(shift, allCompletedShifts, zone)
         return calculateShiftPay(shift, settings, profiles, prior, premiumProfiles)
@@ -159,9 +254,14 @@ object PayrollCalculator {
         PayWeekMinutes.forEachWithPriorWeekMinutes(shifts, { shift ->
             val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
             WorkTimezone.zoneFor(resolved, settings)
-        }) { shift, prior ->
-            val bd = calculateShiftPay(shift, settings, profiles, prior, premiumProfiles)
-                ?: return@forEachWithPriorWeekMinutes
+        }) { shift, _ ->
+            val bd = if (CompensationResolver.resolveShiftCompensation(shift, settings, profiles).regionCode == RegionCode.IL) {
+                IsraeliCompensationEngine.calculateIsraeliShiftPay(
+                    shift, shifts, settings, profiles, premiumProfiles,
+                )
+            } else {
+                calculateShiftPayInContext(shift, shifts, settings, profiles, premiumProfiles)
+            } ?: return@forEachWithPriorWeekMinutes
             totalGross += bd.totalGross
             regularGross += bd.regularGross
             overtimeGross += bd.overtimeGross

@@ -40,6 +40,8 @@ object RegionPresets {
         ),
         weekendEnabled = true,
         weekendMultiplier = 1.5,
+        weeklyRestStartTime = "17:00",
+        dayBeforeRestDailyStandardMinutes = 420,
         holidayEnabled = true,
         holidayManualSpecialDayEnabled = true,
         holidayMultiplier = 1.5,

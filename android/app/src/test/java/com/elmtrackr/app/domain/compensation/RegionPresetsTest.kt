@@ -21,6 +21,8 @@ class RegionPresetsTest {
         val il = RegionPresets.forRegion(RegionCode.IL).rules
         assertEquals(516, il.dailyStandardMinutes)
         assertEquals(420, il.nightDailyStandardMinutes)
+        assertEquals(420, il.dayBeforeRestDailyStandardMinutes)
+        assertEquals("17:00", il.weeklyRestStartTime)
         assertTrue(il.nightEnabled)
         assertEquals(2, il.weekendDays.size)
         assertTrue(il.weeklyOvertimeTiers.isNotEmpty())

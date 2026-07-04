@@ -111,8 +111,8 @@ class PayrollCalculatorTest {
     // ── Test 4: weekend / special-day shift ───────────────────────────────────
 
     @Test
-    fun `calculateShiftPay - Friday shift uses weekly rest rate without auto overtime`() {
-        val s = shift("2024-01-05T09:00:00Z", "2024-01-05T17:00:00Z")
+    fun `calculateShiftPay - Saturday shift uses weekly rest rate without auto overtime`() {
+        val s = shift("2024-01-06T09:00:00Z", "2024-01-06T17:00:00Z")
         val bd = PayrollCalculator.calculateShiftPay(s, defaultSettings)!!
         assertTrue(bd.isSpecial)
         assertEquals(1, bd.brackets.size)
@@ -311,8 +311,28 @@ class PayrollCalculatorTest {
         "2024-03-14T04:00:00Z",
     )
 
+    /** Fri 20:00 → Sat 05:06 Jerusalem (9.1 h, weekly rest + night). */
+    private fun fridayNightShift9_1h() = shift(
+        "2024-03-15T18:00:00Z",
+        "2024-03-16T03:06:00Z",
+    )
+
+    /** Fri 08:00 → Fri 17:06 Jerusalem (9.1 h, day before weekly rest). */
+    private fun fridayDayBeforeRest9_1h() = shift(
+        "2024-03-15T06:00:00Z",
+        "2024-03-15T15:06:00Z",
+    )
+
+    /** Wed 09:00 → Wed 14:00 Jerusalem (5 h, regular weekday). */
+    private fun weekdayShift5h() = shift(
+        "2024-03-13T07:00:00Z",
+        "2024-03-13T12:00:00Z",
+    )
+
+    private fun ilSettings(profile: CompensationProfile) = settingsWithProfile(profile)
+
     @Test
-    fun `IL weekly rest - standalone Friday night shift at 150 percent`() {
+    fun `IL test 1 - standalone Friday night weekly rest at 150 percent`() {
         val il = ilProfile()
         val bd = PayrollCalculator.calculateShiftPay(
             fridayNightShift6_5h(),
@@ -328,7 +348,7 @@ class PayrollCalculatorTest {
     }
 
     @Test
-    fun `IL weekly rest - Friday night after 40 weekly hours uses 150 175 200 tiers`() {
+    fun `IL test 2 - Friday night after 40 weekly regular hours`() {
         val il = ilProfile()
         val bd = PayrollCalculator.calculateShiftPay(
             fridayNightShift6_5h(),
@@ -344,7 +364,7 @@ class PayrollCalculatorTest {
     }
 
     @Test
-    fun `IL weekly rest - Friday night after 42 weekly hours uses 175 and 200 tiers`() {
+    fun `IL test 3 - Friday night after 42 weekly regular hours`() {
         val il = ilProfile()
         val bd = PayrollCalculator.calculateShiftPay(
             fridayNightShift6_5h(),
@@ -358,6 +378,87 @@ class PayrollCalculatorTest {
         assertEquals(270, bd.brackets[1].minutes)
         assertEquals(2.0, bd.brackets[1].rate, 0.001)
         assertNear(725.00, bd.totalGross)
+    }
+
+    @Test
+    fun `IL test 4 - long Friday night crosses night daily OT threshold`() {
+        val il = ilProfile(rate = 50.0)
+        val bd = PayrollCalculator.calculateShiftPay(
+            fridayNightShift9_1h(),
+            ilSettings(il),
+            listOf(il),
+            priorWeekMinutes = 0,
+        )!!
+        assertEquals(3, bd.brackets.size)
+        assertNear(525.0, bd.brackets[0].amount)
+        assertNear(175.0, bd.brackets[1].amount)
+        assertNear(10.0, bd.brackets[2].amount)
+        assertNear(710.00, bd.totalGross)
+        assertTrue(bd.brackets[1].label.contains("overtime", ignoreCase = true))
+    }
+
+    @Test
+    fun `IL test 5 - Friday day before rest uses day-before threshold`() {
+        val il = ilProfile(rate = 50.0)
+        val bd = PayrollCalculator.calculateShiftPay(
+            fridayDayBeforeRest9_1h(),
+            ilSettings(il),
+            listOf(il),
+            priorWeekMinutes = 0,
+        )!!
+        assertFalse(bd.isSpecial)
+        assertEquals(3, bd.brackets.size)
+        assertNear(350.0, bd.brackets[0].amount)
+        assertNear(125.0, bd.brackets[1].amount)
+        assertNear(7.5, bd.brackets[2].amount)
+        assertNear(482.50, bd.totalGross)
+        assertTrue(bd.brackets[1].label.contains("Daily overtime", ignoreCase = true))
+    }
+
+    @Test
+    fun `IL test 6 - weekday shift after 40 weekly regular hours`() {
+        val il = ilProfile(rate = 50.0)
+        val bd = PayrollCalculator.calculateShiftPay(
+            weekdayShift5h(),
+            ilSettings(il),
+            listOf(il),
+            priorWeekMinutes = 40 * 60,
+        )!!
+        assertEquals(3, bd.brackets.size)
+        assertNear(100.0, bd.brackets[0].amount)
+        assertNear(125.0, bd.brackets[1].amount)
+        assertNear(75.0, bd.brackets[2].amount)
+        assertNear(300.00, bd.totalGross)
+        assertTrue(bd.brackets[2].label.contains("Weekly overtime", ignoreCase = true))
+    }
+
+    @Test
+    fun `IL weekly accumulator excludes overtime hours from prior shifts`() {
+        val il = ilProfile()
+        val settings = ilSettings(il)
+        val zone = java.time.ZoneId.of("Asia/Jerusalem")
+        val resolved = com.elmtrackr.app.domain.compensation.CompensationResolver
+            .resolveShiftCompensation(fridayNightShift6_5h(), settings, listOf(il))
+        val priorLongOtShift = shift(
+            "2024-03-13T07:00:00Z",
+            "2024-03-13T20:00:00Z",
+            id = "long-ot",
+        )
+        val week = listOf(priorLongOtShift)
+        val regularMinutes = com.elmtrackr.app.domain.compensation.IsraeliCompensationEngine
+            .getWeeklyRegularMinutesBeforeShift(
+                fridayNightShift6_5h(),
+                week,
+                resolved,
+                zone,
+                settings,
+                listOf(il),
+                emptyList(),
+            )
+        assertTrue(
+            "Prior 13h shift should not count all minutes as regular weekly hours",
+            regularMinutes < (13 * 60),
+        )
     }
 
     @Test
