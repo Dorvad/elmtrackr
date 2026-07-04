@@ -259,6 +259,41 @@ class ShiftsViewModelTest {
     }
 
     @Test
+    fun `edit shift clears premium profile when no premium selected`() = runTest {
+        seedSettings()
+        premiumRepo.setProfiles(
+            PremiumProfile(
+                id = "premium-1",
+                userId = "u1",
+                name = "Premium",
+                multiplier = 1.5,
+                premiumType = PremiumType.HIGHEST_ONLY,
+                isDefault = true,
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            ),
+        )
+        val original = specialDayShift().copy(id = "s1")
+        shiftsRepo.setShifts(original)
+        val vm = buildVm()
+
+        val input = ShiftFormInput(
+            startTime = original.startTime,
+            endTime = original.endTime,
+            breakMinutes = original.breakMinutes,
+            notes = original.notes.orEmpty(),
+            premiumProfileId = null,
+            refundAction = null,
+        )
+        vm.saveEditedShift("s1", input)
+        advanceUntilIdle()
+
+        val saved = shiftsRepo.getShiftById("s1")!!
+        assertFalse(saved.isSpecialDay)
+        assertNull(saved.premiumProfileId)
+    }
+
+    @Test
     fun `active shift edit preserves null end time`() = runTest {
         val active = Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), endTime = null)
         shiftsRepo.setShifts(active)
