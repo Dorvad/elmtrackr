@@ -69,7 +69,8 @@ object CompensationResolver {
         )
     }
 
-    private fun remapOvertimeTiers(
+    /** Shift tier boundaries so the ladder keeps its shape when the standard changes. */
+    internal fun remapOvertimeTiers(
         tiers: List<OvertimeTier>,
         presetStandardMinutes: Int,
         userStandardMinutes: Int,

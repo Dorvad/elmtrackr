@@ -92,6 +92,10 @@ import java.util.TimeZone
 private const val TOTAL_STEPS = 8
 private val DAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
+/** 516 → "8.6", 2520 → "42" — matches what the hours text fields accept. */
+private fun minutesToHoursText(minutes: Int): String =
+    (minutes / 60.0).toString().removeSuffix(".0")
+
 @Composable
 fun OnboardingScreen(
     replay: Boolean = false,
@@ -220,7 +224,15 @@ fun OnboardingScreen(
                                     regionCode = code
                                     RegionPresets.forRegion(code).let { preset ->
                                         currencyCode = preset.currencyCode
+                                        // Keep the currency picker in sync — previously only the
+                                        // code string changed and the selected chip lagged behind.
+                                        currency = CurrencyCode.from(preset.currencyCode)
                                         timezone = preset.timezone
+                                        // Overtime and weekend defaults follow the region preset
+                                        // (e.g. Israel: 8.6 h / 42 h, Fri–Sat weekend).
+                                        dailyOtText = minutesToHoursText(preset.rules.dailyStandardMinutes)
+                                        weeklyOtText = minutesToHoursText(preset.rules.weeklyStandardMinutes)
+                                        weekendDays = preset.rules.weekendDays
                                     }
                                 },
                                 onBack = { step = 1 },

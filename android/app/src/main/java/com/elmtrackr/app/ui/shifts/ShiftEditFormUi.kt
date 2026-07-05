@@ -191,7 +191,9 @@ internal fun ShiftEditFormContent(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = if (unsavedCount > 0) 88.dp else Spacing.xl),
+                // A save affordance is always pinned to the bottom edge; reserve
+                // room for it so the last card is never hidden underneath.
+                .padding(bottom = 96.dp),
         ) {
             Row(
                 modifier = Modifier

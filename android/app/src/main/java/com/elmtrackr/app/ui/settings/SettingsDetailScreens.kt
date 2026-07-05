@@ -461,6 +461,12 @@ internal fun PayDetailScreen(
         item {
             Column {
                 SettingsSubsectionLabel("Overtime thresholds")
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "These basics update your default compensation profile. For tiers, premiums, breaks, and deductions open Compensation rules above.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Spacer(Modifier.height(8.dp))
                 HoursField(
                     label = "Daily overtime (hours)",
