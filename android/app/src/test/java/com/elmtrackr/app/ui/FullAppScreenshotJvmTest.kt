@@ -84,7 +84,9 @@ import java.time.Instant
 class FullAppScreenshotJvmTest {
     @get:Rule
     val paparazzi = Paparazzi(
-        deviceConfig = DeviceConfig.PIXEL_5.copy(screenWidth = 360, screenHeight = 800),
+        // 360×800 dp content at density 2 → 720×1600 px canvas. Keeping the
+        // canvas at 360×800 px cropped every capture to the top-left quarter.
+        deviceConfig = DeviceConfig.PIXEL_5.copy(screenWidth = 720, screenHeight = 1600),
     )
 
     @Before
@@ -129,6 +131,10 @@ class FullAppScreenshotJvmTest {
     }
 
     @Test fun dashboardReady() = capture("08-dashboard") {
+        DashboardReadyPreview(state = sampleDashboardState())
+    }
+
+    @Test fun dashboardDark() = capture("26-dashboard-dark", darkTheme = true) {
         DashboardReadyPreview(state = sampleDashboardState())
     }
 
@@ -224,6 +230,27 @@ class FullAppScreenshotJvmTest {
         )
     }
 
+    @Test fun settingsCompensationDark() = capture("27-settings-compensation-dark", darkTheme = true) {
+        val preset = RegionPresets.forRegion(RegionCode.IL)
+        CompensationSettingsContent(
+            state = CompensationSettingsUiState.Ready(
+                profile = CompensationProfile(
+                    "cp1", "user", "Israel default", RegionCode.IL, "ILS", "Asia/Jerusalem",
+                    50.0, preset.rules, preset.stackingPolicy, isDefault = true,
+                ),
+                settings = sampleSettings(),
+                presets = RegionPresets.all,
+                currencyOptions = listOf("ILS" to "₪ Israeli shekel", "USD" to "$ US dollar"),
+                timezoneOptions = listOf("Asia/Jerusalem", "UTC"),
+                isSaving = false,
+                saveMessage = null,
+            ),
+            onBack = {},
+            onSave = { _, _, _, _, _, _, _ -> },
+            onDismissMessage = {},
+        )
+    }
+
     @Test fun settingsCompensation() = capture("22-settings-compensation") {
         val preset = RegionPresets.forRegion(RegionCode.IL)
         CompensationSettingsContent(
@@ -270,11 +297,15 @@ class FullAppScreenshotJvmTest {
                 LocalReduceMotion provides true,
             ) {
                 ElmTrackrTheme(darkTheme = darkTheme) {
-                    Box(
-                        Modifier
-                            .size(360.dp, 800.dp)
-                            .background(MaterialTheme.colorScheme.background),
-                    ) { content() }
+                    // Match AuroraListScreen: a Surface derives the content color,
+                    // so default text renders correctly in dark captures too.
+                    androidx.compose.material3.Surface(
+                        modifier = Modifier.size(360.dp, 800.dp),
+                        color = MaterialTheme.colorScheme.background,
+                        contentColor = MaterialTheme.colorScheme.onBackground,
+                    ) {
+                        Box(Modifier.size(360.dp, 800.dp)) { content() }
+                    }
                 }
             }
         }

@@ -10,28 +10,21 @@ object MoneyFormatter {
 
     fun format(amount: Double, currencyCode: String): String {
         val code = currencyCode.uppercase()
-        val locale = when (code) {
-            "ILS" -> Locale("he", "IL")
-            "GBP" -> Locale.UK
-            "EUR" -> Locale.GERMANY
-            "JPY" -> Locale.JAPAN
-            else -> Locale.US
-        }
+        // Route known currencies through the same symbol-first style as the
+        // CurrencyCode overload so amounts look identical on every screen.
+        CurrencyCode.entries.firstOrNull { it.name == code }?.let { return formatLegacy(amount, it) }
         return try {
             val javaCurrency = java.util.Currency.getInstance(code)
             // Use the currency's own minor-unit count (e.g. JPY has none), not a flat 2.
-            val digits = CurrencyCode.entries.firstOrNull { it.name == code }?.fractionDigits
-                ?: javaCurrency.defaultFractionDigits.coerceAtLeast(0)
-            val formatter = java.text.NumberFormat.getCurrencyInstance(locale)
+            val digits = javaCurrency.defaultFractionDigits.coerceAtLeast(0)
+            val formatter = java.text.NumberFormat.getCurrencyInstance(Locale.US)
             formatter.currency = javaCurrency
             formatter.minimumFractionDigits = digits
             formatter.maximumFractionDigits = digits
             formatter.roundingMode = RoundingMode.HALF_UP
             formatter.format(amount)
         } catch (_: Exception) {
-            val enumCurrency = CurrencyCode.entries.firstOrNull { it.name == code }
-            if (enumCurrency != null) formatLegacy(amount, enumCurrency)
-            else "$code ${"%.2f".format(amount)}"
+            "$code ${"%.2f".format(amount)}"
         }
     }
 
