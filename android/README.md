@@ -4,15 +4,16 @@
 
 > CI debug APKs pick up `SUPABASE_URL` and `SUPABASE_ANON_KEY` from GitHub Actions secrets at build time.
 
-> **Implementation status (2026-06-25):** Authenticated user identity, one-time
+> **Implementation status (2026-07-06):** Authenticated user identity, one-time
 > legacy-data adoption, account-isolated offline sync, current Supabase wire
 > formats, auth callbacks, live theme selection, shift month navigation, insights
 > (feature-gated), refund claim editing with CameraX receipt capture and PDF
 > export, compensation profiles on shift create/edit, weekly/month-over-month
-> report comparisons, and debug/release verification are implemented.
-> Remaining parity work is intentionally tracked as separate deliverables:
-> eight additional native clock renderers, advanced motion, staged onboarding
-> polish, and broader emulator/device instrumentation coverage.
+> report comparisons, staged multi-step onboarding, native rendering for all
+> clock styles, and debug/release verification are implemented.
+> Remaining work tracked as separate deliverables: advanced motion polish,
+> Hebrew localization (strings are being extracted to resources), and broader
+> emulator/device instrumentation coverage.
 
 Native Kotlin + Jetpack Compose app. Shares a Supabase backend with the legacy
 web app but has a **separate codebase**. **No WebView, no Capacitor.** New

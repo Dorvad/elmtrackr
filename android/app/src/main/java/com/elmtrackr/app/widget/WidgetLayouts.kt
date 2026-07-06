@@ -155,7 +155,7 @@ internal fun PunchInPillButton(state: WidgetPreferences.DisplayState) {
             ) {
                 Image(
                     provider = ImageProvider(R.drawable.widget_icon_bolt),
-                    contentDescription = null,
+                    contentDescription = "Clock in",
                     modifier = GlanceModifier.size(10.dp),
                 )
             }
@@ -190,7 +190,7 @@ internal fun PunchOutPillButton(state: WidgetPreferences.DisplayState) {
             ) {
                 Image(
                     provider = ImageProvider(R.drawable.widget_icon_stop),
-                    contentDescription = null,
+                    contentDescription = "Clock out",
                     modifier = GlanceModifier.size(8.dp),
                 )
             }
@@ -447,7 +447,7 @@ internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
                     ) {
                         Image(
                             provider = ImageProvider(R.drawable.widget_icon_stop),
-                            contentDescription = null,
+                            contentDescription = "Clock out",
                             modifier = GlanceModifier.size(10.dp),
                         )
                     }
@@ -460,7 +460,7 @@ internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
                     ) {
                         Image(
                             provider = ImageProvider(R.drawable.widget_icon_bolt),
-                            contentDescription = null,
+                            contentDescription = "Clock in",
                             modifier = GlanceModifier.size(12.dp),
                         )
                     }
@@ -547,7 +547,7 @@ internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
                 } else {
                     Image(
                         provider = ImageProvider(R.drawable.widget_icon_bolt),
-                        contentDescription = null,
+                        contentDescription = "Clock in",
                         modifier = GlanceModifier.size(16.dp),
                     )
                     Spacer(GlanceModifier.height(2.dp))
@@ -594,7 +594,7 @@ internal fun BigActionWidgetContent(state: WidgetPreferences.DisplayState) {
                 ) {
                     Image(
                         provider = ImageProvider(R.drawable.widget_icon_stop),
-                        contentDescription = null,
+                        contentDescription = "Clock out",
                         modifier = GlanceModifier.size(12.dp),
                     )
                 }
@@ -618,7 +618,7 @@ internal fun BigActionWidgetContent(state: WidgetPreferences.DisplayState) {
                 ) {
                     Image(
                         provider = ImageProvider(R.drawable.widget_icon_bolt),
-                        contentDescription = null,
+                        contentDescription = "Clock in",
                         modifier = GlanceModifier.size(22.dp),
                     )
                 }
