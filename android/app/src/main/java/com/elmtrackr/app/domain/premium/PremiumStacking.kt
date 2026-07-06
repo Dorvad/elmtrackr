@@ -22,6 +22,24 @@ object PremiumStacking {
         }
     }
 
+    /**
+     * Combines two rate multipliers under a rule-level [StackingPolicy], with the
+     * same math as [combine] so compensation rules and premium profiles stack
+     * identically for matching options.
+     */
+    fun combinePolicy(premiumMultiplier: Double, otherMultiplier: Double, policy: StackingPolicy): Double {
+        val premium = premiumMultiplier.coerceAtLeast(1.0)
+        val other = otherMultiplier.coerceAtLeast(1.0)
+        return when (policy) {
+            StackingPolicy.HIGHEST_ONLY -> maxOf(premium, other)
+            StackingPolicy.ADDITIVE -> 1.0 + (premium - 1.0) + (other - 1.0)
+            StackingPolicy.MULTIPLICATIVE -> premium * other
+            StackingPolicy.BASE_PLUS_PREMIUM -> other + (premium - 1.0)
+            StackingPolicy.PREMIUM_IN_REGULAR_RATE -> maxOf(premium, other)
+            StackingPolicy.EXCLUDED_FROM_REGULAR_RATE -> maxOf(premium, other)
+        }
+    }
+
     fun combineWithPolicy(
         premiumMultiplier: Double,
         otherMultiplier: Double,

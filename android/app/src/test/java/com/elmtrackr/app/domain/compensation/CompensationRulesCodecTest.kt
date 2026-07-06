@@ -58,4 +58,23 @@ class CompensationRulesCodecTest {
         val rules = CompensationRulesCodec.decode("""{"regular":{"dailyStandardMinutes":480}}""")
         assertEquals(1, rules.weekStartDay)
     }
+
+    @Test
+    fun `premium-aligned stacking values survive an encode-decode round trip`() {
+        val original = RegionPresets.forRegion(com.elmtrackr.app.domain.model.RegionCode.CUSTOM).rules.copy(
+            weekendStacking = com.elmtrackr.app.domain.model.StackingPolicy.MULTIPLICATIVE,
+            holidayStacking = com.elmtrackr.app.domain.model.StackingPolicy.BASE_PLUS_PREMIUM,
+            nightStacking = com.elmtrackr.app.domain.model.StackingPolicy.ADDITIVE,
+        )
+        val decoded = CompensationRulesCodec.decode(CompensationRulesCodec.encode(original))
+        assertEquals(original.weekendStacking, decoded.weekendStacking)
+        assertEquals(original.holidayStacking, decoded.holidayStacking)
+        assertEquals(original.nightStacking, decoded.nightStacking)
+    }
+
+    @Test
+    fun `decode tolerates unknown stacking values`() {
+        val rules = CompensationRulesCodec.decode("""{"weekend":{"stacking":"mystery"}}""")
+        assertEquals(com.elmtrackr.app.domain.model.StackingPolicy.HIGHEST_ONLY, rules.weekendStacking)
+    }
 }

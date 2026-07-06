@@ -173,8 +173,8 @@ and returns `SyncResult.NotConfigured` immediately — no network calls, no cras
 |---|---|---|
 | Android Studio | Hedgehog 2023.1+ (or any recent) | developer.android.com/studio |
 | OR Android command-line tools | latest | developer.android.com/tools |
-| Android SDK platform | API 35 (Android 15) | via SDK Manager |
-| Build Tools | 35.0.0 | via SDK Manager |
+| Android SDK platform | API 36 | via SDK Manager |
+| Build Tools | 36.0.0 | via SDK Manager |
 | JDK | 17 | bundled with Android Studio, or Temurin |
 
 ### Step-by-step (command line)
@@ -321,11 +321,11 @@ android/
     └── src/main/
         ├── AndroidManifest.xml   # includes elmtrackr://auth deep-link intent filter
         └── java/com/elmtrackr/app/
-            ├── ElmTrackrApp.kt         # Application — manual DI container
+            ├── ElmTrackrApp.kt         # Application — Hilt entry point (@HiltAndroidApp)
             ├── MainActivity.kt         # Single activity; handles auth deep links
             ├── navigation/
-            │   ├── AppNavGraph.kt      # Scaffold + NavHost (5 tabs incl. Account)
-            │   └── BottomNavItem.kt    # Dashboard/Shifts/Reports/Settings/Account
+            │   ├── AppNavGraph.kt      # Auth-aware NavHost (loading/auth/onboarding/main)
+            │   └── BottomNavItem.kt    # 4 tabs: Home/Shifts/Reports/Settings (Account lives in Settings)
             ├── ui/
             │   ├── auth/              # AuthScreen, AuthViewModel, AuthUiState
             │   ├── dashboard/

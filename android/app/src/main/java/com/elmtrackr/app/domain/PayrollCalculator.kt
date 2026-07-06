@@ -634,10 +634,7 @@ object PayrollCalculator {
     }
 
     internal fun combineRates(daily: Double, weekly: Double, policy: StackingPolicy): Double =
-        when (policy) {
-            StackingPolicy.HIGHEST_ONLY -> maxOf(daily, weekly)
-            StackingPolicy.ADDITIVE -> 1.0 + maxOf(0.0, daily - 1.0) + maxOf(0.0, weekly - 1.0)
-        }
+        PremiumStacking.combinePolicy(daily, weekly, policy)
 
     private fun applyNightPremium(
         baseRate: Double,
@@ -662,10 +659,7 @@ object PayrollCalculator {
         val effectiveRate = if (premiumType != null) {
             PremiumStacking.combine(baseRate, rules.nightMultiplier, premiumType)
         } else {
-            when (resolved.stackingPolicy) {
-                StackingPolicy.ADDITIVE -> baseRate + nightDelta
-                StackingPolicy.HIGHEST_ONLY -> maxOf(baseRate, rules.nightMultiplier)
-            }
+            PremiumStacking.combinePolicy(rules.nightMultiplier, baseRate, resolved.stackingPolicy)
         }
         val hourlyRate = resolved.baseHourlyRate ?: return baseRate to 0.0
         val premium = nightMinutes * (hourlyRate / 60.0) * (effectiveRate - baseRate)
