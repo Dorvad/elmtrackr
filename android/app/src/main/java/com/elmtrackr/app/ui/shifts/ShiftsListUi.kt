@@ -40,8 +40,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
@@ -88,14 +90,14 @@ internal fun ShiftsPageHeader(onAddShift: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            "Shifts",
+            stringResource(R.string.shifts_title),
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
         )
         ElmGradientButton(onClick = onAddShift, compact = true) {
             Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Add", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.shifts_add), fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -136,7 +138,7 @@ private fun MonthNavRow(
                 .size(40.dp)
                 .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
         ) {
-            Icon(Icons.Filled.ChevronLeft, "Previous month", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Filled.ChevronLeft, stringResource(R.string.shifts_previous_month), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(
             "${month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.year}",
@@ -153,7 +155,7 @@ private fun MonthNavRow(
         ) {
             Icon(
                 Icons.Filled.ChevronRight,
-                "Next month",
+                stringResource(R.string.shifts_next_month),
                 tint = if (canGoNext) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline,
             )
         }
@@ -216,7 +218,7 @@ internal fun ShiftsHeroSummaryCard(
             ) {
                 Column {
                     Text(
-                        "HOURS TRACKED",
+                        stringResource(R.string.shifts_hours_tracked_header),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold,
@@ -229,7 +231,7 @@ internal fun ShiftsHeroSummaryCard(
                 summary.pay?.let {
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            "EST. GROSS",
+                            stringResource(R.string.shifts_est_gross_header),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Bold,
@@ -261,7 +263,7 @@ internal fun ShiftsHeroSummaryCard(
 private fun HeroHoursTracked(completedMinutes: Int, activeShift: Shift?) {
     if (activeShift == null) {
         Text(
-            "${formatHoursDecimal(completedMinutes)}h",
+            stringResource(R.string.shifts_hours_value, formatHoursDecimal(completedMinutes)),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
         )
@@ -276,7 +278,7 @@ private fun HeroHoursTracked(completedMinutes: Int, activeShift: Shift?) {
         }
     }
     Text(
-        "${formatHoursDecimal(completedMinutes + activeMinutes.toInt())}h",
+        stringResource(R.string.shifts_hours_value, formatHoursDecimal(completedMinutes + activeMinutes.toInt())),
         style = MaterialTheme.typography.headlineMedium,
         fontWeight = FontWeight.ExtraBold,
     )
@@ -300,10 +302,10 @@ private fun HeroHoursBreakdown(
     )
     Spacer(Modifier.height(Spacing.sm))
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        HoursLegendDot(color = AuroraIndigo, label = "Regular")
-        HoursLegendDot(color = AuroraPeach, label = "Overtime")
+        HoursLegendDot(color = AuroraIndigo, label = stringResource(R.string.shifts_legend_regular))
+        HoursLegendDot(color = AuroraPeach, label = stringResource(R.string.shifts_legend_overtime))
         // Same series color as the dashboard and reports legends.
-        HoursLegendDot(color = AuroraPlum, label = "Weekend")
+        HoursLegendDot(color = AuroraPlum, label = stringResource(R.string.shifts_legend_weekend))
     }
 }
 
@@ -408,7 +410,7 @@ internal fun ShiftsWeekSectionHeader(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
-                    "${formatHoursDecimal(section.totalMinutes)}h",
+                    stringResource(R.string.shifts_hours_value, formatHoursDecimal(section.totalMinutes)),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -495,7 +497,7 @@ internal fun ShiftRow(
                     .padding(horizontal = Spacing.sm),
             ) {
                 Text(
-                    "${formatHoursDecimal(rowDisplay.netMinutes)} h",
+                    stringResource(R.string.shifts_hours_value_spaced, formatHoursDecimal(rowDisplay.netMinutes)),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -506,14 +508,14 @@ internal fun ShiftRow(
                     ) {
                         if (rowDisplay.weekend || shift.isSpecialDay || shift.premiumProfileId != null) {
                             ShiftTypeBadge(
-                                label = if (shift.premiumProfileId != null || shift.isSpecialDay) "PREMIUM" else "WEEKEND",
+                                label = if (shift.premiumProfileId != null || shift.isSpecialDay) stringResource(R.string.shifts_badge_premium) else stringResource(R.string.shifts_badge_weekend),
                                 background = auroraWeekendBackground(),
                                 color = MaterialTheme.colorScheme.secondary,
                             )
                         }
                         if (rowDisplay.hasOt) {
                             ShiftTypeBadge(
-                                label = "OT",
+                                label = stringResource(R.string.shifts_badge_ot),
                                 background = auroraOvertimeBackground(),
                                 color = MaterialTheme.colorScheme.error,
                             )
@@ -521,14 +523,14 @@ internal fun ShiftRow(
                     }
                 }
                 Text(
-                    "${rowDisplay.startText} - ${rowDisplay.endText}",
+                    stringResource(R.string.shifts_time_range, rowDisplay.startText, rowDisplay.endText),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),
                 )
                 if (shift.breakMinutes > 0) {
                     Text(
-                        "${shift.breakMinutes}m break",
+                        stringResource(R.string.shifts_break_line, shift.breakMinutes),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -610,7 +612,7 @@ private fun ActiveShiftRow(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        "NOW",
+                        stringResource(R.string.shifts_badge_now),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = ShiftActiveGreen,
@@ -634,20 +636,20 @@ private fun ActiveShiftRow(
                                 .background(ShiftActiveGreen, CircleShape),
                         )
                         Text(
-                            "On shift",
+                            stringResource(R.string.shifts_on_shift),
                             modifier = Modifier.padding(start = 6.dp),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                         )
                         ShiftTypeBadge(
-                            label = "LIVE",
+                            label = stringResource(R.string.shifts_badge_live),
                             background = ShiftActiveGreen.copy(alpha = 0.16f),
                             color = ShiftActiveGreen,
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
                     Text(
-                        "Since $startText",
+                        stringResource(R.string.shifts_since, startText),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp),
@@ -721,7 +723,7 @@ internal fun ShiftsMonthCard(
 @Composable
 internal fun ShiftsAddPastShiftButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     ElmDashedButton(
-        label = "Add a past shift",
+        label = stringResource(R.string.shifts_add_past_shift),
         onClick = onClick,
         modifier = modifier,
     )

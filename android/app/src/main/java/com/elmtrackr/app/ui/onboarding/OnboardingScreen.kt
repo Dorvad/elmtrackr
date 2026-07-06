@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.onboarding
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -29,8 +30,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Paid
@@ -69,7 +68,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.RegionCode
@@ -349,12 +350,12 @@ internal fun OnboardingProgress(step: Int) {
                 )
                 Spacer(Modifier.width(9.dp))
                 Column {
-                    Text("ELMTRACKR", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
-                    Text(stepTitle(step), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.onboarding_brand), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(stepTitleRes(step)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Text(
-                "$step / $TOTAL_STEPS",
+                stringResource(R.string.onboarding_step_counter, step, TOTAL_STEPS),
                 modifier = Modifier.background(MaterialTheme.colorScheme.surface, RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 5.dp),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
@@ -372,15 +373,16 @@ internal fun OnboardingProgress(step: Int) {
     }
 }
 
-private fun stepTitle(step: Int): String = when (step) {
-    1 -> "Welcome"
-    2 -> "Your region"
-    3 -> "Your profile"
-    4 -> "Pay preferences"
-    5 -> "Work week"
-    6 -> "Features"
-    7 -> "Security"
-    else -> "Review"
+@StringRes
+private fun stepTitleRes(step: Int): Int = when (step) {
+    1 -> R.string.onboarding_step_welcome
+    2 -> R.string.onboarding_step_region
+    3 -> R.string.onboarding_step_profile
+    4 -> R.string.onboarding_step_pay
+    5 -> R.string.onboarding_step_work_week
+    6 -> R.string.onboarding_step_features
+    7 -> R.string.onboarding_step_security
+    else -> R.string.onboarding_step_review
 }
 
 @Composable
@@ -394,8 +396,8 @@ internal fun RegionStep(
 ) {
     SetupHero(
         Icons.Filled.Tune,
-        "Where do you work?",
-        "Choose a region preset to start with suggested compensation rules. You can customize everything later.",
+        stringResource(R.string.onboarding_region_title),
+        stringResource(R.string.onboarding_region_subtitle),
     )
     SetupCard {
         RegionPresets.all.forEach { preset ->
@@ -422,13 +424,13 @@ internal fun RegionStep(
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            "Currency: $currencyCode · Timezone: $timezone",
+            stringResource(R.string.onboarding_region_currency_timezone, currencyCode, timezone),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "ElmTrackr provides estimated compensation only — not legal or payroll advice.",
+            stringResource(R.string.onboarding_region_disclaimer),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -446,22 +448,22 @@ internal fun ProfileStep(
     onBack: () -> Unit,
     onNext: () -> Unit,
 ) {
-    SetupHero(Icons.Filled.Person, "Let’s make it yours", "What should we call you inside ElmTrackr?")
+    SetupHero(Icons.Filled.Person, stringResource(R.string.onboarding_profile_title), stringResource(R.string.onboarding_profile_subtitle))
     SetupCard {
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Your name") },
-            placeholder = { Text("e.g. Dor") },
-            supportingText = { Text(if (showError) "Enter your name to continue" else "This appears on your dashboard and reports") },
+            label = { Text(stringResource(R.string.onboarding_profile_name_label)) },
+            placeholder = { Text(stringResource(R.string.onboarding_profile_name_placeholder)) },
+            supportingText = { Text(if (showError) stringResource(R.string.onboarding_profile_name_error) else stringResource(R.string.onboarding_profile_name_helper)) },
             isError = showError,
             singleLine = true,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
         )
         if (email.isNotBlank()) {
             Spacer(Modifier.height(10.dp))
-            Text("Signed in as $email", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.onboarding_profile_signed_in_as, email), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
     Spacer(Modifier.height(18.dp))
@@ -478,24 +480,24 @@ internal fun PaySetupStep(
     onBack: () -> Unit,
     onNext: () -> Unit,
 ) {
-    SetupHero(Icons.Filled.Paid, "Know what your time is worth", "Add your base hourly salary for live gross-pay estimates.")
+    SetupHero(Icons.Filled.Paid, stringResource(R.string.onboarding_pay_title), stringResource(R.string.onboarding_pay_subtitle))
     SetupCard {
         OutlinedTextField(
             value = hourlyRate,
             onValueChange = onHourlyRateChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Hourly salary") },
+            label = { Text(stringResource(R.string.onboarding_pay_hourly_salary_label)) },
             prefix = { Text(currency.symbol) },
-            placeholder = { Text("0.00") },
+            placeholder = { Text(stringResource(R.string.onboarding_pay_rate_placeholder)) },
             supportingText = {
-                Text(if (!valid) "Enter a positive amount" else "Optional. Leave blank if you only want to track hours.")
+                Text(if (!valid) stringResource(R.string.onboarding_pay_rate_error) else stringResource(R.string.onboarding_pay_rate_helper))
             },
             isError = !valid,
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         )
         Spacer(Modifier.height(16.dp))
-        Text("Currency", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.onboarding_pay_currency_label), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         CurrencyCode.entries.chunked(2).forEach { rowCurrencies ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -544,10 +546,10 @@ internal fun WorkWeekStep(
     onNext: () -> Unit,
 ) {
     var showTimezoneEditor by rememberSaveable { mutableStateOf(false) }
-    SetupHero(Icons.Filled.CalendarMonth, "Set your work week", "Choose weekend days and when overtime starts.")
+    SetupHero(Icons.Filled.CalendarMonth, stringResource(R.string.onboarding_work_week_title), stringResource(R.string.onboarding_work_week_subtitle))
     SetupCard {
-        Text("Weekend days", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-        Text("Weekend and holiday pay rules use these days.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.onboarding_weekend_days_label), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.onboarding_weekend_days_helper), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             DAY_LABELS.forEachIndexed { day, label ->
@@ -576,7 +578,7 @@ internal fun WorkWeekStep(
             }
         }
         if (weekendDays.isEmpty()) {
-            Text("Select at least one day", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            Text(stringResource(R.string.onboarding_weekend_days_error), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
         }
         Spacer(Modifier.height(18.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -584,8 +586,8 @@ internal fun WorkWeekStep(
                 value = dailyOt,
                 onValueChange = onDailyOtChange,
                 modifier = Modifier.weight(1f),
-                label = { Text("Daily OT") },
-                suffix = { Text("h") },
+                label = { Text(stringResource(R.string.onboarding_daily_ot_label)) },
+                suffix = { Text(stringResource(R.string.onboarding_hours_suffix)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
@@ -593,14 +595,14 @@ internal fun WorkWeekStep(
                 value = weeklyOt,
                 onValueChange = onWeeklyOtChange,
                 modifier = Modifier.weight(1f),
-                label = { Text("Weekly OT") },
-                suffix = { Text("h") },
+                label = { Text(stringResource(R.string.onboarding_weekly_ot_label)) },
+                suffix = { Text(stringResource(R.string.onboarding_hours_suffix)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
         }
         if (!valid && weekendDays.isNotEmpty()) {
-            Text("Daily must be 1–24h; weekly must be at least daily and no more than 168h.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            Text(stringResource(R.string.onboarding_ot_error), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
         }
         Spacer(Modifier.height(14.dp))
         Row(
@@ -613,10 +615,10 @@ internal fun WorkWeekStep(
             Icon(Icons.Filled.Public, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text("Timezone", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.onboarding_timezone_label), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(timezone, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Set from your region in step 2",
+                    stringResource(R.string.onboarding_timezone_helper),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -624,7 +626,7 @@ internal fun WorkWeekStep(
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             TextButton(onClick = { showTimezoneEditor = !showTimezoneEditor }) {
-                Text(if (showTimezoneEditor) "Hide timezone picker" else "Change timezone")
+                Text(if (showTimezoneEditor) stringResource(R.string.onboarding_hide_timezone_picker) else stringResource(R.string.onboarding_change_timezone))
             }
         }
         if (showTimezoneEditor) {
@@ -655,25 +657,25 @@ internal fun ReviewStep(
             Icon(Icons.Filled.Check, null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(42.dp))
         }
         Spacer(Modifier.height(18.dp))
-        Text("Ready to start", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+        Text(stringResource(R.string.onboarding_review_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
         Text(
-            "Clock in once. See hours, pay estimate, and overtime instantly.",
+            stringResource(R.string.onboarding_tagline),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(20.dp))
         SetupCard {
-            ReviewRow("Name", displayName)
-            ReviewRow("Region", regionLabel)
-            ReviewRow("Hourly salary", hourlyRate?.let { MoneyFormatter.format(it, currency) } ?: "Not set")
-            ReviewRow("Weekend", weekendDays.joinToString(", ") { DAY_LABELS[it] })
-            ReviewRow("Optional features", "$enabledCount enabled", showDivider = false)
+            ReviewRow(stringResource(R.string.onboarding_review_name), displayName)
+            ReviewRow(stringResource(R.string.onboarding_review_region), regionLabel)
+            ReviewRow(stringResource(R.string.onboarding_review_hourly_salary), hourlyRate?.let { MoneyFormatter.format(it, currency) } ?: stringResource(R.string.onboarding_review_not_set))
+            ReviewRow(stringResource(R.string.onboarding_review_weekend), weekendDays.joinToString(", ") { DAY_LABELS[it] })
+            ReviewRow(stringResource(R.string.onboarding_review_optional_features), stringResource(R.string.onboarding_review_enabled_count, enabledCount), showDivider = false)
         }
         error?.let { Spacer(Modifier.height(12.dp)); Text(it, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
         Spacer(Modifier.height(22.dp))
-        ElmGradientButton(onClick = onFinish) { Text("Save and start tracking", fontWeight = FontWeight.Bold) }
+        ElmGradientButton(onClick = onFinish) { Text(stringResource(R.string.onboarding_save_and_start), fontWeight = FontWeight.Bold) }
         Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.onboarding_back)) }
     }
 }
 
@@ -722,36 +724,86 @@ internal fun WelcomeStep(replay: Boolean, onNext: () -> Unit) {
             )
         }
         Spacer(Modifier.height(24.dp))
-        Text(if (replay) "Review your setup" else "Welcome to ElmTrackr", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center)
+        Text(if (replay) stringResource(R.string.onboarding_welcome_replay_title) else stringResource(R.string.onboarding_welcome_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center)
         Spacer(Modifier.height(10.dp))
         Text(
             if (replay) {
-                "Update your profile, pay, work week, and features."
+                stringResource(R.string.onboarding_welcome_replay_subtitle)
             } else {
-                "Clock in once. See hours, pay estimate, and overtime instantly."
+                stringResource(R.string.onboarding_welcome_intro)
             },
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(24.dp))
         SetupCard {
-            WelcomeBenefit(Icons.Filled.AccessTime, "One tap to clock in and out")
-            WelcomeBenefit(Icons.Filled.Paid, "Live pay and overtime estimates")
-            WelcomeBenefit(Icons.Filled.Analytics, "Reports build automatically", showDivider = false)
+            Text(
+                stringResource(R.string.onboarding_how_it_works),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(4.dp))
+            HowItWorksRow(
+                number = 1,
+                title = stringResource(R.string.onboarding_how_step1_title),
+                description = stringResource(R.string.onboarding_how_step1_desc),
+            )
+            HowItWorksRow(
+                number = 2,
+                title = stringResource(R.string.onboarding_how_step2_title),
+                description = stringResource(R.string.onboarding_how_step2_desc),
+            )
+            HowItWorksRow(
+                number = 3,
+                title = stringResource(R.string.onboarding_how_step3_title),
+                description = stringResource(R.string.onboarding_how_step3_desc),
+                showDivider = false,
+            )
         }
-        Spacer(Modifier.height(26.dp))
-        ElmGradientButton(onClick = onNext) { Text(if (replay) "Review Setup" else "Get Started", fontWeight = FontWeight.Bold) }
+        Spacer(Modifier.height(12.dp))
+        Text(
+            stringResource(R.string.onboarding_welcome_reassurance),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(20.dp))
+        ElmGradientButton(onClick = onNext) { Text(if (replay) stringResource(R.string.onboarding_review_setup_button) else stringResource(R.string.onboarding_get_started), fontWeight = FontWeight.Bold) }
+        if (!replay) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.onboarding_welcome_setup_time),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
 @Composable
-private fun WelcomeBenefit(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, showDivider: Boolean = true) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(34.dp).background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(CornerRadius.Small)), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+private fun HowItWorksRow(number: Int, title: String, description: String, showDivider: Boolean = true) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.Top) {
+        Box(
+            Modifier.size(28.dp).background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(50)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                number.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
-        Spacer(Modifier.width(11.dp))
-        Text(text, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
     if (showDivider) Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
 }
@@ -766,20 +818,20 @@ internal fun SecurityStep(
 ) {
     SetupHero(
         Icons.Filled.Fingerprint,
-        "Protect your data",
-        "Optionally require fingerprint, face unlock, or your device PIN to open ElmTrackr.",
+        stringResource(R.string.onboarding_security_title),
+        stringResource(R.string.onboarding_security_subtitle),
     )
     SetupCard {
         val canEnable = biometricAvailability == BiometricAvailability.AVAILABLE
         FeatureCard(
-            title = "Require biometric to open",
+            title = stringResource(R.string.onboarding_security_app_lock_title),
             description = when (biometricAvailability) {
                 BiometricAvailability.AVAILABLE ->
-                    "Lock pay rates, receipts, and shift history when the app is in the background"
+                    stringResource(R.string.onboarding_security_desc_available)
                 BiometricAvailability.NOT_ENROLLED ->
-                    "Set up fingerprint, face unlock, or a device PIN in system settings first"
+                    stringResource(R.string.onboarding_security_desc_not_enrolled)
                 BiometricAvailability.UNAVAILABLE ->
-                    "Biometric or device credential unlock is not available on this device"
+                    stringResource(R.string.onboarding_security_desc_unavailable)
             },
             enabled = appLockEnabled,
             onChange = { enabled ->
@@ -789,7 +841,7 @@ internal fun SecurityStep(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "You can change this anytime in Settings → Security.",
+            stringResource(R.string.onboarding_security_change_later),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -804,15 +856,15 @@ internal fun FeaturesStep(
     onTravel: (Boolean) -> Unit, onInsights: (Boolean) -> Unit,
     onBack: () -> Unit, onNext: () -> Unit,
 ) {
-    StepHeader("What do you need?", "Enable the features that fit your workflow. You can change these later in Settings.")
-    FeatureCard("Travel Refunds", "Track transport reimbursements for eligible shifts.", travel, onTravel)
-    FeatureCard("Insights & Analytics", "Smart summaries, weekly trends, and daily coaching.", insights, onInsights)
+    StepHeader(stringResource(R.string.onboarding_features_title), stringResource(R.string.onboarding_features_subtitle))
+    FeatureCard(stringResource(R.string.onboarding_feature_travel_title), stringResource(R.string.onboarding_feature_travel_desc), travel, onTravel)
+    FeatureCard(stringResource(R.string.onboarding_feature_insights_title), stringResource(R.string.onboarding_feature_insights_desc), insights, onInsights)
     Spacer(Modifier.height(20.dp)); NavRow(onBack, onNext)
 }
 
 @Composable
 internal fun ClockStyleStep(selected: ClockStyle, onSelect: (ClockStyle) -> Unit, onBack: () -> Unit, onNext: () -> Unit) {
-    StepHeader("Pick your style", "Choose how your clock widget looks on the home screen.")
+    StepHeader(stringResource(R.string.onboarding_clock_style_title), stringResource(R.string.onboarding_clock_style_subtitle))
     ClockStyle.entries.chunked(2).forEach { rowStyles ->
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             rowStyles.forEach { style -> ClockStyleCard(style, selected == style, Modifier.weight(1f)) { onSelect(style) } }
@@ -879,8 +931,8 @@ private fun ClockStyleCard(style: ClockStyle, selected: Boolean, modifier: Modif
 @Composable
 private fun NavRow(onBack: () -> Unit, onNext: () -> Unit, nextEnabled: Boolean = true) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Back") }
-        ElmGradientButton(onClick = onNext, enabled = nextEnabled, modifier = Modifier.weight(1f)) { Text("Continue", fontWeight = FontWeight.Bold) }
+        OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.onboarding_back)) }
+        ElmGradientButton(onClick = onNext, enabled = nextEnabled, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.onboarding_continue), fontWeight = FontWeight.Bold) }
     }
 }
 

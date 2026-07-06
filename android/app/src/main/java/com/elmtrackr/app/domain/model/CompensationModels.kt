@@ -15,16 +15,42 @@ enum class RegionCode {
     }
 }
 
-enum class StackingPolicy { HIGHEST_ONLY, ADDITIVE;
+/**
+ * How overlapping rate premiums combine. Mirrors [PremiumType] so compensation
+ * rules offer the same stacking options as custom premium profiles. The two
+ * regular-rate modes exist for wire compatibility with premium profiles and
+ * combine like [HIGHEST_ONLY]; their overtime-base semantics only apply to
+ * shift premiums.
+ */
+enum class StackingPolicy {
+    HIGHEST_ONLY,
+    ADDITIVE,
+    MULTIPLICATIVE,
+    BASE_PLUS_PREMIUM,
+    PREMIUM_IN_REGULAR_RATE,
+    EXCLUDED_FROM_REGULAR_RATE,
+    ;
 
     companion object {
         fun fromPersisted(raw: String?): StackingPolicy {
             if (raw.isNullOrBlank()) return HIGHEST_ONLY
             return when (raw.trim().lowercase()) {
                 "additive" -> ADDITIVE
+                "multiplicative" -> MULTIPLICATIVE
+                "base_plus_premium" -> BASE_PLUS_PREMIUM
+                "premium_in_regular_rate" -> PREMIUM_IN_REGULAR_RATE
+                "excluded_from_regular_rate" -> EXCLUDED_FROM_REGULAR_RATE
                 else -> HIGHEST_ONLY
             }
         }
+
+        /** Options offered in profile settings, aligned with [PremiumType.selectable]. */
+        val selectable: List<StackingPolicy> = listOf(
+            HIGHEST_ONLY,
+            ADDITIVE,
+            MULTIPLICATIVE,
+            BASE_PLUS_PREMIUM,
+        )
     }
 }
 

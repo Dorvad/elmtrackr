@@ -53,10 +53,12 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.RefundPolicy
@@ -173,16 +175,16 @@ internal fun ShiftEditFormContent(
     if (showDeleteConfirm && isEdit) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete shift?") },
-            text = { Text("This shift will be removed. The deletion will sync when online.") },
+            title = { Text(stringResource(R.string.shifts_delete_dialog_title)) },
+            text = { Text(stringResource(R.string.shifts_delete_dialog_text)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
                     AuroraHaptics.destructive(haptic)
                     onDelete((navState as ShiftFormNavState.Edit).shift.id)
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.shifts_delete), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.shifts_cancel)) } },
         )
     }
 
@@ -202,11 +204,11 @@ internal fun ShiftEditFormContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onClose) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.shifts_back))
                 }
                 Column(modifier = Modifier.padding(start = 4.dp).weight(1f)) {
                     Text(
-                        if (isEdit) "Edit shift" else "New shift",
+                        if (isEdit) stringResource(R.string.shifts_edit_shift_title) else stringResource(R.string.shifts_new_shift_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )
@@ -242,7 +244,7 @@ internal fun ShiftEditFormContent(
                     currency = currency,
                 )
 
-                FormSectionCard(title = "WHEN") {
+                FormSectionCard(title = stringResource(R.string.shifts_section_when)) {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -250,7 +252,7 @@ internal fun ShiftEditFormContent(
                             verticalAlignment = Alignment.Top,
                         ) {
                             DateTimeFieldGroup(
-                                label = "Start",
+                                label = stringResource(R.string.shifts_start_label),
                                 date = Instant.ofEpochMilli(startMillis).atZone(zone).format(dateBoxFmt),
                                 time = Instant.ofEpochMilli(startMillis).atZone(zone).format(timeBoxFmt),
                                 onPickDate = onPickStartDate,
@@ -267,7 +269,7 @@ internal fun ShiftEditFormContent(
                             )
                             if (hasEndTime) {
                                 DateTimeFieldGroup(
-                                    label = "End",
+                                    label = stringResource(R.string.shifts_end_label),
                                     date = Instant.ofEpochMilli(endMillis).atZone(zone).format(dateBoxFmt),
                                     time = Instant.ofEpochMilli(endMillis).atZone(zone).format(timeBoxFmt),
                                     onPickDate = onPickEndDate,
@@ -292,7 +294,7 @@ internal fun ShiftEditFormContent(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                "Still on shift",
+                                stringResource(R.string.shifts_still_on_shift),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -332,7 +334,7 @@ internal fun ShiftEditFormContent(
                     }
                 }
 
-                FormSectionCard(title = "BREAK & PREMIUM") {
+                FormSectionCard(title = stringResource(R.string.shifts_section_break_premium)) {
                     BreakStepper(
                         minutes = breakMinutes,
                         onChange = onBreakMinutesChange,
@@ -348,7 +350,7 @@ internal fun ShiftEditFormContent(
                 }
 
                 if (profiles.isNotEmpty() || activeTasks.isNotEmpty()) {
-                    FormSectionCard(title = "PAY & TASK") {
+                    FormSectionCard(title = stringResource(R.string.shifts_section_pay_task)) {
                         if (profiles.isNotEmpty()) {
                             CompensationProfilePicker(
                                 profiles = profiles,
@@ -358,10 +360,10 @@ internal fun ShiftEditFormContent(
                         }
                         if (activeTasks.isNotEmpty()) {
                             if (profiles.isNotEmpty()) Spacer(Modifier.height(Spacing.sm))
-                            Text("Task", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                            Text(stringResource(R.string.shifts_task_label), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                             if (isEdit) {
                                 Text(
-                                    "Change which task this shift used — pay updates when you save.",
+                                    stringResource(R.string.shifts_task_edit_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -374,7 +376,7 @@ internal fun ShiftEditFormContent(
                                 FilterChip(
                                     selected = taskId == null,
                                     onClick = { onTaskIdChange(null) },
-                                    label = { Text("None") },
+                                    label = { Text(stringResource(R.string.shifts_task_none)) },
                                 )
                                 activeTasks.forEach { task ->
                                     FilterChip(
@@ -391,7 +393,12 @@ internal fun ShiftEditFormContent(
                                 activeTasks.none { it.id == initialShift.taskId }
                             ) {
                                 Text(
-                                    "Saved task: ${initialShift.taskIconSnapshot.orEmpty()} ${initialShift.taskNameSnapshot} (${initialShift.taskHourlyRateSnapshot}/hr)",
+                                    stringResource(
+                                        R.string.shifts_saved_task,
+                                        initialShift.taskIconSnapshot.orEmpty(),
+                                        initialShift.taskNameSnapshot.toString(),
+                                        initialShift.taskHourlyRateSnapshot.toString(),
+                                    ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = 6.dp),
@@ -401,11 +408,11 @@ internal fun ShiftEditFormContent(
                     }
                 }
 
-                FormSectionCard(title = "NOTES") {
+                FormSectionCard(title = stringResource(R.string.shifts_section_notes)) {
                     OutlinedTextField(
                         value = notesText,
                         onValueChange = onNotesChange,
-                        placeholder = { Text("Add notes about this shift…") },
+                        placeholder = { Text(stringResource(R.string.shifts_notes_placeholder)) },
                         minLines = 3,
                         maxLines = 5,
                         modifier = Modifier.fillMaxWidth(),
@@ -434,7 +441,7 @@ internal fun ShiftEditFormContent(
                             .fillMaxWidth()
                             .padding(top = Spacing.sm),
                     ) {
-                        Text("Delete shift", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.shifts_delete_shift), color = MaterialTheme.colorScheme.error)
                     }
                 }
 
@@ -462,7 +469,7 @@ internal fun ShiftEditFormContent(
                     AuroraHaptics.success(haptic)
                     onSave(buildInput())
                 }) {
-                    Text("Save", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.shifts_save), fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -518,7 +525,7 @@ private fun LivePayPreviewCard(
                 .padding(Spacing.lg),
         ) {
             Text(
-                "ESTIMATED PAY • UPDATES AS YOU EDIT",
+                stringResource(R.string.shifts_estimated_pay_header),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White.copy(alpha = 0.85f),
                 fontWeight = FontWeight.Bold,
@@ -533,7 +540,7 @@ private fun LivePayPreviewCard(
             previewPay.brackets.forEach { bracket ->
                 val hours = formatHoursDecimal(bracket.minutes)
                 Text(
-                    "${hours}h ${bracket.label} - ${MoneyFormatter.format(bracket.amount, currency)}",
+                    stringResource(R.string.shifts_pay_bracket_line, hours, bracket.label, MoneyFormatter.format(bracket.amount, currency)),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.9f),
                 )
@@ -586,14 +593,14 @@ private fun DateTimeFieldGroup(
         DateTimePickerRow(
             value = date,
             icon = Icons.Filled.CalendarToday,
-            contentDescription = "Pick $label date",
+            contentDescription = stringResource(R.string.shifts_pick_date, label),
             onClick = onPickDate,
         )
         Spacer(Modifier.height(8.dp))
         DateTimePickerRow(
             value = time,
             icon = Icons.Filled.Schedule,
-            contentDescription = "Pick $label time",
+            contentDescription = stringResource(R.string.shifts_pick_time, label),
             onClick = onPickTime,
         )
     }
@@ -645,9 +652,9 @@ private fun ActiveEndPlaceholder(onEnableEnd: () -> Unit, modifier: Modifier = M
             .padding(Spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("End", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Active", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
-        Text("Tap to set end", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.shifts_end_label), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.shifts_active), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
+        Text(stringResource(R.string.shifts_tap_to_set_end), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -670,9 +677,9 @@ private fun WhenSummaryFooter(
             modifier = Modifier.size(14.dp),
         )
         val worked = workedMinutes?.let { ShiftDurationCalculator.formatMinutes(it) } ?: "-"
-        val paid = paidMinutes?.let { formatHoursDecimal(it) + "h paid" } ?: "-"
+        val paid = paidMinutes?.let { stringResource(R.string.shifts_hours_paid, formatHoursDecimal(it)) } ?: "-"
         Text(
-            "$worked worked • ${breakMinutes}m break • $paid",
+            stringResource(R.string.shifts_when_summary, worked, breakMinutes, paid),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 6.dp),
@@ -687,11 +694,11 @@ private fun BreakStepper(minutes: Int, onChange: (Int) -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("Unpaid break", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        Text(stringResource(R.string.shifts_unpaid_break), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
         Row(verticalAlignment = Alignment.CenterVertically) {
             StepperButton(label = "−", onClick = { onChange((minutes - 15).coerceAtLeast(0)) })
             Text(
-                "$minutes min",
+                stringResource(R.string.shifts_break_minutes_value, minutes),
                 modifier = Modifier.padding(horizontal = Spacing.md),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
@@ -738,15 +745,15 @@ private fun TravelRefundCard(expanded: Boolean, onToggle: () -> Unit) {
                 tint = MaterialTheme.colorScheme.primary,
             )
             Column(modifier = Modifier.weight(1f).padding(horizontal = Spacing.sm)) {
-                Text("Travel refund", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.shifts_travel_refund), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 Text(
-                    "Claim a ride to or from work",
+                    stringResource(R.string.shifts_travel_refund_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             OutlinedButton(onClick = onToggle) {
-                Text(if (expanded) "Close" else "Claim")
+                Text(if (expanded) stringResource(R.string.shifts_close) else stringResource(R.string.shifts_claim))
             }
         }
     }
@@ -774,12 +781,15 @@ private fun FloatingSaveBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "$unsavedCount unsaved change${if (unsavedCount == 1) "" else "s"}",
+                stringResource(
+                    if (unsavedCount == 1) R.string.shifts_unsaved_changes_one else R.string.shifts_unsaved_changes_other,
+                    unsavedCount,
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             ElmGradientButton(onClick = onSave, compact = true) {
-                Text("Save", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.shifts_save), fontWeight = FontWeight.SemiBold)
             }
         }
     }

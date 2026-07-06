@@ -1,6 +1,7 @@
 package com.elmtrackr.app.data.sync
 
 import android.content.Context
+import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -33,6 +34,7 @@ class SyncScheduler(
             .build()
         val request = OneTimeWorkRequestBuilder<SyncWorker>()
             .setConstraints(constraints)
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, RETRY_BACKOFF_SECONDS, TimeUnit.SECONDS)
             .addTag(WORK_TAG)
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
@@ -61,5 +63,9 @@ class SyncScheduler(
         const val ONE_TIME_WORK_NAME = "elmtrackr-sync-once"
         const val PERIODIC_WORK_NAME = "elmtrackr-sync-periodic"
         const val WORK_TAG = "elmtrackr-sync"
+
+        // 30s, 60s, 120s… caps retries well under SyncWorker.MAX_RETRY_ATTEMPTS
+        // while staying gentle on the backend during outages.
+        const val RETRY_BACKOFF_SECONDS = 30L
     }
 }

@@ -15,6 +15,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.CompensationProfile
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,7 +42,7 @@ fun CompensationProfilePicker(
             value = selected.name,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Compensation profile") },
+            label = { Text(stringResource(R.string.shifts_compensation_profile_label)) },
             supportingText = {
                 Text(
                     buildString {

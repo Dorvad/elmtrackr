@@ -41,9 +41,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.AuroraStateCrossfade
@@ -171,8 +173,8 @@ fun ShiftsScreen(
                             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                                 ElmEmptyState(
                                     icon = Icons.Filled.AccessTime,
-                                    title = "No shifts this month",
-                                    subtitle = "Clock in from the home screen or add a shift manually.",
+                                    title = stringResource(R.string.shifts_empty_title),
+                                    subtitle = stringResource(R.string.shifts_empty_subtitle),
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             }
@@ -447,9 +449,9 @@ private fun DatePickerWrapper(currentMillis: Long, onConfirm: (Long) -> Unit, on
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = { state.selectedDateMillis?.let { onConfirm(it) } ?: onDismiss() }) { Text("OK") }
+            TextButton(onClick = { state.selectedDateMillis?.let { onConfirm(it) } ?: onDismiss() }) { Text(stringResource(R.string.shifts_ok)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.shifts_cancel)) } },
     ) {
         DatePicker(state = state)
     }
@@ -467,10 +469,10 @@ private fun TimePickerWrapper(
     val state = rememberTimePickerState(initialHour = zdt.hour, initialMinute = zdt.minute, is24Hour = true)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select time") },
+        title = { Text(stringResource(R.string.shifts_select_time)) },
         text = { TimePicker(state = state) },
-        confirmButton = { TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text("OK") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text(stringResource(R.string.shifts_ok)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.shifts_cancel)) } },
     )
 }
 
@@ -495,8 +497,8 @@ private fun ShiftsScreenPreview() {
             Spacer(Modifier.height(Spacing.md))
             ElmEmptyState(
                 icon = Icons.Filled.AccessTime,
-                title = "No shifts this month",
-                subtitle = "Clock in from the home screen or add a shift manually.",
+                title = stringResource(R.string.shifts_empty_title),
+                subtitle = stringResource(R.string.shifts_empty_subtitle),
             )
         }
     }

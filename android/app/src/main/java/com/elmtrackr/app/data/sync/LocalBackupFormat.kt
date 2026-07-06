@@ -138,8 +138,7 @@ data class CompensationProfileBackupRow(
     val lastSyncedAt: Long? = null,
 )
 
-internal fun syncStatusFromBackup(value: String): SyncStatus =
-    runCatching { SyncStatus.valueOf(value) }.getOrDefault(SyncStatus.PENDING_UPDATE)
+internal fun syncStatusFromBackup(value: String): SyncStatus = SyncStatus.fromPersisted(value)
 
 internal fun TaskEntity.toBackupRow() = TaskBackupRow(
     localId = localId, remoteId = remoteId, name = name, icon = icon, color = color,

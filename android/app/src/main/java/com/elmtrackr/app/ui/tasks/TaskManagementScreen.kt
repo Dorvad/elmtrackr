@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -43,10 +44,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.tasks.TaskDefaultRulesBuilder
 import com.elmtrackr.app.ui.components.states.ErrorState
@@ -77,6 +80,7 @@ fun TaskManagementScreen(
                 onBack = onBack,
                 onSave = viewModel::saveTask,
                 onArchive = viewModel::archiveTask,
+                onDelete = viewModel::deleteTask,
                 onDismissMessage = viewModel::clearMessage,
             )
         }
@@ -90,11 +94,37 @@ internal fun TaskManagementContent(
     onBack: () -> Unit,
     onSave: (String?, String, String, String?, Double) -> Unit,
     onArchive: (String) -> Unit,
+    onDelete: (String) -> Unit = {},
     onDismissMessage: () -> Unit,
 ) {
     var editingId by remember { mutableStateOf<String?>(null) }
     var showForm by remember { mutableStateOf(false) }
+    var deleteCandidate by remember { mutableStateOf<Task?>(null) }
     val haptic = LocalHapticFeedback.current
+
+    deleteCandidate?.let { candidate ->
+        AlertDialog(
+            onDismissRequest = { deleteCandidate = null },
+            title = { Text(stringResource(R.string.tasks_delete_title, candidate.name)) },
+            text = {
+                Text(
+                    stringResource(R.string.tasks_delete_message),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        AuroraHaptics.destructive(haptic)
+                        onDelete(candidate.id)
+                        deleteCandidate = null
+                    },
+                ) { Text(stringResource(R.string.tasks_delete), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteCandidate = null }) { Text(stringResource(R.string.tasks_cancel)) }
+            },
+        )
+    }
 
     if (state.message != null) {
         androidx.compose.runtime.LaunchedEffect(state.message) {
@@ -110,12 +140,12 @@ internal fun TaskManagementContent(
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.tasks_back))
                 }
-                Text("Tasks", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.tasks_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             Text(
-                "Optional labels with their own hourly rates for punch-in.",
+                stringResource(R.string.tasks_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -158,7 +188,7 @@ internal fun TaskManagementContent(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = null)
-                    Text("Add task", modifier = Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.tasks_add_task), modifier = Modifier.padding(start = 8.dp))
                 }
             }
         }
@@ -167,7 +197,7 @@ internal fun TaskManagementContent(
             item {
                 ElmCardPadded(Modifier.padding(horizontal = 16.dp)) {
                     Text(
-                        "No tasks yet. Add one to tag shifts with different hourly rates.",
+                        stringResource(R.string.tasks_empty_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -190,14 +220,20 @@ internal fun TaskManagementContent(
         if (state.tasks.any { it.isArchived }) {
             item {
                 Text(
-                    "Archived",
+                    stringResource(R.string.tasks_archived_header),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             items(state.tasks.filter { it.isArchived }, key = { "arch-${it.id}" }) { task ->
-                TaskRow(task = task, archived = true, onEdit = {}, onArchive = {})
+                TaskRow(
+                    task = task,
+                    archived = true,
+                    onEdit = {},
+                    onArchive = {},
+                    onDelete = { deleteCandidate = task },
+                )
             }
         }
     }
@@ -209,6 +245,7 @@ private fun TaskRow(
     archived: Boolean = false,
     onEdit: () -> Unit,
     onArchive: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     ElmCardPadded(modifier.padding(horizontal = 16.dp)) {
@@ -222,14 +259,18 @@ private fun TaskRow(
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(task.name, fontWeight = FontWeight.Bold)
                 Text(
-                    "${formatTaskRate(task.hourlyRate)}/hr",
+                    stringResource(R.string.tasks_rate_per_hour, formatTaskRate(task.hourlyRate)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (!archived) {
-                TextButton(onClick = onEdit) { Text("Edit") }
-                TextButton(onClick = onArchive) { Text("Archive") }
+                TextButton(onClick = onEdit) { Text(stringResource(R.string.tasks_edit)) }
+                TextButton(onClick = onArchive) { Text(stringResource(R.string.tasks_archive)) }
+            } else if (onDelete != null) {
+                TextButton(onClick = onDelete) {
+                    Text(stringResource(R.string.tasks_delete), color = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }
@@ -238,10 +279,10 @@ private fun TaskRow(
 @Composable
 private fun DefaultRulesCard(rules: List<com.elmtrackr.app.domain.tasks.TaskDefaultRule>) {
     ElmCardPadded(Modifier.padding(horizontal = 16.dp)) {
-        Text("Schedule defaults", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.tasks_schedule_defaults), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(4.dp))
         Text(
-            "Learned from your shift history — used for Suggested now.",
+            stringResource(R.string.tasks_schedule_defaults_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -255,7 +296,7 @@ private fun DefaultRulesCard(rules: List<com.elmtrackr.app.domain.tasks.TaskDefa
         }
         if (rules.size > 6) {
             Text(
-                "+${rules.size - 6} more",
+                stringResource(R.string.tasks_more_rules, rules.size - 6),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -275,10 +316,13 @@ private fun TaskEditorCard(
     var color by remember(task?.id) { mutableStateOf(task?.color ?: TASK_COLOR_OPTIONS.first()) }
     var rateText by remember(task?.id) { mutableStateOf(task?.hourlyRate?.toString().orEmpty()) }
     var error by remember { mutableStateOf<String?>(null) }
+    val errorNameRequired = stringResource(R.string.tasks_error_name_required)
+    val errorNameExists = stringResource(R.string.tasks_error_name_exists)
+    val errorRateInvalid = stringResource(R.string.tasks_error_rate_invalid)
 
     ElmCardPadded(Modifier.padding(horizontal = 16.dp)) {
         Text(
-            if (task == null) "New task" else "Edit task",
+            if (task == null) stringResource(R.string.tasks_new_task) else stringResource(R.string.tasks_edit_task),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
         )
@@ -286,12 +330,12 @@ private fun TaskEditorCard(
         OutlinedTextField(
             value = name,
             onValueChange = { name = it; error = null },
-            label = { Text("Task name") },
+            label = { Text(stringResource(R.string.tasks_name_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(12.dp))
-        Text("Icon", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(R.string.tasks_icon_label), style = MaterialTheme.typography.labelMedium)
         Spacer(Modifier.height(6.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TASK_EMOJI_OPTIONS.forEach { emoji ->
@@ -303,7 +347,7 @@ private fun TaskEditorCard(
             }
         }
         Spacer(Modifier.height(12.dp))
-        Text("Color", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(R.string.tasks_color_label), style = MaterialTheme.typography.labelMedium)
         Spacer(Modifier.height(6.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TASK_COLOR_OPTIONS.forEach { hex ->
@@ -319,7 +363,7 @@ private fun TaskEditorCard(
         OutlinedTextField(
             value = rateText,
             onValueChange = { rateText = it.filter { ch -> ch.isDigit() || ch == '.' }; error = null },
-            label = { Text("Hourly rate") },
+            label = { Text(stringResource(R.string.tasks_hourly_rate_label)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
@@ -330,21 +374,21 @@ private fun TaskEditorCard(
         }
         Spacer(Modifier.height(16.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
+            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.tasks_cancel)) }
             ElmGradientButton(
                 onClick = {
                     val trimmed = name.trim()
                     val rate = rateText.toDoubleOrNull()
                     when {
-                        trimmed.isEmpty() -> error = "Enter a task name"
+                        trimmed.isEmpty() -> error = errorNameRequired
                         existingNames.any { it.equals(trimmed, ignoreCase = true) } ->
-                            error = "A task with this name already exists"
-                        rate == null || rate <= 0 -> error = "Enter a valid hourly rate"
+                            error = errorNameExists
+                        rate == null || rate <= 0 -> error = errorRateInvalid
                         else -> onSave(trimmed, icon, color, rate)
                     }
                 },
                 modifier = Modifier.weight(1f),
-            ) { Text("Save", fontWeight = FontWeight.SemiBold) }
+            ) { Text(stringResource(R.string.tasks_save), fontWeight = FontWeight.SemiBold) }
         }
     }
 }

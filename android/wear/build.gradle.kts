@@ -12,8 +12,8 @@ android {
         applicationId = "com.elmlaunch.myapp"
         minSdk = 30
         targetSdk = 36
-        versionCode = 9
-        versionName = "1.0.7"
+        versionCode = 10
+        versionName = "1.1.0"
     }
 
     buildTypes {

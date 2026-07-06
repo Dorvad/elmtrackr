@@ -195,8 +195,3 @@ const val COMPENSATION_ESTIMATE_NOTE = "Estimated only. Actual pay may vary."
 const val COMPENSATION_PROFILE_HELPER =
     "Compensation estimates are based on this profile. Actual pay may vary by taxes, deductions, employer policy, local regulations, and payroll rules."
 
-const val STACKING_POLICY_HIGHEST_ONLY_HELPER =
-    "When multiple premiums apply (e.g. overtime and night), only the highest rate is used — premiums do not stack on top of each other."
-
-const val STACKING_POLICY_ADDITIVE_HELPER =
-    "When multiple premiums apply, the night premium is added on top of the current rate (e.g. 150% overtime plus 25% night = 175%)."

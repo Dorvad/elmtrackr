@@ -4,15 +4,16 @@
 
 > CI debug APKs pick up `SUPABASE_URL` and `SUPABASE_ANON_KEY` from GitHub Actions secrets at build time.
 
-> **Implementation status (2026-06-25):** Authenticated user identity, one-time
+> **Implementation status (2026-07-06):** Authenticated user identity, one-time
 > legacy-data adoption, account-isolated offline sync, current Supabase wire
 > formats, auth callbacks, live theme selection, shift month navigation, insights
 > (feature-gated), refund claim editing with CameraX receipt capture and PDF
 > export, compensation profiles on shift create/edit, weekly/month-over-month
-> report comparisons, and debug/release verification are implemented.
-> Remaining parity work is intentionally tracked as separate deliverables:
-> eight additional native clock renderers, advanced motion, staged onboarding
-> polish, and broader emulator/device instrumentation coverage.
+> report comparisons, staged multi-step onboarding, native rendering for all
+> clock styles, and debug/release verification are implemented.
+> Remaining work tracked as separate deliverables: advanced motion polish,
+> Hebrew localization (strings are being extracted to resources), and broader
+> emulator/device instrumentation coverage.
 
 Native Kotlin + Jetpack Compose app. Shares a Supabase backend with the legacy
 web app but has a **separate codebase**. **No WebView, no Capacitor.** New
@@ -173,8 +174,8 @@ and returns `SyncResult.NotConfigured` immediately — no network calls, no cras
 |---|---|---|
 | Android Studio | Hedgehog 2023.1+ (or any recent) | developer.android.com/studio |
 | OR Android command-line tools | latest | developer.android.com/tools |
-| Android SDK platform | API 35 (Android 15) | via SDK Manager |
-| Build Tools | 35.0.0 | via SDK Manager |
+| Android SDK platform | API 36 | via SDK Manager |
+| Build Tools | 36.0.0 | via SDK Manager |
 | JDK | 17 | bundled with Android Studio, or Temurin |
 
 ### Step-by-step (command line)
@@ -321,11 +322,11 @@ android/
     └── src/main/
         ├── AndroidManifest.xml   # includes elmtrackr://auth deep-link intent filter
         └── java/com/elmtrackr/app/
-            ├── ElmTrackrApp.kt         # Application — manual DI container
+            ├── ElmTrackrApp.kt         # Application — Hilt entry point (@HiltAndroidApp)
             ├── MainActivity.kt         # Single activity; handles auth deep links
             ├── navigation/
-            │   ├── AppNavGraph.kt      # Scaffold + NavHost (5 tabs incl. Account)
-            │   └── BottomNavItem.kt    # Dashboard/Shifts/Reports/Settings/Account
+            │   ├── AppNavGraph.kt      # Auth-aware NavHost (loading/auth/onboarding/main)
+            │   └── BottomNavItem.kt    # 4 tabs: Home/Shifts/Reports/Settings (Account lives in Settings)
             ├── ui/
             │   ├── auth/              # AuthScreen, AuthViewModel, AuthUiState
             │   ├── dashboard/

@@ -50,8 +50,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.compensation.COMPENSATION_DISCLAIMER
 import com.elmtrackr.app.domain.compensation.COMPENSATION_PROFILE_HELPER
 import com.elmtrackr.app.domain.compensation.COMPENSATION_RULES_GUIDANCE
-import com.elmtrackr.app.domain.compensation.STACKING_POLICY_ADDITIVE_HELPER
-import com.elmtrackr.app.domain.compensation.STACKING_POLICY_HIGHEST_ONLY_HELPER
+import com.elmtrackr.app.domain.compensation.StackingPolicyLabels
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.OvertimeTier
@@ -494,24 +493,21 @@ private fun StringDropdown(
 private fun StackingPolicyRow(selected: StackingPolicy, onSelect: (StackingPolicy) -> Unit) {
     Text("Premium stacking", style = MaterialTheme.typography.labelMedium)
     Spacer(Modifier.height(8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilterChip(
-            selected = selected == StackingPolicy.HIGHEST_ONLY,
-            onClick = { onSelect(StackingPolicy.HIGHEST_ONLY) },
-            label = { Text("Highest only") },
-        )
-        FilterChip(
-            selected = selected == StackingPolicy.ADDITIVE,
-            onClick = { onSelect(StackingPolicy.ADDITIVE) },
-            label = { Text("Additive") },
-        )
+    // Same options and wording as custom premium profiles, so both stacking
+    // pickers in the app stay aligned.
+    val options = (StackingPolicy.selectable + selected).distinct()
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.forEach { policy ->
+            FilterChip(
+                selected = selected == policy,
+                onClick = { onSelect(policy) },
+                label = { Text(StackingPolicyLabels.title(policy)) },
+            )
+        }
     }
     Spacer(Modifier.height(8.dp))
     Text(
-        when (selected) {
-            StackingPolicy.HIGHEST_ONLY -> STACKING_POLICY_HIGHEST_ONLY_HELPER
-            StackingPolicy.ADDITIVE -> STACKING_POLICY_ADDITIVE_HELPER
-        },
+        StackingPolicyLabels.helper(selected),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

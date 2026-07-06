@@ -321,6 +321,23 @@ class PayrollCalculatorTest {
     }
 
     @Test
+    fun `MULTIPLICATIVE multiplies daily and weekly multipliers`() {
+        assertEquals(1.875, PayrollCalculator.combineRates(1.5, 1.25, StackingPolicy.MULTIPLICATIVE), 0.0001)
+        assertEquals(1.25, PayrollCalculator.combineRates(1.0, 1.25, StackingPolicy.MULTIPLICATIVE), 0.0)
+    }
+
+    @Test
+    fun `BASE_PLUS_PREMIUM adds the premium on top of the other rate`() {
+        assertEquals(1.75, PayrollCalculator.combineRates(1.5, 1.25, StackingPolicy.BASE_PLUS_PREMIUM), 0.0001)
+    }
+
+    @Test
+    fun `regular-rate stacking modes combine like highest only`() {
+        assertEquals(1.5, PayrollCalculator.combineRates(1.5, 1.25, StackingPolicy.PREMIUM_IN_REGULAR_RATE), 0.0)
+        assertEquals(1.5, PayrollCalculator.combineRates(1.5, 1.25, StackingPolicy.EXCLUDED_FROM_REGULAR_RATE), 0.0)
+    }
+
+    @Test
     fun `ADDITIVE stacks daily and weekly premiums above 1x`() {
         assertEquals(1.5, PayrollCalculator.combineRates(1.25, 1.25, StackingPolicy.ADDITIVE), 0.0)
         val rules = CompensationRules(

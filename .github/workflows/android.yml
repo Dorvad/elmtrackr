@@ -45,12 +45,12 @@ jobs:
       # ── Android SDK ───────────────────────────────────────────────────────
       # GitHub-hosted ubuntu-latest ships with the Android command-line tools
       # at $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager.
-      # We just need to accept licences and pull down platform-35.
-      - name: Accept Android SDK licences & install platform 35
+      # We just need to accept licences and pull down platform-36.
+      - name: Accept Android SDK licences & install platform 36
         run: |
           SDK_MGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDK_MGR" --licenses >/dev/null 2>&1 || true
-          "$SDK_MGR" "platforms;android-35" "build-tools;35.0.0"
+          "$SDK_MGR" "platforms;android-36" "build-tools;36.0.0"
 
       # ── Supabase credentials ─────────────────────────────────────────────
       # If SUPABASE_URL and SUPABASE_ANON_KEY are configured as repo secrets
@@ -104,7 +104,7 @@ jobs:
           retention-days: 30
 
   instrumented:
-    name: Room migration tests (API 30)
+    name: Room migration & DAO tests (API 30)
     runs-on: ubuntu-latest
     needs: build
 
@@ -131,23 +131,23 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Accept Android SDK licences & install platform 35
+      - name: Accept Android SDK licences & install platform 36
         run: |
           SDK_MGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDK_MGR" --licenses >/dev/null 2>&1 || true
-          "$SDK_MGR" "platforms;android-35" "build-tools;35.0.0"
+          "$SDK_MGR" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Run Room migration tests
+      - name: Run Room migration and DAO tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 30
           arch: x86_64
           target: google_apis
           working-directory: android
-          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.elmtrackr.app.data.local.ElmTrackrDatabaseMigrationTest --no-daemon
+          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.elmtrackr.app.data.local.ElmTrackrDatabaseMigrationTest,com.elmtrackr.app.data.local.dao.ShiftDaoTest,com.elmtrackr.app.data.local.dao.SettingsDaoTest --no-daemon
 
   release:
     name: Build release AAB
@@ -168,11 +168,11 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Accept Android SDK licences & install platform 35
+      - name: Accept Android SDK licences & install platform 36
         run: |
           SDK_MGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDK_MGR" --licenses >/dev/null 2>&1 || true
-          "$SDK_MGR" "platforms;android-35" "build-tools;35.0.0"
+          "$SDK_MGR" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Write CI signing keystore to local.properties
         env:

@@ -48,6 +48,13 @@ class FakeShiftDao : ShiftDao {
         refresh()
     }
 
+    override suspend fun detachTaskFromShifts(userId: String, taskId: String) {
+        store.replaceAll { _, value ->
+            if (value.userId == userId && value.taskId == taskId) value.copy(taskId = null) else value
+        }
+        refresh()
+    }
+
     override fun observePendingSyncShifts(userId: String): Flow<List<ShiftEntity>> =
         _flow.map { it.filter { e -> e.userId == userId && e.syncStatus in listOf(SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE) } }
 
@@ -503,6 +510,18 @@ class FakeTaskDao : com.elmtrackr.app.data.local.dao.TaskDao {
 
     override suspend fun getAllTasksForUser(userId: String) =
         store.values.filter { it.userId == userId && it.deletedAt == null }
+
+    override suspend fun softDeleteTask(
+        localId: String,
+        deletedAt: Long,
+        syncStatus: SyncStatus,
+        updatedAt: Long,
+    ) {
+        store[localId]?.let {
+            store[localId] = it.copy(deletedAt = deletedAt, syncStatus = syncStatus, updatedAt = updatedAt)
+        }
+        refresh()
+    }
 
     override suspend fun upsert(task: com.elmtrackr.app.data.local.entity.TaskEntity) = insert(task)
 

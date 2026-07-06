@@ -28,7 +28,11 @@ When changing the contract:
 | `premium_profiles` | Reusable shift premium multipliers and stacking types |
 | `tasks` | Paid-project tasks for clock-in (synced per user) |
 
-Full DDL: [`supabase/schema.sql`](../../supabase/schema.sql)
+Base DDL for `profiles`, `user_settings`, `shifts`, and `refund_claims` predates the
+in-repo migrations and lives in the Supabase project itself (not in this repo).
+Everything added since is under [`supabase/migrations/`](../../supabase/migrations/),
+applied in filename order. This document is the authoritative column list for the
+base tables.
 
 ---
 
@@ -46,10 +50,12 @@ Full DDL: [`supabase/schema.sql`](../../supabase/schema.sql)
 | `currency_code` | text | e.g. `ILS`, `USD` | string |
 | `default_compensation_profile_id` | uuid | nullable | string? |
 | `onboarding_completed` | bool | `true` / `false` | bool |
+| `onboarding_completed_at` | timestamptz | ISO-8601 or null | `Instant?` |
 | `features_travel_refunds` | bool | | bool |
 | `features_paid_projects` | bool | | bool |
 | `features_insights` | bool | | bool |
 | `features_clock_styles` | bool | | bool |
+| `features_overtime_reminders` | bool | default `true` (migration `20250630000000`) | bool |
 | `clock_style` | text | see ClockStyle | `ClockStyle.fromPersisted()` |
 
 ---
@@ -99,7 +105,7 @@ Unique: `(shift_id, direction)`
 | `timezone` | text | IANA | string |
 | `base_hourly_rate` | numeric | nullable | `Double?` |
 | `rules_json` | jsonb | CompensationRules shape | `CompensationRulesCodec` |
-| `stacking_policy` | text | `highest_only`, `additive` | `StackingPolicy` |
+| `stacking_policy` | text | see StackingPolicy (aligned with `premium_type`) | `StackingPolicy.fromPersisted()` |
 | `effective_from` / `effective_until` | timestamptz | ISO-8601 | Instant |
 | `is_default` / `is_archived` | bool | | bool |
 
@@ -205,13 +211,13 @@ Android pushes provider with capitalized label (e.g. `Lime`) — pull accepts an
 
 | Wire (lowercase) | Android enum | Native render |
 |------------------|--------------|---------------|
-| `classic` | `CLASSIC` | yes |
-| `minimal` | `MINIMAL` | yes |
-| `aurora` | `AURORA` | yes |
-| `focus`, `bold`, `night`, `retro`, `pulse`, `dial`, `strand`, `prism`, `sand`, `blocks`, `orbit` | same name | fallback to Classic |
+| `classic` | `CLASSIC` | yes (dedicated card) |
+| `minimal` | `MINIMAL` | yes (dedicated card) |
+| `aurora` | `AURORA` | yes (dedicated card) |
+| `focus`, `bold`, `night`, `retro`, `pulse`, `dial`, `strand`, `prism`, `sand`, `blocks`, `orbit` | same name | yes (`ExpressiveClockCard`) |
 | unknown | `CLASSIC` | |
 
-Only Classic, Minimal, and Aurora render natively on Android dashboard; others persist but display as Classic.
+All persisted styles render natively on the Android dashboard (`SupportedClockStyle.kt`); unknown values fall back to Classic.
 
 ### RegionCode
 
@@ -227,10 +233,22 @@ Only Classic, Minimal, and Aurora render natively on Android dashboard; others p
 
 ### StackingPolicy (`compensation_profiles.stacking_policy`)
 
-| Wire | Android |
-|------|---------|
-| `highest_only` | `HIGHEST_ONLY` |
-| `additive` | `ADDITIVE` |
+Aligned with `premium_profiles.premium_type` since migration `20260706000000`: both
+accept the same six wire values, and matching options combine rates with identical math
+(`PremiumStacking`).
+
+| Wire | Android | Notes |
+|------|---------|-------|
+| `highest_only` | `HIGHEST_ONLY` | |
+| `additive` | `ADDITIVE` | |
+| `multiplicative` | `MULTIPLICATIVE` | |
+| `base_plus_premium` | `BASE_PLUS_PREMIUM` | |
+| `premium_in_regular_rate` | `PREMIUM_IN_REGULAR_RATE` | combines like `highest_only`; OT-base semantics apply to shift premiums only. Not offered in the rules picker. |
+| `excluded_from_regular_rate` | `EXCLUDED_FROM_REGULAR_RATE` | combines like `highest_only`; OT-base semantics apply to shift premiums only. Not offered in the rules picker. |
+| unknown | `HIGHEST_ONLY` (fallback) | |
+
+The same values are accepted for the per-rule `stacking` fields inside `rules_json`
+(weekend/holiday/night).
 
 
 ## Adding a new enum value (checklist)

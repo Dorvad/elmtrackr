@@ -39,4 +39,19 @@ class PersistedEnumParsingTest {
         assertEquals(StackingPolicy.HIGHEST_ONLY, StackingPolicy.fromPersisted("highest_only"))
         assertEquals(StackingPolicy.HIGHEST_ONLY, StackingPolicy.fromPersisted(null))
     }
+
+    @Test
+    fun stackingPolicy_fromPersisted_handles_premium_aligned_values() {
+        assertEquals(StackingPolicy.MULTIPLICATIVE, StackingPolicy.fromPersisted("multiplicative"))
+        assertEquals(StackingPolicy.BASE_PLUS_PREMIUM, StackingPolicy.fromPersisted("base_plus_premium"))
+        assertEquals(
+            StackingPolicy.PREMIUM_IN_REGULAR_RATE,
+            StackingPolicy.fromPersisted("premium_in_regular_rate"),
+        )
+        assertEquals(
+            StackingPolicy.EXCLUDED_FROM_REGULAR_RATE,
+            StackingPolicy.fromPersisted("excluded_from_regular_rate"),
+        )
+        assertEquals(StackingPolicy.HIGHEST_ONLY, StackingPolicy.fromPersisted("mystery_mode"))
+    }
 }

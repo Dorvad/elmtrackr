@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ShiftsScreen -->
+    <string name="shifts_empty_title">No shifts this month</string>
+    <string name="shifts_empty_subtitle">Clock in from the home screen or add a shift manually.</string>
+    <string name="shifts_ok">OK</string>
+    <string name="shifts_cancel">Cancel</string>
+    <string name="shifts_select_time">Select time</string>
+
+    <!-- ShiftsListUi -->
+    <string name="shifts_title">Shifts</string>
+    <string name="shifts_add">Add</string>
+    <string name="shifts_previous_month">Previous month</string>
+    <string name="shifts_next_month">Next month</string>
+    <string name="shifts_hours_tracked_header">HOURS TRACKED</string>
+    <string name="shifts_est_gross_header">EST. GROSS</string>
+    <string name="shifts_hours_value">%1$sh</string>
+    <string name="shifts_hours_value_spaced">%1$s h</string>
+    <string name="shifts_legend_regular">Regular</string>
+    <string name="shifts_legend_overtime">Overtime</string>
+    <string name="shifts_legend_weekend">Weekend</string>
+    <string name="shifts_badge_premium">PREMIUM</string>
+    <string name="shifts_badge_weekend">WEEKEND</string>
+    <string name="shifts_badge_ot">OT</string>
+    <string name="shifts_badge_live">LIVE</string>
+    <string name="shifts_badge_now">NOW</string>
+    <string name="shifts_time_range">%1$s - %2$s</string>
+    <string name="shifts_break_line">%1$dm break</string>
+    <string name="shifts_on_shift">On shift</string>
+    <string name="shifts_since">Since %1$s</string>
+    <string name="shifts_add_past_shift">Add a past shift</string>
+
+    <!-- ShiftEditFormUi -->
+    <string name="shifts_delete_dialog_title">Delete shift?</string>
+    <string name="shifts_delete_dialog_text">This shift will be removed. The deletion will sync when online.</string>
+    <string name="shifts_delete">Delete</string>
+    <string name="shifts_back">Back</string>
+    <string name="shifts_edit_shift_title">Edit shift</string>
+    <string name="shifts_new_shift_title">New shift</string>
+    <string name="shifts_estimated_pay_header">ESTIMATED PAY • UPDATES AS YOU EDIT</string>
+    <string name="shifts_pay_bracket_line">%1$sh %2$s - %3$s</string>
+    <string name="shifts_section_when">WHEN</string>
+    <string name="shifts_section_break_premium">BREAK &amp; PREMIUM</string>
+    <string name="shifts_section_pay_task">PAY &amp; TASK</string>
+    <string name="shifts_section_notes">NOTES</string>
+    <string name="shifts_start_label">Start</string>
+    <string name="shifts_end_label">End</string>
+    <string name="shifts_pick_date">Pick %1$s date</string>
+    <string name="shifts_pick_time">Pick %1$s time</string>
+    <string name="shifts_still_on_shift">Still on shift</string>
+    <string name="shifts_active">Active</string>
+    <string name="shifts_tap_to_set_end">Tap to set end</string>
+    <string name="shifts_hours_paid">%1$sh paid</string>
+    <string name="shifts_when_summary">%1$s worked • %2$dm break • %3$s</string>
+    <string name="shifts_unpaid_break">Unpaid break</string>
+    <string name="shifts_break_minutes_value">%1$d min</string>
+    <string name="shifts_task_label">Task</string>
+    <string name="shifts_task_edit_hint">Change which task this shift used — pay updates when you save.</string>
+    <string name="shifts_task_none">None</string>
+    <string name="shifts_saved_task">Saved task: %1$s %2$s (%3$s/hr)</string>
+    <string name="shifts_notes_placeholder">Add notes about this shift…</string>
+    <string name="shifts_travel_refund">Travel refund</string>
+    <string name="shifts_travel_refund_subtitle">Claim a ride to or from work</string>
+    <string name="shifts_close">Close</string>
+    <string name="shifts_claim">Claim</string>
+    <string name="shifts_delete_shift">Delete shift</string>
+    <string name="shifts_save">Save</string>
+    <string name="shifts_unsaved_changes_one">%1$d unsaved change</string>
+    <string name="shifts_unsaved_changes_other">%1$d unsaved changes</string>
+
+    <!-- CompensationProfilePicker / PremiumProfilePicker -->
+    <string name="shifts_compensation_profile_label">Compensation profile</string>
+    <string name="shifts_premium_label">Premium</string>
+    <string name="shifts_no_premium">No premium</string>
+    <string name="shifts_premium_applies">Applies %1$d%% rate to this shift</string>
+    <string name="shifts_premium_standard">Standard pay unless weekend rules apply</string>
+
+    <!-- RideProviderGraphics -->
+    <string name="shifts_ride_provider">Ride provider</string>
+    <string name="shifts_ride_provider_a11y">%1$s ride provider</string>
+    <string name="shifts_ride_provider_a11y_selected">%1$s ride provider, selected</string>
+</resources>

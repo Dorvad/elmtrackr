@@ -41,11 +41,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.PremiumType
 import com.elmtrackr.app.domain.premium.PremiumTypeLabels
@@ -65,10 +67,10 @@ fun PremiumProfilesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Premium profiles") },
+                title = { Text(stringResource(R.string.settings_premium_profiles)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
                     }
                 },
             )
@@ -122,7 +124,7 @@ private fun PremiumProfilesContent(
     ) {
         item {
             Text(
-                "Create reusable premium rates for holidays, Shabbat, and special shifts.",
+                stringResource(R.string.settings_premium_profiles_intro),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -137,10 +139,10 @@ private fun PremiumProfilesContent(
             ElmGradientButton(onClick = onCreate, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.padding(4.dp))
-                Text("Add premium profile")
+                Text(stringResource(R.string.settings_add_premium_profile))
             }
         }
-        item { ElmSectionHeader("Your profiles") }
+        item { ElmSectionHeader(stringResource(R.string.settings_your_profiles)) }
         items(state.profiles, key = { it.id }) { profile ->
             PremiumProfileCard(
                 profile = profile,
@@ -149,7 +151,13 @@ private fun PremiumProfilesContent(
             )
         }
         state.editor?.let { editor ->
-            item { ElmSectionHeader(if (editor.profileId == null) "New profile" else "Edit profile") }
+            item {
+                ElmSectionHeader(
+                    stringResource(
+                        if (editor.profileId == null) R.string.settings_new_profile else R.string.settings_edit_profile,
+                    ),
+                )
+            }
             item {
                 PremiumProfileEditor(
                     editor = editor,
@@ -184,13 +192,17 @@ private fun PremiumProfileCard(
                 Column(Modifier.weight(1f)) {
                     Text(profile.name, fontWeight = FontWeight.Bold)
                     Text(
-                        "${(profile.multiplier * 100).toInt()}% · ${PremiumTypeLabels.title(profile.premiumType)}",
+                        stringResource(
+                            R.string.settings_multiplier_summary,
+                            (profile.multiplier * 100).toInt(),
+                            PremiumTypeLabels.title(profile.premiumType),
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (profile.isDefault) {
                         Text(
-                            "Default",
+                            stringResource(R.string.settings_default),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -198,11 +210,11 @@ private fun PremiumProfileCard(
                 }
                 if (!profile.isDefault) {
                     IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete profile")
+                        Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.settings_delete_profile))
                     }
                 }
             }
-            TextButton(onClick = onEdit) { Text("Edit") }
+            TextButton(onClick = onEdit) { Text(stringResource(R.string.settings_edit)) }
         }
     }
 }
@@ -223,14 +235,14 @@ private fun PremiumProfileEditor(
         OutlinedTextField(
             value = editor.name,
             onValueChange = onNameChange,
-            label = { Text("Profile name") },
+            label = { Text(stringResource(R.string.settings_profile_name)) },
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
             value = editor.multiplierText,
             onValueChange = onMultiplierChange,
-            label = { Text("Multiplier") },
-            supportingText = { Text("1.5 = 150% pay") },
+            label = { Text(stringResource(R.string.settings_multiplier)) },
+            supportingText = { Text(stringResource(R.string.settings_multiplier_hint)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -243,7 +255,7 @@ private fun PremiumProfileEditor(
                 value = PremiumTypeLabels.title(editor.premiumType),
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Premium type") },
+                label = { Text(stringResource(R.string.settings_premium_type)) },
                 supportingText = { Text(PremiumTypeLabels.description(editor.premiumType)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
                 modifier = Modifier
@@ -271,13 +283,13 @@ private fun PremiumProfileEditor(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+            TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.settings_cancel)) }
             ElmGradientButton(
                 onClick = onSave,
                 enabled = !editor.isSaving,
                 modifier = Modifier.weight(1f),
             ) {
-                Text(if (editor.isSaving) "Saving…" else "Save profile")
+                Text(stringResource(if (editor.isSaving) R.string.settings_saving else R.string.settings_save_profile))
             }
         }
     }

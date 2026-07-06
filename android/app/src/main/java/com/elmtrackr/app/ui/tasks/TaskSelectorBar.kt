@@ -19,12 +19,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.auroraRowClickable
@@ -53,9 +55,9 @@ fun TaskSelectorBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Task", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.tasks_task_label), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             Text(
-                "Manage",
+                stringResource(R.string.tasks_manage),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
@@ -72,7 +74,7 @@ fun TaskSelectorBar(
             ) {
                 Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
                     Text(
-                        "Suggested now",
+                        stringResource(R.string.tasks_suggested_now),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -101,17 +103,19 @@ fun TaskSelectorBar(
                         onSelectTask(task.id)
                     },
                     label = {
+                        val chipContentDescription = if (isSuggested) {
+                            stringResource(R.string.tasks_chip_a11y_suggested, task.name, formatRate(task.hourlyRate))
+                        } else {
+                            stringResource(R.string.tasks_chip_a11y, task.name, formatRate(task.hourlyRate))
+                        }
                         Text(
-                            buildString {
-                                if (isSuggested) append("✨ ")
-                                append("${task.icon} ${task.name}")
+                            if (isSuggested) {
+                                stringResource(R.string.tasks_chip_suggested, task.icon, task.name)
+                            } else {
+                                "${task.icon} ${task.name}"
                             },
                             modifier = Modifier.semantics {
-                                contentDescription = buildString {
-                                    append(task.name)
-                                    append(", ${formatRate(task.hourlyRate)} per hour")
-                                    if (isSuggested) append(", suggested now")
-                                }
+                                contentDescription = chipContentDescription
                             },
                         )
                     },
@@ -131,7 +135,7 @@ fun TaskSelectorBar(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        "${selected.icon} ${selected.name} · ${formatRate(selected.hourlyRate)}/hr",
+                        stringResource(R.string.tasks_selected_summary, selected.icon, selected.name, formatRate(selected.hourlyRate)),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
@@ -158,7 +162,11 @@ fun ActiveShiftTaskBadge(
         color = tint?.copy(alpha = 0.22f) ?: MaterialTheme.colorScheme.primaryContainer,
     ) {
         Text(
-            "${icon.orEmpty()} $name${rate?.let { " · ${formatRate(it)}/hr" }.orEmpty()}",
+            if (rate != null) {
+                stringResource(R.string.tasks_badge_with_rate, icon.orEmpty(), name, formatRate(rate))
+            } else {
+                "${icon.orEmpty()} $name"
+            },
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelMedium,
             color = tint ?: MaterialTheme.colorScheme.onPrimaryContainer,

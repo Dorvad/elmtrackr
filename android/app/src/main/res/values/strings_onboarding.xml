@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared -->
+    <string name="onboarding_brand">ELMTRACKR</string>
+    <string name="onboarding_step_counter">%1$d / %2$d</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_tagline">Clock in once. See hours, pay estimate, and overtime instantly.</string>
+    <string name="onboarding_hours_suffix">h</string>
+
+    <!-- Step titles -->
+    <string name="onboarding_step_welcome">Welcome</string>
+    <string name="onboarding_step_region">Your region</string>
+    <string name="onboarding_step_profile">Your profile</string>
+    <string name="onboarding_step_pay">Pay preferences</string>
+    <string name="onboarding_step_work_week">Work week</string>
+    <string name="onboarding_step_features">Features</string>
+    <string name="onboarding_step_security">Security</string>
+    <string name="onboarding_step_review">Review</string>
+
+    <!-- Welcome step -->
+    <string name="onboarding_welcome_title">Welcome to ElmTrackr</string>
+    <string name="onboarding_welcome_replay_title">Review your setup</string>
+    <string name="onboarding_welcome_replay_subtitle">Update your profile, pay, work week, and features.</string>
+    <string name="onboarding_welcome_intro">Your hours, overtime, and pay — tracked from one tap, even offline.</string>
+    <string name="onboarding_how_it_works">How it works</string>
+    <string name="onboarding_how_step1_title">Clock in when you start</string>
+    <string name="onboarding_how_step1_desc">One tap on your phone, watch, or home-screen widget.</string>
+    <string name="onboarding_how_step2_title">ElmTrackr does the math</string>
+    <string name="onboarding_how_step2_desc">Hours, breaks, overtime, and premiums are calculated live as you work.</string>
+    <string name="onboarding_how_step3_title">See what you’ve earned</string>
+    <string name="onboarding_how_step3_desc">Live pay estimates, monthly reports, and one-tap exports for payroll.</string>
+    <string name="onboarding_welcome_reassurance">Works offline · Encrypted on your device · Syncs automatically</string>
+    <string name="onboarding_welcome_setup_time">Setup takes about a minute.</string>
+    <string name="onboarding_review_setup_button">Review Setup</string>
+    <string name="onboarding_get_started">Get Started</string>
+
+    <!-- Region step -->
+    <string name="onboarding_region_title">Where do you work?</string>
+    <string name="onboarding_region_subtitle">Choose a region preset to start with suggested compensation rules. You can customize everything later.</string>
+    <string name="onboarding_region_currency_timezone">Currency: %1$s · Timezone: %2$s</string>
+    <string name="onboarding_region_disclaimer">ElmTrackr provides estimated compensation only — not legal or payroll advice.</string>
+
+    <!-- Profile step -->
+    <string name="onboarding_profile_title">Let’s make it yours</string>
+    <string name="onboarding_profile_subtitle">What should we call you inside ElmTrackr?</string>
+    <string name="onboarding_profile_name_label">Your name</string>
+    <string name="onboarding_profile_name_placeholder">e.g. Dor</string>
+    <string name="onboarding_profile_name_error">Enter your name to continue</string>
+    <string name="onboarding_profile_name_helper">This appears on your dashboard and reports</string>
+    <string name="onboarding_profile_signed_in_as">Signed in as %1$s</string>
+
+    <!-- Pay setup step -->
+    <string name="onboarding_pay_title">Know what your time is worth</string>
+    <string name="onboarding_pay_subtitle">Add your base hourly salary for live gross-pay estimates.</string>
+    <string name="onboarding_pay_hourly_salary_label">Hourly salary</string>
+    <string name="onboarding_pay_rate_placeholder">0.00</string>
+    <string name="onboarding_pay_rate_error">Enter a positive amount</string>
+    <string name="onboarding_pay_rate_helper">Optional. Leave blank if you only want to track hours.</string>
+    <string name="onboarding_pay_currency_label">Currency</string>
+
+    <!-- Work week step -->
+    <string name="onboarding_work_week_title">Set your work week</string>
+    <string name="onboarding_work_week_subtitle">Choose weekend days and when overtime starts.</string>
+    <string name="onboarding_weekend_days_label">Weekend days</string>
+    <string name="onboarding_weekend_days_helper">Weekend and holiday pay rules use these days.</string>
+    <string name="onboarding_weekend_days_error">Select at least one day</string>
+    <string name="onboarding_daily_ot_label">Daily OT</string>
+    <string name="onboarding_weekly_ot_label">Weekly OT</string>
+    <string name="onboarding_ot_error">Daily must be 1–24h; weekly must be at least daily and no more than 168h.</string>
+    <string name="onboarding_timezone_label">Timezone</string>
+    <string name="onboarding_timezone_helper">Set from your region in step 2</string>
+    <string name="onboarding_hide_timezone_picker">Hide timezone picker</string>
+    <string name="onboarding_change_timezone">Change timezone</string>
+
+    <!-- Features step -->
+    <string name="onboarding_features_title">What do you need?</string>
+    <string name="onboarding_features_subtitle">Enable the features that fit your workflow. You can change these later in Settings.</string>
+    <string name="onboarding_feature_travel_title">Travel Refunds</string>
+    <string name="onboarding_feature_travel_desc">Track transport reimbursements for eligible shifts.</string>
+    <string name="onboarding_feature_insights_title">Insights &amp; Analytics</string>
+    <string name="onboarding_feature_insights_desc">Smart summaries, weekly trends, and daily coaching.</string>
+
+    <!-- Security step -->
+    <string name="onboarding_security_title">Protect your data</string>
+    <string name="onboarding_security_subtitle">Optionally require fingerprint, face unlock, or your device PIN to open ElmTrackr.</string>
+    <string name="onboarding_security_app_lock_title">Require biometric to open</string>
+    <string name="onboarding_security_desc_available">Lock pay rates, receipts, and shift history when the app is in the background</string>
+    <string name="onboarding_security_desc_not_enrolled">Set up fingerprint, face unlock, or a device PIN in system settings first</string>
+    <string name="onboarding_security_desc_unavailable">Biometric or device credential unlock is not available on this device</string>
+    <string name="onboarding_security_change_later">You can change this anytime in Settings → Security.</string>
+
+    <!-- Review step -->
+    <string name="onboarding_review_title">Ready to start</string>
+    <string name="onboarding_review_name">Name</string>
+    <string name="onboarding_review_region">Region</string>
+    <string name="onboarding_review_hourly_salary">Hourly salary</string>
+    <string name="onboarding_review_not_set">Not set</string>
+    <string name="onboarding_review_weekend">Weekend</string>
+    <string name="onboarding_review_optional_features">Optional features</string>
+    <string name="onboarding_review_enabled_count">%1$d enabled</string>
+    <string name="onboarding_save_and_start">Save and start tracking</string>
+
+    <!-- Clock style step -->
+    <string name="onboarding_clock_style_title">Pick your style</string>
+    <string name="onboarding_clock_style_subtitle">Choose how your clock widget looks on the home screen.</string>
+</resources>
