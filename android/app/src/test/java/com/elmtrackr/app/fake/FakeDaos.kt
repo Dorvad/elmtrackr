@@ -511,6 +511,18 @@ class FakeTaskDao : com.elmtrackr.app.data.local.dao.TaskDao {
     override suspend fun getAllTasksForUser(userId: String) =
         store.values.filter { it.userId == userId && it.deletedAt == null }
 
+    override suspend fun softDeleteTask(
+        localId: String,
+        deletedAt: Long,
+        syncStatus: SyncStatus,
+        updatedAt: Long,
+    ) {
+        store[localId]?.let {
+            store[localId] = it.copy(deletedAt = deletedAt, syncStatus = syncStatus, updatedAt = updatedAt)
+        }
+        refresh()
+    }
+
     override suspend fun upsert(task: com.elmtrackr.app.data.local.entity.TaskEntity) = insert(task)
 
     override suspend fun adoptLegacyUser(userId: String) {
