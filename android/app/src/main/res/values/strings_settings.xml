@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_back">Back</string>
+    <string name="settings_cancel">Cancel</string>
+    <string name="settings_save">Save</string>
+    <string name="settings_saving">Saving…</string>
+    <string name="settings_sign_out">Sign out</string>
+    <string name="settings_signing_out">Signing out…</string>
+    <string name="settings_syncing">Syncing…</string>
+
+    <!-- Hub -->
+    <string name="settings_section_tracking_pay">TRACKING &amp; PAY</string>
+    <string name="settings_pay_overtime">Pay &amp; overtime</string>
+    <string name="settings_section_app">APP</string>
+    <string name="settings_appearance_clock">Appearance &amp; clock</string>
+    <string name="settings_features">Features</string>
+    <string name="settings_security">Security</string>
+    <string name="settings_security_subtitle">App lock &amp; encrypted storage</string>
+    <string name="settings_section_support">SUPPORT</string>
+    <string name="settings_help_about">Help &amp; about</string>
+    <string name="settings_help_about_subtitle">Version %1$s · sync &amp; legal</string>
+    <string name="settings_your_profile">Your profile</string>
+
+    <!-- Profile -->
+    <string name="settings_profile">Profile</string>
+    <string name="settings_display_name">Display name</string>
+    <string name="settings_display_name_hint">Used for your home-screen greeting.</string>
+    <string name="settings_email">Email</string>
+    <string name="settings_send_password_reset">Send password reset email</string>
+    <string name="settings_password_reset_hint">We\'ll email you a secure reset link.</string>
+    <string name="settings_danger_zone">DANGER ZONE</string>
+    <string name="settings_delete_account_warning">Permanently delete your cloud account, shifts, settings, refund claims, and receipt photos.</string>
+    <string name="settings_delete_account">Delete account</string>
+    <string name="settings_delete_account_title">Delete account?</string>
+    <string name="settings_delete_account_body">This permanently deletes your cloud account, shifts, settings, refund claims, and receipt photos. Local data on this device will also be removed. This cannot be undone.</string>
+    <string name="settings_deleting_account">Deleting account…</string>
+    <string name="settings_local_only_mode">Running in local-only mode (Supabase not configured).</string>
+
+    <!-- Pay & overtime -->
+    <string name="settings_compensation_rules">Compensation rules</string>
+    <string name="settings_compensation_rules_subtitle">Region presets, overtime tiers, and premiums</string>
+    <string name="settings_premium_profiles">Premium profiles</string>
+    <string name="settings_premium_profiles_subtitle">Custom multipliers for special shifts</string>
+    <string name="settings_tasks">Tasks</string>
+    <string name="settings_tasks_subtitle">Optional task labels for clock-in</string>
+    <string name="settings_pay_rate">Pay rate</string>
+    <string name="settings_hourly_rate">Hourly rate</string>
+    <string name="settings_overtime_thresholds">Overtime thresholds</string>
+    <string name="settings_daily_overtime_hours">Daily overtime (hours)</string>
+    <string name="settings_weekly_overtime_hours">Weekly overtime (hours)</string>
+    <string name="settings_weekend_days">Weekend days</string>
+    <string name="settings_weekend_days_hint">Selected days count as weekends for overtime and reports.</string>
+    <string name="settings_location">Location</string>
+
+    <!-- Appearance -->
+    <string name="settings_clock_faces">Clock faces</string>
+    <string name="settings_clock_faces_desc">14 styles for your home clock</string>
+    <string name="settings_reduce_motion">Reduce motion</string>
+    <string name="settings_reduce_motion_desc">Minimize animations across the app</string>
+    <string name="settings_preview">Preview</string>
+
+    <!-- Features -->
+    <string name="settings_travel_refunds">Travel refunds</string>
+    <string name="settings_travel_refunds_desc">Track transport refunds for late-night or holiday shifts</string>
+    <string name="settings_insights_analytics">Insights &amp; analytics</string>
+    <string name="settings_insights_analytics_desc">Smart summaries, weekly trends, and daily coaching nudges</string>
+    <string name="settings_overtime_reminders">Overtime reminders</string>
+    <string name="settings_overtime_reminders_desc">Notify 30 minutes before overtime and hourly while in overtime</string>
+    <string name="settings_features_footer">Clock faces moved to Appearance. Turning a feature off hides its tabs and cards across the app.</string>
+
+    <!-- Help & about -->
+    <string name="settings_section_about">ABOUT</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_privacy_policy_subtitle">How we handle your data</string>
+    <string name="settings_terms_of_service">Terms of Service</string>
+    <string name="settings_terms_subtitle">Usage terms and conditions</string>
+    <string name="settings_replay_onboarding">Replay onboarding</string>
+    <string name="settings_replay_onboarding_subtitle">Review feature setup and choices</string>
+    <string name="settings_support_email">Support: %1$s</string>
+    <string name="settings_section_sync">SYNC</string>
+    <string name="settings_sync_pending_failed">%1$s pending · %2$s failed</string>
+    <string name="settings_sync_changes_waiting">%1$s changes waiting to sync</string>
+    <string name="settings_all_changes_synced">All changes synced</string>
+    <string name="settings_status">Status</string>
+    <string name="settings_last_sync">Last sync</string>
+    <string name="settings_sync_details">Sync details</string>
+    <string name="settings_sync_failed_view_rows">%1$s failed · view pending rows</string>
+    <string name="settings_sync_pending_view_breakdown">%1$s pending · view breakdown</string>
+    <string name="settings_sync_details_subtitle">Local vs synced status and backup export</string>
+    <string name="settings_sync_now">Sync now</string>
+
+    <!-- Sync details -->
+    <string name="settings_sync_details_intro">See what is stored on this device, what is waiting to upload, and what failed.</string>
+    <string name="settings_section_last_successful_sync">LAST SUCCESSFUL SYNC</string>
+    <string name="settings_not_synced_yet">Not synced on this device yet</string>
+    <string name="settings_when">When</string>
+    <string name="settings_latest_run">Latest run</string>
+    <string name="settings_section_pending_by_type">PENDING BY TYPE</string>
+    <string name="settings_all_local_changes_synced">All local changes are synced.</string>
+    <string name="settings_section_failed_rows">FAILED ROWS</string>
+    <string name="settings_section_actions">ACTIONS</string>
+    <string name="settings_retry_all">Retry all</string>
+    <string name="settings_preparing_backup">Preparing backup…</string>
+    <string name="settings_export_local_backup">Export local backup</string>
+    <string name="settings_export_backup_hint">JSON snapshot of local tasks, shifts, claims, settings, and pay profiles for support.</string>
+    <string name="settings_importing">Importing…</string>
+    <string name="settings_import_local_backup">Import local backup</string>
+    <string name="settings_import_backup_hint">Restore a previously exported backup file. Existing items are never overwritten.</string>
+    <string name="settings_synced_on_device">%1$s synced on device</string>
+    <string name="settings_up_to_date">Up to date</string>
+    <string name="settings_count_pending">%1$s pending</string>
+    <string name="settings_failed_row_meta">%1$s · %2$s</string>
+
+    <!-- Shared list UI -->
+    <string name="settings_unsaved_change">%1$s unsaved change</string>
+    <string name="settings_unsaved_changes">%1$s unsaved changes</string>
+    <string name="settings_collapse">Collapse %1$s</string>
+    <string name="settings_expand">Expand %1$s</string>
+
+    <!-- Premium profiles -->
+    <string name="settings_premium_profiles_intro">Create reusable premium rates for holidays, Shabbat, and special shifts.</string>
+    <string name="settings_add_premium_profile">Add premium profile</string>
+    <string name="settings_your_profiles">Your profiles</string>
+    <string name="settings_new_profile">New profile</string>
+    <string name="settings_edit_profile">Edit profile</string>
+    <string name="settings_multiplier_summary">%1$s%% · %2$s</string>
+    <string name="settings_default">Default</string>
+    <string name="settings_delete_profile">Delete profile</string>
+    <string name="settings_edit">Edit</string>
+    <string name="settings_profile_name">Profile name</string>
+    <string name="settings_multiplier">Multiplier</string>
+    <string name="settings_multiplier_hint" formatted="false">1.5 = 150% pay</string>
+    <string name="settings_premium_type">Premium type</string>
+    <string name="settings_save_profile">Save profile</string>
+</resources>

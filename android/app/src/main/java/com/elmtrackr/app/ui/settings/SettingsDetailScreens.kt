@@ -55,10 +55,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.BuildConfig
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.domain.model.CurrencyCode
@@ -105,9 +107,9 @@ internal fun SettingsHub(
             )
         }
         item {
-            SettingsGroupedSection(title = "TRACKING & PAY") {
+            SettingsGroupedSection(title = stringResource(R.string.settings_section_tracking_pay)) {
                 SettingsHubNavRow(
-                    title = "Pay & overtime",
+                    title = stringResource(R.string.settings_pay_overtime),
                     subtitle = payrollSummary(
                         hourlyRateText = hourlyRateText,
                         currency = currency,
@@ -124,24 +126,24 @@ internal fun SettingsHub(
             }
         }
         item {
-            SettingsGroupedSection(title = "APP") {
+            SettingsGroupedSection(title = stringResource(R.string.settings_section_app)) {
                 SettingsHubNavRow(
-                    title = "Appearance & clock",
+                    title = stringResource(R.string.settings_appearance_clock),
                     subtitle = appearanceSummary(state.selectedTheme, clockStyle, clockStyles),
                     onClick = { onNavigate(SettingsDestination.APPEARANCE) },
                     icon = Icons.Filled.Schedule,
                     iconTint = AuroraPlum,
                 )
                 SettingsHubNavRow(
-                    title = "Features",
+                    title = stringResource(R.string.settings_features),
                     subtitle = featuresSummary(travelRefunds, insights, clockStyles, overtimeReminders),
                     onClick = { onNavigate(SettingsDestination.FEATURES) },
                     icon = Icons.Filled.Tune,
                     iconTint = AuroraAqua,
                 )
                 SettingsHubNavRow(
-                    title = "Security",
-                    subtitle = "App lock & encrypted storage",
+                    title = stringResource(R.string.settings_security),
+                    subtitle = stringResource(R.string.settings_security_subtitle),
                     onClick = { onNavigate(SettingsDestination.SECURITY) },
                     showDivider = false,
                     icon = Icons.Filled.Shield,
@@ -150,10 +152,10 @@ internal fun SettingsHub(
             }
         }
         item {
-            SettingsGroupedSection(title = "SUPPORT") {
+            SettingsGroupedSection(title = stringResource(R.string.settings_section_support)) {
                 SettingsHubNavRow(
-                    title = "Help & about",
-                    subtitle = "Version ${BuildConfig.VERSION_NAME} · sync & legal",
+                    title = stringResource(R.string.settings_help_about),
+                    subtitle = stringResource(R.string.settings_help_about_subtitle, BuildConfig.VERSION_NAME),
                     onClick = { onNavigate(SettingsDestination.HELP) },
                     showDivider = false,
                     icon = Icons.Outlined.Info,
@@ -178,7 +180,7 @@ internal fun SettingsHub(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (authState.isLoading) "Signing out…" else "Sign out",
+                        stringResource(if (authState.isLoading) R.string.settings_signing_out else R.string.settings_sign_out),
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
@@ -229,15 +231,13 @@ internal fun ProfileDetailScreen(
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    "Delete account?",
+                    stringResource(R.string.settings_delete_account_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "This permanently deletes your cloud account, shifts, settings, refund claims, " +
-                        "and receipt photos. Local data on this device will also be removed. " +
-                        "This cannot be undone.",
+                    stringResource(R.string.settings_delete_account_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -256,7 +256,7 @@ internal fun ProfileDetailScreen(
                     ),
                 ) {
                     Text(
-                        if (state.isDeletingAccount) "Deleting account…" else "Delete account",
+                        stringResource(if (state.isDeletingAccount) R.string.settings_deleting_account else R.string.settings_delete_account),
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -265,7 +265,7 @@ internal fun ProfileDetailScreen(
                     onClick = { showDeleteSheet = false },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_cancel))
                 }
             }
         }
@@ -277,7 +277,7 @@ internal fun ProfileDetailScreen(
             .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        item { SettingsDetailHeader(title = "Profile", onBack = onBack) }
+        item { SettingsDetailHeader(title = stringResource(R.string.settings_profile), onBack = onBack) }
         item {
             SettingsSectionCardPlain {
                 Box(
@@ -302,7 +302,7 @@ internal fun ProfileDetailScreen(
         }
         item {
             SettingsSectionCardPlain {
-                SettingsSubsectionLabel("Display name")
+                SettingsSubsectionLabel(stringResource(R.string.settings_display_name))
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = displayName,
@@ -313,7 +313,7 @@ internal fun ProfileDetailScreen(
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Used for your home-screen greeting.",
+                    stringResource(R.string.settings_display_name_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -321,9 +321,9 @@ internal fun ProfileDetailScreen(
         }
         item {
             SettingsSectionCardPlain {
-                SettingsSubsectionLabel("Security")
+                SettingsSubsectionLabel(stringResource(R.string.settings_security))
                 Spacer(Modifier.height(8.dp))
-                SettingsInfoRow("Email", state.profile?.email ?: "—")
+                SettingsInfoRow(stringResource(R.string.settings_email), state.profile?.email ?: "—")
                 if (authState is AuthUiState.SignedIn) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 4.dp),
@@ -335,11 +335,11 @@ internal fun ProfileDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(CornerRadius.Medium),
                     ) {
-                        Text("Send password reset email", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.settings_send_password_reset), fontWeight = FontWeight.SemiBold)
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        state.passwordResetFeedback ?: "We'll email you a secure reset link.",
+                        state.passwordResetFeedback ?: stringResource(R.string.settings_password_reset_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (state.passwordResetFeedback != null) {
                             MaterialTheme.colorScheme.primary
@@ -354,15 +354,14 @@ internal fun ProfileDetailScreen(
             item {
                 SettingsSectionCardPlain {
                     Text(
-                        "DANGER ZONE",
+                        stringResource(R.string.settings_danger_zone),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.error,
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Permanently delete your cloud account, shifts, settings, refund claims, " +
-                            "and receipt photos.",
+                        stringResource(R.string.settings_delete_account_warning),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -379,14 +378,14 @@ internal fun ProfileDetailScreen(
                     ) {
                         Icon(Icons.Filled.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Delete account", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.settings_delete_account), fontWeight = FontWeight.Bold)
                     }
                 }
             }
         } else if (authState is AuthUiState.NotConfigured) {
             item {
                 Text(
-                    "Running in local-only mode (Supabase not configured).",
+                    stringResource(R.string.settings_local_only_mode),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -422,34 +421,34 @@ internal fun PayDetailScreen(
             .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        item { SettingsDetailHeader(title = "Pay & overtime", onBack = onBack) }
+        item { SettingsDetailHeader(title = stringResource(R.string.settings_pay_overtime), onBack = onBack) }
         item {
             SettingsNavRow(
-                title = "Compensation rules",
-                subtitle = "Region presets, overtime tiers, and premiums",
+                title = stringResource(R.string.settings_compensation_rules),
+                subtitle = stringResource(R.string.settings_compensation_rules_subtitle),
                 onClick = onOpenCompensation,
             )
         }
         item {
             SettingsNavRow(
-                title = "Premium profiles",
-                subtitle = "Custom multipliers for special shifts",
+                title = stringResource(R.string.settings_premium_profiles),
+                subtitle = stringResource(R.string.settings_premium_profiles_subtitle),
                 onClick = onOpenPremiumProfiles,
             )
         }
         item {
             SettingsNavRow(
-                title = "Tasks",
-                subtitle = "Optional task labels for clock-in",
+                title = stringResource(R.string.settings_tasks),
+                subtitle = stringResource(R.string.settings_tasks_subtitle),
                 onClick = onOpenTasks,
             )
         }
         item {
             Column {
-                SettingsSubsectionLabel("Pay rate")
+                SettingsSubsectionLabel(stringResource(R.string.settings_pay_rate))
                 Spacer(Modifier.height(8.dp))
                 HoursField(
-                    label = "Hourly rate",
+                    label = stringResource(R.string.settings_hourly_rate),
                     value = hourlyRateText,
                     onValueChange = onHourlyRateChange,
                     error = state.validationErrors["hourlyRate"],
@@ -460,17 +459,17 @@ internal fun PayDetailScreen(
         }
         item {
             Column {
-                SettingsSubsectionLabel("Overtime thresholds")
+                SettingsSubsectionLabel(stringResource(R.string.settings_overtime_thresholds))
                 Spacer(Modifier.height(8.dp))
                 HoursField(
-                    label = "Daily overtime (hours)",
+                    label = stringResource(R.string.settings_daily_overtime_hours),
                     value = dailyOtText,
                     onValueChange = onDailyOtChange,
                     error = state.validationErrors["dailyOt"],
                 )
                 Spacer(Modifier.height(8.dp))
                 HoursField(
-                    label = "Weekly overtime (hours)",
+                    label = stringResource(R.string.settings_weekly_overtime_hours),
                     value = weeklyOtText,
                     onValueChange = onWeeklyOtChange,
                     error = state.validationErrors["weeklyOt"],
@@ -479,10 +478,10 @@ internal fun PayDetailScreen(
         }
         item {
             Column {
-                SettingsSubsectionLabel("Weekend days")
+                SettingsSubsectionLabel(stringResource(R.string.settings_weekend_days))
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Selected days count as weekends for overtime and reports.",
+                    stringResource(R.string.settings_weekend_days_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -492,7 +491,7 @@ internal fun PayDetailScreen(
         }
         item {
             Column {
-                SettingsSubsectionLabel("Location")
+                SettingsSubsectionLabel(stringResource(R.string.settings_location))
                 Spacer(Modifier.height(8.dp))
                 IanaTimezonePicker(selected = timezone, onSelect = onTimezoneChange)
             }
@@ -519,14 +518,14 @@ internal fun AppearanceDetailScreen(
             .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        item { SettingsDetailHeader(title = "Appearance & clock", onBack = onBack) }
+        item { SettingsDetailHeader(title = stringResource(R.string.settings_appearance_clock), onBack = onBack) }
         item {
             ThemeSegmentedControl(selected = state.selectedTheme, onSelect = onTheme)
         }
         item {
             SettingsToggleRow(
-                title = "Clock faces",
-                description = "14 styles for your home clock",
+                title = stringResource(R.string.settings_clock_faces),
+                description = stringResource(R.string.settings_clock_faces_desc),
                 checked = clockStylesEnabled,
                 onCheckedChange = onClockStylesEnabledChange,
                 icon = Icons.Filled.Schedule,
@@ -535,8 +534,8 @@ internal fun AppearanceDetailScreen(
         }
         item {
             SettingsToggleRow(
-                title = "Reduce motion",
-                description = "Minimize animations across the app",
+                title = stringResource(R.string.settings_reduce_motion),
+                description = stringResource(R.string.settings_reduce_motion_desc),
                 checked = reduceMotionEnabled,
                 onCheckedChange = onReduceMotionChange,
                 icon = Icons.Filled.MotionPhotosOff,
@@ -547,7 +546,7 @@ internal fun AppearanceDetailScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Preview",
+                        stringResource(R.string.settings_preview),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )
@@ -614,27 +613,27 @@ internal fun FeaturesDetailScreen(
             .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        item { SettingsDetailHeader(title = "Features", onBack = onBack) }
+        item { SettingsDetailHeader(title = stringResource(R.string.settings_features), onBack = onBack) }
         item {
             SettingsToggleRow(
-                title = "Travel refunds",
-                description = "Track transport refunds for late-night or holiday shifts",
+                title = stringResource(R.string.settings_travel_refunds),
+                description = stringResource(R.string.settings_travel_refunds_desc),
                 checked = travelRefunds,
                 onCheckedChange = onTravelRefundsChange,
                 icon = Icons.Filled.LocalShipping,
                 iconTint = AuroraPeachDeep,
             )
             SettingsToggleRow(
-                title = "Insights & analytics",
-                description = "Smart summaries, weekly trends, and daily coaching nudges",
+                title = stringResource(R.string.settings_insights_analytics),
+                description = stringResource(R.string.settings_insights_analytics_desc),
                 checked = insights,
                 onCheckedChange = onInsightsChange,
                 icon = Icons.AutoMirrored.Filled.ShowChart,
                 iconTint = FeaturesInsightsGreen,
             )
             SettingsToggleRow(
-                title = "Overtime reminders",
-                description = "Notify 30 minutes before overtime and hourly while in overtime",
+                title = stringResource(R.string.settings_overtime_reminders),
+                description = stringResource(R.string.settings_overtime_reminders_desc),
                 checked = overtimeReminders,
                 onCheckedChange = onOvertimeRemindersChange,
                 icon = Icons.Filled.NotificationsActive,
@@ -643,7 +642,7 @@ internal fun FeaturesDetailScreen(
         }
         item {
             Text(
-                "Clock faces moved to Appearance. Turning a feature off hides its tabs and cards across the app.",
+                stringResource(R.string.settings_features_footer),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -671,31 +670,31 @@ internal fun HelpDetailScreen(
             .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        item { SettingsDetailHeader(title = "Help & about", onBack = onBack) }
+        item { SettingsDetailHeader(title = stringResource(R.string.settings_help_about), onBack = onBack) }
         item {
-            SettingsSectionCard(title = "ABOUT") {
-                SettingsInfoRow("Version", BuildConfig.VERSION_NAME)
+            SettingsSectionCard(title = stringResource(R.string.settings_section_about)) {
+                SettingsInfoRow(stringResource(R.string.settings_version), BuildConfig.VERSION_NAME)
                 Spacer(Modifier.height(8.dp))
                 SettingsNavRow(
-                    title = "Privacy Policy",
-                    subtitle = "How we handle your data",
+                    title = stringResource(R.string.settings_privacy_policy),
+                    subtitle = stringResource(R.string.settings_privacy_policy_subtitle),
                     onClick = { openExternalUrl(context, LegalDocuments.PRIVACY_POLICY_URL) },
                 )
                 Spacer(Modifier.height(8.dp))
                 SettingsNavRow(
-                    title = "Terms of Service",
-                    subtitle = "Usage terms and conditions",
+                    title = stringResource(R.string.settings_terms_of_service),
+                    subtitle = stringResource(R.string.settings_terms_subtitle),
                     onClick = onOpenTerms,
                 )
                 Spacer(Modifier.height(8.dp))
                 SettingsNavRow(
-                    title = "Replay onboarding",
-                    subtitle = "Review feature setup and choices",
+                    title = stringResource(R.string.settings_replay_onboarding),
+                    subtitle = stringResource(R.string.settings_replay_onboarding_subtitle),
                     onClick = onReplayOnboarding,
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Support: ${LegalDocuments.CONTACT_EMAIL}",
+                    stringResource(R.string.settings_support_email, LegalDocuments.CONTACT_EMAIL),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -703,26 +702,26 @@ internal fun HelpDetailScreen(
         }
         if (authState != null) {
             item {
-                SettingsSectionCard(title = "SYNC") {
+                SettingsSectionCard(title = stringResource(R.string.settings_section_sync)) {
                     val statusLine = when {
-                        state.isSyncing -> "Syncing…"
+                        state.isSyncing -> stringResource(R.string.settings_syncing)
                         state.syncFailedCount > 0 ->
-                            "${state.syncPendingCount} pending · ${state.syncFailedCount} failed"
-                        state.syncPendingCount > 0 -> "${state.syncPendingCount} changes waiting to sync"
-                        else -> "All changes synced"
+                            stringResource(R.string.settings_sync_pending_failed, state.syncPendingCount, state.syncFailedCount)
+                        state.syncPendingCount > 0 -> stringResource(R.string.settings_sync_changes_waiting, state.syncPendingCount)
+                        else -> stringResource(R.string.settings_all_changes_synced)
                     }
-                    SettingsInfoRow("Status", statusLine)
+                    SettingsInfoRow(stringResource(R.string.settings_status), statusLine)
                     state.lastSyncStatus?.let { last ->
                         Spacer(Modifier.height(8.dp))
-                        SettingsInfoRow("Last sync", SyncStatusText.format(last) ?: last)
+                        SettingsInfoRow(stringResource(R.string.settings_last_sync), SyncStatusText.format(last) ?: last)
                     }
                     Spacer(Modifier.height(8.dp))
                     SettingsNavRow(
-                        title = "Sync details",
+                        title = stringResource(R.string.settings_sync_details),
                         subtitle = when {
-                            state.syncFailedCount > 0 -> "${state.syncFailedCount} failed · view pending rows"
-                            state.syncPendingCount > 0 -> "${state.syncPendingCount} pending · view breakdown"
-                            else -> "Local vs synced status and backup export"
+                            state.syncFailedCount > 0 -> stringResource(R.string.settings_sync_failed_view_rows, state.syncFailedCount)
+                            state.syncPendingCount > 0 -> stringResource(R.string.settings_sync_pending_view_breakdown, state.syncPendingCount)
+                            else -> stringResource(R.string.settings_sync_details_subtitle)
                         },
                         onClick = onOpenSyncDetails,
                     )
@@ -740,7 +739,7 @@ internal fun HelpDetailScreen(
                             )
                             Spacer(Modifier.width(8.dp))
                         }
-                        Text(if (state.isSyncing) "Syncing…" else "Sync now")
+                        Text(stringResource(if (state.isSyncing) R.string.settings_syncing else R.string.settings_sync_now))
                     }
                 }
             }

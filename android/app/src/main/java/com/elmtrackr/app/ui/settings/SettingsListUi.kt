@@ -43,8 +43,10 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.ElmGradientButton
@@ -64,7 +66,7 @@ internal val SettingsAvatarGradient = Brush.linearGradient(
 @Composable
 internal fun SettingsPageHeader() {
     Text(
-        "Settings",
+        stringResource(R.string.settings_title),
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = Spacing.lg, bottom = Spacing.sm),
@@ -120,7 +122,7 @@ internal fun SettingsProfileHeroCard(
             }
             Column(modifier = Modifier.padding(start = Spacing.md).weight(1f)) {
                 Text(
-                    displayName.ifBlank { "Your profile" },
+                    displayName.ifBlank { stringResource(R.string.settings_your_profile) },
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
@@ -237,7 +239,7 @@ internal fun SettingsDetailHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
         }
         Text(
             title,
@@ -341,7 +343,11 @@ internal fun SettingsCollapsibleCard(
                     }
                     Icon(
                         imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                        contentDescription = if (expanded) "Collapse $title" else "Expand $title",
+                        contentDescription = if (expanded) {
+                            stringResource(R.string.settings_collapse, title)
+                        } else {
+                            stringResource(R.string.settings_expand, title)
+                        },
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -505,7 +511,10 @@ internal fun SettingsFloatingSaveBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "$unsavedCount unsaved change${if (unsavedCount == 1) "" else "s"}",
+                stringResource(
+                    if (unsavedCount == 1) R.string.settings_unsaved_change else R.string.settings_unsaved_changes,
+                    unsavedCount,
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -517,7 +526,7 @@ internal fun SettingsFloatingSaveBar(
                 enabled = !isSaving,
                 compact = true,
             ) {
-                Text(if (isSaving) "Saving…" else "Save", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(if (isSaving) R.string.settings_saving else R.string.settings_save), fontWeight = FontWeight.SemiBold)
             }
         }
     }

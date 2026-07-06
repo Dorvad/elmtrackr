@@ -24,10 +24,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.UserSettings
@@ -117,7 +119,7 @@ fun SettingsScreen(
             }
             SettingsDestination.TERMS -> {
                 LegalDocumentScreen(
-                    title = "Terms of Service",
+                    title = stringResource(R.string.settings_terms_of_service),
                     sections = LegalDocuments.termsOfService,
                     lastUpdated = LegalDocuments.LAST_UPDATED,
                     onBack = { destination = SettingsDestination.HELP },

@@ -25,9 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.R
 import com.elmtrackr.app.data.sync.SyncDetails
 import com.elmtrackr.app.data.sync.SyncFailedRow
 import com.elmtrackr.app.data.sync.SyncPendingByType
@@ -124,10 +126,10 @@ internal fun SyncDetailsContent(
             .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        item { SettingsDetailHeader(title = "Sync details", onBack = onBack) }
+        item { SettingsDetailHeader(title = stringResource(R.string.settings_sync_details), onBack = onBack) }
         item {
             Text(
-                "See what is stored on this device, what is waiting to upload, and what failed.",
+                stringResource(R.string.settings_sync_details_intro),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -138,21 +140,21 @@ internal fun SyncDetailsContent(
             }
         }
         item {
-            SettingsSectionCard(title = "LAST SUCCESSFUL SYNC") {
+            SettingsSectionCard(title = stringResource(R.string.settings_section_last_successful_sync)) {
                 val label = details.lastSuccessfulSyncAt?.atZone(ZoneId.systemDefault())?.format(formatter)
-                    ?: "Not synced on this device yet"
-                SettingsInfoRow("When", label)
+                    ?: stringResource(R.string.settings_not_synced_yet)
+                SettingsInfoRow(stringResource(R.string.settings_when), label)
                 details.lastSyncStatus?.let { status ->
                     Spacer(Modifier.height(8.dp))
-                    SettingsInfoRow("Latest run", SyncStatusText.format(status) ?: status)
+                    SettingsInfoRow(stringResource(R.string.settings_latest_run), SyncStatusText.format(status) ?: status)
                 }
             }
         }
         item {
-            SettingsSectionCard(title = "PENDING BY TYPE") {
+            SettingsSectionCard(title = stringResource(R.string.settings_section_pending_by_type)) {
                 if (details.totalPending == 0) {
                     Text(
-                        "All local changes are synced.",
+                        stringResource(R.string.settings_all_local_changes_synced),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -166,7 +168,7 @@ internal fun SyncDetailsContent(
         }
         if (details.failedRows.isNotEmpty()) {
             item {
-                SettingsSectionCard(title = "FAILED ROWS") {
+                SettingsSectionCard(title = stringResource(R.string.settings_section_failed_rows)) {
                     details.failedRows.forEachIndexed { index, row ->
                         if (index > 0) {
                             Spacer(Modifier.height(10.dp))
@@ -179,7 +181,7 @@ internal fun SyncDetailsContent(
             }
         }
         item {
-            SettingsSectionCard(title = "ACTIONS") {
+            SettingsSectionCard(title = stringResource(R.string.settings_section_actions)) {
                 ElmGradientButton(
                     onClick = onRetryAll,
                     enabled = !isSyncing && !isExporting,
@@ -192,7 +194,7 @@ internal fun SyncDetailsContent(
                         )
                         Spacer(Modifier.width(8.dp))
                     }
-                    Text(if (isSyncing) "Syncing…" else "Retry all")
+                    Text(stringResource(if (isSyncing) R.string.settings_syncing else R.string.settings_retry_all))
                 }
                 Spacer(Modifier.height(10.dp))
                 OutlinedButton(
@@ -207,11 +209,11 @@ internal fun SyncDetailsContent(
                         )
                         Spacer(Modifier.width(8.dp))
                     }
-                    Text(if (isExporting) "Preparing backup…" else "Export local backup")
+                    Text(stringResource(if (isExporting) R.string.settings_preparing_backup else R.string.settings_export_local_backup))
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "JSON snapshot of local tasks, shifts, claims, settings, and pay profiles for support.",
+                    stringResource(R.string.settings_export_backup_hint),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -228,11 +230,11 @@ internal fun SyncDetailsContent(
                         )
                         Spacer(Modifier.width(8.dp))
                     }
-                    Text(if (isImporting) "Importing…" else "Import local backup")
+                    Text(stringResource(if (isImporting) R.string.settings_importing else R.string.settings_import_local_backup))
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Restore a previously exported backup file. Existing items are never overwritten.",
+                    stringResource(R.string.settings_import_backup_hint),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -248,13 +250,17 @@ private fun PendingTypeRow(row: SyncPendingByType) {
         Column(Modifier.weight(1f)) {
             Text(row.entityType.label, fontWeight = FontWeight.SemiBold)
             Text(
-                "${row.syncedCount} synced on device",
+                stringResource(R.string.settings_synced_on_device, row.syncedCount),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Text(
-            if (row.pendingCount == 0) "Up to date" else "${row.pendingCount} pending",
+            if (row.pendingCount == 0) {
+                stringResource(R.string.settings_up_to_date)
+            } else {
+                stringResource(R.string.settings_count_pending, row.pendingCount)
+            },
             color = if (row.pendingCount == 0) {
                 MaterialTheme.colorScheme.primary
             } else {
@@ -270,7 +276,11 @@ private fun FailedRowItem(row: SyncFailedRow) {
     Column(Modifier.fillMaxWidth()) {
         Text(row.label, fontWeight = FontWeight.SemiBold)
         Text(
-            "${row.entityType.label} · ${row.syncStatus.name.replace('_', ' ').lowercase()}",
+            stringResource(
+                R.string.settings_failed_row_meta,
+                row.entityType.label,
+                row.syncStatus.name.replace('_', ' ').lowercase(),
+            ),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
