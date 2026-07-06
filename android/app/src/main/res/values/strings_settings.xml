@@ -48,6 +48,7 @@
     <string name="settings_pay_rate">Pay rate</string>
     <string name="settings_hourly_rate">Hourly rate</string>
     <string name="settings_overtime_thresholds">Overtime thresholds</string>
+    <string name="settings_overtime_thresholds_hint">These basics update your default compensation profile. For tiers, premiums, breaks, and deductions open Compensation rules above.</string>
     <string name="settings_daily_overtime_hours">Daily overtime (hours)</string>
     <string name="settings_weekly_overtime_hours">Weekly overtime (hours)</string>
     <string name="settings_weekend_days">Weekend days</string>

@@ -460,6 +460,12 @@ internal fun PayDetailScreen(
         item {
             Column {
                 SettingsSubsectionLabel(stringResource(R.string.settings_overtime_thresholds))
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(R.string.settings_overtime_thresholds_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Spacer(Modifier.height(8.dp))
                 HoursField(
                     label = stringResource(R.string.settings_daily_overtime_hours),

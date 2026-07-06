@@ -264,14 +264,28 @@ class SettingsViewModel @Inject constructor(
             val profiles = compensationProfilesRepository.getProfiles(currentProfile.id)
             val defaultProfile = profiles.firstOrNull { it.isDefault } ?: profiles.firstOrNull()
             if (defaultProfile != null) {
+                val newDailyStandard = (dailyOtHours * 60).roundToInt()
+                val newWeeklyStandard = (weeklyOtHours * 60).roundToInt()
                 val updatedProfile = defaultProfile.copy(
                     baseHourlyRate = hourlyRate,
                     currencyCode = currency.name,
                     timezone = normalizedTimezone,
                     rules = defaultProfile.rules.copy(
-                        dailyStandardMinutes = (dailyOtHours * 60).roundToInt(),
-                        weeklyStandardMinutes = (weeklyOtHours * 60).roundToInt(),
+                        dailyStandardMinutes = newDailyStandard,
+                        weeklyStandardMinutes = newWeeklyStandard,
                         weekendDays = weekendDays,
+                        // Keep the overtime ladders aligned with the new standards —
+                        // otherwise tiers could start before the standard is reached.
+                        dailyOvertimeTiers = CompensationResolver.remapOvertimeTiers(
+                            defaultProfile.rules.dailyOvertimeTiers,
+                            defaultProfile.rules.dailyStandardMinutes,
+                            newDailyStandard,
+                        ),
+                        weeklyOvertimeTiers = CompensationResolver.remapOvertimeTiers(
+                            defaultProfile.rules.weeklyOvertimeTiers,
+                            defaultProfile.rules.weeklyStandardMinutes,
+                            newWeeklyStandard,
+                        ),
                     ),
                 )
                 val savedProfile = compensationProfilesRepository.upsertProfile(updatedProfile)

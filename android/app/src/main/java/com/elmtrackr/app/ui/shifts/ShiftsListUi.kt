@@ -57,7 +57,7 @@ import com.elmtrackr.app.ui.design.ElmDashedButton
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.design.auroraPressScale
-import com.elmtrackr.app.ui.theme.AuroraAqua
+import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeach
 import com.elmtrackr.app.ui.theme.CornerRadius
@@ -304,7 +304,8 @@ private fun HeroHoursBreakdown(
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         HoursLegendDot(color = AuroraIndigo, label = stringResource(R.string.shifts_legend_regular))
         HoursLegendDot(color = AuroraPeach, label = stringResource(R.string.shifts_legend_overtime))
-        HoursLegendDot(color = AuroraAqua, label = stringResource(R.string.shifts_legend_weekend))
+        // Same series color as the dashboard and reports legends.
+        HoursLegendDot(color = AuroraPlum, label = stringResource(R.string.shifts_legend_weekend))
     }
 }
 
@@ -360,7 +361,7 @@ private fun SegmentedHoursBar(
                 Modifier
                     .weight(weekendFraction.coerceAtLeast(0.01f))
                     .fillMaxHeight()
-                    .background(AuroraAqua),
+                    .background(AuroraPlum),
             )
         }
     }
