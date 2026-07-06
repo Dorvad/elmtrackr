@@ -8,5 +8,5 @@ class Converters {
     fun syncStatusToString(status: SyncStatus): String = status.name
 
     @TypeConverter
-    fun stringToSyncStatus(value: String): SyncStatus = SyncStatus.valueOf(value)
+    fun stringToSyncStatus(value: String): SyncStatus = SyncStatus.fromPersisted(value)
 }

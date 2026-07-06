@@ -11,10 +11,11 @@ object WeekendRules {
 
     /**
      * Returns true if [dateStr] (YYYY-MM-DD, interpreted as UTC) falls on a
-     * configured weekend day.
+     * configured weekend day. Unparseable dates count as non-weekend rather
+     * than aborting the payroll pipeline.
      */
     fun isWeekendDate(dateStr: String, weekendDays: List<Int>): Boolean {
-        val date = LocalDate.parse(dateStr)
+        val date = runCatching { LocalDate.parse(dateStr) }.getOrNull() ?: return false
         return date.dayOfWeek.toJsDay() in weekendDays
     }
 
