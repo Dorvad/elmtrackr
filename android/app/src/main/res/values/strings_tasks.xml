@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- TaskManagementScreen -->
+    <string name="tasks_title">Tasks</string>
+    <string name="tasks_subtitle">Optional labels with their own hourly rates for punch-in.</string>
+    <string name="tasks_back">Back</string>
+    <string name="tasks_delete_title">Delete \"%1$s\"?</string>
+    <string name="tasks_delete_message">This removes the task everywhere. Shifts that used it keep their recorded name and rate. This can\'t be undone.</string>
+    <string name="tasks_delete">Delete</string>
+    <string name="tasks_cancel">Cancel</string>
+    <string name="tasks_add_task">Add task</string>
+    <string name="tasks_empty_hint">No tasks yet. Add one to tag shifts with different hourly rates.</string>
+    <string name="tasks_archived_header">Archived</string>
+    <string name="tasks_rate_per_hour">%1$s/hr</string>
+    <string name="tasks_edit">Edit</string>
+    <string name="tasks_archive">Archive</string>
+    <string name="tasks_schedule_defaults">Schedule defaults</string>
+    <string name="tasks_schedule_defaults_hint">Learned from your shift history — used for Suggested now.</string>
+    <string name="tasks_more_rules">+%1$d more</string>
+    <string name="tasks_new_task">New task</string>
+    <string name="tasks_edit_task">Edit task</string>
+    <string name="tasks_name_label">Task name</string>
+    <string name="tasks_icon_label">Icon</string>
+    <string name="tasks_color_label">Color</string>
+    <string name="tasks_hourly_rate_label">Hourly rate</string>
+    <string name="tasks_save">Save</string>
+    <string name="tasks_error_name_required">Enter a task name</string>
+    <string name="tasks_error_name_exists">A task with this name already exists</string>
+    <string name="tasks_error_rate_invalid">Enter a valid hourly rate</string>
+
+    <!-- TaskSelectorBar -->
+    <string name="tasks_task_label">Task</string>
+    <string name="tasks_manage">Manage</string>
+    <string name="tasks_suggested_now">Suggested now</string>
+    <string name="tasks_chip_suggested">✨ %1$s %2$s</string>
+    <string name="tasks_chip_a11y">%1$s, %2$s per hour</string>
+    <string name="tasks_chip_a11y_suggested">%1$s, %2$s per hour, suggested now</string>
+    <string name="tasks_selected_summary">%1$s %2$s · %3$s/hr</string>
+    <string name="tasks_badge_with_rate">%1$s %2$s · %3$s/hr</string>
+</resources>

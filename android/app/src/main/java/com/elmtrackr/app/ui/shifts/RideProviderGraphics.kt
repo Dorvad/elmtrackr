@@ -37,10 +37,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.RefundProvider
 import kotlin.math.PI
 import kotlin.math.cos
@@ -62,7 +64,7 @@ internal fun RideProviderSelector(
     onSelect: (RefundProvider) -> Unit,
 ) {
     Column {
-        Text("Ride provider", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.shifts_ride_provider), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             items(RefundProvider.entries.size) { index ->
@@ -93,13 +95,18 @@ private fun RideProviderCard(
         label = "bob",
     )
     val palette = ridePalette(provider)
+    val cardContentDescription = if (selected) {
+        stringResource(R.string.shifts_ride_provider_a11y_selected, provider.label)
+    } else {
+        stringResource(R.string.shifts_ride_provider_a11y, provider.label)
+    }
 
     Card(
         onClick = onClick,
         modifier = Modifier
             .width(238.dp)
             .height(154.dp)
-            .semantics { contentDescription = "${provider.label} ride provider${if (selected) ", selected" else ""}" },
+            .semantics { contentDescription = cardContentDescription },
         shape = RoundedCornerShape(CornerRadius.Large),
         border = BorderStroke(
             if (selected) 3.dp else 1.dp,
