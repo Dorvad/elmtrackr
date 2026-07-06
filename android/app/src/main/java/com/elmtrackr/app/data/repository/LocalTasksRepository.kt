@@ -1,5 +1,6 @@
 package com.elmtrackr.app.data.repository
 
+import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.dao.TaskDao
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.TaskEntity
@@ -18,6 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class LocalTasksRepository @Inject constructor(
     private val taskDao: TaskDao,
+    private val shiftDao: ShiftDao,
     private val syncTrigger: SyncTrigger,
 ) : TasksRepository {
 
@@ -60,6 +62,21 @@ class LocalTasksRepository @Inject constructor(
                 syncStatus = SyncStatus.PENDING_UPDATE,
                 updatedAt = now,
             ),
+        )
+        syncTrigger.schedule()
+    }
+
+    override suspend fun deleteTask(userId: String, taskId: String) {
+        val existing = taskDao.getById(userId, taskId) ?: return
+        val now = Instant.now().toEpochMilli()
+        // Mirror the server's ON DELETE SET NULL up front so pending shifts never
+        // push a reference to a task that is about to disappear remotely.
+        shiftDao.detachTaskFromShifts(userId, taskId)
+        taskDao.softDeleteTask(
+            localId = existing.localId,
+            deletedAt = now,
+            syncStatus = SyncStatus.PENDING_DELETE,
+            updatedAt = now,
         )
         syncTrigger.schedule()
     }

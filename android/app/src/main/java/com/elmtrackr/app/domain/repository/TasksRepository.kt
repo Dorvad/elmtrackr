@@ -10,5 +10,11 @@ interface TasksRepository {
     suspend fun getTaskById(userId: String, taskId: String): Task?
     suspend fun upsertTask(task: Task): Task
     suspend fun archiveTask(userId: String, taskId: String)
+
+    /**
+     * Permanently deletes a task (local soft delete synced as a remote delete).
+     * Shifts that used the task keep their name/icon/rate snapshots.
+     */
+    suspend fun deleteTask(userId: String, taskId: String)
     suspend fun markTaskUsed(userId: String, taskId: String)
 }

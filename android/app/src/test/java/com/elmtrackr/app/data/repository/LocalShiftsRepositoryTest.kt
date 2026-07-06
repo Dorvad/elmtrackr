@@ -115,6 +115,12 @@ class LocalShiftsRepositoryTest {
             insertShift(shift)
         }
 
+        override suspend fun detachTaskFromShifts(userId: String, taskId: String) {
+            shifts.value = shifts.value.map {
+                if (it.userId == userId && it.taskId == taskId) it.copy(taskId = null) else it
+            }
+        }
+
         override suspend fun softDeleteShift(
             localId: String,
             deletedAt: Long,

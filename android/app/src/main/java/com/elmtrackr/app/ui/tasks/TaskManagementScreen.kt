@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -77,6 +78,7 @@ fun TaskManagementScreen(
                 onBack = onBack,
                 onSave = viewModel::saveTask,
                 onArchive = viewModel::archiveTask,
+                onDelete = viewModel::deleteTask,
                 onDismissMessage = viewModel::clearMessage,
             )
         }
@@ -90,11 +92,38 @@ internal fun TaskManagementContent(
     onBack: () -> Unit,
     onSave: (String?, String, String, String?, Double) -> Unit,
     onArchive: (String) -> Unit,
+    onDelete: (String) -> Unit = {},
     onDismissMessage: () -> Unit,
 ) {
     var editingId by remember { mutableStateOf<String?>(null) }
     var showForm by remember { mutableStateOf(false) }
+    var deleteCandidate by remember { mutableStateOf<Task?>(null) }
     val haptic = LocalHapticFeedback.current
+
+    deleteCandidate?.let { candidate ->
+        AlertDialog(
+            onDismissRequest = { deleteCandidate = null },
+            title = { Text("Delete \"${candidate.name}\"?") },
+            text = {
+                Text(
+                    "This removes the task everywhere. Shifts that used it keep " +
+                        "their recorded name and rate. This can't be undone.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        AuroraHaptics.destructive(haptic)
+                        onDelete(candidate.id)
+                        deleteCandidate = null
+                    },
+                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteCandidate = null }) { Text("Cancel") }
+            },
+        )
+    }
 
     if (state.message != null) {
         androidx.compose.runtime.LaunchedEffect(state.message) {
@@ -197,7 +226,13 @@ internal fun TaskManagementContent(
                 )
             }
             items(state.tasks.filter { it.isArchived }, key = { "arch-${it.id}" }) { task ->
-                TaskRow(task = task, archived = true, onEdit = {}, onArchive = {})
+                TaskRow(
+                    task = task,
+                    archived = true,
+                    onEdit = {},
+                    onArchive = {},
+                    onDelete = { deleteCandidate = task },
+                )
             }
         }
     }
@@ -209,6 +244,7 @@ private fun TaskRow(
     archived: Boolean = false,
     onEdit: () -> Unit,
     onArchive: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     ElmCardPadded(modifier.padding(horizontal = 16.dp)) {
@@ -230,6 +266,10 @@ private fun TaskRow(
             if (!archived) {
                 TextButton(onClick = onEdit) { Text("Edit") }
                 TextButton(onClick = onArchive) { Text("Archive") }
+            } else if (onDelete != null) {
+                TextButton(onClick = onDelete) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }

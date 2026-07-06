@@ -50,6 +50,11 @@ interface ShiftDao {
         updatedAt: Long,
     )
 
+    // Mirrors the server's ON DELETE SET NULL on shifts.task_id when a task is
+    // deleted locally; the task_* snapshot columns keep the shift's history.
+    @Query("UPDATE shifts SET taskId = NULL WHERE userId = :userId AND taskId = :taskId")
+    suspend fun detachTaskFromShifts(userId: String, taskId: String)
+
     @Query(
         "SELECT * FROM shifts WHERE userId = :userId AND syncStatus IN " +
             "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')"

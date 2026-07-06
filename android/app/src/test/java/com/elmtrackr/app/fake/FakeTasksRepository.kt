@@ -37,6 +37,10 @@ class FakeTasksRepository : TasksRepository {
         }
     }
 
+    override suspend fun deleteTask(userId: String, taskId: String) {
+        _tasks.value = _tasks.value.filterNot { it.userId == userId && it.id == taskId }
+    }
+
     override suspend fun markTaskUsed(userId: String, taskId: String) {
         _tasks.value = _tasks.value.map {
             if (it.userId == userId && it.id == taskId) it.copy(lastUsedAt = Instant.now()) else it

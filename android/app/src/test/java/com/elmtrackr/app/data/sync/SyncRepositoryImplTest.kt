@@ -437,6 +437,39 @@ class SyncRepositoryImplTest {
     }
 
     @Test
+    fun `push deletes remote task for locally deleted task`() = runTest {
+        val taskDao = InMemoryTaskDao()
+        val remoteTasks = RecordingRemoteTaskDataSource()
+        val repository = createRepository(taskDao = taskDao, remoteTasks = remoteTasks)
+
+        taskDao.upsert(
+            TaskEntity(
+                localId = "task-1",
+                remoteId = "remote-task-1",
+                userId = "user-1",
+                name = "Deliveries",
+                icon = "🚚",
+                color = null,
+                hourlyRate = 55.0,
+                isArchived = true,
+                lastUsedAt = null,
+                createdAt = 1_000L,
+                updatedAt = 2_000L,
+                deletedAt = 2_000L,
+                syncStatus = SyncStatus.PENDING_DELETE,
+                lastSyncError = null,
+                lastSyncedAt = null,
+            ),
+        )
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        assertEquals(listOf("remote-task-1"), remoteTasks.deletes)
+        assertEquals(SyncStatus.SYNCED, taskDao.getByLocalId("task-1")!!.syncStatus)
+    }
+
+    @Test
     fun `sync reports auth expired when the remote rejects the session`() = runTest {
         val dao = InMemoryShiftDao()
         val remote = object : RemoteShiftDataSource by FakeRemoteShiftDataSource() {
@@ -469,6 +502,7 @@ class SyncRepositoryImplTest {
         remoteShifts: RemoteShiftDataSource = FakeRemoteShiftDataSource(),
         syncCursorStore: SyncCursorStore = InMemorySyncCursorStore(),
         remoteTasks: RemoteTaskDataSource = EmptyRemoteTaskDataSource(),
+        taskDao: TaskDao = EmptyTaskDao(),
         profileDao: ProfileDao = InMemoryProfileDao(),
         remoteProfiles: RemoteProfileDataSource = FakeRemoteProfileDataSource(),
     ) = SyncRepositoryImpl(
@@ -477,7 +511,7 @@ class SyncRepositoryImplTest {
         settingsDao = EmptySettingsDao(),
         compensationProfileDao = EmptyCompensationProfileDao(),
         premiumProfileDao = EmptyPremiumProfileDao(),
-        taskDao = EmptyTaskDao(),
+        taskDao = taskDao,
         profileDao = profileDao,
         syncCursorStore = syncCursorStore,
         remoteTasks = remoteTasks,
@@ -718,6 +752,12 @@ class SyncRepositoryImplTest {
         override suspend fun adoptLegacyUser(userId: String) = Unit
         override suspend fun updateSyncState(localId: String, status: SyncStatus, remoteId: String?, syncedAt: Long?, error: String?) = Unit
         override suspend fun updateLastUsed(localId: String, lastUsedAt: Long, updatedAt: Long) = Unit
+        override suspend fun softDeleteTask(
+            localId: String,
+            deletedAt: Long,
+            syncStatus: SyncStatus,
+            updatedAt: Long,
+        ) = Unit
         override suspend fun deleteAllForUser(userId: String) = Unit
         override suspend fun markNeverSyncedPendingCreate(userId: String) = Unit
     }
@@ -742,6 +782,89 @@ class SyncRepositoryImplTest {
         override suspend fun insert(task: RemoteTaskInsert): RemoteTaskRow = error("not used")
         override suspend fun update(remoteId: String, task: RemoteTaskUpdate) = Unit
         override suspend fun delete(remoteId: String) = Unit
+    }
+
+    private class RecordingRemoteTaskDataSource : RemoteTaskDataSource {
+        val deletes = mutableListOf<String>()
+
+        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteTaskRow> =
+            emptyList()
+        override suspend fun insert(task: RemoteTaskInsert): RemoteTaskRow = error("not used")
+        override suspend fun update(remoteId: String, task: RemoteTaskUpdate) = Unit
+        override suspend fun delete(remoteId: String) {
+            deletes += remoteId
+        }
+    }
+
+    private class InMemoryTaskDao : TaskDao {
+        private val store = mutableMapOf<String, TaskEntity>()
+
+        override suspend fun getAllTasksForUser(userId: String): List<TaskEntity> =
+            store.values.filter { it.userId == userId && it.deletedAt == null }
+
+        override suspend fun getPendingSyncTasks(userId: String): List<TaskEntity> =
+            store.values.filter { it.userId == userId && it.syncStatus != SyncStatus.SYNCED }
+
+        override suspend fun hasPendingSyncTasks(userId: String): Boolean =
+            store.values.any { it.userId == userId && it.syncStatus != SyncStatus.SYNCED }
+
+        override fun observePendingSyncTasks(userId: String): Flow<List<TaskEntity>> = emptyFlow()
+
+        override suspend fun markNeverSyncedPendingCreate(userId: String) = Unit
+
+        override suspend fun upsert(task: TaskEntity) {
+            store[task.localId] = task
+        }
+
+        override suspend fun adoptLegacyUser(userId: String) = Unit
+
+        override fun observeActiveTasks(userId: String): Flow<List<TaskEntity>> = emptyFlow()
+
+        override fun observeAllTasks(userId: String): Flow<List<TaskEntity>> = emptyFlow()
+
+        override suspend fun getActiveTasks(userId: String): List<TaskEntity> =
+            store.values.filter { it.userId == userId && !it.isArchived && it.deletedAt == null }
+
+        override suspend fun getByLocalId(localId: String): TaskEntity? = store[localId]
+
+        override suspend fun getById(userId: String, localId: String): TaskEntity? =
+            store[localId]?.takeIf { it.userId == userId }
+
+        override suspend fun getByRemoteId(remoteId: String): TaskEntity? =
+            store.values.firstOrNull { it.remoteId == remoteId }
+
+        override suspend fun insert(task: TaskEntity) = upsert(task)
+
+        override suspend fun updateSyncState(
+            localId: String,
+            status: SyncStatus,
+            remoteId: String?,
+            syncedAt: Long?,
+            error: String?,
+        ) {
+            store[localId]?.let {
+                store[localId] = it.copy(
+                    syncStatus = status, remoteId = remoteId, lastSyncedAt = syncedAt, lastSyncError = error,
+                )
+            }
+        }
+
+        override suspend fun updateLastUsed(localId: String, lastUsedAt: Long, updatedAt: Long) = Unit
+
+        override suspend fun softDeleteTask(
+            localId: String,
+            deletedAt: Long,
+            syncStatus: SyncStatus,
+            updatedAt: Long,
+        ) {
+            store[localId]?.let {
+                store[localId] = it.copy(deletedAt = deletedAt, syncStatus = syncStatus, updatedAt = updatedAt)
+            }
+        }
+
+        override suspend fun deleteAllForUser(userId: String) {
+            store.entries.removeIf { it.value.userId == userId }
+        }
     }
 
     private class MissingTasksRemoteDataSource : RemoteTaskDataSource {
@@ -824,6 +947,12 @@ class SyncRepositoryImplTest {
 
         override suspend fun upsertShift(shift: ShiftEntity) {
             insertShift(shift)
+        }
+
+        override suspend fun detachTaskFromShifts(userId: String, taskId: String) {
+            shifts.value = shifts.value.map {
+                if (it.userId == userId && it.taskId == taskId) it.copy(taskId = null) else it
+            }
         }
 
         override suspend fun softDeleteShift(

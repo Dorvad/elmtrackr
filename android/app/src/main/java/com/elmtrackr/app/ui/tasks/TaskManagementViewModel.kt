@@ -116,4 +116,12 @@ class TaskManagementViewModel @Inject constructor(
             _message.value = "Task archived"
         }
     }
+
+    fun deleteTask(taskId: String) {
+        viewModelScope.launch {
+            val userId = currentUserProvider.currentUserId() ?: return@launch
+            tasksRepository.deleteTask(userId, taskId)
+            _message.value = "Task deleted"
+        }
+    }
 }

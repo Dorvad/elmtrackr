@@ -88,6 +88,17 @@ interface TaskDao {
     @Query("UPDATE tasks SET lastUsedAt = :lastUsedAt, updatedAt = :updatedAt WHERE localId = :localId")
     suspend fun updateLastUsed(localId: String, lastUsedAt: Long, updatedAt: Long)
 
+    @Query(
+        "UPDATE tasks SET deletedAt = :deletedAt, syncStatus = :syncStatus, " +
+            "updatedAt = :updatedAt WHERE localId = :localId",
+    )
+    suspend fun softDeleteTask(
+        localId: String,
+        deletedAt: Long,
+        syncStatus: SyncStatus,
+        updatedAt: Long,
+    )
+
     @Query("DELETE FROM tasks WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
 }
