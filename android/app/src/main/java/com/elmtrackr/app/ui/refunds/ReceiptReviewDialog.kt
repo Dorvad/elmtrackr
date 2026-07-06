@@ -29,10 +29,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.ReceiptParseConfidence
 import com.elmtrackr.app.ui.theme.CornerRadius
@@ -62,13 +64,12 @@ fun ReceiptReviewDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    "Review receipt details",
+                    stringResource(R.string.refunds_review_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
-                    "Verify the scanned details before saving. OCR can miss or misread values, " +
-                        "especially on faded or crumpled receipts.",
+                    stringResource(R.string.refunds_review_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -81,7 +82,7 @@ fun ReceiptReviewDialog(
                 bitmap?.let {
                     Image(
                         bitmap = it,
-                        contentDescription = "Scanned receipt preview",
+                        contentDescription = stringResource(R.string.refunds_scanned_receipt_preview),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -93,7 +94,7 @@ fun ReceiptReviewDialog(
                 OutlinedTextField(
                     value = review.merchantName,
                     onValueChange = onMerchantChange,
-                    label = { Text("Merchant") },
+                    label = { Text(stringResource(R.string.refunds_merchant_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -102,7 +103,7 @@ fun ReceiptReviewDialog(
                     OutlinedTextField(
                         value = review.amountText,
                         onValueChange = onAmountChange,
-                        label = { Text("Amount") },
+                        label = { Text(stringResource(R.string.refunds_amount_only_label)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         modifier = Modifier.weight(1f),
@@ -110,7 +111,7 @@ fun ReceiptReviewDialog(
                     OutlinedTextField(
                         value = review.currency,
                         onValueChange = onCurrencyChange,
-                        label = { Text("Currency") },
+                        label = { Text(stringResource(R.string.refunds_currency_label)) },
                         singleLine = true,
                         modifier = Modifier.weight(0.7f),
                         placeholder = { Text(defaultCurrency.name) },
@@ -125,7 +126,7 @@ fun ReceiptReviewDialog(
                         enabled = !review.isSaving,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.refunds_cancel))
                     }
                     Button(
                         onClick = onSave,
@@ -135,7 +136,7 @@ fun ReceiptReviewDialog(
                         if (review.isSaving) {
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         } else {
-                            Text("Save receipt")
+                            Text(stringResource(R.string.refunds_save_receipt))
                         }
                     }
                 }
@@ -150,27 +151,27 @@ private fun ConfidenceBanner(review: ReceiptReviewUiState) {
         review.ocrFailed -> Triple(
             MaterialTheme.colorScheme.errorContainer,
             MaterialTheme.colorScheme.onErrorContainer,
-            "Text recognition failed. You can still save the receipt and enter details manually.",
+            stringResource(R.string.refunds_confidence_ocr_failed),
         )
         review.confidence == ReceiptParseConfidence.NONE || review.amountText.isBlank() -> Triple(
             MaterialTheme.colorScheme.tertiaryContainer,
             MaterialTheme.colorScheme.onTertiaryContainer,
-            "No amount was detected. Save the receipt and enter the refund amount manually.",
+            stringResource(R.string.refunds_confidence_none),
         )
         review.confidence == ReceiptParseConfidence.LOW -> Triple(
             MaterialTheme.colorScheme.tertiaryContainer,
             MaterialTheme.colorScheme.onTertiaryContainer,
-            "Low-confidence scan. Double-check every field before saving.",
+            stringResource(R.string.refunds_confidence_low),
         )
         review.confidence == ReceiptParseConfidence.MEDIUM -> Triple(
             MaterialTheme.colorScheme.secondaryContainer,
             MaterialTheme.colorScheme.onSecondaryContainer,
-            "Some details were detected. Please verify them before saving.",
+            stringResource(R.string.refunds_confidence_medium),
         )
         else -> Triple(
             MaterialTheme.colorScheme.primaryContainer,
             MaterialTheme.colorScheme.onPrimaryContainer,
-            "Details detected with good confidence. Please verify before saving.",
+            stringResource(R.string.refunds_confidence_high),
         )
     }
 

@@ -25,7 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -57,7 +59,7 @@ fun ReceiptPreviewDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Receipt") },
+        title = { Text(stringResource(R.string.refunds_receipt_title)) },
         text = {
             Box(
                 modifier = Modifier
@@ -71,7 +73,7 @@ fun ReceiptPreviewDialog(
                         Column(Modifier.verticalScroll(rememberScrollState())) {
                             Image(
                                 bitmap = requireNotNull(bitmap),
-                                contentDescription = "Receipt image",
+                                contentDescription = stringResource(R.string.refunds_receipt_image),
                                 contentScale = ContentScale.FillWidth,
                                 modifier = Modifier.fillMaxWidth(),
                             )
@@ -79,7 +81,7 @@ fun ReceiptPreviewDialog(
                     }
                     failed -> {
                         Text(
-                            "Receipt preview could not be loaded. The file may have been removed.",
+                            stringResource(R.string.refunds_receipt_preview_failed),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(12.dp),
                         )
@@ -89,7 +91,7 @@ fun ReceiptPreviewDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.refunds_close)) }
         },
     )
 }

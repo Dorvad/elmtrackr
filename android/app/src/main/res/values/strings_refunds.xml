@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Refund claims section -->
+    <string name="refunds_reading_receipt">Reading receipt text…</string>
+    <string name="refunds_not_eligible">This shift is not eligible for travel reimbursement.</string>
+    <string name="refunds_ok">OK</string>
+    <string name="refunds_claim_icon_description">Refund claim</string>
+    <string name="refunds_direction_to_work">Ride to work</string>
+    <string name="refunds_direction_from_work">Ride from work</string>
+    <string name="refunds_no_claim_saved">No claim saved yet</string>
+    <string name="refunds_claim_ready">Claim ready for export</string>
+    <string name="refunds_add_receipt_now">Add receipt now</string>
+    <string name="refunds_add_claim">Add refund claim</string>
+    <string name="refunds_claim_summary">%1$s - %2$s</string>
+    <string name="refunds_edit">Edit</string>
+    <string name="refunds_view_receipt">View receipt</string>
+    <string name="refunds_delete">Delete</string>
+    <string name="refunds_no_ride">No ride</string>
+    <string name="refunds_remind_later">Remind later</string>
+    <string name="refunds_marked_no_ride">Marked as no ride taken</string>
+    <string name="refunds_undo">Undo</string>
+    <string name="refunds_reminder_kept">Reminder kept for later</string>
+
+    <!-- Claim form dialog -->
+    <string name="refunds_form_title_add">Add %1$s</string>
+    <string name="refunds_form_title_edit">Edit %1$s</string>
+    <string name="refunds_form_subtitle">Capture the receipt, amount, provider, and ride time for this claim.</string>
+    <string name="refunds_amount_label">Amount (%1$s)</string>
+    <string name="refunds_notes_label">Notes (optional)</string>
+    <string name="refunds_cancel">Cancel</string>
+    <string name="refunds_save">Save</string>
+    <string name="refunds_update">Update</string>
+
+    <!-- Receipt photo area -->
+    <string name="refunds_receipt_photo">Receipt photo</string>
+    <string name="refunds_pending_receipt_photo">Pending receipt photo</string>
+    <string name="refunds_new_receipt_photo">New receipt photo</string>
+    <string name="refunds_no_receipt_attached">No receipt attached</string>
+    <string name="refunds_existing_receipt_attached">Existing receipt attached</string>
+    <string name="refunds_receipt_attached">Receipt attached</string>
+    <string name="refunds_cloud_receipt_attached">Cloud receipt attached</string>
+    <string name="refunds_no_receipt_yet">No receipt attached yet</string>
+    <string name="refunds_scan_receipt">Scan receipt</string>
+    <string name="refunds_attach_receipt">Attach receipt</string>
+    <string name="refunds_use_device_camera">Use device camera</string>
+    <string name="refunds_retake_with_camera">Retake with camera</string>
+    <string name="refunds_remove_receipt_photo">Remove receipt photo</string>
+    <string name="refunds_remove_photo">Remove photo</string>
+    <string name="refunds_view_cloud_receipt">View cloud receipt</string>
+
+    <!-- Ride date/time pickers -->
+    <string name="refunds_ride_date">Ride date</string>
+    <string name="refunds_ride_time">Ride time</string>
+    <string name="refunds_pick_ride_date">Pick ride date</string>
+    <string name="refunds_pick_ride_time">Pick ride time</string>
+    <string name="refunds_select_time">Select time</string>
+
+    <!-- Receipt review dialog -->
+    <string name="refunds_review_title">Review receipt details</string>
+    <string name="refunds_review_subtitle">Verify the scanned details before saving. OCR can miss or misread values, especially on faded or crumpled receipts.</string>
+    <string name="refunds_scanned_receipt_preview">Scanned receipt preview</string>
+    <string name="refunds_merchant_label">Merchant</string>
+    <string name="refunds_amount_only_label">Amount</string>
+    <string name="refunds_currency_label">Currency</string>
+    <string name="refunds_save_receipt">Save receipt</string>
+    <string name="refunds_confidence_ocr_failed">Text recognition failed. You can still save the receipt and enter details manually.</string>
+    <string name="refunds_confidence_none">No amount was detected. Save the receipt and enter the refund amount manually.</string>
+    <string name="refunds_confidence_low">Low-confidence scan. Double-check every field before saving.</string>
+    <string name="refunds_confidence_medium">Some details were detected. Please verify them before saving.</string>
+    <string name="refunds_confidence_high">Details detected with good confidence. Please verify before saving.</string>
+
+    <!-- Receipt preview dialog -->
+    <string name="refunds_receipt_title">Receipt</string>
+    <string name="refunds_receipt_image">Receipt image</string>
+    <string name="refunds_receipt_preview_failed">Receipt preview could not be loaded. The file may have been removed.</string>
+    <string name="refunds_close">Close</string>
+
+    <!-- Receipt camera -->
+    <string name="refunds_receipt_camera">Receipt camera</string>
+    <string name="refunds_close_camera">Close camera</string>
+    <string name="refunds_captured_receipt_preview">Captured receipt preview</string>
+    <string name="refunds_capture_receipt">Capture receipt</string>
+    <string name="refunds_camera_permission_title">Camera permission is needed to photograph ride receipts.</string>
+    <string name="refunds_camera_permission_body">You can still choose an existing receipt image from your phone.</string>
+    <string name="refunds_allow_camera">Allow camera</string>
+    <string name="refunds_not_now">Not now</string>
+</resources>

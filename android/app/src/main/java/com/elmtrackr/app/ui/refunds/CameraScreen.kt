@@ -54,12 +54,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
@@ -170,7 +172,7 @@ fun CameraScreen(
         capturedThumbnail?.let { bitmap ->
             Image(
                 bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Captured receipt preview",
+                contentDescription = stringResource(R.string.refunds_captured_receipt_preview),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
@@ -191,7 +193,7 @@ fun CameraScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "Receipt camera",
+                stringResource(R.string.refunds_receipt_camera),
                 color = MaterialTheme.colorScheme.onPrimary,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
@@ -203,7 +205,7 @@ fun CameraScreen(
                 onClick = onClose,
                 modifier = Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.86f), RoundedCornerShape(50)),
             ) {
-                Icon(Icons.Filled.Close, contentDescription = "Close camera")
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.refunds_close_camera))
             }
         }
 
@@ -236,7 +238,7 @@ fun CameraScreen(
         ) {
             Icon(Icons.Filled.CameraAlt, contentDescription = null)
             Spacer(Modifier.size(8.dp))
-            Text("Capture receipt")
+            Text(stringResource(R.string.refunds_capture_receipt))
         }
     }
 }
@@ -259,23 +261,23 @@ private fun CameraPermissionGate(
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            "Camera permission is needed to photograph ride receipts.",
+            stringResource(R.string.refunds_camera_permission_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "You can still choose an existing receipt image from your phone.",
+            stringResource(R.string.refunds_camera_permission_body),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(22.dp))
         Button(onClick = onRequestPermission, modifier = Modifier.fillMaxWidth()) {
-            Text("Allow camera")
+            Text(stringResource(R.string.refunds_allow_camera))
         }
         OutlinedButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
-            Text("Not now")
+            Text(stringResource(R.string.refunds_not_now))
         }
     }
 }

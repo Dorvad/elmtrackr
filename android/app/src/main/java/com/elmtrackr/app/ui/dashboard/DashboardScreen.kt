@@ -47,7 +47,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import com.elmtrackr.app.MainActivity
+import com.elmtrackr.app.R
 import com.elmtrackr.app.notification.NotificationPermissionCoordinator
 import kotlinx.coroutines.launch
 import androidx.compose.material3.Button
@@ -260,11 +262,10 @@ private fun DashboardReady(
                 showNotificationRationale = false
                 pendingClockIn = false
             },
-            title = { Text("Stay on top of your shift") },
+            title = { Text(stringResource(R.string.dashboard_notif_rationale_title)) },
             text = {
                 Text(
-                    "ElmTrackr uses notifications to keep your active shift visible " +
-                        "and remind you before overtime.",
+                    stringResource(R.string.dashboard_notif_rationale_text),
                 )
             },
             confirmButton = {
@@ -277,7 +278,7 @@ private fun DashboardReady(
                             pendingClockIn = false
                         }
                     },
-                ) { Text("Continue") }
+                ) { Text(stringResource(R.string.dashboard_notif_rationale_continue)) }
             },
             dismissButton = {
                 TextButton(
@@ -286,7 +287,7 @@ private fun DashboardReady(
                         if (pendingClockIn) performClockIn()
                         pendingClockIn = false
                     },
-                ) { Text("Not now") }
+                ) { Text(stringResource(R.string.dashboard_notif_rationale_not_now)) }
             },
         )
     }
@@ -448,14 +449,16 @@ private fun DashboardHeader(
     displayName: String?,
 ) {
     val hour = Instant.now().atZone(ZoneId.systemDefault()).hour
-    val greetingBase = when (hour) {
-        in 0..11 -> "Good morning"
-        in 12..17 -> "Good afternoon"
-        else     -> "Good evening"
-    }
+    val greetingBase = stringResource(
+        when (hour) {
+            in 0..11 -> R.string.dashboard_greeting_morning
+            in 12..17 -> R.string.dashboard_greeting_afternoon
+            else     -> R.string.dashboard_greeting_evening
+        },
+    )
     val firstName = displayName?.trim()?.split(" ")?.firstOrNull()
     val greeting  = if (firstName != null)
-        "${greetingBase.uppercase()} · ${firstName.uppercase()}"
+        stringResource(R.string.dashboard_greeting_with_name, greetingBase.uppercase(), firstName.uppercase())
     else
         greetingBase.uppercase()
 
@@ -496,7 +499,7 @@ private fun DashboardHeader(
                     )
                 }
                 Text(
-                    text       = "elmtrackr",
+                    text       = stringResource(R.string.dashboard_wordmark),
                     style      = MaterialTheme.typography.headlineMedium,
                     color      = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
@@ -524,13 +527,16 @@ private fun RefundReminderBanner(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "$count travel refund${if (count == 1) "" else "s"} pending",
+                    stringResource(
+                        if (count == 1) R.string.dashboard_refund_pending_one else R.string.dashboard_refund_pending_other,
+                        count,
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = auroraWeekendInk(),
                 )
                 Text(
-                    "Month end is near — don't forget to file your transport claims.",
+                    stringResource(R.string.dashboard_refund_banner_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = auroraSecondaryText(),
                     modifier = Modifier.padding(top = 2.dp),
@@ -541,7 +547,7 @@ private fun RefundReminderBanner(
                     modifier = Modifier.padding(top = 4.dp),
                 ) {
                     Text(
-                        "Review refunds →",
+                        stringResource(R.string.dashboard_refund_banner_review),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = auroraWeekendInk(),
@@ -549,7 +555,7 @@ private fun RefundReminderBanner(
                 }
             }
             IconButton(onClick = onDismiss) {
-                Icon(Icons.Filled.Close, contentDescription = "Dismiss refund reminder", tint = AuroraPlum, modifier = Modifier.size(16.dp))
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.dashboard_refund_banner_dismiss), tint = AuroraPlum, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -562,17 +568,17 @@ private fun FirstRunWelcomeCard(onClockIn: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.primaryContainer,
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("You're ready", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.dashboard_welcome_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
-                "Clock in once. See hours, pay estimate, and overtime instantly.",
+                stringResource(R.string.dashboard_welcome_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             ElmGradientButton(
                 onClick = onClockIn,
-                accessibilityLabel = "Clock in. Start tracking your shift.",
+                accessibilityLabel = stringResource(R.string.dashboard_clock_in_accessibility),
             ) {
-                Text("Clock in now", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.dashboard_welcome_button), fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -666,6 +672,7 @@ private fun ClassicClockCard(
     val elapsedMinutes = elapsedSeconds / 60f
     val progress = if (dailyOtMinutes > 0) (elapsedMinutes / dailyOtMinutes).coerceIn(0f, 1f) else 0f
     val isOvertime = activeShift != null && elapsedMinutes > dailyOtMinutes
+    val clockOutContentDescription = stringResource(R.string.dashboard_clock_out_accessibility)
 
     val progressColor = if (isOvertime) AuroraPeach else AuroraIndigo
     val trackColor = MaterialTheme.colorScheme.outlineVariant
@@ -714,7 +721,7 @@ private fun ClassicClockCard(
                         )
                         if (isOvertime) {
                             Text(
-                                text  = "overtime",
+                                text  = stringResource(R.string.dashboard_overtime_label),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuroraPeach,
                             )
@@ -724,14 +731,14 @@ private fun ClassicClockCard(
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text  = "Since ${formatInstantTime(activeShift.startTime)}",
+                        text  = stringResource(R.string.dashboard_since_time, formatInstantTime(activeShift.startTime)),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     IconButton(onClick = onEditStartTime, modifier = Modifier.size(48.dp)) {
                         Icon(
                             imageVector     = Icons.Filled.Edit,
-                            contentDescription = "Edit start time",
+                            contentDescription = stringResource(R.string.dashboard_edit_start_time),
                             modifier        = Modifier.size(18.dp),
                             tint            = MaterialTheme.colorScheme.outline,
                         )
@@ -748,14 +755,14 @@ private fun ClassicClockCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .activeShiftPulse(true)
-                        .semantics { contentDescription = "Clock out. End your current shift." },
+                        .semantics { contentDescription = clockOutContentDescription },
                 ) {
-                    Text("Clock Out", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.dashboard_clock_out), fontWeight = FontWeight.Bold)
                 }
             } else {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text       = "Ready to clock in",
+                    text       = stringResource(R.string.dashboard_ready_to_clock_in),
                     style      = MaterialTheme.typography.titleMedium,
                     color      = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign  = TextAlign.Center,
@@ -763,9 +770,9 @@ private fun ClassicClockCard(
                 Spacer(Modifier.height(16.dp))
                 ElmGradientButton(
                     onClick = onClockIn,
-                    accessibilityLabel = "Clock in. Start tracking your shift.",
+                    accessibilityLabel = stringResource(R.string.dashboard_clock_in_accessibility),
                 ) {
-                    Text("Clock In", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.dashboard_clock_in), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -782,6 +789,8 @@ private fun MinimalClockCard(
     onClockOut: () -> Unit,
     onEditStartTime: () -> Unit,
 ) {
+    val clockInContentDescription = stringResource(R.string.dashboard_clock_in_accessibility)
+    val clockOutContentDescription = stringResource(R.string.dashboard_clock_out_accessibility)
     Column(
         modifier            = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -805,7 +814,7 @@ private fun MinimalClockCard(
                 IconButton(onClick = onEditStartTime, modifier = Modifier.size(48.dp)) {
                     Icon(
                         imageVector        = Icons.Filled.Edit,
-                        contentDescription = "Edit start time",
+                        contentDescription = stringResource(R.string.dashboard_edit_start_time),
                         modifier           = Modifier.size(18.dp),
                         tint               = MaterialTheme.colorScheme.outline,
                     )
@@ -826,14 +835,14 @@ private fun MinimalClockCard(
                 .activeShiftPulse(activeShift != null)
                 .semantics {
                     contentDescription = if (activeShift != null) {
-                        "Clock out. End your current shift."
+                        clockOutContentDescription
                     } else {
-                        "Clock in. Start tracking your shift."
+                        clockInContentDescription
                     }
                 },
         ) {
             Text(
-                text       = if (activeShift != null) "OUT" else "IN",
+                text       = stringResource(if (activeShift != null) R.string.dashboard_clock_out_short else R.string.dashboard_clock_in_short),
                 style      = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -851,6 +860,8 @@ private fun AuroraClockCard(
     onClockOut: () -> Unit,
     onEditStartTime: () -> Unit,
 ) {
+    val clockInContentDescription = stringResource(R.string.dashboard_clock_in_accessibility)
+    val clockOutContentDescription = stringResource(R.string.dashboard_clock_out_accessibility)
     val brush = Brush.linearGradient(
         colorStops = arrayOf(0f to AuroraIndigo, 0.42f to AuroraPlum, 1f to AuroraAqua),
     )
@@ -873,14 +884,14 @@ private fun AuroraClockCard(
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text  = "Since ${formatInstantTime(activeShift.startTime)}",
+                        text  = stringResource(R.string.dashboard_since_time, formatInstantTime(activeShift.startTime)),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.8f),
                     )
                     IconButton(onClick = onEditStartTime, modifier = Modifier.size(48.dp)) {
                         Icon(
                             imageVector        = Icons.Filled.Edit,
-                            contentDescription = "Edit start time",
+                            contentDescription = stringResource(R.string.dashboard_edit_start_time),
                             modifier           = Modifier.size(18.dp),
                             tint               = Color.White.copy(alpha = 0.7f),
                         )
@@ -897,13 +908,13 @@ private fun AuroraClockCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .activeShiftPulse(true)
-                        .semantics { contentDescription = "Clock out. End your current shift." },
+                        .semantics { contentDescription = clockOutContentDescription },
                 ) {
-                    Text("Clock Out", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.dashboard_clock_out), fontWeight = FontWeight.Bold)
                 }
             } else {
                 Text(
-                    text       = "Ready",
+                    text       = stringResource(R.string.dashboard_ready),
                     style      = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Light,
                     color      = Color.White,
@@ -918,9 +929,9 @@ private fun AuroraClockCard(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .semantics { contentDescription = "Clock in. Start tracking your shift." },
+                        .semantics { contentDescription = clockInContentDescription },
                 ) {
-                    Text("Clock In", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.dashboard_clock_in), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -940,6 +951,8 @@ private fun ExpressiveClockCard(
     onEditStartTime: () -> Unit,
 ) {
     val running = activeShift != null
+    val clockInContentDescription = stringResource(R.string.dashboard_clock_in_accessibility)
+    val clockOutContentDescription = stringResource(R.string.dashboard_clock_out_accessibility)
     val progress = if (running && dailyOtMinutes > 0) {
         (elapsedSeconds / (dailyOtMinutes * 60f)).coerceIn(0f, 1f)
     } else 0f
@@ -970,16 +983,16 @@ private fun ExpressiveClockCard(
         Column(Modifier.fillMaxWidth().padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 when (style) {
-                    SupportedClockStyle.FOCUS -> if (running) "FOCUS SESSION" else "READY TO FOCUS"
-                    SupportedClockStyle.BOLD -> if (running) "ON THE CLOCK" else "MAKE IT COUNT"
-                    SupportedClockStyle.NIGHT -> if (running) "NIGHT SHIFT" else "STANDBY"
-                    SupportedClockStyle.RETRO -> if (running) "SHIFT ACTIVE" else "SYSTEM READY"
-                    SupportedClockStyle.PULSE -> if (running) "SHIFT ACTIVE" else "READY"
-                    SupportedClockStyle.DIAL, SupportedClockStyle.PRISM -> if (running) "ELAPSED" else "READY"
-                    SupportedClockStyle.STRAND -> if (running) "WORKDAY" else "READY"
-                    SupportedClockStyle.SAND -> if (running) "TIME FLOWING" else "READY"
-                    SupportedClockStyle.BLOCKS -> if (running) "WORKDAY" else "READY"
-                    SupportedClockStyle.ORBIT -> if (running) "IN ORBIT" else "READY"
+                    SupportedClockStyle.FOCUS -> stringResource(if (running) R.string.dashboard_clock_focus_session else R.string.dashboard_clock_ready_to_focus)
+                    SupportedClockStyle.BOLD -> stringResource(if (running) R.string.dashboard_clock_on_the_clock else R.string.dashboard_clock_make_it_count)
+                    SupportedClockStyle.NIGHT -> stringResource(if (running) R.string.dashboard_clock_night_shift else R.string.dashboard_clock_standby)
+                    SupportedClockStyle.RETRO -> stringResource(if (running) R.string.dashboard_clock_shift_active else R.string.dashboard_clock_system_ready)
+                    SupportedClockStyle.PULSE -> stringResource(if (running) R.string.dashboard_clock_shift_active else R.string.dashboard_clock_ready_caps)
+                    SupportedClockStyle.DIAL, SupportedClockStyle.PRISM -> stringResource(if (running) R.string.dashboard_clock_elapsed else R.string.dashboard_clock_ready_caps)
+                    SupportedClockStyle.STRAND -> stringResource(if (running) R.string.dashboard_clock_workday else R.string.dashboard_clock_ready_caps)
+                    SupportedClockStyle.SAND -> stringResource(if (running) R.string.dashboard_clock_time_flowing else R.string.dashboard_clock_ready_caps)
+                    SupportedClockStyle.BLOCKS -> stringResource(if (running) R.string.dashboard_clock_workday else R.string.dashboard_clock_ready_caps)
+                    SupportedClockStyle.ORBIT -> stringResource(if (running) R.string.dashboard_clock_in_orbit else R.string.dashboard_clock_ready_caps)
                     else -> ""
                 },
                 style = MaterialTheme.typography.labelSmall,
@@ -1193,12 +1206,12 @@ private fun ExpressiveClockCard(
             }
             if (activeShift != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Since ${formatInstantTime(activeShift.startTime)}", style = MaterialTheme.typography.bodySmall, color = foreground.copy(alpha = .65f))
+                    Text(stringResource(R.string.dashboard_since_time, formatInstantTime(activeShift.startTime)), style = MaterialTheme.typography.bodySmall, color = foreground.copy(alpha = .65f))
                     IconButton(onClick = onEditStartTime, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.Filled.Edit, "Edit start time", tint = foreground.copy(alpha = .6f), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Filled.Edit, stringResource(R.string.dashboard_edit_start_time), tint = foreground.copy(alpha = .6f), modifier = Modifier.size(18.dp))
                     }
                 }
-            } else Text("Tap to start tracking your shift", style = MaterialTheme.typography.bodySmall, color = foreground.copy(alpha = .6f))
+            } else Text(stringResource(R.string.dashboard_tap_to_start), style = MaterialTheme.typography.bodySmall, color = foreground.copy(alpha = .6f))
             Spacer(Modifier.height(12.dp))
             Button(
                 onClick = if (running) onClockOut else onClockIn,
@@ -1207,9 +1220,9 @@ private fun ExpressiveClockCard(
                     .activeShiftPulse(running)
                     .semantics {
                         contentDescription = if (running) {
-                            "Clock out. End your current shift."
+                            clockOutContentDescription
                         } else {
-                            "Clock in. Start tracking your shift."
+                            clockInContentDescription
                         }
                     },
                 shape = RoundedCornerShape(CornerRadius.Medium),
@@ -1217,7 +1230,7 @@ private fun ExpressiveClockCard(
                     containerColor = if (running) accent.copy(alpha = if (dark) .25f else .12f) else accent,
                     contentColor = if (running) accent else Color.White,
                 ),
-            ) { Text(if (running) "Clock Out" else "Clock In", fontWeight = FontWeight.Bold) }
+            ) { Text(stringResource(if (running) R.string.dashboard_clock_out else R.string.dashboard_clock_in), fontWeight = FontWeight.Bold) }
         }
     }
     }
@@ -1268,9 +1281,12 @@ private fun MonthSummaryHeader(report: MonthlyReport?) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ElmSectionHeader(title = "$monthName Summary", modifier = Modifier.weight(1f))
+        ElmSectionHeader(title = stringResource(R.string.dashboard_month_summary_title, monthName), modifier = Modifier.weight(1f))
         Text(
-            text = "${report?.shiftCount ?: 0} shift${if (report?.shiftCount == 1) "" else "s"}",
+            text = stringResource(
+                if (report?.shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other,
+                report?.shiftCount ?: 0,
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Medium,
@@ -1301,7 +1317,7 @@ private fun MonthSummaryDistributionCard(report: MonthlyReport?) {
 
     ElmCardPadded(modifier = Modifier.auroraEnter(index = 1)) {
             Text(
-                text = "HOURS DISTRIBUTION",
+                text = stringResource(R.string.dashboard_hours_distribution),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Bold,
@@ -1314,7 +1330,7 @@ private fun MonthSummaryDistributionCard(report: MonthlyReport?) {
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
-                    text = " h total",
+                    text = stringResource(R.string.dashboard_hours_total_suffix),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.SemiBold,
@@ -1349,25 +1365,25 @@ private fun MonthSummaryStatsGrid(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 ElmStatCard(
-                    label = "Total",
-                    value = "${formatHoursDecimal(totalMinutes)}h",
+                    label = stringResource(R.string.dashboard_stat_total),
+                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(totalMinutes)),
                     variant = ElmStatVariant.PRIMARY,
                     modifier = Modifier.weight(1f).auroraEnter(index = 1),
                 )
                 ElmStatCard(
-                    label = "Regular",
-                    value = "${formatHoursDecimal(regularMinutes)}h",
+                    label = stringResource(R.string.dashboard_stat_regular),
+                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(regularMinutes)),
                     modifier = Modifier.weight(1f).auroraEnter(index = 2),
                 )
                 ElmStatCard(
-                    label = "Overtime",
-                    value = "${formatHoursDecimal(overtimeMinutes)}h",
+                    label = stringResource(R.string.dashboard_stat_overtime),
+                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(overtimeMinutes)),
                     variant = ElmStatVariant.OVERTIME,
                     modifier = Modifier.weight(1f).auroraEnter(index = 3),
                 )
                 ElmStatCard(
-                    label = "Weekend",
-                    value = "${formatHoursDecimal(weekendMinutes)}h",
+                    label = stringResource(R.string.dashboard_stat_weekend),
+                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(weekendMinutes)),
                     variant = ElmStatVariant.WEEKEND,
                     modifier = Modifier.weight(1f).auroraEnter(index = 4),
                 )
@@ -1378,14 +1394,14 @@ private fun MonthSummaryStatsGrid(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 ElmStatCard(
-                    label = "Total",
-                    value = "${formatHoursDecimal(totalMinutes)}h",
+                    label = stringResource(R.string.dashboard_stat_total),
+                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(totalMinutes)),
                     variant = ElmStatVariant.PRIMARY,
                     modifier = Modifier.weight(1f).auroraEnter(index = 1),
                 )
                 ElmStatCard(
-                    label = "Regular",
-                    value = "${formatHoursDecimal(regularMinutes)}h",
+                    label = stringResource(R.string.dashboard_stat_regular),
+                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(regularMinutes)),
                     modifier = Modifier.weight(1f).auroraEnter(index = 2),
                 )
             }
@@ -1394,14 +1410,14 @@ private fun MonthSummaryStatsGrid(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 ElmStatCard(
-                    label = "Overtime",
-                    value = "${formatHoursDecimal(overtimeMinutes)}h",
+                    label = stringResource(R.string.dashboard_stat_overtime),
+                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(overtimeMinutes)),
                     variant = ElmStatVariant.OVERTIME,
                     modifier = Modifier.weight(1f).auroraEnter(index = 3),
                 )
                 ElmStatCard(
-                    label = "Weekend",
-                    value = "${formatHoursDecimal(weekendMinutes)}h",
+                    label = stringResource(R.string.dashboard_stat_weekend),
+                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(weekendMinutes)),
                     variant = ElmStatVariant.WEEKEND,
                     modifier = Modifier.weight(1f).auroraEnter(index = 4),
                 )
@@ -1427,7 +1443,7 @@ private fun MonthSummaryGrossPay(
         ) {
             Column {
                 Text(
-                    text = "THIS MONTH - GROSS PAY",
+                    text = stringResource(R.string.dashboard_gross_pay_title),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuroraWhite.copy(alpha = 0.65f),
                     fontWeight = FontWeight.Bold,
@@ -1441,7 +1457,7 @@ private fun MonthSummaryGrossPay(
                         fontWeight = FontWeight.ExtraBold,
                     )
                     Text(
-                        text = " before tax",
+                        text = stringResource(R.string.dashboard_before_tax_suffix),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuroraWhite.copy(alpha = 0.6f),
                         modifier = Modifier.padding(bottom = 4.dp),
@@ -1454,13 +1470,13 @@ private fun MonthSummaryGrossPay(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         if (pay.regularGross > 0.0) {
-                            PaySummaryCell("Regular", pay.regularGross, currencyCode, Modifier.weight(1f))
+                            PaySummaryCell(stringResource(R.string.dashboard_stat_regular), pay.regularGross, currencyCode, Modifier.weight(1f))
                         }
                         if (pay.overtimeGross > 0.0) {
-                            PaySummaryCell("Overtime", pay.overtimeGross, currencyCode, Modifier.weight(1f))
+                            PaySummaryCell(stringResource(R.string.dashboard_stat_overtime), pay.overtimeGross, currencyCode, Modifier.weight(1f))
                         }
                         if (pay.specialGross > 0.0) {
-                            PaySummaryCell("Holiday", pay.specialGross, currencyCode, Modifier.weight(1f))
+                            PaySummaryCell(stringResource(R.string.dashboard_pay_holiday), pay.specialGross, currencyCode, Modifier.weight(1f))
                         }
                     }
                 }
@@ -1524,9 +1540,9 @@ private fun DistributionBar(regularMinutes: Int, overtimeMinutes: Int, weekendMi
 @Composable
 private fun DistributionLegend(regularMinutes: Int, overtimeMinutes: Int, weekendMinutes: Int) {
     val items = listOf(
-        Triple("Regular", regularMinutes, AuroraIndigo),
-        Triple("Overtime", overtimeMinutes, AuroraPeach),
-        Triple("Weekend", weekendMinutes, AuroraPlum),
+        Triple(stringResource(R.string.dashboard_stat_regular), regularMinutes, AuroraIndigo),
+        Triple(stringResource(R.string.dashboard_stat_overtime), overtimeMinutes, AuroraPeach),
+        Triple(stringResource(R.string.dashboard_stat_weekend), weekendMinutes, AuroraPlum),
     )
     Row(modifier = Modifier.fillMaxWidth()) {
         items.forEach { (label, minutes, color) ->
@@ -1539,7 +1555,7 @@ private fun DistributionLegend(regularMinutes: Int, overtimeMinutes: Int, weeken
                 Column {
                     Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        "${formatHoursDecimal(minutes)}h",
+                        stringResource(R.string.dashboard_hours_value, formatHoursDecimal(minutes)),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
@@ -1560,11 +1576,11 @@ private fun RecentShiftsSection(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        ElmSectionHeader(title = "Recent Shifts")
+        ElmSectionHeader(title = stringResource(R.string.dashboard_recent_shifts))
         Spacer(Modifier.height(10.dp))
         if (recentShifts.isEmpty()) {
             Text(
-                text  = "No completed shifts yet",
+                text  = stringResource(R.string.dashboard_no_completed_shifts),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1618,14 +1634,14 @@ private fun RecentShiftRow(
                     )
                     if (shift.isSpecialDay) {
                         Text(
-                            text  = " Special",
+                            text  = stringResource(R.string.dashboard_special_day_suffix),
                             style = MaterialTheme.typography.labelSmall,
                             color = auroraWeekendInk(),
                         )
                     }
                 }
                 Text(
-                    text  = "$startText - $endText",
+                    text  = stringResource(R.string.dashboard_shift_time_range, startText, endText),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1663,7 +1679,7 @@ private fun EditStartTimeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit start time") },
+        title = { Text(stringResource(R.string.dashboard_edit_start_time)) },
         text  = { TimePicker(state = timePickerState) },
         confirmButton = {
             TextButton(onClick = {
@@ -1672,10 +1688,10 @@ private fun EditStartTimeDialog(
                     LocalTime.of(timePickerState.hour, timePickerState.minute),
                 ).atZone(zone).toInstant()
                 onConfirm(newInstant)
-            }) { Text("Save") }
+            }) { Text(stringResource(R.string.dashboard_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dashboard_cancel)) }
         },
     )
 }

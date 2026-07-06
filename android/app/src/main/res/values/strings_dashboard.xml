@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notification permission rationale dialog -->
+    <string name="dashboard_notif_rationale_title">Stay on top of your shift</string>
+    <string name="dashboard_notif_rationale_text">ElmTrackr uses notifications to keep your active shift visible and remind you before overtime.</string>
+    <string name="dashboard_notif_rationale_continue">Continue</string>
+    <string name="dashboard_notif_rationale_not_now">Not now</string>
+
+    <!-- Header -->
+    <string name="dashboard_greeting_morning">Good morning</string>
+    <string name="dashboard_greeting_afternoon">Good afternoon</string>
+    <string name="dashboard_greeting_evening">Good evening</string>
+    <string name="dashboard_greeting_with_name">%1$s · %2$s</string>
+    <string name="dashboard_wordmark">elmtrackr</string>
+
+    <!-- Refund reminder banner -->
+    <string name="dashboard_refund_pending_one">%1$d travel refund pending</string>
+    <string name="dashboard_refund_pending_other">%1$d travel refunds pending</string>
+    <string name="dashboard_refund_banner_body">Month end is near — don\'t forget to file your transport claims.</string>
+    <string name="dashboard_refund_banner_review">Review refunds →</string>
+    <string name="dashboard_refund_banner_dismiss">Dismiss refund reminder</string>
+
+    <!-- First-run welcome card -->
+    <string name="dashboard_welcome_title">You\'re ready</string>
+    <string name="dashboard_welcome_body">Clock in once. See hours, pay estimate, and overtime instantly.</string>
+    <string name="dashboard_welcome_button">Clock in now</string>
+
+    <!-- Clock cards -->
+    <string name="dashboard_clock_in">Clock In</string>
+    <string name="dashboard_clock_out">Clock Out</string>
+    <string name="dashboard_clock_in_accessibility">Clock in. Start tracking your shift.</string>
+    <string name="dashboard_clock_out_accessibility">Clock out. End your current shift.</string>
+    <string name="dashboard_overtime_label">overtime</string>
+    <string name="dashboard_since_time">Since %1$s</string>
+    <string name="dashboard_edit_start_time">Edit start time</string>
+    <string name="dashboard_ready_to_clock_in">Ready to clock in</string>
+    <string name="dashboard_clock_in_short">IN</string>
+    <string name="dashboard_clock_out_short">OUT</string>
+    <string name="dashboard_ready">Ready</string>
+    <string name="dashboard_tap_to_start">Tap to start tracking your shift</string>
+
+    <!-- Expressive clock card status labels -->
+    <string name="dashboard_clock_focus_session">FOCUS SESSION</string>
+    <string name="dashboard_clock_ready_to_focus">READY TO FOCUS</string>
+    <string name="dashboard_clock_on_the_clock">ON THE CLOCK</string>
+    <string name="dashboard_clock_make_it_count">MAKE IT COUNT</string>
+    <string name="dashboard_clock_night_shift">NIGHT SHIFT</string>
+    <string name="dashboard_clock_standby">STANDBY</string>
+    <string name="dashboard_clock_shift_active">SHIFT ACTIVE</string>
+    <string name="dashboard_clock_system_ready">SYSTEM READY</string>
+    <string name="dashboard_clock_ready_caps">READY</string>
+    <string name="dashboard_clock_elapsed">ELAPSED</string>
+    <string name="dashboard_clock_workday">WORKDAY</string>
+    <string name="dashboard_clock_time_flowing">TIME FLOWING</string>
+    <string name="dashboard_clock_in_orbit">IN ORBIT</string>
+
+    <!-- Month summary -->
+    <string name="dashboard_month_summary_title">%1$s Summary</string>
+    <string name="dashboard_shift_count_one">%1$d shift</string>
+    <string name="dashboard_shift_count_other">%1$d shifts</string>
+    <string name="dashboard_hours_distribution">HOURS DISTRIBUTION</string>
+    <string name="dashboard_hours_total_suffix">" h total"</string>
+    <string name="dashboard_hours_value">%1$sh</string>
+    <string name="dashboard_stat_total">Total</string>
+    <string name="dashboard_stat_regular">Regular</string>
+    <string name="dashboard_stat_overtime">Overtime</string>
+    <string name="dashboard_stat_weekend">Weekend</string>
+    <string name="dashboard_gross_pay_title">THIS MONTH - GROSS PAY</string>
+    <string name="dashboard_before_tax_suffix">" before tax"</string>
+    <string name="dashboard_pay_holiday">Holiday</string>
+
+    <!-- Recent shifts -->
+    <string name="dashboard_recent_shifts">Recent Shifts</string>
+    <string name="dashboard_no_completed_shifts">No completed shifts yet</string>
+    <string name="dashboard_special_day_suffix">" Special"</string>
+    <string name="dashboard_shift_time_range">%1$s - %2$s</string>
+
+    <!-- Edit start time dialog -->
+    <string name="dashboard_save">Save</string>
+    <string name="dashboard_cancel">Cancel</string>
+</resources>
