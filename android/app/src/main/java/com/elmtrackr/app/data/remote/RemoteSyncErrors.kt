@@ -13,6 +13,24 @@ object RemoteSyncErrors {
             message.contains(".$table", ignoreCase = true)
     }
 
+    /**
+     * True when the request was rejected because the Supabase session is no
+     * longer valid (expired/invalid JWT, dead refresh token). Matching is
+     * message/class-name based so it stays independent of supabase-kt's
+     * exception hierarchy.
+     */
+    fun isAuthExpired(error: Throwable): Boolean =
+        generateSequence(error) { it.cause }.take(4).any { e ->
+            val className = e::class.simpleName.orEmpty()
+            val message = e.message.orEmpty()
+            className.contains("Unauthorized", ignoreCase = true) ||
+                message.contains("JWT expired", ignoreCase = true) ||
+                message.contains("invalid JWT", ignoreCase = true) ||
+                message.contains("PGRST301", ignoreCase = true) ||
+                message.contains("refresh_token_not_found", ignoreCase = true) ||
+                message.contains("Invalid Refresh Token", ignoreCase = true)
+        }
+
     fun isUniqueViolation(error: Throwable): Boolean {
         val message = buildString {
             append(error.message.orEmpty())

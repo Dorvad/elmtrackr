@@ -97,7 +97,7 @@ class LocalCompensationProfilesRepository @Inject constructor(
                 settingsRepository.saveSettings(updated)
                 saved
             } catch (e: Exception) {
-                Log.w(TAG, "Compensation profile migration failed for user $userId", e)
+                Log.w(TAG, "Compensation profile migration failed", e)
                 null
             }
         }

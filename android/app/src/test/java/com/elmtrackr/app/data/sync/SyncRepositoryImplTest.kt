@@ -436,6 +436,34 @@ class SyncRepositoryImplTest {
         assertEquals("Alex Remote", profile!!.fullName)
     }
 
+    @Test
+    fun `sync reports auth expired when the remote rejects the session`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = object : RemoteShiftDataSource by FakeRemoteShiftDataSource() {
+            override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteShiftRow> =
+                throw RuntimeException("JWT expired")
+        }
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.AuthExpired)
+    }
+
+    @Test
+    fun `sync reports plain error for non-auth failures`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = object : RemoteShiftDataSource by FakeRemoteShiftDataSource() {
+            override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteShiftRow> =
+                throw RuntimeException("connection reset")
+        }
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Error)
+    }
+
     private fun createRepository(
         shiftDao: ShiftDao = InMemoryShiftDao(),
         remoteShifts: RemoteShiftDataSource = FakeRemoteShiftDataSource(),

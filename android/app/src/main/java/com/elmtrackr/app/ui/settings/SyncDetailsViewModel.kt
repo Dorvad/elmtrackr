@@ -77,11 +77,15 @@ class SyncDetailsViewModel @Inject constructor(
                 _isSyncing.value = false
                 return@launch
             }
-            if (result is com.elmtrackr.app.data.sync.SyncResult.Error) {
-                _message.value = result.message
-            } else {
-                syncTrigger.schedule()
-                _message.value = "Sync finished"
+            when (result) {
+                is com.elmtrackr.app.data.sync.SyncResult.Error ->
+                    _message.value = result.message
+                com.elmtrackr.app.data.sync.SyncResult.AuthExpired ->
+                    _message.value = "Your session has expired. Sign in again to resume syncing."
+                else -> {
+                    syncTrigger.schedule()
+                    _message.value = "Sync finished"
+                }
             }
             _isSyncing.value = false
         }

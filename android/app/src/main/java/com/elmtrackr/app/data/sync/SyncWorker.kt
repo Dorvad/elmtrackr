@@ -29,6 +29,9 @@ class SyncWorker @AssistedInject constructor(
             // Without a remote backend there is nothing a follow-up run could do;
             // rescheduling here would spin sync workers forever.
             SyncResult.NotConfigured -> Result.success()
+            // Retrying cannot help until the user signs in again; periodic sync
+            // picks the queue back up once a fresh session exists.
+            SyncResult.AuthExpired -> Result.failure()
             // Backoff retries are capped; periodic sync keeps retrying after that
             // without hammering the backend from an ever-growing retry chain.
             is SyncResult.Error ->

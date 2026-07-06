@@ -63,6 +63,18 @@ class SyncRepositoryImpl @Inject constructor(
     private val remoteProfiles: RemoteProfileDataSource?,
 ) : SyncRepository {
 
+    // The push/pull methods below are only reachable through syncAll(), which
+    // returns NotConfigured before the pipeline runs unless every remote data
+    // source exists. These accessors encode that invariant once instead of
+    // scattering raw !! assertions through the pipeline.
+    private val tasksRemote get() = checkNotNull(remoteTasks) { REMOTES_NOT_CONFIGURED }
+    private val shiftsRemote get() = checkNotNull(remoteShifts) { REMOTES_NOT_CONFIGURED }
+    private val claimsRemote get() = checkNotNull(remoteRefundClaims) { REMOTES_NOT_CONFIGURED }
+    private val settingsRemote get() = checkNotNull(remoteSettings) { REMOTES_NOT_CONFIGURED }
+    private val compensationRemote get() = checkNotNull(remoteCompensationProfiles) { REMOTES_NOT_CONFIGURED }
+    private val premiumRemote get() = checkNotNull(remotePremiumProfiles) { REMOTES_NOT_CONFIGURED }
+    private val profilesRemote get() = checkNotNull(remoteProfiles) { REMOTES_NOT_CONFIGURED }
+
     private val idMapper = SyncIdMapper(shiftDao, compensationProfileDao, premiumProfileDao, taskDao)
     private val lastSyncStatus = MutableStateFlow<String?>(null)
     // syncAll can be invoked concurrently (WorkManager, auth bootstrap, manual retry);
@@ -206,31 +218,47 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
+    private class PipelineIssues {
+        val errors = mutableListOf<String>()
+        val warnings = mutableListOf<String>()
+        var authExpired = false
+            private set
+
+        fun recordFailure(label: String, error: Throwable) {
+            errors += "$label: ${error.message ?: "unknown error"}"
+            if (RemoteSyncErrors.isAuthExpired(error)) authExpired = true
+        }
+    }
+
     private suspend fun runSyncPipeline(userId: String): SyncResult {
         return runCatching {
-            val errors = mutableListOf<String>()
-            val warnings = mutableListOf<String>()
+            val issues = PipelineIssues()
+            val warnings = issues.warnings
 
-            runSyncStep("reconcile", errors) { reconcileNeverSynced(userId) }
-            runSyncStep("push tasks", errors) { pushTasks(userId, warnings) }
-            runSyncStep("push compensation profiles", errors) { pushCompensationProfiles(userId) }
-            runSyncStep("push premium profiles", errors) { pushPremiumProfiles(userId) }
-            runSyncStep("push shifts", errors) { pushShifts(userId) }
-            runSyncStep("push refund claims", errors) { pushRefundClaims(userId) }
-            runSyncStep("push user settings", errors) { pushUserSettings(userId) }
-            runSyncStep("push profiles", errors) { pushProfiles(userId) }
-            runSyncStep("pull profiles", errors) { pullProfiles(userId) }
-            runSyncStep("pull compensation profiles", errors) { pullCompensationProfiles(userId) }
-            runSyncStep("pull premium profiles", errors) { pullPremiumProfiles(userId) }
-            runSyncStep("pull user settings", errors) { pullUserSettings(userId) }
-            runSyncStep("pull shifts", errors) { pullShifts(userId) }
-            runSyncStep("pull refund claims", errors) { pullRefundClaims(userId) }
-            runSyncStep("pull tasks", errors) { pullTasks(userId, warnings) }
+            runSyncStep("reconcile", issues) { reconcileNeverSynced(userId) }
+            runSyncStep("push tasks", issues) { pushTasks(userId, warnings) }
+            runSyncStep("push compensation profiles", issues) { pushCompensationProfiles(userId) }
+            runSyncStep("push premium profiles", issues) { pushPremiumProfiles(userId) }
+            runSyncStep("push shifts", issues) { pushShifts(userId) }
+            runSyncStep("push refund claims", issues) { pushRefundClaims(userId) }
+            runSyncStep("push user settings", issues) { pushUserSettings(userId) }
+            runSyncStep("push profiles", issues) { pushProfiles(userId) }
+            runSyncStep("pull profiles", issues) { pullProfiles(userId) }
+            runSyncStep("pull compensation profiles", issues) { pullCompensationProfiles(userId) }
+            runSyncStep("pull premium profiles", issues) { pullPremiumProfiles(userId) }
+            runSyncStep("pull user settings", issues) { pullUserSettings(userId) }
+            runSyncStep("pull shifts", issues) { pullShifts(userId) }
+            runSyncStep("pull refund claims", issues) { pullRefundClaims(userId) }
+            runSyncStep("pull tasks", issues) { pullTasks(userId, warnings) }
 
             when {
-                errors.isNotEmpty() -> {
-                    lastSyncStatus.value = "Failed: ${errors.joinToString("; ")}"
-                    SyncResult.Error(errors.joinToString("; "))
+                issues.authExpired -> {
+                    lastSyncStatus.value = AUTH_EXPIRED_STATUS
+                    SyncResult.AuthExpired
+                }
+                issues.errors.isNotEmpty() -> {
+                    lastSyncStatus.value = "Failed: ${issues.errors.joinToString("; ")}"
+                    SyncResult.Error(issues.errors.joinToString("; "))
                 }
                 warnings.isNotEmpty() -> {
                     lastSyncStatus.value = "Synced with warnings: ${warnings.joinToString("; ")}"
@@ -242,18 +270,23 @@ class SyncRepositoryImpl @Inject constructor(
                 }
             }
         }.getOrElse { error ->
-            lastSyncStatus.value = "Failed: ${error.message ?: "unknown error"}"
-            SyncResult.Error(error.message ?: "Sync failed")
+            if (RemoteSyncErrors.isAuthExpired(error)) {
+                lastSyncStatus.value = AUTH_EXPIRED_STATUS
+                SyncResult.AuthExpired
+            } else {
+                lastSyncStatus.value = "Failed: ${error.message ?: "unknown error"}"
+                SyncResult.Error(error.message ?: "Sync failed")
+            }
         }
     }
 
     private suspend fun runSyncStep(
         label: String,
-        errors: MutableList<String>,
+        issues: PipelineIssues,
         block: suspend () -> Unit,
     ) {
         runCatching { block() }.onFailure { error ->
-            errors += "$label: ${error.message ?: "unknown error"}"
+            issues.recordFailure(label, error)
         }
     }
 
@@ -379,18 +412,18 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pushTaskCreate(task: TaskEntity, syncedAt: Long) {
-        val remote = remoteTasks!!.insert(task.toRemoteInsert())
+        val remote = tasksRemote.insert(task.toRemoteInsert())
         taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
     }
 
     private suspend fun pushTaskUpdate(task: TaskEntity, syncedAt: Long) {
         val remoteId = task.remoteId ?: error("Missing remoteId for task ${task.localId}")
-        remoteTasks!!.update(remoteId, task.toRemoteUpdate())
+        tasksRemote.update(remoteId, task.toRemoteUpdate())
         taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
     private suspend fun pushTaskDelete(task: TaskEntity, syncedAt: Long) {
-        task.remoteId?.let { remoteTasks!!.delete(it) }
+        task.remoteId?.let { tasksRemote.delete(it) }
         taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, task.remoteId, syncedAt, null)
     }
 
@@ -406,7 +439,7 @@ class SyncRepositoryImpl @Inject constructor(
             val outcome = pullIncremental(
                 userId = userId,
                 entity = ENTITY_TASKS,
-                fetchPage = { since -> remoteTasks!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+                fetchPage = { since -> tasksRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
                 updatedAtIso = { it.updatedAt },
                 remoteIdOf = { it.id },
             ) { remote ->
@@ -458,14 +491,14 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushShiftCreate(shift: ShiftEntity, syncedAt: Long) {
         val startTimeIso = epochToIso(shift.startTime)
-        val existingRemote = remoteShifts!!.findByUserAndStartTime(shift.userId, startTimeIso)
+        val existingRemote = shiftsRemote.findByUserAndStartTime(shift.userId, startTimeIso)
         if (existingRemote != null) {
             shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, existingRemote.id, syncedAt, null)
             return
         }
 
         runCatching {
-            val remote = remoteShifts!!.insert(
+            val remote = shiftsRemote.insert(
                 shift.toRemoteInsert(
                     compensationProfileRemoteId = idMapper.profileLocalToRemote(shift.compensationProfileId),
                     premiumProfileRemoteId = idMapper.premiumProfileLocalToRemote(shift.premiumProfileId),
@@ -475,7 +508,7 @@ class SyncRepositoryImpl @Inject constructor(
             shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
         }.onFailure { error ->
             if (RemoteSyncErrors.isUniqueViolation(error)) {
-                val linked = remoteShifts!!.findByUserAndStartTime(shift.userId, startTimeIso)
+                val linked = shiftsRemote.findByUserAndStartTime(shift.userId, startTimeIso)
                     ?: throw error
                 shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, linked.id, syncedAt, null)
             } else {
@@ -486,7 +519,7 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushShiftUpdate(shift: ShiftEntity, syncedAt: Long) {
         val remoteId = shift.remoteId ?: error("Missing remoteId for shift ${shift.localId}")
-        remoteShifts!!.update(
+        shiftsRemote.update(
             remoteId,
             shift.toRemoteUpdate(
                 compensationProfileRemoteId = idMapper.profileLocalToRemote(shift.compensationProfileId),
@@ -498,7 +531,7 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pushShiftDelete(shift: ShiftEntity, syncedAt: Long) {
-        shift.remoteId?.let { remoteShifts!!.delete(it) }
+        shift.remoteId?.let { shiftsRemote.delete(it) }
         shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, shift.remoteId, syncedAt, null)
     }
 
@@ -514,7 +547,7 @@ class SyncRepositoryImpl @Inject constructor(
         val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_SHIFTS,
-            fetchPage = { since -> remoteShifts!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            fetchPage = { since -> shiftsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
         ) { remote ->
@@ -620,18 +653,18 @@ class SyncRepositoryImpl @Inject constructor(
         shiftRemoteId: String,
         syncedAt: Long,
     ) {
-        val remote = remoteRefundClaims!!.insert(claim.toRemoteInsert(shiftRemoteId))
+        val remote = claimsRemote.insert(claim.toRemoteInsert(shiftRemoteId))
         refundClaimDao.updateSyncState(claim.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
     }
 
     private suspend fun pushRefundClaimUpdate(claim: RefundClaimEntity, syncedAt: Long) {
         val remoteId = claim.remoteId ?: error("Missing remoteId for claim ${claim.localId}")
-        remoteRefundClaims!!.update(remoteId, claim.toRemoteUpdate())
+        claimsRemote.update(remoteId, claim.toRemoteUpdate())
         refundClaimDao.updateSyncState(claim.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
     private suspend fun pushRefundClaimDelete(claim: RefundClaimEntity, syncedAt: Long) {
-        claim.remoteId?.let { remoteRefundClaims!!.delete(it) }
+        claim.remoteId?.let { claimsRemote.delete(it) }
         refundClaimDao.updateSyncState(claim.localId, SyncStatus.SYNCED, claim.remoteId, syncedAt, null)
     }
 
@@ -645,7 +678,7 @@ class SyncRepositoryImpl @Inject constructor(
         val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_REFUND_CLAIMS,
-            fetchPage = { since -> remoteRefundClaims!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            fetchPage = { since -> claimsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
         ) { remote ->
@@ -695,18 +728,18 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pushCompensationProfileCreate(profile: CompensationProfileEntity, syncedAt: Long) {
-        val remote = remoteCompensationProfiles!!.insert(profile.toRemoteInsert())
+        val remote = compensationRemote.insert(profile.toRemoteInsert())
         compensationProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
     }
 
     private suspend fun pushCompensationProfileUpdate(profile: CompensationProfileEntity, syncedAt: Long) {
         val remoteId = profile.remoteId ?: error("Missing remoteId for profile ${profile.localId}")
-        remoteCompensationProfiles!!.update(remoteId, profile.toRemoteUpdate())
+        compensationRemote.update(remoteId, profile.toRemoteUpdate())
         compensationProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
     private suspend fun pushCompensationProfileDelete(profile: CompensationProfileEntity, syncedAt: Long) {
-        profile.remoteId?.let { remoteCompensationProfiles!!.delete(it) }
+        profile.remoteId?.let { compensationRemote.delete(it) }
         compensationProfileDao.updateSyncState(
             profile.localId, SyncStatus.SYNCED, profile.remoteId, syncedAt, null,
         )
@@ -722,7 +755,7 @@ class SyncRepositoryImpl @Inject constructor(
         val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_COMPENSATION_PROFILES,
-            fetchPage = { since -> remoteCompensationProfiles!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            fetchPage = { since -> compensationRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
         ) { remote ->
@@ -768,18 +801,18 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pushPremiumProfileCreate(profile: PremiumProfileEntity, syncedAt: Long) {
-        val remote = remotePremiumProfiles!!.insert(profile.toRemoteInsert())
+        val remote = premiumRemote.insert(profile.toRemoteInsert())
         premiumProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
     }
 
     private suspend fun pushPremiumProfileUpdate(profile: PremiumProfileEntity, syncedAt: Long) {
         val remoteId = profile.remoteId ?: error("Missing remoteId for premium profile ${profile.localId}")
-        remotePremiumProfiles!!.update(remoteId, profile.toRemoteUpdate())
+        premiumRemote.update(remoteId, profile.toRemoteUpdate())
         premiumProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
     private suspend fun pushPremiumProfileDelete(profile: PremiumProfileEntity, syncedAt: Long) {
-        profile.remoteId?.let { remotePremiumProfiles!!.delete(it) }
+        profile.remoteId?.let { premiumRemote.delete(it) }
         premiumProfileDao.updateSyncState(
             profile.localId, SyncStatus.SYNCED, profile.remoteId, syncedAt, null,
         )
@@ -795,7 +828,7 @@ class SyncRepositoryImpl @Inject constructor(
         val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_PREMIUM_PROFILES,
-            fetchPage = { since -> remotePremiumProfiles!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            fetchPage = { since -> premiumRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
         ) { remote ->
@@ -835,7 +868,7 @@ class SyncRepositoryImpl @Inject constructor(
                     settings.syncStatus == SyncStatus.SYNCED -> Unit
                     settings.deletedAt != null -> pushUserSettingsDelete(settings, now)
                     settings.remoteId == null -> {
-                        val remote = remoteSettings!!.upsert(settings.toRemoteUpsert(profileRemoteId))
+                        val remote = settingsRemote.upsert(settings.toRemoteUpsert(profileRemoteId))
                         settingsDao.updateSyncState(settings.localId, SyncStatus.SYNCED, remote.id, now, null)
                     }
                     else -> pushUserSettingsUpdate(settings, profileRemoteId, now)
@@ -850,7 +883,7 @@ class SyncRepositoryImpl @Inject constructor(
         syncedAt: Long,
     ) {
         val remoteId = settings.remoteId ?: error("Missing remoteId for settings ${settings.localId}")
-        remoteSettings!!.update(remoteId, settings.toRemoteUpdate(profileRemoteId))
+        settingsRemote.update(remoteId, settings.toRemoteUpdate(profileRemoteId))
         settingsDao.updateSyncState(settings.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
@@ -868,7 +901,7 @@ class SyncRepositoryImpl @Inject constructor(
         pullIncremental(
             userId = userId,
             entity = ENTITY_USER_SETTINGS,
-            fetchPage = { since -> remoteSettings!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            fetchPage = { since -> settingsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
         ) { remote ->
@@ -910,7 +943,7 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushProfileUpdate(profile: ProfileEntity, syncedAt: Long) {
         val remoteId = profile.remoteId ?: profile.userId
-        val remote = remoteProfiles!!.update(remoteId, profile.toRemoteUpdate())
+        val remote = profilesRemote.update(remoteId, profile.toRemoteUpdate())
         profileDao.upsertProfile(
             remote.toLocalEntity(
                 existingLocalId = profile.localId,
@@ -933,7 +966,7 @@ class SyncRepositoryImpl @Inject constructor(
         pullIncremental(
             userId = userId,
             entity = ENTITY_PROFILES,
-            fetchPage = { since -> remoteProfiles!!.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            fetchPage = { since -> profilesRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
         ) { remote ->
@@ -963,5 +996,9 @@ class SyncRepositoryImpl @Inject constructor(
         const val TASKS_TABLE_MISSING_WARNING =
             "Tasks sync paused because the Supabase tasks table is missing. " +
                 "Apply supabase/migrations/20250628000000_tasks.sql, then sync again."
+        const val AUTH_EXPIRED_STATUS =
+            "Session expired — sign in again to resume syncing. Your data is safe on this device."
+        const val REMOTES_NOT_CONFIGURED =
+            "Sync pipeline invoked without configured remote data sources; syncAll must gate on configuration first."
     }
 }
