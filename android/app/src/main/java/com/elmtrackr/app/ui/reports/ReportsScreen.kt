@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.ui.res.stringResource
@@ -187,14 +188,14 @@ fun ReportsScreen(
     AuroraScreen {
         val isTablet = isTabletLayout()
         Text(
-            "Reports",
+            stringResource(R.string.reports_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.auroraEnter(),
         )
         if (isTablet) {
             Text(
-                "Your performance overview",
+                stringResource(R.string.reports_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.auroraEnter(index = 1),
@@ -298,9 +299,9 @@ private fun ReportTabs(selected: ReportTab, refundsEnabled: Boolean, onSelect: (
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        TabButton("Hours", selected == ReportTab.HOURS, Modifier.weight(1f)) { onSelect(ReportTab.HOURS) }
+        TabButton(stringResource(R.string.reports_tab_hours), selected == ReportTab.HOURS, Modifier.weight(1f)) { onSelect(ReportTab.HOURS) }
         if (refundsEnabled) {
-            TabButton("Travel Refunds", selected == ReportTab.REFUNDS, Modifier.weight(1f)) { onSelect(ReportTab.REFUNDS) }
+            TabButton(stringResource(R.string.reports_tab_refunds), selected == ReportTab.REFUNDS, Modifier.weight(1f)) { onSelect(ReportTab.REFUNDS) }
         }
     }
 }
@@ -397,8 +398,8 @@ private fun MonthNavRow(year: Int, month: Int, onPrev: () -> Unit, onNext: () ->
 @Composable
 private fun ReportsEmptyContent() = ElmEmptyState(
     icon = Icons.Filled.Analytics,
-    title = "No completed shifts",
-    subtitle = "Complete some shifts to see your report.",
+    title = stringResource(R.string.reports_empty_title),
+    subtitle = stringResource(R.string.reports_empty_subtitle),
     modifier = Modifier.fillMaxWidth(),
 )
 
@@ -465,13 +466,13 @@ private fun PhoneHoursReportTop(
 
     Spacer(Modifier.height(14.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        ElmStatCard("Total", formatHoursDecimal(report.totalMinutes) + "h", Modifier.weight(1f), variant = ElmStatVariant.PRIMARY)
-        ElmStatCard("Regular", formatHoursDecimal(report.regularMinutes) + "h", Modifier.weight(1f))
+        ElmStatCard(stringResource(R.string.dashboard_stat_total), stringResource(R.string.reports_hours_value, formatHoursDecimal(report.totalMinutes)), Modifier.weight(1f), variant = ElmStatVariant.PRIMARY)
+        ElmStatCard(stringResource(R.string.dashboard_stat_regular), stringResource(R.string.reports_hours_value, formatHoursDecimal(report.regularMinutes)), Modifier.weight(1f))
     }
     Spacer(Modifier.height(10.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        ElmStatCard("Overtime", formatHoursDecimal(report.overtimeMinutes) + "h", Modifier.weight(1f), variant = ElmStatVariant.OVERTIME)
-        ElmStatCard("Weekend", formatHoursDecimal(report.weekendMinutes) + "h", Modifier.weight(1f), variant = ElmStatVariant.WEEKEND)
+        ElmStatCard(stringResource(R.string.dashboard_stat_overtime), stringResource(R.string.reports_hours_value, formatHoursDecimal(report.overtimeMinutes)), Modifier.weight(1f), variant = ElmStatVariant.OVERTIME)
+        ElmStatCard(stringResource(R.string.dashboard_stat_weekend), stringResource(R.string.reports_hours_value, formatHoursDecimal(report.weekendMinutes)), Modifier.weight(1f), variant = ElmStatVariant.WEEKEND)
     }
 }
 
@@ -505,29 +506,29 @@ private fun TabletHoursReportTop(
     Spacer(Modifier.height(12.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         ElmStatCard(
-            label = "Total",
-            value = formatHoursDecimal(report.totalMinutes) + "h",
-            sub = "All hours this month",
+            label = stringResource(R.string.dashboard_stat_total),
+            value = stringResource(R.string.reports_hours_value, formatHoursDecimal(report.totalMinutes)),
+            sub = stringResource(R.string.reports_all_hours_month),
             variant = ElmStatVariant.PRIMARY,
             modifier = Modifier.weight(1f),
         )
         ElmStatCard(
-            label = "Regular",
-            value = formatHoursDecimal(report.regularMinutes) + "h",
-            sub = totalPct?.let { "${(report.regularMinutes * 100 / it)}% of total" },
+            label = stringResource(R.string.dashboard_stat_regular),
+            value = stringResource(R.string.reports_hours_value, formatHoursDecimal(report.regularMinutes)),
+            sub = totalPct?.let { stringResource(R.string.reports_pct_of_total, report.regularMinutes * 100 / it) },
             modifier = Modifier.weight(1f),
         )
         ElmStatCard(
-            label = "Overtime",
-            value = formatHoursDecimal(report.overtimeMinutes) + "h",
-            sub = totalPct?.let { "${(report.overtimeMinutes * 100 / it)}% of total" },
+            label = stringResource(R.string.dashboard_stat_overtime),
+            value = stringResource(R.string.reports_hours_value, formatHoursDecimal(report.overtimeMinutes)),
+            sub = totalPct?.let { stringResource(R.string.reports_pct_of_total, report.overtimeMinutes * 100 / it) },
             variant = ElmStatVariant.OVERTIME,
             modifier = Modifier.weight(1f),
         )
         ElmStatCard(
-            label = "Weekend",
-            value = formatHoursDecimal(report.weekendMinutes) + "h",
-            sub = totalPct?.let { "${(report.weekendMinutes * 100 / it)}% of total" },
+            label = stringResource(R.string.dashboard_stat_weekend),
+            value = stringResource(R.string.reports_hours_value, formatHoursDecimal(report.weekendMinutes)),
+            sub = totalPct?.let { stringResource(R.string.reports_pct_of_total, report.weekendMinutes * 100 / it) },
             variant = ElmStatVariant.WEEKEND,
             modifier = Modifier.weight(1f),
         )
@@ -542,7 +543,7 @@ private fun TabletHoursReportTop(
     ) {
         state.paySummary?.takeIf { it.totalGross > 0 }?.let { pay ->
             ReportCard(Modifier.weight(1f)) {
-                SectionLabel("Gross Pay · Before Tax")
+                SectionLabel(stringResource(R.string.reports_gross_pay_before_tax))
                 Text(
                     MoneyFormatter.format(pay.totalGross, currency),
                     style = TextStyle(
@@ -553,11 +554,11 @@ private fun TabletHoursReportTop(
                 )
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PayCell("Regular", pay.regularGross, currency, AuroraIndigo,
+                    PayCell(stringResource(R.string.dashboard_stat_regular), pay.regularGross, currency, AuroraIndigo,
                         MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
-                    PayCell("Overtime", pay.overtimeGross, currency, AuroraPeachDeep,
+                    PayCell(stringResource(R.string.dashboard_stat_overtime), pay.overtimeGross, currency, AuroraPeachDeep,
                         auroraOvertimeBackground(), Modifier.weight(1f))
-                    PayCell("Holiday", pay.specialGross, currency, AuroraPlum,
+                    PayCell(stringResource(R.string.dashboard_pay_holiday), pay.specialGross, currency, AuroraPlum,
                         auroraWeekendBackground(), Modifier.weight(1f))
                 }
             }
@@ -615,16 +616,16 @@ private fun TabletHoursReportTop(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            "Peak Performer",
+                            stringResource(R.string.reports_peak_performer),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
                         )
                         Text(
                             when {
-                                pctChange > 0 -> "You worked $pctChange% more hours than $prevMonthName. Keep up the momentum!"
-                                pctChange < 0 -> "You worked ${abs(pctChange)}% fewer hours than $prevMonthName."
-                                else -> "Same hours as $prevMonthName."
+                                pctChange > 0 -> stringResource(R.string.reports_peak_more, pctChange, prevMonthName)
+                                pctChange < 0 -> stringResource(R.string.reports_peak_fewer, abs(pctChange), prevMonthName)
+                                else -> stringResource(R.string.reports_peak_same, prevMonthName)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White.copy(alpha = 0.9f),
@@ -637,11 +638,11 @@ private fun TabletHoursReportTop(
 
             InsightStatCard(
                 icon = "⏱",
-                label = "Avg Shift Length",
+                label = stringResource(R.string.reports_avg_shift_length),
                 value = if (insights.averageShiftMinutes > 0) {
                     ShiftDurationCalculator.formatMinutes(insights.averageShiftMinutes)
                 } else "—",
-                sub = "per shift",
+                sub = stringResource(R.string.reports_per_shift),
                 accentColor = AuroraIndigo,
                 bgColor = AuroraIndigo.copy(alpha = 0.10f),
                 modifier = Modifier.weight(1f),
@@ -706,16 +707,16 @@ internal fun HoursReport(
             .month.getDisplayName(JavaTextStyle.SHORT, appLocale())
         Spacer(Modifier.height(14.dp))
         ReportCard {
-            Text("Month over month", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.reports_month_over_month), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "${formatHoursDecimal(report.totalMinutes)}h this month",
+                    stringResource(R.string.reports_hours_this_month, formatHoursDecimal(report.totalMinutes)),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    "$arrow ${formatHoursDecimal(abs(delta))}h vs $prevMonthName",
+                    stringResource(R.string.reports_vs_prev, arrow, formatHoursDecimal(abs(delta)), prevMonthName),
                     color = deltaColor,
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.labelMedium,
@@ -740,16 +741,16 @@ internal fun HoursReport(
             .month.getDisplayName(JavaTextStyle.SHORT, appLocale())
         Spacer(Modifier.height(14.dp))
         ReportCard {
-            Text("Month over month", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.reports_month_over_month), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "${formatHoursDecimal(report.totalMinutes)}h this month",
+                    stringResource(R.string.reports_hours_this_month, formatHoursDecimal(report.totalMinutes)),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    "$arrow ${formatHoursDecimal(abs(delta))}h vs $prevMonthName",
+                    stringResource(R.string.reports_vs_prev, arrow, formatHoursDecimal(abs(delta)), prevMonthName),
                     color = deltaColor,
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.labelMedium,
@@ -763,7 +764,7 @@ internal fun HoursReport(
     state.paySummary?.takeIf { it.totalGross > 0 }?.let { pay ->
         Spacer(Modifier.height(14.dp))
         ReportCard {
-            SectionLabel("Gross Pay · Before Tax")
+            SectionLabel(stringResource(R.string.reports_gross_pay_before_tax))
             Text(
                 MoneyFormatter.format(pay.totalGross, currency),
                 style = TextStyle(
@@ -774,11 +775,11 @@ internal fun HoursReport(
             )
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PayCell("Regular", pay.regularGross, currency, AuroraIndigo,
+                PayCell(stringResource(R.string.dashboard_stat_regular), pay.regularGross, currency, AuroraIndigo,
                     MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
-                PayCell("Overtime", pay.overtimeGross, currency, AuroraPeachDeep,
+                PayCell(stringResource(R.string.dashboard_stat_overtime), pay.overtimeGross, currency, AuroraPeachDeep,
                     auroraOvertimeBackground(), Modifier.weight(1f))
-                PayCell("Holiday", pay.specialGross, currency, AuroraPlum,
+                PayCell(stringResource(R.string.dashboard_pay_holiday), pay.specialGross, currency, AuroraPlum,
                     auroraWeekendBackground(), Modifier.weight(1f))
             }
         }
@@ -790,13 +791,13 @@ internal fun HoursReport(
         Spacer(Modifier.height(18.dp))
         ReportCard {
             Text(
-                "Insights are turned off",
+                stringResource(R.string.reports_insights_off_title),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleSmall,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                "Enable Insights in Settings → Features to see daily cards and shift stats here.",
+                stringResource(R.string.reports_insights_off_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -811,25 +812,25 @@ internal fun HoursReport(
     state.insights?.let { insights ->
         val currency2 = state.settings?.currency ?: CurrencyCode.ILS
         Spacer(Modifier.height(18.dp))
-        ElmSectionHeader("Shift Insights")
+        ElmSectionHeader(stringResource(R.string.reports_shift_insights))
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             InsightStatCard(
                 icon = "🌅",
-                label = "Weekend Shifts",
+                label = stringResource(R.string.reports_weekend_shifts),
                 value = insights.weekendShiftCount.toString(),
-                sub = if (insights.weekendShiftCount == 1) "shift" else "shifts",
+                sub = stringResource(if (insights.weekendShiftCount == 1) R.string.reports_shift_one else R.string.reports_shift_other),
                 accentColor = AuroraPlum,
                 bgColor = auroraWeekendBackground(),
                 modifier = Modifier.weight(1f),
             )
             InsightStatCard(
                 icon = "⏱",
-                label = "Avg Shift Length",
+                label = stringResource(R.string.reports_avg_shift_length),
                 value = if (insights.averageShiftMinutes > 0) {
                     ShiftDurationCalculator.formatMinutes(insights.averageShiftMinutes)
                 } else "—",
-                sub = "per shift",
+                sub = stringResource(R.string.reports_per_shift),
                 accentColor = AuroraIndigo,
                 bgColor = AuroraIndigo.copy(alpha = 0.10f),
                 modifier = Modifier.weight(1f),
@@ -839,19 +840,19 @@ internal fun HoursReport(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             InsightStatCard(
                 icon = "🔥",
-                label = "Overtime Shifts",
+                label = stringResource(R.string.reports_overtime_shifts),
                 value = insights.overtimeShiftCount.toString(),
-                sub = if (insights.overtimeShiftCount == 1) "shift" else "shifts",
+                sub = stringResource(if (insights.overtimeShiftCount == 1) R.string.reports_shift_one else R.string.reports_shift_other),
                 accentColor = AuroraPeachDeep,
                 bgColor = auroraOvertimeBackground(),
                 modifier = Modifier.weight(1f),
             )
             InsightStatCard(
                 icon = "📏",
-                label = "Longest Shift",
+                label = stringResource(R.string.reports_longest_shift),
                 value = ShiftDurationCalculator.formatMinutes(insights.longestShiftMinutes),
                 sub = insights.longestShift?.startTime?.atZone(state.zone)
-                    ?.format(DateTimeFormatter.ofPattern("MMM d")),
+                    ?.format(DateTimeFormatter.ofPattern("MMM d", appLocale())),
                 accentColor = Color(0xFF10B981),
                 bgColor = Color(0xFF10B981).copy(alpha = 0.10f),
                 modifier = Modifier.weight(1f),
@@ -861,20 +862,20 @@ internal fun HoursReport(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             InsightStatCard(
                 icon = "💰",
-                label = "Avg Pay / Shift",
+                label = stringResource(R.string.reports_avg_pay_shift),
                 value = if (insights.avgPayPerShift != null) MoneyFormatter.format(insights.avgPayPerShift, currency2) else "—",
-                sub = if (insights.avgPayPerShift != null) "per shift" else "set rate to unlock",
+                sub = if (insights.avgPayPerShift != null) stringResource(R.string.reports_per_shift) else stringResource(R.string.reports_set_rate_unlock),
                 accentColor = AuroraIndigo,
                 bgColor = AuroraIndigo.copy(alpha = 0.10f),
                 modifier = Modifier.weight(1f),
             )
             InsightStatCard(
                 icon = "🏆",
-                label = "Best Shift",
+                label = stringResource(R.string.reports_best_shift),
                 value = if (insights.highestEarningAmount != null) MoneyFormatter.format(insights.highestEarningAmount, currency2) else "—",
                 sub = insights.highestEarningShift?.startTime?.atZone(state.zone)
-                    ?.format(DateTimeFormatter.ofPattern("MMM d"))
-                    ?: if (insights.highestEarningAmount == null) "set rate to unlock" else null,
+                    ?.format(DateTimeFormatter.ofPattern("MMM d", appLocale()))
+                    ?: if (insights.highestEarningAmount == null) stringResource(R.string.reports_set_rate_unlock) else null,
                 accentColor = AuroraPlum,
                 bgColor = auroraWeekendBackground(),
                 modifier = Modifier.weight(1f),
@@ -888,12 +889,12 @@ internal fun HoursReport(
         val hasPrevData = state.weeklyTotals.any { it.prevMonthMinutes > 0 }
         Spacer(Modifier.height(18.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            ElmSectionHeader("Weekly Breakdown")
+            ElmSectionHeader(stringResource(R.string.reports_weekly_breakdown))
             if (hasPrevData) {
                 val prevMonthName = YearMonth.of(state.year, state.month).minusMonths(1)
                     .let { Month.of(it.monthValue).displayName(appLocale()) }
                 Text(
-                    "vs $prevMonthName",
+                    stringResource(R.string.reports_vs_month, prevMonthName),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -914,7 +915,7 @@ internal fun HoursReport(
 
     if (state.taskBreakdown.isNotEmpty()) {
         Spacer(Modifier.height(18.dp))
-        ElmSectionHeader("By Task")
+        ElmSectionHeader(stringResource(R.string.reports_by_task))
         Spacer(Modifier.height(8.dp))
         ReportCard {
             state.taskBreakdown.forEachIndexed { index, task ->
@@ -934,7 +935,7 @@ internal fun HoursReport(
 
         // ── Shift breakdown ───────────────────────────────────────────────────
         Spacer(Modifier.height(18.dp))
-        ElmSectionHeader("Shift Breakdown")
+        ElmSectionHeader(stringResource(R.string.reports_shift_breakdown))
         Spacer(Modifier.height(8.dp))
         val shape = RoundedCornerShape(CornerRadius.Large)
         Card(
@@ -990,9 +991,9 @@ private fun InsightOfTheDay(insights: List<DailyInsight>) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                ElmSectionHeader("Insights of the Day", modifier = Modifier.weight(1f))
+                ElmSectionHeader(stringResource(R.string.reports_insights_of_day), modifier = Modifier.weight(1f))
                 Text(
-                    "swipe · changes daily",
+                    stringResource(R.string.reports_swipe_daily),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -1066,14 +1067,14 @@ private fun InsightCard(insight: DailyInsight, index: Int, total: Int, cardWidth
                         .padding(horizontal = 10.dp, vertical = 4.dp),
                 ) {
                     Text(
-                        "${index + 1} of $total",
+                        stringResource(R.string.reports_index_of, index + 1, total),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                     )
                 }
                 Text(
-                    if (isActive) "● today" else "○",
+                    if (isActive) stringResource(R.string.reports_today_dot) else "○",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = if (isActive) 0.4f else 0.25f),
                 )
@@ -1082,7 +1083,7 @@ private fun InsightCard(insight: DailyInsight, index: Int, total: Int, cardWidth
             Text(insight.icon, style = MaterialTheme.typography.displaySmall)
             Spacer(Modifier.height(10.dp))
             Text(
-                insight.title,
+                insight.title.asString(),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
@@ -1091,7 +1092,7 @@ private fun InsightCard(insight: DailyInsight, index: Int, total: Int, cardWidth
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                buildBoldAnnotatedString(insight.text, insight.color.subTextColor),
+                buildBoldAnnotatedString(insight.text.asString(), insight.color.subTextColor),
                 style = MaterialTheme.typography.bodySmall,
                 color = insight.color.subTextColor,
                 maxLines = 4,
@@ -1204,7 +1205,7 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: CurrencyCode)
                 modifier = Modifier.weight(1f),
             )
             Text(
-                formatHoursDecimal(task.totalMinutes) + "h",
+                stringResource(R.string.reports_hours_value, formatHoursDecimal(task.totalMinutes)),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -1212,7 +1213,7 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: CurrencyCode)
         Spacer(Modifier.height(6.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                "${task.shiftCount} shifts · avg ${formatHoursDecimal(task.averageShiftMinutes)}h",
+                stringResource(R.string.reports_task_shifts_avg, task.shiftCount, formatHoursDecimal(task.averageShiftMinutes)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1227,7 +1228,7 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: CurrencyCode)
         }
         if (task.overtimeMinutes > 0) {
             Text(
-                "OT ${formatHoursDecimal(task.overtimeMinutes)}h",
+                stringResource(R.string.reports_ot_hours, formatHoursDecimal(task.overtimeMinutes)),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuroraPeachDeep,
                 modifier = Modifier.padding(top = 4.dp),
@@ -1266,7 +1267,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    week.label,
+                    stringResource(R.string.reports_week_label, week.label.filter { it.isDigit() }),
                     fontWeight = FontWeight.ExtraBold,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
@@ -1274,7 +1275,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "days ${week.dayRange}",
+                    stringResource(R.string.reports_week_days, week.dayRange),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -1303,7 +1304,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(
-                    if (week.totalMinutes > 0) formatHoursDecimal(week.totalMinutes) + "h" else "—",
+                    if (week.totalMinutes > 0) stringResource(R.string.reports_hours_value, formatHoursDecimal(week.totalMinutes)) else "—",
                     fontWeight = FontWeight.ExtraBold,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
@@ -1338,7 +1339,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                     Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(AuroraPeach))
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "${ShiftDurationCalculator.formatMinutes(week.overtimeMinutes)} OT",
+                        stringResource(R.string.reports_ot_suffix, ShiftDurationCalculator.formatMinutes(week.overtimeMinutes)),
                         style = MaterialTheme.typography.labelSmall,
                         color = AuroraPeach,
                         fontWeight = FontWeight.SemiBold,
@@ -1404,12 +1405,12 @@ private fun ShiftReportRow(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        shift.startTime.atZone(zone).format(DateTimeFormatter.ofPattern("EEE, MMM d")),
+                        shift.startTime.atZone(zone).format(DateTimeFormatter.ofPattern("EEE, MMM d", appLocale())),
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    val breakStr = if (shift.breakMinutes > 0) " · ${shift.breakMinutes}m break" else ""
+                    val breakStr = if (shift.breakMinutes > 0) stringResource(R.string.reports_break_suffix, shift.breakMinutes) else ""
                     Text(
                         shift.startTime.atZone(zone).format(DateTimeFormatter.ofPattern("HH:mm")) +
                             " — " +
@@ -1421,9 +1422,9 @@ private fun ShiftReportRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                     val tags = listOfNotNull(
-                        if (shift.isSpecialDay) "Holiday" else null,
-                        if (weekend && !shift.isSpecialDay) "Weekend" else null,
-                        if (overnight) "Overnight" else null,
+                        if (shift.isSpecialDay) stringResource(R.string.dashboard_pay_holiday) else null,
+                        if (weekend && !shift.isSpecialDay) stringResource(R.string.reports_chip_weekend) else null,
+                        if (overnight) stringResource(R.string.reports_chip_overnight) else null,
                     )
                     if (tags.isNotEmpty()) {
                         Spacer(Modifier.height(4.dp))
@@ -1441,7 +1442,7 @@ private fun ShiftReportRow(
                     Text(ShiftDurationCalculator.formatMinutes(breakdown.totalMinutes), fontWeight = FontWeight.Bold)
                     if (otMins > 0 && !shift.isSpecialDay && !weekend) {
                         Text(
-                            "+${ShiftDurationCalculator.formatMinutes(otMins)} OT",
+                            stringResource(R.string.reports_plus_ot, ShiftDurationCalculator.formatMinutes(otMins)),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuroraPeach,
                         )
@@ -1482,12 +1483,13 @@ private fun RefundReview(
         }
     }
     val currency = state.settings?.currency ?: CurrencyCode.ILS
+    val allMonthsLabel = stringResource(R.string.reports_all_months)
     var exportingAll by rememberSaveable { mutableStateOf(false) }
     if (reimbursableShifts.isEmpty()) {
         ElmEmptyState(
             Icons.Filled.PictureAsPdf,
-            "No ride reimbursements yet",
-            "Add reimbursement claims from any completed shift in shift edit.",
+            stringResource(R.string.reports_no_reimb_title),
+            stringResource(R.string.reports_no_reimb_body),
             Modifier.fillMaxWidth(),
         )
         return
@@ -1505,7 +1507,7 @@ private fun RefundReview(
                             val bitmap = claim.receiptPath?.let { viewModel.receiptUrl(it) }?.let { ReportExporter.loadReceipt(it) }
                             RefundPdfRow(shift, claim, bitmap)
                         }
-                        ReportExporter.shareRefundPdf(context, pdfRows, "all-months", "All months", currency, state.zone)
+                        ReportExporter.shareRefundPdf(context, pdfRows, "all-months", allMonthsLabel, currency, state.zone)
                     } finally { exportingAll = false }
                 }
             },
@@ -1515,7 +1517,7 @@ private fun RefundReview(
             if (exportingAll) CircularProgressIndicator(Modifier.size(17.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
             else Icon(Icons.Filled.PictureAsPdf, null, Modifier.size(17.dp))
             Spacer(Modifier.width(7.dp))
-            Text(if (exportingAll) "Preparing reimbursement PDF..." else "Export all reimbursement receipts")
+            Text(if (exportingAll) stringResource(R.string.reports_preparing_reimb_pdf) else stringResource(R.string.reports_export_all_receipts))
         }
     }
     val remindLater = reimbursableShifts.count { it.refundAction == RefundAction.REMIND_LATER }
@@ -1526,14 +1528,14 @@ private fun RefundReview(
             shape = RoundedCornerShape(CornerRadius.Medium),
         ) {
             Column(Modifier.padding(14.dp)) {
-                Text("$remindLater reminder${if (remindLater == 1) "" else "s"}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
-                Text("Open the shift to submit a claim or mark no ride.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                Text(stringResource(if (remindLater == 1) R.string.reports_reminder_one else R.string.reports_reminder_other, remindLater), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                Text(stringResource(R.string.reports_open_shift_submit), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
             }
         }
     }
-    Spacer(Modifier.height(18.dp)); ElmSectionHeader("Reimbursement History"); Spacer(Modifier.height(4.dp))
+    Spacer(Modifier.height(18.dp)); ElmSectionHeader(stringResource(R.string.reports_reimb_history)); Spacer(Modifier.height(4.dp))
     Text(
-        "Showing ${monthsLabelCount(reimbursableShifts, state.zone)} with ride reimbursements.",
+        stringResource(R.string.reports_showing_months, monthsLabelCount(reimbursableShifts, state.zone)),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -1582,24 +1584,24 @@ private fun RefundAnalytics(
     }
     Card(shape = RoundedCornerShape(CornerRadius.Large), colors = CardDefaults.cardColors(containerColor = AuroraIndigo)) {
         Column(Modifier.padding(18.dp)) {
-            Text("TOTAL REFUNDED", style = MaterialTheme.typography.labelSmall, color = Color(0xffd8d3ff), fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.reports_total_refunded), style = MaterialTheme.typography.labelSmall, color = Color(0xffd8d3ff), fontWeight = FontWeight.Bold)
             Text(MoneyFormatter.format(total, currency), style = MaterialTheme.typography.headlineLarge, color = Color.White, fontWeight = FontWeight.ExtraBold)
             val activeMonths = claims.map { YearMonth.from(it.rideAt.atZone(zone)) }.distinct().size
-            Text("${claims.size} rides - $activeMonths months", color = Color(0xffd8d3ff), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.reports_rides_months, claims.size, activeMonths), color = Color(0xffd8d3ff), style = MaterialTheme.typography.bodySmall)
             if (salary != null && salary > 0) {
                 HorizontalDivider(Modifier.padding(vertical = 12.dp), color = Color.White.copy(alpha = .2f))
-                Text("Total compensation", style = MaterialTheme.typography.labelSmall, color = Color(0xffd8d3ff))
+                Text(stringResource(R.string.reports_total_compensation), style = MaterialTheme.typography.labelSmall, color = Color(0xffd8d3ff))
                 Text(MoneyFormatter.format(salary + total, currency), style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
     }
     Spacer(Modifier.height(14.dp))
     ReportCard {
-        SectionLabel("By Provider")
+        SectionLabel(stringResource(R.string.reports_by_provider))
         claims.groupBy { it.provider }.entries.sortedByDescending { it.value.sumOf(RefundClaim::amount) }.forEach { (provider, rows) ->
             val amount = rows.sumOf { it.amount }
             Spacer(Modifier.height(8.dp))
-            ReportRow(provider.name.lowercase().replaceFirstChar(Char::uppercase) + " - ${rows.size} rides", MoneyFormatter.format(amount, currency))
+            ReportRow(stringResource(R.string.reports_provider_rides, provider.name.lowercase().replaceFirstChar(Char::uppercase), rows.size), MoneyFormatter.format(amount, currency))
             Box(Modifier.fillMaxWidth().height(6.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp))) {
                 Box(Modifier.fillMaxWidth((amount / total).toFloat().coerceIn(0f, 1f)).height(6.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp)))
             }
@@ -1607,8 +1609,8 @@ private fun RefundAnalytics(
     }
     Spacer(Modifier.height(14.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        StatCard("Avg per Ride", MoneyFormatter.format(total / claims.size, currency), AuroraIndigo, Modifier.weight(1f))
-        StatCard("Largest Ride", MoneyFormatter.format(claims.maxOf { it.amount }, currency), AuroraPeach, Modifier.weight(1f))
+        StatCard(stringResource(R.string.reports_avg_per_ride), MoneyFormatter.format(total / claims.size, currency), AuroraIndigo, Modifier.weight(1f))
+        StatCard(stringResource(R.string.reports_largest_ride), MoneyFormatter.format(claims.maxOf { it.amount }, currency), AuroraPeach, Modifier.weight(1f))
     }
 }
 
@@ -1631,9 +1633,9 @@ private fun RefundMonthCard(
         Text("${month.month.displayName(appLocale())} ${month.year}", fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatPill("Submitted", submitted.toString(), MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer, Modifier.weight(1f))
-            StatPill("Pending", pending.toString(), MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer, Modifier.weight(1f))
-            StatPill("Total", MoneyFormatter.format(claims.sumOf { it.amount }, currency), MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, Modifier.weight(1f))
+            StatPill(stringResource(R.string.reports_submitted), submitted.toString(), MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer, Modifier.weight(1f))
+            StatPill(stringResource(R.string.reports_pending), pending.toString(), MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer, Modifier.weight(1f))
+            StatPill(stringResource(R.string.dashboard_stat_total), MoneyFormatter.format(claims.sumOf { it.amount }, currency), MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, Modifier.weight(1f))
         }
         Spacer(Modifier.height(10.dp))
         shifts.sortedByDescending { it.startTime }.forEachIndexed { index, shift ->
@@ -1641,17 +1643,22 @@ private fun RefundMonthCard(
             val shiftClaims = claims.filter { it.shiftId == shift.id }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
-                    Text(shift.startTime.atZone(zone).format(DateTimeFormatter.ofPattern("EEE, d MMM")), fontWeight = FontWeight.SemiBold)
+                    Text(shift.startTime.atZone(zone).format(DateTimeFormatter.ofPattern("EEE, d MMM", appLocale())), fontWeight = FontWeight.SemiBold)
                     shiftClaims.forEach { claim ->
                         Text(
-                            "${if (claim.direction == com.elmtrackr.app.domain.model.RefundDirection.TO_WORK) "To work" else "From work"} - ${claim.provider.name.lowercase()} - ${MoneyFormatter.format(claim.amount, currency)}${if (claim.receiptPath != null) " - receipt" else ""}",
+                            stringResource(
+                                R.string.reports_claim_line,
+                                stringResource(if (claim.direction == com.elmtrackr.app.domain.model.RefundDirection.TO_WORK) R.string.reports_dir_to_work else R.string.reports_dir_from_work),
+                                claim.provider.name.lowercase(),
+                                MoneyFormatter.format(claim.amount, currency),
+                            ) + if (claim.receiptPath != null) stringResource(R.string.reports_receipt_suffix) else "",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         claim.receiptPath?.let { path ->
-                            TextButton(onClick = { onViewReceipt(path) }) { Text("View receipt") }
+                            TextButton(onClick = { onViewReceipt(path) }) { Text(stringResource(R.string.refunds_view_receipt)) }
                         }
                     }
                 }
@@ -1662,7 +1669,7 @@ private fun RefundMonthCard(
                         color = if (shift.refundAction == RefundAction.SUBMITTED) AuroraAquaDeep else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     TextButton(onClick = { onNavigateToShift(shift.id) }) {
-                        Text("View", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.reports_view), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -1677,7 +1684,7 @@ private fun RefundMonthCard(
                 if (isExporting) CircularProgressIndicator(Modifier.size(17.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                 else Icon(Icons.Filled.PictureAsPdf, null, Modifier.size(17.dp))
                 Spacer(Modifier.width(7.dp))
-                Text(if (isExporting) "Preparing PDF..." else "Export PDF - ${month.month.displayName(appLocale())}")
+                Text(if (isExporting) stringResource(R.string.reports_preparing_pdf) else stringResource(R.string.reports_export_pdf_month, month.month.displayName(appLocale())))
             }
         }
     }
@@ -1693,8 +1700,8 @@ private fun OtThresholdFootnote(settings: UserSettings) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth < 340.dp) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    OtThresholdLine("Daily OT after", daily)
-                    OtThresholdLine("Weekly OT after", weekly)
+                    OtThresholdLine(stringResource(R.string.reports_daily_ot_after), daily)
+                    OtThresholdLine(stringResource(R.string.reports_weekly_ot_after), weekly)
                 }
             } else {
                 Row(
@@ -1702,11 +1709,11 @@ private fun OtThresholdFootnote(settings: UserSettings) {
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    OtThresholdLine("Daily OT after", daily)
+                    OtThresholdLine(stringResource(R.string.reports_daily_ot_after), daily)
                     Spacer(Modifier.width(16.dp))
                     Box(Modifier.width(1.dp).height(12.dp).background(AuroraHair))
                     Spacer(Modifier.width(16.dp))
-                    OtThresholdLine("Weekly OT after", weekly)
+                    OtThresholdLine(stringResource(R.string.reports_weekly_ot_after), weekly)
                 }
             }
         }
@@ -1745,16 +1752,16 @@ private fun ShiftTagPill(label: String, weekendStyle: Boolean) {
 @Composable
 private fun DistributionHeader(report: com.elmtrackr.app.domain.model.MonthlyReport, modifier: Modifier = Modifier) {
     Column(modifier) {
-        SectionLabel("Hours Distribution")
+        SectionLabel(stringResource(R.string.reports_hours_distribution))
         Text(
-            formatHoursDecimal(report.totalMinutes) + " h",
+            stringResource(R.string.shifts_hours_value_spaced, formatHoursDecimal(report.totalMinutes)),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            "${report.shiftCount} shift${if (report.shiftCount == 1) "" else "s"}",
+            stringResource(if (report.shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other, report.shiftCount),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1766,9 +1773,9 @@ private fun DistributionHeader(report: com.elmtrackr.app.domain.model.MonthlyRep
 private fun DistributionLegend(regular: Int, overtime: Int, weekend: Int) {
     val total = (regular + overtime + weekend).coerceAtLeast(1)
     val items = listOf(
-        Triple("Regular", regular, AuroraIndigo),
-        Triple("Overtime", overtime, AuroraPeach),
-        Triple("Weekend", weekend, AuroraPlum),
+        Triple(stringResource(R.string.dashboard_stat_regular), regular, AuroraIndigo),
+        Triple(stringResource(R.string.dashboard_stat_overtime), overtime, AuroraPeach),
+        Triple(stringResource(R.string.dashboard_stat_weekend), weekend, AuroraPlum),
     )
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items.forEach { (label, minutes, color) ->
@@ -1797,7 +1804,7 @@ private fun SegmentLegendRow(label: String, minutes: Int, color: Color, percent:
             Text("$percent%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(
-            formatHoursDecimal(minutes) + "h",
+            stringResource(R.string.reports_hours_value, formatHoursDecimal(minutes)),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -1929,17 +1936,24 @@ private fun submittedExportRows(
     shifts.filter { it.refundAction == RefundAction.SUBMITTED }
         .flatMap { shift -> claims.filter { it.shiftId == shift.id }.map { shift to it } }
 
+@Composable
 private fun monthsLabelCount(shifts: List<Shift>, zone: ZoneId): String {
     val count = shifts.map { YearMonth.from(it.startTime.atZone(zone)) }.distinct().size
-    return "$count month${if (count == 1) "" else "s"}"
+    return stringResource(
+        if (count == 1) R.string.reports_month_count_one else R.string.reports_month_count_other,
+        count,
+    )
 }
 
-private fun refundStatus(action: RefundAction?): String = when (action) {
-    RefundAction.SUBMITTED -> "Submitted"
-    RefundAction.NO_RIDE_TAKEN -> "No ride"
-    RefundAction.REMIND_LATER -> "Remind later"
-    null -> "Pending"
-}
+@Composable
+private fun refundStatus(action: RefundAction?): String = stringResource(
+    when (action) {
+        RefundAction.SUBMITTED -> R.string.reports_submitted
+        RefundAction.NO_RIDE_TAKEN -> R.string.refunds_no_ride
+        RefundAction.REMIND_LATER -> R.string.refunds_remind_later
+        null -> R.string.reports_pending
+    },
+)
 
 private fun Month.displayName(locale: Locale): String =
     getDisplayName(JavaTextStyle.FULL_STANDALONE, locale).replaceFirstChar { it.uppercase(locale) }
