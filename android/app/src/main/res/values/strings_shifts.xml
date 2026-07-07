@@ -60,7 +60,7 @@
     <string name="shifts_saved_task">Saved task: %1$s %2$s (%3$s/hr)</string>
     <string name="shifts_notes_placeholder">Add notes about this shift…</string>
     <string name="shifts_travel_refund">Travel refund</string>
-    <string name="shifts_travel_refund_subtitle">Claim a ride to or from work</string>
+    <string name="shifts_travel_refund_subtitle">Add ride reimbursement claims for this shift</string>
     <string name="shifts_close">Close</string>
     <string name="shifts_claim">Claim</string>
     <string name="shifts_delete_shift">Delete shift</string>

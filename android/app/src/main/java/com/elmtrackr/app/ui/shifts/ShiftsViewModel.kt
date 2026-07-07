@@ -6,7 +6,6 @@ import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.data.repository.PremiumProfilesRepository
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.domain.CurrentUserProvider
-import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.model.ReceiptUpload
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.Shift
@@ -297,12 +296,8 @@ class ShiftsViewModel @Inject constructor(
                 onComplete(false)
                 return@launch
             }
-            val eligibility = when (direction) {
-                RefundDirection.TO_WORK -> RefundPolicy.checkToWorkEligibility(shift)
-                RefundDirection.FROM_WORK -> RefundPolicy.checkFromWorkEligibility(shift)
-            }
-            if (!eligibility.eligible) {
-                _formErrors.value = mapOf("refund" to "This ride is not eligible for a travel refund")
+            if (!shift.isCompleted) {
+                _formErrors.value = mapOf("refund" to "Finish the shift before saving a travel refund claim")
                 onComplete(false)
                 return@launch
             }

@@ -190,37 +190,31 @@ fun RefundClaimsSection(
         state.errorMessage?.let { MessageCard(it, isError = true, onDismiss = viewModel::clearMessages) }
         state.noticeMessage?.let { MessageCard(it, isError = false, onDismiss = viewModel::clearMessages) }
 
-        val directions = buildList<Pair<RefundDirection, RefundPolicy.Eligibility>> {
-            state.toEligibility?.takeIf { it.eligible }?.let { add(RefundDirection.TO_WORK to it) }
-            state.fromEligibility?.takeIf { it.eligible }?.let { add(RefundDirection.FROM_WORK to it) }
+        val directions = listOf(
+            RefundDirection.TO_WORK to state.toEligibility,
+            RefundDirection.FROM_WORK to state.fromEligibility,
+        ).mapNotNull { (direction, eligibility) ->
+            eligibility?.takeIf { it.eligible }?.let { direction to it }
         }
 
-        if (directions.isEmpty()) {
-            Text(
-                stringResource(R.string.refunds_not_eligible),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        directions.forEach { (direction, eligibility) ->
+            val claim = state.claims.firstOrNull { it.direction == direction }
+            RefundClaimCard(
+                shift = shift,
+                claim = claim,
+                direction = direction,
+                eligibility = eligibility,
+                currency = currency,
+                hasLocalReceipt = claim?.id?.let { state.localReceiptsByClaimId.containsKey(it) } == true,
+                isDeleting = state.deletingClaimId == claim?.id,
+                onAdd = { viewModel.openForm(direction) },
+                onEdit = { edited -> viewModel.openForm(direction, edited) },
+                onDelete = { deleted -> viewModel.deleteClaim(deleted.id) },
+                onNoRide = { viewModel.updateRefundAction(RefundAction.NO_RIDE_TAKEN) },
+                onRemindLater = { viewModel.updateRefundAction(RefundAction.REMIND_LATER) },
+                onUndoAction = { viewModel.updateRefundAction(null) },
+                onViewReceipt = viewModel::openReceiptForClaim,
             )
-        } else {
-            directions.forEach { (direction, eligibility) ->
-                val claim = state.claims.firstOrNull { it.direction == direction }
-                RefundClaimCard(
-                    shift = shift,
-                    claim = claim,
-                    direction = direction,
-                    eligibility = eligibility,
-                    currency = currency,
-                    hasLocalReceipt = claim?.id?.let { state.localReceiptsByClaimId.containsKey(it) } == true,
-                    isDeleting = state.deletingClaimId == claim?.id,
-                    onAdd = { viewModel.openForm(direction) },
-                    onEdit = { edited -> viewModel.openForm(direction, edited) },
-                    onDelete = { deleted -> viewModel.deleteClaim(deleted.id) },
-                    onNoRide = { viewModel.updateRefundAction(RefundAction.NO_RIDE_TAKEN) },
-                    onRemindLater = { viewModel.updateRefundAction(RefundAction.REMIND_LATER) },
-                    onUndoAction = { viewModel.updateRefundAction(null) },
-                    onViewReceipt = viewModel::openReceiptForClaim,
-                )
-            }
         }
     }
 }

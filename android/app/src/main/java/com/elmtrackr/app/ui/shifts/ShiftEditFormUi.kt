@@ -61,7 +61,6 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
-import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CurrencyCode
@@ -848,9 +847,4 @@ private fun countUnsavedChanges(
 internal fun shouldShowRefundSection(
     featuresTravelRefunds: Boolean,
     shift: Shift?,
-): Boolean {
-    if (!featuresTravelRefunds || shift == null || !shift.isCompleted) return false
-    val toEligibility = RefundPolicy.checkToWorkEligibility(shift)
-    val fromEligibility = RefundPolicy.checkFromWorkEligibility(shift)
-    return toEligibility.eligible || fromEligibility.eligible
-}
+): Boolean = featuresTravelRefunds && shift != null && shift.isCompleted

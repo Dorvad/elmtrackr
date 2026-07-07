@@ -1,7 +1,6 @@
 package com.elmtrackr.app.domain.refund
 
 import com.elmtrackr.app.domain.CurrentUserProvider
-import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.model.ReceiptUpload
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.RefundClaim
@@ -44,11 +43,7 @@ class UpsertRefundClaim @Inject constructor(
         val shift = shiftsRepository.getShiftById(input.shiftId)
             ?: error("Shift not found")
 
-        val eligibility = when (input.direction) {
-            RefundDirection.TO_WORK -> RefundPolicy.checkToWorkEligibility(shift)
-            RefundDirection.FROM_WORK -> RefundPolicy.checkFromWorkEligibility(shift)
-        }
-        require(eligibility.eligible) { "This ride is not eligible for a travel refund" }
+        require(shift.isCompleted) { "Finish the shift before saving a travel refund claim" }
 
         val existing = input.claimId?.let { refundsRepository.getClaimById(it) }
             ?: refundsRepository.observeClaimsForShift(input.shiftId).first()

@@ -77,7 +77,7 @@
     <string name="onboarding_features_title">What do you need?</string>
     <string name="onboarding_features_subtitle">Enable the features that fit your workflow. You can change these later in Settings.</string>
     <string name="onboarding_feature_travel_title">Travel Refunds</string>
-    <string name="onboarding_feature_travel_desc">Track transport reimbursements for eligible shifts.</string>
+    <string name="onboarding_feature_travel_desc">Add ride reimbursement claims to any completed shift.</string>
     <string name="onboarding_feature_insights_title">Insights &amp; Analytics</string>
     <string name="onboarding_feature_insights_desc">Smart summaries, weekly trends, and daily coaching.</string>
 

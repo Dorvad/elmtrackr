@@ -516,7 +516,7 @@ class ShiftsViewModelTest {
     }
 
     @Test
-    fun `ineligible refund direction is rejected`() = runTest {
+    fun `refund claim can be saved on any completed shift`() = runTest {
         val shift = Shift(
             "ordinary",
             "local-user",
@@ -537,8 +537,8 @@ class ShiftsViewModelTest {
         )
         advanceUntilIdle()
 
-        assertTrue(vm.formErrors.value.containsKey("refund"))
-        assertTrue(refundsRepo.observeClaimsForShift(shift.id).first().isEmpty())
+        assertFalse(vm.formErrors.value.containsKey("refund"))
+        assertEquals(1, refundsRepo.observeClaimsForShift(shift.id).first().size)
     }
 
     @Test

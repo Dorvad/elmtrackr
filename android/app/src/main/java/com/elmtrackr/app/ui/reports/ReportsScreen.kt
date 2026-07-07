@@ -80,7 +80,6 @@ import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.OvernightShiftDetector
 import com.elmtrackr.app.domain.PayrollCalculator
-import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.CompensationProfile
@@ -1467,15 +1466,25 @@ private fun RefundReview(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val eligible = remember(state.allShifts) { state.allShifts.filter(::isRefundEligible) }
     val activeShiftIds = remember(state.allShifts) { state.allShifts.map { it.id }.toSet() }
     val claims = remember(state.refundClaims, activeShiftIds) {
         state.refundClaims.filter { it.shiftId in activeShiftIds }
     }
+    val reimbursableShifts = remember(state.allShifts, claims) {
+        val claimShiftIds = claims.map { it.shiftId }.toSet()
+        state.allShifts.filter { shift ->
+            shift.isCompleted && (shift.refundAction != null || shift.id in claimShiftIds)
+        }
+    }
     val currency = state.settings?.currency ?: CurrencyCode.ILS
     var exportingAll by rememberSaveable { mutableStateOf(false) }
-    if (eligible.isEmpty()) {
-        ElmEmptyState(Icons.Filled.PictureAsPdf, "No eligible shifts yet", "Late-night, weekend, and holiday shifts can qualify for travel reimbursement.", Modifier.fillMaxWidth())
+    if (reimbursableShifts.isEmpty()) {
+        ElmEmptyState(
+            Icons.Filled.PictureAsPdf,
+            "No ride reimbursements yet",
+            "Add reimbursement claims from any completed shift in shift edit.",
+            Modifier.fillMaxWidth(),
+        )
         return
     }
     if (claims.isNotEmpty()) RefundAnalytics(claims, state.allShifts, state.settings, state.profiles, state.zone)
@@ -1504,29 +1513,29 @@ private fun RefundReview(
             Text(if (exportingAll) "Preparing reimbursement PDF..." else "Export all reimbursement receipts")
         }
     }
-    val pending = eligible.count { it.refundAction == null }
-    if (pending > 0) {
+    val remindLater = reimbursableShifts.count { it.refundAction == RefundAction.REMIND_LATER }
+    if (remindLater > 0) {
         Spacer(Modifier.height(14.dp))
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
             shape = RoundedCornerShape(CornerRadius.Medium),
         ) {
             Column(Modifier.padding(14.dp)) {
-                Text("$pending unresolved refund${if (pending == 1) "" else "s"}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
-                Text("Open the shift to submit a claim, mark no ride, or remind later.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                Text("$remindLater reminder${if (remindLater == 1) "" else "s"}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                Text("Open the shift to submit a claim or mark no ride.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
             }
         }
     }
-    Spacer(Modifier.height(18.dp)); ElmSectionHeader("All Eligible Months"); Spacer(Modifier.height(4.dp))
+    Spacer(Modifier.height(18.dp)); ElmSectionHeader("Reimbursement History"); Spacer(Modifier.height(4.dp))
     Text(
-        "Showing ${monthsLabelCount(eligible, state.zone)} with eligible rides.",
+        "Showing ${monthsLabelCount(reimbursableShifts, state.zone)} with ride reimbursements.",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     Spacer(Modifier.height(8.dp))
-    val months = eligible.map { YearMonth.from(it.startTime.atZone(state.zone)) }.distinct().sortedDescending()
+    val months = reimbursableShifts.map { YearMonth.from(it.startTime.atZone(state.zone)) }.distinct().sortedDescending()
     months.forEach { month ->
-        val monthShifts = eligible.filter { YearMonth.from(it.startTime.atZone(state.zone)) == month }
+        val monthShifts = reimbursableShifts.filter { YearMonth.from(it.startTime.atZone(state.zone)) == month }
         val monthShiftIds = monthShifts.mapTo(mutableSetOf()) { it.id }
         RefundMonthCard(
             month = month,
@@ -1907,9 +1916,6 @@ private fun ReportRow(label: String, value: String, valueColor: Color = AuroraIn
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-private fun isRefundEligible(shift: Shift): Boolean = shift.isCompleted &&
-    (RefundPolicy.checkToWorkEligibility(shift).eligible || RefundPolicy.checkFromWorkEligibility(shift).eligible)
 
 private fun submittedExportRows(
     shifts: List<Shift>,
