@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -82,6 +83,40 @@ internal fun themeOptions(): List<Pair<String, String>> = listOf(
 @Composable
 internal fun dayLabels(): List<String> = stringArrayResource(R.array.weekday_short_labels).toList()
 
+@Composable
+internal fun clockStyleDisplayName(style: ClockStyle): String = stringResource(
+    when (style) {
+        ClockStyle.CLASSIC -> R.string.clock_style_classic
+        ClockStyle.MINIMAL -> R.string.clock_style_minimal
+        ClockStyle.FOCUS -> R.string.clock_style_focus
+        ClockStyle.BOLD -> R.string.clock_style_bold
+        ClockStyle.NIGHT -> R.string.clock_style_night
+        ClockStyle.RETRO -> R.string.clock_style_retro
+        ClockStyle.AURORA -> R.string.clock_style_aurora
+        ClockStyle.PULSE -> R.string.clock_style_pulse
+        ClockStyle.DIAL -> R.string.clock_style_dial
+        ClockStyle.STRAND -> R.string.clock_style_strand
+        ClockStyle.PRISM -> R.string.clock_style_prism
+        ClockStyle.SAND -> R.string.clock_style_sand
+        ClockStyle.BLOCKS -> R.string.clock_style_blocks
+        ClockStyle.ORBIT -> R.string.clock_style_orbit
+    },
+)
+
+@Composable
+internal fun currencyDisplayName(currency: CurrencyCode): String = stringResource(
+    when (currency) {
+        CurrencyCode.ILS -> R.string.currency_ils
+        CurrencyCode.USD -> R.string.currency_usd
+        CurrencyCode.EUR -> R.string.currency_eur
+        CurrencyCode.GBP -> R.string.currency_gbp
+        CurrencyCode.CAD -> R.string.currency_cad
+        CurrencyCode.AUD -> R.string.currency_aud
+        CurrencyCode.JPY -> R.string.currency_jpy
+        CurrencyCode.CHF -> R.string.currency_chf
+    },
+)
+
 internal fun minutesToHours(minutes: Int): String {
     val h = minutes / 60.0
     return if (h == h.toLong().toDouble()) h.toLong().toString() else "%.2f".format(h)
@@ -95,7 +130,7 @@ internal fun appearanceSummary(theme: String, clockStyle: ClockStyle, clockStyle
     return if (clockStylesEnabled) {
         val face = stringResource(
             R.string.settings_summary_face,
-            clockStyle.name.lowercase().replaceFirstChar(Char::uppercase),
+            clockStyleDisplayName(clockStyle),
         )
         "$themeLabel · $face"
     } else {
@@ -170,6 +205,7 @@ internal fun ThemeSegmentedControl(selected: String, onSelect: (String) -> Unit)
  */
 @Composable
 internal fun LanguageSegmentedControl() {
+    val context = LocalContext.current
     val current = AppLanguage.current()
     Column {
         Text(
@@ -182,18 +218,18 @@ internal fun LanguageSegmentedControl() {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = current == AppLanguage.SYSTEM,
-                onClick = { AppLanguage.apply(AppLanguage.SYSTEM) },
+                onClick = { AppLanguage.apply(context, AppLanguage.SYSTEM) },
                 label = { Text(stringResource(R.string.settings_language_system)) },
             )
             // Language names stay in their own language on purpose.
             FilterChip(
                 selected = current == AppLanguage.ENGLISH,
-                onClick = { AppLanguage.apply(AppLanguage.ENGLISH) },
+                onClick = { AppLanguage.apply(context, AppLanguage.ENGLISH) },
                 label = { Text("English") },
             )
             FilterChip(
                 selected = current == AppLanguage.HEBREW,
-                onClick = { AppLanguage.apply(AppLanguage.HEBREW) },
+                onClick = { AppLanguage.apply(context, AppLanguage.HEBREW) },
                 label = { Text("עברית") },
             )
         }
@@ -227,7 +263,7 @@ internal fun CurrencyDropdown(selected: CurrencyCode, onSelect: (CurrencyCode) -
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
-            value = "${selected.symbol}  ${selected.name} - ${selected.displayName}",
+            value = "${selected.symbol}  ${selected.name} - ${currencyDisplayName(selected)}",
             onValueChange = {},
             readOnly = true,
             label = { Text(stringResource(R.string.settings_currency)) },
@@ -237,7 +273,7 @@ internal fun CurrencyDropdown(selected: CurrencyCode, onSelect: (CurrencyCode) -
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             CurrencyCode.entries.forEach { currency ->
                 DropdownMenuItem(
-                    text = { Text("${currency.symbol}  ${currency.name} - ${currency.displayName}") },
+                    text = { Text("${currency.symbol}  ${currency.name} - ${currencyDisplayName(currency)}") },
                     onClick = { onSelect(currency); expanded = false },
                 )
             }
@@ -279,7 +315,7 @@ internal fun ClockStyleDropdown(selected: ClockStyle, onSelect: (ClockStyle) -> 
                                 WatchFacePreview(style, isSelected)
                                 Spacer(Modifier.height(6.dp))
                                 Text(
-                                    style.name.lowercase().replaceFirstChar(Char::uppercase),
+                                    clockStyleDisplayName(style),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
                                 )

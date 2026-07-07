@@ -1,5 +1,6 @@
 package com.elmtrackr.wear.tile
 
+import com.elmtrackr.wear.R
 import androidx.concurrent.futures.CallbackToFutureAdapter
 import androidx.wear.tiles.ActionBuilders
 import androidx.wear.tiles.ColorBuilders
@@ -58,13 +59,13 @@ class ElmTrackrTileService : TileService() {
         val primaryLabel = if (snapshot.signedIn) {
             if (snapshot.isActive) display.elapsedHms else display.primaryTimeLabel
         } else {
-            "Sign in"
+            getString(R.string.tile_sign_in)
         }
         val secondaryLabel = when {
-            !snapshot.signedIn -> "on phone"
-            snapshot.isActive -> "tap to punch out"
+            !snapshot.signedIn -> getString(R.string.tile_on_phone)
+            snapshot.isActive -> getString(R.string.tile_tap_punch_out)
             display.snapshot.lastPunchLabel.isNotBlank() -> display.snapshot.lastPunchLabel
-            else -> "tap to punch in"
+            else -> getString(R.string.tile_tap_punch_in)
         }
 
         val root = LayoutElementBuilders.Column.Builder()

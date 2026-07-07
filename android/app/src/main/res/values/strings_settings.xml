@@ -212,6 +212,42 @@
     <string name="settings_count_pending">%1$s pending</string>
     <string name="settings_failed_row_meta">%1$s · %2$s</string>
 
+    <!-- Save/account feedback -->
+    <string name="settings_feedback_saved">Settings saved</string>
+    <string name="settings_feedback_save_failed">Could not save settings</string>
+    <string name="settings_feedback_fix_fields">Fix the highlighted fields before saving</string>
+    <string name="settings_feedback_account_deleted">Account deleted</string>
+    <string name="settings_feedback_local_cleared">Local data cleared</string>
+    <string name="settings_feedback_reset_sent">Reset link sent to %1$s. Check your inbox.</string>
+    <string name="settings_feedback_profile_created">Profile created</string>
+    <string name="settings_feedback_create_failed">Create failed</string>
+    <string name="settings_feedback_rules_saved">Compensation rules saved</string>
+    <string name="settings_error_no_comp_profile">No compensation profile found. Open Payroll settings or complete onboarding.</string>
+
+    <!-- Field validation -->
+    <string name="settings_error_positive">Must be positive</string>
+    <string name="settings_error_max_24">Cannot exceed 24 hours</string>
+    <string name="settings_error_max_168">Cannot exceed 168 hours</string>
+    <string name="settings_error_weekly_gte_daily">Must be ≥ daily threshold</string>
+    <string name="settings_error_rate_nonnegative">Must be zero or positive</string>
+
+    <!-- Sync status / feedback -->
+    <string name="sync_synced_just_now">Synced just now</string>
+    <string name="sync_synced_min_ago">Synced %1$d min ago</string>
+    <string name="sync_synced_today_at">Synced today at %1$s</string>
+    <string name="sync_synced_on">Synced on %1$s</string>
+    <string name="sync_failed_with">Sync failed — %1$s</string>
+    <string name="sync_finished">Sync finished</string>
+    <string name="sync_failed">Sync failed</string>
+    <string name="sync_session_expired">Your session has expired. Sign in again to resume syncing.</string>
+    <string name="sync_backup_ready">Backup ready to share</string>
+    <string name="sync_export_failed">Could not export backup</string>
+    <string name="sync_import_failed">Could not import backup</string>
+    <string name="sync_import_nothing_new">Nothing to import — everything in this backup already exists.</string>
+    <string name="sync_import_empty">The backup contained no data to import.</string>
+    <string name="sync_import_count">Imported %1$d items.</string>
+    <string name="sync_import_count_skipped">Imported %1$d items (%2$d already existed).</string>
+
     <!-- Shared list UI -->
     <string name="settings_unsaved_change">%1$s unsaved change</string>
     <string name="settings_unsaved_changes">%1$s unsaved changes</string>

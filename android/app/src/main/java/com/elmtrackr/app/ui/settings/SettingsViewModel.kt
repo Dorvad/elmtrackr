@@ -2,10 +2,12 @@ package com.elmtrackr.app.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.R
 import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.AuthResult
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Profile
@@ -55,11 +57,11 @@ class SettingsViewModel @Inject constructor(
 
     private val _isSaving = MutableStateFlow(false)
     private val _isSyncing = MutableStateFlow(false)
-    private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
-    private val _passwordResetFeedback = MutableStateFlow<String?>(null)
+    private val _validationErrors = MutableStateFlow<Map<String, UiText>>(emptyMap())
+    private val _passwordResetFeedback = MutableStateFlow<UiText?>(null)
     private val _saveFeedback = MutableStateFlow<SettingsSaveFeedback?>(null)
     private val _isDeletingAccount = MutableStateFlow(false)
-    private val _accountActionFeedback = MutableStateFlow<String?>(null)
+    private val _accountActionFeedback = MutableStateFlow<UiText?>(null)
 
     private data class CoreData(
         val settings: UserSettings?,
@@ -216,7 +218,7 @@ class SettingsViewModel @Inject constructor(
         if (errors.isNotEmpty()) {
             _validationErrors.value = errors
             _saveFeedback.value = SettingsSaveFeedback(
-                message = "Fix the highlighted fields before saving",
+                message = UiText.Res(R.string.settings_feedback_fix_fields),
                 isError = true,
             )
             return
@@ -227,13 +229,13 @@ class SettingsViewModel @Inject constructor(
             val currentProfile = authRepository.getCurrentProfile()
                 ?: run {
                     _isSaving.value = false
-                    _saveFeedback.value = SettingsSaveFeedback("Could not save settings", isError = true)
+                    _saveFeedback.value = SettingsSaveFeedback(UiText.Res(R.string.settings_feedback_save_failed), isError = true)
                     return@launch
                 }
             val existing = settingsRepository.getSettings(currentProfile.id)
                 ?: run {
                     _isSaving.value = false
-                    _saveFeedback.value = SettingsSaveFeedback("Could not save settings", isError = true)
+                    _saveFeedback.value = SettingsSaveFeedback(UiText.Res(R.string.settings_feedback_save_failed), isError = true)
                     return@launch
                 }
             val flags = featureFlags ?: SettingsFeatureFlags(
@@ -302,7 +304,7 @@ class SettingsViewModel @Inject constructor(
                 )
             }
             _isSaving.value = false
-            _saveFeedback.value = SettingsSaveFeedback("Settings saved")
+            _saveFeedback.value = SettingsSaveFeedback(UiText.Res(R.string.settings_feedback_saved))
         }
     }
 
@@ -319,9 +321,9 @@ class SettingsViewModel @Inject constructor(
             _isDeletingAccount.value = true
             when (val result = authRepository.deleteAccount()) {
                 is AuthResult.Success ->
-                    _accountActionFeedback.value = "Account deleted"
+                    _accountActionFeedback.value = UiText.Res(R.string.settings_feedback_account_deleted)
                 is AuthResult.NotConfigured ->
-                    _accountActionFeedback.value = "Local data cleared"
+                    _accountActionFeedback.value = UiText.Res(R.string.settings_feedback_local_cleared)
                 is AuthResult.Error ->
                     _accountActionFeedback.value = result.message
             }
@@ -330,11 +332,11 @@ class SettingsViewModel @Inject constructor(
     }
 
     private data class AccountExtras(
-        val errors: Map<String, String>,
-        val resetFeedback: String?,
+        val errors: Map<String, UiText>,
+        val resetFeedback: UiText?,
         val saveFeedback: SettingsSaveFeedback?,
         val deleting: Boolean,
-        val accountFeedback: String?,
+        val accountFeedback: UiText?,
     )
 
     fun updateFeatureFlag(feature: FeatureFlag, enabled: Boolean) {
@@ -382,9 +384,9 @@ class SettingsViewModel @Inject constructor(
             val profile = authRepository.getCurrentProfile() ?: return@launch
             when (val result = authRepository.resetPassword(profile.email)) {
                 is AuthResult.Success ->
-                    _passwordResetFeedback.value = "Reset link sent to ${profile.email}. Check your inbox."
+                    _passwordResetFeedback.value = UiText.Res(R.string.settings_feedback_reset_sent, profile.email)
                 is AuthResult.NotConfigured ->
-                    _passwordResetFeedback.value = "Supabase is not configured."
+                    _passwordResetFeedback.value = UiText.Res(R.string.auth_error_not_configured)
                 is AuthResult.Error ->
                     _passwordResetFeedback.value = result.message
             }
@@ -434,16 +436,16 @@ class SettingsViewModel @Inject constructor(
         dailyOtHours: Double,
         weeklyOtHours: Double,
         hourlyRate: Double?,
-    ): Map<String, String> {
-        val errors = mutableMapOf<String, String>()
-        if (dailyOtHours <= 0.0) errors["dailyOt"] = "Must be positive"
-        else if (dailyOtHours > 24.0) errors["dailyOt"] = "Cannot exceed 24 hours"
-        if (weeklyOtHours <= 0.0) errors["weeklyOt"] = "Must be positive"
-        else if (weeklyOtHours > 168.0) errors["weeklyOt"] = "Cannot exceed 168 hours"
+    ): Map<String, UiText> {
+        val errors = mutableMapOf<String, UiText>()
+        if (dailyOtHours <= 0.0) errors["dailyOt"] = UiText.Res(R.string.settings_error_positive)
+        else if (dailyOtHours > 24.0) errors["dailyOt"] = UiText.Res(R.string.settings_error_max_24)
+        if (weeklyOtHours <= 0.0) errors["weeklyOt"] = UiText.Res(R.string.settings_error_positive)
+        else if (weeklyOtHours > 168.0) errors["weeklyOt"] = UiText.Res(R.string.settings_error_max_168)
         else if (dailyOtHours > 0 && weeklyOtHours < dailyOtHours) {
-            errors["weeklyOt"] = "Must be ≥ daily threshold"
+            errors["weeklyOt"] = UiText.Res(R.string.settings_error_weekly_gte_daily)
         }
-        if (hourlyRate != null && hourlyRate < 0.0) errors["hourlyRate"] = "Must be zero or positive"
+        if (hourlyRate != null && hourlyRate < 0.0) errors["hourlyRate"] = UiText.Res(R.string.settings_error_rate_nonnegative)
         return errors
     }
 }

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bottom/side navigation tabs -->
+    <string name="nav_home">בית</string>
+    <string name="nav_shifts">משמרות</string>
+    <string name="nav_reports">דוחות</string>
+    <string name="nav_settings">הגדרות</string>
+    <string name="nav_tab_selected">%1$s, נבחר</string>
+
+    <!-- Region presets -->
+    <string name="region_us_label">ארה״ב (פדרלי / FLSA)</string>
+    <string name="region_us_desc">שעות נוספות שבועיות בלבד (‏1.5× אחרי 40 שעות בשבוע לפי ה־FLSA). בלי שעות נוספות יומיות — אפשר לערוך אם המדינה שלך דורשת. תוספת חג חלה רק על משמרות שסומנו כמיוחדות; היא לא מחויבת פדרלית.</string>
+    <string name="region_us_ca_label">ארה״ב (קליפורניה)</string>
+    <string name="region_us_ca_desc">שעות נוספות בסגנון קליפורניה (‏1.5× אחרי 8 שע׳, ‏2× אחרי 12 שע׳), ש״נ שבועיות מ־40 שע׳, ותוספת יום עבודה שביעי ברצף (‏1.5× ל־8 הראשונות, ‏2× אחר כך). כדאי להתאים למקום העבודה.</string>
+    <string name="region_gb_label">בריטניה</string>
+    <string name="region_gb_desc">החוק הבריטי לא קובע תוספת חובה לשעות נוספות או לחגי בנק, ולכן שעות נוספות מתחילות כבויות — השכר לפי החוזה. תבנית ‏1.5× אחרי 48 שעות בשבוע מוכנה אם מפעילים שעות נוספות; כדאי להתאים לחוזה.</string>
+    <string name="region_eu_label">האיחוד האירופי</string>
+    <string name="region_eu_desc">ברירות מחדל להמחשה בלבד — חוקי שעות נוספות ותוספות משתנים מאוד בין מדינות האיחוד. כדאי להתאים למדינה ולחוזה שלך.</string>
+    <string name="region_il_label">ישראל</string>
+    <string name="region_il_desc">נקודת התחלה מומלצת לשעות נוספות יומיות/שבועיות ולמדרגות סופ״ש וחג בסגנון ישראלי. כדאי להתאים למקום העבודה.</string>
+    <string name="region_custom_label">מותאם אישית / ידני</string>
+    <string name="region_custom_desc">מתחילים מדף חלק ומגדירים את כל כללי התגמול בעצמך.</string>
+
+    <!-- Premium stacking policies -->
+    <string name="stacking_highest_title">הגבוה בלבד</string>
+    <string name="stacking_highest_helper">כשחלות כמה תוספות (למשל שעות נוספות ולילה), נלקח רק התעריף הגבוה מביניהן — התוספות לא מצטברות זו על זו.</string>
+    <string name="stacking_additive_title">מצטבר</string>
+    <string name="stacking_additive_helper" formatted="false">כשחלות כמה תוספות, הן מתווספות זו על גבי זו לתעריף הנוכחי (למשל 150% שעות נוספות ועוד 25% לילה = 175%).</string>
+    <string name="stacking_multiplicative_title">מכפלתי</string>
+    <string name="stacking_multiplicative_helper" formatted="false">כשחלות כמה תוספות, מכפיל אחד מוחל על גבי השני (למשל 150% שעות נוספות × 125% לילה = 187.5%).</string>
+    <string name="stacking_base_plus_title">בסיס + תוספת</string>
+    <string name="stacking_base_plus_helper">שעות נוספות מחושבות על תעריף הבסיס, והתוספת מתווספת כשורה נפרדת מעליו.</string>
+    <string name="stacking_premium_in_rr_title">תוספת בתוך התעריף הרגיל</string>
+    <string name="stacking_premium_in_rr_helper">נלקח התעריף הגבוה שחל כאן; התוספת נכללת בבסיס לחישוב שעות נוספות על תוספות משמרת.</string>
+    <string name="stacking_excluded_rr_title">מחוץ לתעריף הרגיל</string>
+    <string name="stacking_excluded_rr_helper">נלקח התעריף הגבוה שחל כאן; התוספת נשארת מחוץ לבסיס השעות הנוספות על תוספות משמרת.</string>
+
+    <!-- Compensation guidance and disclaimers -->
+    <string name="comp_rules_guidance">אם לא ברור אילו כללי תגמול חלים על העבודה שלך, כדאי לבדוק מול המעסיק, משאבי אנוש או השכר, ומול מקורות רשמיים של דיני העבודה באזור שלך לפני שמגדירים כאן.</string>
+    <string name="comp_disclaimer">‏ElmTrackr נותן הערכת שכר לפי הכללים שהוגדרו. השכר בפועל עשוי להשתנות בגלל מסים, ניכויים, מדיניות מעסיק, נהלי שכר, הסכמים קיבוציים, דיני עבודה מקומיים וכללים נוספים. ‏ElmTrackr לא נותן ייעוץ משפטי, מס, שכר, חשבונאי או פיננסי.</string>
+    <string name="comp_estimate_note">הערכה בלבד. השכר בפועל עשוי להשתנות.</string>
+    <string name="comp_profile_helper">הערכות השכר מבוססות על הפרופיל הזה. השכר בפועל עשוי להשתנות לפי מסים, ניכויים, מדיניות מעסיק, רגולציה מקומית וכללי שכר.</string>
+
+    <!-- Clock style names -->
+    <string name="clock_style_classic">קלאסי</string>
+    <string name="clock_style_minimal">מינימלי</string>
+    <string name="clock_style_focus">פוקוס</string>
+    <string name="clock_style_bold">מודגש</string>
+    <string name="clock_style_night">לילה</string>
+    <string name="clock_style_retro">רטרו</string>
+    <string name="clock_style_aurora">אורורה</string>
+    <string name="clock_style_pulse">פולס</string>
+    <string name="clock_style_dial">חוגה</string>
+    <string name="clock_style_strand">רצועה</string>
+    <string name="clock_style_prism">פריזמה</string>
+    <string name="clock_style_sand">חול</string>
+    <string name="clock_style_blocks">בלוקים</string>
+    <string name="clock_style_orbit">אורביט</string>
+
+    <!-- Currency display names -->
+    <string name="currency_ils">שקל חדש</string>
+    <string name="currency_usd">דולר אמריקאי</string>
+    <string name="currency_eur">אירו</string>
+    <string name="currency_gbp">לירה שטרלינג</string>
+    <string name="currency_cad">דולר קנדי</string>
+    <string name="currency_aud">דולר אוסטרלי</string>
+    <string name="currency_jpy">ין יפני</string>
+    <string name="currency_chf">פרנק שוויצרי</string>
+
+    <!-- Sync entity types -->
+    <string name="sync_entity_tasks">משימות</string>
+    <string name="sync_entity_shifts">משמרות</string>
+    <string name="sync_entity_refund_claims">בקשות החזר</string>
+    <string name="sync_entity_settings">הגדרות</string>
+    <string name="sync_entity_pay_profiles">פרופילי שכר</string>
+</resources>

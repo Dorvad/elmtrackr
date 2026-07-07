@@ -32,7 +32,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.ui.common.resolve
 import com.elmtrackr.app.security.BiometricAuthPrompt
 import com.elmtrackr.app.security.BiometricCapability
 import com.elmtrackr.app.ui.auth.AuthUiState
@@ -227,16 +229,18 @@ private fun SettingsFormHost(
             AuroraHaptics.success(haptic)
         }
         snackbarHostState.showSnackbar(
-            message = feedback.message,
+            message = feedback.message.resolve(context),
             duration = if (feedback.isError) SnackbarDuration.Long else SnackbarDuration.Short,
         )
         onDismissSaveFeedback()
     }
     LaunchedEffect(state.accountActionFeedback) {
         val feedback = state.accountActionFeedback ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(message = feedback, duration = SnackbarDuration.Long)
+        snackbarHostState.showSnackbar(message = feedback.resolve(context), duration = SnackbarDuration.Long)
         onDismissAccountFeedback()
-        if (feedback == "Account deleted" || feedback == "Local data cleared") {
+        val signsOut = feedback == UiText.Res(R.string.settings_feedback_account_deleted) ||
+            feedback == UiText.Res(R.string.settings_feedback_local_cleared)
+        if (signsOut) {
             onSignOut()
         }
     }

@@ -78,6 +78,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.R
 import com.elmtrackr.app.language.AppLanguage
+import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.RegionCode
@@ -86,6 +87,8 @@ import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.ui.design.AppLogo
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.settings.IanaTimezonePicker
+import com.elmtrackr.app.ui.settings.clockStyleDisplayName
+import com.elmtrackr.app.ui.settings.currencyDisplayName
 import com.elmtrackr.app.ui.settings.WatchFacePreview
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
@@ -299,10 +302,10 @@ fun OnboardingScreen(
                                 displayName = displayName.trim(),
                                 hourlyRate = hourlyRate,
                                 currency = currency,
-                                regionLabel = RegionPresets.forRegion(regionCode).label,
+                                regionLabel = stringResource(RegionPresets.forRegion(regionCode).labelRes),
                                 weekendDays = weekendDays,
                                 enabledCount = listOf(travelRefunds, insights, enableAppLock).count { it },
-                                error = (state as? OnboardingUiState.ValidationError)?.errors?.values?.firstOrNull(),
+                                error = (state as? OnboardingUiState.ValidationError)?.errors?.values?.firstOrNull()?.asString(),
                                 onBack = { step = 8 },
                                 onFinish = {
                                     viewModel.completeOnboarding(
@@ -393,6 +396,7 @@ internal fun LanguageStep(onNext: () -> Unit) {
     // Selection reflects the language the UI is currently rendered in;
     // picking a language applies it immediately (recreating the activity),
     // and rememberSaveable keeps the flow on this step.
+    val context = LocalContext.current
     val uiLanguage = LocalConfiguration.current.locales[0]?.language
     val hebrewSelected = uiLanguage == "he" || uiLanguage == "iw"
     SetupHero(
@@ -408,14 +412,14 @@ internal fun LanguageStep(onNext: () -> Unit) {
             subtitle = "Track your hours in English",
             selected = !hebrewSelected,
             layoutDirection = LayoutDirection.Ltr,
-            onClick = { AppLanguage.apply(AppLanguage.ENGLISH) },
+            onClick = { AppLanguage.apply(context, AppLanguage.ENGLISH) },
         )
         LanguageOptionCard(
             title = "עברית",
             subtitle = "לעקוב אחרי השעות שלך בעברית",
             selected = hebrewSelected,
             layoutDirection = LayoutDirection.Rtl,
-            onClick = { AppLanguage.apply(AppLanguage.HEBREW) },
+            onClick = { AppLanguage.apply(context, AppLanguage.HEBREW) },
         )
         Spacer(Modifier.height(4.dp))
         Text(
@@ -501,10 +505,10 @@ internal fun RegionStep(
                 ),
             ) {
                 Column(Modifier.padding(14.dp)) {
-                    Text(preset.label, fontWeight = FontWeight.Bold)
+                    Text(stringResource(preset.labelRes), fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        preset.description,
+                        stringResource(preset.descriptionRes),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -607,7 +611,7 @@ internal fun PaySetupStep(
                             Spacer(Modifier.width(8.dp))
                             Column {
                                 Text(option.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                Text(option.displayName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                Text(currencyDisplayName(option), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                             }
                         }
                     }
@@ -1014,7 +1018,7 @@ private fun ClockStyleCard(style: ClockStyle, selected: Boolean, modifier: Modif
         Column(Modifier.fillMaxWidth().padding(9.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             WatchFacePreview(style, selected)
             Spacer(Modifier.height(7.dp))
-            Text(style.name.lowercase().replaceFirstChar(Char::uppercase), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+            Text(clockStyleDisplayName(style), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

@@ -212,6 +212,42 @@
     <string name="settings_count_pending">%1$s ממתינים</string>
     <string name="settings_failed_row_meta">%1$s · %2$s</string>
 
+    <!-- Save/account feedback -->
+    <string name="settings_feedback_saved">ההגדרות נשמרו</string>
+    <string name="settings_feedback_save_failed">שמירת ההגדרות לא הצליחה</string>
+    <string name="settings_feedback_fix_fields">צריך לתקן את השדות המסומנים לפני השמירה</string>
+    <string name="settings_feedback_account_deleted">החשבון נמחק</string>
+    <string name="settings_feedback_local_cleared">המידע המקומי נמחק</string>
+    <string name="settings_feedback_reset_sent">קישור איפוס נשלח אל %1$s. כדאי לבדוק את תיבת הדואר.</string>
+    <string name="settings_feedback_profile_created">הפרופיל נוצר</string>
+    <string name="settings_feedback_create_failed">היצירה לא הצליחה</string>
+    <string name="settings_feedback_rules_saved">כללי התגמול נשמרו</string>
+    <string name="settings_error_no_comp_profile">לא נמצא פרופיל תגמול. אפשר לפתוח את הגדרות השכר או להשלים את ההגדרה הראשונית.</string>
+
+    <!-- Field validation -->
+    <string name="settings_error_positive">חייב להיות גדול מאפס</string>
+    <string name="settings_error_max_24">לא יותר מ־24 שעות</string>
+    <string name="settings_error_max_168">לא יותר מ־168 שעות</string>
+    <string name="settings_error_weekly_gte_daily">חייב להיות לפחות כמו הסף היומי</string>
+    <string name="settings_error_rate_nonnegative">חייב להיות אפס או יותר</string>
+
+    <!-- Sync status / feedback -->
+    <string name="sync_synced_just_now">סונכרן ממש עכשיו</string>
+    <string name="sync_synced_min_ago">סונכרן לפני %1$d דק׳</string>
+    <string name="sync_synced_today_at">סונכרן היום ב־%1$s</string>
+    <string name="sync_synced_on">סונכרן ב־%1$s</string>
+    <string name="sync_failed_with">הסנכרון נכשל — %1$s</string>
+    <string name="sync_finished">הסנכרון הסתיים</string>
+    <string name="sync_failed">הסנכרון נכשל</string>
+    <string name="sync_session_expired">החיבור לחשבון פג. צריך להתחבר שוב כדי להמשיך לסנכרן.</string>
+    <string name="sync_backup_ready">הגיבוי מוכן לשיתוף</string>
+    <string name="sync_export_failed">ייצוא הגיבוי לא הצליח</string>
+    <string name="sync_import_failed">ייבוא הגיבוי לא הצליח</string>
+    <string name="sync_import_nothing_new">אין מה לייבא — כל מה שבגיבוי כבר קיים.</string>
+    <string name="sync_import_empty">בגיבוי לא היו נתונים לייבוא.</string>
+    <string name="sync_import_count">יובאו %1$d פריטים.</string>
+    <string name="sync_import_count_skipped">יובאו %1$d פריטים (%2$d כבר היו קיימים).</string>
+
     <!-- Shared list UI -->
     <string name="settings_unsaved_change">%1$s שינוי לא שמור</string>
     <string name="settings_unsaved_changes">%1$s שינויים לא שמורים</string>

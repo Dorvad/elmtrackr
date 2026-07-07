@@ -1,46 +1,46 @@
 package com.elmtrackr.app.data.auth
 
+import com.elmtrackr.app.R
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class AuthErrorMapperTest {
 
     @Test
-    fun `invalid credentials message does not expose request details`() {
+    fun `invalid credentials map to the credentials resource, never raw details`() {
         val rawError = IllegalStateException(
             "invalid_credentials: Invalid login credentials " +
                 "URL: https://example.supabase.co/auth/v1/token " +
                 "Headers: Authorization=Bearer secret-token apikey=secret-key",
         )
 
-        val message = AuthErrorMapper.messageFor(rawError, AuthOperation.SIGN_IN)
-
-        assertEquals("Incorrect email or password.", message)
-        assertFalse(message.contains("https://"))
-        assertFalse(message.contains("Authorization"))
-        assertFalse(message.contains("secret"))
+        // Returning a string resource id (not raw text) guarantees the UI can
+        // never leak URLs, headers, or tokens from the underlying exception.
+        assertEquals(
+            R.string.auth_error_incorrect_credentials,
+            AuthErrorMapper.messageResFor(rawError, AuthOperation.SIGN_IN),
+        )
     }
 
     @Test
-    fun `known auth failures have actionable messages`() {
+    fun `known auth failures map to actionable resources`() {
         assertEquals(
-            "Confirm your email before signing in.",
-            AuthErrorMapper.messageFor(
+            R.string.auth_error_confirm_email,
+            AuthErrorMapper.messageResFor(
                 IllegalStateException("email_not_confirmed"),
                 AuthOperation.SIGN_IN,
             ),
         )
         assertEquals(
-            "An account with this email already exists.",
-            AuthErrorMapper.messageFor(
+            R.string.auth_error_account_exists,
+            AuthErrorMapper.messageResFor(
                 IllegalStateException("user_already_exists"),
                 AuthOperation.SIGN_UP,
             ),
         )
         assertEquals(
-            "Too many attempts. Please wait and try again.",
-            AuthErrorMapper.messageFor(
+            R.string.auth_error_rate_limited,
+            AuthErrorMapper.messageResFor(
                 IllegalStateException("over_email_send_rate_limit"),
                 AuthOperation.PASSWORD_RESET,
             ),
@@ -50,15 +50,15 @@ class AuthErrorMapperTest {
     @Test
     fun `network failures and unknown failures use safe fallbacks`() {
         assertEquals(
-            "Check your internet connection and try again.",
-            AuthErrorMapper.messageFor(
+            R.string.auth_error_network,
+            AuthErrorMapper.messageResFor(
                 IllegalStateException("java.net.UnknownHostException"),
                 AuthOperation.SIGN_IN,
             ),
         )
         assertEquals(
-            "Unable to create your account. Please try again.",
-            AuthErrorMapper.messageFor(
+            R.string.auth_error_sign_up,
+            AuthErrorMapper.messageResFor(
                 IllegalStateException("URL: https://example.supabase.co Headers: apikey=secret"),
                 AuthOperation.SIGN_UP,
             ),

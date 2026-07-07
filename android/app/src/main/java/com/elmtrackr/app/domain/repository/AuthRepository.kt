@@ -1,5 +1,6 @@
 package com.elmtrackr.app.domain.repository
 
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.AuthResult
 import com.elmtrackr.app.domain.model.Profile
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +18,7 @@ interface AuthRepository {
     fun observePasswordRecoveryRequired(): Flow<Boolean>
 
     /** Errors from deep-link handling that should be shown on the auth screen. */
-    val deepLinkErrors: SharedFlow<String>
+    val deepLinkErrors: SharedFlow<UiText>
 
     suspend fun getCurrentProfile(): Profile?
 

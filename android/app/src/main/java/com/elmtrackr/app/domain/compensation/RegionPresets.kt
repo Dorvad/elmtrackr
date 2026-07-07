@@ -1,5 +1,7 @@
 package com.elmtrackr.app.domain.compensation
 
+import androidx.annotation.StringRes
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.RegionCode
@@ -8,8 +10,12 @@ import com.elmtrackr.app.domain.model.StackingPolicy
 
 data class RegionPreset(
     val regionCode: RegionCode,
+    // Raw English label/description are kept for logs and tests; UI reads the
+    // localized labelRes/descriptionRes instead.
     val label: String,
     val description: String,
+    @StringRes val labelRes: Int,
+    @StringRes val descriptionRes: Int,
     val currencyCode: String,
     val timezone: String,
     val profileName: String,
@@ -139,6 +145,8 @@ object RegionPresets {
         RegionPreset(
             regionCode = RegionCode.US,
             label = "United States (Federal / FLSA)",
+            labelRes = R.string.region_us_label,
+            descriptionRes = R.string.region_us_desc,
             description = "Weekly overtime only (1.5× after 40 h/week per the FLSA). No daily overtime — edit rules if your state requires daily OT. Holiday premium applies only to shifts you mark as special; it is not federally mandated.",
             currencyCode = "USD",
             timezone = "America/New_York",
@@ -149,6 +157,8 @@ object RegionPresets {
         RegionPreset(
             regionCode = RegionCode.US_CA,
             label = "United States (California)",
+            labelRes = R.string.region_us_ca_label,
+            descriptionRes = R.string.region_us_ca_desc,
             description = "California-style daily OT (1.5× after 8 h, 2× after 12 h), weekly OT at 40 h, and 7th-consecutive-workday premiums (1.5× first 8 h, 2× after). Edit to match your workplace.",
             currencyCode = "USD",
             timezone = "America/Los_Angeles",
@@ -159,6 +169,8 @@ object RegionPresets {
         RegionPreset(
             regionCode = RegionCode.GB,
             label = "United Kingdom",
+            labelRes = R.string.region_gb_label,
+            descriptionRes = R.string.region_gb_desc,
             description = "UK law sets no statutory overtime or bank-holiday premium, so overtime starts disabled — pay follows your contract. A 1.5× after 48 h/week template is ready if you enable overtime; edit it to match your contract.",
             currencyCode = "GBP",
             timezone = "Europe/London",
@@ -169,6 +181,8 @@ object RegionPresets {
         RegionPreset(
             regionCode = RegionCode.EU,
             label = "European Union",
+            labelRes = R.string.region_eu_label,
+            descriptionRes = R.string.region_eu_desc,
             description = "Illustrative defaults only — overtime law and premiums vary significantly by EU member state. Edit to match your country and contract.",
             currencyCode = "EUR",
             timezone = "Europe/Berlin",
@@ -179,6 +193,8 @@ object RegionPresets {
         RegionPreset(
             regionCode = RegionCode.IL,
             label = "Israel",
+            labelRes = R.string.region_il_label,
+            descriptionRes = R.string.region_il_desc,
             description = "Suggested starting point for Israeli-style daily/weekly overtime and weekend/holiday tiers. Edit to match your workplace.",
             currencyCode = "ILS",
             timezone = "Asia/Jerusalem",
@@ -189,6 +205,8 @@ object RegionPresets {
         RegionPreset(
             regionCode = RegionCode.CUSTOM,
             label = "Custom / Manual",
+            labelRes = R.string.region_custom_label,
+            descriptionRes = R.string.region_custom_desc,
             description = "Start with a blank slate and configure all compensation rules yourself.",
             currencyCode = "USD",
             timezone = "UTC",

@@ -37,4 +37,9 @@
     <string name="tasks_chip_a11y_suggested">%1$s, %2$s per hour, suggested now</string>
     <string name="tasks_selected_summary">%1$s %2$s · %3$s/hr</string>
     <string name="tasks_badge_with_rate">%1$s %2$s · %3$s/hr</string>
+
+    <!-- ViewModel messages -->
+    <string name="tasks_msg_saved">Task saved</string>
+    <string name="tasks_msg_archived">Task archived</string>
+    <string name="tasks_msg_deleted">Task deleted</string>
 </resources>

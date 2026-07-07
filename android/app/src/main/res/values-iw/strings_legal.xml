@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="legal_last_updated">עדכון אחרון: %1$s</string>
+    <string name="legal_acceptance_title">הסכמה</string>
+    <string name="legal_acceptance_body">שימוש ב־ElmTrackr מהווה הסכמה לתנאים האלה. מי שלא מסכים — מתבקש לא להשתמש באפליקציה. התרגום לעברית נועד לנוחות בלבד; הנוסח המחייב הוא הנוסח באנגלית.</string>
+    <string name="legal_service_title">תיאור השירות</string>
+    <string name="legal_service_body">‏ElmTrackr הוא מעקב משמרות אישי. נתוני השכר והשעות הנוספות הם הערכה בלבד — לא ייעוץ מס, ייעוץ משפטי או ייעוץ שכר.</string>
+    <string name="legal_account_title">החשבון שלך</string>
+    <string name="legal_account_body">יש לשמור על פרטי ההתחברות. אפשר למחוק את החשבון בכל רגע דרך ההגדרות.</string>
+    <string name="legal_use_title">שימוש מקובל</string>
+    <string name="legal_use_body">אין לעשות שימוש לרעה בשירות או להעלות תוכן לא חוקי. יש לשמור רק צילומי קבלות שיש לך זכות להחזיק.</string>
+    <string name="legal_liability_title">הגבלת אחריות</string>
+    <string name="legal_liability_body">האפליקציה מסופקת כפי שהיא (\"as is\"). איננו אחראים להחלטות שמתקבלות על סמך הערכות או דוחות.</string>
+    <string name="legal_contact_title">יצירת קשר</string>
+    <string name="legal_contact_body">שאלות: %1$s</string>
+</resources>

@@ -11,9 +11,8 @@ import java.util.Locale
 
 object WidgetStateMapper {
 
-    private val dateFormatter = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
-
-    fun map(context: WidgetContext): WidgetShiftState {
+    fun map(context: WidgetContext, locale: Locale = Locale.getDefault()): WidgetShiftState {
+        val dateFormatter = DateTimeFormatter.ofPattern("EEE d MMM", locale)
         val zone = context.settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.systemDefault()
         val today = LocalDate.now(zone)
         val now = Instant.now().atZone(zone)

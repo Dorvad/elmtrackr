@@ -1,5 +1,6 @@
 package com.elmtrackr.wear
 
+import com.elmtrackr.wear.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.wear.sync.WearDisplayMath
@@ -67,7 +68,7 @@ class WearMainViewModel(
         viewModelScope.launch {
             val result = app.wearActionClient.punchIn()
             if (result.success) {
-                app.wearStateRepository.showConfirmation("Clocked in")
+                app.wearStateRepository.showConfirmation(app.getString(R.string.confirmed_in))
             }
         }
     }
@@ -76,7 +77,7 @@ class WearMainViewModel(
         viewModelScope.launch {
             val result = app.wearActionClient.punchOut()
             if (result.success) {
-                app.wearStateRepository.showConfirmation("Clocked out")
+                app.wearStateRepository.showConfirmation(app.getString(R.string.confirmed_out))
             }
         }
     }

@@ -2,6 +2,7 @@ package com.elmtrackr.app.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.R
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.compensation.RegionPresets
@@ -9,6 +10,7 @@ import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.StackingPolicy
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +36,7 @@ class CompensationSettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _isSaving = MutableStateFlow(false)
-    private val _saveMessage = MutableStateFlow<String?>(null)
+    private val _saveMessage = MutableStateFlow<CompensationSaveMessage?>(null)
     private val _bootstrapComplete = MutableStateFlow(false)
     private val _selectedProfileId = MutableStateFlow<String?>(null)
 
@@ -52,7 +54,7 @@ class CompensationSettingsViewModel @Inject constructor(
                 val profiles = values[0] as List<CompensationProfile>
                 val settings = values[1] as com.elmtrackr.app.domain.model.UserSettings?
                 val saving = values[2] as Boolean
-                val message = values[3] as String?
+                val message = values[3] as CompensationSaveMessage?
                 val bootstrapComplete = values[4] as Boolean
                 val selectedId = values[5] as String?
                 val selectedProfile = profiles.firstOrNull { it.id == selectedId }
@@ -62,7 +64,7 @@ class CompensationSettingsViewModel @Inject constructor(
                     settings == null -> CompensationSettingsUiState.Loading
                     selectedProfile == null && !bootstrapComplete -> CompensationSettingsUiState.Loading
                     selectedProfile == null -> CompensationSettingsUiState.Error(
-                        "No compensation profile found. Open Payroll settings or complete onboarding.",
+                        UiText.Res(R.string.settings_error_no_comp_profile),
                     )
                     else -> CompensationSettingsUiState.Ready(
                         profiles = profiles,
@@ -77,7 +79,7 @@ class CompensationSettingsViewModel @Inject constructor(
                 }
             }
         }.catch { e ->
-            emit(CompensationSettingsUiState.Error(e.message ?: "Unknown error"))
+            emit(CompensationSettingsUiState.Error(e.message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.error_generic)))
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -126,9 +128,9 @@ class CompensationSettingsViewModel @Inject constructor(
                     ),
                 )
                 _selectedProfileId.value = created.id
-                _saveMessage.value = "Profile created"
+                _saveMessage.value = CompensationSaveMessage(UiText.Res(R.string.settings_feedback_profile_created), isError = false)
             } catch (e: Exception) {
-                _saveMessage.value = e.message ?: "Create failed"
+                _saveMessage.value = CompensationSaveMessage(UiText.Res(R.string.settings_feedback_create_failed), isError = true)
             } finally {
                 _isSaving.value = false
             }
@@ -172,9 +174,9 @@ class CompensationSettingsViewModel @Inject constructor(
                             .copy(updatedAt = Instant.now()),
                     )
                 }
-                _saveMessage.value = "Compensation rules saved"
+                _saveMessage.value = CompensationSaveMessage(UiText.Res(R.string.settings_feedback_rules_saved), isError = false)
             } catch (e: Exception) {
-                _saveMessage.value = e.message ?: "Save failed"
+                _saveMessage.value = CompensationSaveMessage(UiText.Res(R.string.settings_feedback_save_failed), isError = true)
             } finally {
                 _isSaving.value = false
             }
@@ -196,7 +198,12 @@ sealed interface CompensationSettingsUiState {
         val currencyOptions: List<Pair<String, String>>,
         val timezoneOptions: List<String>,
         val isSaving: Boolean,
-        val saveMessage: String?,
+        val saveMessage: CompensationSaveMessage?,
     ) : CompensationSettingsUiState
-    data class Error(val message: String) : CompensationSettingsUiState
+    data class Error(val message: UiText) : CompensationSettingsUiState
 }
+
+data class CompensationSaveMessage(
+    val text: UiText,
+    val isError: Boolean,
+)

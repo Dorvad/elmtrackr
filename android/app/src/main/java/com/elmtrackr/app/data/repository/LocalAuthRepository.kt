@@ -5,7 +5,9 @@ import com.elmtrackr.app.data.local.dao.ProfileDao
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.AuthResult
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
@@ -31,9 +33,9 @@ class LocalAuthRepository(
 ) : AuthRepository {
 
     private val _passwordRecoveryRequired = MutableStateFlow(false)
-    private val _deepLinkErrors = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    private val _deepLinkErrors = MutableSharedFlow<UiText>(extraBufferCapacity = 1)
 
-    override val deepLinkErrors: SharedFlow<String> = _deepLinkErrors.asSharedFlow()
+    override val deepLinkErrors: SharedFlow<UiText> = _deepLinkErrors.asSharedFlow()
 
     override fun isConfigured(): Boolean = false
 
@@ -67,7 +69,7 @@ class LocalAuthRepository(
 
     override suspend fun deleteAccount(): AuthResult {
         val userId = getCurrentProfile()?.id
-            ?: return AuthResult.Error("No account to delete")
+            ?: return AuthResult.Error(UiText.Res(R.string.auth_error_no_account_to_delete))
         localUserDataCleaner.clearUserData(userId)
         signOut()
         return AuthResult.Success

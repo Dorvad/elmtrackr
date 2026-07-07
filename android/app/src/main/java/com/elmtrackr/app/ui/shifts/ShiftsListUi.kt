@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.domain.MonthlyReportBuilder
@@ -142,7 +143,7 @@ private fun MonthNavRow(
             Icon(Icons.Filled.ChevronLeft, stringResource(R.string.shifts_previous_month), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.mirrorInRtl())
         }
         Text(
-            "${month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.year}",
+            "${month.month.getDisplayName(TextStyle.FULL, appLocale())} ${month.year}",
             modifier = Modifier.padding(horizontal = Spacing.md),
             fontWeight = FontWeight.SemiBold,
             style = MaterialTheme.typography.titleMedium,
@@ -405,7 +406,7 @@ internal fun ShiftsWeekSectionHeader(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                section.label,
+                section.label ?: stringResource(R.string.shifts_this_week),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -446,7 +447,7 @@ internal fun ShiftRow(
         return
     }
 
-    val rowDisplay = display ?: buildShiftRowDisplay(shift, settings, profiles, allShiftsForPay)
+    val rowDisplay = display ?: buildShiftRowDisplay(shift, settings, profiles, allShiftsForPay, locale = appLocale())
 
     val rowModifier = if (grouped) {
         Modifier.fillMaxWidth()

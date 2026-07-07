@@ -58,6 +58,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.R
+import com.elmtrackr.app.domain.model.UiText
+import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.ui.design.AppLogo
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.AuroraMotion
@@ -255,7 +257,7 @@ private fun SignedInContent(
 @Composable
 internal fun SignedOutContent(
     isLoading: Boolean,
-    errorMessage: String?,
+    errorMessage: UiText?,
     onSignIn: (email: String, password: String) -> Unit,
     onSignUp: (email: String, password: String) -> Unit,
     onResetPassword: (email: String) -> Unit,
@@ -397,7 +399,7 @@ internal fun SignedOutContent(
                     errorMessage?.let {
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = it,
+                            text = it.asString(),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.fillMaxWidth(),
@@ -468,7 +470,7 @@ internal fun SignedOutContent(
 @Composable
 private fun PasswordRecoveryContent(
     isLoading: Boolean,
-    errorMessage: String?,
+    errorMessage: UiText?,
     onUpdatePassword: (String) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -556,7 +558,7 @@ private fun PasswordRecoveryContent(
             errorMessage?.let {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = it,
+                    text = it.asString(),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.fillMaxWidth(),

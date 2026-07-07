@@ -8,6 +8,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.elmtrackr.app.MainActivity
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.language.withAppLocale
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -26,6 +27,10 @@ class ActiveShiftNotificationManager(private val context: Context) {
     }
 
     private val notifManager = NotificationManagerCompat.from(context)
+
+    // Strings resolve in the in-app language even on Android 12 and below,
+    // where background contexts otherwise use the system locale.
+    private val localizedContext = context.withAppLocale()
 
     fun showActiveShiftNotification(shift: Shift) {
         if (!notifManager.areNotificationsEnabled()) return
@@ -51,15 +56,15 @@ class ActiveShiftNotificationManager(private val context: Context) {
 
         val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_ACTIVE_SHIFT)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(context.getString(R.string.notif_active_shift_title))
-            .setContentText(context.getString(R.string.notif_active_shift_text, formatStartTime(shift.startTime)))
+            .setContentTitle(localizedContext.getString(R.string.notif_active_shift_title))
+            .setContentText(localizedContext.getString(R.string.notif_active_shift_text, formatStartTime(shift.startTime)))
             .setContentIntent(tapIntent)
             .setOngoing(true)
             .setAutoCancel(false)
             .setWhen(shift.startTime.toEpochMilli())
             .setUsesChronometer(true)   // counts up by default — no setChronometerCountsDown needed
             .setShowWhen(true)
-            .addAction(0, context.getString(R.string.notif_clock_out_action), clockOutPendingIntent)
+            .addAction(0, localizedContext.getString(R.string.notif_clock_out_action), clockOutPendingIntent)
             .build()
 
         @Suppress("MissingPermission")
@@ -119,18 +124,18 @@ class ActiveShiftNotificationManager(private val context: Context) {
         )
 
         val contentText = when (textArg) {
-            is Long -> context.getString(textRes, textArg)
-            is String -> context.getString(textRes, textArg)
-            else -> context.getString(textRes, textArg)
+            is Long -> localizedContext.getString(textRes, textArg)
+            is String -> localizedContext.getString(textRes, textArg)
+            else -> localizedContext.getString(textRes, textArg)
         }
 
         val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_REMINDERS)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(context.getString(titleRes))
+            .setContentTitle(localizedContext.getString(titleRes))
             .setContentText(contentText)
             .setContentIntent(tapIntent)
             .setAutoCancel(true)
-            .addAction(0, context.getString(R.string.notif_clock_out_action), clockOutPendingIntent)
+            .addAction(0, localizedContext.getString(R.string.notif_clock_out_action), clockOutPendingIntent)
             .build()
 
         @Suppress("MissingPermission")

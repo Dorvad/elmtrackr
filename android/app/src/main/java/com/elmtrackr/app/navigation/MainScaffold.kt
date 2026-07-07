@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -40,6 +41,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -323,13 +325,16 @@ private fun ElmBottomNav(
             ),
             label = "bottom-nav-pill-scale",
           )
+          val tabLabel = stringResource(item.labelRes)
+          val tabContentDescription =
+            if (isSelected) stringResource(R.string.nav_tab_selected, tabLabel) else tabLabel
           Column(
             modifier = Modifier
               .weight(1f)
               .semantics(mergeDescendants = true) {
                 role = Role.Tab
                 selected = isSelected
-                contentDescription = "${item.label}${if (isSelected) ", selected" else ""}"
+                contentDescription = tabContentDescription
               }
               .auroraPressScale(interactionSource)
               .clickable(
@@ -371,7 +376,7 @@ private fun ElmBottomNav(
               )
             }
             Text(
-              text = item.label,
+              text = tabLabel,
               fontSize = 10.5.sp,
               lineHeight = 14.sp,
               color = if (isSelected) auroraNavSelectedLabel() else auroraNavUnselectedLabel(),

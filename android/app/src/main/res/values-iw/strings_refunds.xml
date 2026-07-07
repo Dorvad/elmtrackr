@@ -12,6 +12,7 @@
     <string name="refunds_add_receipt_now">הוספת קבלה עכשיו</string>
     <string name="refunds_add_claim">הוספת בקשת החזר</string>
     <string name="refunds_claim_summary">%1$s - %2$s</string>
+    <string name="refunds_date_at_time">%1$s בשעה %2$s</string>
     <string name="refunds_edit">עריכה</string>
     <string name="refunds_view_receipt">צפייה בקבלה</string>
     <string name="refunds_delete">מחיקה</string>
@@ -84,4 +85,27 @@
     <string name="refunds_camera_permission_body">אפשר גם לבחור תמונת קבלה קיימת מהטלפון.</string>
     <string name="refunds_allow_camera">אישור מצלמה</string>
     <string name="refunds_not_now">לא עכשיו</string>
+
+    <!-- ViewModel messages -->
+    <string name="refunds_err_load">טעינת בקשות ההחזר לא הצליחה</string>
+    <string name="refunds_err_scanner">פתיחת סורק הקבלות לא הצליחה</string>
+    <string name="refunds_err_photo_not_saved">צילום הקבלה לא נשמר. כדאי לנסות שוב.</string>
+    <string name="refunds_err_photo_store">לא הצלחנו לשמור את צילום הקבלה. כדאי לנסות שוב.</string>
+    <string name="refunds_err_capture">צילום הקבלה לא הצליח</string>
+    <string name="refunds_err_save_receipt_local">שמירת הקבלה במכשיר לא הצליחה</string>
+    <string name="refunds_err_amount">צריך סכום החזר תקין</string>
+    <string name="refunds_err_photo_missing_large">צילום הקבלה חסר או גדול מ־10 MB.</string>
+    <string name="refunds_err_save_claim">שמירת בקשת ההחזר לא הצליחה</string>
+    <string name="refunds_err_delete_claim">מחיקת בקשת ההחזר לא הצליחה</string>
+    <string name="refunds_err_update_status">עדכון סטטוס ההחזר לא הצליח</string>
+    <string name="refunds_err_no_receipt">לבקשה הזו לא מצורפת קבלה.</string>
+    <string name="refunds_err_receipt_file_missing">קובץ תמונת הקבלה חסר.</string>
+    <string name="refunds_err_preview_unavailable">תצוגת הקבלה לא זמינה כרגע.</string>
+    <string name="refunds_err_image_too_large">צריך לבחור תמונה קטנה מ־10 MB.</string>
+    <string name="refunds_notice_receipt_saved_enter_amount">הקבלה נשמרה במכשיר. צריך להזין את סכום ההחזר לפני הגשת הבקשה.</string>
+    <string name="refunds_notice_receipt_saved_verify">הקבלה נשמרה במכשיר. כדאי לוודא את פרטי הבקשה לפני ההגשה.</string>
+    <string name="refunds_notice_saved_no_receipt">הבקשה נשמרה בלי הקבלה החדשה. העלאת קבלות לא זמינה כרגע; אפשר לצרף אותה מאוחר יותר.</string>
+    <string name="refunds_notice_deleted_cleanup_retry">הבקשה נמחקה. חלק מניקוי הקבלות יתבצע שוב מאוחר יותר.</string>
+    <string name="refunds_notice_deleted_cloud_retry">הבקשה נמחקה. ניקוי הקבלה בענן יתבצע שוב מאוחר יותר.</string>
+    <string name="refunds_notice_deleted_local_failed">הבקשה נמחקה. מחיקת קובץ הקבלה במכשיר לא הצליחה.</string>
 </resources>

@@ -37,4 +37,9 @@
     <string name="tasks_chip_a11y_suggested">%1$s, %2$s לשעה, מוצע עכשיו</string>
     <string name="tasks_selected_summary">%1$s %2$s · %3$s לשעה</string>
     <string name="tasks_badge_with_rate">%1$s %2$s · %3$s לשעה</string>
+
+    <!-- ViewModel messages -->
+    <string name="tasks_msg_saved">המשימה נשמרה</string>
+    <string name="tasks_msg_archived">המשימה הועברה לארכיון</string>
+    <string name="tasks_msg_deleted">המשימה נמחקה</string>
 </resources>

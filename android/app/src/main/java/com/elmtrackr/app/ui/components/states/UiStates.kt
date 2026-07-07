@@ -110,25 +110,34 @@ fun EmptyState(
     }
 }
 
+internal enum class ErrorMessageKind { NETWORK, GENERIC, PASSTHROUGH }
+
 /**
- * Rewrites raw exception text into calm, human wording. Messages that already
- * read like a sentence pass through; class names, stack-trace-ish text, and
- * well-known network failures get a plain-language replacement.
+ * Classifies raw exception text: messages that already read like a sentence
+ * pass through; class names, stack-trace-ish text, and well-known network
+ * failures get a plain-language, localized replacement.
  */
-internal fun humanizeErrorMessage(raw: String?): String {
+internal fun classifyErrorMessage(raw: String?): ErrorMessageKind {
     val message = raw?.trim().orEmpty()
     val lower = message.lowercase()
     return when {
         lower.contains("unknownhost") || lower.contains("unable to resolve host") ||
             lower.contains("connect") && lower.contains("timed out") ||
             lower.contains("timeout") || lower.contains("failed to connect") ->
-            "We couldn't reach the server. Check your connection and try again."
+            ErrorMessageKind.NETWORK
         message.isBlank() || lower == "unknown error" ||
             message.contains("Exception") || message.contains("java.") ||
             message.contains("kotlin") || message.contains("$") ->
-            "We couldn't load your data. Please try again."
-        else -> message
+            ErrorMessageKind.GENERIC
+        else -> ErrorMessageKind.PASSTHROUGH
     }
+}
+
+@Composable
+internal fun humanizeErrorMessage(raw: String?): String = when (classifyErrorMessage(raw)) {
+    ErrorMessageKind.NETWORK -> stringResource(R.string.error_network)
+    ErrorMessageKind.GENERIC -> stringResource(R.string.error_generic)
+    ErrorMessageKind.PASSTHROUGH -> raw?.trim().orEmpty()
 }
 
 @Composable

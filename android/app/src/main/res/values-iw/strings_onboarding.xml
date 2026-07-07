@@ -14,6 +14,10 @@
     <string name="onboarding_language_subtitle">‏ElmTrackr מדבר עברית ואנגלית. אפשר להחליף שפה בכל שלב.</string>
     <string name="onboarding_language_change_later">אפשר לשנות את זה בהמשך: הגדרות ← מראה ושעון.</string>
 
+    <!-- Save failure -->
+    <string name="onboarding_save_failed">השמירה לא הצליחה. כדאי לנסות שוב.</string>
+    <string name="onboarding_sign_in_first">צריך להתחבר לפני סיום ההגדרה הראשונית</string>
+
     <!-- App lock biometric prompt -->
     <string name="onboarding_biometric_prompt_title">הפעלת נעילת אפליקציה</string>
     <string name="onboarding_biometric_prompt_subtitle">אישור קצר כדי לדרוש זיהוי ביומטרי בפתיחת ElmTrackr</string>

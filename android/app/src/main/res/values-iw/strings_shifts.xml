@@ -9,6 +9,7 @@
 
     <!-- ShiftsListUi -->
     <string name="shifts_title">משמרות</string>
+    <string name="shifts_this_week">השבוע</string>
     <string name="shifts_add">הוספה</string>
     <string name="shifts_previous_month">החודש הקודם</string>
     <string name="shifts_next_month">החודש הבא</string>

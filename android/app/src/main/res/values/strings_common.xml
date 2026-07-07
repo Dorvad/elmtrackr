@@ -3,6 +3,8 @@
     <!-- Shared UI states -->
     <string name="common_something_went_wrong">Something went wrong</string>
     <string name="common_try_again">Try again</string>
+    <string name="error_network">We couldn\'t reach the server. Check your connection and try again.</string>
+    <string name="error_generic">We couldn\'t load your data. Please try again.</string>
 
     <!-- First clock-in celebration -->
     <string name="celebration_tracking_title">You\'re tracking!</string>

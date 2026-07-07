@@ -29,8 +29,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.R
+import com.elmtrackr.app.domain.model.UiText
+import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.data.sync.SyncDetails
+import com.elmtrackr.app.data.sync.SyncEntityType
 import com.elmtrackr.app.data.sync.SyncFailedRow
 import com.elmtrackr.app.data.sync.SyncPendingByType
 import com.elmtrackr.app.ui.components.states.ErrorState
@@ -112,13 +116,13 @@ internal fun SyncDetailsContent(
     isSyncing: Boolean,
     isExporting: Boolean,
     isImporting: Boolean,
-    message: String?,
+    message: UiText?,
     onBack: () -> Unit,
     onRetryAll: () -> Unit,
     onExportBackup: () -> Unit,
     onImportBackup: () -> Unit,
 ) {
-    val formatter = DateTimeFormatter.ofPattern("MMM d, yyyy · HH:mm", Locale.getDefault())
+    val formatter = DateTimeFormatter.ofPattern("MMM d, yyyy · HH:mm", appLocale())
 
     LazyColumn(
         modifier = Modifier
@@ -136,7 +140,7 @@ internal fun SyncDetailsContent(
         }
         message?.let {
             item {
-                Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                Text(it.asString(), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
             }
         }
         item {
@@ -146,7 +150,7 @@ internal fun SyncDetailsContent(
                 SettingsInfoRow(stringResource(R.string.settings_when), label)
                 details.lastSyncStatus?.let { status ->
                     Spacer(Modifier.height(8.dp))
-                    SettingsInfoRow(stringResource(R.string.settings_latest_run), SyncStatusText.format(status) ?: status)
+                    SettingsInfoRow(stringResource(R.string.settings_latest_run), SyncStatusText.format(status)?.asString() ?: status)
                 }
             }
         }
@@ -248,7 +252,7 @@ internal fun SyncDetailsContent(
 private fun PendingTypeRow(row: SyncPendingByType) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Column(Modifier.weight(1f)) {
-            Text(row.entityType.label, fontWeight = FontWeight.SemiBold)
+            Text(syncEntityTypeLabel(row.entityType), fontWeight = FontWeight.SemiBold)
             Text(
                 stringResource(R.string.settings_synced_on_device, row.syncedCount),
                 style = MaterialTheme.typography.labelSmall,
@@ -278,7 +282,7 @@ private fun FailedRowItem(row: SyncFailedRow) {
         Text(
             stringResource(
                 R.string.settings_failed_row_meta,
-                row.entityType.label,
+                syncEntityTypeLabel(row.entityType),
                 row.syncStatus.name.replace('_', ' ').lowercase(),
             ),
             style = MaterialTheme.typography.labelSmall,
@@ -294,3 +298,14 @@ private fun FailedRowItem(row: SyncFailedRow) {
         }
     }
 }
+
+@Composable
+private fun syncEntityTypeLabel(type: SyncEntityType): String = stringResource(
+    when (type) {
+        SyncEntityType.TASKS -> R.string.sync_entity_tasks
+        SyncEntityType.SHIFTS -> R.string.sync_entity_shifts
+        SyncEntityType.REFUND_CLAIMS -> R.string.sync_entity_refund_claims
+        SyncEntityType.USER_SETTINGS -> R.string.sync_entity_settings
+        SyncEntityType.COMPENSATION_PROFILES -> R.string.sync_entity_pay_profiles
+    },
+)

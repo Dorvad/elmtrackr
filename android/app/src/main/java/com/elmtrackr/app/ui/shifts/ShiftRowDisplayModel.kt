@@ -23,7 +23,6 @@ internal data class ShiftRowDisplayModel(
 )
 
 private val rowTimeFmt = DateTimeFormatter.ofPattern("HH:mm")
-private val rowWeekdayFmt = DateTimeFormatter.ofPattern("EEE")
 
 internal fun buildShiftRowDisplay(
     shift: Shift,
@@ -31,7 +30,9 @@ internal fun buildShiftRowDisplay(
     profiles: List<CompensationProfile>,
     allShiftsForPay: List<Shift>,
     zone: ZoneId = ZoneId.systemDefault(),
+    locale: Locale = Locale.getDefault(),
 ): ShiftRowDisplayModel {
+    val rowWeekdayFmt = DateTimeFormatter.ofPattern("EEE", locale)
     val zdt = shift.startTime.atZone(zone)
     val weekend = settings?.let { CompensationResolver.isWeekendShift(shift, it, profiles) } == true
     val breakdown = settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it) }
@@ -45,7 +46,7 @@ internal fun buildShiftRowDisplay(
         )
     }
     return ShiftRowDisplayModel(
-        weekday = zdt.format(rowWeekdayFmt).uppercase(Locale.getDefault()),
+        weekday = zdt.format(rowWeekdayFmt).uppercase(locale),
         dayNumber = zdt.dayOfMonth.toString(),
         startText = zdt.format(rowTimeFmt),
         endText = shift.endTime?.atZone(zone)?.format(rowTimeFmt) ?: "",
@@ -78,6 +79,7 @@ internal fun buildShiftsLazyListItems(
     month: java.time.YearMonth,
     settings: UserSettings?,
     profiles: List<CompensationProfile>,
+    locale: Locale = Locale.getDefault(),
 ): List<ShiftsLazyListItem> {
     val sections = ShiftWeekGrouper.groupByWeek(
         shifts = shifts,
@@ -85,6 +87,7 @@ internal fun buildShiftsLazyListItems(
         month = month,
         settings = settings,
         profiles = profiles,
+        locale = locale,
     )
     return buildList {
         sections.forEach { section ->
@@ -96,7 +99,7 @@ internal fun buildShiftsLazyListItems(
                         display = if (shift.isActive) {
                             null
                         } else {
-                            buildShiftRowDisplay(shift, settings, profiles, shifts)
+                            buildShiftRowDisplay(shift, settings, profiles, shifts, locale = locale)
                         },
                         isLastInSection = index == section.shifts.lastIndex,
                     ),

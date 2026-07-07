@@ -5,6 +5,7 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
+import com.elmtrackr.app.language.withAppLocale
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 
@@ -26,7 +27,8 @@ object ElmTrackrWidgetUpdater {
     )
 
     suspend fun update(context: Context, contextData: WidgetContext) {
-        val state = WidgetStateMapper.map(contextData)
+        val locale = context.withAppLocale().resources.configuration.locales[0] ?: java.util.Locale.getDefault()
+        val state = WidgetStateMapper.map(contextData, locale)
         if (state.isActive) {
             WidgetTimerScheduler.schedule(context)
         } else {

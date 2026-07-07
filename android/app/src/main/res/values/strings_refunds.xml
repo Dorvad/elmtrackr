@@ -12,6 +12,7 @@
     <string name="refunds_add_receipt_now">Add receipt now</string>
     <string name="refunds_add_claim">Add refund claim</string>
     <string name="refunds_claim_summary">%1$s - %2$s</string>
+    <string name="refunds_date_at_time">%1$s at %2$s</string>
     <string name="refunds_edit">Edit</string>
     <string name="refunds_view_receipt">View receipt</string>
     <string name="refunds_delete">Delete</string>
@@ -84,4 +85,27 @@
     <string name="refunds_camera_permission_body">You can still choose an existing receipt image from your phone.</string>
     <string name="refunds_allow_camera">Allow camera</string>
     <string name="refunds_not_now">Not now</string>
+
+    <!-- ViewModel messages -->
+    <string name="refunds_err_load">Unable to load refund claims</string>
+    <string name="refunds_err_scanner">Unable to open the receipt scanner</string>
+    <string name="refunds_err_photo_not_saved">The receipt photo was not saved. Try again.</string>
+    <string name="refunds_err_photo_store">The receipt photo could not be stored. Try again.</string>
+    <string name="refunds_err_capture">Unable to capture receipt photo</string>
+    <string name="refunds_err_save_receipt_local">Unable to save receipt locally</string>
+    <string name="refunds_err_amount">Enter a valid refund amount</string>
+    <string name="refunds_err_photo_missing_large">The receipt photo is missing or larger than 10 MB.</string>
+    <string name="refunds_err_save_claim">Unable to save the refund claim</string>
+    <string name="refunds_err_delete_claim">Unable to delete the refund claim</string>
+    <string name="refunds_err_update_status">Unable to update refund status</string>
+    <string name="refunds_err_no_receipt">No receipt is attached to this claim.</string>
+    <string name="refunds_err_receipt_file_missing">The receipt image file is missing.</string>
+    <string name="refunds_err_preview_unavailable">Receipt preview is unavailable right now.</string>
+    <string name="refunds_err_image_too_large">Choose an image smaller than 10 MB.</string>
+    <string name="refunds_notice_receipt_saved_enter_amount">Receipt saved locally. Enter the refund amount before submitting the claim.</string>
+    <string name="refunds_notice_receipt_saved_verify">Receipt saved locally. Verify the claim details before submitting.</string>
+    <string name="refunds_notice_saved_no_receipt">Claim saved without the new receipt. Receipt upload is unavailable; you can attach it later.</string>
+    <string name="refunds_notice_deleted_cleanup_retry">Claim deleted. Some receipt cleanup will retry later.</string>
+    <string name="refunds_notice_deleted_cloud_retry">Claim deleted. Cloud receipt cleanup will retry later.</string>
+    <string name="refunds_notice_deleted_local_failed">Claim deleted. Local receipt file cleanup failed.</string>
 </resources>

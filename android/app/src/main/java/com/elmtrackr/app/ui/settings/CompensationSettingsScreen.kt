@@ -50,15 +50,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.R
-import com.elmtrackr.app.domain.compensation.COMPENSATION_DISCLAIMER
-import com.elmtrackr.app.domain.compensation.COMPENSATION_PROFILE_HELPER
-import com.elmtrackr.app.domain.compensation.COMPENSATION_RULES_GUIDANCE
 import com.elmtrackr.app.domain.compensation.StackingPolicyLabels
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.CompensationRules
+import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.StackingPolicy
+import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.ElmCardPadded
@@ -79,7 +78,7 @@ fun CompensationSettingsScreen(
         when (val state = uiState) {
             is CompensationSettingsUiState.Loading -> BoxCentered { CircularProgressIndicator() }
             is CompensationSettingsUiState.Error -> ErrorState(
-                message = state.message,
+                message = state.message.asString(),
                 onRetry = viewModel::ensureLoaded,
             )
             is CompensationSettingsUiState.Ready -> CompensationSettingsContent(
@@ -159,7 +158,7 @@ internal fun CompensationSettingsContent(
             // Keep the intro to one line so the actual controls stay above the
             // fold; the full guidance and disclaimer live at the end of the form.
             Text(
-                COMPENSATION_PROFILE_HELPER,
+                stringResource(R.string.comp_profile_helper),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -210,7 +209,7 @@ internal fun CompensationSettingsContent(
                     singleLine = true,
                 )
                 Spacer(Modifier.height(12.dp))
-                RegionDropdown(regionCode, state.presets.map { it.regionCode to it.label }) {
+                RegionDropdown(regionCode, state.presets.map { it.regionCode to stringResource(it.labelRes) }) {
                     regionCode = it
                     state.presets.firstOrNull { p -> p.regionCode == it }?.let { preset ->
                         currencyCode = preset.currencyCode
@@ -223,13 +222,17 @@ internal fun CompensationSettingsContent(
                 state.presets.firstOrNull { p -> p.regionCode == regionCode }?.let { preset ->
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        preset.description,
+                        stringResource(preset.descriptionRes),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(Modifier.height(12.dp))
-                StringDropdown(stringResource(R.string.settings_currency), currencyCode, state.currencyOptions.map { it.first to it.second }) {
+                StringDropdown(
+                    stringResource(R.string.settings_currency),
+                    currencyCode,
+                    CurrencyCode.entries.map { it.name to "${it.symbol}  ${it.name} — ${currencyDisplayName(it)}" },
+                ) {
                     currencyCode = it
                 }
                 Spacer(Modifier.height(12.dp))
@@ -454,14 +457,14 @@ internal fun CompensationSettingsContent(
         item {
             ElmCardPadded {
                 Text(
-                    COMPENSATION_RULES_GUIDANCE,
+                    stringResource(R.string.comp_rules_guidance),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    COMPENSATION_DISCLAIMER,
+                    stringResource(R.string.comp_disclaimer),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -471,9 +474,9 @@ internal fun CompensationSettingsContent(
         item {
             state.saveMessage?.let { message ->
                 Text(
-                    message,
-                    color = if (message.contains("saved", ignoreCase = true))
-                        MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    message.text.asString(),
+                    color = if (message.isError) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -578,13 +581,13 @@ private fun StackingPolicyRow(selected: StackingPolicy, onSelect: (StackingPolic
             FilterChip(
                 selected = selected == policy,
                 onClick = { onSelect(policy) },
-                label = { Text(StackingPolicyLabels.title(policy)) },
+                label = { Text(stringResource(StackingPolicyLabels.titleRes(policy))) },
             )
         }
     }
     Spacer(Modifier.height(8.dp))
     Text(
-        StackingPolicyLabels.helper(selected),
+        stringResource(StackingPolicyLabels.helperRes(selected)),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

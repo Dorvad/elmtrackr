@@ -3,6 +3,8 @@
     <!-- Shared UI states -->
     <string name="common_something_went_wrong">משהו השתבש</string>
     <string name="common_try_again">ניסיון נוסף</string>
+    <string name="error_network">לא הצלחנו להגיע לשרת. כדאי לבדוק את החיבור ולנסות שוב.</string>
+    <string name="error_generic">לא הצלחנו לטעון את הנתונים. כדאי לנסות שוב.</string>
 
     <!-- First clock-in celebration -->
     <string name="celebration_tracking_title">המעקב התחיל!</string>

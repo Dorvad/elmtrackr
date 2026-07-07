@@ -52,20 +52,21 @@ fun LegalDocumentScreen(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
         ) {
             Text(
-                "Last updated: $lastUpdated",
+                stringResource(R.string.legal_last_updated, lastUpdated),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(16.dp))
             sections.forEach { section ->
                 Text(
-                    section.title,
+                    stringResource(section.titleRes),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    section.body,
+                    section.bodyArg?.let { stringResource(section.bodyRes, it) }
+                        ?: stringResource(section.bodyRes),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth(),

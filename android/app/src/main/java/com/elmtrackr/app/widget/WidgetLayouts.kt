@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
 import androidx.glance.action.Action
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
@@ -27,11 +28,84 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import android.content.Context
 import com.elmtrackr.app.MainActivity
 import com.elmtrackr.app.R
+import com.elmtrackr.app.language.withAppLocale
 
 private val Indigo = Color(0xFF5B4DF2)
 private val Aqua = Color(0xFF22D3EE)
+
+// Widget text resolves through a context wrapped with the in-app locale so
+// Hebrew/English follow the language chosen inside the app, including on
+// Android 12 and below where Glance otherwise uses the system locale.
+@androidx.compose.runtime.Composable
+private fun widgetContext(): Context = LocalContext.current.withAppLocale()
+
+@androidx.compose.runtime.Composable
+internal fun widgetStatusLabel(state: WidgetPreferences.DisplayState): String = widgetContext()
+    .getString(if (state.isActive) R.string.widget_clocked_in else R.string.widget_clocked_out)
+
+@androidx.compose.runtime.Composable
+internal fun widgetActionLabel(state: WidgetPreferences.DisplayState): String = widgetContext()
+    .getString(if (state.isActive) R.string.widget_punch_out else R.string.widget_punch_in)
+
+@androidx.compose.runtime.Composable
+internal fun widgetActionHint(state: WidgetPreferences.DisplayState): String = widgetContext()
+    .getString(if (state.isActive) R.string.widget_tap_end_shift else R.string.widget_tap_start_shift)
+
+@androidx.compose.runtime.Composable
+internal fun widgetStatusShortUpper(state: WidgetPreferences.DisplayState): String = widgetContext()
+    .getString(if (state.isActive) R.string.widget_on_shift_upper else R.string.widget_last_punch_upper)
+
+@androidx.compose.runtime.Composable
+internal fun widgetSecondaryTop(state: WidgetPreferences.DisplayState): String = widgetContext()
+    .getString(if (state.isActive) R.string.widget_on_shift else R.string.widget_last_punch)
+
+@androidx.compose.runtime.Composable
+internal fun widgetSecondaryBottom(state: WidgetPreferences.DisplayState): String {
+    val context = widgetContext()
+    return when {
+        state.isActive -> context.getString(R.string.widget_since, state.startTimeLabel)
+        state.lastPunchLabel.isNotBlank() ->
+            state.lastPunchLabel.removePrefix("Last out \u2022 ").removePrefix("Since ")
+        state.todayMinutes > 0 -> context.getString(R.string.widget_today_short, state.todayShort)
+        else -> context.getString(R.string.widget_tap_to_start)
+    }
+}
+
+@androidx.compose.runtime.Composable
+internal fun widgetProgressSubLabel(state: WidgetPreferences.DisplayState): String {
+    val context = widgetContext()
+    return if (state.isActive) {
+        context.getString(
+            R.string.widget_progress_active,
+            state.progressPercent, state.goalHoursLabel, state.startTimeLabel,
+        )
+    } else {
+        context.getString(
+            R.string.widget_progress_idle,
+            state.progressPercent, state.goalHoursLabel,
+            WidgetTimeFormat.minutesToShort(state.progressRemainderMinutes),
+        )
+    }
+}
+
+@androidx.compose.runtime.Composable
+internal fun widgetTallSubLabel(state: WidgetPreferences.DisplayState): String {
+    val context = widgetContext()
+    return when {
+        state.isActive -> context.getString(R.string.widget_active_sub, state.startTimeLabel, state.todayShort)
+        state.todayMinutes > 0 -> context.getString(R.string.widget_today_logged, state.todayShort)
+        else -> context.getString(R.string.widget_no_time_today)
+    }
+}
+
+@androidx.compose.runtime.Composable
+internal fun widgetClockInLabel(): String = widgetContext().getString(R.string.widget_clock_in)
+
+@androidx.compose.runtime.Composable
+internal fun widgetClockOutLabel(): String = widgetContext().getString(R.string.widget_clock_out)
 
 internal fun primaryActionClick(state: WidgetPreferences.DisplayState): Action =
     if (state.isActive) {
@@ -99,7 +173,7 @@ internal fun WidgetStatusBadge(state: WidgetPreferences.DisplayState) {
         WidgetStatusDot(state.isActive)
         Spacer(GlanceModifier.width(5.dp))
         Text(
-            text = state.statusLabel,
+            text = widgetStatusLabel(state),
             style = TextStyle(
                 color = ColorProvider(Color.White),
                 fontSize = 8.sp,
@@ -155,13 +229,13 @@ internal fun PunchInPillButton(state: WidgetPreferences.DisplayState) {
             ) {
                 Image(
                     provider = ImageProvider(R.drawable.widget_icon_bolt),
-                    contentDescription = "Clock in",
+                    contentDescription = widgetClockInLabel(),
                     modifier = GlanceModifier.size(10.dp),
                 )
             }
             Spacer(GlanceModifier.width(5.dp))
             Text(
-                text = state.actionLabel,
+                text = widgetActionLabel(state),
                 style = TextStyle(
                     color = ColorProvider(Indigo),
                     fontSize = 11.sp,
@@ -190,13 +264,13 @@ internal fun PunchOutPillButton(state: WidgetPreferences.DisplayState) {
             ) {
                 Image(
                     provider = ImageProvider(R.drawable.widget_icon_stop),
-                    contentDescription = "Clock out",
+                    contentDescription = widgetClockOutLabel(),
                     modifier = GlanceModifier.size(8.dp),
                 )
             }
             Spacer(GlanceModifier.width(5.dp))
             Text(
-                text = state.actionLabel,
+                text = widgetActionLabel(state),
                 style = TextStyle(
                     color = ColorProvider(Color.White),
                     fontSize = 11.sp,
@@ -220,7 +294,7 @@ internal fun RoundToggleButton(state: WidgetPreferences.DisplayState) {
     ) {
         Image(
             provider = ImageProvider(icon),
-            contentDescription = state.actionLabel,
+            contentDescription = widgetActionLabel(state),
             modifier = GlanceModifier.size(if (state.isActive) 12.dp else 18.dp),
         )
     }
@@ -253,7 +327,7 @@ internal fun SingleToggleWidgetContent(state: WidgetPreferences.DisplayState) {
                     WidgetStatusDot(state.isActive)
                     Spacer(GlanceModifier.width(4.dp))
                     Text(
-                        text = state.statusLabel,
+                        text = widgetStatusLabel(state),
                         style = TextStyle(
                             color = ColorProvider(Color.White.copy(alpha = 0.9f)),
                             fontSize = 8.sp,
@@ -272,14 +346,14 @@ internal fun SingleToggleWidgetContent(state: WidgetPreferences.DisplayState) {
             }
             Column(modifier = GlanceModifier.padding(start = 4.dp)) {
                 Text(
-                    text = state.singleToggleSecondaryTop,
+                    text = widgetSecondaryTop(state),
                     style = TextStyle(
                         color = ColorProvider(Color.White.copy(alpha = 0.65f)),
                         fontSize = 8.sp,
                     ),
                 )
                 Text(
-                    text = state.singleToggleSecondaryBottom,
+                    text = widgetSecondaryBottom(state),
                     style = TextStyle(
                         color = ColorProvider(Color.White.copy(alpha = 0.80f)),
                         fontSize = 9.sp,
@@ -326,7 +400,7 @@ internal fun ProgressWidgetContent(state: WidgetPreferences.DisplayState) {
                 WidgetStatusDot(state.isActive)
                 Spacer(GlanceModifier.width(4.dp))
                 Text(
-                    text = state.statusLabel,
+                    text = widgetStatusLabel(state),
                     style = TextStyle(
                         color = ColorProvider(Color.White),
                         fontSize = 8.sp,
@@ -338,7 +412,7 @@ internal fun ProgressWidgetContent(state: WidgetPreferences.DisplayState) {
             WidgetProgressBar(state.progressPercent)
             Spacer(GlanceModifier.height(3.dp))
             Text(
-                text = state.progressSubLabel,
+                text = widgetProgressSubLabel(state),
                 style = TextStyle(
                     color = ColorProvider(Color.White.copy(alpha = 0.72f)),
                     fontSize = 8.sp,
@@ -396,7 +470,7 @@ internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
 
         Column(modifier = GlanceModifier.clickable(openAppClick())) {
             Text(
-                text = if (state.isActive) "ON SHIFT" else "LAST PUNCH",
+                text = widgetStatusShortUpper(state),
                 style = TextStyle(
                     color = ColorProvider(Color.White.copy(alpha = 0.70f)),
                     fontSize = 9.sp,
@@ -412,7 +486,7 @@ internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
                 ),
             )
             Text(
-                text = if (state.isActive) state.tallActiveSubLabel else state.tallLoggedLabel,
+                text = widgetTallSubLabel(state),
                 style = TextStyle(
                     color = ColorProvider(Color.White.copy(alpha = 0.75f)),
                     fontSize = 11.sp,
@@ -447,7 +521,7 @@ internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
                     ) {
                         Image(
                             provider = ImageProvider(R.drawable.widget_icon_stop),
-                            contentDescription = "Clock out",
+                            contentDescription = widgetClockOutLabel(),
                             modifier = GlanceModifier.size(10.dp),
                         )
                     }
@@ -460,14 +534,14 @@ internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
                     ) {
                         Image(
                             provider = ImageProvider(R.drawable.widget_icon_bolt),
-                            contentDescription = "Clock in",
+                            contentDescription = widgetClockInLabel(),
                             modifier = GlanceModifier.size(12.dp),
                         )
                     }
                 }
                 Spacer(GlanceModifier.width(8.dp))
                 Text(
-                    text = state.actionLabel,
+                    text = widgetActionLabel(state),
                     style = TextStyle(
                         color = ColorProvider(if (state.isActive) Color.White else Indigo),
                         fontSize = 13.sp,
@@ -476,7 +550,7 @@ internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
                 )
                 Spacer(GlanceModifier.width(8.dp))
                 Text(
-                    text = state.actionHint,
+                    text = widgetActionHint(state),
                     style = TextStyle(
                         color = ColorProvider(
                             if (state.isActive) Color.White.copy(alpha = 0.65f) else Color.Gray,
@@ -538,7 +612,7 @@ internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
                         ),
                     )
                     Text(
-                        text = "today",
+                        text = widgetContext().getString(R.string.widget_today_lower),
                         style = TextStyle(
                             color = ColorProvider(Color.White.copy(alpha = 0.7f)),
                             fontSize = 7.sp,
@@ -547,7 +621,7 @@ internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
                 } else {
                     Image(
                         provider = ImageProvider(R.drawable.widget_icon_bolt),
-                        contentDescription = "Clock in",
+                        contentDescription = widgetClockInLabel(),
                         modifier = GlanceModifier.size(16.dp),
                     )
                     Spacer(GlanceModifier.height(2.dp))
@@ -594,7 +668,7 @@ internal fun BigActionWidgetContent(state: WidgetPreferences.DisplayState) {
                 ) {
                     Image(
                         provider = ImageProvider(R.drawable.widget_icon_stop),
-                        contentDescription = "Clock out",
+                        contentDescription = widgetClockOutLabel(),
                         modifier = GlanceModifier.size(12.dp),
                     )
                 }
@@ -618,7 +692,7 @@ internal fun BigActionWidgetContent(state: WidgetPreferences.DisplayState) {
                 ) {
                     Image(
                         provider = ImageProvider(R.drawable.widget_icon_bolt),
-                        contentDescription = "Clock in",
+                        contentDescription = widgetClockInLabel(),
                         modifier = GlanceModifier.size(22.dp),
                     )
                 }

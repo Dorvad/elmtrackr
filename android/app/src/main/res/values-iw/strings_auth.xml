@@ -35,4 +35,21 @@
     <!-- Developer-facing fallback -->
     <string name="auth_not_configured_title">ההתחברות לא מוגדרת</string>
     <string name="auth_not_configured_body">צריך להוסיף SUPABASE_URL ו־SUPABASE_ANON_KEY לקובץ local.properties כדי לאפשר התחברות.</string>
+
+    <!-- Error messages (mapped from SDK failures) -->
+    <string name="auth_error_incorrect_credentials">האימייל או הסיסמה לא נכונים.</string>
+    <string name="auth_error_confirm_email">צריך לאשר את כתובת האימייל לפני ההתחברות.</string>
+    <string name="auth_error_account_exists">כבר קיים חשבון עם האימייל הזה.</string>
+    <string name="auth_error_weak_password">כדאי לבחור סיסמה חזקה יותר.</string>
+    <string name="auth_error_rate_limited">יותר מדי ניסיונות. כדאי לחכות רגע ולנסות שוב.</string>
+    <string name="auth_error_network">כדאי לבדוק את חיבור האינטרנט ולנסות שוב.</string>
+    <string name="auth_error_sign_in">ההתחברות לא הצליחה. כדאי לנסות שוב.</string>
+    <string name="auth_error_sign_up">יצירת החשבון לא הצליחה. כדאי לנסות שוב.</string>
+    <string name="auth_error_password_reset">שליחת מייל האיפוס לא הצליחה. כדאי לנסות שוב.</string>
+    <string name="auth_error_recovery_link">קישור האיפוס לא תקין או שפג תוקפו.</string>
+    <string name="auth_error_update_password">עדכון הסיסמה לא הצליח. כדאי לנסות שוב.</string>
+    <string name="auth_error_delete_account">מחיקת החשבון לא הצליחה. כדאי לבדוק את החיבור ולנסות שוב.</string>
+    <string name="auth_error_no_account_to_delete">אין חשבון למחיקה</string>
+    <string name="auth_error_not_configured">‏Supabase לא מוגדר</string>
+    <string name="auth_error_session_check">לא הצלחנו לבדוק את החיבור לחשבון. כדאי לנסות שוב.</string>
 </resources>

@@ -35,4 +35,21 @@
     <!-- Developer-facing fallback -->
     <string name="auth_not_configured_title">Auth not configured</string>
     <string name="auth_not_configured_body">Add SUPABASE_URL and SUPABASE_ANON_KEY to local.properties to enable sign-in.</string>
+
+    <!-- Error messages (mapped from SDK failures) -->
+    <string name="auth_error_incorrect_credentials">Incorrect email or password.</string>
+    <string name="auth_error_confirm_email">Confirm your email before signing in.</string>
+    <string name="auth_error_account_exists">An account with this email already exists.</string>
+    <string name="auth_error_weak_password">Choose a stronger password.</string>
+    <string name="auth_error_rate_limited">Too many attempts. Please wait and try again.</string>
+    <string name="auth_error_network">Check your internet connection and try again.</string>
+    <string name="auth_error_sign_in">Unable to sign in. Please try again.</string>
+    <string name="auth_error_sign_up">Unable to create your account. Please try again.</string>
+    <string name="auth_error_password_reset">Unable to send the reset email. Please try again.</string>
+    <string name="auth_error_recovery_link">That reset link is invalid or has expired.</string>
+    <string name="auth_error_update_password">Unable to update your password. Please try again.</string>
+    <string name="auth_error_delete_account">Unable to delete your account. Check your connection and try again.</string>
+    <string name="auth_error_no_account_to_delete">No account to delete</string>
+    <string name="auth_error_not_configured">Supabase is not configured</string>
+    <string name="auth_error_session_check">Unable to check your session. Please try again.</string>
 </resources>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget labels resolved at render time -->
+    <string name="widget_clocked_in">במשמרת</string>
+    <string name="widget_clocked_out">מחוץ למשמרת</string>
+    <string name="widget_punch_in">כניסה</string>
+    <string name="widget_punch_out">יציאה</string>
+    <string name="widget_tap_start_shift">הקשה לתחילת משמרת</string>
+    <string name="widget_tap_end_shift">הקשה לסיום משמרת</string>
+    <string name="widget_on_shift">במשמרת</string>
+    <string name="widget_last_punch">החתמה אחרונה</string>
+    <string name="widget_on_shift_upper">במשמרת</string>
+    <string name="widget_last_punch_upper">החתמה אחרונה</string>
+    <string name="widget_since">מאז %1$s</string>
+    <string name="widget_today_short">היום %1$s</string>
+    <string name="widget_tap_to_start">הקשה להתחלה</string>
+    <string name="widget_today_logged">נרשמו היום %1$s</string>
+    <string name="widget_no_time_today">עוד לא נרשם זמן היום</string>
+    <string name="widget_active_sub">מאז %1$s · היום %2$s</string>
+    <string name="widget_progress_active">%1$d%% מיום של %2$s · התחיל ב־%3$s</string>
+    <string name="widget_progress_idle">%1$d%% מיום של %2$s · עוד %3$s ליעד</string>
+    <string name="widget_today_lower">היום</string>
+    <string name="widget_clock_in">כניסה למשמרת</string>
+    <string name="widget_clock_out">יציאה ממשמרת</string>
+
+    <!-- Notification channels -->
+    <string name="notif_channel_active_shift">משמרת פעילה</string>
+    <string name="notif_channel_active_shift_desc">מוצג בזמן משמרת</string>
+    <string name="notif_channel_reminders">תזכורות</string>
+    <string name="notif_channel_reminders_desc">תזכורות למשמרות ארוכות ועוד</string>
+
+    <!-- Shortcut clock-out feedback -->
+    <string name="shortcut_feedback_clocked_out_title">יצאת מהמשמרת</string>
+    <string name="shortcut_feedback_clocked_out_body">המשמרת הסתיימה.</string>
+    <string name="shortcut_feedback_no_shift_title">אין משמרת פעילה</string>
+    <string name="shortcut_feedback_no_shift_body">אין משמרת פעילה לצאת ממנה.</string>
+</resources>

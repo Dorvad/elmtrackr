@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -44,6 +45,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.elmtrackr.app.R
 import com.elmtrackr.app.navigation.BottomNavItem
 import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraHaptics
@@ -175,13 +177,16 @@ private fun SideNavItem(
     val contentColor = if (isSelected) Color.White else auroraNavUnselectedLabel()
     val iconColor = if (isSelected) Color.White else auroraNavUnselectedIcon()
 
+    val tabLabel = stringResource(item.labelRes)
+    val tabContentDescription =
+        if (isSelected) stringResource(R.string.nav_tab_selected, tabLabel) else tabLabel
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {
                 role = Role.Tab
                 selected = isSelected
-                contentDescription = "${item.label}${if (isSelected) ", selected" else ""}"
+                contentDescription = tabContentDescription
             }
             .auroraPressScale(interactionSource)
             .clickable(
@@ -230,7 +235,7 @@ private fun SideNavItem(
                     modifier = Modifier.size(22.dp),
                 )
                 Text(
-                    text = item.label,
+                    text = tabLabel,
                     fontSize = 14.sp,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                     color = contentColor,

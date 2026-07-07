@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ElmTrackr</string>
+    <string name="tile_label">ElmTrackr — החתמה</string>
+    <string name="complication_label">ElmTrackr — סטטוס</string>
+    <string name="setup_title">מתחברים בטלפון</string>
+    <string name="setup_body">פותחים את ElmTrackr בטלפון המחובר, מתחברים, וחוזרים לכאן.</string>
+    <string name="idle_last_punch">החתמה אחרונה</string>
+    <string name="idle_tap_hint">הקשה לכניסה למשמרת</string>
+    <string name="running_since">מאז %1$s</string>
+    <string name="punch_in">כניסה</string>
+    <string name="punch_out">יציאה</string>
+    <string name="confirmed_in">נכנסת למשמרת</string>
+    <string name="confirmed_out">יצאת מהמשמרת</string>
+    <string name="phone_unreachable">אין חיבור לטלפון</string>
+    <string name="punch_failed">ההחתמה נכשלה</string>
+    <string name="wear_refresh">רענון</string>
+    <string name="wear_today">היום %1$s</string>
+    <string name="wear_percent_of_day">%1$d%% מהיום</string>
+    <string name="tile_sign_in">להתחבר</string>
+    <string name="tile_on_phone">בטלפון</string>
+    <string name="tile_tap_punch_out">הקשה ליציאה</string>
+    <string name="tile_tap_punch_in">הקשה לכניסה</string>
+</resources>

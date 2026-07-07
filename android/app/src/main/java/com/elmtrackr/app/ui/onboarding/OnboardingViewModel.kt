@@ -2,10 +2,12 @@ package com.elmtrackr.app.ui.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.R
 import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
 import com.elmtrackr.app.data.local.preferences.OnboardingPreferences
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.security.AppLockController
@@ -131,30 +133,30 @@ class OnboardingViewModel @Inject constructor(
                 _uiState.value = OnboardingUiState.Completed
             } catch (e: Exception) {
                 _uiState.value = OnboardingUiState.ValidationError(
-                    mapOf("save" to (e.message ?: "Save failed. Please try again.")),
+                    mapOf("save" to UiText.Res(R.string.onboarding_save_failed)),
                 )
             }
         }
     }
 
-    private fun validate(input: OnboardingInput): Map<String, String> {
-        val errors = mutableMapOf<String, String>()
+    private fun validate(input: OnboardingInput): Map<String, UiText> {
+        val errors = mutableMapOf<String, UiText>()
         if (input.displayName.isBlank()) {
-            errors["displayName"] = "Enter the name you want shown in the app"
+            errors["displayName"] = UiText.Res(R.string.onboarding_profile_name_error)
         }
         if (input.dailyOvertimeHours <= 0) {
-            errors["dailyOT"] = "Daily overtime threshold must be at least 1 hour"
+            errors["dailyOT"] = UiText.Res(R.string.onboarding_ot_error)
         }
         if (input.weeklyOvertimeHours <= 0) {
-            errors["weeklyOT"] = "Weekly overtime threshold must be at least 1 hour"
+            errors["weeklyOT"] = UiText.Res(R.string.onboarding_ot_error)
         } else if (input.weeklyOvertimeHours < input.dailyOvertimeHours) {
-            errors["weeklyOT"] = "Weekly threshold must be ≥ daily threshold"
+            errors["weeklyOT"] = UiText.Res(R.string.onboarding_ot_error)
         }
         if (input.hourlyRate != null && input.hourlyRate <= 0) {
-            errors["hourlyRate"] = "Hourly rate must be a positive number"
+            errors["hourlyRate"] = UiText.Res(R.string.onboarding_pay_rate_error)
         }
         if (input.weekendDays.isEmpty()) {
-            errors["weekendDays"] = "Select at least one weekend day"
+            errors["weekendDays"] = UiText.Res(R.string.onboarding_weekend_days_error)
         }
         return errors
     }

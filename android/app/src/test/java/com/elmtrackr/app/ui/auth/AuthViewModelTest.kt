@@ -2,6 +2,7 @@ package com.elmtrackr.app.ui.auth
 
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.domain.model.AuthResult
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -117,7 +118,7 @@ class AuthViewModelTest {
 
     @Test
     fun `signIn error populates errorMessage in SignedOut state`() = runTest {
-        repo.signInResult = AuthResult.Error("Invalid credentials")
+        repo.signInResult = AuthResult.Error(UiText.Raw("Invalid credentials"))
         val vm = buildVm()
         val states = mutableListOf<AuthUiState>()
         val job = launch { vm.uiState.collect { states.add(it) } }
@@ -126,7 +127,7 @@ class AuthViewModelTest {
         advanceUntilIdle()
 
         val signedOut = states.filterIsInstance<AuthUiState.SignedOut>().lastOrNull()
-        assertEquals("Invalid credentials", signedOut?.errorMessage)
+        assertEquals(UiText.Raw("Invalid credentials"), signedOut?.errorMessage)
         job.cancel()
     }
 
@@ -196,7 +197,7 @@ class AuthViewModelTest {
 
     @Test
     fun `resetPassword error populates errorMessage in SignedOut`() = runTest {
-        repo.resetPasswordResult = AuthResult.Error("User not found")
+        repo.resetPasswordResult = AuthResult.Error(UiText.Raw("User not found"))
         val vm = buildVm()
         val states = mutableListOf<AuthUiState>()
         val job = launch { vm.uiState.collect { states.add(it) } }
@@ -205,7 +206,7 @@ class AuthViewModelTest {
         advanceUntilIdle()
 
         val signedOut = states.filterIsInstance<AuthUiState.SignedOut>().lastOrNull()
-        assertEquals("User not found", signedOut?.errorMessage)
+        assertEquals(UiText.Raw("User not found"), signedOut?.errorMessage)
         job.cancel()
     }
 

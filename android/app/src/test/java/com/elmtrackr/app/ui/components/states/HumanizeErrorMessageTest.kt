@@ -7,29 +7,29 @@ class HumanizeErrorMessageTest {
 
     @Test
     fun `network failures become a connection message`() {
-        val expected = "We couldn't reach the server. Check your connection and try again."
-        assertEquals(expected, humanizeErrorMessage("java.net.UnknownHostException: api.supabase.co"))
-        assertEquals(expected, humanizeErrorMessage("Unable to resolve host \"api.supabase.co\""))
-        assertEquals(expected, humanizeErrorMessage("Read timeout after 30000ms"))
-        assertEquals(expected, humanizeErrorMessage("Failed to connect to /10.0.0.2:443"))
+        val expected = ErrorMessageKind.NETWORK
+        assertEquals(expected, classifyErrorMessage("java.net.UnknownHostException: api.supabase.co"))
+        assertEquals(expected, classifyErrorMessage("Unable to resolve host \"api.supabase.co\""))
+        assertEquals(expected, classifyErrorMessage("Read timeout after 30000ms"))
+        assertEquals(expected, classifyErrorMessage("Failed to connect to /10.0.0.2:443"))
     }
 
     @Test
     fun `technical noise becomes a generic message`() {
-        val expected = "We couldn't load your data. Please try again."
-        assertEquals(expected, humanizeErrorMessage(null))
-        assertEquals(expected, humanizeErrorMessage(""))
-        assertEquals(expected, humanizeErrorMessage("Unknown error"))
-        assertEquals(expected, humanizeErrorMessage("NullPointerException"))
-        assertEquals(expected, humanizeErrorMessage("kotlinx.serialization.MissingFieldException: field x"))
-        assertEquals(expected, humanizeErrorMessage("com.elmtrackr.app.SomeClass\$Inner failed"))
+        val expected = ErrorMessageKind.GENERIC
+        assertEquals(expected, classifyErrorMessage(null))
+        assertEquals(expected, classifyErrorMessage(""))
+        assertEquals(expected, classifyErrorMessage("Unknown error"))
+        assertEquals(expected, classifyErrorMessage("NullPointerException"))
+        assertEquals(expected, classifyErrorMessage("kotlinx.serialization.MissingFieldException: field x"))
+        assertEquals(expected, classifyErrorMessage("com.elmtrackr.app.SomeClass\$Inner failed"))
     }
 
     @Test
     fun `sentence-like messages pass through`() {
         assertEquals(
-            "This ride is not eligible for a travel refund",
-            humanizeErrorMessage("This ride is not eligible for a travel refund"),
+            ErrorMessageKind.PASSTHROUGH,
+            classifyErrorMessage("This ride is not eligible for a travel refund"),
         )
     }
 }
