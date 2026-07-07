@@ -75,9 +75,13 @@ class LocalCompensationProfilesRepositoryTest {
         assertNotNull(result)
         assertEquals("p1", result!!.id)
         assertEquals(listOf("p1"), activeProfiles().map { it.localId })
-        val archived = dao.getByUser("u1").filter { it.isArchived }
-        assertEquals(setOf("p2", "p3"), archived.map { it.localId }.toSet())
-        assertTrue(archived.all { it.deletedAt != null && it.syncStatus == SyncStatus.PENDING_UPDATE })
+        val archived = listOfNotNull(dao.getByLocalId("p2"), dao.getByLocalId("p3"))
+        assertEquals(2, archived.size)
+        assertTrue(
+            archived.all {
+                it.isArchived && it.deletedAt != null && it.syncStatus == SyncStatus.PENDING_UPDATE
+            },
+        )
         assertTrue(syncTrigger.scheduleCount > 0)
     }
 
