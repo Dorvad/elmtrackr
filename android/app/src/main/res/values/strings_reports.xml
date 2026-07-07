@@ -116,7 +116,7 @@
     <string name="export_col_shifts">Shifts</string>
     <string name="export_col_ot">OT</string>
     <string name="export_avg">avg %1$s</string>
-    <string name="export_receipt_n">Receipt %1$d: %2$s - %3$s</string>
+    <string name="export_receipt_n">Receipt %1$s: %2$s - %3$s</string>
     <string name="export_share_reimb">Export reimbursement PDF</string>
 
     <!-- Daily insight cards (** marks bold segments) -->

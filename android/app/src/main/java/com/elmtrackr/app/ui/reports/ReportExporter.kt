@@ -329,7 +329,7 @@ object ReportExporter {
             val receiptPage = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
             val receiptCanvas = receiptPage.canvas
             receiptCanvas.drawText(
-                res.getString(R.string.export_receipt_n, index + 1, row.claim.provider.name, MoneyFormatter.format(row.claim.amount, currency)),
+                res.getString(R.string.export_receipt_n, (index + 1).toString(), row.claim.provider.name, MoneyFormatter.format(row.claim.amount, currency)),
                 margin,
                 margin,
                 heading,

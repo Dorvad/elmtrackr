@@ -116,7 +116,7 @@
     <string name="export_col_shifts">משמרות</string>
     <string name="export_col_ot">ש״נ</string>
     <string name="export_avg">ממוצע %1$s</string>
-    <string name="export_receipt_n">קבלה %1$d: %2$s - %3$s</string>
+    <string name="export_receipt_n">קבלה %1$s: %2$s - %3$s</string>
     <string name="export_share_reimb">ייצוא PDF החזרי נסיעות</string>
 
     <!-- Daily insight cards (** marks bold segments) -->
