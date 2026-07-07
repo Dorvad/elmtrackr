@@ -150,9 +150,9 @@ class CompensationSettingsViewModel @Inject constructor(
             try {
                 val userId = authRepository.getCurrentProfile()?.id
                     ?: error("Sign in to save compensation rules")
-                val existing = compensationProfilesRepository.getProfiles(userId)
-                    .firstOrNull { it.id == _selectedProfileId.value }
-                    ?: existing.firstOrNull { it.isDefault }
+                val profiles = compensationProfilesRepository.getProfiles(userId)
+                val existing = profiles.firstOrNull { it.id == _selectedProfileId.value }
+                    ?: profiles.firstOrNull { it.isDefault }
                     ?: error("No compensation profile found")
                 val updated = existing.copy(
                     name = name.trim().ifBlank { "Main job" },
