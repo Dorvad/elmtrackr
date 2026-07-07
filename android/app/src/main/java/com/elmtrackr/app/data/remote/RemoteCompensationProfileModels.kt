@@ -25,6 +25,12 @@ data class RemoteCompensationProfileRow(
 
 @Serializable
 data class RemoteCompensationProfileInsert(
+    /**
+     * Client-generated UUID. Sending the id makes create retries idempotent:
+     * a push that succeeded remotely but lost its response hits the primary
+     * key on the next attempt instead of inserting a duplicate row.
+     */
+    val id: String,
     @SerialName("user_id") val userId: String,
     val name: String,
     @SerialName("region_code") val regionCode: String,

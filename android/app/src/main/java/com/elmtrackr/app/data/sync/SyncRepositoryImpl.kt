@@ -728,8 +728,15 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pushCompensationProfileCreate(profile: CompensationProfileEntity, syncedAt: Long) {
-        val remote = compensationRemote.insert(profile.toRemoteInsert())
-        compensationProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
+        val remoteId = try {
+            compensationRemote.insert(profile.toRemoteInsert()).id
+        } catch (e: Exception) {
+            // The insert carries the client-generated id, so a retry after a lost
+            // response collides with the row it already created — adopt that row
+            // instead of inserting the profile again.
+            if (RemoteSyncErrors.isUniqueViolation(e)) profile.localId else throw e
+        }
+        compensationProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
     private suspend fun pushCompensationProfileUpdate(profile: CompensationProfileEntity, syncedAt: Long) {
