@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Screen chrome -->
+    <string name="reports_title">דוחות</string>
+    <string name="reports_subtitle">סקירת הביצועים שלך</string>
+    <string name="reports_tab_hours">שעות</string>
+    <string name="reports_tab_refunds">החזרי נסיעות</string>
+    <string name="reports_empty_title">אין משמרות שהושלמו</string>
+    <string name="reports_empty_subtitle">משלימים כמה משמרות — והדוח מופיע כאן.</string>
+
+    <!-- Stat cards -->
+    <string name="reports_hours_value">%1$s שע׳</string>
+    <string name="reports_all_hours_month">כל השעות החודש</string>
+    <string name="reports_pct_of_total">%1$d%% מהסך</string>
+    <string name="reports_gross_pay_before_tax">שכר ברוטו · לפני מס</string>
+    <string name="reports_peak_performer">שיא החודש</string>
+    <string name="reports_peak_more">עבדת %1$d%% יותר שעות מאשר ב%2$s. שומרים על המומנטום!</string>
+    <string name="reports_peak_fewer">עבדת %1$d%% פחות שעות מאשר ב%2$s.</string>
+    <string name="reports_peak_same">אותן שעות כמו ב%1$s.</string>
+    <string name="reports_month_over_month">חודש מול חודש</string>
+    <string name="reports_hours_this_month">%1$s שע׳ החודש</string>
+    <string name="reports_vs_prev">%1$s %2$s שע׳ לעומת %3$s</string>
+
+    <!-- Shift insights -->
+    <string name="reports_insights_off_title">התובנות כבויות</string>
+    <string name="reports_insights_off_body">מפעילים תובנות בהגדרות ← פיצ׳רים כדי לראות כאן כרטיסים יומיים וסטטיסטיקות משמרות.</string>
+    <string name="reports_shift_insights">תובנות משמרות</string>
+    <string name="reports_weekend_shifts">משמרות סופ״ש</string>
+    <string name="reports_avg_shift_length">אורך משמרת ממוצע</string>
+    <string name="reports_overtime_shifts">משמרות עם ש״נ</string>
+    <string name="reports_longest_shift">המשמרת הארוכה ביותר</string>
+    <string name="reports_avg_pay_shift">שכר ממוצע למשמרת</string>
+    <string name="reports_best_shift">המשמרת המשתלמת ביותר</string>
+    <string name="reports_per_shift">למשמרת</string>
+    <string name="reports_shift_one">משמרת</string>
+    <string name="reports_shift_other">משמרות</string>
+    <string name="reports_set_rate_unlock">מגדירים תעריף כדי לפתוח</string>
+
+    <!-- Daily insight pager -->
+    <string name="reports_insights_of_day">תובנות היום</string>
+    <string name="reports_swipe_daily">מחליקים · מתחלף כל יום</string>
+    <string name="reports_index_of">%1$d מתוך %2$d</string>
+    <string name="reports_today_dot">● היום</string>
+
+    <!-- Weekly / task / shift breakdown -->
+    <string name="reports_weekly_breakdown">פירוט שבועי</string>
+    <string name="reports_vs_month">לעומת %1$s</string>
+    <string name="reports_by_task">לפי משימה</string>
+    <string name="reports_shift_breakdown">פירוט משמרות</string>
+    <string name="reports_week_label">שבוע %1$s</string>
+    <string name="reports_week_days">ימים %1$s</string>
+    <string name="reports_task_shifts_avg">%1$d משמרות · ממוצע %2$s שע׳</string>
+    <string name="reports_ot_hours">ש״נ %1$s שע׳</string>
+    <string name="reports_ot_suffix">%1$s ש״נ</string>
+    <string name="reports_plus_ot">‎+%1$s ש״נ</string>
+    <string name="reports_chip_weekend">סופ״ש</string>
+    <string name="reports_chip_overnight">חוצת לילה</string>
+    <string name="reports_break_suffix">" · הפסקה %1$d דק׳"</string>
+    <string name="reports_daily_ot_after">ש״נ יומיות אחרי</string>
+    <string name="reports_weekly_ot_after">ש״נ שבועיות אחרי</string>
+    <string name="reports_hours_distribution">חלוקת שעות</string>
+    <string name="reports_export_pdf_month">ייצוא PDF – %1$s</string>
+    <string name="reports_preparing_pdf">מכין PDF…</string>
+
+    <!-- Refunds tab -->
+    <string name="reports_no_reimb_title">עוד אין החזרי נסיעות</string>
+    <string name="reports_no_reimb_body">מוסיפים בקשות החזר מכל משמרת שהושלמה, במסך עריכת המשמרת.</string>
+    <string name="reports_export_all_receipts">ייצוא כל קבלות ההחזר</string>
+    <string name="reports_preparing_reimb_pdf">מכין PDF החזרים…</string>
+    <string name="reports_reminder_one">%1$d תזכורת</string>
+    <string name="reports_reminder_other">%1$d תזכורות</string>
+    <string name="reports_open_shift_submit">פותחים את המשמרת כדי להגיש בקשה או לסמן שלא הייתה נסיעה.</string>
+    <string name="reports_reimb_history">היסטוריית החזרים</string>
+    <string name="reports_showing_months">מוצגים %1$s עם החזרי נסיעות.</string>
+    <string name="reports_month_count_one">%1$d חודש</string>
+    <string name="reports_month_count_other">%1$d חודשים</string>
+    <string name="reports_total_refunded">סך ההחזרים</string>
+    <string name="reports_rides_months">%1$d נסיעות · %2$d חודשים</string>
+    <string name="reports_total_compensation">סך הפיצוי</string>
+    <string name="reports_by_provider">לפי ספק</string>
+    <string name="reports_provider_rides">%1$s · %2$d נסיעות</string>
+    <string name="reports_avg_per_ride">ממוצע לנסיעה</string>
+    <string name="reports_largest_ride">הנסיעה הגדולה ביותר</string>
+    <string name="reports_submitted">הוגשו</string>
+    <string name="reports_pending">ממתינות</string>
+    <string name="reports_dir_to_work">לעבודה</string>
+    <string name="reports_dir_from_work">מהעבודה</string>
+    <string name="reports_claim_line">%1$s · %2$s · %3$s</string>
+    <string name="reports_receipt_suffix">" · קבלה"</string>
+    <string name="reports_view">צפייה</string>
+    <string name="reports_all_months">כל החודשים</string>
+
+    <!-- PDF export -->
+    <string name="export_monthly_title">דוח משמרות חודשי</string>
+    <string name="export_completed_shifts">%1$d משמרות שהושלמו</string>
+    <string name="export_generated_by">הופק על ידי ElmTrackr</string>
+    <string name="export_gross_pay">שכר ברוטו</string>
+    <string name="export_thresholds">ספים</string>
+    <string name="export_note">הערה: %1$s</string>
+    <string name="export_share_csv">ייצוא CSV</string>
+    <string name="export_share_pdf">ייצוא PDF משמרות</string>
+    <string name="export_reimb_title">דוח החזרי נסיעות</string>
+    <string name="export_claims_count">%1$d בקשות</string>
+    <string name="export_total">סה״כ: %1$s</string>
+    <string name="export_col_direction">כיוון</string>
+    <string name="export_col_ride_date">תאריך נסיעה</string>
+    <string name="export_col_provider">ספק</string>
+    <string name="export_col_amount">סכום</string>
+    <string name="export_shift_prefix">משמרת: %1$s</string>
+    <string name="export_col_date">תאריך</string>
+    <string name="export_col_time">שעות</string>
+    <string name="export_col_total">סה״כ</string>
+    <string name="export_col_tags">תגיות</string>
+    <string name="export_col_gross">ברוטו</string>
+    <string name="export_col_task">משימה</string>
+    <string name="export_col_shifts">משמרות</string>
+    <string name="export_col_ot">ש״נ</string>
+    <string name="export_avg">ממוצע %1$s</string>
+    <string name="export_receipt_n">קבלה %1$s: %2$s - %3$s</string>
+    <string name="export_share_reimb">ייצוא PDF החזרי נסיעות</string>
+
+    <!-- Daily insight cards (** marks bold segments) -->
+    <string name="insight_fallback_title">רק מתחילים</string>
+    <string name="insight_fallback_text">רושמים את המשמרות הראשונות — והתובנות היומיות נפתחות.</string>
+    <string name="insight_workdays_title">שווה ערך בימי עבודה</string>
+    <string name="insight_workdays_text">‏**%1$d שע׳** העבודה שלך שוות ל־**%2$d ימי עבודה מלאים של %3$s שע׳**. עקביות.</string>
+    <string name="insight_movies_title">מרתון סרטים</string>
+    <string name="insight_movies_text">במקום לעבוד **%1$d שע׳**, אפשר היה לראות **%2$d סרטים**. פופקורן לא כלול.</string>
+    <string name="insight_books_title">מועדון קריאה</string>
+    <string name="insight_books_text">‏**%1$d שע׳** עבודה = **%2$d ספרים** שאפשר היה לקרוא מכריכה לכריכה. תולעת ספרים בהתהוות.</string>
+    <string name="insight_eilat_title">טיול כביש</string>
+    <string name="insight_eilat_text">השעות שלך החודש שוות ל־**%1$d נסיעות** מתל אביב לאילת. דיונות, רוח מדברית ודדליינים.</string>
+    <string name="insight_coffee_title">חשבון קפה</string>
+    <string name="insight_coffee_text">‏**%1$d שע׳** העבודה שלך דרשו בערך **%2$d כוסות קפה** — לפי 20 דקות של טקס לכל כוס. בלי נטול.</string>
+    <string name="insight_flights_title">שעות באוויר</string>
+    <string name="insight_flights_text">‏**%1$d שע׳** עבודה = **%2$d טיסות ישירות של אל על** מתל אביב לניו יורק. ג׳ט לג לא כלול.</string>
+    <string name="insight_binge_title">בינג׳ מסדרות</string>
+    <string name="insight_binge_text">‏**%1$d שע׳** עבודה = **%2$s× את כל שובר שורות** (%3$d שע׳ בסך הכול). חודש פרודוקטיבי, אין מה להגיד.</string>
+    <string name="insight_beach_title">מס חוף</string>
+    <string name="insight_beach_text_one">סגרת **משמרת אחת** החודש. זה **יום ים פוטנציאלי אחד** שהוקרב לפרודוקטיביות. שווה?</string>
+    <string name="insight_beach_text_other">סגרת **%1$d משמרות** החודש. אלה **%1$d ימי ים פוטנציאליים** שהוקרבו לפרודוקטיביות. שווה?</string>
+    <string name="insight_surf_title">גלים טובים</string>
+    <string name="insight_surf_text">אימון גלישה ממוצע נמשך **%1$s שע׳**. העבודה שלך החודש = **%2$d גלישות** שאפשר היה לתפוס במקום. ים שקט.</string>
+    <string name="insight_monopoly_title">אלוף משחקי הקופסה</string>
+    <string name="insight_monopoly_text">משחק מונופול ממוצע לוקח **%1$d שע׳**. העבודה שלך החודש = **%2$d משחקי מונופול מלאים**. גבית שכר דירה בחיים האמיתיים.</string>
+    <string name="insight_shwarma_title">כלכלת שווארמה</string>
+    <string name="insight_shwarma_text">לפי %1$d דקות לשווארמה, בזמן שעבדת החודש אפשר היה לאכול **%2$d שווארמות**. בתיאבון.</string>
+    <string name="insight_pizza_title">קרן הפיצה</string>
+    <string name="insight_pizza_text">ההכנסות של החודש מספיקות ל־**%1$d פיצות** ב־%2$d ₪ כל אחת. הרבה משולשים.</string>
+    <string name="insight_coke_title">מונה קולה</string>
+    <string name="insight_coke_text">אלה **%1$d בקבוקי קוקה־קולה** ב־%2$s ₪ כל אחד. תקציב השתייה מסודר.</string>
+    <string name="insight_cinema_title">תקציב קולנוע</string>
+    <string name="insight_cinema_text">ההכנסות שלך מכסות **%1$d כרטיסי קולנוע** ב־%2$d ₪ כל אחד. פופקורן בנפרד.</string>
+    <string name="insight_burger_title">סיבוב המבורגרים</string>
+    <string name="insight_burger_text">אלה **%1$d ארוחות בסגנון ביג מק** ב־%2$d ₪ כל אחת. את השעות הנוספות דווקא אוהבים.</string>
+    <string name="insight_netflix_title">חבילת סטרימינג</string>
+    <string name="insight_netflix_text">השכר שלך מממן **%1$d חודשי נטפליקס** ב־%2$d ₪ לחודש. יישאר זמן לצ׳יל — אחרי העבודה.</string>
+    <string name="insight_spotify_title">תקציב פלייליסט</string>
+    <string name="insight_spotify_text">אלה **%1$d חודשי ספוטיפיי פרימיום** ב־%2$d ₪ לחודש. פסקול למשמרות.</string>
+    <string name="insight_avocado_title">מדד האבוקדו</string>
+    <string name="insight_avocado_text">הפרי האהוב על ישראל: **%1$d אבוקדו** ב־%2$d ₪ כל אחד. חשבון הבראנץ׳ מסתדר.</string>
+    <string name="insight_beer_title">האפי האוור</string>
+    <string name="insight_beer_text">ההכנסות שלך שוות **%1$d בקבוקי בירה** ב־%2$d ₪ כל אחד. לחיים, יום משכורת.</string>
+    <string name="insight_eggs_title">קרן ארוחת הבוקר</string>
+    <string name="insight_eggs_text">אלה **%1$d תבניות ביצים** ב־%2$d ₪ כל אחת. עונת השקשוקה לא נגמרת.</string>
+    <string name="insight_bus_title">זמן נסיעות</string>
+    <string name="insight_bus_text">נסיעת אוטובוס ממוצעת נמשכת **%1$d דקות**. עבדת מספיק זמן בשביל **%2$d נסיעות** ברחבי העיר.</string>
+    <string name="insight_podcast_title">תור הפודקאסטים</string>
+    <string name="insight_podcast_text">פרק פודקאסט טיפוסי נמשך **%1$d דקות**. ‏**%2$d השע׳** שלך = **%3$d פרקים** שאפשר היה לשמוע ברצף.</string>
+    <string name="insight_laundry_title">מכונות כביסה</string>
+    <string name="insight_laundry_text">מחזור כביסה לוקח בערך **%1$d דקות**. עבדת מספיק בשביל **%2$d מכונות מלאות**. כולל גרביים.</string>
+    <string name="insight_dishes_title">תורנות כלים</string>
+    <string name="insight_dishes_text">מחזור מדיח נמשך **%1$d דקות**. השעות שלך = **%2$d מחזורים נוצצים**. בלי ספוג.</string>
+    <string name="insight_army_title">שעות שירות</string>
+    <string name="insight_army_text">שירות צבאי מלא הוא בערך **%1$d שע׳** בסך הכול. העבודה שלך החודש = **%2$d%%** משירות מלא. הצדעה.</string>
+    <string name="insight_hatikva_title">ההמנון הלאומי</string>
+    <string name="insight_hatikva_text">התקווה נמשכת **בערך %1$s דקות**. העבודה שלך החודש = **%2$d השמעות** של ההמנון. 🇮🇱</string>
+    <string name="insight_snail_title">מרוץ החלזונות</string>
+    <string name="insight_snail_text">חילזון גינה מגיע לכל היותר ל־**%1$s קמ״ש**. ב־**%2$d שע׳** העבודה שלך החודש, חילזון היה מספיק לעבור **%3$s ק״מ**.</string>
+    <string name="insight_iss_title">מכונאי מסלול</string>
+    <string name="insight_iss_text">תחנת החלל מקיפה את כדור הארץ כל **%1$d דקות**. בזמן שעבדת **%2$d שע׳**, היא השלימה **%3$d הקפות מלאות**. פרופורציות.</string>
+    <string name="insight_shark_title">ספרינט כרישים</string>
+    <string name="insight_shark_text">כריש לבן מגיע ל־**%1$d קמ״ש**. ב־**%2$d שעות העבודה** שלך, כריש היה שוחה **%3$d ק״מ**. עדיף להישאר על החוף.</string>
+    <string name="insight_bee_title">דבורה חרוצה</string>
+    <string name="insight_bee_text">דבורת פועלת אוספת צוף בערך **%1$d שע׳** בימי חייה. העבודה שלך החודש = **%2$s%%** מקריירה מלאה של דבורה. בזזז.</string>
+    <string name="insight_shakespeare_title">מצב שייקספיר</string>
+    <string name="insight_shakespeare_text">מומחים מעריכים ששייקספיר השקיע **%1$s שע׳** בכתיבת כל יצירותיו. החודש השלמת **%2$s%%** משייקספיר שלם.</string>
+    <string name="insight_earth_title">מסביב לעולם</string>
+    <string name="insight_earth_text">הליכה סביב כדור הארץ ב־5 קמ״ש לוקחת **%1$s שע׳**. העבודה שלך החודש = **%2$s%%** מהדרך סביב הגלובוס.</string>
+    <string name="insight_degree_title">התקדמות לתואר</string>
+    <string name="insight_degree_text">תואר אוניברסיטאי מלא דורש בערך **%1$s שעות** לימוד. העבודה שלך החודש = **%2$s%%** מתואר שלם.</string>
+    <string name="insight_guitar_title">אל הגיטרה</string>
+    <string name="insight_guitar_text">סולו גיטרה ממוצע נמשך **%1$d שניות**. עבדת מספיק זמן בשביל **%2$d סולואים**. להמשיך לנגן.</string>
+    <string name="insight_ramen_title">מונה ראמן</string>
+    <string name="insight_ramen_text">ראמן אינסטנט מוכן תוך **%1$d דקות**. ב־**%2$d שע׳** עבודה אפשר היה להכין **%3$d קערות**. חיים בתקציב.</string>
+</resources>

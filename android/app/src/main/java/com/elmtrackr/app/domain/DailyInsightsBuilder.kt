@@ -1,7 +1,9 @@
 package com.elmtrackr.app.domain
 
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.UserSettings
 import java.time.Instant
 import kotlin.math.roundToInt
@@ -11,9 +13,9 @@ enum class InsightColor { INDIGO, VIOLET, EMERALD, AMBER, ROSE, SKY }
 
 data class DailyInsight(
     val icon: String,
-    val title: String,
+    val title: UiText,
     /** Body text — segments wrapped in ** ** should render as bold. */
-    val text: String,
+    val text: UiText,
     val color: InsightColor,
 )
 
@@ -21,6 +23,7 @@ data class DailyInsight(
  * Produces 4 daily-rotating insights from a pool of fun facts.
  * The 4 cards rotate together at UTC midnight — each one is distinct.
  * All references use Israeli/real-world context (same as the web app).
+ * Titles and texts are string resources so they localize at render time.
  */
 object DailyInsightsBuilder {
 
@@ -75,8 +78,8 @@ object DailyInsightsBuilder {
     ): List<DailyInsight> {
         val fallback = DailyInsight(
             icon  = "✨",
-            title = "Just getting started",
-            text  = "Log your first completed shifts to unlock daily insights.",
+            title = UiText.Res(R.string.insight_fallback_title),
+            text  = UiText.Res(R.string.insight_fallback_text),
             color = InsightColor.INDIGO,
         )
         if (completedShifts.isEmpty() || totalMinutes == 0) return listOf(fallback)
@@ -96,261 +99,234 @@ object DailyInsightsBuilder {
         profiles: List<CompensationProfile>,
     ): List<DailyInsight> {
         val totalHours = totalMinutes / 60.0
+        val hoursInt = totalHours.roundToInt()
         val shiftCount = shifts.size
         val totalGross = PayrollCalculator.sumMonthlyPay(shifts, settings, profiles).totalGross
 
         val pool = mutableListOf<DailyInsight>()
 
+        fun card(icon: String, titleRes: Int, textRes: Int, color: InsightColor, vararg args: Any) {
+            pool += DailyInsight(icon, UiText.Res(titleRes), UiText.Res(textRes, args.toList()), color)
+        }
+
         // ── Work-hours comparisons ────────────────────────────
 
         val workdays = (totalHours / AVG_WORKDAY_HRS).roundToInt()
-        if (workdays > 0) pool += DailyInsight(
-            "📅", "Work Days Equivalent",
-            "Your **${totalHours.roundToInt()}h** of work equals **$workdays full ${AVG_WORKDAY_HRS}h work days**. Consistent.",
-            InsightColor.INDIGO,
+        if (workdays > 0) card(
+            "📅", R.string.insight_workdays_title, R.string.insight_workdays_text,
+            InsightColor.INDIGO, hoursInt, workdays, AVG_WORKDAY_HRS.toString(),
         )
 
         val movies = (totalHours / AVG_MOVIE_HRS).roundToInt()
-        if (movies > 0) pool += DailyInsight(
-            "🎬", "Movie Marathon",
-            "Instead of working **${totalHours.roundToInt()}h**, you could have watched **$movies movies**. No popcorn included.",
-            InsightColor.VIOLET,
+        if (movies > 0) card(
+            "🎬", R.string.insight_movies_title, R.string.insight_movies_text,
+            InsightColor.VIOLET, hoursInt, movies,
         )
 
         val books = (totalHours / AVG_BOOK_HRS).roundToInt()
-        if (books > 0) pool += DailyInsight(
-            "📚", "Book Club",
-            "Your **${totalHours.roundToInt()}h** of work = **$books books** you could have read cover-to-cover. Bookworm status pending.",
-            InsightColor.EMERALD,
+        if (books > 0) card(
+            "📚", R.string.insight_books_title, R.string.insight_books_text,
+            InsightColor.EMERALD, hoursInt, books,
         )
 
         val drivesEilat = (totalHours / TEL_EILAT_HRS).roundToInt()
-        if (drivesEilat > 0) pool += DailyInsight(
-            "🚗", "Road Trip",
-            "Your hours this month equal **$drivesEilat drives** from Tel Aviv to Eilat. Sand dunes, desert wind, and deadlines.",
-            InsightColor.EMERALD,
+        if (drivesEilat > 0) card(
+            "🚗", R.string.insight_eilat_title, R.string.insight_eilat_text,
+            InsightColor.EMERALD, drivesEilat,
         )
 
         val coffees = (totalMinutes / COFFEE_MIN).roundToInt()
-        if (coffees > 0) pool += DailyInsight(
-            "☕", "Coffee Math",
-            "Your **${totalHours.roundToInt()}h** of work required roughly **$coffees cups of coffee** — at 20 minutes of ritual each. No decaf.",
-            InsightColor.AMBER,
+        if (coffees > 0) card(
+            "☕", R.string.insight_coffee_title, R.string.insight_coffee_text,
+            InsightColor.AMBER, hoursInt, coffees,
         )
 
         val flights = (totalHours / TLV_JFK_HRS).roundToInt()
-        if (flights > 0) pool += DailyInsight(
-            "✈️", "Airborne Hours",
-            "**${totalHours.roundToInt()}h** worked = **$flights non-stop El Al flights** from Tel Aviv to New York. Jet lag not included.",
-            InsightColor.SKY,
+        if (flights > 0) card(
+            "✈️", R.string.insight_flights_title, R.string.insight_flights_text,
+            InsightColor.SKY, hoursInt, flights,
         )
 
         val bbRuns = (totalHours / BREAKING_BAD_HRS * 10).roundToInt().toDouble() / 10.0
-        if (bbRuns >= 0.5) pool += DailyInsight(
-            "📺", "Binge Watch",
-            "**${totalHours.roundToInt()}h** of work = **${bbRuns}× through Breaking Bad** (all ${BREAKING_BAD_HRS.roundToInt()}h). Better call it a productive month.",
-            InsightColor.VIOLET,
+        if (bbRuns >= 0.5) card(
+            "📺", R.string.insight_binge_title, R.string.insight_binge_text,
+            InsightColor.VIOLET, hoursInt, bbRuns.toString(), BREAKING_BAD_HRS.roundToInt(),
         )
 
         // ── Shift-count fun facts ─────────────────────────────
 
-        if (shiftCount > 0) pool += DailyInsight(
-            "🏖️", "Beach Tax",
-            "You clocked **$shiftCount shift${if (shiftCount != 1) "s" else ""}** this month. That's **$shiftCount potential beach days** surrendered to productivity. Worth it?",
+        if (shiftCount == 1) card(
+            "🏖️", R.string.insight_beach_title, R.string.insight_beach_text_one,
             InsightColor.SKY,
+        ) else if (shiftCount > 1) card(
+            "🏖️", R.string.insight_beach_title, R.string.insight_beach_text_other,
+            InsightColor.SKY, shiftCount,
         )
 
         val surfSessions = (totalHours / SURF_HRS).roundToInt()
-        if (surfSessions > 0) pool += DailyInsight(
-            "🏄", "Surf's Up",
-            "An average surf session runs **${SURF_HRS}h**. Your work this month = **$surfSessions surf sessions** you could have caught instead. Hang ten.",
-            InsightColor.SKY,
+        if (surfSessions > 0) card(
+            "🏄", R.string.insight_surf_title, R.string.insight_surf_text,
+            InsightColor.SKY, SURF_HRS.toString(), surfSessions,
         )
 
         val monopolyGames = (totalHours / MONOPOLY_HRS).roundToInt()
-        if (monopolyGames > 0) pool += DailyInsight(
-            "🎲", "Board Game Champion",
-            "An average Monopoly game takes **${MONOPOLY_HRS.roundToInt()}h**. Your work this month = **$monopolyGames full Monopoly games**. You've been collecting rent in real life.",
-            InsightColor.VIOLET,
+        if (monopolyGames > 0) card(
+            "🎲", R.string.insight_monopoly_title, R.string.insight_monopoly_text,
+            InsightColor.VIOLET, MONOPOLY_HRS.roundToInt(), monopolyGames,
         )
 
         // ── Israeli context ───────────────────────────────────
 
         val shwarmas = (totalMinutes / SHWARMA_MIN).roundToInt()
-        if (shwarmas > 0) pool += DailyInsight(
-            "🥙", "Shwarma Economy",
-            "At ${SHWARMA_MIN.roundToInt()} minutes per shwarma, you could have eaten **$shwarmas shwarmas** in the time you worked this month. B'te'avon.",
-            InsightColor.AMBER,
+        if (shwarmas > 0) card(
+            "🥙", R.string.insight_shwarma_title, R.string.insight_shwarma_text,
+            InsightColor.AMBER, SHWARMA_MIN.roundToInt(), shwarmas,
         )
 
         val pizzas = if (totalGross > 0) (totalGross / PIZZA_PRICE_ILS).roundToInt() else 0
-        if (pizzas > 0) pool += DailyInsight(
-            "🍕", "Pizza Fund",
-            "This month's earnings could buy you **$pizzas pizzas** at ₪${PIZZA_PRICE_ILS.roundToInt()} each. That's a lot of slices.",
-            InsightColor.AMBER,
+        if (pizzas > 0) card(
+            "🍕", R.string.insight_pizza_title, R.string.insight_pizza_text,
+            InsightColor.AMBER, pizzas, PIZZA_PRICE_ILS.roundToInt(),
         )
 
         val cokes = if (totalGross > 0) (totalGross / COCA_COLA_ILS).roundToInt() else 0
-        if (cokes > 0) pool += DailyInsight(
-            "🥤", "Coke Counter",
-            "That's **$cokes bottles of Coca-Cola** at ₪${"%.2f".format(COCA_COLA_ILS)} each. Hydration budget unlocked.",
-            InsightColor.ROSE,
+        if (cokes > 0) card(
+            "🥤", R.string.insight_coke_title, R.string.insight_coke_text,
+            InsightColor.ROSE, cokes, "%.2f".format(java.util.Locale.US, COCA_COLA_ILS),
         )
 
         val movieTickets = if (totalGross > 0) (totalGross / MOVIE_TICKET_ILS).roundToInt() else 0
-        if (movieTickets > 0) pool += DailyInsight(
-            "🎟️", "Cinema Budget",
-            "Your earnings could cover **$movieTickets movie tickets** at ₪${MOVIE_TICKET_ILS.roundToInt()} each. Popcorn sold separately.",
-            InsightColor.VIOLET,
+        if (movieTickets > 0) card(
+            "🎟️", R.string.insight_cinema_title, R.string.insight_cinema_text,
+            InsightColor.VIOLET, movieTickets, MOVIE_TICKET_ILS.roundToInt(),
         )
 
         val bigMacs = if (totalGross > 0) (totalGross / BIG_MAC_ILS).roundToInt() else 0
-        if (bigMacs > 0) pool += DailyInsight(
-            "🍔", "Burger Run",
-            "That's **$bigMacs Big Mac-style meals** at ₪${BIG_MAC_ILS.roundToInt()} a pop. I'm lovin' the overtime.",
-            InsightColor.AMBER,
+        if (bigMacs > 0) card(
+            "🍔", R.string.insight_burger_title, R.string.insight_burger_text,
+            InsightColor.AMBER, bigMacs, BIG_MAC_ILS.roundToInt(),
         )
 
         val netflixMonths = if (totalGross > 0) (totalGross / NETFLIX_MONTH_ILS).roundToInt() else 0
-        if (netflixMonths > 0) pool += DailyInsight(
-            "📺", "Streaming Stack",
-            "Your pay could fund **$netflixMonths months of Netflix** at ₪${NETFLIX_MONTH_ILS.roundToInt()}/month. Plenty of time to chill — after work.",
-            InsightColor.VIOLET,
+        if (netflixMonths > 0) card(
+            "📺", R.string.insight_netflix_title, R.string.insight_netflix_text,
+            InsightColor.VIOLET, netflixMonths, NETFLIX_MONTH_ILS.roundToInt(),
         )
 
         val spotifyMonths = if (totalGross > 0) (totalGross / SPOTIFY_MONTH_ILS).roundToInt() else 0
-        if (spotifyMonths > 0) pool += DailyInsight(
-            "🎧", "Playlist Budget",
-            "That's **$spotifyMonths months of Spotify Premium** at ₪${SPOTIFY_MONTH_ILS.roundToInt()}/month. Soundtrack your shifts.",
-            InsightColor.EMERALD,
+        if (spotifyMonths > 0) card(
+            "🎧", R.string.insight_spotify_title, R.string.insight_spotify_text,
+            InsightColor.EMERALD, spotifyMonths, SPOTIFY_MONTH_ILS.roundToInt(),
         )
 
         val avocados = if (totalGross > 0) (totalGross / AVOCADO_ILS).roundToInt() else 0
-        if (avocados > 0) pool += DailyInsight(
-            "🥑", "Avocado Index",
-            "Israel's favorite fruit: **$avocados avocados** at ₪${AVOCADO_ILS.roundToInt()} each. Brunch math checks out.",
-            InsightColor.EMERALD,
+        if (avocados > 0) card(
+            "🥑", R.string.insight_avocado_title, R.string.insight_avocado_text,
+            InsightColor.EMERALD, avocados, AVOCADO_ILS.roundToInt(),
         )
 
         val beers = if (totalGross > 0) (totalGross / BEER_BOTTLE_ILS).roundToInt() else 0
-        if (beers > 0) pool += DailyInsight(
-            "🍺", "Happy Hour",
-            "Your earnings equal **$beers bottles of beer** at ₪${BEER_BOTTLE_ILS.roundToInt()} each. Cheers to payday.",
-            InsightColor.AMBER,
+        if (beers > 0) card(
+            "🍺", R.string.insight_beer_title, R.string.insight_beer_text,
+            InsightColor.AMBER, beers, BEER_BOTTLE_ILS.roundToInt(),
         )
 
         val eggCartons = if (totalGross > 0) (totalGross / EGGS_CARTON_ILS).roundToInt() else 0
-        if (eggCartons > 0) pool += DailyInsight(
-            "🥚", "Breakfast Fund",
-            "That's **$eggCartons cartons of eggs** at ₪${EGGS_CARTON_ILS.roundToInt()} each. Shakshuka season never ends.",
-            InsightColor.AMBER,
+        if (eggCartons > 0) card(
+            "🥚", R.string.insight_eggs_title, R.string.insight_eggs_text,
+            InsightColor.AMBER, eggCartons, EGGS_CARTON_ILS.roundToInt(),
         )
 
         val busRides = (totalMinutes / BUS_RIDE_MIN).roundToInt()
-        if (busRides > 0) pool += DailyInsight(
-            "🚌", "Commute Time",
-            "An average bus ride is **${BUS_RIDE_MIN.roundToInt()} minutes**. You worked long enough for **$busRides rides** across town.",
-            InsightColor.SKY,
+        if (busRides > 0) card(
+            "🚌", R.string.insight_bus_title, R.string.insight_bus_text,
+            InsightColor.SKY, BUS_RIDE_MIN.roundToInt(), busRides,
         )
 
         val podcasts = (totalMinutes / PODCAST_MIN).roundToInt()
-        if (podcasts > 0) pool += DailyInsight(
-            "🎙️", "Podcast Queue",
-            "A typical podcast episode runs **${PODCAST_MIN.roundToInt()} minutes**. Your **${totalHours.roundToInt()}h** = **$podcasts episodes** you could have binged.",
-            InsightColor.INDIGO,
+        if (podcasts > 0) card(
+            "🎙️", R.string.insight_podcast_title, R.string.insight_podcast_text,
+            InsightColor.INDIGO, PODCAST_MIN.roundToInt(), hoursInt, podcasts,
         )
 
         val laundryCycles = (totalMinutes / LAUNDRY_MIN).roundToInt()
-        if (laundryCycles > 0) pool += DailyInsight(
-            "🧺", "Laundry Loads",
-            "One wash cycle takes about **${LAUNDRY_MIN.roundToInt()} minutes**. You worked enough for **$laundryCycles full loads**. Socks included.",
-            InsightColor.SKY,
+        if (laundryCycles > 0) card(
+            "🧺", R.string.insight_laundry_title, R.string.insight_laundry_text,
+            InsightColor.SKY, LAUNDRY_MIN.roundToInt(), laundryCycles,
         )
 
         val dishwasherRuns = (totalMinutes / DISHWASHER_MIN).roundToInt()
-        if (dishwasherRuns > 0) pool += DailyInsight(
-            "🍽️", "Dish Duty",
-            "A dishwasher cycle runs **${DISHWASHER_MIN.roundToInt()} minutes**. Your hours = **$dishwasherRuns spotless cycles**. No sponge required.",
-            InsightColor.SKY,
+        if (dishwasherRuns > 0) card(
+            "🍽️", R.string.insight_dishes_title, R.string.insight_dishes_text,
+            InsightColor.SKY, DISHWASHER_MIN.roundToInt(), dishwasherRuns,
         )
 
         val armyPct = (totalHours / ARMY_SERVICE_HRS * 100).roundToInt()
-        if (armyPct in 1..100) pool += DailyInsight(
-            "🎖️", "Service Hours",
-            "Israeli male army service is ~**${ARMY_SERVICE_HRS.roundToInt()}h** total. Your work this month = **$armyPct%** of full service. Salute.",
-            InsightColor.INDIGO,
+        if (armyPct in 1..100) card(
+            "🎖️", R.string.insight_army_title, R.string.insight_army_text,
+            InsightColor.INDIGO, ARMY_SERVICE_HRS.roundToInt(), armyPct,
         )
 
         val hatikvaPlays = (totalMinutes / HATIKVA_MIN).roundToInt()
-        if (hatikvaPlays > 0) pool += DailyInsight(
-            "🎵", "National Anthem",
-            "HaTikvah runs **~${HATIKVA_MIN} minutes**. Your work this month = **$hatikvaPlays plays** of the national anthem. 🇮🇱",
-            InsightColor.INDIGO,
+        if (hatikvaPlays > 0) card(
+            "🎵", R.string.insight_hatikva_title, R.string.insight_hatikva_text,
+            InsightColor.INDIGO, HATIKVA_MIN.toString(), hatikvaPlays,
         )
 
         // ── Nature + absurd ───────────────────────────────────
 
         val snailKm = (totalHours * SNAIL_KMH * 10).roundToInt().toDouble() / 10.0
-        if (snailKm > 0) pool += DailyInsight(
-            "🐌", "Snail Race",
-            "A garden snail tops out at **${SNAIL_KMH} km/h**. In your **${totalHours.roundToInt()}h** of work this month, a snail could have travelled **$snailKm km**.",
-            InsightColor.EMERALD,
+        if (snailKm > 0) card(
+            "🐌", R.string.insight_snail_title, R.string.insight_snail_text,
+            InsightColor.EMERALD, SNAIL_KMH.toString(), hoursInt, snailKm.toString(),
         )
 
         val issOrbits = (totalMinutes / ISS_ORBIT_MIN).roundToInt()
-        if (issOrbits > 0) pool += DailyInsight(
-            "🚀", "Orbital Mechanic",
-            "The ISS orbits Earth every **${ISS_ORBIT_MIN.roundToInt()} minutes**. While you worked **${totalHours.roundToInt()}h**, it completed **$issOrbits full laps**. Perspective.",
-            InsightColor.INDIGO,
+        if (issOrbits > 0) card(
+            "🚀", R.string.insight_iss_title, R.string.insight_iss_text,
+            InsightColor.INDIGO, ISS_ORBIT_MIN.roundToInt(), hoursInt, issOrbits,
         )
 
         val sharkKm = (totalHours * SHARK_KMH).roundToInt()
-        if (sharkKm > 0) pool += DailyInsight(
-            "🦈", "Shark Sprint",
-            "A great white shark hits **${SHARK_KMH.roundToInt()} km/h**. In your **${totalHours.roundToInt()} working hours**, a shark could swim **$sharkKm km**. Don't go in the water.",
-            InsightColor.ROSE,
+        if (sharkKm > 0) card(
+            "🦈", R.string.insight_shark_title, R.string.insight_shark_text,
+            InsightColor.ROSE, SHARK_KMH.roundToInt(), hoursInt, sharkKm,
         )
 
         val beeLifetimePct = (totalHours / BEE_LIFETIME_HRS * 100 * 10).roundToInt().toDouble() / 10.0
-        if (beeLifetimePct > 0) pool += DailyInsight(
-            "🐝", "Busy Bee",
-            "A worker bee forages for ~**${BEE_LIFETIME_HRS.roundToInt()}h** in its lifetime. Your work this month = **$beeLifetimePct%** of a bee's full career. Bzz.",
-            InsightColor.AMBER,
+        if (beeLifetimePct > 0) card(
+            "🐝", R.string.insight_bee_title, R.string.insight_bee_text,
+            InsightColor.AMBER, BEE_LIFETIME_HRS.roundToInt(), beeLifetimePct.toString(),
         )
 
         val shakespearePct = (totalHours / SHAKESPEARE_HRS * 100 * 10).roundToInt().toDouble() / 10.0
-        if (shakespearePct > 0) pool += DailyInsight(
-            "🎭", "Shakespeare Mode",
-            "Experts estimate Shakespeare spent **${SHAKESPEARE_HRS.roundToInt().toLocaleString()}h** writing all his works. This month you completed **$shakespearePct%** of a Shakespeare.",
-            InsightColor.VIOLET,
+        if (shakespearePct > 0) card(
+            "🎭", R.string.insight_shakespeare_title, R.string.insight_shakespeare_text,
+            InsightColor.VIOLET, SHAKESPEARE_HRS.roundToInt().toLocaleString(), shakespearePct.toString(),
         )
 
         val earthPct = (totalHours / EARTH_WALK_HRS * 100 * 10).roundToInt().toDouble() / 10.0
-        if (earthPct > 0) pool += DailyInsight(
-            "🌍", "Around the World",
-            "Walking Earth's circumference at 5 km/h takes **${EARTH_WALK_HRS.roundToInt().toLocaleString()}h**. Your work this month is **$earthPct%** of the way around the globe.",
-            InsightColor.EMERALD,
+        if (earthPct > 0) card(
+            "🌍", R.string.insight_earth_title, R.string.insight_earth_text,
+            InsightColor.EMERALD, EARTH_WALK_HRS.roundToInt().toLocaleString(), earthPct.toString(),
         )
 
         val degreePct = (totalHours / DEGREE_HRS * 100 * 10).roundToInt().toDouble() / 10.0
-        if (degreePct > 0) pool += DailyInsight(
-            "🎓", "Degree Progress",
-            "A full university degree takes roughly **${DEGREE_HRS.roundToInt().toLocaleString()} hours** of study. Your work this month = **$degreePct%** of an entire degree.",
-            InsightColor.INDIGO,
+        if (degreePct > 0) card(
+            "🎓", R.string.insight_degree_title, R.string.insight_degree_text,
+            InsightColor.INDIGO, DEGREE_HRS.roundToInt().toLocaleString(), degreePct.toString(),
         )
 
         val guitarSolos = (totalMinutes * 60 / GUITAR_SOLO_SEC).roundToInt()
-        if (guitarSolos > 0) pool += DailyInsight(
-            "🎸", "Guitar God",
-            "An average guitar solo lasts **${GUITAR_SOLO_SEC.roundToInt()}s**. You worked long enough for **$guitarSolos guitar solos**. Shred on.",
-            InsightColor.ROSE,
+        if (guitarSolos > 0) card(
+            "🎸", R.string.insight_guitar_title, R.string.insight_guitar_text,
+            InsightColor.ROSE, GUITAR_SOLO_SEC.roundToInt(), guitarSolos,
         )
 
         val ramenBowls = (totalMinutes / RAMEN_MIN).roundToInt()
-        if (ramenBowls > 0) pool += DailyInsight(
-            "🍜", "Ramen Counter",
-            "Instant ramen takes **${RAMEN_MIN.roundToInt()} minutes**. In your **${totalHours.roundToInt()}h** of work, you could have made **$ramenBowls bowls**. Budget living.",
-            InsightColor.AMBER,
+        if (ramenBowls > 0) card(
+            "🍜", R.string.insight_ramen_title, R.string.insight_ramen_text,
+            InsightColor.AMBER, RAMEN_MIN.roundToInt(), hoursInt, ramenBowls,
         )
 
         return pool

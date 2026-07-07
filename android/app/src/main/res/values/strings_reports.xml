@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Screen chrome -->
+    <string name="reports_title">Reports</string>
+    <string name="reports_subtitle">Your performance overview</string>
+    <string name="reports_tab_hours">Hours</string>
+    <string name="reports_tab_refunds">Travel Refunds</string>
+    <string name="reports_empty_title">No completed shifts</string>
+    <string name="reports_empty_subtitle">Complete some shifts to see your report.</string>
+
+    <!-- Stat cards -->
+    <string name="reports_hours_value">%1$sh</string>
+    <string name="reports_all_hours_month">All hours this month</string>
+    <string name="reports_pct_of_total">%1$d%% of total</string>
+    <string name="reports_gross_pay_before_tax">Gross Pay · Before Tax</string>
+    <string name="reports_peak_performer">Peak Performer</string>
+    <string name="reports_peak_more">You worked %1$d%% more hours than %2$s. Keep up the momentum!</string>
+    <string name="reports_peak_fewer">You worked %1$d%% fewer hours than %2$s.</string>
+    <string name="reports_peak_same">Same hours as %1$s.</string>
+    <string name="reports_month_over_month">Month over month</string>
+    <string name="reports_hours_this_month">%1$sh this month</string>
+    <string name="reports_vs_prev">%1$s %2$sh vs %3$s</string>
+
+    <!-- Shift insights -->
+    <string name="reports_insights_off_title">Insights are turned off</string>
+    <string name="reports_insights_off_body">Enable Insights in Settings → Features to see daily cards and shift stats here.</string>
+    <string name="reports_shift_insights">Shift Insights</string>
+    <string name="reports_weekend_shifts">Weekend Shifts</string>
+    <string name="reports_avg_shift_length">Avg Shift Length</string>
+    <string name="reports_overtime_shifts">Overtime Shifts</string>
+    <string name="reports_longest_shift">Longest Shift</string>
+    <string name="reports_avg_pay_shift">Avg Pay / Shift</string>
+    <string name="reports_best_shift">Best Shift</string>
+    <string name="reports_per_shift">per shift</string>
+    <string name="reports_shift_one">shift</string>
+    <string name="reports_shift_other">shifts</string>
+    <string name="reports_set_rate_unlock">set rate to unlock</string>
+
+    <!-- Daily insight pager -->
+    <string name="reports_insights_of_day">Insights of the Day</string>
+    <string name="reports_swipe_daily">swipe · changes daily</string>
+    <string name="reports_index_of">%1$d of %2$d</string>
+    <string name="reports_today_dot">● today</string>
+
+    <!-- Weekly / task / shift breakdown -->
+    <string name="reports_weekly_breakdown">Weekly Breakdown</string>
+    <string name="reports_vs_month">vs %1$s</string>
+    <string name="reports_by_task">By Task</string>
+    <string name="reports_shift_breakdown">Shift Breakdown</string>
+    <string name="reports_week_label">Week %1$s</string>
+    <string name="reports_week_days">days %1$s</string>
+    <string name="reports_task_shifts_avg">%1$d shifts · avg %2$sh</string>
+    <string name="reports_ot_hours">OT %1$sh</string>
+    <string name="reports_ot_suffix">%1$s OT</string>
+    <string name="reports_plus_ot">+%1$s OT</string>
+    <string name="reports_chip_weekend">Weekend</string>
+    <string name="reports_chip_overnight">Overnight</string>
+    <string name="reports_break_suffix">" · %1$dm break"</string>
+    <string name="reports_daily_ot_after">Daily OT after</string>
+    <string name="reports_weekly_ot_after">Weekly OT after</string>
+    <string name="reports_hours_distribution">Hours Distribution</string>
+    <string name="reports_export_pdf_month">Export PDF - %1$s</string>
+    <string name="reports_preparing_pdf">Preparing PDF…</string>
+
+    <!-- Refunds tab -->
+    <string name="reports_no_reimb_title">No ride reimbursements yet</string>
+    <string name="reports_no_reimb_body">Add reimbursement claims from any completed shift in shift edit.</string>
+    <string name="reports_export_all_receipts">Export all reimbursement receipts</string>
+    <string name="reports_preparing_reimb_pdf">Preparing reimbursement PDF…</string>
+    <string name="reports_reminder_one">%1$d reminder</string>
+    <string name="reports_reminder_other">%1$d reminders</string>
+    <string name="reports_open_shift_submit">Open the shift to submit a claim or mark no ride.</string>
+    <string name="reports_reimb_history">Reimbursement History</string>
+    <string name="reports_showing_months">Showing %1$s with ride reimbursements.</string>
+    <string name="reports_month_count_one">%1$d month</string>
+    <string name="reports_month_count_other">%1$d months</string>
+    <string name="reports_total_refunded">TOTAL REFUNDED</string>
+    <string name="reports_rides_months">%1$d rides - %2$d months</string>
+    <string name="reports_total_compensation">Total compensation</string>
+    <string name="reports_by_provider">By Provider</string>
+    <string name="reports_provider_rides">%1$s - %2$d rides</string>
+    <string name="reports_avg_per_ride">Avg per Ride</string>
+    <string name="reports_largest_ride">Largest Ride</string>
+    <string name="reports_submitted">Submitted</string>
+    <string name="reports_pending">Pending</string>
+    <string name="reports_dir_to_work">To work</string>
+    <string name="reports_dir_from_work">From work</string>
+    <string name="reports_claim_line">%1$s - %2$s - %3$s</string>
+    <string name="reports_receipt_suffix">" - receipt"</string>
+    <string name="reports_view">View</string>
+    <string name="reports_all_months">All months</string>
+
+    <!-- PDF export -->
+    <string name="export_monthly_title">Monthly Shift Report</string>
+    <string name="export_completed_shifts">%1$d completed shifts</string>
+    <string name="export_generated_by">Generated by ElmTrackr</string>
+    <string name="export_gross_pay">Gross pay</string>
+    <string name="export_thresholds">Thresholds</string>
+    <string name="export_note">Note: %1$s</string>
+    <string name="export_share_csv">Export CSV</string>
+    <string name="export_share_pdf">Export shift PDF</string>
+    <string name="export_reimb_title">Travel Reimbursement Report</string>
+    <string name="export_claims_count">%1$d claims</string>
+    <string name="export_total">Total: %1$s</string>
+    <string name="export_col_direction">Direction</string>
+    <string name="export_col_ride_date">Ride date</string>
+    <string name="export_col_provider">Provider</string>
+    <string name="export_col_amount">Amount</string>
+    <string name="export_shift_prefix">Shift: %1$s</string>
+    <string name="export_col_date">Date</string>
+    <string name="export_col_time">Time</string>
+    <string name="export_col_total">Total</string>
+    <string name="export_col_tags">Tags</string>
+    <string name="export_col_gross">Gross</string>
+    <string name="export_col_task">Task</string>
+    <string name="export_col_shifts">Shifts</string>
+    <string name="export_col_ot">OT</string>
+    <string name="export_avg">avg %1$s</string>
+    <string name="export_receipt_n">Receipt %1$s: %2$s - %3$s</string>
+    <string name="export_share_reimb">Export reimbursement PDF</string>
+
+    <!-- Daily insight cards (** marks bold segments) -->
+    <string name="insight_fallback_title">Just getting started</string>
+    <string name="insight_fallback_text">Log your first completed shifts to unlock daily insights.</string>
+    <string name="insight_workdays_title">Work Days Equivalent</string>
+    <string name="insight_workdays_text">Your **%1$dh** of work equals **%2$d full %3$sh work days**. Consistent.</string>
+    <string name="insight_movies_title">Movie Marathon</string>
+    <string name="insight_movies_text">Instead of working **%1$dh**, you could have watched **%2$d movies**. No popcorn included.</string>
+    <string name="insight_books_title">Book Club</string>
+    <string name="insight_books_text">Your **%1$dh** of work = **%2$d books** you could have read cover-to-cover. Bookworm status pending.</string>
+    <string name="insight_eilat_title">Road Trip</string>
+    <string name="insight_eilat_text">Your hours this month equal **%1$d drives** from Tel Aviv to Eilat. Sand dunes, desert wind, and deadlines.</string>
+    <string name="insight_coffee_title">Coffee Math</string>
+    <string name="insight_coffee_text">Your **%1$dh** of work required roughly **%2$d cups of coffee** — at 20 minutes of ritual each. No decaf.</string>
+    <string name="insight_flights_title">Airborne Hours</string>
+    <string name="insight_flights_text">**%1$dh** worked = **%2$d non-stop El Al flights** from Tel Aviv to New York. Jet lag not included.</string>
+    <string name="insight_binge_title">Binge Watch</string>
+    <string name="insight_binge_text">**%1$dh** of work = **%2$s× through Breaking Bad** (all %3$dh). Better call it a productive month.</string>
+    <string name="insight_beach_title">Beach Tax</string>
+    <string name="insight_beach_text_one">You clocked **1 shift** this month. That\'s **1 potential beach day** surrendered to productivity. Worth it?</string>
+    <string name="insight_beach_text_other">You clocked **%1$d shifts** this month. That\'s **%1$d potential beach days** surrendered to productivity. Worth it?</string>
+    <string name="insight_surf_title">Surf\'s Up</string>
+    <string name="insight_surf_text">An average surf session runs **%1$sh**. Your work this month = **%2$d surf sessions** you could have caught instead. Hang ten.</string>
+    <string name="insight_monopoly_title">Board Game Champion</string>
+    <string name="insight_monopoly_text">An average Monopoly game takes **%1$dh**. Your work this month = **%2$d full Monopoly games**. You\'ve been collecting rent in real life.</string>
+    <string name="insight_shwarma_title">Shwarma Economy</string>
+    <string name="insight_shwarma_text">At %1$d minutes per shwarma, you could have eaten **%2$d shwarmas** in the time you worked this month. B\'te\'avon.</string>
+    <string name="insight_pizza_title">Pizza Fund</string>
+    <string name="insight_pizza_text">This month\'s earnings could buy you **%1$d pizzas** at ₪%2$d each. That\'s a lot of slices.</string>
+    <string name="insight_coke_title">Coke Counter</string>
+    <string name="insight_coke_text">That\'s **%1$d bottles of Coca-Cola** at ₪%2$s each. Hydration budget unlocked.</string>
+    <string name="insight_cinema_title">Cinema Budget</string>
+    <string name="insight_cinema_text">Your earnings could cover **%1$d movie tickets** at ₪%2$d each. Popcorn sold separately.</string>
+    <string name="insight_burger_title">Burger Run</string>
+    <string name="insight_burger_text">That\'s **%1$d Big Mac-style meals** at ₪%2$d a pop. I\'m lovin\' the overtime.</string>
+    <string name="insight_netflix_title">Streaming Stack</string>
+    <string name="insight_netflix_text">Your pay could fund **%1$d months of Netflix** at ₪%2$d/month. Plenty of time to chill — after work.</string>
+    <string name="insight_spotify_title">Playlist Budget</string>
+    <string name="insight_spotify_text">That\'s **%1$d months of Spotify Premium** at ₪%2$d/month. Soundtrack your shifts.</string>
+    <string name="insight_avocado_title">Avocado Index</string>
+    <string name="insight_avocado_text">Israel\'s favorite fruit: **%1$d avocados** at ₪%2$d each. Brunch math checks out.</string>
+    <string name="insight_beer_title">Happy Hour</string>
+    <string name="insight_beer_text">Your earnings equal **%1$d bottles of beer** at ₪%2$d each. Cheers to payday.</string>
+    <string name="insight_eggs_title">Breakfast Fund</string>
+    <string name="insight_eggs_text">That\'s **%1$d cartons of eggs** at ₪%2$d each. Shakshuka season never ends.</string>
+    <string name="insight_bus_title">Commute Time</string>
+    <string name="insight_bus_text">An average bus ride is **%1$d minutes**. You worked long enough for **%2$d rides** across town.</string>
+    <string name="insight_podcast_title">Podcast Queue</string>
+    <string name="insight_podcast_text">A typical podcast episode runs **%1$d minutes**. Your **%2$dh** = **%3$d episodes** you could have binged.</string>
+    <string name="insight_laundry_title">Laundry Loads</string>
+    <string name="insight_laundry_text">One wash cycle takes about **%1$d minutes**. You worked enough for **%2$d full loads**. Socks included.</string>
+    <string name="insight_dishes_title">Dish Duty</string>
+    <string name="insight_dishes_text">A dishwasher cycle runs **%1$d minutes**. Your hours = **%2$d spotless cycles**. No sponge required.</string>
+    <string name="insight_army_title">Service Hours</string>
+    <string name="insight_army_text">Israeli male army service is ~**%1$dh** total. Your work this month = **%2$d%%** of full service. Salute.</string>
+    <string name="insight_hatikva_title">National Anthem</string>
+    <string name="insight_hatikva_text">HaTikvah runs **~%1$s minutes**. Your work this month = **%2$d plays** of the national anthem. 🇮🇱</string>
+    <string name="insight_snail_title">Snail Race</string>
+    <string name="insight_snail_text">A garden snail tops out at **%1$s km/h**. In your **%2$dh** of work this month, a snail could have travelled **%3$s km**.</string>
+    <string name="insight_iss_title">Orbital Mechanic</string>
+    <string name="insight_iss_text">The ISS orbits Earth every **%1$d minutes**. While you worked **%2$dh**, it completed **%3$d full laps**. Perspective.</string>
+    <string name="insight_shark_title">Shark Sprint</string>
+    <string name="insight_shark_text">A great white shark hits **%1$d km/h**. In your **%2$d working hours**, a shark could swim **%3$d km**. Don\'t go in the water.</string>
+    <string name="insight_bee_title">Busy Bee</string>
+    <string name="insight_bee_text">A worker bee forages for ~**%1$dh** in its lifetime. Your work this month = **%2$s%%** of a bee\'s full career. Bzz.</string>
+    <string name="insight_shakespeare_title">Shakespeare Mode</string>
+    <string name="insight_shakespeare_text">Experts estimate Shakespeare spent **%1$sh** writing all his works. This month you completed **%2$s%%** of a Shakespeare.</string>
+    <string name="insight_earth_title">Around the World</string>
+    <string name="insight_earth_text">Walking Earth\'s circumference at 5 km/h takes **%1$sh**. Your work this month is **%2$s%%** of the way around the globe.</string>
+    <string name="insight_degree_title">Degree Progress</string>
+    <string name="insight_degree_text">A full university degree takes roughly **%1$s hours** of study. Your work this month = **%2$s%%** of an entire degree.</string>
+    <string name="insight_guitar_title">Guitar God</string>
+    <string name="insight_guitar_text">An average guitar solo lasts **%1$ds**. You worked long enough for **%2$d guitar solos**. Shred on.</string>
+    <string name="insight_ramen_title">Ramen Counter</string>
+    <string name="insight_ramen_text">Instant ramen takes **%1$d minutes**. In your **%2$dh** of work, you could have made **%3$d bowls**. Budget living.</string>
+</resources>
