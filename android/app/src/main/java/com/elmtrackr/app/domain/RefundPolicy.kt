@@ -1,64 +1,44 @@
 package com.elmtrackr.app.domain
 
+import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.Shift
 import java.time.ZoneId
 
 /**
- * Travel-refund eligibility rules.
+ * Travel-refund helpers.
  *
- * All checks use LOCAL time (not UTC), matching the web app's use of
- * new Date(iso).getHours() / getDay() which reads the JS engine's local timezone.
- * Pass an explicit [zone] in tests to keep them timezone-independent.
+ * Reimbursement is user-driven: any completed shift can have ride claims added
+ * from shift edit when the travel-refunds feature is enabled. There is no
+ * automatic time-based eligibility detection.
  */
 object RefundPolicy {
 
     data class Eligibility(val eligible: Boolean, val reasons: List<String>)
 
-    /** Eligibility for the ride TO work, based on shift start time. */
+    /** Eligibility for the ride TO work. Available on any completed shift. */
     fun checkToWorkEligibility(
         shift: Shift,
         zone: ZoneId = ZoneId.systemDefault(),
     ): Eligibility {
-        val start = shift.startTime.atZone(zone)
-        val hour = start.hour
-        val minute = start.minute
-        val jsDay = start.dayOfWeek.toJsDay()
-        val reasons = mutableListOf<String>()
-
-        if ((hour == 23 && minute >= 30) || hour < 10) reasons += "Late night / early morning start"
-        if (jsDay == 5 && hour >= 17) reasons += "Friday night shift"
-        if (jsDay == 6) reasons += "Saturday shift"
-        if (shift.isSpecialDay || shift.premiumProfileId != null) reasons += "Premium shift"
-
-        return Eligibility(reasons.isNotEmpty(), reasons)
+        if (!shift.isCompleted) return Eligibility(false, emptyList())
+        return Eligibility(true, emptyList())
     }
 
-    /** Eligibility for the ride FROM work, based on shift end time. */
+    /** Eligibility for the ride FROM work. Available on any completed shift. */
     fun checkFromWorkEligibility(
         shift: Shift,
         zone: ZoneId = ZoneId.systemDefault(),
     ): Eligibility {
-        val endInstant = shift.endTime ?: return Eligibility(false, emptyList())
-        val end = endInstant.atZone(zone)
-        val hour = end.hour
-        val minute = end.minute
-        val jsDay = end.dayOfWeek.toJsDay()
-        val reasons = mutableListOf<String>()
-
-        if ((hour == 23 && minute >= 30) || hour < 10) reasons += "Late night / early morning shift"
-        if (jsDay == 5 && hour >= 17) reasons += "Friday night shift"
-        if (jsDay == 6) reasons += "Saturday shift"
-        if (shift.isSpecialDay || shift.premiumProfileId != null) reasons += "Premium shift"
-
-        return Eligibility(reasons.isNotEmpty(), reasons)
+        if (!shift.isCompleted) return Eligibility(false, emptyList())
+        return Eligibility(true, emptyList())
     }
 
     fun isEligibleForRefund(shift: Shift, zone: ZoneId = ZoneId.systemDefault()): Boolean =
-        checkFromWorkEligibility(shift, zone).eligible
+        shift.isCompleted
 
-    /** True if the shift is eligible but the user has not yet acted on the refund. */
+    /** True when the user asked to be reminded later about a from-work ride. */
     fun isUnresolved(shift: Shift, zone: ZoneId = ZoneId.systemDefault()): Boolean =
-        shift.isCompleted && isEligibleForRefund(shift, zone) && shift.refundAction == null
+        shift.isCompleted && shift.refundAction == RefundAction.REMIND_LATER
 
     fun countUnresolved(shifts: List<Shift>, zone: ZoneId = ZoneId.systemDefault()): Int =
         shifts.count { isUnresolved(it, zone) }

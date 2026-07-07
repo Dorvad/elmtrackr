@@ -259,20 +259,22 @@ class FullAppScreenshotTest {
 
     @Test fun settingsCompensation() = capture("22-settings-compensation") {
         val preset = RegionPresets.forRegion(RegionCode.IL)
+        val profile = CompensationProfile(
+            id = "cp1",
+            userId = "user",
+            name = "Israel default",
+            regionCode = RegionCode.IL,
+            currencyCode = "ILS",
+            timezone = "Asia/Jerusalem",
+            baseHourlyRate = 50.0,
+            rules = preset.rules,
+            stackingPolicy = preset.stackingPolicy,
+            isDefault = true,
+        )
         CompensationSettingsContent(
             state = CompensationSettingsUiState.Ready(
-                profile = CompensationProfile(
-                    id = "cp1",
-                    userId = "user",
-                    name = "Israel default",
-                    regionCode = RegionCode.IL,
-                    currencyCode = "ILS",
-                    timezone = "Asia/Jerusalem",
-                    baseHourlyRate = 50.0,
-                    rules = preset.rules,
-                    stackingPolicy = preset.stackingPolicy,
-                    isDefault = true,
-                ),
+                profiles = listOf(profile),
+                profile = profile,
                 settings = sampleSettings(),
                 presets = RegionPresets.all,
                 currencyOptions = listOf("ILS" to "₪ Israeli shekel", "USD" to "$ US dollar"),
@@ -281,6 +283,8 @@ class FullAppScreenshotTest {
                 saveMessage = null,
             ),
             onBack = {},
+            onSelectProfile = {},
+            onCreateProfile = {},
             onSave = { _, _, _, _, _, _, _ -> },
             onDismissMessage = {},
         )

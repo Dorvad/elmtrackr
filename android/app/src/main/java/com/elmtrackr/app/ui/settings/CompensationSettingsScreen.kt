@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -82,6 +83,8 @@ fun CompensationSettingsScreen(
             is CompensationSettingsUiState.Ready -> CompensationSettingsContent(
                 state = state,
                 onBack = onBack,
+                onSelectProfile = viewModel::selectProfile,
+                onCreateProfile = viewModel::createProfile,
                 onSave = viewModel::saveProfile,
                 onDismissMessage = viewModel::clearSaveMessage,
             )
@@ -102,11 +105,16 @@ private fun BoxCentered(content: @Composable () -> Unit) {
 internal fun CompensationSettingsContent(
     state: CompensationSettingsUiState.Ready,
     onBack: () -> Unit,
+    onSelectProfile: (String) -> Unit,
+    onCreateProfile: (String) -> Unit,
     onSave: (
         String, RegionCode, String, String, Double?, StackingPolicy, CompensationRules,
     ) -> Unit,
     onDismissMessage: () -> Unit,
 ) {
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var newProfileName by remember { mutableStateOf("") }
+
     var name by remember(state.profile.id) { mutableStateOf(state.profile.name) }
     var regionCode by remember(state.profile.id) { mutableStateOf(state.profile.regionCode) }
     var currencyCode by remember(state.profile.id) { mutableStateOf(state.profile.currencyCode) }
@@ -153,6 +161,39 @@ internal fun CompensationSettingsContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+
+        item {
+            ElmCardPadded {
+                ElmSectionHeader("Profiles")
+                Spacer(Modifier.height(12.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    state.profiles.forEach { profile ->
+                        FilterChip(
+                            selected = profile.id == state.profile.id,
+                            onClick = { onSelectProfile(profile.id) },
+                            label = { Text(profile.name) },
+                        )
+                    }
+                    FilterChip(
+                        selected = false,
+                        onClick = {
+                            newProfileName = ""
+                            showCreateDialog = true
+                        },
+                        label = { Text("Add profile") },
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Each profile has its own pay rules. Pick one to edit, or add another for a second job.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
         item {
@@ -444,6 +485,35 @@ internal fun CompensationSettingsContent(
             }
             Spacer(Modifier.height(Spacing.xl))
         }
+    }
+
+    if (showCreateDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showCreateDialog = false },
+            title = { Text("New compensation profile") },
+            text = {
+                OutlinedTextField(
+                    value = newProfileName,
+                    onValueChange = { newProfileName = it },
+                    label = { Text("Profile name") },
+                    placeholder = { Text("e.g. Second job, Weekend gig") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onCreateProfile(newProfileName.trim())
+                        showCreateDialog = false
+                    },
+                    enabled = newProfileName.trim().isNotBlank(),
+                ) { Text("Create") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCreateDialog = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 

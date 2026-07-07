@@ -23,8 +23,10 @@ class FakeCompensationProfilesRepository : CompensationProfilesRepository {
         profiles.value.firstOrNull { it.userId == userId && it.id == profileId }
 
     override suspend fun upsertProfile(profile: CompensationProfile): CompensationProfile {
-        profiles.value = profiles.value.filter { it.id != profile.id } + profile
-        return profile
+        val profileId = profile.id.ifBlank { java.util.UUID.randomUUID().toString() }
+        val saved = profile.copy(id = profileId)
+        profiles.value = profiles.value.filter { it.id != profileId } + saved
+        return saved
     }
 
     override suspend fun deleteProfile(userId: String, profileId: String) {

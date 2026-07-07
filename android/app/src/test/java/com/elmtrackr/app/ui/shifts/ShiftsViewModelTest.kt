@@ -516,7 +516,7 @@ class ShiftsViewModelTest {
     }
 
     @Test
-    fun `ineligible refund direction is rejected`() = runTest {
+    fun `refund claim can be saved on any completed shift`() = runTest {
         val shift = Shift(
             "ordinary",
             "local-user",
@@ -537,8 +537,8 @@ class ShiftsViewModelTest {
         )
         advanceUntilIdle()
 
-        assertTrue(vm.formErrors.value.containsKey("refund"))
-        assertTrue(refundsRepo.observeClaimsForShift(shift.id).first().isEmpty())
+        assertFalse(vm.formErrors.value.containsKey("refund"))
+        assertEquals(1, refundsRepo.observeClaimsForShift(shift.id).first().size)
     }
 
     @Test
@@ -601,6 +601,38 @@ class ShiftsViewModelTest {
         advanceUntilIdle()
 
         assertEquals("profile-b", shiftsRepo.currentShifts.single().compensationProfileId)
+    }
+
+    @Test
+    fun `create compensation profile clones default and selects it`() = runTest {
+        seedSettings()
+        val ilPreset = RegionPresets.forRegion(RegionCode.IL)
+        val defaultProfile = CompensationProfile(
+            id = "profile-default",
+            userId = "u1",
+            name = "Main job",
+            regionCode = RegionCode.IL,
+            currencyCode = "ILS",
+            timezone = "Asia/Jerusalem",
+            baseHourlyRate = 50.0,
+            rules = ilPreset.rules,
+            stackingPolicy = ilPreset.stackingPolicy,
+            isDefault = true,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        compensationRepo.setProfiles(defaultProfile)
+        val vm = buildVm()
+        var createdId: String? = null
+
+        vm.createCompensationProfile("Weekend gig") { createdId = it }
+        advanceUntilIdle()
+
+        val profiles = compensationRepo.getProfiles("u1")
+        assertEquals(2, profiles.size)
+        val created = profiles.first { it.name == "Weekend gig" }
+        assertEquals(created.id, createdId)
+        assertFalse(created.isDefault)
     }
 
     private fun specialDayShift() = Shift(

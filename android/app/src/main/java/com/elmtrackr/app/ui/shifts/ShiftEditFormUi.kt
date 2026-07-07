@@ -61,7 +61,6 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
-import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CurrencyCode
@@ -125,7 +124,8 @@ internal fun ShiftEditFormContent(
     premiumProfiles: List<PremiumProfile>,
     profiles: List<CompensationProfile>,
     compensationProfileId: String?,
-    onCompensationProfileIdChange: (String?) -> Unit,
+    onCompensationProfileIdChange: (String) -> Unit,
+    onCreateCompensationProfile: ((name: String, onCreated: (String?) -> Unit) -> Unit)? = null,
     tasks: List<Task>,
     taskId: String?,
     onTaskIdChange: (String?) -> Unit,
@@ -349,13 +349,14 @@ internal fun ShiftEditFormContent(
                     )
                 }
 
-                if (profiles.isNotEmpty() || activeTasks.isNotEmpty()) {
+                if (profiles.isNotEmpty() || onCreateCompensationProfile != null || activeTasks.isNotEmpty()) {
                     FormSectionCard(title = stringResource(R.string.shifts_section_pay_task)) {
-                        if (profiles.isNotEmpty()) {
+                        if (profiles.isNotEmpty() || onCreateCompensationProfile != null) {
                             CompensationProfilePicker(
                                 profiles = profiles,
                                 selectedId = compensationProfileId,
-                                onSelect = { onCompensationProfileIdChange(it) },
+                                onSelect = onCompensationProfileIdChange,
+                                onCreateProfile = onCreateCompensationProfile,
                             )
                         }
                         if (activeTasks.isNotEmpty()) {
@@ -848,9 +849,4 @@ private fun countUnsavedChanges(
 internal fun shouldShowRefundSection(
     featuresTravelRefunds: Boolean,
     shift: Shift?,
-): Boolean {
-    if (!featuresTravelRefunds || shift == null || !shift.isCompleted) return false
-    val toEligibility = RefundPolicy.checkToWorkEligibility(shift)
-    val fromEligibility = RefundPolicy.checkFromWorkEligibility(shift)
-    return toEligibility.eligible || fromEligibility.eligible
-}
+): Boolean = featuresTravelRefunds && shift != null && shift.isCompleted

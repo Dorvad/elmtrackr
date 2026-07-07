@@ -6,7 +6,6 @@ import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.data.repository.PremiumProfilesRepository
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.domain.CurrentUserProvider
-import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.model.ReceiptUpload
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.Shift
@@ -297,12 +296,8 @@ class ShiftsViewModel @Inject constructor(
                 onComplete(false)
                 return@launch
             }
-            val eligibility = when (direction) {
-                RefundDirection.TO_WORK -> RefundPolicy.checkToWorkEligibility(shift)
-                RefundDirection.FROM_WORK -> RefundPolicy.checkFromWorkEligibility(shift)
-            }
-            if (!eligibility.eligible) {
-                _formErrors.value = mapOf("refund" to "This ride is not eligible for a travel refund")
+            if (!shift.isCompleted) {
+                _formErrors.value = mapOf("refund" to "Finish the shift before saving a travel refund claim")
                 onComplete(false)
                 return@launch
             }
@@ -389,6 +384,39 @@ class ShiftsViewModel @Inject constructor(
 
     suspend fun receiptUrl(path: String): String? =
         refundReceiptStorage?.let { storage -> runCatching { storage.createSignedUrl(path) }.getOrNull() }
+
+    fun createCompensationProfile(name: String, onComplete: (String?) -> Unit = {}) {
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) {
+            onComplete(null)
+            return
+        }
+        viewModelScope.launch {
+            val userId = currentUserProvider.currentUserId() ?: run {
+                onComplete(null)
+                return@launch
+            }
+            compensationProfilesRepository.ensureMigrated(userId)
+            val existing = compensationProfilesRepository.getProfiles(userId)
+            val template = existing.firstOrNull { it.isDefault } ?: existing.firstOrNull()
+            if (template == null) {
+                onComplete(null)
+                return@launch
+            }
+            val now = Instant.now()
+            val created = compensationProfilesRepository.upsertProfile(
+                template.copy(
+                    id = "",
+                    name = trimmed,
+                    isDefault = false,
+                    remoteId = null,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+            onComplete(created.id)
+        }
+    }
 
     private suspend fun updateShiftRefundAction(shift: Shift, action: RefundAction?) {
         val updated = shift.copy(refundAction = action, updatedAt = Instant.now())
