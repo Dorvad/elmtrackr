@@ -232,12 +232,14 @@ class FullAppScreenshotJvmTest {
 
     @Test fun settingsCompensationDark() = capture("27-settings-compensation-dark", darkTheme = true) {
         val preset = RegionPresets.forRegion(RegionCode.IL)
+        val profile = CompensationProfile(
+            "cp1", "user", "Israel default", RegionCode.IL, "ILS", "Asia/Jerusalem",
+            50.0, preset.rules, preset.stackingPolicy, isDefault = true,
+        )
         CompensationSettingsContent(
             state = CompensationSettingsUiState.Ready(
-                profile = CompensationProfile(
-                    "cp1", "user", "Israel default", RegionCode.IL, "ILS", "Asia/Jerusalem",
-                    50.0, preset.rules, preset.stackingPolicy, isDefault = true,
-                ),
+                profiles = listOf(profile),
+                profile = profile,
                 settings = sampleSettings(),
                 presets = RegionPresets.all,
                 currencyOptions = listOf("ILS" to "₪ Israeli shekel", "USD" to "$ US dollar"),
@@ -246,6 +248,8 @@ class FullAppScreenshotJvmTest {
                 saveMessage = null,
             ),
             onBack = {},
+            onSelectProfile = {},
+            onCreateProfile = {},
             onSave = { _, _, _, _, _, _, _ -> },
             onDismissMessage = {},
         )
@@ -253,12 +257,14 @@ class FullAppScreenshotJvmTest {
 
     @Test fun settingsCompensation() = capture("22-settings-compensation") {
         val preset = RegionPresets.forRegion(RegionCode.IL)
+        val profile = CompensationProfile(
+            "cp1", "user", "Israel default", RegionCode.IL, "ILS", "Asia/Jerusalem",
+            50.0, preset.rules, preset.stackingPolicy, isDefault = true,
+        )
         CompensationSettingsContent(
             state = CompensationSettingsUiState.Ready(
-                profile = CompensationProfile(
-                    "cp1", "user", "Israel default", RegionCode.IL, "ILS", "Asia/Jerusalem",
-                    50.0, preset.rules, preset.stackingPolicy, isDefault = true,
-                ),
+                profiles = listOf(profile),
+                profile = profile,
                 settings = sampleSettings(),
                 presets = RegionPresets.all,
                 currencyOptions = listOf("ILS" to "₪ Israeli shekel", "USD" to "$ US dollar"),
@@ -267,6 +273,8 @@ class FullAppScreenshotJvmTest {
                 saveMessage = null,
             ),
             onBack = {},
+            onSelectProfile = {},
+            onCreateProfile = {},
             onSave = { _, _, _, _, _, _, _ -> },
             onDismissMessage = {},
         )

@@ -36,6 +36,7 @@ class CompensationSettingsViewModel @Inject constructor(
     private val _isSaving = MutableStateFlow(false)
     private val _saveMessage = MutableStateFlow<String?>(null)
     private val _bootstrapComplete = MutableStateFlow(false)
+    private val _selectedProfileId = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<CompensationSettingsUiState> =
         authRepository.observeCurrentProfile().flatMapLatest { profile ->
@@ -46,16 +47,26 @@ class CompensationSettingsViewModel @Inject constructor(
                 _isSaving,
                 _saveMessage,
                 _bootstrapComplete,
-            ) { profiles, settings, saving, message, bootstrapComplete ->
-                val defaultProfile = profiles.firstOrNull { it.isDefault } ?: profiles.firstOrNull()
+                _selectedProfileId,
+            ) { values ->
+                val profiles = values[0] as List<CompensationProfile>
+                val settings = values[1] as com.elmtrackr.app.domain.model.UserSettings?
+                val saving = values[2] as Boolean
+                val message = values[3] as String?
+                val bootstrapComplete = values[4] as Boolean
+                val selectedId = values[5] as String?
+                val selectedProfile = profiles.firstOrNull { it.id == selectedId }
+                    ?: profiles.firstOrNull { it.isDefault }
+                    ?: profiles.firstOrNull()
                 when {
                     settings == null -> CompensationSettingsUiState.Loading
-                    defaultProfile == null && !bootstrapComplete -> CompensationSettingsUiState.Loading
-                    defaultProfile == null -> CompensationSettingsUiState.Error(
+                    selectedProfile == null && !bootstrapComplete -> CompensationSettingsUiState.Loading
+                    selectedProfile == null -> CompensationSettingsUiState.Error(
                         "No compensation profile found. Open Payroll settings or complete onboarding.",
                     )
                     else -> CompensationSettingsUiState.Ready(
-                        profile = defaultProfile,
+                        profiles = profiles,
+                        profile = selectedProfile,
                         settings = settings,
                         presets = RegionPresets.all,
                         currencyOptions = RegionPresets.currencyOptions,
@@ -77,7 +88,50 @@ class CompensationSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val userId = authRepository.getCurrentProfile()?.id ?: return@launch
             compensationProfilesRepository.ensureMigrated(userId)
+            val profiles = compensationProfilesRepository.getProfiles(userId)
+            if (_selectedProfileId.value == null) {
+                _selectedProfileId.value = profiles.firstOrNull { it.isDefault }?.id
+                    ?: profiles.firstOrNull()?.id
+            }
             _bootstrapComplete.value = true
+        }
+    }
+
+    fun selectProfile(profileId: String) {
+        _selectedProfileId.value = profileId
+        _saveMessage.value = null
+    }
+
+    fun createProfile(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) return
+        viewModelScope.launch {
+            _isSaving.value = true
+            _saveMessage.value = null
+            try {
+                val userId = authRepository.getCurrentProfile()?.id
+                    ?: error("Sign in to create a compensation profile")
+                val existing = compensationProfilesRepository.getProfiles(userId)
+                val template = existing.firstOrNull { it.isDefault } ?: existing.firstOrNull()
+                    ?: error("No compensation profile found")
+                val now = Instant.now()
+                val created = compensationProfilesRepository.upsertProfile(
+                    template.copy(
+                        id = "",
+                        name = trimmed,
+                        isDefault = false,
+                        remoteId = null,
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+                _selectedProfileId.value = created.id
+                _saveMessage.value = "Profile created"
+            } catch (e: Exception) {
+                _saveMessage.value = e.message ?: "Create failed"
+            } finally {
+                _isSaving.value = false
+            }
         }
     }
 
@@ -97,7 +151,9 @@ class CompensationSettingsViewModel @Inject constructor(
                 val userId = authRepository.getCurrentProfile()?.id
                     ?: error("Sign in to save compensation rules")
                 val existing = compensationProfilesRepository.getProfiles(userId)
-                    .firstOrNull { it.isDefault } ?: error("No compensation profile found")
+                    .firstOrNull { it.id == _selectedProfileId.value }
+                    ?: existing.firstOrNull { it.isDefault }
+                    ?: error("No compensation profile found")
                 val updated = existing.copy(
                     name = name.trim().ifBlank { "Main job" },
                     regionCode = regionCode,
@@ -109,11 +165,13 @@ class CompensationSettingsViewModel @Inject constructor(
                     updatedAt = Instant.now(),
                 )
                 val saved = compensationProfilesRepository.upsertProfile(updated)
-                val settings = settingsRepository.getSettings(userId) ?: error("Settings not found")
-                settingsRepository.saveSettings(
-                    settings.apply(CompensationResolver.profileToLegacySettingsUpdates(saved))
-                        .copy(updatedAt = Instant.now()),
-                )
+                if (saved.isDefault) {
+                    val settings = settingsRepository.getSettings(userId) ?: error("Settings not found")
+                    settingsRepository.saveSettings(
+                        settings.apply(CompensationResolver.profileToLegacySettingsUpdates(saved))
+                            .copy(updatedAt = Instant.now()),
+                    )
+                }
                 _saveMessage.value = "Compensation rules saved"
             } catch (e: Exception) {
                 _saveMessage.value = e.message ?: "Save failed"
@@ -131,6 +189,7 @@ class CompensationSettingsViewModel @Inject constructor(
 sealed interface CompensationSettingsUiState {
     data object Loading : CompensationSettingsUiState
     data class Ready(
+        val profiles: List<CompensationProfile>,
         val profile: CompensationProfile,
         val settings: com.elmtrackr.app.domain.model.UserSettings,
         val presets: List<com.elmtrackr.app.domain.compensation.RegionPreset>,

@@ -123,6 +123,7 @@ fun ShiftsScreen(
                     viewModel.closeForm()
                 },
                 onClose = viewModel::closeForm,
+                onCreateCompensationProfile = viewModel::createCompensationProfile,
             )
         } else {
             AuroraListScreen {
@@ -338,6 +339,7 @@ private fun ShiftFormContent(
     onSave: (ShiftFormInput) -> Unit,
     onDelete: (shiftId: String) -> Unit,
     onClose: () -> Unit,
+    onCreateCompensationProfile: ((name: String, onCreated: (String?) -> Unit) -> Unit)? = null,
 ) {
     val initialShift = (navState as? ShiftFormNavState.Edit)?.shift
     val zone = ZoneId.systemDefault()
@@ -430,6 +432,7 @@ private fun ShiftFormContent(
             profiles = profiles,
             compensationProfileId = compensationProfileId,
             onCompensationProfileIdChange = { compensationProfileId = it },
+            onCreateCompensationProfile = onCreateCompensationProfile,
             tasks = tasks,
             taskId = taskId,
             onTaskIdChange = { taskId = it },

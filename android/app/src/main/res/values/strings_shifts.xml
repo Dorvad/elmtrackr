@@ -70,6 +70,11 @@
 
     <!-- CompensationProfilePicker / PremiumProfilePicker -->
     <string name="shifts_compensation_profile_label">Compensation profile</string>
+    <string name="shifts_add_compensation_profile">Add profile</string>
+    <string name="shifts_new_compensation_profile_title">New compensation profile</string>
+    <string name="shifts_compensation_profile_name_label">Profile name</string>
+    <string name="shifts_compensation_profile_name_placeholder">e.g. Second job, Weekend gig</string>
+    <string name="shifts_create_profile">Create</string>
     <string name="shifts_premium_label">Premium</string>
     <string name="shifts_no_premium">No premium</string>
     <string name="shifts_premium_applies">Applies %1$d%% rate to this shift</string>

@@ -124,7 +124,8 @@ internal fun ShiftEditFormContent(
     premiumProfiles: List<PremiumProfile>,
     profiles: List<CompensationProfile>,
     compensationProfileId: String?,
-    onCompensationProfileIdChange: (String?) -> Unit,
+    onCompensationProfileIdChange: (String) -> Unit,
+    onCreateCompensationProfile: ((name: String, onCreated: (String?) -> Unit) -> Unit)? = null,
     tasks: List<Task>,
     taskId: String?,
     onTaskIdChange: (String?) -> Unit,
@@ -348,13 +349,14 @@ internal fun ShiftEditFormContent(
                     )
                 }
 
-                if (profiles.isNotEmpty() || activeTasks.isNotEmpty()) {
+                if (profiles.isNotEmpty() || onCreateCompensationProfile != null || activeTasks.isNotEmpty()) {
                     FormSectionCard(title = stringResource(R.string.shifts_section_pay_task)) {
-                        if (profiles.isNotEmpty()) {
+                        if (profiles.isNotEmpty() || onCreateCompensationProfile != null) {
                             CompensationProfilePicker(
                                 profiles = profiles,
                                 selectedId = compensationProfileId,
-                                onSelect = { onCompensationProfileIdChange(it) },
+                                onSelect = onCompensationProfileIdChange,
+                                onCreateProfile = onCreateCompensationProfile,
                             )
                         }
                         if (activeTasks.isNotEmpty()) {
