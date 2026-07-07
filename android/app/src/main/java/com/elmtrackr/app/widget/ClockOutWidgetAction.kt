@@ -17,5 +17,6 @@ class ClockOutWidgetAction : ActionCallback {
         parameters: ActionParameters,
     ) {
         WidgetActions.clockOut(context)
+        WidgetActions.refreshWidgets(context)
     }
 }

@@ -41,4 +41,17 @@ object WidgetActions {
         ClockOutActions.showShortcutFeedback(context, result)
         return result
     }
+
+    /**
+     * Push fresh state to every widget right away. The app-scope shift
+     * observer refreshes them too, but doing it here means the tap feedback
+     * doesn't wait on that pipeline.
+     */
+    suspend fun refreshWidgets(context: Context) {
+        val deps = AppEntryPoints.background(context)
+        val userId = deps.currentUserProvider().currentUserId() ?: return
+        runCatching {
+            ElmTrackrWidgetUpdater.update(context, WidgetContextLoader.load(deps, userId))
+        }
+    }
 }
