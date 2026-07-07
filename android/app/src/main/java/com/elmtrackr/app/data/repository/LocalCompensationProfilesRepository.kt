@@ -154,7 +154,6 @@ class LocalCompensationProfilesRepository @Inject constructor(
                 }
             }
         if (keeperByArchivedId.isEmpty()) return
-        Log.i(TAG, "Archived ${keeperByArchivedId.size} duplicate compensation profile(s)")
         settingsRepository.getSettings(userId)?.let { settings ->
             settings.defaultCompensationProfileId?.let(keeperByArchivedId::get)?.let { keeperId ->
                 settingsRepository.saveSettings(
