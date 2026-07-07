@@ -526,6 +526,9 @@ internal fun AppearanceDetailScreen(
     ) {
         item { SettingsDetailHeader(title = stringResource(R.string.settings_appearance_clock), onBack = onBack) }
         item {
+            LanguageSegmentedControl()
+        }
+        item {
             ThemeSegmentedControl(selected = state.selectedTheme, onSelect = onTheme)
         }
         item {

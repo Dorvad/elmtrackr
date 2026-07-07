@@ -44,6 +44,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
@@ -138,7 +139,7 @@ private fun MonthNavRow(
                 .size(40.dp)
                 .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
         ) {
-            Icon(Icons.Filled.ChevronLeft, stringResource(R.string.shifts_previous_month), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Filled.ChevronLeft, stringResource(R.string.shifts_previous_month), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.mirrorInRtl())
         }
         Text(
             "${month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.year}",
@@ -157,6 +158,7 @@ private fun MonthNavRow(
                 Icons.Filled.ChevronRight,
                 stringResource(R.string.shifts_next_month),
                 tint = if (canGoNext) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline,
+                modifier = Modifier.mirrorInRtl(),
             )
         }
     }
@@ -550,7 +552,7 @@ internal fun ShiftRow(
                     Icons.Filled.ChevronRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(18.dp).mirrorInRtl(),
                 )
             }
         }

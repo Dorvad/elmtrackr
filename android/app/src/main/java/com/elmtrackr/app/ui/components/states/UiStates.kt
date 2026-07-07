@@ -29,9 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraMotion
 import com.elmtrackr.app.ui.design.ElmGradientButton
@@ -148,7 +150,7 @@ fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifi
         )
         Spacer(Modifier.height(Spacing.sm))
         Text(
-            text = "Something went wrong",
+            text = stringResource(R.string.common_something_went_wrong),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -163,7 +165,7 @@ fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifi
         )
         Spacer(Modifier.height(Spacing.lg))
         ElmGradientButton(onClick = onRetry, compact = true) {
-            Text("Try again", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.common_try_again), fontWeight = FontWeight.SemiBold)
         }
     }
 }

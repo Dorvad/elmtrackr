@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared -->
+    <string name="onboarding_brand">ELMTRACKR</string>
+    <string name="onboarding_step_counter">%1$d / %2$d</string>
+    <string name="onboarding_back">חזרה</string>
+    <string name="onboarding_continue">המשך</string>
+    <string name="onboarding_tagline">כניסה אחת למשמרת — ורואים מיד שעות, הערכת שכר ושעות נוספות.</string>
+    <string name="onboarding_hours_suffix">שע׳</string>
+
+    <!-- Language step -->
+    <string name="onboarding_step_language">שפה</string>
+    <string name="onboarding_language_title">באיזו שפה נוח לך?</string>
+    <string name="onboarding_language_subtitle">‏ElmTrackr מדבר עברית ואנגלית. אפשר להחליף שפה בכל שלב.</string>
+    <string name="onboarding_language_change_later">אפשר לשנות את זה בהמשך: הגדרות ← מראה ושעון.</string>
+
+    <!-- App lock biometric prompt -->
+    <string name="onboarding_biometric_prompt_title">הפעלת נעילת אפליקציה</string>
+    <string name="onboarding_biometric_prompt_subtitle">אישור קצר כדי לדרוש זיהוי ביומטרי בפתיחת ElmTrackr</string>
+
+    <!-- Step titles -->
+    <string name="onboarding_step_welcome">ברוכים הבאים</string>
+    <string name="onboarding_step_region">האזור שלך</string>
+    <string name="onboarding_step_profile">הפרופיל שלך</string>
+    <string name="onboarding_step_pay">העדפות שכר</string>
+    <string name="onboarding_step_work_week">שבוע העבודה</string>
+    <string name="onboarding_step_features">פיצ׳רים</string>
+    <string name="onboarding_step_security">אבטחה</string>
+    <string name="onboarding_step_review">סיכום</string>
+
+    <!-- Welcome step -->
+    <string name="onboarding_welcome_title">ברוכים הבאים ל־ElmTrackr</string>
+    <string name="onboarding_welcome_replay_title">עוברים שוב על ההגדרות</string>
+    <string name="onboarding_welcome_replay_subtitle">עדכון הפרופיל, השכר, שבוע העבודה והפיצ׳רים.</string>
+    <string name="onboarding_welcome_intro">השעות, השעות הנוספות והשכר שלך — הכול בהקשה אחת, גם בלי אינטרנט.</string>
+    <string name="onboarding_how_it_works">איך זה עובד</string>
+    <string name="onboarding_how_step1_title">נכנסים למשמרת כשמתחילים</string>
+    <string name="onboarding_how_step1_desc">הקשה אחת בטלפון, בשעון או בווידג׳ט במסך הבית.</string>
+    <string name="onboarding_how_step2_title">‏ElmTrackr עושה את החשבון</string>
+    <string name="onboarding_how_step2_desc">שעות, הפסקות, שעות נוספות ותוספות מחושבות בזמן אמת תוך כדי עבודה.</string>
+    <string name="onboarding_how_step3_title">רואים כמה הרווחת</string>
+    <string name="onboarding_how_step3_desc">הערכת שכר חיה, דוחות חודשיים וייצוא בהקשה אחת להנהלת השכר.</string>
+    <string name="onboarding_welcome_reassurance">עובד גם בלי אינטרנט · מוצפן במכשיר · מסתנכרן אוטומטית</string>
+    <string name="onboarding_welcome_setup_time">ההגדרה לוקחת בערך דקה.</string>
+    <string name="onboarding_review_setup_button">עוברים על ההגדרות</string>
+    <string name="onboarding_get_started">מתחילים</string>
+
+    <!-- Region step -->
+    <string name="onboarding_region_title">איפה העבודה שלך?</string>
+    <string name="onboarding_region_subtitle">בחירת אזור טוענת כללי שכר מומלצים להתחלה. אפשר להתאים הכול אחר כך.</string>
+    <string name="onboarding_region_currency_timezone">מטבע: %1$s · אזור זמן: %2$s</string>
+    <string name="onboarding_region_disclaimer">‏ElmTrackr נותן הערכת שכר בלבד — לא ייעוץ משפטי ולא תלוש שכר.</string>
+
+    <!-- Profile step -->
+    <string name="onboarding_profile_title">רגע של היכרות</string>
+    <string name="onboarding_profile_subtitle">איך לקרוא לך בתוך ElmTrackr?</string>
+    <string name="onboarding_profile_name_label">השם שלך</string>
+    <string name="onboarding_profile_name_placeholder">למשל: דור</string>
+    <string name="onboarding_profile_name_error">צריך שם כדי להמשיך</string>
+    <string name="onboarding_profile_name_helper">השם יופיע במסך הבית ובדוחות</string>
+    <string name="onboarding_profile_signed_in_as">מחוברים בתור %1$s</string>
+
+    <!-- Pay setup step -->
+    <string name="onboarding_pay_title">כמה שווה שעה שלך?</string>
+    <string name="onboarding_pay_subtitle">הזנת שכר שעתי בסיסי נותנת הערכת ברוטו חיה.</string>
+    <string name="onboarding_pay_hourly_salary_label">שכר שעתי</string>
+    <string name="onboarding_pay_rate_placeholder">0.00</string>
+    <string name="onboarding_pay_rate_error">צריך סכום גדול מאפס</string>
+    <string name="onboarding_pay_rate_helper">לא חובה. אפשר להשאיר ריק אם רוצים רק לעקוב אחרי שעות.</string>
+    <string name="onboarding_pay_currency_label">מטבע</string>
+
+    <!-- Work week step -->
+    <string name="onboarding_work_week_title">שבוע העבודה שלך</string>
+    <string name="onboarding_work_week_subtitle">בחירת ימי סוף השבוע ומתי מתחילות שעות נוספות.</string>
+    <string name="onboarding_weekend_days_label">ימי סוף שבוע</string>
+    <string name="onboarding_weekend_days_helper">כללי השכר לסוף שבוע ולחגים מבוססים על הימים האלה.</string>
+    <string name="onboarding_weekend_days_error">צריך לבחור לפחות יום אחד</string>
+    <string name="onboarding_daily_ot_label">ש״נ יומיות</string>
+    <string name="onboarding_weekly_ot_label">ש״נ שבועיות</string>
+    <string name="onboarding_ot_error">ערך יומי: 1–24 שע׳; שבועי: לפחות כמו היומי, ועד 168 שע׳.</string>
+    <string name="onboarding_timezone_label">אזור זמן</string>
+    <string name="onboarding_timezone_helper">נקבע לפי האזור שבחרת</string>
+    <string name="onboarding_hide_timezone_picker">הסתרת בחירת אזור זמן</string>
+    <string name="onboarding_change_timezone">שינוי אזור זמן</string>
+
+    <!-- Features step -->
+    <string name="onboarding_features_title">אילו פיצ׳רים להפעיל?</string>
+    <string name="onboarding_features_subtitle">מפעילים רק את מה שמתאים לך. אפשר לשנות בכל רגע בהגדרות.</string>
+    <string name="onboarding_feature_travel_title">החזרי נסיעות</string>
+    <string name="onboarding_feature_travel_desc">הוספת בקשות החזר על נסיעות לכל משמרת שהסתיימה.</string>
+    <string name="onboarding_feature_insights_title">תובנות וניתוחים</string>
+    <string name="onboarding_feature_insights_desc">סיכומים חכמים, מגמות שבועיות וטיפים יומיים.</string>
+
+    <!-- Security step -->
+    <string name="onboarding_security_title">שומרים על המידע שלך</string>
+    <string name="onboarding_security_subtitle">אפשר לדרוש טביעת אצבע, זיהוי פנים או קוד המכשיר בפתיחת ElmTrackr.</string>
+    <string name="onboarding_security_app_lock_title">פתיחה עם זיהוי ביומטרי</string>
+    <string name="onboarding_security_desc_available">נעילת תעריפים, קבלות והיסטוריית משמרות כשהאפליקציה ברקע</string>
+    <string name="onboarding_security_desc_not_enrolled">קודם צריך להגדיר טביעת אצבע, זיהוי פנים או קוד בהגדרות המכשיר</string>
+    <string name="onboarding_security_desc_unavailable">זיהוי ביומטרי או קוד מכשיר לא זמינים במכשיר הזה</string>
+    <string name="onboarding_security_change_later">אפשר לשנות בכל רגע: הגדרות ← אבטחה.</string>
+
+    <!-- Review step -->
+    <string name="onboarding_review_title">מוכנים לצאת לדרך</string>
+    <string name="onboarding_review_name">שם</string>
+    <string name="onboarding_review_region">אזור</string>
+    <string name="onboarding_review_hourly_salary">שכר שעתי</string>
+    <string name="onboarding_review_not_set">לא הוגדר</string>
+    <string name="onboarding_review_weekend">סוף שבוע</string>
+    <string name="onboarding_review_optional_features">פיצ׳רים אופציונליים</string>
+    <string name="onboarding_review_enabled_count">%1$d מופעלים</string>
+    <string name="onboarding_save_and_start">שומרים ומתחילים לעקוב</string>
+
+    <!-- Clock style step -->
+    <string name="onboarding_clock_style_title">בחירת סטייל</string>
+    <string name="onboarding_clock_style_subtitle">איך שעון הווידג׳ט ייראה במסך הבית.</string>
+</resources>

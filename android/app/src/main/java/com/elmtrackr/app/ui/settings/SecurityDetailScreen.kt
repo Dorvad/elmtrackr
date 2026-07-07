@@ -10,7 +10,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.R
 import com.elmtrackr.app.security.BiometricAvailability
 import com.elmtrackr.app.ui.theme.Spacing
 
@@ -27,19 +29,19 @@ internal fun SecurityDetailScreen(
             .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        item { SettingsDetailHeader(title = "Security", onBack = onBack) }
+        item { SettingsDetailHeader(title = stringResource(R.string.settings_security), onBack = onBack) }
         item {
-            SettingsSectionCard(title = "APP LOCK") {
+            SettingsSectionCard(title = stringResource(R.string.security_section_app_lock)) {
                 val canEnable = biometricAvailability == BiometricAvailability.AVAILABLE
                 SettingsToggleRow(
-                    title = "Require biometric to open",
+                    title = stringResource(R.string.onboarding_security_app_lock_title),
                     description = when (biometricAvailability) {
                         BiometricAvailability.AVAILABLE ->
-                            "Lock pay rates, receipts, and shift history when the app is in the background"
+                            stringResource(R.string.onboarding_security_desc_available)
                         BiometricAvailability.NOT_ENROLLED ->
-                            "Set up fingerprint, face unlock, or a device PIN in system settings first"
+                            stringResource(R.string.onboarding_security_desc_not_enrolled)
                         BiometricAvailability.UNAVAILABLE ->
-                            "Biometric or device credential unlock is not available on this device"
+                            stringResource(R.string.onboarding_security_desc_unavailable)
                     },
                     checked = appLockEnabled,
                     onCheckedChange = { enabled ->
@@ -49,7 +51,7 @@ internal fun SecurityDetailScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Local data is encrypted at rest with SQLCipher. Widget and notification actions are blocked while the app is locked.",
+                    text = stringResource(R.string.security_encryption_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

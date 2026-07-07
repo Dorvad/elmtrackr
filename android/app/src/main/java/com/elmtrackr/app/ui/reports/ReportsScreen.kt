@@ -29,6 +29,9 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.elmtrackr.app.ui.theme.CornerRadius
+import androidx.compose.ui.res.stringResource
+import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.design.mirrorInRtl
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
@@ -364,7 +367,7 @@ private fun MonthNavRow(year: Int, month: Int, onPrev: () -> Unit, onNext: () ->
                 .size(48.dp)
                 .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
         ) {
-            Icon(Icons.Filled.ChevronLeft, "Previous month", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Filled.ChevronLeft, stringResource(R.string.shifts_previous_month), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.mirrorInRtl())
         }
         Text(
             "${Month.of(month).displayName()} $year",
@@ -382,8 +385,9 @@ private fun MonthNavRow(year: Int, month: Int, onPrev: () -> Unit, onNext: () ->
         ) {
             Icon(
                 Icons.Filled.ChevronRight,
-                "Next month",
+                stringResource(R.string.shifts_next_month),
                 tint = if (canGoNext) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline,
+                modifier = Modifier.mirrorInRtl(),
             )
         }
     }

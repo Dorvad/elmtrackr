@@ -48,6 +48,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -56,6 +57,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.design.AppLogo
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.AuroraMotion
@@ -189,13 +191,13 @@ private fun NotConfiguredContent() {
             )
             Spacer(Modifier.height(16.dp))
             Text(
-                text       = "Auth not configured",
+                text       = stringResource(R.string.auth_not_configured_title),
                 style      = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text      = "Add SUPABASE_URL and SUPABASE_ANON_KEY to local.properties to enable sign-in.",
+                text      = stringResource(R.string.auth_not_configured_body),
                 style     = MaterialTheme.typography.bodyMedium,
                 color     = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -242,7 +244,7 @@ private fun SignedInContent(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (isLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                else Text("Sign out")
+                else Text(stringResource(R.string.auth_sign_out))
             }
         }
     }
@@ -272,9 +274,9 @@ internal fun SignedOutContent(
     val passwordFocusRequester = FocusRequester()
     val focusManager           = LocalFocusManager.current
 
-    val emailError = if (email.isNotBlank() && '@' !in email) "Enter a valid email address" else null
+    val emailError = if (email.isNotBlank() && '@' !in email) stringResource(R.string.auth_email_invalid) else null
     val passwordError = if (mode == AuthMode.SIGN_UP && password.isNotBlank() && password.length < MIN_PASSWORD_LENGTH)
-        "Password must be at least $MIN_PASSWORD_LENGTH characters" else null
+        stringResource(R.string.auth_password_too_short, MIN_PASSWORD_LENGTH) else null
 
     val canSubmit = !isLoading &&
         email.isNotBlank() &&
@@ -303,7 +305,7 @@ internal fun SignedOutContent(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text      = "Track shifts, overtime & earnings",
+                text      = stringResource(R.string.auth_tagline),
                 style     = MaterialTheme.typography.bodyMedium,
                 color     = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -321,9 +323,9 @@ internal fun SignedOutContent(
                 Column(Modifier.fillMaxWidth()) {
                     Text(
                         text = when (currentMode) {
-                            AuthMode.SIGN_IN -> "Sign in"
-                            AuthMode.SIGN_UP -> "Create account"
-                            AuthMode.FORGOT_PASSWORD -> "Reset password"
+                            AuthMode.SIGN_IN -> stringResource(R.string.auth_sign_in)
+                            AuthMode.SIGN_UP -> stringResource(R.string.auth_create_account)
+                            AuthMode.FORGOT_PASSWORD -> stringResource(R.string.auth_reset_password)
                         },
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold,
@@ -335,7 +337,7 @@ internal fun SignedOutContent(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it; onClearError() },
-                        label = { Text("Email") },
+                        label = { Text(stringResource(R.string.auth_email_label)) },
                         leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null, tint = MaterialTheme.colorScheme.outline) },
                         isError = emailError != null,
                         supportingText = emailError?.let { { Text(it) } },
@@ -359,7 +361,7 @@ internal fun SignedOutContent(
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it; onClearError() },
-                            label = { Text("Password") },
+                            label = { Text(stringResource(R.string.auth_password_label)) },
                             isError = passwordError != null,
                             supportingText = passwordError?.let { { Text(it) } },
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -367,7 +369,7 @@ internal fun SignedOutContent(
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                     Icon(
                                         imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                        contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                        contentDescription = if (passwordVisible) stringResource(R.string.auth_hide_password) else stringResource(R.string.auth_show_password),
                                         tint = MaterialTheme.colorScheme.outline,
                                     )
                                 }
@@ -424,9 +426,9 @@ internal fun SignedOutContent(
                         } else {
                             Text(
                                 when (currentMode) {
-                                    AuthMode.SIGN_IN -> "Sign in"
-                                    AuthMode.SIGN_UP -> "Create account"
-                                    AuthMode.FORGOT_PASSWORD -> "Send reset email"
+                                    AuthMode.SIGN_IN -> stringResource(R.string.auth_sign_in)
+                                    AuthMode.SIGN_UP -> stringResource(R.string.auth_create_account)
+                                    AuthMode.FORGOT_PASSWORD -> stringResource(R.string.auth_send_reset_email)
                                 },
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -438,20 +440,20 @@ internal fun SignedOutContent(
                     when (currentMode) {
                         AuthMode.SIGN_IN -> {
                             TextButton(onClick = { mode = AuthMode.SIGN_UP; onClearError() }) {
-                                Text("Don't have an account? Sign up", color = MaterialTheme.colorScheme.primary)
+                                Text(stringResource(R.string.auth_no_account_sign_up), color = MaterialTheme.colorScheme.primary)
                             }
                             TextButton(onClick = { mode = AuthMode.FORGOT_PASSWORD; onClearError() }) {
-                                Text("Forgot password?", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.auth_forgot_password), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         AuthMode.SIGN_UP -> {
                             TextButton(onClick = { mode = AuthMode.SIGN_IN; onClearError() }) {
-                                Text("Already have an account? Sign in", color = MaterialTheme.colorScheme.primary)
+                                Text(stringResource(R.string.auth_have_account_sign_in), color = MaterialTheme.colorScheme.primary)
                             }
                         }
                         AuthMode.FORGOT_PASSWORD -> {
                             TextButton(onClick = { mode = AuthMode.SIGN_IN; onClearError() }) {
-                                Text("Back to sign in", color = MaterialTheme.colorScheme.primary)
+                                Text(stringResource(R.string.auth_back_to_sign_in), color = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
@@ -476,9 +478,9 @@ private fun PasswordRecoveryContent(
     val focusManager = LocalFocusManager.current
 
     val passwordError = if (password.isNotBlank() && password.length < MIN_PASSWORD_LENGTH)
-        "Password must be at least $MIN_PASSWORD_LENGTH characters" else null
+        stringResource(R.string.auth_password_too_short, MIN_PASSWORD_LENGTH) else null
     val confirmError = if (confirmPassword.isNotBlank() && password != confirmPassword)
-        "Passwords do not match" else null
+        stringResource(R.string.auth_passwords_do_not_match) else null
     val canSubmit = !isLoading &&
         password.isNotBlank() &&
         confirmPassword.isNotBlank() &&
@@ -498,14 +500,14 @@ private fun PasswordRecoveryContent(
             AuroraBoltLogo()
             Spacer(Modifier.height(16.dp))
             Text(
-                text = "Choose a new password",
+                text = stringResource(R.string.auth_choose_new_password),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Enter a new password for your ElmTrackr account.",
+                text = stringResource(R.string.auth_new_password_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
@@ -515,7 +517,7 @@ private fun PasswordRecoveryContent(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("New password") },
+                label = { Text(stringResource(R.string.auth_new_password_label)) },
                 isError = passwordError != null,
                 supportingText = passwordError?.let { { Text(it) } },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -523,7 +525,7 @@ private fun PasswordRecoveryContent(
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                            contentDescription = if (passwordVisible) stringResource(R.string.auth_hide_password) else stringResource(R.string.auth_show_password),
                             tint = MaterialTheme.colorScheme.outline,
                         )
                     }
@@ -536,7 +538,7 @@ private fun PasswordRecoveryContent(
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
-                label = { Text("Confirm password") },
+                label = { Text(stringResource(R.string.auth_confirm_password_label)) },
                 isError = confirmError != null,
                 supportingText = confirmError?.let { { Text(it) } },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -576,12 +578,12 @@ private fun PasswordRecoveryContent(
                         color = Color.White,
                     )
                 } else {
-                    Text("Update password", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.auth_update_password), fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(Modifier.height(8.dp))
             TextButton(onClick = onBack) {
-                Text("Back to sign in", color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(R.string.auth_back_to_sign_in), color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -603,19 +605,19 @@ private fun PasswordResetSentContent(onBack: () -> Unit) {
             AuroraBoltLogo()
             Spacer(Modifier.height(20.dp))
             Text(
-                text       = "Check your email",
+                text       = stringResource(R.string.auth_check_your_email),
                 style      = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text      = "A password reset link has been sent to your email address.",
+                text      = stringResource(R.string.auth_reset_link_sent),
                 style     = MaterialTheme.typography.bodyMedium,
                 color     = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(24.dp))
-            TextButton(onClick = onBack) { Text("Back to sign in", color = MaterialTheme.colorScheme.primary) }
+            TextButton(onClick = onBack) { Text(stringResource(R.string.auth_back_to_sign_in), color = MaterialTheme.colorScheme.primary) }
         }
     }
 }
@@ -629,16 +631,16 @@ private fun SignUpConfirmationContent(email: String, onBack: () -> Unit) {
         ) {
             AuroraBoltLogo()
             Spacer(Modifier.height(20.dp))
-            Text("Confirm your email", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.auth_confirm_your_email), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             Text(
-                "We sent a confirmation link to $email. Open it, then return here to sign in.",
+                stringResource(R.string.auth_confirmation_link_sent, email),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(24.dp))
-            TextButton(onClick = onBack) { Text("Back to sign in", color = MaterialTheme.colorScheme.primary) }
+            TextButton(onClick = onBack) { Text(stringResource(R.string.auth_back_to_sign_in), color = MaterialTheme.colorScheme.primary) }
         }
     }
 }

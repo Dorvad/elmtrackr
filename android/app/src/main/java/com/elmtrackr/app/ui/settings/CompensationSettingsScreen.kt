@@ -42,12 +42,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.compensation.COMPENSATION_DISCLAIMER
 import com.elmtrackr.app.domain.compensation.COMPENSATION_PROFILE_HELPER
 import com.elmtrackr.app.domain.compensation.COMPENSATION_RULES_GUIDANCE
@@ -143,10 +145,10 @@ internal fun CompensationSettingsContent(
             Spacer(Modifier.height(Spacing.lg))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
                 }
                 Text(
-                    "Compensation Rules",
+                    stringResource(R.string.settings_comp_rules_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -165,7 +167,7 @@ internal fun CompensationSettingsContent(
 
         item {
             ElmCardPadded {
-                ElmSectionHeader("Profiles")
+                ElmSectionHeader(stringResource(R.string.settings_section_profiles))
                 Spacer(Modifier.height(12.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -184,12 +186,12 @@ internal fun CompensationSettingsContent(
                             newProfileName = ""
                             showCreateDialog = true
                         },
-                        label = { Text("Add profile") },
+                        label = { Text(stringResource(R.string.settings_add_profile)) },
                     )
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Each profile has its own pay rules. Pick one to edit, or add another for a second job.",
+                    stringResource(R.string.settings_comp_profiles_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -198,12 +200,12 @@ internal fun CompensationSettingsContent(
 
         item {
             ElmCardPadded {
-                ElmSectionHeader("Profile")
+                ElmSectionHeader(stringResource(R.string.settings_profile))
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Profile name") },
+                    label = { Text(stringResource(R.string.settings_profile_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
@@ -227,18 +229,18 @@ internal fun CompensationSettingsContent(
                     )
                 }
                 Spacer(Modifier.height(12.dp))
-                StringDropdown("Currency", currencyCode, state.currencyOptions.map { it.first to it.second }) {
+                StringDropdown(stringResource(R.string.settings_currency), currencyCode, state.currencyOptions.map { it.first to it.second }) {
                     currencyCode = it
                 }
                 Spacer(Modifier.height(12.dp))
-                StringDropdown("Timezone", timezone, state.timezoneOptions.map { it to it }) {
+                StringDropdown(stringResource(R.string.settings_timezone), timezone, state.timezoneOptions.map { it to it }) {
                     timezone = it
                 }
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = hourlyRateText,
                     onValueChange = { hourlyRateText = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = { Text("Base hourly rate ($currencyCode)") },
+                    label = { Text(stringResource(R.string.settings_base_hourly_rate, currencyCode)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -250,32 +252,33 @@ internal fun CompensationSettingsContent(
 
         item {
             ElmCardPadded {
-                ElmSectionHeader("Work week")
+                ElmSectionHeader(stringResource(R.string.settings_section_work_week))
                 Spacer(Modifier.height(12.dp))
-                HoursField("Daily standard (hours)", rules.dailyStandardMinutes) {
+                HoursField(stringResource(R.string.settings_daily_standard_hours), rules.dailyStandardMinutes) {
                     rules = rules.copy(dailyStandardMinutes = (it * 60).roundToInt())
                 }
                 Spacer(Modifier.height(8.dp))
-                HoursField("Weekly standard (hours)", rules.weeklyStandardMinutes) {
+                HoursField(stringResource(R.string.settings_weekly_standard_hours), rules.weeklyStandardMinutes) {
                     rules = rules.copy(weeklyStandardMinutes = (it * 60).roundToInt())
                 }
                 Spacer(Modifier.height(12.dp))
                 StringDropdown(
-                    "Week starts on",
+                    stringResource(R.string.settings_week_starts_on),
                     rules.weekStartDay.toString(),
-                    DAY_LABELS.mapIndexed { index, label -> index.toString() to label },
+                    dayLabels().mapIndexed { index, label -> index.toString() to label },
                 ) { rules = rules.copy(weekStartDay = it.toIntOrNull()?.coerceIn(0, 6) ?: 1) }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Weekly overtime counts hours from this day. Israel and most US workweeks start Sunday.",
+                    stringResource(R.string.settings_week_starts_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))
-                Text("Weekend days", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.settings_weekend_days), style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(8.dp))
+                val weekdayLabels = dayLabels()
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DAY_LABELS.forEachIndexed { index, label ->
+                    weekdayLabels.forEachIndexed { index, label ->
                         FilterChip(
                             selected = index in rules.weekendDays,
                             onClick = {
@@ -292,9 +295,9 @@ internal fun CompensationSettingsContent(
 
         item {
             ElmCardPadded {
-                ElmSectionHeader("Premiums")
+                ElmSectionHeader(stringResource(R.string.settings_section_premiums))
                 Spacer(Modifier.height(8.dp))
-                ToggleRow("Overtime", rules.overtimeEnabled) { rules = rules.copy(overtimeEnabled = it) }
+                ToggleRow(stringResource(R.string.settings_overtime), rules.overtimeEnabled) { rules = rules.copy(overtimeEnabled = it) }
                 if (rules.overtimeEnabled) {
                     overtimeLadderSummary(rules)?.let { summary ->
                         Text(
@@ -304,7 +307,7 @@ internal fun CompensationSettingsContent(
                         )
                         Spacer(Modifier.height(4.dp))
                     }
-                    ToggleRow("7th consecutive day premium", rules.seventhDayEnabled) { enabled ->
+                    ToggleRow(stringResource(R.string.settings_seventh_day), rules.seventhDayEnabled) { enabled ->
                         rules = rules.copy(
                             seventhDayEnabled = enabled,
                             seventhDayTiers = if (enabled && rules.seventhDayTiers.isEmpty()) {
@@ -316,34 +319,34 @@ internal fun CompensationSettingsContent(
                     }
                     if (rules.seventhDayEnabled) {
                         Text(
-                            "Working all seven days of the pay week pays a premium from the first minute of the 7th day (California-style: 150% first 8 h, 200% after).",
+                            stringResource(R.string.settings_seventh_day_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-                ToggleRow("Weekend premium", rules.weekendEnabled) { rules = rules.copy(weekendEnabled = it) }
+                ToggleRow(stringResource(R.string.settings_weekend_premium), rules.weekendEnabled) { rules = rules.copy(weekendEnabled = it) }
                 if (rules.weekendEnabled) {
-                    MultiplierField("Weekend multiplier", rules.weekendMultiplier) {
+                    MultiplierField(stringResource(R.string.settings_weekend_multiplier), rules.weekendMultiplier) {
                         rules = rules.copy(weekendMultiplier = it)
                     }
                 }
-                ToggleRow("Holiday / special day", rules.holidayEnabled) { rules = rules.copy(holidayEnabled = it) }
+                ToggleRow(stringResource(R.string.settings_holiday_special), rules.holidayEnabled) { rules = rules.copy(holidayEnabled = it) }
                 if (rules.holidayEnabled) {
-                    MultiplierField("Holiday multiplier", rules.holidayMultiplier) {
+                    MultiplierField(stringResource(R.string.settings_holiday_multiplier), rules.holidayMultiplier) {
                         rules = rules.copy(holidayMultiplier = it)
                     }
                 }
-                ToggleRow("Night shift", rules.nightEnabled) { rules = rules.copy(nightEnabled = it) }
+                ToggleRow(stringResource(R.string.settings_night_shift), rules.nightEnabled) { rules = rules.copy(nightEnabled = it) }
                 if (rules.nightEnabled) {
-                    MultiplierField("Night multiplier", rules.nightMultiplier) {
+                    MultiplierField(stringResource(R.string.settings_night_multiplier), rules.nightMultiplier) {
                         rules = rules.copy(nightMultiplier = it)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TimeField("Night starts", rules.nightStartTime, Modifier.weight(1f)) {
+                        TimeField(stringResource(R.string.settings_night_starts), rules.nightStartTime, Modifier.weight(1f)) {
                             rules = rules.copy(nightStartTime = it)
                         }
-                        TimeField("Night ends", rules.nightEndTime, Modifier.weight(1f)) {
+                        TimeField(stringResource(R.string.settings_night_ends), rules.nightEndTime, Modifier.weight(1f)) {
                             rules = rules.copy(nightEndTime = it)
                         }
                     }
@@ -353,44 +356,48 @@ internal fun CompensationSettingsContent(
 
         item {
             ElmCardPadded {
-                ElmSectionHeader("Time & breaks")
+                ElmSectionHeader(stringResource(R.string.settings_section_time_breaks))
                 Spacer(Modifier.height(8.dp))
-                ToggleRow("Breaks are paid", rules.paidBreaks) { rules = rules.copy(paidBreaks = it) }
+                ToggleRow(stringResource(R.string.settings_breaks_paid), rules.paidBreaks) { rules = rules.copy(paidBreaks = it) }
                 if (!rules.paidBreaks) {
                     OptionalMinutesField(
-                        "Auto-deduct break (minutes)",
+                        stringResource(R.string.settings_auto_deduct_break),
                         rules.autoDeductBreakMinutes,
                     ) { rules = rules.copy(autoDeductBreakMinutes = it) }
                     Text(
-                        "Deducted automatically when a shift has no recorded break.",
+                        stringResource(R.string.settings_auto_deduct_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(4.dp))
                 }
                 OptionalMinutesField(
-                    "Minimum shift pay (minutes)",
+                    stringResource(R.string.settings_min_shift_pay),
                     rules.minimumShiftMinutes,
                 ) { rules = rules.copy(minimumShiftMinutes = it) }
                 Text(
-                    "Shorter shifts are paid as if they lasted this long (minimum-call / reporting-time pay).",
+                    stringResource(R.string.settings_min_shift_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(8.dp))
-                ToggleRow("Round shift length", rules.rounding.enabled) {
+                ToggleRow(stringResource(R.string.settings_round_shift_length), rules.rounding.enabled) {
                     rules = rules.copy(rounding = rules.rounding.copy(enabled = it))
                 }
                 if (rules.rounding.enabled) {
                     OptionalMinutesField(
-                        "Rounding increment (minutes)",
+                        stringResource(R.string.settings_rounding_increment),
                         rules.rounding.incrementMinutes,
                     ) { rules = rules.copy(rounding = rules.rounding.copy(incrementMinutes = it ?: 15)) }
                     Spacer(Modifier.height(8.dp))
-                    Text("Rounding direction", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.settings_rounding_direction), style = MaterialTheme.typography.labelMedium)
                     Spacer(Modifier.height(4.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("nearest" to "Nearest", "up" to "Up", "down" to "Down").forEach { (value, label) ->
+                        listOf(
+                            "nearest" to stringResource(R.string.settings_rounding_nearest),
+                            "up" to stringResource(R.string.settings_rounding_up),
+                            "down" to stringResource(R.string.settings_rounding_down),
+                        ).forEach { (value, label) ->
                             FilterChip(
                                 selected = rules.rounding.direction == value,
                                 onClick = { rules = rules.copy(rounding = rules.rounding.copy(direction = value)) },
@@ -404,9 +411,9 @@ internal fun CompensationSettingsContent(
 
         item {
             ElmCardPadded {
-                ElmSectionHeader("Deductions")
+                ElmSectionHeader(stringResource(R.string.settings_section_deductions))
                 Spacer(Modifier.height(8.dp))
-                ToggleRow("Deduct from gross estimate", rules.deductionsEnabled) { enabled ->
+                ToggleRow(stringResource(R.string.settings_deduct_gross), rules.deductionsEnabled) { enabled ->
                     rules = rules.copy(
                         deductionsEnabled = enabled,
                         deductionsMode = if (enabled && rules.deductionsMode == "none") "percentage" else rules.deductionsMode,
@@ -417,26 +424,26 @@ internal fun CompensationSettingsContent(
                         FilterChip(
                             selected = rules.deductionsMode == "percentage",
                             onClick = { rules = rules.copy(deductionsMode = "percentage") },
-                            label = { Text("Percentage") },
+                            label = { Text(stringResource(R.string.settings_percentage)) },
                         )
                         FilterChip(
                             selected = rules.deductionsMode == "fixed",
                             onClick = { rules = rules.copy(deductionsMode = "fixed") },
-                            label = { Text("Fixed per shift") },
+                            label = { Text(stringResource(R.string.settings_fixed_per_shift)) },
                         )
                     }
                     if (rules.deductionsMode == "percentage") {
-                        MultiplierField("Deduction (%)", rules.deductionsPercentage) {
+                        MultiplierField(stringResource(R.string.settings_deduction_percent), rules.deductionsPercentage) {
                             rules = rules.copy(deductionsPercentage = it)
                         }
                     } else {
-                        MultiplierField("Deduction ($currencyCode per shift)", rules.deductionsFixedAmount) {
+                        MultiplierField(stringResource(R.string.settings_deduction_fixed, currencyCode), rules.deductionsFixedAmount) {
                             rules = rules.copy(deductionsFixedAmount = it)
                         }
                     }
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "A rough take-home adjustment (e.g. tax or pension estimate) — not a payroll-grade net calculation.",
+                        stringResource(R.string.settings_deduction_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -479,7 +486,7 @@ internal fun CompensationSettingsContent(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    if (state.isSaving) "Saving…" else "Save compensation rules",
+                    if (state.isSaving) stringResource(R.string.settings_saving) else stringResource(R.string.settings_save_comp_rules),
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -490,13 +497,13 @@ internal fun CompensationSettingsContent(
     if (showCreateDialog) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showCreateDialog = false },
-            title = { Text("New compensation profile") },
+            title = { Text(stringResource(R.string.settings_new_comp_profile)) },
             text = {
                 OutlinedTextField(
                     value = newProfileName,
                     onValueChange = { newProfileName = it },
-                    label = { Text("Profile name") },
-                    placeholder = { Text("e.g. Second job, Weekend gig") },
+                    label = { Text(stringResource(R.string.settings_profile_name)) },
+                    placeholder = { Text(stringResource(R.string.settings_comp_profile_name_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -508,10 +515,10 @@ internal fun CompensationSettingsContent(
                         showCreateDialog = false
                     },
                     enabled = newProfileName.trim().isNotBlank(),
-                ) { Text("Create") }
+                ) { Text(stringResource(R.string.settings_create)) }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showCreateDialog = false }) { Text(stringResource(R.string.settings_cancel)) }
             },
         )
     }
@@ -524,7 +531,7 @@ private fun RegionDropdown(
     onSelect: (RegionCode) -> Unit,
 ) {
     StringDropdown(
-        label = "Region preset",
+        label = stringResource(R.string.settings_region_preset),
         selected = selected.name,
         options = options.map { it.first.name to it.second },
         onSelect = { onSelect(RegionCode.fromPersisted(it)) },
@@ -561,7 +568,7 @@ private fun StringDropdown(
 
 @Composable
 private fun StackingPolicyRow(selected: StackingPolicy, onSelect: (StackingPolicy) -> Unit) {
-    Text("Premium stacking", style = MaterialTheme.typography.labelMedium)
+    Text(stringResource(R.string.settings_premium_stacking), style = MaterialTheme.typography.labelMedium)
     Spacer(Modifier.height(8.dp))
     // Same options and wording as custom premium profiles, so both stacking
     // pickers in the app stay aligned.
@@ -617,16 +624,25 @@ private fun HoursField(label: String, minutes: Int, onHours: (Double) -> Unit) {
 }
 
 /** One-line, read-only view of the configured overtime ladders. */
+@Composable
 private fun overtimeLadderSummary(rules: CompensationRules): String? {
     val parts = mutableListOf<String>()
     rules.dailyOvertimeTiers.sortedBy { it.afterMinutes }.forEach {
-        parts += "daily after ${ShiftDurationCalculator.formatMinutes(it.afterMinutes)}: ${(it.multiplier * 100).toInt()}%"
+        parts += stringResource(
+            R.string.settings_ladder_daily,
+            ShiftDurationCalculator.formatMinutes(it.afterMinutes),
+            (it.multiplier * 100).toInt(),
+        )
     }
     rules.weeklyOvertimeTiers.sortedBy { it.afterMinutes }.forEach {
-        parts += "weekly after ${ShiftDurationCalculator.formatMinutes(it.afterMinutes)}: ${(it.multiplier * 100).toInt()}%"
+        parts += stringResource(
+            R.string.settings_ladder_weekly,
+            ShiftDurationCalculator.formatMinutes(it.afterMinutes),
+            (it.multiplier * 100).toInt(),
+        )
     }
     if (parts.isEmpty()) return null
-    return "Current ladder — " + parts.joinToString("; ") + ". Pick a region preset to change tiers."
+    return stringResource(R.string.settings_ladder_summary, parts.joinToString("; "))
 }
 
 private val TIME_RE = Regex("^([01]?\\d|2[0-3]):[0-5]\\d$")
@@ -648,7 +664,7 @@ private fun TimeField(
         label = { Text(label) },
         isError = !TIME_RE.matches(text),
         supportingText = if (!TIME_RE.matches(text)) {
-            { Text("Use HH:MM, e.g. 22:00") }
+            { Text(stringResource(R.string.settings_use_hhmm)) }
         } else {
             null
         },

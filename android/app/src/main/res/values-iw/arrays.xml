@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Short weekday labels, Sunday first (0 = Sunday). -->
+    <string-array name="weekday_short_labels">
+        <item>א׳</item>
+        <item>ב׳</item>
+        <item>ג׳</item>
+        <item>ד׳</item>
+        <item>ה׳</item>
+        <item>ו׳</item>
+        <item>ש׳</item>
+    </string-array>
+</resources>

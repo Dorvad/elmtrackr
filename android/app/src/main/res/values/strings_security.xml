@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App lock gate + biometric prompt -->
+    <string name="security_unlock_title">Unlock ElmTrackr</string>
+    <string name="security_unlock_subtitle">Confirm your identity to view pay and shift data</string>
+    <string name="security_locked_title">ElmTrackr is locked</string>
+    <string name="security_locked_body">Use your fingerprint, face, or device PIN to continue.</string>
+    <string name="security_unlock_button">Unlock</string>
+
+    <!-- Security settings detail -->
+    <string name="security_section_app_lock">APP LOCK</string>
+    <string name="security_encryption_note">Local data is encrypted at rest with SQLCipher. Widget and notification actions are blocked while the app is locked.</string>
+</resources>

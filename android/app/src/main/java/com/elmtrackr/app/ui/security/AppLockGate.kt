@@ -17,9 +17,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import com.elmtrackr.app.R
 import com.elmtrackr.app.security.AppLockController
 import com.elmtrackr.app.security.BiometricAuthPrompt
 
@@ -30,13 +32,15 @@ fun AppLockGate(
     content: @Composable () -> Unit,
 ) {
     val needsUnlock = lockEnabled && !AppLockController.isUnlocked()
+    val unlockTitle = stringResource(R.string.security_unlock_title)
+    val unlockSubtitle = stringResource(R.string.security_unlock_subtitle)
 
     LaunchedEffect(needsUnlock) {
         if (needsUnlock) {
             BiometricAuthPrompt.show(
                 activity = activity,
-                title = "Unlock ElmTrackr",
-                subtitle = "Confirm your identity to view pay and shift data",
+                title = unlockTitle,
+                subtitle = unlockSubtitle,
                 onSuccess = { AppLockController.unlock() },
                 onFailure = { },
             )
@@ -59,12 +63,12 @@ fun AppLockGate(
             )
             Spacer(Modifier.height(16.dp))
             Text(
-                text = "ElmTrackr is locked",
+                text = stringResource(R.string.security_locked_title),
                 style = MaterialTheme.typography.headlineSmall,
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Use your fingerprint, face, or device PIN to continue.",
+                text = stringResource(R.string.security_locked_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -74,14 +78,14 @@ fun AppLockGate(
                 onClick = {
                     BiometricAuthPrompt.show(
                         activity = activity,
-                        title = "Unlock ElmTrackr",
-                        subtitle = "Confirm your identity to view pay and shift data",
+                        title = unlockTitle,
+                        subtitle = unlockSubtitle,
                         onSuccess = { AppLockController.unlock() },
                         onFailure = { },
                     )
                 },
             ) {
-                Text("Unlock")
+                Text(stringResource(R.string.security_unlock_button))
             }
         }
     } else {

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App lock gate + biometric prompt -->
+    <string name="security_unlock_title">ביטול נעילה של ElmTrackr</string>
+    <string name="security_unlock_subtitle">אימות זהות כדי לצפות בנתוני השכר והמשמרות</string>
+    <string name="security_locked_title">‏ElmTrackr נעול</string>
+    <string name="security_locked_body">טביעת אצבע, זיהוי פנים או קוד המכשיר — וממשיכים.</string>
+    <string name="security_unlock_button">ביטול נעילה</string>
+
+    <!-- Security settings detail -->
+    <string name="security_section_app_lock">נעילת אפליקציה</string>
+    <string name="security_encryption_note">המידע המקומי מוצפן במכשיר (SQLCipher). פעולות מהווידג׳טים ומההתראות חסומות כשהאפליקציה נעולה.</string>
+</resources>

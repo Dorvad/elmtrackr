@@ -3,8 +3,9 @@
     <!--
         Window theme used before Compose renders. NoActionBar prevents a
         native action bar from flashing on top of the Compose Scaffold.
-        android:Theme.Material.Light.NoActionBar is built into the platform
-        (API 21+) and requires no extra library dependency.
+        Theme.AppCompat is required because MainActivity extends
+        AppCompatActivity for per-app locale support (Hebrew/English),
+        and DayNight keeps the pre-Compose flash matched to dark mode.
     -->
-    <style name="Theme.ElmTrackr" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.ElmTrackr" parent="Theme.AppCompat.DayNight.NoActionBar" />
 </resources>

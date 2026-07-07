@@ -29,9 +29,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.design.AuroraSoftEase
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
@@ -91,21 +93,21 @@ fun FirstClockInCelebrationDialog(onDismiss: () -> Unit) {
         },
         title = {
             Text(
-                "You're tracking!",
+                stringResource(R.string.celebration_tracking_title),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().scale(iconScale),
             )
         },
         text = {
             Text(
-                "Your hours, pay estimate, and overtime are live on the home screen. Keep the shift running — or clock out when you're done.",
+                stringResource(R.string.celebration_tracking_body),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
         confirmButton = {
             ElmGradientButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text("Got it", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.celebration_got_it), fontWeight = FontWeight.SemiBold)
             }
         },
     )
