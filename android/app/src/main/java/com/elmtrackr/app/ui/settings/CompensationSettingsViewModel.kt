@@ -137,6 +137,50 @@ class CompensationSettingsViewModel @Inject constructor(
         }
     }
 
+    fun deleteProfile() {
+        viewModelScope.launch {
+            _isSaving.value = true
+            _saveMessage.value = null
+            try {
+                val userId = authRepository.getCurrentProfile()?.id
+                    ?: error("Sign in to delete a compensation profile")
+                val profiles = compensationProfilesRepository.getProfiles(userId)
+                val target = profiles.firstOrNull { it.id == _selectedProfileId.value }
+                    ?: error("No compensation profile selected")
+                if (profiles.size <= 1) {
+                    _saveMessage.value = CompensationSaveMessage(
+                        UiText.Res(R.string.settings_feedback_delete_last_profile),
+                        isError = true,
+                    )
+                    return@launch
+                }
+                compensationProfilesRepository.deleteProfile(userId, target.id)
+                val remaining = profiles.filter { it.id != target.id }
+                var nextSelected = remaining.firstOrNull { it.isDefault } ?: remaining.first()
+                if (target.isDefault) {
+                    // The default profile also backs the legacy settings fields, so
+                    // promote the next profile and mirror it there, as saveProfile does.
+                    val promoted = compensationProfilesRepository.upsertProfile(
+                        nextSelected.copy(isDefault = true, updatedAt = Instant.now()),
+                    )
+                    nextSelected = promoted
+                    settingsRepository.getSettings(userId)?.let { settings ->
+                        settingsRepository.saveSettings(
+                            settings.apply(CompensationResolver.profileToLegacySettingsUpdates(promoted))
+                                .copy(updatedAt = Instant.now()),
+                        )
+                    }
+                }
+                _selectedProfileId.value = nextSelected.id
+                _saveMessage.value = CompensationSaveMessage(UiText.Res(R.string.settings_feedback_profile_deleted), isError = false)
+            } catch (e: Exception) {
+                _saveMessage.value = CompensationSaveMessage(UiText.Res(R.string.settings_feedback_delete_failed), isError = true)
+            } finally {
+                _isSaving.value = false
+            }
+        }
+    }
+
     fun saveProfile(
         name: String,
         regionCode: RegionCode,

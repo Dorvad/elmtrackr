@@ -285,6 +285,7 @@ class FullAppScreenshotTest {
             onBack = {},
             onSelectProfile = {},
             onCreateProfile = {},
+            onDeleteProfile = {},
             onSave = { _, _, _, _, _, _, _ -> },
             onDismissMessage = {},
         )
