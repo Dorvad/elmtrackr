@@ -252,6 +252,7 @@ class FullAppScreenshotJvmTest {
             onBack = {},
             onSelectProfile = {},
             onCreateProfile = {},
+            onDeleteProfile = {},
             onSave = { _, _, _, _, _, _, _ -> },
             onDismissMessage = {},
         )
@@ -277,6 +278,7 @@ class FullAppScreenshotJvmTest {
             onBack = {},
             onSelectProfile = {},
             onCreateProfile = {},
+            onDeleteProfile = {},
             onSave = { _, _, _, _, _, _, _ -> },
             onDismissMessage = {},
         )

@@ -220,6 +220,9 @@
     <string name="settings_feedback_local_cleared">Local data cleared</string>
     <string name="settings_feedback_reset_sent">Reset link sent to %1$s. Check your inbox.</string>
     <string name="settings_feedback_profile_created">Profile created</string>
+    <string name="settings_feedback_profile_deleted">Profile deleted</string>
+    <string name="settings_feedback_delete_failed">Couldn\'t delete the profile</string>
+    <string name="settings_feedback_delete_last_profile">You can\'t delete your only profile</string>
     <string name="settings_feedback_create_failed">Create failed</string>
     <string name="settings_feedback_rules_saved">Compensation rules saved</string>
     <string name="settings_error_no_comp_profile">No compensation profile found. Open Payroll settings or complete onboarding.</string>
@@ -263,6 +266,9 @@
     <string name="settings_multiplier_summary">%1$s%% · %2$s</string>
     <string name="settings_default">Default</string>
     <string name="settings_delete_profile">Delete profile</string>
+    <string name="settings_delete_comp_profile_title">Delete “%1$s”?</string>
+    <string name="settings_delete_comp_profile_body">Shifts you\'ve already logged keep the pay that was calculated for them. The profile is removed from your synced devices too. This cannot be undone.</string>
+    <string name="settings_delete">Delete</string>
     <string name="settings_edit">Edit</string>
     <string name="settings_profile_name">Profile name</string>
     <string name="settings_multiplier">Multiplier</string>

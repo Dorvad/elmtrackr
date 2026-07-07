@@ -220,6 +220,9 @@
     <string name="settings_feedback_local_cleared">המידע המקומי נמחק</string>
     <string name="settings_feedback_reset_sent">קישור איפוס נשלח אל %1$s. כדאי לבדוק את תיבת הדואר.</string>
     <string name="settings_feedback_profile_created">הפרופיל נוצר</string>
+    <string name="settings_feedback_profile_deleted">הפרופיל נמחק</string>
+    <string name="settings_feedback_delete_failed">מחיקת הפרופיל נכשלה</string>
+    <string name="settings_feedback_delete_last_profile">אי אפשר למחוק את הפרופיל היחיד</string>
     <string name="settings_feedback_create_failed">היצירה לא הצליחה</string>
     <string name="settings_feedback_rules_saved">כללי התגמול נשמרו</string>
     <string name="settings_error_no_comp_profile">לא נמצא פרופיל תגמול. אפשר לפתוח את הגדרות השכר או להשלים את ההגדרה הראשונית.</string>
@@ -263,6 +266,9 @@
     <string name="settings_multiplier_summary">%1$s%% · %2$s</string>
     <string name="settings_default">ברירת מחדל</string>
     <string name="settings_delete_profile">מחיקת פרופיל</string>
+    <string name="settings_delete_comp_profile_title">למחוק את ״%1$s״?</string>
+    <string name="settings_delete_comp_profile_body">משמרות שכבר נרשמו שומרות על השכר שחושב עבורן. הפרופיל יוסר גם מהמכשירים המסונכרנים שלך. אי אפשר לבטל את הפעולה.</string>
+    <string name="settings_delete">מחיקה</string>
     <string name="settings_edit">עריכה</string>
     <string name="settings_profile_name">שם הפרופיל</string>
     <string name="settings_multiplier">מכפיל</string>

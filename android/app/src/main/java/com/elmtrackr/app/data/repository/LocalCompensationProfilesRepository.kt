@@ -80,6 +80,7 @@ class LocalCompensationProfilesRepository @Inject constructor(
             try {
                 val settings = settingsRepository.getSettings(userId) ?: return@withLock null
                 if (!settings.onboardingCompleted) return@withLock null
+                archiveDuplicateProfiles(userId)
                 val existing = getProfiles(userId).filter { !it.isArchived }
                 if (existing.isNotEmpty()) {
                     return@withLock existing.firstOrNull { it.isDefault } ?: existing.first()
@@ -87,7 +88,7 @@ class LocalCompensationProfilesRepository @Inject constructor(
 
                 val now = Instant.now()
                 val migration = CompensationResolver.buildMigrationProfile(userId, settings).copy(
-                    id = UUID.randomUUID().toString(),
+                    id = migrationProfileId(userId),
                     createdAt = now,
                     updatedAt = now,
                 )
@@ -101,6 +102,66 @@ class LocalCompensationProfilesRepository @Inject constructor(
                 null
             }
         }
+    }
+
+    /**
+     * One stable id per user, so concurrent migration attempts — several
+     * screens bootstrapping at once, or a second device signing in before its
+     * first pull lands — all resolve to the same row instead of minting a new
+     * profile each time. The remote insert carries this id too, so re-pushed
+     * creates collide with the earlier row rather than duplicating it.
+     */
+    private fun migrationProfileId(userId: String): String =
+        UUID.nameUUIDFromBytes("compensation-migration:$userId".toByteArray(Charsets.UTF_8)).toString()
+
+    /**
+     * Earlier releases could accumulate identical profiles: create pushes were
+     * retried without an idempotency key and every bootstrap window minted its
+     * own migration default. Archive exact copies (same name, region, currency,
+     * timezone, rate, stacking, and rules), keeping the default or oldest one;
+     * the archival syncs as a soft delete so other devices converge too.
+     */
+    private suspend fun archiveDuplicateProfiles(userId: String) {
+        val active = profileDao.getByUser(userId).filter { !it.isArchived && it.deletedAt == null }
+        if (active.size < 2) return
+        val now = System.currentTimeMillis()
+        val keeperByArchivedId = mutableMapOf<String, String>()
+        active
+            .groupBy {
+                listOf(
+                    it.name.trim(), it.regionCode, it.currencyCode, it.timezone,
+                    it.baseHourlyRate, it.stackingPolicy, it.rulesJson,
+                )
+            }
+            .values
+            .filter { it.size > 1 }
+            .forEach { group ->
+                val keeper = group.sortedWith(
+                    compareByDescending<CompensationProfileEntity> { it.isDefault }
+                        .thenBy { it.createdAt }
+                        .thenBy { it.remoteId ?: it.localId },
+                ).first()
+                group.filter { it.localId != keeper.localId }.forEach { duplicate ->
+                    profileDao.insert(
+                        duplicate.copy(
+                            isArchived = true,
+                            deletedAt = now,
+                            updatedAt = now,
+                            syncStatus = SyncStatus.PENDING_UPDATE,
+                        ),
+                    )
+                    keeperByArchivedId[duplicate.localId] = keeper.localId
+                }
+            }
+        if (keeperByArchivedId.isEmpty()) return
+        settingsRepository.getSettings(userId)?.let { settings ->
+            settings.defaultCompensationProfileId?.let(keeperByArchivedId::get)?.let { keeperId ->
+                settingsRepository.saveSettings(
+                    settings.copy(defaultCompensationProfileId = keeperId, updatedAt = Instant.now()),
+                )
+            }
+        }
+        syncTrigger.schedule()
     }
 
     private fun syncStatusForMutation(existing: CompensationProfileEntity?): SyncStatus = when {

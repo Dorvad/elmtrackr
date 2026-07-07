@@ -12,6 +12,7 @@ private val profileJson = Json { ignoreUnknownKeys = true }
 
 fun CompensationProfileEntity.toRemoteInsert(): RemoteCompensationProfileInsert =
     RemoteCompensationProfileInsert(
+        id = localId,
         userId = userId,
         name = name,
         regionCode = regionToWire(regionCode),

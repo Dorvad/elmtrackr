@@ -18,6 +18,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -86,6 +87,7 @@ fun CompensationSettingsScreen(
                 onBack = onBack,
                 onSelectProfile = viewModel::selectProfile,
                 onCreateProfile = viewModel::createProfile,
+                onDeleteProfile = viewModel::deleteProfile,
                 onSave = viewModel::saveProfile,
                 onDismissMessage = viewModel::clearSaveMessage,
             )
@@ -108,6 +110,7 @@ internal fun CompensationSettingsContent(
     onBack: () -> Unit,
     onSelectProfile: (String) -> Unit,
     onCreateProfile: (String) -> Unit,
+    onDeleteProfile: () -> Unit,
     onSave: (
         String, RegionCode, String, String, Double?, StackingPolicy, CompensationRules,
     ) -> Unit,
@@ -115,6 +118,7 @@ internal fun CompensationSettingsContent(
 ) {
     var showCreateDialog by remember { mutableStateOf(false) }
     var newProfileName by remember { mutableStateOf("") }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     var name by remember(state.profile.id) { mutableStateOf(state.profile.name) }
     var regionCode by remember(state.profile.id) { mutableStateOf(state.profile.regionCode) }
@@ -194,6 +198,19 @@ internal fun CompensationSettingsContent(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (state.profiles.size > 1) {
+                    Spacer(Modifier.height(4.dp))
+                    TextButton(
+                        onClick = { showDeleteDialog = true },
+                        enabled = !state.isSaving,
+                        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                    ) {
+                        Icon(Icons.Default.DeleteOutline, contentDescription = null, Modifier.padding(end = 6.dp))
+                        Text(stringResource(R.string.settings_delete_profile))
+                    }
+                }
             }
         }
 
@@ -495,6 +512,25 @@ internal fun CompensationSettingsContent(
             }
             Spacer(Modifier.height(Spacing.xl))
         }
+    }
+
+    if (showDeleteDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(stringResource(R.string.settings_delete_comp_profile_title, state.profile.name)) },
+            text = { Text(stringResource(R.string.settings_delete_comp_profile_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteProfile()
+                    },
+                ) { Text(stringResource(R.string.settings_delete), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.settings_cancel)) }
+            },
+        )
     }
 
     if (showCreateDialog) {
