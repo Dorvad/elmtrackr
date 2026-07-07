@@ -12,6 +12,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -297,6 +299,33 @@ class FullAppScreenshotJvmTest {
     @Test fun rideProviderSelector() = capture("25-ride-provider") {
         RideProviderSelector(RefundProvider.LIME, {})
     }
+
+    // RTL layout regressions: same screens forced right-to-left, catching
+    // mirrored chevrons, slide directions, and start/end padding issues.
+    @Test fun onboardingWelcomeRtl() = capture("28-onboarding-welcome-rtl") {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            OnboardingColumn(1) { WelcomeStep(replay = false, onNext = {}) }
+        }
+    }
+
+    @Test fun settingsHubRtl() = capture("29-settings-hub-rtl") {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            SettingsHubScreen(SettingsDestination.HUB)
+        }
+    }
+
+    @Test fun shiftsListRtl() = capture("30-shifts-list-rtl") {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            val settings = sampleSettings()
+            Column(Modifier.fillMaxSize().padding(12.dp)) {
+                MonthShiftSummary(sampleShifts(), settings)
+                ShiftRow(sampleShifts()[0], settings, showRefunds = true, onClick = {})
+                ShiftRow(sampleShifts()[1], settings, showRefunds = true, onClick = {})
+            }
+        }
+    }
+
+
 
     private fun capture(name: String, darkTheme: Boolean = false, content: @Composable () -> Unit) {
         paparazzi.snapshot(name = name) {

@@ -59,7 +59,7 @@ fun SetupScreen(onRefresh: () -> Unit) {
             onClick = onRefresh,
             modifier = Modifier.wearPressScale(interactionSource),
         ) {
-            Text("Refresh")
+            Text(stringResource(R.string.wear_refresh))
         }
     }
 }
@@ -92,7 +92,7 @@ fun IdleScreen(
             )
             if (todayShort.isNotBlank()) {
                 Text(
-                    text = "Today $todayShort",
+                    text = stringResource(R.string.wear_today, todayShort),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 4.dp),
                 )
@@ -137,7 +137,7 @@ fun RunningScreen(
             style = MaterialTheme.typography.bodySmall,
         )
         Text(
-            text = "$progressPercent% of day",
+            text = stringResource(R.string.wear_percent_of_day, progressPercent),
             style = MaterialTheme.typography.labelSmall,
         )
         Box(contentAlignment = Alignment.Center) {

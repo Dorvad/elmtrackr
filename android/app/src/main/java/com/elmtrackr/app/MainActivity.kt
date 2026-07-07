@@ -3,7 +3,7 @@ package com.elmtrackr.app
 import android.Manifest
 import android.content.Intent
 import android.os.Bundle
-import androidx.fragment.app.FragmentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,8 +32,11 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+// AppCompatActivity (a FragmentActivity subclass, so BiometricPrompt keeps
+// working) is required for AppCompatDelegate.setApplicationLocales to apply
+// and persist the in-app language on Android 12 and below.
 @AndroidEntryPoint
-class MainActivity : FragmentActivity() {
+class MainActivity : AppCompatActivity() {
 
     @Inject lateinit var authRepository: Lazy<AuthRepository>
     @Inject lateinit var appPreferences: AppPreferencesRepository

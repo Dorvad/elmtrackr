@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget labels resolved at render time -->
+    <string name="widget_clocked_in">CLOCKED IN</string>
+    <string name="widget_clocked_out">CLOCKED OUT</string>
+    <string name="widget_punch_in">PUNCH IN</string>
+    <string name="widget_punch_out">PUNCH OUT</string>
+    <string name="widget_tap_start_shift">tap to start shift</string>
+    <string name="widget_tap_end_shift">tap to end shift</string>
+    <string name="widget_on_shift">on shift</string>
+    <string name="widget_last_punch">last punch</string>
+    <string name="widget_on_shift_upper">ON SHIFT</string>
+    <string name="widget_last_punch_upper">LAST PUNCH</string>
+    <string name="widget_since">since %1$s</string>
+    <string name="widget_today_short">Today %1$s</string>
+    <string name="widget_tap_to_start">tap to start</string>
+    <string name="widget_today_logged">Today %1$s logged</string>
+    <string name="widget_no_time_today">No time logged today</string>
+    <string name="widget_active_sub">Since %1$s · Today %2$s</string>
+    <string name="widget_progress_active">%1$d%% of an %2$s day · started %3$s</string>
+    <string name="widget_progress_idle">%1$d%% of an %2$s day · %3$s to goal</string>
+    <string name="widget_today_lower">today</string>
+    <string name="widget_clock_in">Clock in</string>
+    <string name="widget_clock_out">Clock out</string>
+
+    <!-- Notification channels -->
+    <string name="notif_channel_active_shift">Active Shift</string>
+    <string name="notif_channel_active_shift_desc">Shown while you are clocked in</string>
+    <string name="notif_channel_reminders">Reminders</string>
+    <string name="notif_channel_reminders_desc">Long-shift and other reminders</string>
+
+    <!-- Shortcut clock-out feedback -->
+    <string name="shortcut_feedback_clocked_out_title">Clocked out</string>
+    <string name="shortcut_feedback_clocked_out_body">Your shift has been ended.</string>
+    <string name="shortcut_feedback_no_shift_title">No active shift</string>
+    <string name="shortcut_feedback_no_shift_body">There is no active shift to clock out from.</string>
+</resources>

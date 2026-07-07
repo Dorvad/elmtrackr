@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Short weekday labels, Sunday first. Index matches the weekendDays
+         day numbering used across settings and onboarding (0 = Sunday). -->
+    <string-array name="weekday_short_labels">
+        <item>Sun</item>
+        <item>Mon</item>
+        <item>Tue</item>
+        <item>Wed</item>
+        <item>Thu</item>
+        <item>Fri</item>
+        <item>Sat</item>
+    </string-array>
+</resources>

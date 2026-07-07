@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.auth
 
 import com.elmtrackr.app.domain.model.Profile
+import com.elmtrackr.app.domain.model.UiText
 
 sealed interface AuthUiState {
     /** Initial state while the SDK checks for a stored session. */
@@ -12,7 +13,7 @@ sealed interface AuthUiState {
     /** No active session. Ready for sign-in or sign-up. */
     data class SignedOut(
         val isLoading: Boolean = false,
-        val errorMessage: String? = null,
+        val errorMessage: UiText? = null,
     ) : AuthUiState
 
     /** Active session. */
@@ -27,7 +28,7 @@ sealed interface AuthUiState {
     /** Recovery link opened — user must choose a new password. */
     data class PasswordRecovery(
         val isLoading: Boolean = false,
-        val errorMessage: String? = null,
+        val errorMessage: UiText? = null,
     ) : AuthUiState
 
     /** Sign-up succeeded but the Supabase project requires email confirmation. */

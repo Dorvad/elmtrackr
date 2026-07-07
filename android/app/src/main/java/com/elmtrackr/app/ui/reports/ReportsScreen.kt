@@ -28,7 +28,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.theme.CornerRadius
+import androidx.compose.ui.res.stringResource
+import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.design.mirrorInRtl
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
@@ -364,10 +368,10 @@ private fun MonthNavRow(year: Int, month: Int, onPrev: () -> Unit, onNext: () ->
                 .size(48.dp)
                 .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
         ) {
-            Icon(Icons.Filled.ChevronLeft, "Previous month", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Filled.ChevronLeft, stringResource(R.string.shifts_previous_month), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.mirrorInRtl())
         }
         Text(
-            "${Month.of(month).displayName()} $year",
+            "${Month.of(month).displayName(appLocale())} $year",
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.bodyMedium,
             maxLines = 1,
@@ -382,8 +386,9 @@ private fun MonthNavRow(year: Int, month: Int, onPrev: () -> Unit, onNext: () ->
         ) {
             Icon(
                 Icons.Filled.ChevronRight,
-                "Next month",
+                stringResource(R.string.shifts_next_month),
                 tint = if (canGoNext) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline,
+                modifier = Modifier.mirrorInRtl(),
             )
         }
     }
@@ -598,7 +603,7 @@ private fun TabletHoursReportTop(
                     (delta * 100 / state.previousMonthMinutes)
                 } else 0
                 val prevMonthName = YearMonth.of(state.year, state.month).minusMonths(1)
-                    .month.getDisplayName(JavaTextStyle.FULL, Locale.getDefault())
+                    .month.getDisplayName(JavaTextStyle.FULL, appLocale())
                 Box(
                     modifier = Modifier
                         .weight(1.6f)
@@ -698,7 +703,7 @@ internal fun HoursReport(
             else -> "—"
         }
         val prevMonthName = YearMonth.of(state.year, state.month).minusMonths(1)
-            .month.getDisplayName(JavaTextStyle.SHORT, Locale.getDefault())
+            .month.getDisplayName(JavaTextStyle.SHORT, appLocale())
         Spacer(Modifier.height(14.dp))
         ReportCard {
             Text("Month over month", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -732,7 +737,7 @@ internal fun HoursReport(
             else -> "—"
         }
         val prevMonthName = YearMonth.of(state.year, state.month).minusMonths(1)
-            .month.getDisplayName(JavaTextStyle.SHORT, Locale.getDefault())
+            .month.getDisplayName(JavaTextStyle.SHORT, appLocale())
         Spacer(Modifier.height(14.dp))
         ReportCard {
             Text("Month over month", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -886,7 +891,7 @@ internal fun HoursReport(
             ElmSectionHeader("Weekly Breakdown")
             if (hasPrevData) {
                 val prevMonthName = YearMonth.of(state.year, state.month).minusMonths(1)
-                    .let { Month.of(it.monthValue).displayName() }
+                    .let { Month.of(it.monthValue).displayName(appLocale()) }
                 Text(
                     "vs $prevMonthName",
                     style = MaterialTheme.typography.labelSmall,
@@ -1623,7 +1628,7 @@ private fun RefundMonthCard(
     val exportRows = submittedExportRows(shifts, claims)
     var isExporting by rememberSaveable(month.toString()) { mutableStateOf(false) }
     ReportCard {
-        Text("${month.month.displayName()} ${month.year}", fontWeight = FontWeight.Bold)
+        Text("${month.month.displayName(appLocale())} ${month.year}", fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatPill("Submitted", submitted.toString(), MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer, Modifier.weight(1f))
@@ -1672,7 +1677,7 @@ private fun RefundMonthCard(
                 if (isExporting) CircularProgressIndicator(Modifier.size(17.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                 else Icon(Icons.Filled.PictureAsPdf, null, Modifier.size(17.dp))
                 Spacer(Modifier.width(7.dp))
-                Text(if (isExporting) "Preparing PDF..." else "Export PDF - ${month.month.displayName()}")
+                Text(if (isExporting) "Preparing PDF..." else "Export PDF - ${month.month.displayName(appLocale())}")
             }
         }
     }
@@ -1936,5 +1941,6 @@ private fun refundStatus(action: RefundAction?): String = when (action) {
     null -> "Pending"
 }
 
-private fun Month.displayName(): String = name.lowercase().replaceFirstChar(Char::uppercase)
+private fun Month.displayName(locale: Locale): String =
+    getDisplayName(JavaTextStyle.FULL_STANDALONE, locale).replaceFirstChar { it.uppercase(locale) }
 private fun formatHoursDecimal(minutes: Int): String = "%.1f".format(Locale.US, minutes / 60.0)

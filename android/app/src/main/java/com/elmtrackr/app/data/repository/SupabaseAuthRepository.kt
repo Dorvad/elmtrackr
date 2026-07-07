@@ -12,7 +12,9 @@ import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.sync.SyncTrigger
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.AuthResult
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.data.local.LocalUserDataCleaner
@@ -65,9 +67,9 @@ class SupabaseAuthRepository @Inject constructor(
 
     private val client: SupabaseClient? = SupabaseClientProvider.get()
     private val _passwordRecoveryRequired = MutableStateFlow(false)
-    private val _deepLinkErrors = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    private val _deepLinkErrors = MutableSharedFlow<UiText>(extraBufferCapacity = 1)
 
-    override val deepLinkErrors: SharedFlow<String> = _deepLinkErrors.asSharedFlow()
+    override val deepLinkErrors: SharedFlow<UiText> = _deepLinkErrors.asSharedFlow()
 
     override fun observePasswordRecoveryRequired(): Flow<Boolean> =
         _passwordRecoveryRequired.asStateFlow()
@@ -156,7 +158,7 @@ class SupabaseAuthRepository @Inject constructor(
             _passwordRecoveryRequired.value = false
             AuthResult.Success
         } catch (e: Exception) {
-            AuthResult.Error(AuthErrorMapper.messageFor(e, AuthOperation.SIGN_IN))
+            AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.SIGN_IN)))
         }
     }
 
@@ -169,7 +171,7 @@ class SupabaseAuthRepository @Inject constructor(
             }
             AuthResult.Success
         } catch (e: Exception) {
-            AuthResult.Error(AuthErrorMapper.messageFor(e, AuthOperation.SIGN_UP))
+            AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.SIGN_UP)))
         }
     }
 
@@ -186,14 +188,14 @@ class SupabaseAuthRepository @Inject constructor(
 
     override suspend fun deleteAccount(): AuthResult {
         val userId = getCurrentProfile()?.id
-            ?: return AuthResult.Error("No account to delete")
+            ?: return AuthResult.Error(UiText.Res(R.string.auth_error_no_account_to_delete))
         return try {
             client?.postgrest?.rpc("delete_own_account")
             localUserDataCleaner.clearUserData(userId)
             signOut()
             AuthResult.Success
         } catch (e: Exception) {
-            AuthResult.Error(AuthErrorMapper.messageFor(e, AuthOperation.DELETE_ACCOUNT))
+            AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.DELETE_ACCOUNT)))
         }
     }
 
@@ -203,7 +205,7 @@ class SupabaseAuthRepository @Inject constructor(
             c.auth.resetPasswordForEmail(email, redirectUrl = AUTH_RESET_CALLBACK)
             AuthResult.Success
         } catch (e: Exception) {
-            AuthResult.Error(AuthErrorMapper.messageFor(e, AuthOperation.PASSWORD_RESET))
+            AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.PASSWORD_RESET)))
         }
     }
 
@@ -216,7 +218,7 @@ class SupabaseAuthRepository @Inject constructor(
             _passwordRecoveryRequired.value = false
             AuthResult.Success
         } catch (e: Exception) {
-            AuthResult.Error(AuthErrorMapper.messageFor(e, AuthOperation.UPDATE_PASSWORD))
+            AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.UPDATE_PASSWORD)))
         }
     }
 
@@ -240,7 +242,7 @@ class SupabaseAuthRepository @Inject constructor(
         } catch (e: Exception) {
             _passwordRecoveryRequired.value = false
             _deepLinkErrors.emit(
-                AuthErrorMapper.messageFor(e, AuthOperation.PASSWORD_RECOVERY),
+                UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.PASSWORD_RECOVERY)),
             )
         }
     }

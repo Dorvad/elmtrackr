@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
@@ -220,12 +221,14 @@ private fun ShiftsListContent(
     onAddShift: () -> Unit,
     onEditShift: (String) -> Unit,
 ) {
+    val itemsLocale = appLocale()
     val listItems = remember(
         state.shifts,
         state.activeShift,
         state.month,
         state.settings,
         state.profiles,
+        itemsLocale,
     ) {
         buildShiftsLazyListItems(
             shifts = state.shifts,
@@ -233,6 +236,7 @@ private fun ShiftsListContent(
             month = state.month,
             settings = state.settings,
             profiles = state.profiles,
+            locale = itemsLocale,
         )
     }
 

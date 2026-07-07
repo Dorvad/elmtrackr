@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.R
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.data.receipts.PhotoFileManager
 import com.elmtrackr.app.data.receipt.ReceiptImageStore
 import com.elmtrackr.app.domain.CurrentUserProvider
@@ -82,7 +84,7 @@ class RefundClaimViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.message ?: "Unable to load refund claims",
+                            errorMessage = error.message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.refunds_err_load),
                         )
                     }
                 }
@@ -164,7 +166,7 @@ class RefundClaimViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 launchDocumentScanner = false,
-                errorMessage = message ?: "Unable to open the receipt scanner",
+                errorMessage = message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.refunds_err_scanner),
             )
         }
     }
@@ -199,7 +201,7 @@ class RefundClaimViewModel @Inject constructor(
         if (!file.exists() || file.length() <= 0) {
             cleanupPendingPhoto(path)
             _uiState.update {
-                it.copy(camera = null, errorMessage = "The receipt photo was not saved. Try again.")
+                it.copy(camera = null, errorMessage = UiText.Res(R.string.refunds_err_photo_not_saved))
             }
             return
         }
@@ -220,7 +222,7 @@ class RefundClaimViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isProcessingReceipt = false,
-                        errorMessage = "The receipt photo could not be stored. Try again.",
+                        errorMessage = UiText.Res(R.string.refunds_err_photo_store),
                     )
                 }
                 return@launch
@@ -232,7 +234,7 @@ class RefundClaimViewModel @Inject constructor(
     fun photoCaptureFailed(message: String?) {
         cleanupPendingPhoto(_uiState.value.camera?.outputPath)
         _uiState.update {
-            it.copy(camera = null, errorMessage = message ?: "Unable to capture receipt photo")
+            it.copy(camera = null, errorMessage = message?.let { m -> UiText.Raw(m) } ?: UiText.Res(R.string.refunds_err_capture))
         }
     }
 
@@ -320,9 +322,9 @@ class RefundClaimViewModel @Inject constructor(
                     it.copy(
                         receiptReview = null,
                         noticeMessage = if (saved.amount == null) {
-                            "Receipt saved locally. Enter the refund amount before submitting the claim."
+                            UiText.Res(R.string.refunds_notice_receipt_saved_enter_amount)
                         } else {
-                            "Receipt saved locally. Verify the claim details before submitting."
+                            UiText.Res(R.string.refunds_notice_receipt_saved_verify)
                         },
                     )
                 }
@@ -333,7 +335,7 @@ class RefundClaimViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         receiptReview = review.copy(isSaving = false),
-                        errorMessage = error.message ?: "Unable to save receipt locally",
+                        errorMessage = error.message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.refunds_err_save_receipt_local),
                     )
                 }
             }
@@ -345,7 +347,7 @@ class RefundClaimViewModel @Inject constructor(
         val shift = _uiState.value.shift ?: return
         val amount = form.amountText.toDoubleOrNull()
         if (amount == null || amount <= 0.0) {
-            _uiState.update { it.copy(errorMessage = "Enter a valid refund amount") }
+            _uiState.update { it.copy(errorMessage = UiText.Res(R.string.refunds_err_amount)) }
             return
         }
 
@@ -354,7 +356,7 @@ class RefundClaimViewModel @Inject constructor(
             val receipt = form.pendingPhotoPath?.let { photoFileManager.toReceiptUpload(it) }
             if (form.pendingPhotoPath != null && receipt == null) {
                 _uiState.update {
-                    it.copy(isSaving = false, errorMessage = "The receipt photo is missing or larger than 10 MB.")
+                    it.copy(isSaving = false, errorMessage = UiText.Res(R.string.refunds_err_photo_missing_large))
                 }
                 return@launch
             }
@@ -384,13 +386,13 @@ class RefundClaimViewModel @Inject constructor(
                         isSaving = false,
                         form = null,
                         noticeMessage = if (result.receiptUploadFailed) {
-                            "Claim saved without the new receipt. Receipt upload is unavailable; you can attach it later."
+                            UiText.Res(R.string.refunds_notice_saved_no_receipt)
                         } else null,
                     )
                 }
             }.onFailure { error ->
                 _uiState.update {
-                    it.copy(isSaving = false, errorMessage = error.message ?: "Unable to save the refund claim")
+                    it.copy(isSaving = false, errorMessage = error.message?.let { m -> UiText.Raw(m) } ?: UiText.Res(R.string.refunds_err_save_claim))
                 }
             }
         }
@@ -411,11 +413,11 @@ class RefundClaimViewModel @Inject constructor(
                             deletingClaimId = null,
                             noticeMessage = when {
                                 result.receiptDeleteFailed && result.localReceiptDeleteFailed ->
-                                    "Claim deleted. Some receipt cleanup will retry later."
+                                    UiText.Res(R.string.refunds_notice_deleted_cleanup_retry)
                                 result.receiptDeleteFailed ->
-                                    "Claim deleted. Cloud receipt cleanup will retry later."
+                                    UiText.Res(R.string.refunds_notice_deleted_cloud_retry)
                                 result.localReceiptDeleteFailed ->
-                                    "Claim deleted. Local receipt file cleanup failed."
+                                    UiText.Res(R.string.refunds_notice_deleted_local_failed)
                                 else -> null
                             },
                         )
@@ -425,7 +427,7 @@ class RefundClaimViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             deletingClaimId = null,
-                            errorMessage = error.message ?: "Unable to delete the refund claim",
+                            errorMessage = error.message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.refunds_err_delete_claim),
                         )
                     }
                 }
@@ -440,7 +442,7 @@ class RefundClaimViewModel @Inject constructor(
                 .onSuccess { updateShiftState(it, isLoading = false) }
                 .onFailure { error ->
                     _uiState.update {
-                        it.copy(errorMessage = error.message ?: "Unable to update refund status")
+                        it.copy(errorMessage = error.message?.let { m -> UiText.Raw(m) } ?: UiText.Res(R.string.refunds_err_update_status))
                     }
                 }
         }
@@ -462,7 +464,7 @@ class RefundClaimViewModel @Inject constructor(
 
             val cloudPath = claim.receiptPath
             if (cloudPath == null) {
-                _uiState.update { it.copy(errorMessage = "No receipt is attached to this claim.") }
+                _uiState.update { it.copy(errorMessage = UiText.Res(R.string.refunds_err_no_receipt)) }
                 return@launch
             }
             openCloudReceipt(cloudPath)
@@ -475,7 +477,7 @@ class RefundClaimViewModel @Inject constructor(
 
     fun openLocalReceipt(imagePath: String) {
         if (!File(imagePath).exists()) {
-            _uiState.update { it.copy(errorMessage = "The receipt image file is missing.") }
+            _uiState.update { it.copy(errorMessage = UiText.Res(R.string.refunds_err_receipt_file_missing)) }
             return
         }
         _uiState.update {
@@ -508,7 +510,7 @@ class RefundClaimViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     receiptPreview = null,
-                    errorMessage = "Receipt preview is unavailable right now.",
+                    errorMessage = UiText.Res(R.string.refunds_err_preview_unavailable),
                 )
             }
         } else {
@@ -556,7 +558,7 @@ class RefundClaimViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isProcessingReceipt = false,
-                        errorMessage = "Choose an image smaller than 10 MB.",
+                        errorMessage = UiText.Res(R.string.refunds_err_image_too_large),
                     )
                 }
                 return@launch

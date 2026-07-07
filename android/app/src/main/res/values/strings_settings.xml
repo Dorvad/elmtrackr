@@ -55,7 +55,104 @@
     <string name="settings_weekend_days_hint">Selected days count as weekends for overtime and reports.</string>
     <string name="settings_location">Location</string>
 
+    <!-- Language -->
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">Device language</string>
+
     <!-- Appearance -->
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_currency">Currency</string>
+    <string name="settings_watch_face">Watch face</string>
+    <string name="settings_watch_face_hint">Choose an animated face for the Dashboard clock.</string>
+    <string name="settings_selected">Selected</string>
+    <string name="settings_face_classic">Progress ring</string>
+    <string name="settings_face_minimal">Clean display</string>
+    <string name="settings_face_focus">Distraction free</string>
+    <string name="settings_face_bold">Large and clear</string>
+    <string name="settings_face_night">Cyan night glow</string>
+    <string name="settings_face_retro">Amber terminal</string>
+    <string name="settings_face_aurora">Gradient ring</string>
+    <string name="settings_face_pulse">Glowing rings</string>
+    <string name="settings_face_dial">Analog timer</string>
+    <string name="settings_face_strand">Linear progress</string>
+    <string name="settings_face_prism">Rising spectrum</string>
+    <string name="settings_face_sand">Flowing hourglass</string>
+    <string name="settings_face_blocks">Hour-by-hour blocks</string>
+    <string name="settings_face_orbit">Orbiting satellite</string>
+
+    <!-- Hub summaries -->
+    <string name="settings_summary_no_rate">No hourly rate</string>
+    <string name="settings_summary_rate_per_hour">%1$s/hr</string>
+    <string name="settings_summary_ot">OT %1$s/%2$s h</string>
+    <string name="settings_summary_face">%1$s face</string>
+    <string name="settings_summary_no_features">No optional features enabled</string>
+    <string name="settings_summary_features_count">%1$d features enabled</string>
+    <string name="settings_feature_travel_short">Travel refunds</string>
+    <string name="settings_feature_insights_short">Insights</string>
+    <string name="settings_feature_clock_styles_short">Clock styles</string>
+    <string name="settings_feature_ot_reminders_short">Overtime reminders</string>
+
+    <!-- Compensation rules -->
+    <string name="settings_comp_rules_title">Compensation Rules</string>
+    <string name="settings_section_profiles">Profiles</string>
+    <string name="settings_comp_profiles_hint">Each profile has its own pay rules. Pick one to edit, or add another for a second job.</string>
+    <string name="settings_region_preset">Region preset</string>
+    <string name="settings_section_work_week">Work week</string>
+    <string name="settings_daily_standard_hours">Daily standard (hours)</string>
+    <string name="settings_weekly_standard_hours">Weekly standard (hours)</string>
+    <string name="settings_week_starts_on">Week starts on</string>
+    <string name="settings_week_starts_hint">Weekly overtime counts hours from this day. Israel and most US workweeks start Sunday.</string>
+    <string name="settings_section_premiums">Premiums</string>
+    <string name="settings_overtime">Overtime</string>
+    <string name="settings_seventh_day">7th consecutive day premium</string>
+    <string name="settings_seventh_day_hint" formatted="false">Working all seven days of the pay week pays a premium from the first minute of the 7th day (California-style: 150% first 8 h, 200% after).</string>
+    <string name="settings_weekend_premium">Weekend premium</string>
+    <string name="settings_weekend_multiplier">Weekend multiplier</string>
+    <string name="settings_holiday_special">Holiday / special day</string>
+    <string name="settings_holiday_multiplier">Holiday multiplier</string>
+    <string name="settings_night_shift">Night shift</string>
+    <string name="settings_night_multiplier">Night multiplier</string>
+    <string name="settings_night_starts">Night starts</string>
+    <string name="settings_night_ends">Night ends</string>
+    <string name="settings_section_time_breaks">Time &amp; breaks</string>
+    <string name="settings_breaks_paid">Breaks are paid</string>
+    <string name="settings_auto_deduct_break">Auto-deduct break (minutes)</string>
+    <string name="settings_auto_deduct_hint">Deducted automatically when a shift has no recorded break.</string>
+    <string name="settings_min_shift_pay">Minimum shift pay (minutes)</string>
+    <string name="settings_min_shift_hint">Shorter shifts are paid as if they lasted this long (minimum-call / reporting-time pay).</string>
+    <string name="settings_round_shift_length">Round shift length</string>
+    <string name="settings_rounding_increment">Rounding increment (minutes)</string>
+    <string name="settings_rounding_nearest">Nearest</string>
+    <string name="settings_rounding_up">Up</string>
+    <string name="settings_rounding_down">Down</string>
+    <string name="settings_section_deductions">Deductions</string>
+    <string name="settings_deduct_gross">Deduct from gross estimate</string>
+    <string name="settings_deduction_percent" formatted="false">Deduction (%)</string>
+    <string name="settings_deduction_fixed">Deduction (%1$s per shift)</string>
+    <string name="settings_deduction_hint">A rough take-home adjustment (e.g. tax or pension estimate) — not a payroll-grade net calculation.</string>
+    <string name="settings_save_comp_rules">Save compensation rules</string>
+    <string name="settings_ladder_daily">daily after %1$s: %2$d%%</string>
+    <string name="settings_ladder_weekly">weekly after %1$s: %2$d%%</string>
+    <string name="settings_ladder_summary">Current ladder — %1$s. Pick a region preset to change tiers.</string>
+    <string name="settings_add_profile">Add profile</string>
+    <string name="settings_base_hourly_rate">Base hourly rate (%1$s)</string>
+    <string name="settings_rounding_direction">Rounding direction</string>
+    <string name="settings_percentage">Percentage</string>
+    <string name="settings_fixed_per_shift">Fixed per shift</string>
+    <string name="settings_new_comp_profile">New compensation profile</string>
+    <string name="settings_comp_profile_name_placeholder">e.g. Second job, Weekend gig</string>
+    <string name="settings_create">Create</string>
+    <string name="settings_premium_stacking">Premium stacking</string>
+    <string name="settings_use_hhmm">Use HH:MM, e.g. 22:00</string>
+
+    <!-- Timezone picker -->
+    <string name="settings_timezone">Timezone</string>
+    <string name="settings_timezone_search_hint">Search IANA zones (e.g. Europe/London)</string>
+    <string name="settings_no_matching_timezones">No matching timezones</string>
+
     <string name="settings_clock_faces">Clock faces</string>
     <string name="settings_clock_faces_desc">14 styles for your home clock</string>
     <string name="settings_reduce_motion">Reduce motion</string>
@@ -114,6 +211,42 @@
     <string name="settings_up_to_date">Up to date</string>
     <string name="settings_count_pending">%1$s pending</string>
     <string name="settings_failed_row_meta">%1$s · %2$s</string>
+
+    <!-- Save/account feedback -->
+    <string name="settings_feedback_saved">Settings saved</string>
+    <string name="settings_feedback_save_failed">Could not save settings</string>
+    <string name="settings_feedback_fix_fields">Fix the highlighted fields before saving</string>
+    <string name="settings_feedback_account_deleted">Account deleted</string>
+    <string name="settings_feedback_local_cleared">Local data cleared</string>
+    <string name="settings_feedback_reset_sent">Reset link sent to %1$s. Check your inbox.</string>
+    <string name="settings_feedback_profile_created">Profile created</string>
+    <string name="settings_feedback_create_failed">Create failed</string>
+    <string name="settings_feedback_rules_saved">Compensation rules saved</string>
+    <string name="settings_error_no_comp_profile">No compensation profile found. Open Payroll settings or complete onboarding.</string>
+
+    <!-- Field validation -->
+    <string name="settings_error_positive">Must be positive</string>
+    <string name="settings_error_max_24">Cannot exceed 24 hours</string>
+    <string name="settings_error_max_168">Cannot exceed 168 hours</string>
+    <string name="settings_error_weekly_gte_daily">Must be ≥ daily threshold</string>
+    <string name="settings_error_rate_nonnegative">Must be zero or positive</string>
+
+    <!-- Sync status / feedback -->
+    <string name="sync_synced_just_now">Synced just now</string>
+    <string name="sync_synced_min_ago">Synced %1$d min ago</string>
+    <string name="sync_synced_today_at">Synced today at %1$s</string>
+    <string name="sync_synced_on">Synced on %1$s</string>
+    <string name="sync_failed_with">Sync failed — %1$s</string>
+    <string name="sync_finished">Sync finished</string>
+    <string name="sync_failed">Sync failed</string>
+    <string name="sync_session_expired">Your session has expired. Sign in again to resume syncing.</string>
+    <string name="sync_backup_ready">Backup ready to share</string>
+    <string name="sync_export_failed">Could not export backup</string>
+    <string name="sync_import_failed">Could not import backup</string>
+    <string name="sync_import_nothing_new">Nothing to import — everything in this backup already exists.</string>
+    <string name="sync_import_empty">The backup contained no data to import.</string>
+    <string name="sync_import_count">Imported %1$d items.</string>
+    <string name="sync_import_count_skipped">Imported %1$d items (%2$d already existed).</string>
 
     <!-- Shared list UI -->
     <string name="settings_unsaved_change">%1$s unsaved change</string>

@@ -47,6 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.ElmGradientButton
@@ -139,7 +140,7 @@ internal fun SettingsProfileHeroCard(
                 Icons.Filled.ChevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(20.dp).mirrorInRtl(),
             )
         }
     }
@@ -212,7 +213,7 @@ internal fun SettingsHubNavRow(
                 Icons.Filled.ChevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(20.dp).mirrorInRtl(),
             )
         }
         if (showDivider) {
@@ -395,7 +396,7 @@ internal fun SettingsNavRow(
             Icons.Filled.ChevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(20.dp).mirrorInRtl(),
         )
     }
 }

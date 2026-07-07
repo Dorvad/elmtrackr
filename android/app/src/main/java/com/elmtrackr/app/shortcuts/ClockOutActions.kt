@@ -9,6 +9,7 @@ import com.elmtrackr.app.MainActivity
 import com.elmtrackr.app.R
 import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
+import com.elmtrackr.app.language.withAppLocale
 import com.elmtrackr.app.notification.ActiveShiftNotificationManager
 import com.elmtrackr.app.notification.NotificationChannels
 import com.elmtrackr.app.security.AppLockActionGuard
@@ -46,9 +47,14 @@ object ClockOutActions {
     }
 
     fun showShortcutFeedback(context: Context, result: Result) {
+        val localized = context.withAppLocale()
         val (title, message) = when (result) {
-            Result.CLOCKED_OUT -> "Clocked out" to "Your shift has been ended."
-            Result.NO_ACTIVE_SHIFT -> "No active shift" to "There is no active shift to clock out from."
+            Result.CLOCKED_OUT ->
+                localized.getString(R.string.shortcut_feedback_clocked_out_title) to
+                    localized.getString(R.string.shortcut_feedback_clocked_out_body)
+            Result.NO_ACTIVE_SHIFT ->
+                localized.getString(R.string.shortcut_feedback_no_shift_title) to
+                    localized.getString(R.string.shortcut_feedback_no_shift_body)
         }
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return

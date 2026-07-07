@@ -13,6 +13,7 @@ import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.time.WorkTimezone
+import com.elmtrackr.app.language.withAppLocale
 import com.elmtrackr.app.notification.ActiveShiftNotificationManager
 import com.elmtrackr.app.notification.OvertimeReminderScheduler
 import com.elmtrackr.app.shortcuts.HeadlessTrampolineActivity
@@ -187,9 +188,10 @@ class ActiveShiftSideEffectsCoordinator @Inject constructor(
             return
         }
 
+        val localized = app.withAppLocale()
         val shortcut = ShortcutInfo.Builder(app, shortcutId)
-            .setShortLabel(app.getString(R.string.shortcut_clock_out_short))
-            .setLongLabel(app.getString(R.string.shortcut_clock_out_long))
+            .setShortLabel(localized.getString(R.string.shortcut_clock_out_short))
+            .setLongLabel(localized.getString(R.string.shortcut_clock_out_long))
             .setIcon(Icon.createWithResource(app, R.mipmap.ic_launcher))
             .setIntent(
                 Intent(app, HeadlessTrampolineActivity::class.java).apply {

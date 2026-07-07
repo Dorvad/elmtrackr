@@ -2,6 +2,8 @@ package com.elmtrackr.app.ui.tasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.R
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
@@ -28,8 +30,8 @@ sealed interface TaskManagementUiState {
     data class Ready(
         val tasks: List<Task>,
         val defaultRules: List<TaskDefaultRule> = emptyList(),
-        val message: String? = null,
-        val errorMessage: String? = null,
+        val message: UiText? = null,
+        val errorMessage: UiText? = null,
     ) : TaskManagementUiState
     data class Error(val message: String) : TaskManagementUiState
 }
@@ -42,8 +44,8 @@ class TaskManagementViewModel @Inject constructor(
     private val currentUserProvider: CurrentUserProvider,
 ) : ViewModel() {
 
-    private val _message = MutableStateFlow<String?>(null)
-    private val _errorMessage = MutableStateFlow<String?>(null)
+    private val _message = MutableStateFlow<UiText?>(null)
+    private val _errorMessage = MutableStateFlow<UiText?>(null)
     private val _reload = MutableStateFlow(0)
 
     val uiState: StateFlow<TaskManagementUiState> = _reload
@@ -84,7 +86,7 @@ class TaskManagementViewModel @Inject constructor(
                 it.id != taskId && it.name.equals(trimmed, ignoreCase = true)
             }
             if (duplicate) {
-                _errorMessage.value = "A task named \"$trimmed\" already exists"
+                _errorMessage.value = UiText.Res(R.string.tasks_error_name_exists)
                 return@launch
             }
             val now = Instant.now()
@@ -104,7 +106,7 @@ class TaskManagementViewModel @Inject constructor(
                     remoteId = existing?.remoteId,
                 ),
             )
-            _message.value = "Task saved"
+            _message.value = UiText.Res(R.string.tasks_msg_saved)
             _errorMessage.value = null
         }
     }
@@ -113,7 +115,7 @@ class TaskManagementViewModel @Inject constructor(
         viewModelScope.launch {
             val userId = currentUserProvider.currentUserId() ?: return@launch
             tasksRepository.archiveTask(userId, taskId)
-            _message.value = "Task archived"
+            _message.value = UiText.Res(R.string.tasks_msg_archived)
         }
     }
 
@@ -121,7 +123,7 @@ class TaskManagementViewModel @Inject constructor(
         viewModelScope.launch {
             val userId = currentUserProvider.currentUserId() ?: return@launch
             tasksRepository.deleteTask(userId, taskId)
-            _message.value = "Task deleted"
+            _message.value = UiText.Res(R.string.tasks_msg_deleted)
         }
     }
 }

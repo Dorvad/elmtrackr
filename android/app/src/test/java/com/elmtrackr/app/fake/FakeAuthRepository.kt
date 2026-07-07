@@ -1,6 +1,8 @@
 package com.elmtrackr.app.fake
 
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.AuthResult
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
@@ -14,7 +16,7 @@ class FakeAuthRepository : AuthRepository {
 
     private val _profile = MutableStateFlow<Profile?>(null)
     private val _passwordRecoveryRequired = MutableStateFlow(false)
-    private val _deepLinkErrors = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    private val _deepLinkErrors = MutableSharedFlow<UiText>(extraBufferCapacity = 1)
 
     var configured: Boolean = true
     var signInResult: AuthResult = AuthResult.Success
@@ -23,7 +25,7 @@ class FakeAuthRepository : AuthRepository {
     var resetPasswordResult: AuthResult = AuthResult.Success
     var updatePasswordResult: AuthResult = AuthResult.Success
 
-    override val deepLinkErrors: SharedFlow<String> = _deepLinkErrors.asSharedFlow()
+    override val deepLinkErrors: SharedFlow<UiText> = _deepLinkErrors.asSharedFlow()
 
     fun setProfile(profile: Profile?) { _profile.value = profile }
 
@@ -90,7 +92,7 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun handleDeepLink(uriString: String) {}
 
     override suspend fun deleteAccount(): AuthResult {
-        val userId = _profile.value?.id ?: return AuthResult.Error("No account to delete")
+        val userId = _profile.value?.id ?: return AuthResult.Error(UiText.Res(R.string.auth_error_no_account_to_delete))
         _profile.value = null
         return AuthResult.Success
     }

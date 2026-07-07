@@ -1,6 +1,8 @@
 package com.elmtrackr.app.ui.settings
 
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.UserSettings
@@ -359,7 +361,7 @@ class SettingsViewModelTest {
 
         val ready = states.filterIsInstance<SettingsUiState.Ready>().lastOrNull()
         assertNotNull(ready)
-        assertEquals("Settings saved", ready!!.saveFeedback?.message)
+        assertEquals(UiText.Res(R.string.settings_feedback_saved), ready!!.saveFeedback?.message)
         assertEquals(false, ready.saveFeedback?.isError)
         job.cancel()
     }

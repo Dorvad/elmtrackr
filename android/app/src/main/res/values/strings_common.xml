@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared UI states -->
+    <string name="common_something_went_wrong">Something went wrong</string>
+    <string name="common_try_again">Try again</string>
+    <string name="error_network">We couldn\'t reach the server. Check your connection and try again.</string>
+    <string name="error_generic">We couldn\'t load your data. Please try again.</string>
+
+    <!-- First clock-in celebration -->
+    <string name="celebration_tracking_title">You\'re tracking!</string>
+    <string name="celebration_tracking_body">Your hours, pay estimate, and overtime are live on the home screen. Keep the shift running — or clock out when you\'re done.</string>
+    <string name="celebration_got_it">Got it</string>
+</resources>

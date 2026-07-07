@@ -14,4 +14,11 @@
     <string name="confirmed_out">Clocked out</string>
     <string name="phone_unreachable">Phone unreachable</string>
     <string name="punch_failed">Punch failed</string>
+    <string name="wear_refresh">Refresh</string>
+    <string name="wear_today">Today %1$s</string>
+    <string name="wear_percent_of_day">%1$d%% of day</string>
+    <string name="tile_sign_in">Sign in</string>
+    <string name="tile_on_phone">on phone</string>
+    <string name="tile_tap_punch_out">tap to punch out</string>
+    <string name="tile_tap_punch_in">tap to punch in</string>
 </resources>

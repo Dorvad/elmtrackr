@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- TaskManagementScreen -->
+    <string name="tasks_title">משימות</string>
+    <string name="tasks_subtitle">תוויות אופציונליות עם שכר שעתי משלהן לכניסה למשמרת.</string>
+    <string name="tasks_back">חזרה</string>
+    <string name="tasks_delete_title">למחוק את ״%1$s״?</string>
+    <string name="tasks_delete_message">המשימה תוסר מכל מקום. משמרות שהשתמשו בה שומרות את השם והתעריף שנרשמו. אי אפשר לבטל את זה.</string>
+    <string name="tasks_delete">מחיקה</string>
+    <string name="tasks_cancel">ביטול</string>
+    <string name="tasks_add_task">הוספת משימה</string>
+    <string name="tasks_empty_hint">עוד אין משימות. מוסיפים אחת כדי לתייג משמרות עם תעריפים שונים.</string>
+    <string name="tasks_archived_header">בארכיון</string>
+    <string name="tasks_rate_per_hour">%1$s לשעה</string>
+    <string name="tasks_edit">עריכה</string>
+    <string name="tasks_archive">לארכיון</string>
+    <string name="tasks_schedule_defaults">ברירות מחדל לפי שעות</string>
+    <string name="tasks_schedule_defaults_hint">נלמד מהיסטוריית המשמרות — משמש להצעה אוטומטית.</string>
+    <string name="tasks_more_rules">‎+%1$d נוספים</string>
+    <string name="tasks_new_task">משימה חדשה</string>
+    <string name="tasks_edit_task">עריכת משימה</string>
+    <string name="tasks_name_label">שם המשימה</string>
+    <string name="tasks_icon_label">אייקון</string>
+    <string name="tasks_color_label">צבע</string>
+    <string name="tasks_hourly_rate_label">שכר שעתי</string>
+    <string name="tasks_save">שמירה</string>
+    <string name="tasks_error_name_required">צריך שם למשימה</string>
+    <string name="tasks_error_name_exists">כבר יש משימה עם השם הזה</string>
+    <string name="tasks_error_rate_invalid">צריך שכר שעתי תקין</string>
+
+    <!-- TaskSelectorBar -->
+    <string name="tasks_task_label">משימה</string>
+    <string name="tasks_manage">ניהול</string>
+    <string name="tasks_suggested_now">מוצע עכשיו</string>
+    <string name="tasks_chip_suggested">✨ %1$s %2$s</string>
+    <string name="tasks_chip_a11y">%1$s, %2$s לשעה</string>
+    <string name="tasks_chip_a11y_suggested">%1$s, %2$s לשעה, מוצע עכשיו</string>
+    <string name="tasks_selected_summary">%1$s %2$s · %3$s לשעה</string>
+    <string name="tasks_badge_with_rate">%1$s %2$s · %3$s לשעה</string>
+
+    <!-- ViewModel messages -->
+    <string name="tasks_msg_saved">המשימה נשמרה</string>
+    <string name="tasks_msg_archived">המשימה הועברה לארכיון</string>
+    <string name="tasks_msg_deleted">המשימה נמחקה</string>
+</resources>

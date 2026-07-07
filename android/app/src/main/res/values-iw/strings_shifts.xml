@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ShiftsScreen -->
+    <string name="shifts_empty_title">אין משמרות החודש</string>
+    <string name="shifts_empty_subtitle">נכנסים למשמרת ממסך הבית, או מוסיפים משמרת ידנית.</string>
+    <string name="shifts_ok">אישור</string>
+    <string name="shifts_cancel">ביטול</string>
+    <string name="shifts_select_time">בחירת שעה</string>
+
+    <!-- ShiftsListUi -->
+    <string name="shifts_title">משמרות</string>
+    <string name="shifts_this_week">השבוע</string>
+    <string name="shifts_add">הוספה</string>
+    <string name="shifts_previous_month">החודש הקודם</string>
+    <string name="shifts_next_month">החודש הבא</string>
+    <string name="shifts_hours_tracked_header">שעות במעקב</string>
+    <string name="shifts_est_gross_header">ברוטו משוער</string>
+    <string name="shifts_hours_value">%1$s שע׳</string>
+    <string name="shifts_hours_value_spaced">%1$s שע׳</string>
+    <string name="shifts_legend_regular">רגילות</string>
+    <string name="shifts_legend_overtime">נוספות</string>
+    <string name="shifts_legend_weekend">סופ״ש</string>
+    <string name="shifts_badge_premium">תוספת</string>
+    <string name="shifts_badge_weekend">סופ״ש</string>
+    <string name="shifts_badge_ot">ש״נ</string>
+    <string name="shifts_badge_live">פעיל</string>
+    <string name="shifts_badge_now">עכשיו</string>
+    <string name="shifts_time_range">%1$s - %2$s</string>
+    <string name="shifts_break_line">הפסקה %1$d דק׳</string>
+    <string name="shifts_on_shift">במשמרת</string>
+    <string name="shifts_since">מאז %1$s</string>
+    <string name="shifts_add_past_shift">הוספת משמרת קודמת</string>
+
+    <!-- ShiftEditFormUi -->
+    <string name="shifts_delete_dialog_title">למחוק את המשמרת?</string>
+    <string name="shifts_delete_dialog_text">המשמרת תוסר. המחיקה תסתנכרן כשיהיה חיבור.</string>
+    <string name="shifts_delete">מחיקה</string>
+    <string name="shifts_back">חזרה</string>
+    <string name="shifts_edit_shift_title">עריכת משמרת</string>
+    <string name="shifts_new_shift_title">משמרת חדשה</string>
+    <string name="shifts_estimated_pay_header">שכר משוער • מתעדכן תוך כדי עריכה</string>
+    <string name="shifts_pay_bracket_line">%1$s שע׳ %2$s - %3$s</string>
+    <string name="shifts_section_when">מתי</string>
+    <string name="shifts_section_break_premium">הפסקה ותוספת</string>
+    <string name="shifts_section_pay_task">שכר ומשימה</string>
+    <string name="shifts_section_notes">הערות</string>
+    <string name="shifts_start_label">התחלה</string>
+    <string name="shifts_end_label">סיום</string>
+    <string name="shifts_pick_date">בחירת תאריך %1$s</string>
+    <string name="shifts_pick_time">בחירת שעת %1$s</string>
+    <string name="shifts_still_on_shift">עדיין במשמרת</string>
+    <string name="shifts_active">פעילה</string>
+    <string name="shifts_tap_to_set_end">הקשה לקביעת סיום</string>
+    <string name="shifts_hours_paid">%1$s שע׳ בתשלום</string>
+    <string name="shifts_when_summary">%1$s עבודה • הפסקה %2$d דק׳ • %3$s</string>
+    <string name="shifts_unpaid_break">הפסקה ללא תשלום</string>
+    <string name="shifts_break_minutes_value">%1$d דק׳</string>
+    <string name="shifts_task_label">משימה</string>
+    <string name="shifts_task_edit_hint">אפשר להחליף את המשימה של המשמרת — השכר יתעדכן בשמירה.</string>
+    <string name="shifts_task_none">ללא</string>
+    <string name="shifts_saved_task">משימה שמורה: %1$s %2$s (%3$s לשעה)</string>
+    <string name="shifts_notes_placeholder">הערות על המשמרת…</string>
+    <string name="shifts_travel_refund">החזר נסיעה</string>
+    <string name="shifts_travel_refund_subtitle">הוספת בקשות החזר על נסיעות למשמרת הזו</string>
+    <string name="shifts_close">סגירה</string>
+    <string name="shifts_claim">בקשת החזר</string>
+    <string name="shifts_delete_shift">מחיקת משמרת</string>
+    <string name="shifts_save">שמירה</string>
+    <string name="shifts_unsaved_changes_one">%1$d שינוי לא שמור</string>
+    <string name="shifts_unsaved_changes_other">%1$d שינויים לא שמורים</string>
+
+    <!-- CompensationProfilePicker / PremiumProfilePicker -->
+    <string name="shifts_compensation_profile_label">פרופיל תגמול</string>
+    <string name="shifts_add_compensation_profile">הוספת פרופיל</string>
+    <string name="shifts_new_compensation_profile_title">פרופיל תגמול חדש</string>
+    <string name="shifts_compensation_profile_name_label">שם הפרופיל</string>
+    <string name="shifts_compensation_profile_name_placeholder">למשל: עבודה שנייה, סופ״ש</string>
+    <string name="shifts_create_profile">יצירה</string>
+    <string name="shifts_premium_label">תוספת</string>
+    <string name="shifts_no_premium">בלי תוספת</string>
+    <string name="shifts_premium_applies">מחיל על המשמרת תעריף של %1$d%%</string>
+    <string name="shifts_premium_standard">שכר רגיל, אלא אם חלים כללי סוף שבוע</string>
+
+    <!-- RideProviderGraphics -->
+    <string name="shifts_ride_provider">ספק נסיעה</string>
+    <string name="shifts_ride_provider_a11y">ספק נסיעה %1$s</string>
+    <string name="shifts_ride_provider_a11y_selected">ספק נסיעה %1$s, נבחר</string>
+</resources>

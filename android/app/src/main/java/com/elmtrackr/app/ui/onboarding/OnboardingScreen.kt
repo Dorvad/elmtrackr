@@ -32,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -59,18 +60,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.R
+import com.elmtrackr.app.language.AppLanguage
+import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.RegionCode
@@ -79,6 +87,8 @@ import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.ui.design.AppLogo
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.settings.IanaTimezonePicker
+import com.elmtrackr.app.ui.settings.clockStyleDisplayName
+import com.elmtrackr.app.ui.settings.currencyDisplayName
 import com.elmtrackr.app.ui.settings.WatchFacePreview
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
@@ -90,8 +100,7 @@ import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.Spacing
 import java.util.TimeZone
 
-private const val TOTAL_STEPS = 8
-private val DAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+private const val TOTAL_STEPS = 9
 
 /** 516 → "8.6", 2520 → "42" — matches what the hours text fields accept. */
 private fun minutesToHoursText(minutes: Int): String =
@@ -127,13 +136,15 @@ fun OnboardingScreen(
     val context = LocalContext.current
     val activity = context as FragmentActivity
     val biometricAvailability = remember { BiometricCapability.check(context) }
+    val appLockPromptTitle = stringResource(R.string.onboarding_biometric_prompt_title)
+    val appLockPromptSubtitle = stringResource(R.string.onboarding_biometric_prompt_subtitle)
 
     val scrollState = rememberScrollState()
 
     LaunchedEffect(initialSettings?.id, initialProfile?.id, replay) {
         val settings = initialSettings ?: return@LaunchedEffect
         val profile = initialProfile ?: return@LaunchedEffect
-        if (!initializedFromSettings && step <= 2) {
+        if (!initializedFromSettings && step <= 3) {
             displayName = profile.fullName.orEmpty()
             hourlyRateText = settings.hourlyRate?.toString().orEmpty()
             currency = settings.currency
@@ -156,17 +167,7 @@ fun OnboardingScreen(
     LaunchedEffect(step) { scrollState.scrollTo(0) }
 
     BackHandler(enabled = replay && step == 1) { onCompleted() }
-    BackHandler(enabled = step > 1) {
-        step = when (step) {
-            8 -> 7
-            7 -> 6
-            6 -> 5
-            5 -> 4
-            4 -> 3
-            3 -> 2
-            else -> 1
-        }
-    }
+    BackHandler(enabled = step > 1) { step -= 1 }
 
     val hourlyRate = hourlyRateText.toDoubleOrNull()
     val dailyOt = dailyOtText.toDoubleOrNull()
@@ -191,6 +192,9 @@ fun OnboardingScreen(
                 ),
             ),
         ) {
+            // In RTL, "forward" content should slide in from the left, so the
+            // slide offsets follow the current layout direction.
+            val slideSign = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1 else 1
             Column(
                 Modifier
                     .fillMaxSize()
@@ -205,19 +209,20 @@ fun OnboardingScreen(
                     targetState = step,
                     transitionSpec = {
                         if (targetState > initialState) {
-                            (slideInHorizontally(tween(260)) { it / 3 } + fadeIn(tween(220))) togetherWith
-                                (slideOutHorizontally(tween(180)) { -it / 4 } + fadeOut(tween(140)))
+                            (slideInHorizontally(tween(260)) { slideSign * it / 3 } + fadeIn(tween(220))) togetherWith
+                                (slideOutHorizontally(tween(180)) { slideSign * -it / 4 } + fadeOut(tween(140)))
                         } else {
-                            (slideInHorizontally(tween(260)) { -it / 3 } + fadeIn(tween(220))) togetherWith
-                                (slideOutHorizontally(tween(180)) { it / 4 } + fadeOut(tween(140)))
+                            (slideInHorizontally(tween(260)) { slideSign * -it / 3 } + fadeIn(tween(220))) togetherWith
+                                (slideOutHorizontally(tween(180)) { slideSign * it / 4 } + fadeOut(tween(140)))
                         }
                     },
                     label = "onboarding-step",
                 ) { current ->
                     Column(Modifier.widthIn(max = 460.dp).fillMaxWidth()) {
                         when (current) {
-                            1 -> WelcomeStep(replay) { step = 2 }
-                            2 -> RegionStep(
+                            1 -> LanguageStep(onNext = { step = 2 })
+                            2 -> WelcomeStep(replay) { step = 3 }
+                            3 -> RegionStep(
                                 regionCode = regionCode,
                                 currencyCode = currencyCode,
                                 timezone = timezone,
@@ -236,27 +241,27 @@ fun OnboardingScreen(
                                         weekendDays = preset.rules.weekendDays
                                     }
                                 },
-                                onBack = { step = 1 },
-                                onNext = { step = 3 },
+                                onBack = { step = 2 },
+                                onNext = { step = 4 },
                             )
-                            3 -> ProfileStep(
+                            4 -> ProfileStep(
                                 name = displayName,
                                 email = initialProfile?.email.orEmpty(),
                                 onNameChange = { displayName = it },
                                 showError = !profileValid && displayName.isNotEmpty(),
-                                onBack = { step = 2 },
-                                onNext = { if (profileValid) step = 4 },
+                                onBack = { step = 3 },
+                                onNext = { if (profileValid) step = 5 },
                             )
-                            4 -> PaySetupStep(
+                            5 -> PaySetupStep(
                                 hourlyRate = hourlyRateText,
                                 currency = currency,
                                 onHourlyRateChange = { hourlyRateText = it.decimalInput() },
                                 onCurrencyChange = { currency = it; currencyCode = it.name },
                                 valid = payValid,
-                                onBack = { step = 3 },
-                                onNext = { if (payValid) step = 5 },
+                                onBack = { step = 4 },
+                                onNext = { if (payValid) step = 6 },
                             )
-                            5 -> WorkWeekStep(
+                            6 -> WorkWeekStep(
                                 weekendDays = weekendDays,
                                 dailyOt = dailyOtText,
                                 weeklyOt = weeklyOtText,
@@ -266,15 +271,15 @@ fun OnboardingScreen(
                                 onWeeklyOtChange = { weeklyOtText = it.decimalInput() },
                                 onTimezoneChange = { timezone = it },
                                 valid = workWeekValid,
-                                onBack = { step = 4 },
-                                onNext = { if (workWeekValid) step = 6 },
+                                onBack = { step = 5 },
+                                onNext = { if (workWeekValid) step = 7 },
                             )
-                            6 -> FeaturesStep(
+                            7 -> FeaturesStep(
                                 travelRefunds, insights,
                                 { travelRefunds = it }, { insights = it },
-                                onBack = { step = 5 }, onNext = { step = 7 },
+                                onBack = { step = 6 }, onNext = { step = 8 },
                             )
-                            7 -> SecurityStep(
+                            8 -> SecurityStep(
                                 appLockEnabled = enableAppLock,
                                 biometricAvailability = biometricAvailability,
                                 onAppLockChange = { enabled ->
@@ -284,24 +289,24 @@ fun OnboardingScreen(
                                     }
                                     BiometricAuthPrompt.show(
                                         activity = activity,
-                                        title = "Enable app lock",
-                                        subtitle = "Confirm to require biometric unlock when opening ElmTrackr",
+                                        title = appLockPromptTitle,
+                                        subtitle = appLockPromptSubtitle,
                                         onSuccess = { enableAppLock = true },
                                         onFailure = { },
                                     )
                                 },
-                                onBack = { step = 6 },
-                                onNext = { step = 8 },
+                                onBack = { step = 7 },
+                                onNext = { step = 9 },
                             )
                             else -> ReviewStep(
                                 displayName = displayName.trim(),
                                 hourlyRate = hourlyRate,
                                 currency = currency,
-                                regionLabel = RegionPresets.forRegion(regionCode).label,
+                                regionLabel = stringResource(RegionPresets.forRegion(regionCode).labelRes),
                                 weekendDays = weekendDays,
                                 enabledCount = listOf(travelRefunds, insights, enableAppLock).count { it },
-                                error = (state as? OnboardingUiState.ValidationError)?.errors?.values?.firstOrNull(),
-                                onBack = { step = 7 },
+                                error = (state as? OnboardingUiState.ValidationError)?.errors?.values?.firstOrNull()?.asString(),
+                                onBack = { step = 8 },
                                 onFinish = {
                                     viewModel.completeOnboarding(
                                         OnboardingInput(
@@ -375,14 +380,102 @@ internal fun OnboardingProgress(step: Int) {
 
 @StringRes
 private fun stepTitleRes(step: Int): Int = when (step) {
-    1 -> R.string.onboarding_step_welcome
-    2 -> R.string.onboarding_step_region
-    3 -> R.string.onboarding_step_profile
-    4 -> R.string.onboarding_step_pay
-    5 -> R.string.onboarding_step_work_week
-    6 -> R.string.onboarding_step_features
-    7 -> R.string.onboarding_step_security
+    1 -> R.string.onboarding_step_language
+    2 -> R.string.onboarding_step_welcome
+    3 -> R.string.onboarding_step_region
+    4 -> R.string.onboarding_step_profile
+    5 -> R.string.onboarding_step_pay
+    6 -> R.string.onboarding_step_work_week
+    7 -> R.string.onboarding_step_features
+    8 -> R.string.onboarding_step_security
     else -> R.string.onboarding_step_review
+}
+
+@Composable
+internal fun LanguageStep(onNext: () -> Unit) {
+    // Selection reflects the language the UI is currently rendered in;
+    // picking a language applies it immediately (recreating the activity),
+    // and rememberSaveable keeps the flow on this step.
+    val context = LocalContext.current
+    val uiLanguage = LocalConfiguration.current.locales[0]?.language
+    val hebrewSelected = uiLanguage == "he" || uiLanguage == "iw"
+    SetupHero(
+        Icons.Filled.Language,
+        stringResource(R.string.onboarding_language_title),
+        stringResource(R.string.onboarding_language_subtitle),
+    )
+    SetupCard {
+        // Each option is intentionally hardcoded in its own language so it
+        // stays readable no matter which language is currently active.
+        LanguageOptionCard(
+            title = "English",
+            subtitle = "Track your hours in English",
+            selected = !hebrewSelected,
+            layoutDirection = LayoutDirection.Ltr,
+            onClick = { AppLanguage.apply(context, AppLanguage.ENGLISH) },
+        )
+        LanguageOptionCard(
+            title = "עברית",
+            subtitle = "לעקוב אחרי השעות שלך בעברית",
+            selected = hebrewSelected,
+            layoutDirection = LayoutDirection.Rtl,
+            onClick = { AppLanguage.apply(context, AppLanguage.HEBREW) },
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            stringResource(R.string.onboarding_language_change_later),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    Spacer(Modifier.height(18.dp))
+    ElmGradientButton(onClick = onNext) {
+        Text(stringResource(R.string.onboarding_continue), fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun LanguageOptionCard(
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    layoutDirection: LayoutDirection,
+    onClick: () -> Unit,
+) {
+    // Each card renders in its own language's direction, so the Hebrew
+    // option reads right-to-left even while the app is still in English.
+    CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+        Card(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp).then(
+                if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(CornerRadius.Medium)) else Modifier,
+            ),
+            shape = RoundedCornerShape(CornerRadius.Medium),
+            colors = CardDefaults.cardColors(
+                containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surface,
+            ),
+        ) {
+            Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (selected) {
+                    Icon(
+                        Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -412,10 +505,10 @@ internal fun RegionStep(
                 ),
             ) {
                 Column(Modifier.padding(14.dp)) {
-                    Text(preset.label, fontWeight = FontWeight.Bold)
+                    Text(stringResource(preset.labelRes), fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        preset.description,
+                        stringResource(preset.descriptionRes),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -518,7 +611,7 @@ internal fun PaySetupStep(
                             Spacer(Modifier.width(8.dp))
                             Column {
                                 Text(option.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                Text(option.displayName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                Text(currencyDisplayName(option), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                             }
                         }
                     }
@@ -548,11 +641,12 @@ internal fun WorkWeekStep(
     var showTimezoneEditor by rememberSaveable { mutableStateOf(false) }
     SetupHero(Icons.Filled.CalendarMonth, stringResource(R.string.onboarding_work_week_title), stringResource(R.string.onboarding_work_week_subtitle))
     SetupCard {
+        val dayLabels = stringArrayResource(R.array.weekday_short_labels)
         Text(stringResource(R.string.onboarding_weekend_days_label), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Text(stringResource(R.string.onboarding_weekend_days_helper), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            DAY_LABELS.forEachIndexed { day, label ->
+            dayLabels.forEachIndexed { day, label ->
                 val selected = day in weekendDays
                 Card(
                     onClick = {
@@ -652,6 +746,7 @@ internal fun ReviewStep(
     onBack: () -> Unit,
     onFinish: () -> Unit,
 ) {
+    val dayLabels = stringArrayResource(R.array.weekday_short_labels)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(82.dp).background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(CornerRadius.Large)), contentAlignment = Alignment.Center) {
             Icon(Icons.Filled.Check, null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(42.dp))
@@ -668,7 +763,7 @@ internal fun ReviewStep(
             ReviewRow(stringResource(R.string.onboarding_review_name), displayName)
             ReviewRow(stringResource(R.string.onboarding_review_region), regionLabel)
             ReviewRow(stringResource(R.string.onboarding_review_hourly_salary), hourlyRate?.let { MoneyFormatter.format(it, currency) } ?: stringResource(R.string.onboarding_review_not_set))
-            ReviewRow(stringResource(R.string.onboarding_review_weekend), weekendDays.joinToString(", ") { DAY_LABELS[it] })
+            ReviewRow(stringResource(R.string.onboarding_review_weekend), weekendDays.joinToString(", ") { dayLabels[it] })
             ReviewRow(stringResource(R.string.onboarding_review_optional_features), stringResource(R.string.onboarding_review_enabled_count, enabledCount), showDivider = false)
         }
         error?.let { Spacer(Modifier.height(12.dp)); Text(it, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
@@ -923,7 +1018,7 @@ private fun ClockStyleCard(style: ClockStyle, selected: Boolean, modifier: Modif
         Column(Modifier.fillMaxWidth().padding(9.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             WatchFacePreview(style, selected)
             Spacer(Modifier.height(7.dp))
-            Text(style.name.lowercase().replaceFirstChar(Char::uppercase), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+            Text(clockStyleDisplayName(style), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

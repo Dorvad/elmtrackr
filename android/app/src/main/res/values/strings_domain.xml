@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bottom/side navigation tabs -->
+    <string name="nav_home">Home</string>
+    <string name="nav_shifts">Shifts</string>
+    <string name="nav_reports">Reports</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_tab_selected">%1$s, selected</string>
+
+    <!-- Region presets -->
+    <string name="region_us_label">United States (Federal / FLSA)</string>
+    <string name="region_us_desc">Weekly overtime only (1.5× after 40 h/week per the FLSA). No daily overtime — edit rules if your state requires daily OT. Holiday premium applies only to shifts you mark as special; it is not federally mandated.</string>
+    <string name="region_us_ca_label">United States (California)</string>
+    <string name="region_us_ca_desc">California-style daily OT (1.5× after 8 h, 2× after 12 h), weekly OT at 40 h, and 7th-consecutive-workday premiums (1.5× first 8 h, 2× after). Edit to match your workplace.</string>
+    <string name="region_gb_label">United Kingdom</string>
+    <string name="region_gb_desc">UK law sets no statutory overtime or bank-holiday premium, so overtime starts disabled — pay follows your contract. A 1.5× after 48 h/week template is ready if you enable overtime; edit it to match your contract.</string>
+    <string name="region_eu_label">European Union</string>
+    <string name="region_eu_desc">Illustrative defaults only — overtime law and premiums vary significantly by EU member state. Edit to match your country and contract.</string>
+    <string name="region_il_label">Israel</string>
+    <string name="region_il_desc">Suggested starting point for Israeli-style daily/weekly overtime and weekend/holiday tiers. Edit to match your workplace.</string>
+    <string name="region_custom_label">Custom / Manual</string>
+    <string name="region_custom_desc">Start with a blank slate and configure all compensation rules yourself.</string>
+
+    <!-- Premium stacking policies -->
+    <string name="stacking_highest_title">Highest only</string>
+    <string name="stacking_highest_helper">When multiple premiums apply (e.g. overtime and night), only the highest rate is used — premiums do not stack on top of each other.</string>
+    <string name="stacking_additive_title">Additive</string>
+    <string name="stacking_additive_helper" formatted="false">When multiple premiums apply, they are added on top of the current rate (e.g. 150% overtime plus 25% night = 175%).</string>
+    <string name="stacking_multiplicative_title">Multiplicative</string>
+    <string name="stacking_multiplicative_helper" formatted="false">When multiple premiums apply, one multiplier is applied on top of the other (e.g. 150% overtime × 125% night = 187.5%).</string>
+    <string name="stacking_base_plus_title">Base-plus-premium</string>
+    <string name="stacking_base_plus_helper">Overtime applies to the base rate, then the premium is added as a separate line on top.</string>
+    <string name="stacking_premium_in_rr_title">Premium-in-regular-rate</string>
+    <string name="stacking_premium_in_rr_helper">Uses the highest applicable rate here; the premium is included in the base used for overtime on shift premiums.</string>
+    <string name="stacking_excluded_rr_title">Excluded-from-regular-rate</string>
+    <string name="stacking_excluded_rr_helper">Uses the highest applicable rate here; the premium stays out of the overtime base on shift premiums.</string>
+
+    <!-- Compensation guidance and disclaimers -->
+    <string name="comp_rules_guidance">If you\'re not sure what compensation rules apply to your work, check with your employer, HR or payroll team, and official government labor-law sources for your region before configuring these settings.</string>
+    <string name="comp_disclaimer">ElmTrackr provides estimated compensation based on the rules you configure. Actual pay may vary based on taxes, deductions, employer policy, payroll practices, collective agreements, local labor laws, and other applicable rules. ElmTrackr does not provide legal, tax, payroll, accounting, or financial advice.</string>
+    <string name="comp_estimate_note">Estimated only. Actual pay may vary.</string>
+    <string name="comp_profile_helper">Compensation estimates are based on this profile. Actual pay may vary by taxes, deductions, employer policy, local regulations, and payroll rules.</string>
+
+    <!-- Clock style names -->
+    <string name="clock_style_classic">Classic</string>
+    <string name="clock_style_minimal">Minimal</string>
+    <string name="clock_style_focus">Focus</string>
+    <string name="clock_style_bold">Bold</string>
+    <string name="clock_style_night">Night</string>
+    <string name="clock_style_retro">Retro</string>
+    <string name="clock_style_aurora">Aurora</string>
+    <string name="clock_style_pulse">Pulse</string>
+    <string name="clock_style_dial">Dial</string>
+    <string name="clock_style_strand">Strand</string>
+    <string name="clock_style_prism">Prism</string>
+    <string name="clock_style_sand">Sand</string>
+    <string name="clock_style_blocks">Blocks</string>
+    <string name="clock_style_orbit">Orbit</string>
+
+    <!-- Currency display names -->
+    <string name="currency_ils">Israeli New Shekel</string>
+    <string name="currency_usd">US Dollar</string>
+    <string name="currency_eur">Euro</string>
+    <string name="currency_gbp">British Pound</string>
+    <string name="currency_cad">Canadian Dollar</string>
+    <string name="currency_aud">Australian Dollar</string>
+    <string name="currency_jpy">Japanese Yen</string>
+    <string name="currency_chf">Swiss Franc</string>
+
+    <!-- Sync entity types -->
+    <string name="sync_entity_tasks">Tasks</string>
+    <string name="sync_entity_shifts">Shifts</string>
+    <string name="sync_entity_refund_claims">Refund claims</string>
+    <string name="sync_entity_settings">Settings</string>
+    <string name="sync_entity_pay_profiles">Pay profiles</string>
+</resources>

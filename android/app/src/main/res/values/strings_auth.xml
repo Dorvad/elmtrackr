@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sign-in / sign-up -->
+    <string name="auth_tagline">Track shifts, overtime &amp; earnings</string>
+    <string name="auth_sign_in">Sign in</string>
+    <string name="auth_create_account">Create account</string>
+    <string name="auth_reset_password">Reset password</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_email_invalid">Enter a valid email address</string>
+    <string name="auth_password_too_short">Password must be at least %1$d characters</string>
+    <string name="auth_show_password">Show password</string>
+    <string name="auth_hide_password">Hide password</string>
+    <string name="auth_send_reset_email">Send reset email</string>
+    <string name="auth_no_account_sign_up">Don\'t have an account? Sign up</string>
+    <string name="auth_forgot_password">Forgot password?</string>
+    <string name="auth_have_account_sign_in">Already have an account? Sign in</string>
+    <string name="auth_back_to_sign_in">Back to sign in</string>
+    <string name="auth_sign_out">Sign out</string>
+
+    <!-- Password recovery -->
+    <string name="auth_choose_new_password">Choose a new password</string>
+    <string name="auth_new_password_body">Enter a new password for your ElmTrackr account.</string>
+    <string name="auth_new_password_label">New password</string>
+    <string name="auth_confirm_password_label">Confirm password</string>
+    <string name="auth_passwords_do_not_match">Passwords do not match</string>
+    <string name="auth_update_password">Update password</string>
+
+    <!-- Confirmation screens -->
+    <string name="auth_check_your_email">Check your email</string>
+    <string name="auth_reset_link_sent">A password reset link has been sent to your email address.</string>
+    <string name="auth_confirm_your_email">Confirm your email</string>
+    <string name="auth_confirmation_link_sent">We sent a confirmation link to %1$s. Open it, then return here to sign in.</string>
+
+    <!-- Developer-facing fallback -->
+    <string name="auth_not_configured_title">Auth not configured</string>
+    <string name="auth_not_configured_body">Add SUPABASE_URL and SUPABASE_ANON_KEY to local.properties to enable sign-in.</string>
+
+    <!-- Error messages (mapped from SDK failures) -->
+    <string name="auth_error_incorrect_credentials">Incorrect email or password.</string>
+    <string name="auth_error_confirm_email">Confirm your email before signing in.</string>
+    <string name="auth_error_account_exists">An account with this email already exists.</string>
+    <string name="auth_error_weak_password">Choose a stronger password.</string>
+    <string name="auth_error_rate_limited">Too many attempts. Please wait and try again.</string>
+    <string name="auth_error_network">Check your internet connection and try again.</string>
+    <string name="auth_error_sign_in">Unable to sign in. Please try again.</string>
+    <string name="auth_error_sign_up">Unable to create your account. Please try again.</string>
+    <string name="auth_error_password_reset">Unable to send the reset email. Please try again.</string>
+    <string name="auth_error_recovery_link">That reset link is invalid or has expired.</string>
+    <string name="auth_error_update_password">Unable to update your password. Please try again.</string>
+    <string name="auth_error_delete_account">Unable to delete your account. Check your connection and try again.</string>
+    <string name="auth_error_no_account_to_delete">No account to delete</string>
+    <string name="auth_error_not_configured">Supabase is not configured</string>
+    <string name="auth_error_session_check">Unable to check your session. Please try again.</string>
+</resources>

@@ -2,7 +2,9 @@ package com.elmtrackr.app.ui.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.AuthResult
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -25,10 +27,10 @@ class AuthViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
-    private val _error = MutableStateFlow<String?>(null)
+    private val _error = MutableStateFlow<UiText?>(null)
     private val _passwordResetSent = MutableStateFlow(false)
     private val _signUpEmail = MutableStateFlow<String?>(null)
-    private val _recoveryError = MutableStateFlow<String?>(null)
+    private val _recoveryError = MutableStateFlow<UiText?>(null)
 
     init {
         authRepository.deepLinkErrors
@@ -61,7 +63,7 @@ class AuthViewModel @Inject constructor(
             else -> AuthUiState.SignedOut(isLoading = isLoading, errorMessage = error)
         }
     }.catch {
-        emit(AuthUiState.SignedOut(errorMessage = "Unable to check your session. Please try again."))
+        emit(AuthUiState.SignedOut(errorMessage = UiText.Res(R.string.auth_error_session_check)))
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -78,7 +80,7 @@ class AuthViewModel @Inject constructor(
                 is AuthResult.Success -> withTimeoutOrNull(SIGN_IN_PROPAGATION_TIMEOUT_MS) {
                     authRepository.observeCurrentProfile().filterNotNull().first()
                 }
-                is AuthResult.NotConfigured -> _error.value = "Supabase is not configured"
+                is AuthResult.NotConfigured -> _error.value = UiText.Res(R.string.auth_error_not_configured)
                 is AuthResult.Error -> _error.value = result.message
             }
             _isLoading.value = false
@@ -91,7 +93,7 @@ class AuthViewModel @Inject constructor(
             _error.value = null
             when (val result = authRepository.signUp(email, password)) {
                 is AuthResult.Success -> _signUpEmail.value = email.trim() // show "check your email"
-                is AuthResult.NotConfigured -> _error.value = "Supabase is not configured"
+                is AuthResult.NotConfigured -> _error.value = UiText.Res(R.string.auth_error_not_configured)
                 is AuthResult.Error -> _error.value = result.message
             }
             _isLoading.value = false
@@ -113,7 +115,7 @@ class AuthViewModel @Inject constructor(
             _error.value = null
             when (val result = authRepository.resetPassword(email)) {
                 is AuthResult.Success -> _passwordResetSent.value = true
-                is AuthResult.NotConfigured -> _error.value = "Supabase is not configured"
+                is AuthResult.NotConfigured -> _error.value = UiText.Res(R.string.auth_error_not_configured)
                 is AuthResult.Error -> _error.value = result.message
             }
             _isLoading.value = false
@@ -134,7 +136,7 @@ class AuthViewModel @Inject constructor(
             _recoveryError.value = null
             when (val result = authRepository.updatePassword(newPassword)) {
                 is AuthResult.Success -> Unit
-                is AuthResult.NotConfigured -> _recoveryError.value = "Supabase is not configured"
+                is AuthResult.NotConfigured -> _recoveryError.value = UiText.Res(R.string.auth_error_not_configured)
                 is AuthResult.Error -> _recoveryError.value = result.message
             }
             _isLoading.value = false

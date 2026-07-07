@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.elmtrackr.app.ui.common.appLocale
+import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -92,9 +94,11 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val refundDateFmt = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
 private val refundTimeFmt = DateTimeFormatter.ofPattern("HH:mm")
-private val refundDateTimeFmt = DateTimeFormatter.ofPattern("d MMM yyyy 'at' HH:mm", Locale.getDefault())
+
+@Composable
+private fun refundDateFmt(): DateTimeFormatter =
+    DateTimeFormatter.ofPattern("d MMM yyyy", appLocale())
 
 @Composable
 fun RefundClaimsSection(
@@ -187,8 +191,8 @@ fun RefundClaimsSection(
     }
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        state.errorMessage?.let { MessageCard(it, isError = true, onDismiss = viewModel::clearMessages) }
-        state.noticeMessage?.let { MessageCard(it, isError = false, onDismiss = viewModel::clearMessages) }
+        state.errorMessage?.let { MessageCard(it.asString(), isError = true, onDismiss = viewModel::clearMessages) }
+        state.noticeMessage?.let { MessageCard(it.asString(), isError = false, onDismiss = viewModel::clearMessages) }
 
         val directions = listOf(
             RefundDirection.TO_WORK to state.toEligibility,
@@ -321,7 +325,13 @@ fun RefundClaimCard(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    claim.rideAt.atZone(ZoneId.systemDefault()).format(refundDateTimeFmt),
+                    claim.rideAt.atZone(ZoneId.systemDefault()).let { zdt ->
+                        stringResource(
+                            R.string.refunds_date_at_time,
+                            zdt.format(refundDateFmt()),
+                            zdt.format(refundTimeFmt),
+                        )
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -647,7 +657,7 @@ private fun RefundDateTimeRow(
     val zdt = Instant.ofEpochMilli(millis).atZone(zone)
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
-            value = zdt.format(refundDateFmt),
+            value = zdt.format(refundDateFmt()),
             onValueChange = {},
             readOnly = true,
             label = { Text(stringResource(R.string.refunds_ride_date)) },

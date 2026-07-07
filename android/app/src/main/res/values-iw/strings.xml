@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ElmTrackr</string>
+    <string name="app_lock_action_blocked">כדי להשתמש בפעולה הזו צריך קודם לבטל את הנעילה באפליקציה</string>
+    <string name="shortcut_new_shift_short">משמרת חדשה</string>
+    <string name="shortcut_new_shift_long">הוספת משמרת ידנית</string>
+    <string name="shortcut_clock_in_short">כניסה למשמרת</string>
+    <string name="shortcut_clock_in_long">כניסה למשמרת ב־ElmTrackr</string>
+    <string name="shortcut_clock_out_short">יציאה ממשמרת</string>
+    <string name="shortcut_clock_out_long">יציאה ממשמרת ב־ElmTrackr</string>
+    <string name="widget_description">סרגל 4×1 עם כפתור אחד: סטטוס, טיימר חי וכפתור כניסה/יציאה.</string>
+    <string name="widget_description_minimal">סרגל התקדמות 4×1: התקדמות ליעד היומי וכפתור עגול.</string>
+    <string name="widget_description_aurora">כרטיס גבוה 4×2: שעון גדול וסרגל פעולה ברוחב מלא.</string>
+    <string name="widget_description_ring">טבעת 1×1 עם התקדמות המשמרת וכפתור הפעלה.</string>
+    <string name="widget_description_big_action">כפתור פעולה גדול 1×1 עם שטח מגע מקסימלי.</string>
+    <string name="widget_label_classic">ElmTrackr — כפתור יחיד</string>
+    <string name="widget_label_minimal">ElmTrackr — התקדמות</string>
+    <string name="widget_label_aurora">ElmTrackr — גבוה</string>
+    <string name="widget_label_ring">ElmTrackr — טבעת</string>
+    <string name="widget_label_big_action">ElmTrackr — כפתור גדול</string>
+
+    <!-- Active shift notification -->
+    <string name="notif_active_shift_title">במשמרת</string>
+    <string name="notif_active_shift_text">מאז %1$s</string>
+    <string name="notif_clock_out_action">יציאה ממשמרת</string>
+
+    <!-- Overtime reminder notifications -->
+    <string name="notif_overtime_pre_warning_title">שעות נוספות בעוד 30 דקות</string>
+    <string name="notif_overtime_pre_warning_text">במשמרת מאז %1$s. כדאי לצאת לפני שמתחילות שעות נוספות.</string>
+    <string name="notif_overtime_at_threshold_title">התחילו שעות נוספות</string>
+    <string name="notif_overtime_at_threshold_text">במשמרת מאז %1$s. אולי הגיע הזמן לצאת.</string>
+    <string name="notif_overtime_hourly_title">עדיין במשמרת, בשעות נוספות</string>
+    <string name="notif_overtime_hourly_text">כבר %1$d שעות בשעות נוספות. לא לשכוח לצאת ממשמרת.</string>
+
+    <!-- Legacy reminder strings (kept for screenshot/regression compatibility) -->
+    <string name="notif_reminder_title">המשמרת עדיין פעילה</string>
+    <string name="notif_reminder_text">מאז %1$s. הקשה לפרטים.</string>
+</resources>

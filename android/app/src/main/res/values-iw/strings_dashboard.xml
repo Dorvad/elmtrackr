@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notification permission rationale dialog -->
+    <string name="dashboard_notif_rationale_title">נשארים מעודכנים במשמרת</string>
+    <string name="dashboard_notif_rationale_text">‏ElmTrackr משתמש בהתראות כדי להשאיר את המשמרת הפעילה גלויה ולהזכיר לפני שעות נוספות.</string>
+    <string name="dashboard_notif_rationale_continue">המשך</string>
+    <string name="dashboard_notif_rationale_not_now">לא עכשיו</string>
+
+    <!-- Header -->
+    <string name="dashboard_greeting_morning">בוקר טוב</string>
+    <string name="dashboard_greeting_afternoon">צהריים טובים</string>
+    <string name="dashboard_greeting_evening">ערב טוב</string>
+    <string name="dashboard_greeting_with_name">%1$s · %2$s</string>
+    <string name="dashboard_wordmark">elmtrackr</string>
+
+    <!-- Refund reminder banner -->
+    <string name="dashboard_refund_pending_one">%1$d החזר נסיעה ממתין</string>
+    <string name="dashboard_refund_pending_other">%1$d החזרי נסיעות ממתינים</string>
+    <string name="dashboard_refund_banner_body">סוף החודש מתקרב — כדאי להגיש את בקשות ההחזר.</string>
+    <string name="dashboard_refund_banner_review">לבדיקת ההחזרים ←</string>
+    <string name="dashboard_refund_banner_dismiss">סגירת תזכורת ההחזרים</string>
+
+    <!-- First-run welcome card -->
+    <string name="dashboard_welcome_title">הכול מוכן</string>
+    <string name="dashboard_welcome_body">כניסה אחת למשמרת — ורואים מיד שעות, הערכת שכר ושעות נוספות.</string>
+    <string name="dashboard_welcome_button">כניסה למשמרת</string>
+
+    <!-- Clock cards -->
+    <string name="dashboard_clock_in">כניסה למשמרת</string>
+    <string name="dashboard_clock_out">יציאה ממשמרת</string>
+    <string name="dashboard_clock_in_accessibility">כניסה למשמרת. התחלת מעקב.</string>
+    <string name="dashboard_clock_out_accessibility">יציאה ממשמרת. סיום המשמרת הנוכחית.</string>
+    <string name="dashboard_overtime_label">שעות נוספות</string>
+    <string name="dashboard_since_time">מאז %1$s</string>
+    <string name="dashboard_edit_start_time">עריכת שעת ההתחלה</string>
+    <string name="dashboard_ready_to_clock_in">אפשר להיכנס למשמרת</string>
+    <string name="dashboard_clock_in_short">כניסה</string>
+    <string name="dashboard_clock_out_short">יציאה</string>
+    <string name="dashboard_ready">מוכן</string>
+    <string name="dashboard_tap_to_start">הקשה אחת ומתחילים לעקוב אחרי המשמרת</string>
+
+    <!-- Expressive clock card status labels -->
+    <string name="dashboard_clock_focus_session">מצב ריכוז</string>
+    <string name="dashboard_clock_ready_to_focus">מוכנים לריכוז</string>
+    <string name="dashboard_clock_on_the_clock">במשמרת</string>
+    <string name="dashboard_clock_make_it_count">שיהיה שווה</string>
+    <string name="dashboard_clock_night_shift">משמרת לילה</string>
+    <string name="dashboard_clock_standby">בהמתנה</string>
+    <string name="dashboard_clock_shift_active">משמרת פעילה</string>
+    <string name="dashboard_clock_system_ready">המערכת מוכנה</string>
+    <string name="dashboard_clock_ready_caps">מוכן</string>
+    <string name="dashboard_clock_elapsed">זמן שעבר</string>
+    <string name="dashboard_clock_workday">יום עבודה</string>
+    <string name="dashboard_clock_time_flowing">הזמן זורם</string>
+    <string name="dashboard_clock_in_orbit">במסלול</string>
+
+    <!-- Month summary -->
+    <string name="dashboard_month_summary_title">סיכום %1$s</string>
+    <string name="dashboard_shift_count_one">%1$d משמרת</string>
+    <string name="dashboard_shift_count_other">%1$d משמרות</string>
+    <string name="dashboard_hours_distribution">חלוקת שעות</string>
+    <string name="dashboard_hours_total_suffix">" שע׳ סה״כ"</string>
+    <string name="dashboard_hours_value">%1$s שע׳</string>
+    <string name="dashboard_stat_total">סה״כ</string>
+    <string name="dashboard_stat_regular">רגילות</string>
+    <string name="dashboard_stat_overtime">נוספות</string>
+    <string name="dashboard_stat_weekend">סופ״ש</string>
+    <string name="dashboard_gross_pay_title">החודש · שכר ברוטו</string>
+    <string name="dashboard_before_tax_suffix">" לפני מס"</string>
+    <string name="dashboard_pay_holiday">חג</string>
+
+    <!-- Recent shifts -->
+    <string name="dashboard_recent_shifts">משמרות אחרונות</string>
+    <string name="dashboard_no_completed_shifts">עוד אין משמרות שהושלמו</string>
+    <string name="dashboard_special_day_suffix">" מיוחד"</string>
+    <string name="dashboard_shift_time_range">%1$s - %2$s</string>
+
+    <!-- Edit start time dialog -->
+    <string name="dashboard_save">שמירה</string>
+    <string name="dashboard_cancel">ביטול</string>
+</resources>

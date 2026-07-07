@@ -29,9 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraMotion
 import com.elmtrackr.app.ui.design.ElmGradientButton
@@ -108,25 +110,34 @@ fun EmptyState(
     }
 }
 
+internal enum class ErrorMessageKind { NETWORK, GENERIC, PASSTHROUGH }
+
 /**
- * Rewrites raw exception text into calm, human wording. Messages that already
- * read like a sentence pass through; class names, stack-trace-ish text, and
- * well-known network failures get a plain-language replacement.
+ * Classifies raw exception text: messages that already read like a sentence
+ * pass through; class names, stack-trace-ish text, and well-known network
+ * failures get a plain-language, localized replacement.
  */
-internal fun humanizeErrorMessage(raw: String?): String {
+internal fun classifyErrorMessage(raw: String?): ErrorMessageKind {
     val message = raw?.trim().orEmpty()
     val lower = message.lowercase()
     return when {
         lower.contains("unknownhost") || lower.contains("unable to resolve host") ||
             lower.contains("connect") && lower.contains("timed out") ||
             lower.contains("timeout") || lower.contains("failed to connect") ->
-            "We couldn't reach the server. Check your connection and try again."
+            ErrorMessageKind.NETWORK
         message.isBlank() || lower == "unknown error" ||
             message.contains("Exception") || message.contains("java.") ||
             message.contains("kotlin") || message.contains("$") ->
-            "We couldn't load your data. Please try again."
-        else -> message
+            ErrorMessageKind.GENERIC
+        else -> ErrorMessageKind.PASSTHROUGH
     }
+}
+
+@Composable
+internal fun humanizeErrorMessage(raw: String?): String = when (classifyErrorMessage(raw)) {
+    ErrorMessageKind.NETWORK -> stringResource(R.string.error_network)
+    ErrorMessageKind.GENERIC -> stringResource(R.string.error_generic)
+    ErrorMessageKind.PASSTHROUGH -> raw?.trim().orEmpty()
 }
 
 @Composable
@@ -148,7 +159,7 @@ fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifi
         )
         Spacer(Modifier.height(Spacing.sm))
         Text(
-            text = "Something went wrong",
+            text = stringResource(R.string.common_something_went_wrong),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -163,7 +174,7 @@ fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifi
         )
         Spacer(Modifier.height(Spacing.lg))
         ElmGradientButton(onClick = onRetry, compact = true) {
-            Text("Try again", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.common_try_again), fontWeight = FontWeight.SemiBold)
         }
     }
 }

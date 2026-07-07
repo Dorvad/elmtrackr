@@ -1,30 +1,28 @@
 package com.elmtrackr.app.domain.compensation
 
+import androidx.annotation.StringRes
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.StackingPolicy
 
 /** UI labels for [StackingPolicy], matching the wording used for premium profiles. */
 object StackingPolicyLabels {
-    fun title(policy: StackingPolicy): String = when (policy) {
-        StackingPolicy.HIGHEST_ONLY -> "Highest only"
-        StackingPolicy.ADDITIVE -> "Additive"
-        StackingPolicy.MULTIPLICATIVE -> "Multiplicative"
-        StackingPolicy.BASE_PLUS_PREMIUM -> "Base-plus-premium"
-        StackingPolicy.PREMIUM_IN_REGULAR_RATE -> "Premium-in-regular-rate"
-        StackingPolicy.EXCLUDED_FROM_REGULAR_RATE -> "Excluded-from-regular-rate"
+    @StringRes
+    fun titleRes(policy: StackingPolicy): Int = when (policy) {
+        StackingPolicy.HIGHEST_ONLY -> R.string.stacking_highest_title
+        StackingPolicy.ADDITIVE -> R.string.stacking_additive_title
+        StackingPolicy.MULTIPLICATIVE -> R.string.stacking_multiplicative_title
+        StackingPolicy.BASE_PLUS_PREMIUM -> R.string.stacking_base_plus_title
+        StackingPolicy.PREMIUM_IN_REGULAR_RATE -> R.string.stacking_premium_in_rr_title
+        StackingPolicy.EXCLUDED_FROM_REGULAR_RATE -> R.string.stacking_excluded_rr_title
     }
 
-    fun helper(policy: StackingPolicy): String = when (policy) {
-        StackingPolicy.HIGHEST_ONLY ->
-            "When multiple premiums apply (e.g. overtime and night), only the highest rate is used — premiums do not stack on top of each other."
-        StackingPolicy.ADDITIVE ->
-            "When multiple premiums apply, they are added on top of the current rate (e.g. 150% overtime plus 25% night = 175%)."
-        StackingPolicy.MULTIPLICATIVE ->
-            "When multiple premiums apply, one multiplier is applied on top of the other (e.g. 150% overtime × 125% night = 187.5%)."
-        StackingPolicy.BASE_PLUS_PREMIUM ->
-            "Overtime applies to the base rate, then the premium is added as a separate line on top."
-        StackingPolicy.PREMIUM_IN_REGULAR_RATE ->
-            "Uses the highest applicable rate here; the premium is included in the base used for overtime on shift premiums."
-        StackingPolicy.EXCLUDED_FROM_REGULAR_RATE ->
-            "Uses the highest applicable rate here; the premium stays out of the overtime base on shift premiums."
+    @StringRes
+    fun helperRes(policy: StackingPolicy): Int = when (policy) {
+        StackingPolicy.HIGHEST_ONLY -> R.string.stacking_highest_helper
+        StackingPolicy.ADDITIVE -> R.string.stacking_additive_helper
+        StackingPolicy.MULTIPLICATIVE -> R.string.stacking_multiplicative_helper
+        StackingPolicy.BASE_PLUS_PREMIUM -> R.string.stacking_base_plus_helper
+        StackingPolicy.PREMIUM_IN_REGULAR_RATE -> R.string.stacking_premium_in_rr_helper
+        StackingPolicy.EXCLUDED_FROM_REGULAR_RATE -> R.string.stacking_excluded_rr_helper
     }
 }

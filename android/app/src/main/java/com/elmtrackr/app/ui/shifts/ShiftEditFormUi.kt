@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
@@ -85,9 +86,15 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val dateSubtitleFmt = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.getDefault())
-private val dateBoxFmt = DateTimeFormatter.ofPattern("d MMM yyyy")
 private val timeBoxFmt = DateTimeFormatter.ofPattern("HH:mm")
+
+@Composable
+private fun dateSubtitleFmt(): DateTimeFormatter =
+    DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", appLocale())
+
+@Composable
+private fun dateBoxFmt(): DateTimeFormatter =
+    DateTimeFormatter.ofPattern("d MMM yyyy", appLocale())
 
 private val payGradient = Brush.linearGradient(
     colorStops = arrayOf(
@@ -213,7 +220,7 @@ internal fun ShiftEditFormContent(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        startZdt.format(dateSubtitleFmt),
+                        startZdt.format(dateSubtitleFmt()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
@@ -253,7 +260,7 @@ internal fun ShiftEditFormContent(
                         ) {
                             DateTimeFieldGroup(
                                 label = stringResource(R.string.shifts_start_label),
-                                date = Instant.ofEpochMilli(startMillis).atZone(zone).format(dateBoxFmt),
+                                date = Instant.ofEpochMilli(startMillis).atZone(zone).format(dateBoxFmt()),
                                 time = Instant.ofEpochMilli(startMillis).atZone(zone).format(timeBoxFmt),
                                 onPickDate = onPickStartDate,
                                 onPickTime = onPickStartTime,
@@ -270,7 +277,7 @@ internal fun ShiftEditFormContent(
                             if (hasEndTime) {
                                 DateTimeFieldGroup(
                                     label = stringResource(R.string.shifts_end_label),
-                                    date = Instant.ofEpochMilli(endMillis).atZone(zone).format(dateBoxFmt),
+                                    date = Instant.ofEpochMilli(endMillis).atZone(zone).format(dateBoxFmt()),
                                     time = Instant.ofEpochMilli(endMillis).atZone(zone).format(timeBoxFmt),
                                     onPickDate = onPickEndDate,
                                     onPickTime = onPickEndTime,

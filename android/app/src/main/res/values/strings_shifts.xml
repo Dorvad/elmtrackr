@@ -9,6 +9,7 @@
 
     <!-- ShiftsListUi -->
     <string name="shifts_title">Shifts</string>
+    <string name="shifts_this_week">THIS WEEK</string>
     <string name="shifts_add">Add</string>
     <string name="shifts_previous_month">Previous month</string>
     <string name="shifts_next_month">Next month</string>

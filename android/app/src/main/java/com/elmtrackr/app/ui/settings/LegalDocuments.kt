@@ -1,6 +1,17 @@
 package com.elmtrackr.app.ui.settings
 
-data class LegalSection(val title: String, val body: String)
+import androidx.annotation.StringRes
+import com.elmtrackr.app.R
+
+/**
+ * A legal document section as string resources, so the text localizes at
+ * render time. [bodyArg] is substituted into the body when present.
+ */
+data class LegalSection(
+    @StringRes val titleRes: Int,
+    @StringRes val bodyRes: Int,
+    val bodyArg: String? = null,
+)
 
 object LegalDocuments {
     const val CONTACT_EMAIL = "support@elmtrackr.app"
@@ -8,29 +19,11 @@ object LegalDocuments {
     const val PRIVACY_POLICY_URL = "https://www.dorsfolio.online/elmtrackr-privacy.html"
 
     val termsOfService: List<LegalSection> = listOf(
-        LegalSection(
-            "Acceptance",
-            "By using ElmTrackr you agree to these Terms. If you do not agree, do not use the app.",
-        ),
-        LegalSection(
-            "Service description",
-            "ElmTrackr is a personal shift tracker. Pay and overtime figures are estimates only — not tax, legal, or payroll advice.",
-        ),
-        LegalSection(
-            "Your account",
-            "Keep your credentials secure. You may delete your account at any time from Settings.",
-        ),
-        LegalSection(
-            "Acceptable use",
-            "Do not misuse the service or upload unlawful content. Only store receipt photos you have the right to keep.",
-        ),
-        LegalSection(
-            "Limitation of liability",
-            "The app is provided \"as is\". We are not liable for decisions based on estimates or reports.",
-        ),
-        LegalSection(
-            "Contact",
-            "Questions: $CONTACT_EMAIL",
-        ),
+        LegalSection(R.string.legal_acceptance_title, R.string.legal_acceptance_body),
+        LegalSection(R.string.legal_service_title, R.string.legal_service_body),
+        LegalSection(R.string.legal_account_title, R.string.legal_account_body),
+        LegalSection(R.string.legal_use_title, R.string.legal_use_body),
+        LegalSection(R.string.legal_liability_title, R.string.legal_liability_body),
+        LegalSection(R.string.legal_contact_title, R.string.legal_contact_body, CONTACT_EMAIL),
     )
 }

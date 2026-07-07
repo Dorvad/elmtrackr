@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.BuildConfig
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.domain.model.CurrencyCode
@@ -339,7 +340,7 @@ internal fun ProfileDetailScreen(
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        state.passwordResetFeedback ?: stringResource(R.string.settings_password_reset_hint),
+                        state.passwordResetFeedback?.asString() ?: stringResource(R.string.settings_password_reset_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (state.passwordResetFeedback != null) {
                             MaterialTheme.colorScheme.primary
@@ -451,7 +452,7 @@ internal fun PayDetailScreen(
                     label = stringResource(R.string.settings_hourly_rate),
                     value = hourlyRateText,
                     onValueChange = onHourlyRateChange,
-                    error = state.validationErrors["hourlyRate"],
+                    error = state.validationErrors["hourlyRate"]?.asString(),
                 )
                 Spacer(Modifier.height(12.dp))
                 CurrencyDropdown(selected = currency, onSelect = onCurrencyChange)
@@ -471,14 +472,14 @@ internal fun PayDetailScreen(
                     label = stringResource(R.string.settings_daily_overtime_hours),
                     value = dailyOtText,
                     onValueChange = onDailyOtChange,
-                    error = state.validationErrors["dailyOt"],
+                    error = state.validationErrors["dailyOt"]?.asString(),
                 )
                 Spacer(Modifier.height(8.dp))
                 HoursField(
                     label = stringResource(R.string.settings_weekly_overtime_hours),
                     value = weeklyOtText,
                     onValueChange = onWeeklyOtChange,
-                    error = state.validationErrors["weeklyOt"],
+                    error = state.validationErrors["weeklyOt"]?.asString(),
                 )
             }
         }
@@ -525,6 +526,9 @@ internal fun AppearanceDetailScreen(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         item { SettingsDetailHeader(title = stringResource(R.string.settings_appearance_clock), onBack = onBack) }
+        item {
+            LanguageSegmentedControl()
+        }
         item {
             ThemeSegmentedControl(selected = state.selectedTheme, onSelect = onTheme)
         }
@@ -580,7 +584,7 @@ internal fun AppearanceDetailScreen(
                                 WatchFacePreview(style, selected = true)
                                 Spacer(Modifier.height(8.dp))
                                 Text(
-                                    style.name.lowercase().replaceFirstChar(Char::uppercase),
+                                    clockStyleDisplayName(style),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                 )
@@ -719,7 +723,7 @@ internal fun HelpDetailScreen(
                     SettingsInfoRow(stringResource(R.string.settings_status), statusLine)
                     state.lastSyncStatus?.let { last ->
                         Spacer(Modifier.height(8.dp))
-                        SettingsInfoRow(stringResource(R.string.settings_last_sync), SyncStatusText.format(last) ?: last)
+                        SettingsInfoRow(stringResource(R.string.settings_last_sync), SyncStatusText.format(last)?.asString() ?: last)
                     }
                     Spacer(Modifier.height(8.dp))
                     SettingsNavRow(

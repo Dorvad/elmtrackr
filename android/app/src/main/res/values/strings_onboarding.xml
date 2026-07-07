@@ -8,6 +8,20 @@
     <string name="onboarding_tagline">Clock in once. See hours, pay estimate, and overtime instantly.</string>
     <string name="onboarding_hours_suffix">h</string>
 
+    <!-- Language step -->
+    <string name="onboarding_step_language">Language</string>
+    <string name="onboarding_language_title">Choose your language</string>
+    <string name="onboarding_language_subtitle">ElmTrackr speaks English and Hebrew. You can switch anytime in Settings.</string>
+    <string name="onboarding_language_change_later">You can change this later in Settings → Appearance.</string>
+
+    <!-- Save failure -->
+    <string name="onboarding_save_failed">Save failed. Please try again.</string>
+    <string name="onboarding_sign_in_first">Sign in before completing onboarding</string>
+
+    <!-- App lock biometric prompt -->
+    <string name="onboarding_biometric_prompt_title">Enable app lock</string>
+    <string name="onboarding_biometric_prompt_subtitle">Confirm to require biometric unlock when opening ElmTrackr</string>
+
     <!-- Step titles -->
     <string name="onboarding_step_welcome">Welcome</string>
     <string name="onboarding_step_region">Your region</string>
@@ -69,7 +83,7 @@
     <string name="onboarding_weekly_ot_label">Weekly OT</string>
     <string name="onboarding_ot_error">Daily must be 1–24h; weekly must be at least daily and no more than 168h.</string>
     <string name="onboarding_timezone_label">Timezone</string>
-    <string name="onboarding_timezone_helper">Set from your region in step 2</string>
+    <string name="onboarding_timezone_helper">Set from the region you chose</string>
     <string name="onboarding_hide_timezone_picker">Hide timezone picker</string>
     <string name="onboarding_change_timezone">Change timezone</string>
 

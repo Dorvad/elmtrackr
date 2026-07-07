@@ -49,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.tasks.TaskDefaultRulesBuilder
@@ -152,11 +153,11 @@ internal fun TaskManagementContent(
             )
             state.message?.let {
                 Spacer(Modifier.height(8.dp))
-                Text(it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 16.dp))
+                Text(it.asString(), color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 16.dp))
             }
             state.errorMessage?.let {
                 Spacer(Modifier.height(4.dp))
-                Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
+                Text(it.asString(), color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
             }
         }
 

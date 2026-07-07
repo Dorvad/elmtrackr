@@ -15,6 +15,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.elmtrackr.app.R
 import java.time.ZoneId
 import java.time.format.TextStyle
 import java.util.Locale
@@ -52,11 +54,11 @@ fun IanaTimezonePicker(
         query = it
         if (!expanded) expanded = true
       },
-      label = { Text("Timezone") },
+      label = { Text(stringResource(R.string.settings_timezone)) },
       readOnly = !expanded,
       supportingText = {
         Text(
-          if (expanded) "Search IANA zones (e.g. Europe/London)" else "IANA: $normalized",
+          if (expanded) stringResource(R.string.settings_timezone_search_hint) else "IANA: $normalized",
         )
       },
       trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -73,7 +75,7 @@ fun IanaTimezonePicker(
     ) {
       if (options.isEmpty()) {
         DropdownMenuItem(
-          text = { Text("No matching timezones", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+          text = { Text(stringResource(R.string.settings_no_matching_timezones), color = MaterialTheme.colorScheme.onSurfaceVariant) },
           onClick = {},
           enabled = false,
         )

@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.refunds
 
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.model.Receipt
 import com.elmtrackr.app.domain.model.RefundClaim
@@ -15,8 +16,8 @@ data class RefundClaimUiState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val deletingClaimId: String? = null,
-    val errorMessage: String? = null,
-    val noticeMessage: String? = null,
+    val errorMessage: UiText? = null,
+    val noticeMessage: UiText? = null,
     val form: RefundClaimFormUiState? = null,
     val camera: ReceiptCameraUiState? = null,
     val receiptReview: ReceiptReviewUiState? = null,

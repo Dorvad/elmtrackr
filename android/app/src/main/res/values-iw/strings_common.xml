@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared UI states -->
+    <string name="common_something_went_wrong">משהו השתבש</string>
+    <string name="common_try_again">ניסיון נוסף</string>
+    <string name="error_network">לא הצלחנו להגיע לשרת. כדאי לבדוק את החיבור ולנסות שוב.</string>
+    <string name="error_generic">לא הצלחנו לטעון את הנתונים. כדאי לנסות שוב.</string>
+
+    <!-- First clock-in celebration -->
+    <string name="celebration_tracking_title">המעקב התחיל!</string>
+    <string name="celebration_tracking_body">השעות, הערכת השכר והשעות הנוספות מתעדכנות עכשיו במסך הבית. אפשר להמשיך במשמרת — או לצאת כשמסיימים.</string>
+    <string name="celebration_got_it">הבנתי</string>
+</resources>

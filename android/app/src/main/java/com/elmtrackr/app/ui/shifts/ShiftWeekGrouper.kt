@@ -14,7 +14,7 @@ import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
 data class ShiftWeekSection(
-    val label: String,
+    val label: String?,
     val weekStart: LocalDate,
     val weekEnd: LocalDate,
     val shifts: List<Shift>,
@@ -25,8 +25,6 @@ data class ShiftWeekSection(
 
 object ShiftWeekGrouper {
 
-    private val weekLabelFmt = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
-
     fun groupByWeek(
         shifts: List<Shift>,
         activeShift: Shift?,
@@ -34,7 +32,9 @@ object ShiftWeekGrouper {
         settings: UserSettings?,
         profiles: List<CompensationProfile> = emptyList(),
         zone: ZoneId = ZoneId.systemDefault(),
+        locale: Locale = Locale.getDefault(),
     ): List<ShiftWeekSection> {
+        val weekLabelFmt = DateTimeFormatter.ofPattern("MMM d", locale)
         val displayShifts = buildList {
             addAll(shifts)
             if (activeShift != null && !any { it.id == activeShift.id }) {
@@ -69,13 +69,15 @@ object ShiftWeekGrouper {
                     }
                 }
                 val isCurrentWeek = !today.isBefore(weekStart) && !today.isAfter(weekEnd)
+                // null label marks the current week; the UI substitutes a
+                // localized "this week" string at render time.
                 val label = when {
-                    isCurrentWeek && month == YearMonth.from(today) -> "THIS WEEK"
+                    isCurrentWeek && month == YearMonth.from(today) -> null
                     weekStart.month == weekEnd.month ->
-                        "${weekStart.format(weekLabelFmt).uppercase(Locale.getDefault())} - ${weekEnd.dayOfMonth}"
+                        "${weekStart.format(weekLabelFmt).uppercase(locale)} - ${weekEnd.dayOfMonth}"
                     else ->
-                        "${weekStart.format(weekLabelFmt).uppercase(Locale.getDefault())} - " +
-                            weekEnd.format(weekLabelFmt).uppercase(Locale.getDefault())
+                        "${weekStart.format(weekLabelFmt).uppercase(locale)} - " +
+                            weekEnd.format(weekLabelFmt).uppercase(locale)
                 }
                 ShiftWeekSection(
                     label = label,

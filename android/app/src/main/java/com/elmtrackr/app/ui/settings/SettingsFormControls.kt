@@ -56,20 +56,66 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.language.AppLanguage
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 
-internal val THEME_OPTIONS = listOf("system" to "System", "light" to "Light", "dark" to "Dark")
-internal val DAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-
 private val SUPPORTED_CLOCK_STYLES = ClockStyle.entries
+
+@Composable
+internal fun themeOptions(): List<Pair<String, String>> = listOf(
+    "system" to stringResource(R.string.settings_theme_system),
+    "light" to stringResource(R.string.settings_theme_light),
+    "dark" to stringResource(R.string.settings_theme_dark),
+)
+
+@Composable
+internal fun dayLabels(): List<String> = stringArrayResource(R.array.weekday_short_labels).toList()
+
+@Composable
+internal fun clockStyleDisplayName(style: ClockStyle): String = stringResource(
+    when (style) {
+        ClockStyle.CLASSIC -> R.string.clock_style_classic
+        ClockStyle.MINIMAL -> R.string.clock_style_minimal
+        ClockStyle.FOCUS -> R.string.clock_style_focus
+        ClockStyle.BOLD -> R.string.clock_style_bold
+        ClockStyle.NIGHT -> R.string.clock_style_night
+        ClockStyle.RETRO -> R.string.clock_style_retro
+        ClockStyle.AURORA -> R.string.clock_style_aurora
+        ClockStyle.PULSE -> R.string.clock_style_pulse
+        ClockStyle.DIAL -> R.string.clock_style_dial
+        ClockStyle.STRAND -> R.string.clock_style_strand
+        ClockStyle.PRISM -> R.string.clock_style_prism
+        ClockStyle.SAND -> R.string.clock_style_sand
+        ClockStyle.BLOCKS -> R.string.clock_style_blocks
+        ClockStyle.ORBIT -> R.string.clock_style_orbit
+    },
+)
+
+@Composable
+internal fun currencyDisplayName(currency: CurrencyCode): String = stringResource(
+    when (currency) {
+        CurrencyCode.ILS -> R.string.currency_ils
+        CurrencyCode.USD -> R.string.currency_usd
+        CurrencyCode.EUR -> R.string.currency_eur
+        CurrencyCode.GBP -> R.string.currency_gbp
+        CurrencyCode.CAD -> R.string.currency_cad
+        CurrencyCode.AUD -> R.string.currency_aud
+        CurrencyCode.JPY -> R.string.currency_jpy
+        CurrencyCode.CHF -> R.string.currency_chf
+    },
+)
 
 internal fun minutesToHours(minutes: Int): String {
     val h = minutes / 60.0
@@ -78,15 +124,21 @@ internal fun minutesToHours(minutes: Int): String {
 
 internal fun supportedClockStyleOf(style: ClockStyle): ClockStyle = style
 
+@Composable
 internal fun appearanceSummary(theme: String, clockStyle: ClockStyle, clockStylesEnabled: Boolean): String {
-    val themeLabel = THEME_OPTIONS.firstOrNull { it.first == theme }?.second ?: theme
+    val themeLabel = themeOptions().firstOrNull { it.first == theme }?.second ?: theme
     return if (clockStylesEnabled) {
-        "$themeLabel · ${clockStyle.name.lowercase().replaceFirstChar(Char::uppercase)} face"
+        val face = stringResource(
+            R.string.settings_summary_face,
+            clockStyleDisplayName(clockStyle),
+        )
+        "$themeLabel · $face"
     } else {
         themeLabel
     }
 }
 
+@Composable
 internal fun payrollSummary(
     hourlyRateText: String,
     currency: CurrencyCode,
@@ -95,11 +147,16 @@ internal fun payrollSummary(
     weekendDays: List<Int>,
     timezone: String,
 ): String {
-    val ratePart = hourlyRateText.toDoubleOrNull()?.let { "${currency.symbol}$it/hr" } ?: "No hourly rate"
-    val weekendPart = weekendDays.sorted().joinToString(", ") { DAY_LABELS[it] }
-    return "$ratePart · OT $dailyOtText/$weeklyOtText h · $weekendPart · $timezone"
+    val labels = dayLabels()
+    val ratePart = hourlyRateText.toDoubleOrNull()
+        ?.let { stringResource(R.string.settings_summary_rate_per_hour, "${currency.symbol}$it") }
+        ?: stringResource(R.string.settings_summary_no_rate)
+    val otPart = stringResource(R.string.settings_summary_ot, dailyOtText, weeklyOtText)
+    val weekendPart = weekendDays.sorted().joinToString(", ") { labels[it] }
+    return "$ratePart · $otPart · $weekendPart · $timezone"
 }
 
+@Composable
 internal fun featuresSummary(
     travelRefunds: Boolean,
     insights: Boolean,
@@ -107,15 +164,15 @@ internal fun featuresSummary(
     overtimeReminders: Boolean,
 ): String {
     val enabled = listOfNotNull(
-        "Travel Refunds".takeIf { travelRefunds },
-        "Insights".takeIf { insights },
-        "Clock Styles".takeIf { clockStyles },
-        "Overtime Reminders".takeIf { overtimeReminders },
+        stringResource(R.string.settings_feature_travel_short).takeIf { travelRefunds },
+        stringResource(R.string.settings_feature_insights_short).takeIf { insights },
+        stringResource(R.string.settings_feature_clock_styles_short).takeIf { clockStyles },
+        stringResource(R.string.settings_feature_ot_reminders_short).takeIf { overtimeReminders },
     )
     return when (enabled.size) {
-        0 -> "No optional features enabled"
+        0 -> stringResource(R.string.settings_summary_no_features)
         in 1..2 -> enabled.joinToString(" · ")
-        else -> "${enabled.size} features enabled"
+        else -> stringResource(R.string.settings_summary_features_count, enabled.size)
     }
 }
 
@@ -123,14 +180,14 @@ internal fun featuresSummary(
 internal fun ThemeSegmentedControl(selected: String, onSelect: (String) -> Unit) {
     Column {
         Text(
-            "Theme",
+            stringResource(R.string.settings_theme),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            THEME_OPTIONS.forEach { (value, label) ->
+            themeOptions().forEach { (value, label) ->
                 FilterChip(
                     selected = selected == value,
                     onClick = { onSelect(value) },
@@ -141,21 +198,60 @@ internal fun ThemeSegmentedControl(selected: String, onSelect: (String) -> Unit)
     }
 }
 
+/**
+ * In-app language switcher. Applying a language recreates the activity, so
+ * there is no state to hoist — the selection is read back from the
+ * per-app locale APIs on the next composition.
+ */
+@Composable
+internal fun LanguageSegmentedControl() {
+    val context = LocalContext.current
+    val current = AppLanguage.current()
+    Column {
+        Text(
+            stringResource(R.string.settings_language),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = current == AppLanguage.SYSTEM,
+                onClick = { AppLanguage.apply(context, AppLanguage.SYSTEM) },
+                label = { Text(stringResource(R.string.settings_language_system)) },
+            )
+            // Language names stay in their own language on purpose.
+            FilterChip(
+                selected = current == AppLanguage.ENGLISH,
+                onClick = { AppLanguage.apply(context, AppLanguage.ENGLISH) },
+                label = { Text("English") },
+            )
+            FilterChip(
+                selected = current == AppLanguage.HEBREW,
+                onClick = { AppLanguage.apply(context, AppLanguage.HEBREW) },
+                label = { Text("עברית") },
+            )
+        }
+    }
+}
+
 @Composable
 internal fun ThemeDropdown(selected: String, onSelect: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    val label = THEME_OPTIONS.firstOrNull { it.first == selected }?.second ?: selected
+    val options = themeOptions()
+    val label = options.firstOrNull { it.first == selected }?.second ?: selected
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
             value = label,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Theme") },
+            label = { Text(stringResource(R.string.settings_theme)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            THEME_OPTIONS.forEach { (value, display) ->
+            options.forEach { (value, display) ->
                 DropdownMenuItem(text = { Text(display) }, onClick = { onSelect(value); expanded = false })
             }
         }
@@ -167,17 +263,17 @@ internal fun CurrencyDropdown(selected: CurrencyCode, onSelect: (CurrencyCode) -
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
-            value = "${selected.symbol}  ${selected.name} - ${selected.displayName}",
+            value = "${selected.symbol}  ${selected.name} - ${currencyDisplayName(selected)}",
             onValueChange = {},
             readOnly = true,
-            label = { Text("Currency") },
+            label = { Text(stringResource(R.string.settings_currency)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             CurrencyCode.entries.forEach { currency ->
                 DropdownMenuItem(
-                    text = { Text("${currency.symbol}  ${currency.name} - ${currency.displayName}") },
+                    text = { Text("${currency.symbol}  ${currency.name} - ${currencyDisplayName(currency)}") },
                     onClick = { onSelect(currency); expanded = false },
                 )
             }
@@ -188,9 +284,9 @@ internal fun CurrencyDropdown(selected: CurrencyCode, onSelect: (CurrencyCode) -
 @Composable
 internal fun ClockStyleDropdown(selected: ClockStyle, onSelect: (ClockStyle) -> Unit) {
     Column {
-        Text("Watch face", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.settings_watch_face), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Text(
-            "Choose an animated face for the Dashboard clock.",
+            stringResource(R.string.settings_watch_face_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -219,7 +315,7 @@ internal fun ClockStyleDropdown(selected: ClockStyle, onSelect: (ClockStyle) -> 
                                 WatchFacePreview(style, isSelected)
                                 Spacer(Modifier.height(6.dp))
                                 Text(
-                                    style.name.lowercase().replaceFirstChar(Char::uppercase),
+                                    clockStyleDisplayName(style),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
                                 )
@@ -242,7 +338,7 @@ internal fun ClockStyleDropdown(selected: ClockStyle, onSelect: (ClockStyle) -> 
                             ) {
                                 Icon(
                                     Icons.Filled.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = stringResource(R.string.settings_selected),
                                     tint = Color.White,
                                     modifier = Modifier.size(12.dp),
                                 )
@@ -374,22 +470,25 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
     }
 }
 
-internal fun watchFaceDescription(style: ClockStyle): String = when (style) {
-    ClockStyle.CLASSIC -> "Progress ring"
-    ClockStyle.MINIMAL -> "Clean display"
-    ClockStyle.FOCUS -> "Distraction free"
-    ClockStyle.BOLD -> "Large and clear"
-    ClockStyle.NIGHT -> "Cyan night glow"
-    ClockStyle.RETRO -> "Amber terminal"
-    ClockStyle.AURORA -> "Gradient ring"
-    ClockStyle.PULSE -> "Glowing rings"
-    ClockStyle.DIAL -> "Analog timer"
-    ClockStyle.STRAND -> "Linear progress"
-    ClockStyle.PRISM -> "Rising spectrum"
-    ClockStyle.SAND -> "Flowing hourglass"
-    ClockStyle.BLOCKS -> "Hour-by-hour blocks"
-    ClockStyle.ORBIT -> "Orbiting satellite"
-}
+@Composable
+internal fun watchFaceDescription(style: ClockStyle): String = stringResource(
+    when (style) {
+        ClockStyle.CLASSIC -> R.string.settings_face_classic
+        ClockStyle.MINIMAL -> R.string.settings_face_minimal
+        ClockStyle.FOCUS -> R.string.settings_face_focus
+        ClockStyle.BOLD -> R.string.settings_face_bold
+        ClockStyle.NIGHT -> R.string.settings_face_night
+        ClockStyle.RETRO -> R.string.settings_face_retro
+        ClockStyle.AURORA -> R.string.settings_face_aurora
+        ClockStyle.PULSE -> R.string.settings_face_pulse
+        ClockStyle.DIAL -> R.string.settings_face_dial
+        ClockStyle.STRAND -> R.string.settings_face_strand
+        ClockStyle.PRISM -> R.string.settings_face_prism
+        ClockStyle.SAND -> R.string.settings_face_sand
+        ClockStyle.BLOCKS -> R.string.settings_face_blocks
+        ClockStyle.ORBIT -> R.string.settings_face_orbit
+    },
+)
 
 @Composable
 internal fun HoursField(
@@ -413,11 +512,12 @@ internal fun HoursField(
 
 @Composable
 internal fun WeekendDaysSelector(selected: List<Int>, onChange: (List<Int>) -> Unit) {
+    val labels = dayLabels()
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        DAY_LABELS.forEachIndexed { day, label ->
+        labels.forEachIndexed { day, label ->
             WeekendDayChip(
                 label = label,
                 selected = day in selected,
