@@ -91,8 +91,16 @@ fun SettingsScreen(
     authState: AuthUiState? = null,
     onSignOut: () -> Unit = {},
     onReplayOnboarding: () -> Unit = {},
+    pendingLaunch: SettingsLaunchRequest? = null,
+    onPendingLaunchConsumed: () -> Unit = {},
 ) {
     var destination by rememberSaveable { mutableStateOf(SettingsDestination.HUB) }
+
+    LaunchedEffect(pendingLaunch) {
+        val launch = pendingLaunch ?: return@LaunchedEffect
+        destination = launch.toDestination()
+        onPendingLaunchConsumed()
+    }
 
     BackHandler(enabled = destination != SettingsDestination.HUB) {
         destination = destination.backDestination() ?: SettingsDestination.HUB

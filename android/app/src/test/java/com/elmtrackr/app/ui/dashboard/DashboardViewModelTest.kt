@@ -3,10 +3,14 @@ package com.elmtrackr.app.ui.dashboard
 import com.elmtrackr.app.fake.FakeAppPreferencesStore
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeAuthRepository
+import com.elmtrackr.app.fake.FakePremiumProfilesRepository
 import com.elmtrackr.app.fake.FakeReportsRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
+import com.elmtrackr.app.fake.FakeSetupChecklistPreferences
 import com.elmtrackr.app.fake.FakeShiftsRepository
 import com.elmtrackr.app.fake.FakeTasksRepository
+import com.elmtrackr.app.fake.FakeWidgetPinInspector
+import com.elmtrackr.app.domain.setup.SetupStep
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.MonthlyReport
@@ -47,9 +51,13 @@ class DashboardViewModelTest {
     }
 
     private val appPrefs = FakeAppPreferencesStore()
+    private val premiumRepo = FakePremiumProfilesRepository()
+    private val setupPrefs = FakeSetupChecklistPreferences()
+    private val widgetPin = FakeWidgetPinInspector()
 
     private fun buildVm() = DashboardViewModel(
         shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, appPrefs,
+        premiumRepo, setupPrefs, widgetPin,
     )
 
     private fun defaultSettings() = UserSettings(
@@ -296,6 +304,72 @@ class DashboardViewModelTest {
         advanceUntilIdle()
 
         assertFalse(vm.showFirstClockInCelebration.value)
+    }
+
+    // ---- setup checklist ----
+
+    @Test
+    fun `setup checklist emits all steps incomplete for a fresh user`() = runTest {
+        val vm = buildVm()
+        val collected = mutableListOf<SetupChecklistUiState?>()
+        val job = launch { vm.setupChecklist.collect { collected.add(it) } }
+
+        settingsRepo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        val checklist = collected.filterNotNull().lastOrNull()
+        assertEquals(6, checklist?.totalCount)
+        assertEquals(0, checklist?.completedCount)
+        job.cancel()
+    }
+
+    @Test
+    fun `completing a shift ticks the first checklist step`() = runTest {
+        val vm = buildVm()
+        val collected = mutableListOf<SetupChecklistUiState?>()
+        val job = launch { vm.setupChecklist.collect { collected.add(it) } }
+
+        settingsRepo.setSettings(defaultSettings())
+        advanceUntilIdle()
+        vm.clockIn()
+        advanceUntilIdle()
+        vm.clockOut(shiftsRepo.currentShifts.first().id)
+        advanceUntilIdle()
+
+        val checklist = collected.filterNotNull().last()
+        assertTrue(
+            checklist.steps.first { it.step == SetupStep.FIRST_SHIFT }.isComplete,
+        )
+        job.cancel()
+    }
+
+    @Test
+    fun `visited step marks completion and dismissal hides the checklist`() = runTest {
+        val vm = buildVm()
+        val collected = mutableListOf<SetupChecklistUiState?>()
+        val job = launch { vm.setupChecklist.collect { collected.add(it) } }
+
+        settingsRepo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        vm.markSetupStepVisited(SetupStep.COMPENSATION)
+        advanceUntilIdle()
+        val afterVisit = collected.filterNotNull().last()
+        assertTrue(
+            afterVisit.steps.first { it.step == SetupStep.COMPENSATION }.isComplete,
+        )
+
+        vm.dismissSetupChecklist()
+        advanceUntilIdle()
+        assertNull(collected.last())
+        job.cancel()
+    }
+
+    @Test
+    fun `requestPinWidget delegates to the inspector`() {
+        val vm = buildVm()
+        vm.requestPinWidget()
+        assertEquals(1, widgetPin.pinRequests)
     }
 
     @Test

@@ -66,6 +66,7 @@ import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.auth.AuthViewModel
 import com.elmtrackr.app.ui.dashboard.DashboardScreen
 import com.elmtrackr.app.ui.reports.ReportsScreen
+import com.elmtrackr.app.ui.settings.SettingsLaunchRequest
 import com.elmtrackr.app.ui.settings.SettingsScreen
 import com.elmtrackr.app.ui.shifts.ShiftsScreen
 import com.elmtrackr.app.ui.onboarding.OnboardingScreen
@@ -94,6 +95,7 @@ private val navGradient = Brush.linearGradient(
 fun MainScaffold(authViewModel: AuthViewModel) {
     var replayOnboarding by rememberSaveable { mutableStateOf(false) }
     var pendingShiftEditId by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingSettingsLaunch by rememberSaveable { mutableStateOf<String?>(null) }
     if (replayOnboarding) {
         BackHandler { replayOnboarding = false }
         OnboardingScreen(replay = true, onCompleted = { replayOnboarding = false })
@@ -158,6 +160,12 @@ fun MainScaffold(authViewModel: AuthViewModel) {
                     onPendingEditSet = { pendingShiftEditId = it },
                     onFormVisibilityChanged = { hideNavChrome = it },
                     onReplayOnboarding = { replayOnboarding = true },
+                    pendingSettingsLaunch = pendingSettingsLaunch,
+                    onPendingSettingsLaunchConsumed = { pendingSettingsLaunch = null },
+                    onOpenSettings = { request ->
+                        pendingSettingsLaunch = request.name
+                        navigateToTab(BottomNavItem.SETTINGS.route)
+                    },
                 )
             }
         }
@@ -205,6 +213,12 @@ fun MainScaffold(authViewModel: AuthViewModel) {
                 onPendingEditSet = { pendingShiftEditId = it },
                 onFormVisibilityChanged = { hideNavChrome = it },
                 onReplayOnboarding = { replayOnboarding = true },
+                pendingSettingsLaunch = pendingSettingsLaunch,
+                onPendingSettingsLaunchConsumed = { pendingSettingsLaunch = null },
+                onOpenSettings = { request ->
+                    pendingSettingsLaunch = request.name
+                    navigateToTab(BottomNavItem.SETTINGS.route)
+                },
             )
         }
     }
@@ -219,6 +233,9 @@ private fun NavGraphBuilder.mainNavGraph(
     onPendingEditSet: (String) -> Unit,
     onFormVisibilityChanged: (Boolean) -> Unit,
     onReplayOnboarding: () -> Unit,
+    pendingSettingsLaunch: String?,
+    onPendingSettingsLaunchConsumed: () -> Unit,
+    onOpenSettings: (SettingsLaunchRequest) -> Unit,
 ) {
     composable(BottomNavItem.DASHBOARD.route) {
         DashboardScreen(
@@ -229,6 +246,7 @@ private fun NavGraphBuilder.mainNavGraph(
                     restoreState = true
                 }
             },
+            onNavigateToSettings = onOpenSettings,
         )
     }
     composable(BottomNavItem.SHIFTS.route) {
@@ -255,6 +273,10 @@ private fun NavGraphBuilder.mainNavGraph(
             authState = authState,
             onSignOut = { authViewModel.signOut() },
             onReplayOnboarding = onReplayOnboarding,
+            pendingLaunch = pendingSettingsLaunch?.let { name ->
+                SettingsLaunchRequest.entries.firstOrNull { it.name == name }
+            },
+            onPendingLaunchConsumed = onPendingSettingsLaunchConsumed,
         )
     }
 }

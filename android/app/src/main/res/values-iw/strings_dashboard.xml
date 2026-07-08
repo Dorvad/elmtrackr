@@ -79,4 +79,36 @@
     <!-- Edit start time dialog -->
     <string name="dashboard_save">שמירה</string>
     <string name="dashboard_cancel">ביטול</string>
+    <!-- Getting-started checklist -->
+    <string name="dashboard_setup_title">צעדים ראשונים</string>
+    <string name="dashboard_setup_subtitle">%1$d מתוך %2$d הושלמו \u2014 הכירו את ElmTrackr</string>
+    <string name="dashboard_setup_dismiss">הסתרת הרשימה</string>
+    <string name="dashboard_setup_step_done">הושלם</string>
+    <string name="dashboard_setup_progress_accessibility">הושלמו %1$d מתוך %2$d שלבי הגדרה</string>
+    <string name="dashboard_setup_shift_title">עקבו אחרי המשמרת הראשונה</string>
+    <string name="dashboard_setup_shift_blurb">כניסה בתחילת המשמרת, יציאה בסופה.</string>
+    <string name="dashboard_setup_shift_body">כל משמרת הופכת לאומדן שכר: שעות רגילות, שעות נוספות ושעות סוף שבוע נספרות בנפרד, לפי התעריפים האמיתיים שלכם.</string>
+    <string name="dashboard_setup_shift_action">כניסה למשמרת</string>
+    <string name="dashboard_setup_clock_title">התאימו את השעון לסגנון שלכם</string>
+    <string name="dashboard_setup_clock_blurb">15 עיצובי שעון לבחירה.</string>
+    <string name="dashboard_setup_clock_body">השעון הגדול במסך הזה הוא כרטיס הנוכחות שלכם. בחרו עיצוב שמתאים לכם \u2014 מחוגה מינימליסטית ועד גאות עולה.</string>
+    <string name="dashboard_setup_clock_action">בחירת עיצוב</string>
+    <string name="dashboard_setup_compensation_title">בדקו את כללי השכר</string>
+    <string name="dashboard_setup_compensation_blurb">תעריפי שעות נוספות, סוף שבוע וחג.</string>
+    <string name="dashboard_setup_compensation_body">אומדן השכר מדויק רק כמו הכללים שהוזנו. עברו על ספי השעות הנוספות ומכפילי התעריף, והשוו אותם לחוזה או לתלוש שכר אחרון \u2014 אם משהו שונה, כדאי לוודא את הפרטים מול המעסיק.</string>
+    <string name="dashboard_setup_compensation_action">בדיקת כללי השכר</string>
+    <string name="dashboard_setup_premium_title">הוסיפו תעריף פרמיה</string>
+    <string name="dashboard_setup_premium_blurb">פרופילי תוספת לשימוש חוזר.</string>
+    <string name="dashboard_setup_premium_body">פרופיל פרמיה הוא תוספת בעלת שם קבוע \u2014 למשל 150% לעבודת לילה \u2014 שאפשר להחיל על כל משמרת. צרו אחד וראו איך הוא משנה את שכר המשמרת.</string>
+    <string name="dashboard_setup_premium_action">הגדרת פרמיות</string>
+    <string name="dashboard_setup_tasks_title">צרו פרויקט בתשלום</string>
+    <string name="dashboard_setup_tasks_blurb">תעריף שונה לכל פרויקט או לקוח.</string>
+    <string name="dashboard_setup_tasks_body">משימות מתייגות משמרות לפי פרויקט או לקוח, לכל אחד תעריף שעתי משלו \u2014 שימושי כשמחלקים את הזמן בין עבודות.</string>
+    <string name="dashboard_setup_tasks_action">יצירת משימה</string>
+    <string name="dashboard_setup_widget_title">הוסיפו וידג׳ט למסך הבית</string>
+    <string name="dashboard_setup_widget_blurb">כניסה למשמרת בלי לפתוח את האפליקציה.</string>
+    <string name="dashboard_setup_widget_body">הוידג׳ט מציג את המשמרת הפעילה ומחתים כניסה או יציאה בנגיעה אחת, ישירות ממסך הבית.</string>
+    <string name="dashboard_setup_widget_action">הוספת וידג׳ט</string>
+    <string name="dashboard_setup_celebration_title">הכול מוכן!</string>
+    <string name="dashboard_setup_celebration_body">הכרתם את היסודות. מעכשיו ElmTrackr עוקב ומחשב את המשמרות בדיוק לפי הדרך שבה אתם עובדים.</string>
 </resources>

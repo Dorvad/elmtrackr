@@ -79,4 +79,36 @@
     <!-- Edit start time dialog -->
     <string name="dashboard_save">Save</string>
     <string name="dashboard_cancel">Cancel</string>
+    <!-- Getting-started checklist -->
+    <string name="dashboard_setup_title">Getting started</string>
+    <string name="dashboard_setup_subtitle">%1$d of %2$d done \u2014 learn what ElmTrackr can do</string>
+    <string name="dashboard_setup_dismiss">Hide checklist</string>
+    <string name="dashboard_setup_step_done">Completed</string>
+    <string name="dashboard_setup_progress_accessibility">%1$d of %2$d setup steps completed</string>
+    <string name="dashboard_setup_shift_title">Track your first shift</string>
+    <string name="dashboard_setup_shift_blurb">Clock in when you start, out when you finish.</string>
+    <string name="dashboard_setup_shift_body">Every shift you track becomes a pay estimate: regular time, overtime, and weekend hours are counted separately, at your real rates.</string>
+    <string name="dashboard_setup_shift_action">Clock in now</string>
+    <string name="dashboard_setup_clock_title">Make the clock yours</string>
+    <string name="dashboard_setup_clock_blurb">15 clock faces to choose from.</string>
+    <string name="dashboard_setup_clock_body">The big clock on this screen is your punch card. Pick a face that fits your style \u2014 from a minimalist dial to a rising tide.</string>
+    <string name="dashboard_setup_clock_action">Choose a style</string>
+    <string name="dashboard_setup_compensation_title">Check your pay rules</string>
+    <string name="dashboard_setup_compensation_blurb">Overtime, weekend, and holiday rates.</string>
+    <string name="dashboard_setup_compensation_body">Your pay estimate is only as good as its rules. Review the overtime thresholds and rate multipliers, and compare them with your contract or a recent payslip \u2014 if anything differs, confirm the details with your employer.</string>
+    <string name="dashboard_setup_compensation_action">Review pay rules</string>
+    <string name="dashboard_setup_premium_title">Add a premium rate</string>
+    <string name="dashboard_setup_premium_blurb">Reusable bonus-rate profiles.</string>
+    <string name="dashboard_setup_premium_body">A premium profile is a named extra rate \u2014 for example 150% for night work \u2014 that you can apply to any shift. Create one and watch how it changes a shift\'s pay.</string>
+    <string name="dashboard_setup_premium_action">Set up premiums</string>
+    <string name="dashboard_setup_tasks_title">Create a paid project</string>
+    <string name="dashboard_setup_tasks_blurb">A different rate for each project or client.</string>
+    <string name="dashboard_setup_tasks_body">Tasks tag your shifts with a project or client, each with its own hourly rate \u2014 handy when your time is split across jobs.</string>
+    <string name="dashboard_setup_tasks_action">Create a task</string>
+    <string name="dashboard_setup_widget_title">Add a home-screen widget</string>
+    <string name="dashboard_setup_widget_blurb">Punch in without opening the app.</string>
+    <string name="dashboard_setup_widget_body">The widget shows your running shift and clocks you in or out with one tap, straight from your home screen.</string>
+    <string name="dashboard_setup_widget_action">Add widget</string>
+    <string name="dashboard_setup_celebration_title">You\'re all set!</string>
+    <string name="dashboard_setup_celebration_body">You\'ve explored the essentials. ElmTrackr now tracks and prices your shifts exactly the way you work.</string>
 </resources>

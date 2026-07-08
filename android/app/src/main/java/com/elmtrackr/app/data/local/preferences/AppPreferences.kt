@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -25,6 +26,9 @@ object AppPreferenceKeys {
     val NOTIFICATION_PERMISSION_PROMPTED = booleanPreferencesKey("notification_permission_prompted")
     val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
     val REDUCE_MOTION = booleanPreferencesKey("reduce_motion")
+    val SETUP_CHECKLIST_DISMISSED = booleanPreferencesKey("setup_checklist_dismissed")
+    val SETUP_CHECKLIST_VISITED_STEPS = stringSetPreferencesKey("setup_checklist_visited_steps")
+    val SETUP_CHECKLIST_CELEBRATED = booleanPreferencesKey("setup_checklist_celebrated")
 }
 
 data class AppPreferenceValues(
@@ -36,12 +40,16 @@ data class AppPreferenceValues(
     val legacyDataAdopted: Boolean = false,
     val appLockEnabled: Boolean = false,
     val reduceMotionEnabled: Boolean = false,
+    val setupChecklistDismissed: Boolean = false,
+    val setupChecklistVisitedSteps: Set<String> = emptySet(),
+    val setupChecklistCelebrated: Boolean = false,
 )
 
 class AppPreferencesRepository(private val context: Context) :
     AppPreferencesStore,
     AppLockPreferencesStore,
-    OnboardingPreferences {
+    OnboardingPreferences,
+    SetupChecklistPreferences {
 
     override val preferences: Flow<AppPreferenceValues> =
         context.appPreferencesDataStore.data.map { prefs ->
@@ -54,6 +62,9 @@ class AppPreferencesRepository(private val context: Context) :
                 legacyDataAdopted = prefs[AppPreferenceKeys.LEGACY_DATA_ADOPTED] ?: false,
                 appLockEnabled = prefs[AppPreferenceKeys.APP_LOCK_ENABLED] ?: false,
                 reduceMotionEnabled = prefs[AppPreferenceKeys.REDUCE_MOTION] ?: false,
+                setupChecklistDismissed = prefs[AppPreferenceKeys.SETUP_CHECKLIST_DISMISSED] ?: false,
+                setupChecklistVisitedSteps = prefs[AppPreferenceKeys.SETUP_CHECKLIST_VISITED_STEPS] ?: emptySet(),
+                setupChecklistCelebrated = prefs[AppPreferenceKeys.SETUP_CHECKLIST_CELEBRATED] ?: false,
             )
         }
 
@@ -92,5 +103,20 @@ class AppPreferencesRepository(private val context: Context) :
 
     override suspend fun setReduceMotion(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.REDUCE_MOTION] = enabled }
+    }
+
+    override suspend fun setSetupChecklistDismissed(dismissed: Boolean) {
+        context.appPreferencesDataStore.edit { it[AppPreferenceKeys.SETUP_CHECKLIST_DISMISSED] = dismissed }
+    }
+
+    override suspend fun markSetupStepVisited(stepKey: String) {
+        context.appPreferencesDataStore.edit {
+            it[AppPreferenceKeys.SETUP_CHECKLIST_VISITED_STEPS] =
+                (it[AppPreferenceKeys.SETUP_CHECKLIST_VISITED_STEPS] ?: emptySet()) + stepKey
+        }
+    }
+
+    override suspend fun setSetupChecklistCelebrated(celebrated: Boolean) {
+        context.appPreferencesDataStore.edit { it[AppPreferenceKeys.SETUP_CHECKLIST_CELEBRATED] = celebrated }
     }
 }

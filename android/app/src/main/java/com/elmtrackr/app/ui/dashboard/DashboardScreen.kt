@@ -69,6 +69,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -102,6 +103,11 @@ import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.setup.SetupStep
+import com.elmtrackr.app.ui.settings.SettingsLaunchRequest
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.elmtrackr.app.ui.components.motion.ShiftElapsedDisplay
 import com.elmtrackr.app.ui.components.motion.activeShiftPulse
 import com.elmtrackr.app.ui.components.motion.FirstClockInCelebrationDialog
@@ -156,12 +162,25 @@ private val headerGradient = Brush.linearGradient(
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
     onNavigateToReports: () -> Unit = {},
+    onNavigateToSettings: (SettingsLaunchRequest) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val showCelebration by viewModel.showFirstClockInCelebration.collectAsState()
+    val setupChecklist by viewModel.setupChecklist.collectAsState()
     var showTasks by rememberSaveable { mutableStateOf(false) }
 
     BackHandler(enabled = showTasks) { showTasks = false }
+
+    // A freshly pinned widget only becomes visible to AppWidgetManager once the
+    // launcher confirms it, so re-check whenever the dashboard comes back.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshWidgetPinState()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     AnimatedContent(
         targetState = showTasks,
@@ -201,6 +220,20 @@ fun DashboardScreen(
                             onManageTasks = { showTasks = true },
                             showFirstClockInCelebration = showCelebration,
                             onDismissFirstClockInCelebration = viewModel::dismissFirstClockInCelebration,
+                            setupChecklist = setupChecklist,
+                            onSetupNavigate = { step ->
+                                viewModel.markSetupStepVisited(step)
+                                onNavigateToSettings(
+                                    when (step) {
+                                        SetupStep.CLOCK_STYLE -> SettingsLaunchRequest.APPEARANCE
+                                        SetupStep.COMPENSATION -> SettingsLaunchRequest.COMPENSATION
+                                        else -> SettingsLaunchRequest.PREMIUM
+                                    },
+                                )
+                            },
+                            onRequestPinWidget = viewModel::requestPinWidget,
+                            onDismissSetupChecklist = viewModel::dismissSetupChecklist,
+                            onSetupChecklistCelebrated = viewModel::markSetupChecklistCelebrated,
                         )
                         is DashboardUiState.Error -> ErrorState(
                             message = state.message,
@@ -224,6 +257,11 @@ private fun DashboardReady(
     onManageTasks: () -> Unit,
     showFirstClockInCelebration: Boolean,
     onDismissFirstClockInCelebration: () -> Unit,
+    setupChecklist: SetupChecklistUiState? = null,
+    onSetupNavigate: (SetupStep) -> Unit = {},
+    onRequestPinWidget: () -> Unit = {},
+    onDismissSetupChecklist: () -> Unit = {},
+    onSetupChecklistCelebrated: () -> Unit = {},
 ) {
     val activeShift = state.activeShift
     val haptic = LocalHapticFeedback.current
@@ -391,6 +429,29 @@ private fun DashboardReady(
                 )
             }
 
+            val setupCard: (@Composable () -> Unit)? = setupChecklist?.let { checklist ->
+                @Composable {
+                    SetupChecklistCard(
+                        state = checklist,
+                        onStepAction = { step ->
+                            when (step) {
+                                SetupStep.FIRST_SHIFT -> handleClockIn()
+                                SetupStep.CLOCK_STYLE,
+                                SetupStep.COMPENSATION,
+                                SetupStep.PREMIUM -> onSetupNavigate(step)
+                                SetupStep.TASKS -> onManageTasks()
+                                SetupStep.WIDGET -> onRequestPinWidget()
+                            }
+                        },
+                        onDismiss = onDismissSetupChecklist,
+                        onCelebrationDismissed = onSetupChecklistCelebrated,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .auroraEnter(index = 2),
+                    )
+                }
+            }
+
             if (isTablet) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -402,6 +463,7 @@ private fun DashboardReady(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         clockCard()
+                        setupCard?.invoke()
                         MonthSummaryDistribution(
                             report = state.monthlyReport,
                             modifier = Modifier.auroraEnter(index = 2),
@@ -428,6 +490,8 @@ private fun DashboardReady(
                 }
             } else {
                 clockCard()
+
+                setupCard?.invoke()
 
                 MonthSummarySection(
                     report      = state.monthlyReport,
