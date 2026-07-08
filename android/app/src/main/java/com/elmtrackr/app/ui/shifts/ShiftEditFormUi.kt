@@ -59,6 +59,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.common.appLocale
+import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
@@ -109,7 +110,7 @@ private val payGradient = Brush.linearGradient(
 internal fun ShiftEditFormContent(
     navState: ShiftFormNavState,
     settings: UserSettings?,
-    errors: Map<String, String>,
+    errors: Map<String, com.elmtrackr.app.domain.model.UiText>,
     featuresTravelRefunds: Boolean,
     onSave: (ShiftFormInput) -> Unit,
     onDelete: (shiftId: String) -> Unit,
@@ -140,7 +141,8 @@ internal fun ShiftEditFormContent(
     initialShift: Shift?,
 ) {
     val isEdit = navState is ShiftFormNavState.Edit
-    val zone = ZoneId.systemDefault()
+    val zone = settings?.let { com.elmtrackr.app.domain.time.WorkTimezone.zoneFor(it) }
+        ?: ZoneId.systemDefault()
     val startZdt = Instant.ofEpochMilli(startMillis).atZone(zone)
     val currency = settings?.currency ?: CurrencyCode.ILS
     val haptic = LocalHapticFeedback.current
@@ -313,7 +315,7 @@ internal fun ShiftEditFormContent(
                         }
                     }
 
-                    errors["endTime"]?.let { FormFieldError(it) }
+                    errors["endTime"]?.let { FormFieldError(it.asString()) }
 
                     val previewStart = Instant.ofEpochMilli(startMillis)
                     val previewEnd = if (hasEndTime) Instant.ofEpochMilli(endMillis) else null
@@ -346,7 +348,7 @@ internal fun ShiftEditFormContent(
                         minutes = breakMinutes,
                         onChange = onBreakMinutesChange,
                     )
-                    errors["breakMinutes"]?.let { FormFieldError(it) }
+                    errors["breakMinutes"]?.let { FormFieldError(it.asString()) }
 
                     PremiumProfilePicker(
                         profiles = premiumProfiles,
@@ -438,7 +440,7 @@ internal fun ShiftEditFormContent(
                             shift = initialShift,
                             currency = currency,
                         )
-                        errors["refund"]?.let { FormFieldError(it) }
+                        errors["refund"]?.let { FormFieldError(it.asString()) }
                     }
                 }
 

@@ -2,6 +2,7 @@ package com.elmtrackr.app.wear
 
 import android.content.Context
 import com.elmtrackr.app.di.entrypoint.AppEntryPoints
+import com.elmtrackr.app.language.withAppLocale
 import com.elmtrackr.app.widget.WidgetContext
 import com.elmtrackr.app.widget.WidgetContextLoader
 import com.elmtrackr.app.widget.WidgetShiftState
@@ -35,7 +36,9 @@ object WearSyncPublisher {
             publishSnapshot(context, WearShiftSnapshot.signedOut())
             return
         }
-        val state = WidgetStateMapper.map(widgetContext)
+        val locale = context.withAppLocale().resources.configuration.locales[0]
+            ?: java.util.Locale.getDefault()
+        val state = WidgetStateMapper.map(widgetContext, locale)
         publishSnapshot(context, state.toWearSnapshot(signedIn = true))
     }
 

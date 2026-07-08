@@ -2,10 +2,12 @@ package com.elmtrackr.app.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.R
 import com.elmtrackr.app.data.repository.PremiumProfilesRepository
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.PremiumType
+import com.elmtrackr.app.domain.model.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import java.util.UUID
@@ -18,11 +20,11 @@ import kotlinx.coroutines.launch
 
 sealed interface PremiumProfilesUiState {
     data object Loading : PremiumProfilesUiState
-    data class Error(val message: String) : PremiumProfilesUiState
+    data class Error(val message: UiText) : PremiumProfilesUiState
     data class Ready(
         val profiles: List<PremiumProfile>,
         val editor: PremiumProfileEditorState?,
-        val saveMessage: String? = null,
+        val saveMessage: UiText? = null,
     ) : PremiumProfilesUiState
 }
 
@@ -54,7 +56,7 @@ class PremiumProfilesViewModel @Inject constructor(
                 _uiState.value = PremiumProfilesUiState.Ready(profiles = profiles, editor = null)
             }.onFailure { error ->
                 _uiState.value = PremiumProfilesUiState.Error(
-                    error.message ?: "Unable to load premium profiles",
+                    UiText.Res(R.string.settings_premium_error_load),
                 )
             }
         }
@@ -97,11 +99,11 @@ class PremiumProfilesViewModel @Inject constructor(
         val editor = ready.editor ?: return
         val multiplier = editor.multiplierText.toDoubleOrNull()
         if (editor.name.isBlank()) {
-            updateReady { it.copy(saveMessage = "Enter a profile name") }
+            updateReady { it.copy(saveMessage = UiText.Res(R.string.settings_premium_error_name)) }
             return
         }
         if (multiplier == null || multiplier <= 0.0) {
-            updateReady { it.copy(saveMessage = "Enter a valid multiplier") }
+            updateReady { it.copy(saveMessage = UiText.Res(R.string.settings_premium_error_multiplier)) }
             return
         }
 
@@ -125,13 +127,13 @@ class PremiumProfilesViewModel @Inject constructor(
                 _uiState.value = PremiumProfilesUiState.Ready(
                     profiles = profiles,
                     editor = null,
-                    saveMessage = "Premium profile saved",
+                    saveMessage = UiText.Res(R.string.settings_premium_feedback_saved),
                 )
             }.onFailure { error ->
                 updateReady {
                     it.copy(
                         editor = editor.copy(isSaving = false),
-                        saveMessage = error.message ?: "Unable to save premium profile",
+                        saveMessage = UiText.Res(R.string.settings_premium_error_save),
                     )
                 }
             }
@@ -144,9 +146,9 @@ class PremiumProfilesViewModel @Inject constructor(
                 val userId = currentUserProvider.currentUserId() ?: error("Not signed in")
                 premiumProfilesRepository.deleteProfile(userId, profileId)
                 val profiles = premiumProfilesRepository.getProfiles(userId)
-                updateReady { it.copy(profiles = profiles, editor = null, saveMessage = "Profile removed") }
+                updateReady { it.copy(profiles = profiles, editor = null, saveMessage = UiText.Res(R.string.settings_premium_feedback_removed)) }
             }.onFailure { error ->
-                updateReady { it.copy(saveMessage = error.message ?: "Unable to delete profile") }
+                updateReady { it.copy(saveMessage = UiText.Res(R.string.settings_premium_error_delete)) }
             }
         }
     }

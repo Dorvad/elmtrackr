@@ -46,6 +46,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.ui.common.appLocale
+import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
@@ -76,8 +77,9 @@ fun ShiftsScreen(
     val userMessage by viewModel.userMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(userMessage) {
-        userMessage?.let { message ->
+    val userMessageText = userMessage?.asString()
+    LaunchedEffect(userMessageText) {
+        userMessageText?.let { message ->
             snackbarHostState.showSnackbar(message)
             viewModel.consumeUserMessage()
         }
@@ -222,12 +224,15 @@ private fun ShiftsListContent(
     onEditShift: (String) -> Unit,
 ) {
     val itemsLocale = appLocale()
+    val itemsZone = state.settings?.let { com.elmtrackr.app.domain.time.WorkTimezone.zoneFor(it) }
+        ?: ZoneId.systemDefault()
     val listItems = remember(
         state.shifts,
         state.activeShift,
         state.month,
         state.settings,
         state.profiles,
+        itemsZone,
         itemsLocale,
     ) {
         buildShiftsLazyListItems(
@@ -236,6 +241,7 @@ private fun ShiftsListContent(
             month = state.month,
             settings = state.settings,
             profiles = state.profiles,
+            zone = itemsZone,
             locale = itemsLocale,
         )
     }
@@ -337,7 +343,7 @@ private fun ShiftFormContent(
     premiumProfiles: List<com.elmtrackr.app.domain.model.PremiumProfile>,
     profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
     tasks: List<com.elmtrackr.app.domain.model.Task>,
-    errors: Map<String, String>,
+    errors: Map<String, com.elmtrackr.app.domain.model.UiText>,
     featuresTravelRefunds: Boolean,
     onSuggestTaskForStart: suspend (Instant) -> String? = { null },
     onSave: (ShiftFormInput) -> Unit,
@@ -346,7 +352,8 @@ private fun ShiftFormContent(
     onCreateCompensationProfile: ((name: String, onCreated: (String?) -> Unit) -> Unit)? = null,
 ) {
     val initialShift = (navState as? ShiftFormNavState.Edit)?.shift
-    val zone = ZoneId.systemDefault()
+    val zone = settings?.let { com.elmtrackr.app.domain.time.WorkTimezone.zoneFor(it) }
+        ?: ZoneId.systemDefault()
     val now = Instant.now()
 
     val defaultStart = initialShift?.startTime ?: now.minusSeconds(3600)

@@ -32,7 +32,7 @@ class ActiveShiftNotificationManager(private val context: Context) {
     // where background contexts otherwise use the system locale.
     private val localizedContext = context.withAppLocale()
 
-    fun showActiveShiftNotification(shift: Shift) {
+    fun showActiveShiftNotification(shift: Shift, zone: ZoneId = ZoneId.systemDefault()) {
         if (!notifManager.areNotificationsEnabled()) return
 
         val tapIntent = PendingIntent.getActivity(
@@ -57,7 +57,7 @@ class ActiveShiftNotificationManager(private val context: Context) {
         val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_ACTIVE_SHIFT)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(localizedContext.getString(R.string.notif_active_shift_title))
-            .setContentText(localizedContext.getString(R.string.notif_active_shift_text, formatStartTime(shift.startTime)))
+            .setContentText(localizedContext.getString(R.string.notif_active_shift_text, formatStartTime(shift.startTime, zone)))
             .setContentIntent(tapIntent)
             .setOngoing(true)
             .setAutoCancel(false)
@@ -100,7 +100,7 @@ class ActiveShiftNotificationManager(private val context: Context) {
         titleRes: Int,
         textRes: Int,
         shift: Shift,
-        textArg: Any? = formatStartTime(shift.startTime),
+        textArg: Any? = formatStartTime(shift.startTime, ZoneId.systemDefault()),
     ) {
         if (!notifManager.areNotificationsEnabled()) return
 
@@ -150,8 +150,8 @@ class ActiveShiftNotificationManager(private val context: Context) {
         notifManager.cancel(NOTIFICATION_ID_REMINDER)
     }
 
-    private fun formatStartTime(startTime: Instant): String =
-        startTime.atZone(ZoneId.systemDefault())
+    private fun formatStartTime(startTime: Instant, zone: ZoneId): String =
+        startTime.atZone(zone)
             .toLocalTime()
             .format(DateTimeFormatter.ofPattern("HH:mm"))
 }

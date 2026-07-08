@@ -442,12 +442,14 @@ internal fun ShiftRow(
     display: ShiftRowDisplayModel? = null,
     onClick: () -> Unit,
 ) {
+    val rowZone = settings?.let { com.elmtrackr.app.domain.time.WorkTimezone.zoneFor(it) }
+        ?: ZoneId.systemDefault()
     if (shift.isActive) {
-        ActiveShiftRow(shift = shift, onClick = onClick, animateEntrance = !grouped)
+        ActiveShiftRow(shift = shift, zone = rowZone, onClick = onClick, animateEntrance = !grouped)
         return
     }
 
-    val rowDisplay = display ?: buildShiftRowDisplay(shift, settings, profiles, allShiftsForPay, locale = appLocale())
+    val rowDisplay = display ?: buildShiftRowDisplay(shift, settings, profiles, allShiftsForPay, zone = rowZone, locale = appLocale())
 
     val rowModifier = if (grouped) {
         Modifier.fillMaxWidth()
@@ -563,10 +565,10 @@ internal fun ShiftRow(
 @Composable
 private fun ActiveShiftRow(
     shift: Shift,
+    zone: ZoneId,
     onClick: () -> Unit,
     animateEntrance: Boolean,
 ) {
-    val zone = ZoneId.systemDefault()
     val startText = shift.startTime.atZone(zone).format(timeFmt)
     val dayNumber = shift.startTime.atZone(zone).dayOfMonth.toString()
     val bgColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {

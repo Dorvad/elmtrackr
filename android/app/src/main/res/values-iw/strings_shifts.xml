@@ -85,4 +85,17 @@
     <string name="shifts_ride_provider">ספק נסיעה</string>
     <string name="shifts_ride_provider_a11y">ספק נסיעה %1$s</string>
     <string name="shifts_ride_provider_a11y_selected">ספק נסיעה %1$s, נבחר</string>
+
+    <!-- ViewModel feedback and validation -->
+    <string name="shifts_feedback_added">המשמרת נוספה</string>
+    <string name="shifts_feedback_updated">המשמרת עודכנה</string>
+    <string name="shifts_feedback_deleted">המשמרת נמחקה</string>
+    <string name="shifts_error_end_after_start">שעת הסיום חייבת להיות אחרי שעת ההתחלה</string>
+    <string name="shifts_error_break_negative">דקות ההפסקה חייבות להיות אפס או יותר</string>
+    <string name="shifts_error_break_too_long">ההפסקה לא יכולה להיות ארוכה מהמשמרת עצמה</string>
+    <string name="shifts_error_refund_amount">יש להזין סכום החזר תקין</string>
+    <string name="shifts_error_refund_shift_missing">המשמרת לא נמצאה</string>
+    <string name="shifts_error_refund_unfinished">יש לסיים את המשמרת לפני שמירת בקשת החזר נסיעות</string>
+    <string name="shifts_error_refund_sign_in">יש להתחבר לפני שמירת בקשה</string>
+    <string name="shifts_error_refund_save_failed">שמירת בקשת ההחזר נכשלה</string>
 </resources>

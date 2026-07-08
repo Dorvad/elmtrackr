@@ -79,6 +79,7 @@ internal fun buildShiftsLazyListItems(
     month: java.time.YearMonth,
     settings: UserSettings?,
     profiles: List<CompensationProfile>,
+    zone: ZoneId = ZoneId.systemDefault(),
     locale: Locale = Locale.getDefault(),
 ): List<ShiftsLazyListItem> {
     val sections = ShiftWeekGrouper.groupByWeek(
@@ -87,6 +88,7 @@ internal fun buildShiftsLazyListItems(
         month = month,
         settings = settings,
         profiles = profiles,
+        zone = zone,
         locale = locale,
     )
     return buildList {
@@ -99,7 +101,7 @@ internal fun buildShiftsLazyListItems(
                         display = if (shift.isActive) {
                             null
                         } else {
-                            buildShiftRowDisplay(shift, settings, profiles, shifts, locale = locale)
+                            buildShiftRowDisplay(shift, settings, profiles, shifts, zone = zone, locale = locale)
                         },
                         isLastInSection = index == section.shifts.lastIndex,
                     ),
