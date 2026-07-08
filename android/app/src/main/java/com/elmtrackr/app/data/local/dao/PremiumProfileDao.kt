@@ -76,4 +76,7 @@ interface PremiumProfileDao {
 
     @Query("DELETE FROM premium_profiles WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
+
+    @Query("UPDATE premium_profiles SET userId = :userId WHERE userId = 'local-user'")
+    suspend fun adoptLegacyUser(userId: String)
 }

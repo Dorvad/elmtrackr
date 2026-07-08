@@ -82,6 +82,7 @@
     <string name="settings_face_sand">שעון חול זורם</string>
     <string name="settings_face_blocks">בלוקים שעה־שעה</string>
     <string name="settings_face_orbit">לוויין במסלול</string>
+    <string name="settings_face_tide">הגאות של היום שלך</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">בלי שכר שעתי</string>
@@ -220,6 +221,13 @@
     <string name="settings_feedback_local_cleared">המידע המקומי נמחק</string>
     <string name="settings_feedback_reset_sent">קישור איפוס נשלח אל %1$s. כדאי לבדוק את תיבת הדואר.</string>
     <string name="settings_feedback_profile_created">הפרופיל נוצר</string>
+    <string name="settings_premium_error_name">יש להזין שם פרופיל</string>
+    <string name="settings_premium_error_multiplier">יש להזין מכפיל תקין</string>
+    <string name="settings_premium_feedback_saved">פרופיל הפרימיום נשמר</string>
+    <string name="settings_premium_feedback_removed">הפרופיל הוסר</string>
+    <string name="settings_premium_error_load">טעינת פרופילי הפרימיום נכשלה</string>
+    <string name="settings_premium_error_save">שמירת פרופיל הפרימיום נכשלה</string>
+    <string name="settings_premium_error_delete">הסרת הפרופיל נכשלה</string>
     <string name="settings_feedback_profile_deleted">הפרופיל נמחק</string>
     <string name="settings_feedback_delete_failed">מחיקת הפרופיל נכשלה</string>
     <string name="settings_feedback_delete_last_profile">אי אפשר למחוק את הפרופיל היחיד</string>

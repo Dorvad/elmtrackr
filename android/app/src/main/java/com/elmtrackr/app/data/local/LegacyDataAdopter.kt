@@ -17,6 +17,9 @@ class LegacyDataAdopter @Inject constructor(
             database.settingsDao().adoptLegacyUser(userId)
             database.profileDao().adoptLegacyUser(userId)
             database.refundClaimDao().adoptLegacyUser(userId)
+            database.taskDao().adoptLegacyUser(userId)
+            database.compensationProfileDao().adoptLegacyUser(userId)
+            database.premiumProfileDao().adoptLegacyUser(userId)
         }
         appPreferences.setLegacyDataAdopted(true)
     }

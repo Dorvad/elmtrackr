@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.shifts
 
 import androidx.lifecycle.ViewModel
+import com.elmtrackr.app.R
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.data.repository.PremiumProfilesRepository
@@ -9,6 +10,7 @@ import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.model.ReceiptUpload
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
@@ -58,14 +60,14 @@ class ShiftsViewModel @Inject constructor(
     private val _formTarget = MutableStateFlow<ShiftFormNavState?>(null)
     val formTarget: StateFlow<ShiftFormNavState?> = _formTarget.asStateFlow()
 
-    private val _formErrors = MutableStateFlow<Map<String, String>>(emptyMap())
-    val formErrors: StateFlow<Map<String, String>> = _formErrors.asStateFlow()
+    private val _formErrors = MutableStateFlow<Map<String, UiText>>(emptyMap())
+    val formErrors: StateFlow<Map<String, UiText>> = _formErrors.asStateFlow()
 
     private val _refundNotice = MutableStateFlow<String?>(null)
     val refundNotice: StateFlow<String?> = _refundNotice.asStateFlow()
 
-    private val _userMessage = MutableStateFlow<String?>(null)
-    val userMessage: StateFlow<String?> = _userMessage.asStateFlow()
+    private val _userMessage = MutableStateFlow<UiText?>(null)
+    val userMessage: StateFlow<UiText?> = _userMessage.asStateFlow()
 
     fun consumeUserMessage() {
         _userMessage.value = null
@@ -80,6 +82,11 @@ class ShiftsViewModel @Inject constructor(
 
     private val _selectedMonth = MutableStateFlow(YearMonth.now())
     private val _refreshNonce = MutableStateFlow(0)
+
+    // Latest work timezone seen by the pipeline; month navigation and the
+    // "current month" cap must agree with the zone the data is queried in.
+    @Volatile private var workZone: ZoneId = ZoneId.systemDefault()
+    @Volatile private var monthNavigated = false
     val selectedMonth: StateFlow<YearMonth> = _selectedMonth.asStateFlow()
 
     val featuresTravelRefunds: StateFlow<Boolean> = currentUserProvider.userId
@@ -101,6 +108,14 @@ class ShiftsViewModel @Inject constructor(
                         month to settings
                     }.flatMapLatest { (month, settings) ->
                         val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.of("UTC")
+                        workZone = zone
+                        if (!monthNavigated) {
+                            // Land on the current month in the WORK zone; near
+                            // midnight at a month boundary the device zone can
+                            // disagree by a whole month.
+                            val current = YearMonth.now(zone)
+                            if (_selectedMonth.value != current) _selectedMonth.value = current
+                        }
                         flow {
                             emit(ShiftsUiState.Loading)
                             combine(
@@ -141,10 +156,14 @@ class ShiftsViewModel @Inject constructor(
             initialValue = ShiftsUiState.Loading,
         )
 
-    fun previousMonth() { _selectedMonth.value = _selectedMonth.value.minusMonths(1) }
+    fun previousMonth() {
+        monthNavigated = true
+        _selectedMonth.value = _selectedMonth.value.minusMonths(1)
+    }
 
     fun nextMonth() {
-        if (_selectedMonth.value < YearMonth.now()) {
+        monthNavigated = true
+        if (_selectedMonth.value < YearMonth.now(workZone)) {
             _selectedMonth.value = _selectedMonth.value.plusMonths(1)
         }
     }
@@ -217,7 +236,7 @@ class ShiftsViewModel @Inject constructor(
             }
             shiftsRepository.createManualShift(shift)
             closeForm()
-            _userMessage.value = "Shift added"
+            _userMessage.value = UiText.Res(R.string.shifts_feedback_added)
         }
     }
 
@@ -261,14 +280,14 @@ class ShiftsViewModel @Inject constructor(
             }
             shiftsRepository.updateShift(finalShift)
             closeForm()
-            _userMessage.value = "Shift updated"
+            _userMessage.value = UiText.Res(R.string.shifts_feedback_updated)
         }
     }
 
     fun deleteShift(shiftId: String) {
         viewModelScope.launch {
             shiftsRepository.deleteShift(shiftId)
-            _userMessage.value = "Shift deleted"
+            _userMessage.value = UiText.Res(R.string.shifts_feedback_deleted)
         }
     }
 
@@ -283,7 +302,7 @@ class ShiftsViewModel @Inject constructor(
         onComplete: (Boolean) -> Unit = {},
     ) {
         if (amount <= 0) {
-            _formErrors.value = mapOf("refund" to "Enter a valid refund amount")
+            _formErrors.value = mapOf("refund" to UiText.Res(R.string.shifts_error_refund_amount))
             onComplete(false)
             return
         }
@@ -292,12 +311,12 @@ class ShiftsViewModel @Inject constructor(
             _refundNotice.value = null
             val shift = shiftsRepository.getShiftById(shiftId)
             if (shift == null) {
-                _formErrors.value = mapOf("refund" to "Shift not found")
+                _formErrors.value = mapOf("refund" to UiText.Res(R.string.shifts_error_refund_shift_missing))
                 onComplete(false)
                 return@launch
             }
             if (!shift.isCompleted) {
-                _formErrors.value = mapOf("refund" to "Finish the shift before saving a travel refund claim")
+                _formErrors.value = mapOf("refund" to UiText.Res(R.string.shifts_error_refund_unfinished))
                 onComplete(false)
                 return@launch
             }
@@ -305,7 +324,7 @@ class ShiftsViewModel @Inject constructor(
                 .firstOrNull { it.direction == direction }
             val userId = currentUserProvider.currentUserId()
             if (userId == null) {
-                _formErrors.value = mapOf("refund" to "Sign in before saving a claim")
+                _formErrors.value = mapOf("refund" to UiText.Res(R.string.shifts_error_refund_sign_in))
                 onComplete(false)
                 return@launch
             }
@@ -353,7 +372,7 @@ class ShiftsViewModel @Inject constructor(
                 _formErrors.value = _formErrors.value - "refund"
                 onComplete(true)
             }.onFailure {
-                _formErrors.value = mapOf("refund" to (it.message ?: "Unable to save the refund claim"))
+                _formErrors.value = mapOf("refund" to UiText.Res(R.string.shifts_error_refund_save_failed))
                 onComplete(false)
             }
         }
@@ -427,13 +446,18 @@ class ShiftsViewModel @Inject constructor(
         }
     }
 
-    internal fun validate(input: ShiftFormInput): Map<String, String> {
-        val errors = mutableMapOf<String, String>()
+    internal fun validate(input: ShiftFormInput): Map<String, UiText> {
+        val errors = mutableMapOf<String, UiText>()
         if (input.endTime != null && !input.endTime.isAfter(input.startTime)) {
-            errors["endTime"] = "End time must be after start time"
+            errors["endTime"] = UiText.Res(R.string.shifts_error_end_after_start)
         }
         if (input.breakMinutes < 0) {
-            errors["breakMinutes"] = "Break minutes must be zero or positive"
+            errors["breakMinutes"] = UiText.Res(R.string.shifts_error_break_negative)
+        } else if (input.endTime != null && input.endTime.isAfter(input.startTime)) {
+            val grossMinutes = java.time.Duration.between(input.startTime, input.endTime).toMinutes()
+            if (input.breakMinutes > grossMinutes) {
+                errors["breakMinutes"] = UiText.Res(R.string.shifts_error_break_too_long)
+            }
         }
         return errors
     }

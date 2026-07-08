@@ -48,6 +48,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.PremiumType
 import com.elmtrackr.app.domain.premium.PremiumTypeLabels
@@ -81,7 +82,7 @@ fun PremiumProfilesScreen(
                 CircularProgressIndicator()
             }
             is PremiumProfilesUiState.Error -> ErrorState(
-                message = state.message,
+                message = state.message.asString(),
                 onRetry = viewModel::ensureLoaded,
                 modifier = Modifier.padding(padding),
             )
@@ -131,7 +132,7 @@ private fun PremiumProfilesContent(
         }
         state.saveMessage?.let { message ->
             item {
-                Text(message, color = MaterialTheme.colorScheme.primary)
+                Text(message.asString(), color = MaterialTheme.colorScheme.primary)
                 LaunchedEffect(message) { onDismissMessage() }
             }
         }

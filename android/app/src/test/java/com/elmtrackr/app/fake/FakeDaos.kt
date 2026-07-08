@@ -422,6 +422,13 @@ class FakeCompensationProfileDao : com.elmtrackr.app.data.local.dao.Compensation
     override suspend fun getAllProfilesForUser(userId: String): List<com.elmtrackr.app.data.local.entity.CompensationProfileEntity> =
         store.values.filter { it.userId == userId && it.deletedAt == null }
 
+    override suspend fun adoptLegacyUser(userId: String) {
+        store.replaceAll { _, value ->
+            if (value.userId == "local-user") value.copy(userId = userId) else value
+        }
+        refresh()
+    }
+
     override suspend fun insert(profile: com.elmtrackr.app.data.local.entity.CompensationProfileEntity) {
         store[profile.localId] = profile
         refresh()

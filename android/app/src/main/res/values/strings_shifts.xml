@@ -85,4 +85,17 @@
     <string name="shifts_ride_provider">Ride provider</string>
     <string name="shifts_ride_provider_a11y">%1$s ride provider</string>
     <string name="shifts_ride_provider_a11y_selected">%1$s ride provider, selected</string>
+
+    <!-- ViewModel feedback and validation -->
+    <string name="shifts_feedback_added">Shift added</string>
+    <string name="shifts_feedback_updated">Shift updated</string>
+    <string name="shifts_feedback_deleted">Shift deleted</string>
+    <string name="shifts_error_end_after_start">End time must be after start time</string>
+    <string name="shifts_error_break_negative">Break minutes must be zero or positive</string>
+    <string name="shifts_error_break_too_long">Break can\'t be longer than the shift itself</string>
+    <string name="shifts_error_refund_amount">Enter a valid refund amount</string>
+    <string name="shifts_error_refund_shift_missing">Shift not found</string>
+    <string name="shifts_error_refund_unfinished">Finish the shift before saving a travel refund claim</string>
+    <string name="shifts_error_refund_sign_in">Sign in before saving a claim</string>
+    <string name="shifts_error_refund_save_failed">Couldn\'t save the refund claim</string>
 </resources>

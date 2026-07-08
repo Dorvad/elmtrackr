@@ -18,6 +18,8 @@ data class RemotePremiumProfileRow(
 
 @Serializable
 data class RemotePremiumProfileInsert(
+    /** Client-generated UUID so retried creates collide instead of duplicating. */
+    val id: String,
     @SerialName("user_id") val userId: String,
     val name: String,
     val multiplier: Double,

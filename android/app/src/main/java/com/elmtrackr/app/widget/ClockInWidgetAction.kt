@@ -13,5 +13,6 @@ class ClockInWidgetAction : ActionCallback {
         parameters: ActionParameters,
     ) {
         WidgetActions.clockIn(context)
+        WidgetActions.refreshWidgets(context)
     }
 }

@@ -40,7 +40,12 @@ object ClockOutActions {
         }
 
         ActiveShiftNotificationManager(context.applicationContext).cancelActiveShiftNotification()
-        ElmTrackrWidgetUpdater.update(context.applicationContext, null)
+        // Reload real state: pushing null blanked today's totals until the
+        // app-scope observer happened to repaint.
+        runCatching {
+            val widgetContext = com.elmtrackr.app.widget.WidgetContextLoader.load(deps, userId)
+            ElmTrackrWidgetUpdater.update(context.applicationContext, widgetContext)
+        }
         com.elmtrackr.app.wear.WearSyncPublisher.refresh(context.applicationContext)
         deps.dynamicShortcutsRefresher().refresh()
         return Result.CLOCKED_OUT

@@ -1,9 +1,11 @@
 package com.elmtrackr.app.widget
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
+import androidx.glance.LocalSize
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
@@ -35,6 +37,31 @@ import com.elmtrackr.app.language.withAppLocale
 
 private val Indigo = Color(0xFF5B4DF2)
 private val Aqua = Color(0xFF22D3EE)
+
+/**
+ * Responsive breakpoints. Each widget declares its subset via
+ * SizeMode.Responsive; layouts read LocalSize and adapt to the bucket the
+ * launcher granted, so resizing reflows content instead of clipping it.
+ */
+internal object WidgetSizes {
+    val barSizes: Set<DpSize> = setOf(
+        DpSize(180.dp, 50.dp), DpSize(260.dp, 50.dp), DpSize(340.dp, 50.dp),
+        DpSize(180.dp, 100.dp), DpSize(260.dp, 100.dp), DpSize(340.dp, 100.dp),
+    )
+    val cardSizes: Set<DpSize> = setOf(
+        DpSize(180.dp, 110.dp), DpSize(250.dp, 110.dp),
+        DpSize(180.dp, 170.dp), DpSize(250.dp, 170.dp),
+    )
+    val squareSizes: Set<DpSize> = setOf(
+        DpSize(57.dp, 57.dp), DpSize(110.dp, 110.dp), DpSize(155.dp, 155.dp),
+    )
+}
+
+/** Approximate width left for the middle column at the current breakpoint. */
+private fun barContentWidth(size: DpSize, showLogo: Boolean, reservedEnd: Int): Int {
+    val logo = if (showLogo) 52 else 0
+    return (size.width.value.toInt() - 24 - logo - reservedEnd).coerceAtLeast(60)
+}
 
 // Widget text resolves through a context wrapped with the in-app locale so
 // Hebrew/English follow the language chosen inside the app, including on
@@ -287,7 +314,7 @@ internal fun RoundToggleButton(state: WidgetPreferences.DisplayState) {
     val icon = if (state.isActive) R.drawable.widget_icon_stop else R.drawable.widget_icon_bolt
     Box(
         modifier = GlanceModifier
-            .size(40.dp)
+            .size(44.dp)
             .background(ImageProvider(bg))
             .clickable(primaryActionClick(state)),
         contentAlignment = Alignment.Center,
@@ -295,14 +322,22 @@ internal fun RoundToggleButton(state: WidgetPreferences.DisplayState) {
         Image(
             provider = ImageProvider(icon),
             contentDescription = widgetActionLabel(state),
-            modifier = GlanceModifier.size(if (state.isActive) 12.dp else 18.dp),
+            modifier = GlanceModifier.size(if (state.isActive) 14.dp else 20.dp),
         )
     }
 }
 
-/** 4×1 single-toggle wide bar (mockup: logo + status/timer + one CTA pill). */
+/**
+ * 4×1 single-toggle wide bar (mockup: logo + status/timer + one CTA pill).
+ * Narrow spans drop the logo, then the secondary line; an extra row of
+ * height adds the day-goal progress bar.
+ */
 @androidx.compose.runtime.Composable
 internal fun SingleToggleWidgetContent(state: WidgetPreferences.DisplayState) {
+    val size = LocalSize.current
+    val showLogo = size.width >= 260.dp
+    val showSecondary = size.width >= 340.dp
+    val showProgress = size.height >= 100.dp
     Row(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -310,31 +345,33 @@ internal fun SingleToggleWidgetContent(state: WidgetPreferences.DisplayState) {
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        WidgetLogoColumn(
-            modifier = GlanceModifier
-                .clickable(openAppClick())
-                .padding(end = 8.dp),
-        )
+        if (showLogo) {
+            WidgetLogoColumn(
+                modifier = GlanceModifier
+                    .clickable(openAppClick())
+                    .padding(end = 8.dp),
+            )
+        }
 
-        Row(
+        Column(
             modifier = GlanceModifier
-                .fillMaxWidth()
+                .defaultWeight()
                 .clickable(openAppClick()),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = GlanceModifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    WidgetStatusDot(state.isActive)
-                    Spacer(GlanceModifier.width(4.dp))
-                    Text(
-                        text = widgetStatusLabel(state),
-                        style = TextStyle(
-                            color = ColorProvider(Color.White.copy(alpha = 0.9f)),
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                    )
-                }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                WidgetStatusDot(state.isActive)
+                Spacer(GlanceModifier.width(4.dp))
+                Text(
+                    text = widgetStatusLabel(state),
+                    style = TextStyle(
+                        color = ColorProvider(Color.White.copy(alpha = 0.9f)),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    maxLines = 1,
+                )
+            }
+            Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = state.primaryTimeLabel,
                     style = TextStyle(
@@ -342,33 +379,63 @@ internal fun SingleToggleWidgetContent(state: WidgetPreferences.DisplayState) {
                         fontSize = if (state.isActive) 22.sp else 24.sp,
                         fontWeight = FontWeight.Bold,
                     ),
+                    maxLines = 1,
                 )
+                if (showSecondary) {
+                    Spacer(GlanceModifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = widgetSecondaryTop(state),
+                            style = TextStyle(
+                                color = ColorProvider(Color.White.copy(alpha = 0.65f)),
+                                fontSize = 8.sp,
+                            ),
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = widgetSecondaryBottom(state),
+                            style = TextStyle(
+                                color = ColorProvider(Color.White.copy(alpha = 0.80f)),
+                                fontSize = 9.sp,
+                            ),
+                            maxLines = 1,
+                        )
+                    }
+                }
             }
-            Column(modifier = GlanceModifier.padding(start = 4.dp)) {
+            if (showProgress) {
+                Spacer(GlanceModifier.height(5.dp))
+                WidgetProgressBar(
+                    percent = state.progressPercent,
+                    barWidthDp = barContentWidth(size, showLogo, reservedEnd = 100),
+                )
+                Spacer(GlanceModifier.height(3.dp))
                 Text(
-                    text = widgetSecondaryTop(state),
+                    text = widgetProgressSubLabel(state),
                     style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.65f)),
+                        color = ColorProvider(Color.White.copy(alpha = 0.72f)),
                         fontSize = 8.sp,
                     ),
-                )
-                Text(
-                    text = widgetSecondaryBottom(state),
-                    style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.80f)),
-                        fontSize = 9.sp,
-                    ),
+                    maxLines = 1,
                 )
             }
         }
 
+        Spacer(GlanceModifier.width(8.dp))
         if (state.isActive) PunchOutPillButton(state) else PunchInPillButton(state)
     }
 }
 
-/** 4×1 progress bar + round toggle (mockup: day-goal progress). */
+/**
+ * 4×1 progress bar + round toggle (mockup: day-goal progress).
+ * Narrow spans drop the logo, then the time-vs-goal column; the bar itself
+ * stretches with the granted width.
+ */
 @androidx.compose.runtime.Composable
 internal fun ProgressWidgetContent(state: WidgetPreferences.DisplayState) {
+    val size = LocalSize.current
+    val showLogo = size.width >= 260.dp
+    val showGoal = size.width >= 340.dp
     Row(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -376,23 +443,25 @@ internal fun ProgressWidgetContent(state: WidgetPreferences.DisplayState) {
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = GlanceModifier
-                .size(34.dp)
-                .background(ImageProvider(R.drawable.widget_logo_circle))
-                .clickable(openAppClick()),
-            contentAlignment = Alignment.Center,
-        ) {
-            Image(
-                provider = ImageProvider(R.drawable.widget_logo_icon),
-                contentDescription = "ElmTrackr",
-                modifier = GlanceModifier.size(18.dp),
-            )
+        if (showLogo) {
+            Box(
+                modifier = GlanceModifier
+                    .size(34.dp)
+                    .background(ImageProvider(R.drawable.widget_logo_circle))
+                    .clickable(openAppClick()),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    provider = ImageProvider(R.drawable.widget_logo_icon),
+                    contentDescription = "ElmTrackr",
+                    modifier = GlanceModifier.size(18.dp),
+                )
+            }
         }
 
         Column(
             modifier = GlanceModifier
-                .fillMaxWidth()
+                .defaultWeight()
                 .padding(horizontal = 8.dp)
                 .clickable(openAppClick()),
         ) {
@@ -403,13 +472,17 @@ internal fun ProgressWidgetContent(state: WidgetPreferences.DisplayState) {
                     text = widgetStatusLabel(state),
                     style = TextStyle(
                         color = ColorProvider(Color.White),
-                        fontSize = 8.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                     ),
+                    maxLines = 1,
                 )
             }
             Spacer(GlanceModifier.height(4.dp))
-            WidgetProgressBar(state.progressPercent)
+            WidgetProgressBar(
+                percent = state.progressPercent,
+                barWidthDp = barContentWidth(size, showLogo, reservedEnd = if (showGoal) 110 else 62),
+            )
             Spacer(GlanceModifier.height(3.dp))
             Text(
                 text = widgetProgressSubLabel(state),
@@ -417,36 +490,48 @@ internal fun ProgressWidgetContent(state: WidgetPreferences.DisplayState) {
                     color = ColorProvider(Color.White.copy(alpha = 0.72f)),
                     fontSize = 8.sp,
                 ),
+                maxLines = 1,
             )
         }
 
         Column(horizontalAlignment = Alignment.End) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = if (state.isActive) state.elapsedHms else state.todayHms,
-                    style = TextStyle(
-                        color = ColorProvider(Color.White),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                )
-                Text(
-                    text = " / ${state.goalHoursLabel}",
-                    style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.65f)),
-                        fontSize = 9.sp,
-                    ),
-                )
+            if (showGoal) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = if (state.isActive) state.elapsedHms else state.todayHms,
+                        style = TextStyle(
+                            color = ColorProvider(Color.White),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = " / ${state.goalHoursLabel}",
+                        style = TextStyle(
+                            color = ColorProvider(Color.White.copy(alpha = 0.65f)),
+                            fontSize = 9.sp,
+                        ),
+                        maxLines = 1,
+                    )
+                }
+                Spacer(GlanceModifier.height(4.dp))
             }
-            Spacer(GlanceModifier.height(4.dp))
             RoundToggleButton(state)
         }
     }
 }
 
-/** 4×2 tall card with full-width action bar (mockup: oversized clock + base CTA). */
+/**
+ * 4×2 tall card with full-width action bar (mockup: oversized clock + base
+ * CTA). Extra height adds the day-goal progress bar; narrow spans drop the
+ * CTA hint.
+ */
 @androidx.compose.runtime.Composable
 internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
+    val size = LocalSize.current
+    val roomy = size.height >= 170.dp
+    val showHint = size.width >= 250.dp
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -491,6 +576,23 @@ internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
                     color = ColorProvider(Color.White.copy(alpha = 0.75f)),
                     fontSize = 11.sp,
                 ),
+            )
+        }
+
+        if (roomy) {
+            Spacer(GlanceModifier.height(10.dp))
+            WidgetProgressBar(
+                percent = state.progressPercent,
+                barWidthDp = size.width.value.toInt() - 28,
+            )
+            Spacer(GlanceModifier.height(4.dp))
+            Text(
+                text = widgetProgressSubLabel(state),
+                style = TextStyle(
+                    color = ColorProvider(Color.White.copy(alpha = 0.72f)),
+                    fontSize = 9.sp,
+                ),
+                maxLines = 1,
             )
         }
 
@@ -548,24 +650,53 @@ internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
                         fontWeight = FontWeight.Bold,
                     ),
                 )
-                Spacer(GlanceModifier.width(8.dp))
-                Text(
-                    text = widgetActionHint(state),
-                    style = TextStyle(
-                        color = ColorProvider(
-                            if (state.isActive) Color.White.copy(alpha = 0.65f) else Color.Gray,
+                if (showHint) {
+                    Spacer(GlanceModifier.width(8.dp))
+                    Text(
+                        text = widgetActionHint(state),
+                        style = TextStyle(
+                            color = ColorProvider(
+                                if (state.isActive) Color.White.copy(alpha = 0.65f) else Color.Gray,
+                            ),
+                            fontSize = 9.sp,
                         ),
-                        fontSize = 9.sp,
-                    ),
-                )
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
 }
 
-/** 1×1 progress ring (mockup: open ring → filled ring when active or progressing). */
+/**
+ * 1×1 progress ring (mockup: open ring → filled ring when active or
+ * progressing). The ring and its type scale with the granted cell size now
+ * that the widget is resizable.
+ */
 @androidx.compose.runtime.Composable
 internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
+    val size = LocalSize.current
+    val cell = if (size.width < size.height) size.width else size.height
+    val ringSize = when {
+        cell >= 150.dp -> 116.dp
+        cell >= 100.dp -> 84.dp
+        else -> 52.dp
+    }
+    val bigFont = when {
+        cell >= 150.dp -> 24.sp
+        cell >= 100.dp -> 18.sp
+        else -> 14.sp
+    }
+    val smallFont = when {
+        cell >= 150.dp -> 12.sp
+        cell >= 100.dp -> 9.sp
+        else -> 7.sp
+    }
+    val boltSize = when {
+        cell >= 150.dp -> 30.dp
+        cell >= 100.dp -> 22.dp
+        else -> 16.dp
+    }
     val showProgressRing = state.isActive || state.progressPercent > 0
     Box(
         modifier = GlanceModifier
@@ -576,7 +707,7 @@ internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
     ) {
         Box(
             modifier = GlanceModifier
-                .size(52.dp)
+                .size(ringSize)
                 .background(
                     ImageProvider(
                         if (showProgressRing) R.drawable.widget_ring_progress
@@ -591,47 +722,52 @@ internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
                         text = state.elapsedHms.ifEmpty { "0:00" },
                         style = TextStyle(
                             color = ColorProvider(Color.White),
-                            fontSize = 14.sp,
+                            fontSize = bigFont,
                             fontWeight = FontWeight.Bold,
                         ),
+                        maxLines = 1,
                     )
                     Text(
                         text = "${state.progressPercent}%",
                         style = TextStyle(
                             color = ColorProvider(Color.White.copy(alpha = 0.75f)),
-                            fontSize = 7.sp,
+                            fontSize = smallFont,
                         ),
+                        maxLines = 1,
                     )
                 } else if (state.progressPercent > 0) {
                     Text(
                         text = "${state.progressPercent}%",
                         style = TextStyle(
                             color = ColorProvider(Color.White),
-                            fontSize = 13.sp,
+                            fontSize = bigFont,
                             fontWeight = FontWeight.Bold,
                         ),
+                        maxLines = 1,
                     )
                     Text(
                         text = widgetContext().getString(R.string.widget_today_lower),
                         style = TextStyle(
                             color = ColorProvider(Color.White.copy(alpha = 0.7f)),
-                            fontSize = 7.sp,
+                            fontSize = smallFont,
                         ),
+                        maxLines = 1,
                     )
                 } else {
                     Image(
                         provider = ImageProvider(R.drawable.widget_icon_bolt),
                         contentDescription = widgetClockInLabel(),
-                        modifier = GlanceModifier.size(16.dp),
+                        modifier = GlanceModifier.size(boltSize),
                     )
                     Spacer(GlanceModifier.height(2.dp))
                     Text(
-                        text = "PUNCH IN",
+                        text = widgetContext().getString(R.string.widget_punch_in),
                         style = TextStyle(
                             color = ColorProvider(Color.White),
-                            fontSize = 8.sp,
+                            fontSize = smallFont,
                             fontWeight = FontWeight.Bold,
                         ),
+                        maxLines = 1,
                     )
                 }
             }
@@ -639,9 +775,39 @@ internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
     }
 }
 
-/** 1×1 big action (mockup: maximal tap target). */
+/**
+ * 1×1 big action (mockup: maximal tap target). The button and labels scale
+ * with the granted cell size now that the widget is resizable.
+ */
 @androidx.compose.runtime.Composable
 internal fun BigActionWidgetContent(state: WidgetPreferences.DisplayState) {
+    val size = LocalSize.current
+    val cell = if (size.width < size.height) size.width else size.height
+    val buttonSize = when {
+        cell >= 150.dp -> 84.dp
+        cell >= 100.dp -> 64.dp
+        else -> 48.dp
+    }
+    val iconSize = when {
+        cell >= 150.dp -> 38.dp
+        cell >= 100.dp -> 28.dp
+        else -> 22.dp
+    }
+    val labelFont = when {
+        cell >= 150.dp -> 14.sp
+        cell >= 100.dp -> 12.sp
+        else -> 10.sp
+    }
+    val hintFont = when {
+        cell >= 150.dp -> 11.sp
+        cell >= 100.dp -> 9.sp
+        else -> 7.sp
+    }
+    val activeLabelFont = when {
+        cell >= 150.dp -> 13.sp
+        cell >= 100.dp -> 11.sp
+        else -> 9.sp
+    }
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -655,62 +821,66 @@ internal fun BigActionWidgetContent(state: WidgetPreferences.DisplayState) {
                     text = state.elapsedHms.ifEmpty { "0:00" },
                     style = TextStyle(
                         color = ColorProvider(Color.White),
-                        fontSize = 11.sp,
+                        fontSize = labelFont,
                         fontWeight = FontWeight.Bold,
                     ),
+                    maxLines = 1,
                 )
                 Spacer(GlanceModifier.height(6.dp))
                 Box(
                     modifier = GlanceModifier
-                        .size(40.dp)
+                        .size(buttonSize - 8.dp)
                         .background(ImageProvider(R.drawable.widget_button_round_outline)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Image(
                         provider = ImageProvider(R.drawable.widget_icon_stop),
                         contentDescription = widgetClockOutLabel(),
-                        modifier = GlanceModifier.size(12.dp),
+                        modifier = GlanceModifier.size(iconSize - 8.dp),
                     )
                 }
                 Spacer(GlanceModifier.height(4.dp))
                 Text(
-                    text = "PUNCH OUT",
+                    text = widgetActionLabel(state),
                     style = TextStyle(
                         color = ColorProvider(Color.White),
-                        fontSize = 9.sp,
+                        fontSize = activeLabelFont,
                         fontWeight = FontWeight.Bold,
                     ),
+                    maxLines = 1,
                 )
             }
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = GlanceModifier
-                        .size(48.dp)
+                        .size(buttonSize)
                         .background(ImageProvider(R.drawable.widget_button_round_white)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Image(
                         provider = ImageProvider(R.drawable.widget_icon_bolt),
                         contentDescription = widgetClockInLabel(),
-                        modifier = GlanceModifier.size(22.dp),
+                        modifier = GlanceModifier.size(iconSize),
                     )
                 }
                 Spacer(GlanceModifier.height(6.dp))
                 Text(
-                    text = "PUNCH IN",
+                    text = widgetActionLabel(state),
                     style = TextStyle(
                         color = ColorProvider(Color.White),
-                        fontSize = 11.sp,
+                        fontSize = labelFont,
                         fontWeight = FontWeight.Bold,
                     ),
+                    maxLines = 1,
                 )
                 Text(
-                    text = "tap to clock in",
+                    text = widgetActionHint(state),
                     style = TextStyle(
                         color = ColorProvider(Color.White.copy(alpha = 0.7f)),
-                        fontSize = 7.sp,
+                        fontSize = hintFont,
                     ),
+                    maxLines = 1,
                 )
             }
         }

@@ -20,6 +20,8 @@ data class RemoteRefundClaimRow(
 
 @Serializable
 data class RemoteRefundClaimInsert(
+    /** Client-generated UUID so retried creates collide instead of duplicating. */
+    val id: String,
     @SerialName("shift_id") val shiftId: String,
     @SerialName("user_id") val userId: String,
     val direction: String,

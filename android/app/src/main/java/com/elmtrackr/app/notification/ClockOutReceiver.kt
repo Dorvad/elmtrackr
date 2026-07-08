@@ -27,24 +27,29 @@ class ClockOutReceiver : BroadcastReceiver() {
             try {
                 val deps = AppEntryPoints.background(context)
                 val userId = deps.currentUserProvider().currentUserId()
-                if (userId != null) {
-                    val shift = deps.shiftsRepository().getShiftById(shiftId)
-                    val settings = deps.settingsRepository().getSettings(userId)
-                    if (shift != null && settings != null) {
-                        val profiles = deps.compensationProfilesRepository().getProfiles(userId)
-                        val snapshot = ShiftCompensationHelper.buildClockOutSnapshot(shift, settings, profiles)
-                        deps.shiftsRepository().clockOut(shiftId, compensationSnapshot = snapshot)
-                    } else {
-                        deps.shiftsRepository().clockOut(shiftId)
+                // A stale notification can outlive its shift (clocked out or
+                // deleted elsewhere). Only clock out when the shift still
+                // exists, and never let a failure keep the notification pinned.
+                val shift = runCatching { deps.shiftsRepository().getShiftById(shiftId) }.getOrNull()
+                if (shift != null) {
+                    runCatching {
+                        val settings = userId?.let { deps.settingsRepository().getSettings(it) }
+                        if (userId != null && settings != null) {
+                            val profiles = deps.compensationProfilesRepository().getProfiles(userId)
+                            val snapshot = ShiftCompensationHelper.buildClockOutSnapshot(shift, settings, profiles)
+                            deps.shiftsRepository().clockOut(shiftId, compensationSnapshot = snapshot)
+                        } else {
+                            deps.shiftsRepository().clockOut(shiftId)
+                        }
                     }
-                } else {
-                    deps.shiftsRepository().clockOut(shiftId)
                 }
-                val nm = ActiveShiftNotificationManager(context.applicationContext)
-                nm.cancelActiveShiftNotification()
-                nm.cancelReminderNotification()
-                OvertimeReminderScheduler.cancelAll(context.applicationContext)
             } finally {
+                runCatching {
+                    val nm = ActiveShiftNotificationManager(context.applicationContext)
+                    nm.cancelActiveShiftNotification()
+                    nm.cancelReminderNotification()
+                    OvertimeReminderScheduler.cancelAll(context.applicationContext)
+                }
                 pendingResult.finish()
             }
         }

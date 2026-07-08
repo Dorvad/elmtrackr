@@ -28,10 +28,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -63,15 +61,17 @@ class ActiveShiftSideEffectsCoordinator @Inject constructor(
         val notifManager = ActiveShiftNotificationManager(app)
         scope.launch {
             observeUserId
-                .filterNotNull()
                 .flatMapLatest { userId ->
-                    combine(
-                        shiftsRepository.observeActiveShift(userId),
-                        settingsRepository.observeSettings(userId),
-                    ) { active, settings -> Triple(userId, active, settings) }
-                }
-                .map { (userId, active, settings) ->
-                    NotificationPayload(userId, active, settings)
+                    if (userId == null) {
+                        // Signed out: fall through to the cleanup branch below so
+                        // the previous user's notification and shortcut disappear.
+                        flowOf(NotificationPayload(null, null, null))
+                    } else {
+                        combine(
+                            shiftsRepository.observeActiveShift(userId),
+                            settingsRepository.observeSettings(userId),
+                        ) { active, settings -> NotificationPayload(userId, active, settings) }
+                    }
                 }
                 .distinctUntilChanged()
                 .catch { /* never crash the app due to notification failures */ }
@@ -79,7 +79,8 @@ class ActiveShiftSideEffectsCoordinator @Inject constructor(
                     val shift = payload.activeShift
                     val settings = payload.settings
                     if (shift != null) {
-                        notifManager.showActiveShiftNotification(shift)
+                        val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: java.time.ZoneId.systemDefault()
+                        notifManager.showActiveShiftNotification(shift, zone)
                         OvertimeReminderScheduler.scheduleForActiveShift(app, shift, settings)
                         updateDynamicShortcuts(clockedIn = true)
                     } else {
@@ -95,26 +96,31 @@ class ActiveShiftSideEffectsCoordinator @Inject constructor(
     private fun startWidgetObserver() {
         scope.launch {
             observeUserId
-                .filterNotNull()
                 .flatMapLatest { userId ->
-                    combine(
-                        shiftsRepository.observeActiveShift(userId),
-                        settingsRepository.observeSettings(userId),
-                    ) { active, settings -> Triple(userId, active, settings) }
-                }
-                .distinctUntilChanged { old, new ->
-                    old.second?.id == new.second?.id && old.third?.timezone == new.third?.timezone
-                }
-                .debounce(WIDGET_DEBOUNCE_MS)
-                .flatMapLatest { (userId, active, settings) ->
-                    val zone = WorkTimezone.zoneId(settings?.timezone)
-                    val today = LocalDate.now(zone)
-                    val todayShiftsFlow = shiftsRepository.observeShiftsForDay(userId, zone, today)
-                    combine(
-                        todayShiftsFlow,
-                        shiftsRepository.observeRecentCompletedShifts(userId, 1),
-                    ) { todayShifts, lastCompleted ->
-                        WidgetRefresh(active, lastCompleted.firstOrNull(), todayShifts, settings)
+                    if (userId == null) {
+                        // Signed out: push an empty state so the widget stops
+                        // showing the previous user's shift.
+                        flowOf(WidgetRefresh(null, null, emptyList(), null))
+                    } else {
+                        combine(
+                            shiftsRepository.observeActiveShift(userId),
+                            settingsRepository.observeSettings(userId),
+                        ) { active, settings -> Triple(userId, active, settings) }
+                            .distinctUntilChanged { old, new ->
+                                old.second?.id == new.second?.id && old.third?.timezone == new.third?.timezone
+                            }
+                            .debounce(WIDGET_DEBOUNCE_MS)
+                            .flatMapLatest { (uid, active, settings) ->
+                                val zone = WorkTimezone.zoneId(settings?.timezone)
+                                val today = LocalDate.now(zone)
+                                val todayShiftsFlow = shiftsRepository.observeShiftsForDay(uid, zone, today)
+                                combine(
+                                    todayShiftsFlow,
+                                    shiftsRepository.observeRecentCompletedShifts(uid, 1),
+                                ) { todayShifts, lastCompleted ->
+                                    WidgetRefresh(active, lastCompleted.firstOrNull(), todayShifts, settings)
+                                }
+                            }
                     }
                 }
                 .catch { }
@@ -133,39 +139,46 @@ class ActiveShiftSideEffectsCoordinator @Inject constructor(
     private fun startWearObserver() {
         scope.launch {
             observeUserId
-                .filterNotNull()
                 .flatMapLatest { userId ->
-                    combine(
-                        shiftsRepository.observeActiveShift(userId),
-                        settingsRepository.observeSettings(userId),
-                    ) { active, settings -> Triple(userId, active, settings) }
-                }
-                .distinctUntilChanged { old, new ->
-                    old.second?.id == new.second?.id && old.third?.timezone == new.third?.timezone
-                }
-                .debounce(WEAR_DEBOUNCE_MS)
-                .flatMapLatest { (userId, active, settings) ->
-                    val zone = WorkTimezone.zoneId(settings?.timezone)
-                    val today = LocalDate.now(zone)
-                    val todayShiftsFlow = shiftsRepository.observeShiftsForDay(userId, zone, today)
-                    combine(
-                        todayShiftsFlow,
-                        shiftsRepository.observeRecentCompletedShifts(userId, 1),
-                    ) { todayShifts, lastCompleted ->
-                        WidgetRefresh(active, lastCompleted.firstOrNull(), todayShifts, settings)
+                    if (userId == null) {
+                        flowOf(null)
+                    } else {
+                        combine(
+                            shiftsRepository.observeActiveShift(userId),
+                            settingsRepository.observeSettings(userId),
+                        ) { active, settings -> Triple(userId, active, settings) }
+                            .distinctUntilChanged { old, new ->
+                                old.second?.id == new.second?.id && old.third?.timezone == new.third?.timezone
+                            }
+                            .debounce(WEAR_DEBOUNCE_MS)
+                            .flatMapLatest { (uid, active, settings) ->
+                                val zone = WorkTimezone.zoneId(settings?.timezone)
+                                val today = LocalDate.now(zone)
+                                val todayShiftsFlow = shiftsRepository.observeShiftsForDay(uid, zone, today)
+                                combine(
+                                    todayShiftsFlow,
+                                    shiftsRepository.observeRecentCompletedShifts(uid, 1),
+                                ) { todayShifts, lastCompleted ->
+                                    WidgetRefresh(active, lastCompleted.firstOrNull(), todayShifts, settings)
+                                }
+                            }
                     }
                 }
                 .catch { }
                 .collect { refresh ->
-                    WearSyncPublisher.publishFromWidgetContext(
-                        app,
-                        WidgetContext(
-                            activeShift = refresh.activeShift,
-                            lastCompletedShift = refresh.lastCompletedShift,
-                            todayShifts = refresh.todayShifts,
-                            settings = refresh.settings,
-                        ),
-                    )
+                    if (refresh == null) {
+                        WearSyncPublisher.publishSnapshot(app, WearShiftSnapshot.signedOut())
+                    } else {
+                        WearSyncPublisher.publishFromWidgetContext(
+                            app,
+                            WidgetContext(
+                                activeShift = refresh.activeShift,
+                                lastCompletedShift = refresh.lastCompletedShift,
+                                todayShifts = refresh.todayShifts,
+                                settings = refresh.settings,
+                            ),
+                        )
+                    }
                 }
         }
     }
@@ -204,7 +217,7 @@ class ActiveShiftSideEffectsCoordinator @Inject constructor(
     }
 
     private data class NotificationPayload(
-        val userId: String,
+        val userId: String?,
         val activeShift: Shift?,
         val settings: UserSettings?,
     )

@@ -7,6 +7,7 @@ import java.util.UUID
 
 fun PremiumProfileEntity.toRemoteInsert(): RemotePremiumProfileInsert =
     RemotePremiumProfileInsert(
+        id = localId,
         userId = userId,
         name = name,
         multiplier = multiplier,

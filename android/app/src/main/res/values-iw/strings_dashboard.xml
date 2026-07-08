@@ -53,6 +53,7 @@
     <string name="dashboard_clock_workday">יום עבודה</string>
     <string name="dashboard_clock_time_flowing">הזמן זורם</string>
     <string name="dashboard_clock_in_orbit">במסלול</string>
+    <string name="dashboard_clock_tide_rising">הגאות עולה</string>
 
     <!-- Month summary -->
     <string name="dashboard_month_summary_title">סיכום %1$s</string>

@@ -82,6 +82,7 @@
     <string name="settings_face_sand">Flowing hourglass</string>
     <string name="settings_face_blocks">Hour-by-hour blocks</string>
     <string name="settings_face_orbit">Orbiting satellite</string>
+    <string name="settings_face_tide">Rising tide of your day</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">No hourly rate</string>
@@ -220,6 +221,13 @@
     <string name="settings_feedback_local_cleared">Local data cleared</string>
     <string name="settings_feedback_reset_sent">Reset link sent to %1$s. Check your inbox.</string>
     <string name="settings_feedback_profile_created">Profile created</string>
+    <string name="settings_premium_error_name">Enter a profile name</string>
+    <string name="settings_premium_error_multiplier">Enter a valid multiplier</string>
+    <string name="settings_premium_feedback_saved">Premium profile saved</string>
+    <string name="settings_premium_feedback_removed">Profile removed</string>
+    <string name="settings_premium_error_load">Couldn\'t load premium profiles</string>
+    <string name="settings_premium_error_save">Couldn\'t save the premium profile</string>
+    <string name="settings_premium_error_delete">Couldn\'t remove the profile</string>
     <string name="settings_feedback_profile_deleted">Profile deleted</string>
     <string name="settings_feedback_delete_failed">Couldn\'t delete the profile</string>
     <string name="settings_feedback_delete_last_profile">You can\'t delete your only profile</string>

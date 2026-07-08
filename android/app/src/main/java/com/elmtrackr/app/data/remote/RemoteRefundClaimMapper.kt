@@ -8,6 +8,7 @@ import java.util.UUID
 
 fun RefundClaimEntity.toRemoteInsert(shiftRemoteId: String): RemoteRefundClaimInsert =
     RemoteRefundClaimInsert(
+        id = localId,
         shiftId = shiftRemoteId,
         userId = userId,
         direction = enumToSnakeWire(direction),
