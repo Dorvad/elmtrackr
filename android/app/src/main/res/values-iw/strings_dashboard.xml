@@ -99,7 +99,7 @@
     <string name="dashboard_setup_compensation_action">בדיקת כללי השכר</string>
     <string name="dashboard_setup_premium_title">הוסיפו תעריף פרמיה</string>
     <string name="dashboard_setup_premium_blurb">פרופילי תוספת לשימוש חוזר.</string>
-    <string name="dashboard_setup_premium_body">פרופיל פרמיה הוא תוספת בעלת שם קבוע \u2014 למשל 150% לעבודת לילה \u2014 שאפשר להחיל על כל משמרת. צרו אחד וראו איך הוא משנה את שכר המשמרת.</string>
+    <string name="dashboard_setup_premium_body" formatted="false">פרופיל פרמיה הוא תוספת בעלת שם קבוע \u2014 למשל 150% לעבודת לילה \u2014 שאפשר להחיל על כל משמרת. צרו אחד וראו איך הוא משנה את שכר המשמרת.</string>
     <string name="dashboard_setup_premium_action">הגדרת פרמיות</string>
     <string name="dashboard_setup_tasks_title">צרו פרויקט בתשלום</string>
     <string name="dashboard_setup_tasks_blurb">תעריף שונה לכל פרויקט או לקוח.</string>
