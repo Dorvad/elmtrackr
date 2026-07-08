@@ -323,7 +323,22 @@ object IsraeliCompensationEngine {
                     dailyOtBucket(dailyOtMinutesInDay)
                 else -> OvertimeBucket.OT_ADDITIONAL
             }
-            val multiplier = payMultiplier(isWeeklyRest, bucket)
+            // Derive the segment rate from the configured rules rather than the
+            // fixed statutory ladder, so edited weekend/holiday multipliers and
+            // custom overtime tiers actually change pay. The IL preset's
+            // defaults reproduce the statutory ladder exactly (1.5/1.75/2.0 on
+            // rest days, 1.0/1.25/1.5 on weekdays).
+            val otExtra = if (bucket == OvertimeBucket.REGULAR) 0.0 else (otMult - 1.0).coerceAtLeast(0.0)
+            val multiplier = if (isWeeklyRest) {
+                val calendarRest = isWeeklyRestAt(zdt, rules, manualHoliday = false)
+                val restBase = maxOf(
+                    if (calendarRest && rules.weekendEnabled) rules.weekendMultiplier else 1.0,
+                    if (manualHoliday && rules.holidayEnabled) rules.holidayMultiplier else 1.0,
+                )
+                restBase + otExtra
+            } else {
+                1.0 + otExtra
+            }
             val label = payLabel(
                 isWeeklyRest = isWeeklyRest,
                 bucket = bucket,
@@ -451,19 +466,6 @@ object IsraeliCompensationEngine {
         val minuteInWeek = rules.weeklyStandardMinutes + weeklyOtMinutesInWeek + 1
         return PayrollCalculator.overtimeTierMultiplier(minuteInWeek, rules.weeklyOvertimeTiers)
             .takeIf { it > 1.0 } ?: rules.weeklyOvertimeTiers.minBy { it.afterMinutes }.multiplier
-    }
-
-    internal fun payMultiplier(isWeeklyRest: Boolean, bucket: OvertimeBucket): Double = when {
-        isWeeklyRest -> when (bucket) {
-            OvertimeBucket.REGULAR -> 1.5
-            OvertimeBucket.OT_FIRST_TWO -> 1.75
-            OvertimeBucket.OT_ADDITIONAL -> 2.0
-        }
-        else -> when (bucket) {
-            OvertimeBucket.REGULAR -> 1.0
-            OvertimeBucket.OT_FIRST_TWO -> 1.25
-            OvertimeBucket.OT_ADDITIONAL -> 1.5
-        }
     }
 
     internal fun payLabel(

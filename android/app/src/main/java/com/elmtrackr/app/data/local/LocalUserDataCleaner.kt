@@ -1,6 +1,7 @@
 package com.elmtrackr.app.data.local
 
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
+import com.elmtrackr.app.data.local.dao.PremiumProfileDao
 import com.elmtrackr.app.data.local.dao.ProfileDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
@@ -19,6 +20,7 @@ class LocalUserDataCleaner @Inject constructor(
     private val refundClaimDao: RefundClaimDao,
     private val receiptsRepository: ReceiptsRepository,
     private val compensationProfileDao: CompensationProfileDao,
+    private val premiumProfileDao: PremiumProfileDao,
     private val taskDao: TaskDao,
 ) {
     suspend fun clearUserData(userId: String) {
@@ -27,6 +29,7 @@ class LocalUserDataCleaner @Inject constructor(
         receiptsRepository.deleteAllForUser(userId)
         settingsDao.deleteAllForUser(userId)
         compensationProfileDao.deleteAllForUser(userId)
+        premiumProfileDao.deleteAllForUser(userId)
         taskDao.deleteAllForUser(userId)
         profileDao.deleteAllForUser(userId)
     }

@@ -5,6 +5,7 @@ import com.elmtrackr.app.data.local.entity.TaskEntity
 import java.util.UUID
 
 fun TaskEntity.toRemoteInsert(): RemoteTaskInsert = RemoteTaskInsert(
+    id = localId,
     userId = userId,
     name = name,
     icon = icon,

@@ -8,6 +8,8 @@ import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.data.local.mapper.mapToDomain
 import com.elmtrackr.app.data.local.mapper.toDomainOrNull
 import com.elmtrackr.app.data.sync.SyncTrigger
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import com.elmtrackr.app.domain.compensation.CompensationRulesCodec
 import com.elmtrackr.app.domain.model.CompensationSnapshot
 import com.elmtrackr.app.domain.model.Shift
@@ -30,6 +32,10 @@ class LocalShiftsRepository @Inject constructor(
     private val syncTrigger: SyncTrigger,
 ) : ShiftsRepository {
 
+    // clockIn is check-then-insert; without this a double tap could create
+    // two concurrent active shifts.
+    private val clockInMutex = Mutex()
+
     override fun observeShifts(userId: String): Flow<List<Shift>> =
         shiftDao.observeShifts(userId).map { entities -> entities.mapToDomain { it.toDomain() } }
 
@@ -46,7 +52,7 @@ class LocalShiftsRepository @Inject constructor(
         taskNameSnapshot: String?,
         taskIconSnapshot: String?,
         taskHourlyRateSnapshot: Double?,
-    ): Shift {
+    ): Shift = clockInMutex.withLock {
         shiftDao.getActiveShifts(userId).maxByOrNull { it.startTime }?.let { activeShift ->
             return activeShift.toDomain()
         }

@@ -247,9 +247,11 @@ class SyncRepositoryImpl @Inject constructor(
             runSyncStep("pull compensation profiles", issues) { pullCompensationProfiles(userId) }
             runSyncStep("pull premium profiles", issues) { pullPremiumProfiles(userId) }
             runSyncStep("pull user settings", issues) { pullUserSettings(userId) }
+            // Tasks must land before shifts: applyRemoteShift resolves each
+            // shift's task_id against the local tasks table.
+            runSyncStep("pull tasks", issues) { pullTasks(userId, warnings) }
             runSyncStep("pull shifts", issues) { pullShifts(userId) }
             runSyncStep("pull refund claims", issues) { pullRefundClaims(userId) }
-            runSyncStep("pull tasks", issues) { pullTasks(userId, warnings) }
 
             when {
                 issues.authExpired -> {
@@ -412,8 +414,14 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pushTaskCreate(task: TaskEntity, syncedAt: Long) {
-        val remote = tasksRemote.insert(task.toRemoteInsert())
-        taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
+        val remoteId = try {
+            tasksRemote.insert(task.toRemoteInsert()).id
+        } catch (e: Exception) {
+            // The insert carries the client-generated id; a retry after a lost
+            // response collides with the row it already created — adopt it.
+            if (RemoteSyncErrors.isUniqueViolation(e)) task.localId else throw e
+        }
+        taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
     private suspend fun pushTaskUpdate(task: TaskEntity, syncedAt: Long) {
@@ -572,6 +580,13 @@ class SyncRepositoryImpl @Inject constructor(
         if (existing != null) {
             if (existing.syncStatus != SyncStatus.SYNCED) return true
             val remoteNewer = isoToEpoch(remote.updatedAt) > existing.updatedAt
+            // Heal links dropped by the old pull order, which materialised
+            // shifts before their tasks existed locally.
+            if (!remoteNewer && existing.deletedAt == null && existing.taskId == null && remote.taskId != null) {
+                idMapper.taskRemoteToLocal(remote.taskId)?.let { taskLocalId ->
+                    shiftDao.upsertShift(existing.copy(taskId = taskLocalId))
+                }
+            }
             if (remoteNewer || existing.deletedAt != null) {
                 shiftDao.upsertShift(
                     remote.toLocalEntity(
@@ -653,8 +668,12 @@ class SyncRepositoryImpl @Inject constructor(
         shiftRemoteId: String,
         syncedAt: Long,
     ) {
-        val remote = claimsRemote.insert(claim.toRemoteInsert(shiftRemoteId))
-        refundClaimDao.updateSyncState(claim.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
+        val remoteId = try {
+            claimsRemote.insert(claim.toRemoteInsert(shiftRemoteId)).id
+        } catch (e: Exception) {
+            if (RemoteSyncErrors.isUniqueViolation(e)) claim.localId else throw e
+        }
+        refundClaimDao.updateSyncState(claim.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
     private suspend fun pushRefundClaimUpdate(claim: RefundClaimEntity, syncedAt: Long) {
@@ -808,8 +827,12 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pushPremiumProfileCreate(profile: PremiumProfileEntity, syncedAt: Long) {
-        val remote = premiumRemote.insert(profile.toRemoteInsert())
-        premiumProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
+        val remoteId = try {
+            premiumRemote.insert(profile.toRemoteInsert()).id
+        } catch (e: Exception) {
+            if (RemoteSyncErrors.isUniqueViolation(e)) profile.localId else throw e
+        }
+        premiumProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
     private suspend fun pushPremiumProfileUpdate(profile: PremiumProfileEntity, syncedAt: Long) {
