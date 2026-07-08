@@ -98,7 +98,7 @@ object PayrollCalculator {
         }
 
         val isSpecial = segments.any { it.isWeeklyRest } ||
-            (shift.isSpecialDay && resolved.rules.holidayManualSpecialDayEnabled)
+            (shift.isSpecialDay && !shift.forceRegularRate && resolved.rules.holidayManualSpecialDayEnabled)
 
         return ShiftPayBreakdown(
             brackets = brackets,
@@ -136,13 +136,17 @@ object PayrollCalculator {
         val weekendDays = resolved.rules.weekendDays
         val startOnWeekend = resolved.rules.weekendEnabled &&
             WeekendRules.isWeekendDate(startDateStr, weekendDays)
-        val shiftPremium = shift.premiumProfileId?.let { id ->
-            premiumProfiles.firstOrNull { it.id == id || it.remoteId == id }
+        val shiftPremium = if (shift.forceRegularRate) {
+            null
+        } else {
+            shift.premiumProfileId?.let { id ->
+                premiumProfiles.firstOrNull { it.id == id || it.remoteId == id }
+            }
         }
         val isHoliday = shiftPremium != null ||
             (resolved.rules.holidayEnabled &&
                 resolved.rules.holidayManualSpecialDayEnabled &&
-                shift.isSpecialDay)
+                shift.isSpecialDay && !shift.forceRegularRate)
         val isSpecial = isHoliday || startOnWeekend
 
         val tiers = buildTiers(

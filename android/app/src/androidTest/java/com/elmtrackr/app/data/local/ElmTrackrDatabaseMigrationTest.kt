@@ -74,7 +74,7 @@ class ElmTrackrDatabaseMigrationTest {
         }
 
         helper.runMigrationsAndValidate(
-            TEST_DB_CHAIN, 12, true,
+            TEST_DB_CHAIN, 13, true,
             ElmTrackrDatabase.MIGRATION_2_3,
             ElmTrackrDatabase.MIGRATION_3_4,
             ElmTrackrDatabase.MIGRATION_4_5,
@@ -85,6 +85,7 @@ class ElmTrackrDatabaseMigrationTest {
             ElmTrackrDatabase.MIGRATION_9_10,
             ElmTrackrDatabase.MIGRATION_10_11,
             ElmTrackrDatabase.MIGRATION_11_12,
+            ElmTrackrDatabase.MIGRATION_12_13,
         ).use { db ->
             db.query("SELECT regionCode FROM user_settings WHERE localId = 'settings'").use { cursor ->
                 assertEquals(true, cursor.moveToFirst())

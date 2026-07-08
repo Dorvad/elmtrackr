@@ -23,7 +23,11 @@ object MonthlyReportBuilder {
         val net = ShiftDurationCalculator.netMinutes(shift) ?: 0
         val zone = WorkTimezone.zoneFor(settings)
         val rawSegments = OvernightShiftDetector.splitShiftByDay(shift, zone)
-        val segments = WeekendRules.annotateWeekendSegments(rawSegments, settings.weekendDays)
+        val segments = if (shift.forceRegularRate) {
+            rawSegments
+        } else {
+            WeekendRules.annotateWeekendSegments(rawSegments, settings.weekendDays)
+        }
         val weekendMins = WeekendRules.totalWeekendMinutes(segments)
         val weekdayMins = maxOf(0, net - weekendMins)
         val otMins = maxOf(0, weekdayMins - settings.dailyOvertimeThresholdMinutes)

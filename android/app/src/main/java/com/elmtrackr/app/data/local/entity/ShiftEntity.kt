@@ -1,5 +1,6 @@
 package com.elmtrackr.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -25,6 +26,8 @@ data class ShiftEntity(
     val notes: String?,
     val isSpecialDay: Boolean,
     val premiumProfileId: String? = null,
+    @ColumnInfo(defaultValue = "0")
+    val forceRegularRate: Boolean = false,
     val refundAction: String?,
     val compensationProfileId: String? = null,
     val compensationSnapshotJson: String? = null,

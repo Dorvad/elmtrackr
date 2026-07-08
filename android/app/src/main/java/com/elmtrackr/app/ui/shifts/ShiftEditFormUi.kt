@@ -64,6 +64,7 @@ import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
+import com.elmtrackr.app.domain.WeekendRules
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.PremiumProfile
@@ -129,6 +130,8 @@ internal fun ShiftEditFormContent(
     onNotesChange: (String) -> Unit,
     premiumProfileId: String?,
     onPremiumProfileIdChange: (String?) -> Unit,
+    premiumMode: String = "auto",
+    onPremiumModeChange: (String) -> Unit = {},
     premiumProfiles: List<PremiumProfile>,
     profiles: List<CompensationProfile>,
     compensationProfileId: String?,
@@ -155,7 +158,7 @@ internal fun ShiftEditFormContent(
 
     val unsavedCount = remember(
         navState, startMillis, endMillis, hasEndTime, breakMinutes, notesText, premiumProfileId,
-        compensationProfileId, taskId,
+        premiumMode, compensationProfileId, taskId,
     ) {
         countUnsavedChanges(
             navState = navState,
@@ -165,6 +168,7 @@ internal fun ShiftEditFormContent(
             breakMinutes = breakMinutes,
             notesText = notesText,
             premiumProfileId = premiumProfileId,
+            premiumMode = premiumMode,
             compensationProfileId = compensationProfileId,
             taskId = taskId,
         )
@@ -175,7 +179,8 @@ internal fun ShiftEditFormContent(
         endTime = if (hasEndTime) Instant.ofEpochMilli(endMillis) else null,
         breakMinutes = breakMinutes,
         notes = notesText,
-        premiumProfileId = premiumProfileId,
+        premiumProfileId = if (premiumMode == "on") premiumProfileId else null,
+        forceRegularRate = premiumMode == "off",
         refundAction = initialShift?.refundAction,
         compensationProfileId = compensationProfileId,
         taskId = taskId,
@@ -243,7 +248,8 @@ internal fun ShiftEditFormContent(
                     endMillis = endMillis,
                     hasEndTime = hasEndTime,
                     breakMinutes = breakMinutes,
-                    premiumProfileId = premiumProfileId,
+                    premiumProfileId = if (premiumMode == "on") premiumProfileId else null,
+                    forceRegularRate = premiumMode == "off",
                     settings = settings,
                     profiles = profiles,
                     premiumProfiles = premiumProfiles,
@@ -343,79 +349,126 @@ internal fun ShiftEditFormContent(
                     }
                 }
 
-                FormSectionCard(title = stringResource(R.string.shifts_section_break_premium)) {
+                if (activeTasks.isNotEmpty()) {
+                    FormSectionCard(title = stringResource(R.string.shifts_task_label)) {
+                        if (isEdit) {
+                            Text(
+                                stringResource(R.string.shifts_task_edit_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            FilterChip(
+                                selected = taskId == null,
+                                onClick = { onTaskIdChange(null) },
+                                label = { Text(stringResource(R.string.shifts_task_none)) },
+                            )
+                            activeTasks.forEach { task ->
+                                FilterChip(
+                                    selected = taskId == task.id,
+                                    onClick = { onTaskIdChange(task.id) },
+                                    label = { Text("${task.icon} ${task.name}") },
+                                    leadingIcon = {
+                                        TaskChipColorLeading(parseTaskColor(task.color))
+                                    },
+                                )
+                            }
+                        }
+                        if (isEdit && initialShift?.taskNameSnapshot != null &&
+                            activeTasks.none { it.id == initialShift.taskId }
+                        ) {
+                            Text(
+                                stringResource(
+                                    R.string.shifts_saved_task,
+                                    initialShift.taskIconSnapshot.orEmpty(),
+                                    initialShift.taskNameSnapshot.toString(),
+                                    initialShift.taskHourlyRateSnapshot.toString(),
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                        }
+                    }
+                }
+
+                FormSectionCard(title = stringResource(R.string.shifts_section_rate)) {
+                    if (profiles.isNotEmpty() || onCreateCompensationProfile != null) {
+                        CompensationProfilePicker(
+                            profiles = profiles,
+                            selectedId = compensationProfileId,
+                            onSelect = onCompensationProfileIdChange,
+                            onCreateProfile = onCreateCompensationProfile,
+                        )
+                        Spacer(Modifier.height(Spacing.sm))
+                    }
+                    // The switch mirrors your weekend-days setting until you make
+                    // an explicit choice for this shift; off always wins.
+                    val weekendDays = remember(compensationProfileId, profiles, settings) {
+                        (
+                            profiles.firstOrNull { it.id == compensationProfileId }
+                                ?: profiles.firstOrNull { it.isDefault }
+                            )?.rules?.weekendDays
+                            ?: settings?.weekendDays
+                            ?: emptyList()
+                    }
+                    val calendarWeekend = remember(startMillis, weekendDays) {
+                        WeekendRules.isWeekendDate(
+                            Instant.ofEpochMilli(startMillis).atZone(zone).toLocalDate().toString(),
+                            weekendDays,
+                        )
+                    }
+                    val premiumOn = premiumMode == "on" || (premiumMode == "auto" && calendarWeekend)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.shifts_premium_toggle),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                stringResource(
+                                    when {
+                                        premiumMode == "off" && calendarWeekend -> R.string.shifts_premium_forced_off
+                                        premiumMode == "auto" && premiumOn -> R.string.shifts_premium_auto_on
+                                        premiumMode == "on" -> R.string.shifts_premium_on_hint
+                                        else -> R.string.shifts_premium_auto_off
+                                    },
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = premiumOn,
+                            onCheckedChange = { onPremiumModeChange(if (it) "on" else "off") },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                    if (premiumOn) {
+                        PremiumProfilePicker(
+                            profiles = premiumProfiles,
+                            selectedId = premiumProfileId,
+                            onSelect = onPremiumProfileIdChange,
+                            modifier = Modifier.padding(top = Spacing.sm),
+                        )
+                    }
+                }
+
+                FormSectionCard(title = stringResource(R.string.shifts_section_break)) {
                     BreakStepper(
                         minutes = breakMinutes,
                         onChange = onBreakMinutesChange,
                     )
                     errors["breakMinutes"]?.let { FormFieldError(it.asString()) }
-
-                    PremiumProfilePicker(
-                        profiles = premiumProfiles,
-                        selectedId = premiumProfileId,
-                        onSelect = onPremiumProfileIdChange,
-                        modifier = Modifier.padding(top = Spacing.sm),
-                    )
-                }
-
-                if (profiles.isNotEmpty() || onCreateCompensationProfile != null || activeTasks.isNotEmpty()) {
-                    FormSectionCard(title = stringResource(R.string.shifts_section_pay_task)) {
-                        if (profiles.isNotEmpty() || onCreateCompensationProfile != null) {
-                            CompensationProfilePicker(
-                                profiles = profiles,
-                                selectedId = compensationProfileId,
-                                onSelect = onCompensationProfileIdChange,
-                                onCreateProfile = onCreateCompensationProfile,
-                            )
-                        }
-                        if (activeTasks.isNotEmpty()) {
-                            if (profiles.isNotEmpty()) Spacer(Modifier.height(Spacing.sm))
-                            Text(stringResource(R.string.shifts_task_label), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                            if (isEdit) {
-                                Text(
-                                    stringResource(R.string.shifts_task_edit_hint),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Spacer(Modifier.height(6.dp))
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                FilterChip(
-                                    selected = taskId == null,
-                                    onClick = { onTaskIdChange(null) },
-                                    label = { Text(stringResource(R.string.shifts_task_none)) },
-                                )
-                                activeTasks.forEach { task ->
-                                    FilterChip(
-                                        selected = taskId == task.id,
-                                        onClick = { onTaskIdChange(task.id) },
-                                        label = { Text("${task.icon} ${task.name}") },
-                                        leadingIcon = {
-                                            TaskChipColorLeading(parseTaskColor(task.color))
-                                        },
-                                    )
-                                }
-                            }
-                            if (isEdit && initialShift?.taskNameSnapshot != null &&
-                                activeTasks.none { it.id == initialShift.taskId }
-                            ) {
-                                Text(
-                                    stringResource(
-                                        R.string.shifts_saved_task,
-                                        initialShift.taskIconSnapshot.orEmpty(),
-                                        initialShift.taskNameSnapshot.toString(),
-                                        initialShift.taskHourlyRateSnapshot.toString(),
-                                    ),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = 6.dp),
-                                )
-                            }
-                        }
-                    }
                 }
 
                 FormSectionCard(title = stringResource(R.string.shifts_section_notes)) {
@@ -493,6 +546,7 @@ private fun LivePayPreviewCard(
     hasEndTime: Boolean,
     breakMinutes: Int,
     premiumProfileId: String?,
+    forceRegularRate: Boolean = false,
     settings: UserSettings?,
     profiles: List<CompensationProfile>,
     premiumProfiles: List<PremiumProfile>,
@@ -513,6 +567,7 @@ private fun LivePayPreviewCard(
         breakMinutes = breakMinutes,
         isSpecialDay = premiumProfileId != null,
         premiumProfileId = premiumProfileId,
+        forceRegularRate = forceRegularRate,
         compensationProfileId = compensationProfileId,
         taskId = selectedTask?.id,
         taskNameSnapshot = selectedTask?.name,
@@ -823,6 +878,7 @@ private fun countUnsavedChanges(
     breakMinutes: Int,
     notesText: String,
     premiumProfileId: String?,
+    premiumMode: String = "auto",
     compensationProfileId: String?,
     taskId: String?,
 ): Int {
@@ -838,6 +894,7 @@ private fun countUnsavedChanges(
         if (breakMinutes > 0) count++
         if (notesText.isNotBlank()) count++
         if (premiumProfileId != null) count++
+        if (premiumMode == "off") count++
         if (compensationProfileId != null) count++
         if (taskId != null) count++
         return count
@@ -850,6 +907,12 @@ private fun countUnsavedChanges(
     if (breakMinutes != initial.breakMinutes) count++
     if (notesText != (initial.notes ?: "")) count++
     if (premiumProfileId != initial.premiumProfileId) count++
+    val initialMode = when {
+        initial.forceRegularRate -> "off"
+        initial.premiumProfileId != null -> "on"
+        else -> "auto"
+    }
+    if (premiumMode != initialMode && !(premiumMode == "on" && initialMode == "on")) count++
     if (compensationProfileId != initial.compensationProfileId) count++
     if (taskId != initial.taskId) count++
     return count

@@ -15,6 +15,12 @@ data class Shift(
     val notes: String? = null,
     val isSpecialDay: Boolean = false,
     val premiumProfileId: String? = null,
+    /**
+     * Per-shift override: pay this shift at the regular rate even if it falls
+     * on a configured weekend day or carries special-day flags. Set from the
+     * weekend/holiday switch on the edit form.
+     */
+    val forceRegularRate: Boolean = false,
     val refundAction: RefundAction? = null,
     val compensationProfileId: String? = null,
     val compensationSnapshot: com.elmtrackr.app.domain.model.CompensationSnapshot? = null,

@@ -12,4 +12,5 @@ data class ShiftFormInput(
     val refundAction: RefundAction?,
     val compensationProfileId: String? = null,
     val taskId: String? = null,
+    val forceRegularRate: Boolean = false,
 )

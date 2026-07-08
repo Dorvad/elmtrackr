@@ -98,4 +98,13 @@
     <string name="shifts_error_refund_unfinished">Finish the shift before saving a travel refund claim</string>
     <string name="shifts_error_refund_sign_in">Sign in before saving a claim</string>
     <string name="shifts_error_refund_save_failed">Couldn\'t save the refund claim</string>
+
+    <!-- Rate section (weekend/holiday override) -->
+    <string name="shifts_section_rate">Pay rate</string>
+    <string name="shifts_section_break">Break</string>
+    <string name="shifts_premium_toggle">Weekend / holiday rate</string>
+    <string name="shifts_premium_auto_on">Applies automatically — this day is one of your weekend days</string>
+    <string name="shifts_premium_auto_off">Regular rate — not one of your weekend days</string>
+    <string name="shifts_premium_forced_off">Regular rate for this shift — overrides your weekend days</string>
+    <string name="shifts_premium_on_hint">Pick a premium for holidays and special days, or leave None to use your weekend rate</string>
 </resources>

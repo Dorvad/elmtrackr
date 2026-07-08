@@ -369,6 +369,17 @@ private fun ShiftFormContent(
         mutableStateOf(initialShift?.premiumProfileId.orEmpty())
     }
     val premiumProfileId = premiumProfileIdRaw.takeIf { it.isNotEmpty() }
+    // "auto" follows the weekend-days setting; "on"/"off" are explicit per-shift
+    // choices made with the weekend/holiday switch.
+    var premiumMode by rememberSaveable {
+        mutableStateOf(
+            when {
+                initialShift?.forceRegularRate == true -> "off"
+                initialShift?.premiumProfileId != null -> "on"
+                else -> "auto"
+            },
+        )
+    }
     var compensationProfileId by rememberSaveable {
         mutableStateOf(initialShift?.compensationProfileId ?: settings?.defaultCompensationProfileId)
     }
@@ -438,7 +449,15 @@ private fun ShiftFormContent(
             notesText = notesText,
             onNotesChange = { notesText = it },
             premiumProfileId = premiumProfileId,
-            onPremiumProfileIdChange = { premiumProfileIdRaw = it.orEmpty() },
+            onPremiumProfileIdChange = {
+                premiumProfileIdRaw = it.orEmpty()
+                if (it != null) premiumMode = "on"
+            },
+            premiumMode = premiumMode,
+            onPremiumModeChange = { mode ->
+                premiumMode = mode
+                if (mode != "on") premiumProfileIdRaw = ""
+            },
             premiumProfiles = premiumProfiles,
             profiles = profiles,
             compensationProfileId = compensationProfileId,

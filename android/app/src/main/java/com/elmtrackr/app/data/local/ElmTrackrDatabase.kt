@@ -37,7 +37,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         PremiumProfileEntity::class,
         TaskEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -105,6 +105,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_9_10,
                     MIGRATION_10_11,
                     MIGRATION_11_12,
+                    MIGRATION_12_13,
                 )
                 .build()
         }
@@ -395,6 +396,12 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     db.execSQL("CREATE INDEX IF NOT EXISTS `index_shifts_userId_syncStatus` ON `shifts` (`userId`, `syncStatus`)")
                     db.execSQL("CREATE INDEX IF NOT EXISTS `index_shifts_remoteId` ON `shifts` (`remoteId`)")
                 }
+            }
+        }
+
+        internal val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE shifts ADD COLUMN forceRegularRate INTEGER NOT NULL DEFAULT 0")
             }
         }
 
