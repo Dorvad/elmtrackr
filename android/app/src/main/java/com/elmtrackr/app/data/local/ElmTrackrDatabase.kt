@@ -37,7 +37,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         PremiumProfileEntity::class,
         TaskEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -104,6 +104,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_8_9,
                     MIGRATION_9_10,
                     MIGRATION_10_11,
+                    MIGRATION_11_12,
                 )
                 .build()
         }
@@ -116,11 +117,11 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
 
         internal val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE user_settings ADD COLUMN region_code TEXT")
-                db.execSQL("ALTER TABLE user_settings ADD COLUMN currency_code TEXT")
-                db.execSQL("ALTER TABLE user_settings ADD COLUMN default_compensation_profile_id TEXT")
-                db.execSQL("ALTER TABLE shifts ADD COLUMN compensation_profile_id TEXT")
-                db.execSQL("ALTER TABLE shifts ADD COLUMN compensation_snapshot_json TEXT")
+                db.execSQL("ALTER TABLE user_settings ADD COLUMN regionCode TEXT")
+                db.execSQL("ALTER TABLE user_settings ADD COLUMN currencyCode TEXT")
+                db.execSQL("ALTER TABLE user_settings ADD COLUMN defaultCompensationProfileId TEXT")
+                db.execSQL("ALTER TABLE shifts ADD COLUMN compensationProfileId TEXT")
+                db.execSQL("ALTER TABLE shifts ADD COLUMN compensationSnapshotJson TEXT")
                 db.execSQL(
                     """
                     CREATE TABLE IF NOT EXISTS compensation_profiles (
@@ -320,6 +321,91 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_premium_profiles_remoteId ON premium_profiles(remoteId)")
                 db.execSQL("ALTER TABLE shifts ADD COLUMN premiumProfileId TEXT")
             }
+        }
+
+        /**
+         * Repair for installs whose original 2→3 migration created snake_case
+         * columns (region_code, compensation_profile_id, …) that never matched
+         * the camelCase entity fields — Room's schema validation rejected those
+         * databases on every launch. Rebuild the two affected tables with the
+         * expected schema, copying data across. No-op for healthy installs.
+         */
+        internal val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if (db.hasColumn("user_settings", "region_code")) {
+                    db.execSQL(
+                        """
+                        CREATE TABLE user_settings_repair (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `timezone` TEXT NOT NULL, `dailyOvertimeThresholdMinutes` INTEGER NOT NULL, `weeklyOvertimeThresholdMinutes` INTEGER NOT NULL, `weekendDays` TEXT NOT NULL, `hourlyRate` REAL, `currency` TEXT NOT NULL, `regionCode` TEXT, `currencyCode` TEXT, `defaultCompensationProfileId` TEXT, `onboardingCompleted` INTEGER NOT NULL, `onboardingCompletedAt` INTEGER, `featuresTravelRefunds` INTEGER NOT NULL, `featuresPaidProjects` INTEGER NOT NULL, `featuresInsights` INTEGER NOT NULL, `featuresClockStyles` INTEGER NOT NULL, `featuresOvertimeReminders` INTEGER NOT NULL, `clockStyle` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))
+                        """.trimIndent(),
+                    )
+                    db.execSQL(
+                        """
+                        INSERT INTO user_settings_repair (
+                            localId, remoteId, userId, timezone, dailyOvertimeThresholdMinutes,
+                            weeklyOvertimeThresholdMinutes, weekendDays, hourlyRate, currency,
+                            regionCode, currencyCode, defaultCompensationProfileId,
+                            onboardingCompleted, onboardingCompletedAt, featuresTravelRefunds,
+                            featuresPaidProjects, featuresInsights, featuresClockStyles,
+                            featuresOvertimeReminders, clockStyle, createdAt, updatedAt,
+                            deletedAt, syncStatus, lastSyncError, lastSyncedAt
+                        )
+                        SELECT localId, remoteId, userId, timezone, dailyOvertimeThresholdMinutes,
+                            weeklyOvertimeThresholdMinutes, weekendDays, hourlyRate, currency,
+                            region_code, currency_code, default_compensation_profile_id,
+                            onboardingCompleted, onboardingCompletedAt, featuresTravelRefunds,
+                            featuresPaidProjects, featuresInsights, featuresClockStyles,
+                            featuresOvertimeReminders, clockStyle, createdAt, updatedAt,
+                            deletedAt, syncStatus, lastSyncError, lastSyncedAt
+                        FROM user_settings
+                        """.trimIndent(),
+                    )
+                    db.execSQL("DROP TABLE user_settings")
+                    db.execSQL("ALTER TABLE user_settings_repair RENAME TO user_settings")
+                    db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_user_settings_userId` ON `user_settings` (`userId`)")
+                }
+                if (db.hasColumn("shifts", "compensation_profile_id")) {
+                    db.execSQL(
+                        """
+                        CREATE TABLE shifts_repair (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `startTime` INTEGER NOT NULL, `endTime` INTEGER, `breakMinutes` INTEGER NOT NULL, `notes` TEXT, `isSpecialDay` INTEGER NOT NULL, `premiumProfileId` TEXT, `refundAction` TEXT, `compensationProfileId` TEXT, `compensationSnapshotJson` TEXT, `taskId` TEXT, `taskNameSnapshot` TEXT, `taskIconSnapshot` TEXT, `taskHourlyRateSnapshot` REAL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))
+                        """.trimIndent(),
+                    )
+                    db.execSQL(
+                        """
+                        INSERT INTO shifts_repair (
+                            localId, remoteId, userId, startTime, endTime, breakMinutes, notes,
+                            isSpecialDay, premiumProfileId, refundAction, compensationProfileId,
+                            compensationSnapshotJson, taskId, taskNameSnapshot, taskIconSnapshot,
+                            taskHourlyRateSnapshot, createdAt, updatedAt, deletedAt, syncStatus,
+                            lastSyncError, lastSyncedAt
+                        )
+                        SELECT localId, remoteId, userId, startTime, endTime, breakMinutes, notes,
+                            isSpecialDay, premiumProfileId, refundAction, compensation_profile_id,
+                            compensation_snapshot_json, taskId, taskNameSnapshot, taskIconSnapshot,
+                            taskHourlyRateSnapshot, createdAt, updatedAt, deletedAt, syncStatus,
+                            lastSyncError, lastSyncedAt
+                        FROM shifts
+                        """.trimIndent(),
+                    )
+                    db.execSQL("DROP TABLE shifts")
+                    db.execSQL("ALTER TABLE shifts_repair RENAME TO shifts")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_shifts_userId` ON `shifts` (`userId`)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_shifts_userId_endTime` ON `shifts` (`userId`, `endTime`)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_shifts_userId_startTime` ON `shifts` (`userId`, `startTime`)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_shifts_syncStatus` ON `shifts` (`syncStatus`)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_shifts_userId_syncStatus` ON `shifts` (`userId`, `syncStatus`)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_shifts_remoteId` ON `shifts` (`remoteId`)")
+                }
+            }
+        }
+
+        private fun SupportSQLiteDatabase.hasColumn(table: String, column: String): Boolean {
+            query("PRAGMA table_info(`$table`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndexOrThrow("name")
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) == column) return true
+                }
+            }
+            return false
         }
     }
 }
