@@ -717,6 +717,7 @@ class SyncRepositoryImplTest {
         override suspend fun clearDefaultForUser(userId: String) = Unit
         override suspend fun deleteAllForUser(userId: String) = Unit
         override suspend fun markNeverSyncedPendingCreate(userId: String) = Unit
+        override suspend fun adoptLegacyUser(userId: String) = Unit
     }
 
     private class EmptyPremiumProfileDao : PremiumProfileDao {
@@ -734,6 +735,7 @@ class SyncRepositoryImplTest {
         override suspend fun updateSyncState(localId: String, status: SyncStatus, remoteId: String?, syncedAt: Long?, error: String?) = Unit
         override suspend fun clearDefaultForUser(userId: String) = Unit
         override suspend fun deleteAllForUser(userId: String) = Unit
+        override suspend fun adoptLegacyUser(userId: String) = Unit
     }
 
     private class EmptyTaskDao : TaskDao {
