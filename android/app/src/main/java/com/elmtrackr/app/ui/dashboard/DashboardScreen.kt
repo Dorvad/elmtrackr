@@ -86,6 +86,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -646,7 +648,8 @@ private fun DashboardClockSection(
                 SupportedClockStyle.PRISM,
                 SupportedClockStyle.SAND,
                 SupportedClockStyle.BLOCKS,
-                SupportedClockStyle.ORBIT -> ExpressiveClockCard(
+                SupportedClockStyle.ORBIT,
+                SupportedClockStyle.TIDE -> ExpressiveClockCard(
                     style = renderStyle,
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
@@ -971,6 +974,7 @@ private fun ExpressiveClockCard(
         overtime -> AuroraPeach
         style == SupportedClockStyle.RETRO -> Color(0xffffc857)
         style == SupportedClockStyle.NIGHT -> AuroraAqua
+        style == SupportedClockStyle.TIDE -> AuroraAqua
         else -> AuroraIndigo
     }
 
@@ -993,6 +997,7 @@ private fun ExpressiveClockCard(
                     SupportedClockStyle.SAND -> stringResource(if (running) R.string.dashboard_clock_time_flowing else R.string.dashboard_clock_ready_caps)
                     SupportedClockStyle.BLOCKS -> stringResource(if (running) R.string.dashboard_clock_workday else R.string.dashboard_clock_ready_caps)
                     SupportedClockStyle.ORBIT -> stringResource(if (running) R.string.dashboard_clock_in_orbit else R.string.dashboard_clock_ready_caps)
+                    SupportedClockStyle.TIDE -> stringResource(if (running) R.string.dashboard_clock_tide_rising else R.string.dashboard_clock_ready_caps)
                     else -> ""
                 },
                 style = MaterialTheme.typography.labelSmall,
@@ -1174,6 +1179,54 @@ private fun ExpressiveClockCard(
                             }
                             drawCircle(accent, 6.dp.toPx(), Offset(satX, satY))
                             drawCircle(Color.White, 2.dp.toPx(), Offset(satX, satY))
+                        }
+                        SupportedClockStyle.TIDE -> {
+                            val radius = 74.dp.toPx()
+                            val vessel = Path().apply {
+                                addOval(Rect(center.x - radius, center.y - radius, center.x + radius, center.y + radius))
+                            }
+                            drawCircle(faceTrack.copy(alpha = .6f), radius, center, style = Stroke(2.dp.toPx()))
+                            // Idle keeps a calm pool at the bottom; while running the
+                            // waterline climbs with day-goal progress.
+                            val level = center.y + radius - (radius * 2f) * (.12f + progress * .76f)
+                            val wavePhase = pulse * 2f * Math.PI.toFloat()
+                            fun wave(phaseShift: Float, amplitude: Float): Path = Path().apply {
+                                moveTo(center.x - radius, level)
+                                var x = center.x - radius
+                                while (x <= center.x + radius) {
+                                    val y = level + kotlin.math.sin((x - center.x) / radius * 3.2f + wavePhase + phaseShift) * amplitude
+                                    lineTo(x, y)
+                                    x += 6f
+                                }
+                                lineTo(center.x + radius, center.y + radius)
+                                lineTo(center.x - radius, center.y + radius)
+                                close()
+                            }
+                            clipPath(vessel) {
+                                drawPath(wave(1.7f, 6.dp.toPx()), accent.copy(alpha = .25f))
+                                drawPath(
+                                    wave(0f, 4.dp.toPx()),
+                                    Brush.verticalGradient(
+                                        listOf(accent.copy(alpha = .55f), AuroraIndigo.copy(alpha = .8f)),
+                                        startY = level,
+                                        endY = center.y + radius,
+                                    ),
+                                )
+                                if (running) {
+                                    repeat(3) { index ->
+                                        val phase = (pulse + index / 3f) % 1f
+                                        val rise = (center.y + radius - level).coerceAtLeast(1f)
+                                        drawCircle(
+                                            Color.White.copy(alpha = (1f - phase) * .45f),
+                                            (2 + index % 2).dp.toPx(),
+                                            Offset(
+                                                center.x + (index - 1) * 24.dp.toPx(),
+                                                center.y + radius - 6.dp.toPx() - phase * (rise - 10.dp.toPx()).coerceAtLeast(0f),
+                                            ),
+                                        )
+                                    }
+                                }
+                            }
                         }
                         else -> Unit
                     }

@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -100,6 +101,7 @@ internal fun clockStyleDisplayName(style: ClockStyle): String = stringResource(
         ClockStyle.SAND -> R.string.clock_style_sand
         ClockStyle.BLOCKS -> R.string.clock_style_blocks
         ClockStyle.ORBIT -> R.string.clock_style_orbit
+        ClockStyle.TIDE -> R.string.clock_style_tide
     },
 )
 
@@ -366,10 +368,10 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
         label = "watch-pulse",
     )
     val animatedPulse = if (auroraMotionEnabled()) pulse else 1f
-    val darkFace = style in listOf(ClockStyle.FOCUS, ClockStyle.NIGHT, ClockStyle.RETRO, ClockStyle.PULSE)
+    val darkFace = style in listOf(ClockStyle.BOLD, ClockStyle.NIGHT, ClockStyle.RETRO)
     val faceBackground = if (darkFace) Color(0xFF11162A) else MaterialTheme.colorScheme.surface
     val accent = when (style) {
-        ClockStyle.NIGHT, ClockStyle.PULSE -> Color(0xFF54D8E1)
+        ClockStyle.NIGHT, ClockStyle.TIDE -> Color(0xFF54D8E1)
         ClockStyle.RETRO -> Color(0xFFFFC857)
         ClockStyle.PRISM, ClockStyle.AURORA -> Color(0xFF9B7CFF)
         else -> MaterialTheme.colorScheme.primary
@@ -382,9 +384,27 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
             val center = Offset(size.width / 2f, size.height / 2f)
             val radius = size.minDimension * .39f
             when (style) {
-                ClockStyle.CLASSIC, ClockStyle.AURORA -> {
+                ClockStyle.CLASSIC -> {
                     drawCircle(accent.copy(alpha = .18f), radius, center, style = Stroke(4f))
                     drawArc(accent, -90f, 260f, false, Offset(center.x - radius, center.y - radius), Size(radius * 2, radius * 2), style = Stroke(5f, cap = StrokeCap.Round))
+                }
+                ClockStyle.AURORA -> {
+                    drawArc(accent.copy(alpha = .25f), 120f, 180f, false, Offset(center.x - radius, center.y - radius), Size(radius * 2, radius * 2), style = Stroke(6f, cap = StrokeCap.Round))
+                    drawArc(Color(0xFF54D8E1).copy(alpha = .8f), -90f, 200f, false, Offset(center.x - radius * .8f, center.y - radius * .8f), Size(radius * 1.6f, radius * 1.6f), style = Stroke(4f, cap = StrokeCap.Round))
+                    drawArc(accent, -60f, 130f, false, Offset(center.x - radius, center.y - radius), Size(radius * 2, radius * 2), style = Stroke(5f, cap = StrokeCap.Round))
+                }
+                ClockStyle.MINIMAL -> {
+                    drawLine(accent.copy(alpha = .45f), Offset(center.x - radius * .7f, center.y + radius * .55f), Offset(center.x + radius * .7f, center.y + radius * .55f), 2f, StrokeCap.Round)
+                    drawCircle(accent, 2.5f, Offset(center.x + radius * .7f, center.y + radius * .55f))
+                }
+                ClockStyle.FOCUS -> {
+                    val y = center.y + radius * .6f
+                    drawRoundRect(accent.copy(alpha = .18f), Offset(center.x - radius, y), Size(radius * 2f, 5f), androidx.compose.ui.geometry.CornerRadius(4f))
+                    drawRoundRect(accent, Offset(center.x - radius, y), Size(radius * 2f * (.35f + animatedPulse * .3f), 5f), androidx.compose.ui.geometry.CornerRadius(4f))
+                }
+                ClockStyle.BOLD -> repeat(3) { i ->
+                    val x = size.width * (.22f + i * .28f)
+                    drawLine(accent.copy(alpha = .25f + i * .1f), Offset(x - 12f, 0f), Offset(x + 12f, size.height), 8f)
                 }
                 ClockStyle.NIGHT -> repeat(12) { i ->
                     drawCircle(Color.White.copy(alpha = if (i % 3 == 0) animatedPulse else .35f), 1.5f, Offset((i * 31 % 97) / 100f * size.width, (i * 47 % 89) / 100f * size.height))
@@ -458,6 +478,28 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
                     drawCircle(accent.copy(alpha = .2f), 8.dp.toPx(), sat)
                     drawCircle(accent, 4.dp.toPx(), sat)
                 }
+                ClockStyle.TIDE -> {
+                    val vesselRadius = size.minDimension * .42f
+                    drawCircle(accent.copy(alpha = .35f), vesselRadius, center, style = Stroke(2f))
+                    val vessel = Path().apply {
+                        addOval(androidx.compose.ui.geometry.Rect(center.x - vesselRadius, center.y - vesselRadius, center.x + vesselRadius, center.y + vesselRadius))
+                    }
+                    val level = center.y + vesselRadius * (.5f - animatedPulse * .12f)
+                    clipPath(vessel) {
+                        val waveLine = Path().apply {
+                            moveTo(center.x - vesselRadius, level)
+                            var x = center.x - vesselRadius
+                            while (x <= center.x + vesselRadius) {
+                                lineTo(x, level + kotlin.math.sin((x - center.x) / vesselRadius * 3f + animatedPulse * 6f) * 3f)
+                                x += 4f
+                            }
+                            lineTo(center.x + vesselRadius, center.y + vesselRadius)
+                            lineTo(center.x - vesselRadius, center.y + vesselRadius)
+                            close()
+                        }
+                        drawPath(waveLine, accent.copy(alpha = .5f))
+                    }
+                }
                 else -> Unit
             }
         }
@@ -487,6 +529,7 @@ internal fun watchFaceDescription(style: ClockStyle): String = stringResource(
         ClockStyle.SAND -> R.string.settings_face_sand
         ClockStyle.BLOCKS -> R.string.settings_face_blocks
         ClockStyle.ORBIT -> R.string.settings_face_orbit
+        ClockStyle.TIDE -> R.string.settings_face_tide
     },
 )
 
