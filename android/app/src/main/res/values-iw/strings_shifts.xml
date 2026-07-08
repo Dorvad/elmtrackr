@@ -98,4 +98,13 @@
     <string name="shifts_error_refund_unfinished">יש לסיים את המשמרת לפני שמירת בקשת החזר נסיעות</string>
     <string name="shifts_error_refund_sign_in">יש להתחבר לפני שמירת בקשה</string>
     <string name="shifts_error_refund_save_failed">שמירת בקשת ההחזר נכשלה</string>
+
+    <!-- Rate section (weekend/holiday override) -->
+    <string name="shifts_section_rate">תעריף</string>
+    <string name="shifts_section_break">הפסקה</string>
+    <string name="shifts_premium_toggle">תעריף סוף שבוע / חג</string>
+    <string name="shifts_premium_auto_on">חל אוטומטית — היום הזה מוגדר כיום סוף שבוע</string>
+    <string name="shifts_premium_auto_off">תעריף רגיל — זה לא אחד מימי סוף השבוע שלך</string>
+    <string name="shifts_premium_forced_off">תעריף רגיל למשמרת הזו — עוקף את הגדרת ימי סוף השבוע</string>
+    <string name="shifts_premium_on_hint">בוחרים תוספת לחגים וימים מיוחדים, או משאירים \"ללא\" לתעריף סוף השבוע</string>
 </resources>

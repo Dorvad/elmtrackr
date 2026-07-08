@@ -9,6 +9,7 @@ data class ShiftFormInput(
     val breakMinutes: Int,
     val notes: String,
     val premiumProfileId: String? = null,
+    val forceRegularRate: Boolean = false,
     val refundAction: RefundAction?,
     val compensationProfileId: String? = null,
     val taskId: String? = null,

@@ -74,8 +74,12 @@ object IsraeliCompensationEngine {
         premiumProfiles: List<PremiumProfile> = emptyList(),
     ): List<ClassifiedPaySegment> {
         if (shift.endTime == null) return emptyList()
-        val shiftPremium = shift.premiumProfileId?.let { id ->
-            premiumProfiles.firstOrNull { it.id == id || it.remoteId == id }
+        val shiftPremium = if (shift.forceRegularRate) {
+            null
+        } else {
+            shift.premiumProfileId?.let { id ->
+                premiumProfiles.firstOrNull { it.id == id || it.remoteId == id }
+            }
         }
         shiftPremium?.let { premium ->
             val net = PayrollCalculator.payableNetMinutes(shift, resolved.rules) ?: return emptyList()
@@ -105,7 +109,7 @@ object IsraeliCompensationEngine {
             weeklyRegularMinutesBefore = weeklyRegularMinutesBefore,
             weeklyOvertimeMinutesBefore = weeklyOvertimeMinutesBefore,
             stackingPolicy = resolved.stackingPolicy,
-            manualHoliday = shift.isSpecialDay && rules.holidayManualSpecialDayEnabled,
+            manualHoliday = shift.isSpecialDay && !shift.forceRegularRate && rules.holidayManualSpecialDayEnabled,
         )
     }
 
@@ -231,7 +235,7 @@ object IsraeliCompensationEngine {
         val rules = resolved.rules
         val startDate = shift.startTime.atZone(zone).toLocalDate().toString()
         val onWeekend = rules.weekendEnabled && WeekendRules.isWeekendDate(startDate, rules.weekendDays)
-        val manualHoliday = shift.isSpecialDay && rules.holidayManualSpecialDayEnabled
+        val manualHoliday = shift.isSpecialDay && !shift.forceRegularRate && rules.holidayManualSpecialDayEnabled
         return if (onWeekend || manualHoliday) {
             val mult = when {
                 manualHoliday && rules.holidayEnabled -> rules.holidayMultiplier

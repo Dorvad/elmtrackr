@@ -52,7 +52,7 @@
     <string name="settings_daily_overtime_hours">ש״נ יומיות (שעות)</string>
     <string name="settings_weekly_overtime_hours">ש״נ שבועיות (שעות)</string>
     <string name="settings_weekend_days">ימי סוף שבוע</string>
-    <string name="settings_weekend_days_hint">הימים שנבחרו נחשבים סוף שבוע לצורך שעות נוספות ודוחות.</string>
+    <string name="settings_weekend_days_hint">משמרות בימים האלה מקבלות אוטומטית את תעריף סוף השבוע. אפשר לעקוף כל משמרת בודדת עם מתג סוף שבוע / חג במסך העריכה שלה.</string>
     <string name="settings_location">מיקום</string>
 
     <!-- Language -->

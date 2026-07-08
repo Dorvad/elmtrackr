@@ -220,6 +220,7 @@ class ShiftsViewModel @Inject constructor(
                 notes = input.notes.ifBlank { null },
                 isSpecialDay = input.premiumProfileId != null,
                 premiumProfileId = input.premiumProfileId,
+                forceRegularRate = input.forceRegularRate,
                 refundAction = input.refundAction,
                 compensationProfileId = input.compensationProfileId ?: settings.defaultCompensationProfileId,
                 createdAt = now,
@@ -256,6 +257,7 @@ class ShiftsViewModel @Inject constructor(
                 notes = input.notes.ifBlank { null },
                 isSpecialDay = input.premiumProfileId != null,
                 premiumProfileId = input.premiumProfileId,
+                forceRegularRate = input.forceRegularRate,
                 refundAction = existing.refundAction,
                 compensationProfileId = input.compensationProfileId ?: existing.compensationProfileId,
                 updatedAt = Instant.now(),
@@ -266,6 +268,7 @@ class ShiftsViewModel @Inject constructor(
                 updated.breakMinutes != existing.breakMinutes ||
                 updated.isSpecialDay != existing.isSpecialDay ||
                 updated.premiumProfileId != existing.premiumProfileId ||
+                updated.forceRegularRate != existing.forceRegularRate ||
                 updated.compensationProfileId != existing.compensationProfileId ||
                 updated.taskId != existing.taskId ||
                 updated.taskHourlyRateSnapshot != existing.taskHourlyRateSnapshot

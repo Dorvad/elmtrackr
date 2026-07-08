@@ -56,6 +56,7 @@ data class ShiftBackupRow(
     val breakMinutes: Int,
     val notes: String? = null,
     val isSpecialDay: Boolean,
+    val forceRegularRate: Boolean = false,
     val refundAction: String? = null,
     val compensationProfileId: String? = null,
     val compensationSnapshotJson: String? = null,
@@ -157,6 +158,7 @@ internal fun TaskBackupRow.toEntity(userId: String) = TaskEntity(
 internal fun ShiftEntity.toBackupRow() = ShiftBackupRow(
     localId = localId, remoteId = remoteId, startTime = startTime, endTime = endTime,
     breakMinutes = breakMinutes, notes = notes, isSpecialDay = isSpecialDay,
+    forceRegularRate = forceRegularRate,
     refundAction = refundAction, compensationProfileId = compensationProfileId,
     compensationSnapshotJson = compensationSnapshotJson, taskId = taskId,
     taskNameSnapshot = taskNameSnapshot, taskIconSnapshot = taskIconSnapshot,
@@ -168,6 +170,7 @@ internal fun ShiftEntity.toBackupRow() = ShiftBackupRow(
 internal fun ShiftBackupRow.toEntity(userId: String) = ShiftEntity(
     localId = localId, remoteId = remoteId, userId = userId, startTime = startTime,
     endTime = endTime, breakMinutes = breakMinutes, notes = notes, isSpecialDay = isSpecialDay,
+    forceRegularRate = forceRegularRate,
     refundAction = refundAction, compensationProfileId = compensationProfileId,
     compensationSnapshotJson = compensationSnapshotJson, taskId = taskId,
     taskNameSnapshot = taskNameSnapshot, taskIconSnapshot = taskIconSnapshot,

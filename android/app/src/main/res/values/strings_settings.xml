@@ -52,7 +52,7 @@
     <string name="settings_daily_overtime_hours">Daily overtime (hours)</string>
     <string name="settings_weekly_overtime_hours">Weekly overtime (hours)</string>
     <string name="settings_weekend_days">Weekend days</string>
-    <string name="settings_weekend_days_hint">Selected days count as weekends for overtime and reports.</string>
+    <string name="settings_weekend_days_hint">Shifts on these days get the weekend rate automatically. You can override any single shift with the weekend/holiday switch on its edit screen.</string>
     <string name="settings_location">Location</string>
 
     <!-- Language -->

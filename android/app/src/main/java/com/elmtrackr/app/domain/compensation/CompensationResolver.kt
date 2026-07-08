@@ -96,19 +96,27 @@ object CompensationResolver {
         settings: UserSettings,
         profiles: List<CompensationProfile>,
     ): ResolvedCompensation {
+        // Live profile rules win so settings changes apply to existing shifts
+        // immediately; the frozen snapshot only fills in when the profile is
+        // gone (deleted, or not yet synced to this device).
+        val profileId = shift.compensationProfileId ?: settings.defaultCompensationProfileId
+        val liveProfile = profileId?.let { id ->
+            profiles.firstOrNull { it.id == id || it.remoteId == id }
+        }
         val resolved = when {
+            liveProfile != null -> profileToResolved(liveProfile)
             shift.compensationSnapshot != null -> snapshotToResolved(shift.compensationSnapshot)
-            else -> {
-                val profileId = shift.compensationProfileId ?: settings.defaultCompensationProfileId
-                if (profileId != null) {
-                    profiles.firstOrNull { it.id == profileId || it.remoteId == profileId }
-                        ?.let { return profileToResolved(it) }
-                }
-                legacySettingsToResolved(settings)
-            }
+            else -> legacySettingsToResolved(settings)
         }
         val taskRate = shift.taskHourlyRateSnapshot?.takeIf { it > 0 }
-        return if (taskRate != null) resolved.copy(baseHourlyRate = taskRate) else resolved
+        val withRate = if (taskRate != null) resolved.copy(baseHourlyRate = taskRate) else resolved
+        // Per-shift override: the shift is paid at the regular rate no matter
+        // what the calendar or flags say.
+        return if (shift.forceRegularRate) {
+            withRate.copy(rules = withRate.rules.copy(weekendEnabled = false, holidayEnabled = false))
+        } else {
+            withRate
+        }
     }
 
     fun buildSnapshot(resolved: ResolvedCompensation): CompensationSnapshot = CompensationSnapshot(

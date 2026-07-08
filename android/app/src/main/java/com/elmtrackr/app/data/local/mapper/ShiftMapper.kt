@@ -16,6 +16,7 @@ fun ShiftEntity.toDomain(): Shift = Shift(
     notes = notes,
     isSpecialDay = isSpecialDay,
     premiumProfileId = premiumProfileId,
+    forceRegularRate = forceRegularRate,
     refundAction = RefundAction.fromPersisted(refundAction),
     compensationProfileId = compensationProfileId,
     compensationSnapshot = compensationSnapshotJson
@@ -45,6 +46,7 @@ fun Shift.toEntity(
     notes = notes,
     isSpecialDay = isSpecialDay,
     premiumProfileId = premiumProfileId,
+    forceRegularRate = forceRegularRate,
     refundAction = refundAction?.name,
     compensationProfileId = compensationProfileId,
     compensationSnapshotJson = compensationSnapshot?.let { CompensationRulesCodec.encodeSnapshot(it) },
