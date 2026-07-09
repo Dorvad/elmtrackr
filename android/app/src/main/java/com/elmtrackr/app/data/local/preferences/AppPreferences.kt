@@ -20,6 +20,7 @@ object AppPreferenceKeys {
     val SELECTED_THEME = stringPreferencesKey("selected_theme")
     val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     val FIRST_CLOCK_IN_CELEBRATED = booleanPreferencesKey("first_clock_in_celebrated")
+    val FIRST_CLOCK_IN_CELEBRATION_PENDING = booleanPreferencesKey("first_clock_in_celebration_pending")
     val LAST_ACTIVE_USER_ID = stringPreferencesKey("last_active_user_id")
     val DEVICE_ID = stringPreferencesKey("device_id")
     val LEGACY_DATA_ADOPTED = booleanPreferencesKey("legacy_data_adopted")
@@ -35,6 +36,7 @@ data class AppPreferenceValues(
     val selectedTheme: String = "system",
     val onboardingCompleted: Boolean = false,
     val firstClockInCelebrated: Boolean = false,
+    val firstClockInCelebrationPending: Boolean = false,
     val lastActiveUserId: String? = null,
     val deviceId: String? = null,
     val legacyDataAdopted: Boolean = false,
@@ -57,6 +59,7 @@ class AppPreferencesRepository(private val context: Context) :
                 selectedTheme = prefs[AppPreferenceKeys.SELECTED_THEME] ?: "system",
                 onboardingCompleted = prefs[AppPreferenceKeys.ONBOARDING_COMPLETED] ?: false,
                 firstClockInCelebrated = prefs[AppPreferenceKeys.FIRST_CLOCK_IN_CELEBRATED] ?: false,
+                firstClockInCelebrationPending = prefs[AppPreferenceKeys.FIRST_CLOCK_IN_CELEBRATION_PENDING] ?: false,
                 lastActiveUserId = prefs[AppPreferenceKeys.LAST_ACTIVE_USER_ID],
                 deviceId = prefs[AppPreferenceKeys.DEVICE_ID],
                 legacyDataAdopted = prefs[AppPreferenceKeys.LEGACY_DATA_ADOPTED] ?: false,
@@ -78,6 +81,10 @@ class AppPreferencesRepository(private val context: Context) :
 
     override suspend fun setFirstClockInCelebrated(celebrated: Boolean) {
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.FIRST_CLOCK_IN_CELEBRATED] = celebrated }
+    }
+
+    override suspend fun setFirstClockInCelebrationPending(pending: Boolean) {
+        context.appPreferencesDataStore.edit { it[AppPreferenceKeys.FIRST_CLOCK_IN_CELEBRATION_PENDING] = pending }
     }
 
     suspend fun setLastActiveUserId(userId: String?) {

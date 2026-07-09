@@ -201,6 +201,16 @@ class DashboardViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            // A first-ever punch from the widget or watch can't show the
+            // celebration; it leaves a pending marker for this visit instead.
+            val prefs = appPreferences.currentPreferences()
+            if (prefs.firstClockInCelebrationPending && !prefs.firstClockInCelebrated) {
+                appPreferences.setFirstClockInCelebrated(true)
+                appPreferences.setFirstClockInCelebrationPending(false)
+                _showFirstClockInCelebration.value = true
+            }
+        }
+        viewModelScope.launch {
             authRepository.observeCurrentProfile().flatMapLatest { profile ->
                 if (profile == null) return@flatMapLatest flowOf(emptyList<Task>() to emptyList<Shift>())
                 combine(
@@ -256,6 +266,7 @@ class DashboardViewModel @Inject constructor(
             selected?.let { tasksRepository.markTaskUsed(userId, it.id) }
             if (isFirstClockIn) {
                 appPreferences.setFirstClockInCelebrated(true)
+                appPreferences.setFirstClockInCelebrationPending(false)
                 _showFirstClockInCelebration.value = true
             }
         }
@@ -280,6 +291,8 @@ class DashboardViewModel @Inject constructor(
 
     fun editActiveShiftStartTime(shiftId: String, newStartTime: Instant) {
         viewModelScope.launch {
+            // A future start would run the elapsed timer backwards.
+            if (newStartTime.isAfter(Instant.now())) return@launch
             val shift = shiftsRepository.getShiftById(shiftId) ?: return@launch
             if (!shift.isActive) return@launch
             shiftsRepository.updateShift(shift.copy(startTime = newStartTime, updatedAt = Instant.now()))

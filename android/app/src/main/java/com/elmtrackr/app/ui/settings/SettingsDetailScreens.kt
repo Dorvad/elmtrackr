@@ -424,6 +424,21 @@ internal fun PayDetailScreen(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         item { SettingsDetailHeader(title = stringResource(R.string.settings_pay_overtime), onBack = onBack) }
+        if (state.compensationProfileCount > 1) {
+            item {
+                // Post-migration, these fields mirror only the DEFAULT job
+                // profile; without this note a user editing "daily overtime"
+                // here expects it to affect their second job too.
+                Text(
+                    stringResource(
+                        R.string.settings_pay_default_job_note,
+                        state.defaultCompensationProfileName.orEmpty(),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         item {
             SettingsNavRow(
                 title = stringResource(R.string.settings_compensation_rules),

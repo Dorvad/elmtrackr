@@ -67,6 +67,7 @@ class SettingsViewModel @Inject constructor(
 
     private data class CoreData(
         val settings: UserSettings?,
+        val compensationProfiles: List<com.elmtrackr.app.domain.model.CompensationProfile> = emptyList(),
     )
 
     private data class Extras(
@@ -93,9 +94,15 @@ class SettingsViewModel @Inject constructor(
     private val lastSyncFlow = syncRepository.observeLastSyncStatus()
 
     private val coreData = authRepository.observeCurrentProfile().flatMapLatest { profile ->
-        if (profile == null) flowOf(CoreData(null))
-        else settingsRepository.observeSettings(profile.id).flatMapLatest { settings ->
-            flowOf(CoreData(settings))
+        if (profile == null) {
+            flowOf(CoreData(null))
+        } else {
+            combine(
+                settingsRepository.observeSettings(profile.id),
+                compensationProfilesRepository.observeProfiles(profile.id),
+            ) { settings, compensationProfiles ->
+                CoreData(settings, compensationProfiles)
+            }
         }
     }
 
@@ -196,6 +203,10 @@ class SettingsViewModel @Inject constructor(
             accountActionFeedback = extras.accountActionFeedback,
             appLockEnabled = extras.appLockEnabled,
             reduceMotionEnabled = extras.reduceMotionEnabled,
+            compensationProfileCount = core.compensationProfiles.size,
+            defaultCompensationProfileName = core.compensationProfiles
+                .let { list -> list.firstOrNull { it.isDefault } ?: list.firstOrNull() }
+                ?.name,
         )
     }.catch { e ->
         emit(SettingsUiState.Error(e.message ?: "Unknown error"))

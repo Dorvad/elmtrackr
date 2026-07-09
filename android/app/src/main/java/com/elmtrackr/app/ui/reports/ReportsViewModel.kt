@@ -57,9 +57,14 @@ class ReportsViewModel @Inject constructor(
     private val refundReceiptStorage: RefundReceiptStorage?,
 ) : ViewModel() {
 
+    // Seeded with the device zone, then corrected to the work zone as soon as
+    // settings load (see uiState); near a month boundary the two can disagree
+    // by a whole month, which made Reports open on a different month than the
+    // dashboard summarizes.
     private val _selectedYear = MutableStateFlow(YearMonth.now(ZoneId.systemDefault()).year)
     private val _selectedMonth = MutableStateFlow(YearMonth.now(ZoneId.systemDefault()).monthValue)
     private val _refreshNonce = MutableStateFlow(0)
+    private var monthNavigated = false
 
     private data class ReportInputs(
         val report: MonthlyReport?,
@@ -117,6 +122,13 @@ class ReportsViewModel @Inject constructor(
                             report to settings
                         }.flatMapLatest { (report, settings) ->
                             val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneOffset.UTC
+                            if (!monthNavigated && settings != null) {
+                                val current = YearMonth.now(zone)
+                                if (_selectedYear.value != current.year || _selectedMonth.value != current.monthValue) {
+                                    _selectedYear.value = current.year
+                                    _selectedMonth.value = current.monthValue
+                                }
+                            }
                             combine(
                                 shiftsRepository.observeShiftsByMonthInZone(userId, year, month, zone),
                                 shiftsRepository.observeShiftsByMonthInZone(
@@ -212,12 +224,14 @@ class ReportsViewModel @Inject constructor(
         )
 
     fun previousMonth() {
+        monthNavigated = true
         val prev = YearMonth.of(_selectedYear.value, _selectedMonth.value).minusMonths(1)
         _selectedYear.value = prev.year
         _selectedMonth.value = prev.monthValue
     }
 
     fun nextMonth() {
+        monthNavigated = true
         val current = YearMonth.of(_selectedYear.value, _selectedMonth.value)
         viewModelScope.launch {
             val userId = currentUserProvider.currentUserId() ?: return@launch

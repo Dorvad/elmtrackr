@@ -168,7 +168,9 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val showCelebration by viewModel.showFirstClockInCelebration.collectAsState()
     val setupChecklist by viewModel.setupChecklist.collectAsState()
-    var showTasks by rememberSaveable { mutableStateOf(false) }
+    // Plain remember: restoring the overlay after a tab switch stranded users
+    // inside task management when they came back to the dashboard.
+    var showTasks by remember { mutableStateOf(false) }
 
     BackHandler(enabled = showTasks) { showTasks = false }
 
@@ -344,6 +346,7 @@ private fun DashboardReady(
     if (showEditDialog && activeShift != null) {
         EditStartTimeDialog(
             currentStartTime = activeShift.startTime,
+            zone = state.settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.systemDefault(),
             onConfirm = { newTime ->
                 onEditStartTime(activeShift.id, newTime)
                 showEditDialog = false
@@ -672,7 +675,8 @@ private fun DashboardClockSection(
     LaunchedEffect(activeShift?.id) {
         val shift = activeShift ?: return@LaunchedEffect
         while (true) {
-            elapsedSeconds = (Instant.now().toEpochMilli() - shift.startTime.toEpochMilli()) / 1000L
+            elapsedSeconds = ((Instant.now().toEpochMilli() - shift.startTime.toEpochMilli()) / 1000L)
+                .coerceAtLeast(0L)
             delay(1_000L)
         }
     }
@@ -1802,29 +1806,44 @@ private fun RecentShiftRow(
 @Composable
 private fun EditStartTimeDialog(
     currentStartTime: Instant,
+    zone: ZoneId = ZoneId.systemDefault(),
     onConfirm: (Instant) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val zone        = ZoneId.systemDefault()
+    // Work timezone, not device timezone: an entered wall-clock time must land
+    // on the same work-day the rest of the app groups this shift into.
     val zonedStart  = currentStartTime.atZone(zone)
     val timePickerState = rememberTimePickerState(
         initialHour   = zonedStart.hour,
         initialMinute = zonedStart.minute,
         is24Hour      = true,
     )
+    val candidate = LocalDateTime.of(
+        zonedStart.toLocalDate(),
+        LocalTime.of(timePickerState.hour, timePickerState.minute),
+    ).atZone(zone).toInstant()
+    val isFuture = candidate.isAfter(Instant.now())
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.dashboard_edit_start_time)) },
-        text  = { TimePicker(state = timePickerState) },
+        text  = {
+            Column {
+                TimePicker(state = timePickerState)
+                if (isFuture) {
+                    Text(
+                        stringResource(R.string.dashboard_start_time_future_error),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        },
         confirmButton = {
-            TextButton(onClick = {
-                val newInstant = LocalDateTime.of(
-                    zonedStart.toLocalDate(),
-                    LocalTime.of(timePickerState.hour, timePickerState.minute),
-                ).atZone(zone).toInstant()
-                onConfirm(newInstant)
-            }) { Text(stringResource(R.string.dashboard_save)) }
+            TextButton(
+                enabled = !isFuture,
+                onClick = { onConfirm(candidate) },
+            ) { Text(stringResource(R.string.dashboard_save)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.dashboard_cancel)) }

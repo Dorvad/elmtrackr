@@ -373,6 +373,35 @@ class DashboardViewModelTest {
     }
 
     @Test
+    fun `editActiveShiftStartTime rejects future start times`() = runTest {
+        val original = Instant.parse("2024-06-10T08:00:00Z")
+        shiftsRepo.setShifts(Shift("s1", "u1", startTime = original, endTime = null))
+        val vm = buildVm()
+        settingsRepo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        vm.editActiveShiftStartTime("s1", Instant.now().plusSeconds(3600))
+        advanceUntilIdle()
+
+        assertEquals(original, shiftsRepo.getShiftById("s1")?.startTime)
+    }
+
+    @Test
+    fun `pending celebration from a headless first punch fires on dashboard load`() = runTest {
+        widgetPin.pinned = false
+        val prefs = FakeAppPreferencesStore(firstClockInCelebrationPending = true)
+        val vm = DashboardViewModel(
+            shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, prefs,
+            premiumRepo, setupPrefs, widgetPin,
+        )
+        settingsRepo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        assertTrue(vm.showFirstClockInCelebration.value)
+        assertFalse(prefs.firstClockInCelebrationPending)
+    }
+
+    @Test
     fun `pay summary applies premium profiles to monthly totals`() = runTest {
         val month = YearMonth.now(ZoneOffset.UTC)
         var date = month.atDay(1)

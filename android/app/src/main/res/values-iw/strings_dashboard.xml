@@ -111,4 +111,5 @@
     <string name="dashboard_setup_widget_action">הוספת וידג׳ט</string>
     <string name="dashboard_setup_celebration_title">הכול מוכן!</string>
     <string name="dashboard_setup_celebration_body">הכרתם את היסודות. מעכשיו ElmTrackr עוקב ומחשב את המשמרות בדיוק לפי הדרך שבה אתם עובדים.</string>
+    <string name="dashboard_start_time_future_error">שעת ההתחלה לא יכולה להיות בעתיד.</string>
 </resources>
