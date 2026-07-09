@@ -283,4 +283,7 @@
     <string name="settings_multiplier_hint" formatted="false">1.5 = 150% pay</string>
     <string name="settings_premium_type">Premium type</string>
     <string name="settings_save_profile">Save profile</string>
+    <!-- Crash reporting -->
+    <string name="settings_crash_reports">Share crash reports</string>
+    <string name="settings_crash_reports_desc">Send anonymous crash diagnostics to help fix bugs. Your shifts, pay, and personal details are never included.</string>
 </resources>

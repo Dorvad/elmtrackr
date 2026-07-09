@@ -283,4 +283,7 @@
     <string name="settings_multiplier_hint" formatted="false">‏1.5 = שכר של 150%</string>
     <string name="settings_premium_type">סוג תוספת</string>
     <string name="settings_save_profile">שמירת פרופיל</string>
+    <!-- Crash reporting -->
+    <string name="settings_crash_reports">שיתוף דוחות קריסה</string>
+    <string name="settings_crash_reports_desc">שליחת נתוני אבחון אנונימיים כשמשהו משתבש, כדי לעזור בתיקון תקלות. נתוני משמרות, שכר ופרטים אישיים לעולם אינם נכללים.</string>
 </resources>

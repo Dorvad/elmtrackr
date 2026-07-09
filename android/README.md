@@ -11,9 +11,9 @@
 > export, compensation profiles on shift create/edit, weekly/month-over-month
 > report comparisons, staged multi-step onboarding, native rendering for all
 > clock styles, and debug/release verification are implemented.
-> Remaining work tracked as separate deliverables: advanced motion polish,
-> Hebrew localization (strings are being extracted to resources), and broader
-> emulator/device instrumentation coverage.
+> Hebrew localization is complete (full string parity between `values/` and
+> `values-iw/`). Remaining work tracked as separate deliverables: advanced
+> motion polish and broader emulator/device instrumentation coverage.
 
 Native Kotlin + Jetpack Compose app. Shares a Supabase backend with the legacy
 web app but has a **separate codebase**. **No WebView, no Capacitor.** New

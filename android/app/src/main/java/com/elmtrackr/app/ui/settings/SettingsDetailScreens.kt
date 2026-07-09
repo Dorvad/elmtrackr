@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.BuildConfig
 import com.elmtrackr.app.R
+import com.elmtrackr.app.monitoring.CrashReporting
 import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.ui.design.AuroraEaseOut
@@ -690,6 +691,21 @@ internal fun HelpDetailScreen(
                     subtitle = stringResource(R.string.settings_privacy_policy_subtitle),
                     onClick = { openExternalUrl(context, LegalDocuments.PRIVACY_POLICY_URL) },
                 )
+                if (CrashReporting.isAvailable()) {
+                    Spacer(Modifier.height(8.dp))
+                    var crashReportsEnabled by remember {
+                        mutableStateOf(CrashReporting.isEnabledByUser(context))
+                    }
+                    SettingsToggleRow(
+                        title = stringResource(R.string.settings_crash_reports),
+                        description = stringResource(R.string.settings_crash_reports_desc),
+                        checked = crashReportsEnabled,
+                        onCheckedChange = { enabled ->
+                            crashReportsEnabled = enabled
+                            CrashReporting.setEnabledByUser(context, enabled)
+                        },
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 SettingsNavRow(
                     title = stringResource(R.string.settings_terms_of_service),
