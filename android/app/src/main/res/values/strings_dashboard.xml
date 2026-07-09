@@ -101,7 +101,7 @@
     <string name="dashboard_setup_premium_blurb">Reusable bonus-rate profiles.</string>
     <string name="dashboard_setup_premium_body" formatted="false">A premium profile is a named extra rate \u2014 for example 150% for night work \u2014 that you can apply to any shift. Create one and watch how it changes a shift\'s pay.</string>
     <string name="dashboard_setup_premium_action">Set up premiums</string>
-    <string name="dashboard_setup_tasks_title">Create a paid project</string>
+    <string name="dashboard_setup_tasks_title">Create a task</string>
     <string name="dashboard_setup_tasks_blurb">A different rate for each project or client.</string>
     <string name="dashboard_setup_tasks_body">Tasks tag your shifts with a project or client, each with its own hourly rate \u2014 handy when your time is split across jobs.</string>
     <string name="dashboard_setup_tasks_action">Create a task</string>
