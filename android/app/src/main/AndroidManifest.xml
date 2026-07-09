@@ -82,6 +82,18 @@
             </intent-filter>
         </receiver>
 
+        <!-- Repaints idle widgets when the day/clock/timezone changes so the
+             date label and day total never go stale overnight. -->
+        <receiver
+            android:name=".widget.WidgetDateChangeReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
         <!-- ElmTrackr home screen widgets (Jetpack Glance 4×1 horizontal). -->
         <receiver
             android:name=".widget.ElmTrackrWidgetReceiver"

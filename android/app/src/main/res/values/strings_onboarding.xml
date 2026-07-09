@@ -116,6 +116,4 @@
     <string name="onboarding_save_and_start">Save and start tracking</string>
 
     <!-- Clock style step -->
-    <string name="onboarding_clock_style_title">Pick your style</string>
-    <string name="onboarding_clock_style_subtitle">Choose how your clock widget looks on the home screen.</string>
 </resources>

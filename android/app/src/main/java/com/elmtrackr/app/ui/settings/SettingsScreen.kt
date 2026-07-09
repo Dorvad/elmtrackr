@@ -201,6 +201,7 @@ fun SettingsScreen(
                             onNavigate = { navigateGuarded(it) },
                             onNavigateBack = { navigateGuarded(SettingsDestination.HUB) },
                             onUnsavedCountChange = { unsavedCount = it },
+                            onClearPasswordResetFeedback = viewModel::clearPasswordResetFeedback,
                             onSave = viewModel::saveSettings,
                             onSignOut = onSignOut,
                             onTheme = viewModel::saveTheme,
@@ -232,6 +233,7 @@ private fun SettingsFormHost(
     onNavigate: (SettingsDestination) -> Unit,
     onNavigateBack: () -> Unit,
     onUnsavedCountChange: (Int) -> Unit = {},
+    onClearPasswordResetFeedback: () -> Unit = {},
     onSave: (String, Double, Double, Double?, String, ClockStyle, CurrencyCode, List<Int>, SettingsFeatureFlags) -> Unit,
     onSignOut: () -> Unit,
     onTheme: (String) -> Unit,
@@ -281,6 +283,13 @@ private fun SettingsFormHost(
             duration = if (feedback.isError) SnackbarDuration.Long else SnackbarDuration.Short,
         )
         onDismissSaveFeedback()
+    }
+    LaunchedEffect(state.passwordResetFeedback) {
+        state.passwordResetFeedback ?: return@LaunchedEffect
+        // Let the confirmation read, then restore the hint line instead of
+        // leaving stale "email sent" text for the rest of the session.
+        kotlinx.coroutines.delay(6_000)
+        onClearPasswordResetFeedback()
     }
     LaunchedEffect(state.accountActionFeedback) {
         val feedback = state.accountActionFeedback ?: return@LaunchedEffect

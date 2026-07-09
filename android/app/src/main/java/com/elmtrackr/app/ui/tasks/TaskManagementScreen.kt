@@ -44,6 +44,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import com.elmtrackr.app.ui.common.resolve
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -68,8 +75,27 @@ fun TaskManagementScreen(
     viewModel: TaskManagementViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
+
+    // Same feedback pattern as Settings and Shifts: snackbar + success haptic
+    // instead of an inline auto-dismissing text line.
+    val ready = uiState as? TaskManagementUiState.Ready
+    val successMessage = ready?.message
+    val errorMessage = ready?.errorMessage
+    LaunchedEffect(successMessage, errorMessage) {
+        val message = errorMessage ?: successMessage ?: return@LaunchedEffect
+        if (errorMessage == null) AuroraHaptics.success(haptic)
+        snackbarHostState.showSnackbar(
+            message = message.resolve(context),
+            duration = if (errorMessage != null) SnackbarDuration.Long else SnackbarDuration.Short,
+        )
+        viewModel.clearMessage()
+    }
 
     AuroraListScreen {
+      Box(Modifier.fillMaxSize()) {
         when (val state = uiState) {
             is TaskManagementUiState.Loading -> Box(
                 Modifier.fillMaxSize().widthIn(max = 448.dp),
@@ -85,6 +111,11 @@ fun TaskManagementScreen(
                 onDismissMessage = viewModel::clearMessage,
             )
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+      }
     }
 }
 
@@ -127,13 +158,6 @@ internal fun TaskManagementContent(
         )
     }
 
-    if (state.message != null) {
-        androidx.compose.runtime.LaunchedEffect(state.message) {
-            kotlinx.coroutines.delay(2500)
-            onDismissMessage()
-        }
-    }
-
     LazyColumn(
         modifier = Modifier.fillMaxSize().widthIn(max = 448.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -151,14 +175,6 @@ internal fun TaskManagementContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
-            state.message?.let {
-                Spacer(Modifier.height(8.dp))
-                Text(it.asString(), color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 16.dp))
-            }
-            state.errorMessage?.let {
-                Spacer(Modifier.height(4.dp))
-                Text(it.asString(), color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
-            }
         }
 
         if (state.defaultRules.isNotEmpty()) {

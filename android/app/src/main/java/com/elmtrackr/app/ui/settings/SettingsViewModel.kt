@@ -33,10 +33,6 @@ import kotlin.math.roundToInt
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
-// Paid projects (tasks) are deliberately opt-in-by-use — creating a task turns
-// the feature's surfaces on — so there is no PAID_PROJECTS toggle here.
-enum class FeatureFlag { TRAVEL_REFUNDS, INSIGHTS, CLOCK_STYLES, OVERTIME_REMINDERS }
-
 data class SettingsFeatureFlags(
     val travelRefunds: Boolean,
     val paidProjects: Boolean,
@@ -351,41 +347,6 @@ class SettingsViewModel @Inject constructor(
         val deleting: Boolean,
         val accountFeedback: UiText?,
     )
-
-    fun updateFeatureFlag(feature: FeatureFlag, enabled: Boolean) {
-        viewModelScope.launch {
-            val userId = authRepository.getCurrentProfile()?.id ?: return@launch
-            val existing = settingsRepository.getSettings(userId) ?: return@launch
-            val updated = when (feature) {
-                FeatureFlag.TRAVEL_REFUNDS -> existing.copy(featuresTravelRefunds = enabled)
-                FeatureFlag.INSIGHTS -> existing.copy(featuresInsights = enabled)
-                FeatureFlag.CLOCK_STYLES -> existing.copy(featuresClockStyles = enabled)
-                FeatureFlag.OVERTIME_REMINDERS -> existing.copy(featuresOvertimeReminders = enabled)
-            }
-            settingsRepository.saveSettings(updated.copy(updatedAt = Instant.now()))
-        }
-    }
-
-    fun updateWeekendDays(days: List<Int>) {
-        viewModelScope.launch {
-            val userId = authRepository.getCurrentProfile()?.id ?: return@launch
-            val existing = settingsRepository.getSettings(userId) ?: return@launch
-            val savedSettings = existing.copy(weekendDays = days, updatedAt = Instant.now())
-            settingsRepository.saveSettings(savedSettings)
-            compensationProfilesRepository.ensureMigrated(userId)
-            val profiles = compensationProfilesRepository.getProfiles(userId)
-            val defaultProfile = profiles.firstOrNull { it.isDefault } ?: profiles.firstOrNull()
-            if (defaultProfile != null) {
-                val updatedProfile = defaultProfile.copy(
-                    rules = defaultProfile.rules.copy(weekendDays = days),
-                )
-                val savedProfile = compensationProfilesRepository.upsertProfile(updatedProfile)
-                settingsRepository.saveSettings(
-                    savedSettings.apply(CompensationResolver.profileToLegacySettingsUpdates(savedProfile)),
-                )
-            }
-        }
-    }
 
     fun saveTheme(theme: String) {
         viewModelScope.launch { themeStore.saveTheme(theme) }
