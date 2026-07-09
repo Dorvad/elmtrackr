@@ -4,6 +4,7 @@ import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.local.preferences.AppPreferencesStore
 import com.elmtrackr.app.data.local.preferences.OnboardingPreferences
+import com.elmtrackr.app.data.local.preferences.SetupChecklistPreferences
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -25,4 +26,8 @@ abstract class PreferencesModule {
     @Binds
     @Singleton
     abstract fun bindOnboardingPreferences(impl: AppPreferencesRepository): OnboardingPreferences
+
+    @Binds
+    @Singleton
+    abstract fun bindSetupChecklistPreferences(impl: AppPreferencesRepository): SetupChecklistPreferences
 }

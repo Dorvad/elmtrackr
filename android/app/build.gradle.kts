@@ -45,9 +45,12 @@ android {
         }
     }
 
+    val releaseKeystoreFile =
+        rootProject.file(localProps.getProperty("KEYSTORE_PATH") ?: "keystore/elmtrackr-release.jks")
+
     signingConfigs {
         create("release") {
-            storeFile = rootProject.file(localProps.getProperty("KEYSTORE_PATH") ?: "keystore/elmtrackr-release.jks")
+            storeFile = releaseKeystoreFile
             storePassword = localProps.getProperty("KEYSTORE_PASSWORD") ?: ""
             keyAlias = localProps.getProperty("KEY_ALIAS") ?: ""
             keyPassword = localProps.getProperty("KEY_PASSWORD") ?: ""
@@ -58,7 +61,18 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            // Without the upload keystore, fall back to debug signing so R8/release
+            // builds stay verifiable locally and on CI. Debug-signed release builds
+            // are rejected by Play, so this cannot ship by accident.
+            signingConfig = if (releaseKeystoreFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn(
+                    "WARNING: release keystore not found at $releaseKeystoreFile - " +
+                        "signing the release build with the DEBUG key. Do not distribute this build.",
+                )
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

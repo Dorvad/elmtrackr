@@ -3,10 +3,14 @@ package com.elmtrackr.app.ui.dashboard
 import com.elmtrackr.app.fake.FakeAppPreferencesStore
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeAuthRepository
+import com.elmtrackr.app.fake.FakePremiumProfilesRepository
 import com.elmtrackr.app.fake.FakeReportsRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
+import com.elmtrackr.app.fake.FakeSetupChecklistPreferences
 import com.elmtrackr.app.fake.FakeShiftsRepository
 import com.elmtrackr.app.fake.FakeTasksRepository
+import com.elmtrackr.app.fake.FakeWidgetPinInspector
+import com.elmtrackr.app.domain.setup.SetupStep
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.MonthlyReport
@@ -47,9 +51,13 @@ class DashboardViewModelTest {
     }
 
     private val appPrefs = FakeAppPreferencesStore()
+    private val premiumRepo = FakePremiumProfilesRepository()
+    private val setupPrefs = FakeSetupChecklistPreferences()
+    private val widgetPin = FakeWidgetPinInspector()
 
     private fun buildVm() = DashboardViewModel(
         shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, appPrefs,
+        premiumRepo, setupPrefs, widgetPin,
     )
 
     private fun defaultSettings() = UserSettings(
@@ -296,6 +304,138 @@ class DashboardViewModelTest {
         advanceUntilIdle()
 
         assertFalse(vm.showFirstClockInCelebration.value)
+    }
+
+    // ---- setup checklist ----
+
+    @Test
+    fun `setup checklist emits all steps incomplete for a fresh user`() = runTest {
+        val vm = buildVm()
+        val collected = mutableListOf<SetupChecklistUiState?>()
+        val job = launch { vm.setupChecklist.collect { collected.add(it) } }
+
+        settingsRepo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        val checklist = collected.filterNotNull().lastOrNull()
+        assertEquals(6, checklist?.totalCount)
+        assertEquals(0, checklist?.completedCount)
+        job.cancel()
+    }
+
+    @Test
+    fun `completing a shift ticks the first checklist step`() = runTest {
+        val vm = buildVm()
+        val collected = mutableListOf<SetupChecklistUiState?>()
+        val job = launch { vm.setupChecklist.collect { collected.add(it) } }
+
+        settingsRepo.setSettings(defaultSettings())
+        advanceUntilIdle()
+        vm.clockIn()
+        advanceUntilIdle()
+        vm.clockOut(shiftsRepo.currentShifts.first().id)
+        advanceUntilIdle()
+
+        val checklist = collected.filterNotNull().last()
+        assertTrue(
+            checklist.steps.first { it.step == SetupStep.FIRST_SHIFT }.isComplete,
+        )
+        job.cancel()
+    }
+
+    @Test
+    fun `visited step marks completion and dismissal hides the checklist`() = runTest {
+        val vm = buildVm()
+        val collected = mutableListOf<SetupChecklistUiState?>()
+        val job = launch { vm.setupChecklist.collect { collected.add(it) } }
+
+        settingsRepo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        vm.markSetupStepVisited(SetupStep.COMPENSATION)
+        advanceUntilIdle()
+        val afterVisit = collected.filterNotNull().last()
+        assertTrue(
+            afterVisit.steps.first { it.step == SetupStep.COMPENSATION }.isComplete,
+        )
+
+        vm.dismissSetupChecklist()
+        advanceUntilIdle()
+        assertNull(collected.last())
+        job.cancel()
+    }
+
+    @Test
+    fun `requestPinWidget delegates to the inspector`() {
+        val vm = buildVm()
+        vm.requestPinWidget()
+        assertEquals(1, widgetPin.pinRequests)
+    }
+
+    @Test
+    fun `editActiveShiftStartTime rejects future start times`() = runTest {
+        val original = Instant.parse("2024-06-10T08:00:00Z")
+        shiftsRepo.setShifts(Shift("s1", "u1", startTime = original, endTime = null))
+        val vm = buildVm()
+        settingsRepo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        vm.editActiveShiftStartTime("s1", Instant.now().plusSeconds(3600))
+        advanceUntilIdle()
+
+        assertEquals(original, shiftsRepo.getShiftById("s1")?.startTime)
+    }
+
+    @Test
+    fun `pending celebration from a headless first punch fires on dashboard load`() = runTest {
+        widgetPin.pinned = false
+        val prefs = FakeAppPreferencesStore(firstClockInCelebrationPending = true)
+        val vm = DashboardViewModel(
+            shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, prefs,
+            premiumRepo, setupPrefs, widgetPin,
+        )
+        settingsRepo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        assertTrue(vm.showFirstClockInCelebration.value)
+        assertFalse(prefs.firstClockInCelebrationPending)
+    }
+
+    @Test
+    fun `pay summary applies premium profiles to monthly totals`() = runTest {
+        val month = YearMonth.now(ZoneOffset.UTC)
+        var date = month.atDay(1)
+        while (date.dayOfWeek != DayOfWeek.MONDAY) date = date.plusDays(1)
+        val start = date.atTime(8, 0).toInstant(ZoneOffset.UTC)
+        premiumRepo.setProfiles(
+            com.elmtrackr.app.domain.model.PremiumProfile(
+                id = "prem-2x", userId = "u1", name = "Double",
+                multiplier = 2.0,
+                premiumType = com.elmtrackr.app.domain.model.PremiumType.HIGHEST_ONLY,
+                isDefault = false,
+                createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
+            ),
+        )
+        shiftsRepo.setShifts(
+            Shift(
+                "premium-shift", "u1",
+                startTime = start,
+                endTime = start.plusSeconds(4 * 3600L),
+                isSpecialDay = true,
+                premiumProfileId = "prem-2x",
+            ),
+        )
+        settingsRepo.setSettings(defaultSettings().copy(hourlyRate = 100.0))
+
+        val vm = buildVm()
+        val collected = mutableListOf<DashboardUiState>()
+        val job = launch { vm.uiState.collect { collected.add(it) } }
+        advanceUntilIdle()
+
+        val pay = collected.filterIsInstance<DashboardUiState.Ready>().last().paySummary
+        // 4h at 100/h x 2.0 premium — not the 1.5x holiday fallback.
+        assertEquals(800.0, pay?.totalGross ?: 0.0, 0.001)
+        job.cancel()
     }
 
     @Test

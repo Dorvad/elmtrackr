@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
+import com.elmtrackr.app.wear.WearSyncPublisher
+import com.elmtrackr.app.widget.WidgetActions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,6 +52,11 @@ class ClockOutReceiver : BroadcastReceiver() {
                     nm.cancelReminderNotification()
                     OvertimeReminderScheduler.cancelAll(context.applicationContext)
                 }
+                // Eager repaint, matching the widget/shortcut/Wear clock-out
+                // paths; otherwise other surfaces wait for the debounced
+                // app-scope observer.
+                runCatching { WidgetActions.refreshWidgets(context.applicationContext) }
+                runCatching { WearSyncPublisher.refresh(context.applicationContext) }
                 pendingResult.finish()
             }
         }

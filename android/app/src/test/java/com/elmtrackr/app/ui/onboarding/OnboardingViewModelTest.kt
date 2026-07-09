@@ -194,6 +194,32 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `replay onboarding preserves clock style and unshown feature flags`() = runTest {
+        settingsRepo.setSettings(
+            UserSettings(
+                id = "settings",
+                userId = "u1",
+                hourlyRate = 30.0,
+                clockStyle = com.elmtrackr.app.domain.model.ClockStyle.AURORA,
+                featuresClockStyles = false,
+                featuresPaidProjects = true,
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            ),
+        )
+        val vm = buildVm()
+
+        vm.completeOnboarding(validInput(hourlyRate = 80.0).copy(preserveExisting = true))
+        advanceUntilIdle()
+
+        val saved = settingsRepo.getSettings("u1")
+        // The wizard has no steps for these, so replay must not reset them.
+        assertEquals(com.elmtrackr.app.domain.model.ClockStyle.AURORA, saved?.clockStyle)
+        assertEquals(false, saved?.featuresClockStyles)
+        assertEquals(true, saved?.featuresPaidProjects)
+    }
+
+    @Test
     fun `replay onboarding updates core work preferences`() = runTest {
         settingsRepo.setSettings(
             UserSettings(id = "settings", userId = "u1", hourlyRate = 30.0, createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)

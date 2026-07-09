@@ -116,6 +116,4 @@
     <string name="onboarding_save_and_start">שומרים ומתחילים לעקוב</string>
 
     <!-- Clock style step -->
-    <string name="onboarding_clock_style_title">בחירת סטייל</string>
-    <string name="onboarding_clock_style_subtitle">איך שעון הווידג׳ט ייראה במסך הבית.</string>
 </resources>

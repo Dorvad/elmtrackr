@@ -1,6 +1,7 @@
 package com.elmtrackr.app.domain
 
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.ShiftBreakdown
 import com.elmtrackr.app.domain.model.Task
@@ -14,6 +15,7 @@ object TaskMonthlyReportBuilder {
         settings: UserSettings,
         tasks: List<Task> = emptyList(),
         profiles: List<CompensationProfile> = emptyList(),
+        premiumProfiles: List<PremiumProfile> = emptyList(),
     ): List<TaskMonthlyBreakdown> {
         val completed = shifts.filter { it.isCompleted }
         if (completed.isEmpty()) return emptyList()
@@ -53,7 +55,7 @@ object TaskMonthlyReportBuilder {
                 regularMinutes += breakdown.regularMinutes
                 overtimeMinutes += breakdown.overtimeMinutes
                 weekendMinutes += breakdown.weekendMinutes
-                PayrollCalculator.calculateShiftPayInContext(shift, completed, settings, profiles)?.let { pay ->
+                PayrollCalculator.calculateShiftPayInContext(shift, completed, settings, profiles, premiumProfiles)?.let { pay ->
                     totalPay += pay.totalGross
                     payKnown = true
                 }

@@ -2,6 +2,7 @@ package com.elmtrackr.app.domain.compensation
 
 import com.elmtrackr.app.domain.WeekendRules
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.CompensationSnapshot
 import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.RegionCode
@@ -175,6 +176,9 @@ object CompensationResolver {
             timezone = profile.timezone,
             regionCode = profile.regionCode,
             currencyCode = profile.currencyCode,
+            currency = CurrencyCode.entries.firstOrNull {
+                it.name.equals(profile.currencyCode, ignoreCase = true)
+            },
             defaultCompensationProfileId = profile.id,
             dailyOvertimeThresholdMinutes = profile.rules.dailyStandardMinutes,
             weeklyOvertimeThresholdMinutes = profile.rules.weeklyStandardMinutes,

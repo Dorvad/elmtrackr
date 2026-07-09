@@ -134,6 +134,7 @@ internal fun ShiftEditFormContent(
     onPremiumModeChange: (String) -> Unit = {},
     premiumProfiles: List<PremiumProfile>,
     profiles: List<CompensationProfile>,
+    allShiftsForPay: List<Shift> = emptyList(),
     compensationProfileId: String?,
     onCompensationProfileIdChange: (String) -> Unit,
     onCreateCompensationProfile: ((name: String, onCreated: (String?) -> Unit) -> Unit)? = null,
@@ -253,6 +254,7 @@ internal fun ShiftEditFormContent(
                     settings = settings,
                     profiles = profiles,
                     premiumProfiles = premiumProfiles,
+                    allShiftsForPay = allShiftsForPay,
                     compensationProfileId = compensationProfileId,
                     selectedTask = selectedTask,
                     initialShift = initialShift,
@@ -550,6 +552,7 @@ private fun LivePayPreviewCard(
     settings: UserSettings?,
     profiles: List<CompensationProfile>,
     premiumProfiles: List<PremiumProfile>,
+    allShiftsForPay: List<Shift> = emptyList(),
     compensationProfileId: String?,
     selectedTask: Task?,
     initialShift: Shift?,
@@ -574,8 +577,16 @@ private fun LivePayPreviewCard(
         taskIconSnapshot = selectedTask?.icon,
         taskHourlyRateSnapshot = selectedTask?.hourlyRate,
     )
+    // Use the same month-shift context as the saved value so weekly overtime
+    // tiers match what the shift will actually display after saving.
     val previewPay = settings?.let {
-        PayrollCalculator.calculateShiftPay(previewShift, it, profiles, premiumProfiles = premiumProfiles)
+        PayrollCalculator.calculateShiftPayInContext(
+            previewShift,
+            allShiftsForPay.filter { s -> s.isCompleted },
+            it,
+            profiles,
+            premiumProfiles,
+        )
     } ?: return
 
     Card(

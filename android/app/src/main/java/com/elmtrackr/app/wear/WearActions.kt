@@ -4,7 +4,7 @@ import android.content.Context
 import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.security.AppLockActionGuard
 import com.elmtrackr.app.shortcuts.ClockOutActions
-import com.elmtrackr.app.domain.tasks.TaskClockInHelper
+import com.elmtrackr.app.shortcuts.ClockInActions
 import com.elmtrackr.wear.sync.PunchResult
 
 object WearActions {
@@ -14,25 +14,11 @@ object WearActions {
             return PunchResult(success = false, errorCode = "app_locked")
         }
         val deps = AppEntryPoints.background(context)
-        val userId = deps.currentUserProvider().currentUserId()
+        deps.currentUserProvider().currentUserId()
             ?: return PunchResult(success = false, errorCode = "not_signed_in")
-        val settings = deps.settingsRepository().getSettings(userId)
         return runCatching {
-            val task = TaskClockInHelper.resolveAutoTask(
-                deps.tasksRepository(),
-                deps.shiftsRepository(),
-                userId,
-            )
-            val params = TaskClockInHelper.paramsFromTask(task)
-            deps.shiftsRepository().clockIn(
-                userId = userId,
-                compensationProfileId = settings?.defaultCompensationProfileId,
-                taskId = params.taskId,
-                taskNameSnapshot = params.taskNameSnapshot,
-                taskIconSnapshot = params.taskIconSnapshot,
-                taskHourlyRateSnapshot = params.taskHourlyRateSnapshot,
-            )
-            task?.let { deps.tasksRepository().markTaskUsed(userId, it.id) }
+            ClockInActions.clockInHeadless(context)
+                ?: return PunchResult(success = false, errorCode = "not_signed_in")
             WearSyncPublisher.refresh(context)
             PunchResult(success = true)
         }.getOrElse {

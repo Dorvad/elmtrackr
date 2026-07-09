@@ -2,6 +2,7 @@ package com.elmtrackr.app.domain
 
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.model.WeeklyTotals
@@ -38,6 +39,7 @@ object WeeklyBreakdownBuilder {
         shifts: List<Shift>,
         settings: UserSettings? = null,
         profiles: List<CompensationProfile> = emptyList(),
+        premiumProfiles: List<PremiumProfile> = emptyList(),
         prevMonthShifts: List<Shift> = emptyList(),
     ): List<WeeklyTotals> {
         val hasPay = settings?.let { s ->
@@ -69,7 +71,7 @@ object WeeklyBreakdownBuilder {
                 b.overtimeMin += maxOf(0, mins - threshold)
                 if (hasPay) {
                     b.pay += PayrollCalculator.calculateShiftPayInContext(
-                        shift, shifts, settings, profiles,
+                        shift, shifts, settings, profiles, premiumProfiles,
                     )?.totalGross ?: 0.0
                 }
             }

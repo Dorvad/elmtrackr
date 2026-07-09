@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.BuildConfig
 import com.elmtrackr.app.R
+import com.elmtrackr.app.monitoring.CrashReporting
 import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.ui.design.AuroraEaseOut
@@ -423,6 +424,21 @@ internal fun PayDetailScreen(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         item { SettingsDetailHeader(title = stringResource(R.string.settings_pay_overtime), onBack = onBack) }
+        if (state.compensationProfileCount > 1) {
+            item {
+                // Post-migration, these fields mirror only the DEFAULT job
+                // profile; without this note a user editing "daily overtime"
+                // here expects it to affect their second job too.
+                Text(
+                    stringResource(
+                        R.string.settings_pay_default_job_note,
+                        state.defaultCompensationProfileName.orEmpty(),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         item {
             SettingsNavRow(
                 title = stringResource(R.string.settings_compensation_rules),
@@ -690,6 +706,21 @@ internal fun HelpDetailScreen(
                     subtitle = stringResource(R.string.settings_privacy_policy_subtitle),
                     onClick = { openExternalUrl(context, LegalDocuments.PRIVACY_POLICY_URL) },
                 )
+                if (CrashReporting.isAvailable()) {
+                    Spacer(Modifier.height(8.dp))
+                    var crashReportsEnabled by remember {
+                        mutableStateOf(CrashReporting.isEnabledByUser(context))
+                    }
+                    SettingsToggleRow(
+                        title = stringResource(R.string.settings_crash_reports),
+                        description = stringResource(R.string.settings_crash_reports_desc),
+                        checked = crashReportsEnabled,
+                        onCheckedChange = { enabled ->
+                            crashReportsEnabled = enabled
+                            CrashReporting.setEnabledByUser(context, enabled)
+                        },
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 SettingsNavRow(
                     title = stringResource(R.string.settings_terms_of_service),

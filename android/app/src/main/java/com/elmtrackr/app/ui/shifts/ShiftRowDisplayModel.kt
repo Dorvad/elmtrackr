@@ -5,6 +5,7 @@ import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import java.time.ZoneId
@@ -29,6 +30,7 @@ internal fun buildShiftRowDisplay(
     settings: UserSettings?,
     profiles: List<CompensationProfile>,
     allShiftsForPay: List<Shift>,
+    premiumProfiles: List<PremiumProfile> = emptyList(),
     zone: ZoneId = ZoneId.systemDefault(),
     locale: Locale = Locale.getDefault(),
 ): ShiftRowDisplayModel {
@@ -43,6 +45,7 @@ internal fun buildShiftRowDisplay(
             allShiftsForPay.ifEmpty { listOf(shift) },
             it,
             profiles,
+            premiumProfiles,
         )
     }
     return ShiftRowDisplayModel(
@@ -79,6 +82,7 @@ internal fun buildShiftsLazyListItems(
     month: java.time.YearMonth,
     settings: UserSettings?,
     profiles: List<CompensationProfile>,
+    premiumProfiles: List<PremiumProfile> = emptyList(),
     zone: ZoneId = ZoneId.systemDefault(),
     locale: Locale = Locale.getDefault(),
 ): List<ShiftsLazyListItem> {
@@ -88,6 +92,7 @@ internal fun buildShiftsLazyListItems(
         month = month,
         settings = settings,
         profiles = profiles,
+        premiumProfiles = premiumProfiles,
         zone = zone,
         locale = locale,
     )
@@ -101,7 +106,7 @@ internal fun buildShiftsLazyListItems(
                         display = if (shift.isActive) {
                             null
                         } else {
-                            buildShiftRowDisplay(shift, settings, profiles, shifts, zone = zone, locale = locale)
+                            buildShiftRowDisplay(shift, settings, profiles, shifts, premiumProfiles, zone = zone, locale = locale)
                         },
                         isLastInSection = index == section.shifts.lastIndex,
                     ),

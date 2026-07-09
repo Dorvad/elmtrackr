@@ -69,6 +69,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -102,6 +103,12 @@ import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.setup.SetupStep
+import com.elmtrackr.app.domain.time.WorkTimezone
+import com.elmtrackr.app.ui.settings.SettingsLaunchRequest
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.elmtrackr.app.ui.components.motion.ShiftElapsedDisplay
 import com.elmtrackr.app.ui.components.motion.activeShiftPulse
 import com.elmtrackr.app.ui.components.motion.FirstClockInCelebrationDialog
@@ -156,12 +163,27 @@ private val headerGradient = Brush.linearGradient(
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
     onNavigateToReports: () -> Unit = {},
+    onNavigateToSettings: (SettingsLaunchRequest) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val showCelebration by viewModel.showFirstClockInCelebration.collectAsState()
-    var showTasks by rememberSaveable { mutableStateOf(false) }
+    val setupChecklist by viewModel.setupChecklist.collectAsState()
+    // Plain remember: restoring the overlay after a tab switch stranded users
+    // inside task management when they came back to the dashboard.
+    var showTasks by remember { mutableStateOf(false) }
 
     BackHandler(enabled = showTasks) { showTasks = false }
+
+    // A freshly pinned widget only becomes visible to AppWidgetManager once the
+    // launcher confirms it, so re-check whenever the dashboard comes back.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshWidgetPinState()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     AnimatedContent(
         targetState = showTasks,
@@ -201,6 +223,20 @@ fun DashboardScreen(
                             onManageTasks = { showTasks = true },
                             showFirstClockInCelebration = showCelebration,
                             onDismissFirstClockInCelebration = viewModel::dismissFirstClockInCelebration,
+                            setupChecklist = setupChecklist,
+                            onSetupNavigate = { step ->
+                                viewModel.markSetupStepVisited(step)
+                                onNavigateToSettings(
+                                    when (step) {
+                                        SetupStep.CLOCK_STYLE -> SettingsLaunchRequest.APPEARANCE
+                                        SetupStep.COMPENSATION -> SettingsLaunchRequest.COMPENSATION
+                                        else -> SettingsLaunchRequest.PREMIUM
+                                    },
+                                )
+                            },
+                            onRequestPinWidget = viewModel::requestPinWidget,
+                            onDismissSetupChecklist = viewModel::dismissSetupChecklist,
+                            onSetupChecklistCelebrated = viewModel::markSetupChecklistCelebrated,
                         )
                         is DashboardUiState.Error -> ErrorState(
                             message = state.message,
@@ -224,6 +260,11 @@ private fun DashboardReady(
     onManageTasks: () -> Unit,
     showFirstClockInCelebration: Boolean,
     onDismissFirstClockInCelebration: () -> Unit,
+    setupChecklist: SetupChecklistUiState? = null,
+    onSetupNavigate: (SetupStep) -> Unit = {},
+    onRequestPinWidget: () -> Unit = {},
+    onDismissSetupChecklist: () -> Unit = {},
+    onSetupChecklistCelebrated: () -> Unit = {},
 ) {
     val activeShift = state.activeShift
     val haptic = LocalHapticFeedback.current
@@ -305,6 +346,7 @@ private fun DashboardReady(
     if (showEditDialog && activeShift != null) {
         EditStartTimeDialog(
             currentStartTime = activeShift.startTime,
+            zone = state.settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.systemDefault(),
             onConfirm = { newTime ->
                 onEditStartTime(activeShift.id, newTime)
                 showEditDialog = false
@@ -346,8 +388,7 @@ private fun DashboardReady(
 
             val dailyOtMinutes = state.settings?.dailyOvertimeThresholdMinutes ?: (8 * 60)
             val currencyCode = state.paySummary?.currencyCode
-                ?: state.settings?.currencyCode
-                ?: state.settings?.currency?.name
+                ?: state.settings?.displayCurrencyCode()
                 ?: "ILS"
 
             if (activeShift == null && state.activeTasks.isNotEmpty()) {
@@ -385,10 +426,38 @@ private fun DashboardReady(
                     clockStyle = clockStyle,
                     activeShift = activeShift,
                     dailyOtMinutes = dailyOtMinutes,
+                    todayBaseMinutes = state.todayCompletedMinutes,
+                    activeStartedToday = run {
+                        val workZone = state.settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.systemDefault()
+                        activeShift?.startTime?.atZone(workZone)?.toLocalDate() == LocalDate.now(workZone)
+                    },
                     onClockIn = handleClockIn,
                     onClockOut = handleClockOut,
                     onEditStartTime = { showEditDialog = true },
                 )
+            }
+
+            val setupCard: (@Composable () -> Unit)? = setupChecklist?.let { checklist ->
+                @Composable {
+                    SetupChecklistCard(
+                        state = checklist,
+                        onStepAction = { step ->
+                            when (step) {
+                                SetupStep.FIRST_SHIFT -> handleClockIn()
+                                SetupStep.CLOCK_STYLE,
+                                SetupStep.COMPENSATION,
+                                SetupStep.PREMIUM -> onSetupNavigate(step)
+                                SetupStep.TASKS -> onManageTasks()
+                                SetupStep.WIDGET -> onRequestPinWidget()
+                            }
+                        },
+                        onDismiss = onDismissSetupChecklist,
+                        onCelebrationDismissed = onSetupChecklistCelebrated,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .auroraEnter(index = 2),
+                    )
+                }
             }
 
             if (isTablet) {
@@ -402,6 +471,7 @@ private fun DashboardReady(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         clockCard()
+                        setupCard?.invoke()
                         MonthSummaryDistribution(
                             report = state.monthlyReport,
                             modifier = Modifier.auroraEnter(index = 2),
@@ -428,6 +498,8 @@ private fun DashboardReady(
                 }
             } else {
                 clockCard()
+
+                setupCard?.invoke()
 
                 MonthSummarySection(
                     report      = state.monthlyReport,
@@ -593,6 +665,8 @@ private fun DashboardClockSection(
     clockStyle: SupportedClockStyle,
     activeShift: Shift?,
     dailyOtMinutes: Int,
+    todayBaseMinutes: Int = 0,
+    activeStartedToday: Boolean = true,
     onClockIn: () -> Unit,
     onClockOut: () -> Unit,
     onEditStartTime: () -> Unit,
@@ -601,7 +675,8 @@ private fun DashboardClockSection(
     LaunchedEffect(activeShift?.id) {
         val shift = activeShift ?: return@LaunchedEffect
         while (true) {
-            elapsedSeconds = (Instant.now().toEpochMilli() - shift.startTime.toEpochMilli()) / 1000L
+            elapsedSeconds = ((Instant.now().toEpochMilli() - shift.startTime.toEpochMilli()) / 1000L)
+                .coerceAtLeast(0L)
             delay(1_000L)
         }
     }
@@ -620,6 +695,8 @@ private fun DashboardClockSection(
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
                     dailyOtMinutes = dailyOtMinutes,
+                    todayBaseMinutes = todayBaseMinutes,
+                    activeStartedToday = activeStartedToday,
                     onClockIn = onClockIn,
                     onClockOut = onClockOut,
                     onEditStartTime = onEditStartTime,
@@ -654,6 +731,8 @@ private fun DashboardClockSection(
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
                     dailyOtMinutes = dailyOtMinutes,
+                    todayBaseMinutes = todayBaseMinutes,
+                    activeStartedToday = activeStartedToday,
                     onClockIn = onClockIn,
                     onClockOut = onClockOut,
                     onEditStartTime = onEditStartTime,
@@ -668,13 +747,18 @@ private fun ClassicClockCard(
     activeShift: Shift?,
     elapsedSeconds: Long,
     dailyOtMinutes: Int,
+    todayBaseMinutes: Int = 0,
+    activeStartedToday: Boolean = true,
     onClockIn: () -> Unit,
     onClockOut: () -> Unit,
     onEditStartTime: () -> Unit,
 ) {
     val elapsedMinutes = elapsedSeconds / 60f
-    val progress = if (dailyOtMinutes > 0) (elapsedMinutes / dailyOtMinutes).coerceIn(0f, 1f) else 0f
-    val isOvertime = activeShift != null && elapsedMinutes > dailyOtMinutes
+    // Whole-day progress (completed shifts today + current shift), matching the
+    // widget and Wear surfaces; an overnight shift started yesterday counts 0.
+    val dayMinutes = todayBaseMinutes + if (activeStartedToday) elapsedMinutes else 0f
+    val progress = if (dailyOtMinutes > 0) (dayMinutes / dailyOtMinutes).coerceIn(0f, 1f) else 0f
+    val isOvertime = activeShift != null && dayMinutes > dailyOtMinutes
     val clockOutContentDescription = stringResource(R.string.dashboard_clock_out_accessibility)
 
     val progressColor = if (isOvertime) AuroraPeach else AuroraIndigo
@@ -949,6 +1033,8 @@ private fun ExpressiveClockCard(
     activeShift: Shift?,
     elapsedSeconds: Long,
     dailyOtMinutes: Int,
+    todayBaseMinutes: Int = 0,
+    activeStartedToday: Boolean = true,
     onClockIn: () -> Unit,
     onClockOut: () -> Unit,
     onEditStartTime: () -> Unit,
@@ -956,10 +1042,11 @@ private fun ExpressiveClockCard(
     val running = activeShift != null
     val clockInContentDescription = stringResource(R.string.dashboard_clock_in_accessibility)
     val clockOutContentDescription = stringResource(R.string.dashboard_clock_out_accessibility)
+    val daySeconds = todayBaseMinutes * 60L + if (activeStartedToday) elapsedSeconds else 0L
     val progress = if (running && dailyOtMinutes > 0) {
-        (elapsedSeconds / (dailyOtMinutes * 60f)).coerceIn(0f, 1f)
+        (daySeconds / (dailyOtMinutes * 60f)).coerceIn(0f, 1f)
     } else 0f
-    val overtime = running && elapsedSeconds > dailyOtMinutes * 60L
+    val overtime = running && daySeconds > dailyOtMinutes * 60L
     ExpressiveClockPulse(running = running) { pulse ->
     val background = when (style) {
         SupportedClockStyle.BOLD -> Color(0xff222038)
@@ -1719,29 +1806,44 @@ private fun RecentShiftRow(
 @Composable
 private fun EditStartTimeDialog(
     currentStartTime: Instant,
+    zone: ZoneId = ZoneId.systemDefault(),
     onConfirm: (Instant) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val zone        = ZoneId.systemDefault()
+    // Work timezone, not device timezone: an entered wall-clock time must land
+    // on the same work-day the rest of the app groups this shift into.
     val zonedStart  = currentStartTime.atZone(zone)
     val timePickerState = rememberTimePickerState(
         initialHour   = zonedStart.hour,
         initialMinute = zonedStart.minute,
         is24Hour      = true,
     )
+    val candidate = LocalDateTime.of(
+        zonedStart.toLocalDate(),
+        LocalTime.of(timePickerState.hour, timePickerState.minute),
+    ).atZone(zone).toInstant()
+    val isFuture = candidate.isAfter(Instant.now())
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.dashboard_edit_start_time)) },
-        text  = { TimePicker(state = timePickerState) },
+        text  = {
+            Column {
+                TimePicker(state = timePickerState)
+                if (isFuture) {
+                    Text(
+                        stringResource(R.string.dashboard_start_time_future_error),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        },
         confirmButton = {
-            TextButton(onClick = {
-                val newInstant = LocalDateTime.of(
-                    zonedStart.toLocalDate(),
-                    LocalTime.of(timePickerState.hour, timePickerState.minute),
-                ).atZone(zone).toInstant()
-                onConfirm(newInstant)
-            }) { Text(stringResource(R.string.dashboard_save)) }
+            TextButton(
+                enabled = !isFuture,
+                onClick = { onConfirm(candidate) },
+            ) { Text(stringResource(R.string.dashboard_save)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.dashboard_cancel)) }

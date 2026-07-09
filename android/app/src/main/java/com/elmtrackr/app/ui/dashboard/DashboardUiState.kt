@@ -5,6 +5,15 @@ import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.setup.SetupStepState
+
+/** Getting-started checklist as rendered on the dashboard. */
+data class SetupChecklistUiState(
+    val steps: List<SetupStepState>,
+    val completedCount: Int,
+    val totalCount: Int,
+    val showCelebration: Boolean,
+)
 
 sealed interface DashboardUiState {
     data object Loading : DashboardUiState
@@ -22,6 +31,7 @@ sealed interface DashboardUiState {
         val recentShifts: List<Shift> = emptyList(),
         val displayName: String? = null,
         val unresolvedRefundCount: Int = 0,
+        val todayCompletedMinutes: Int = 0,
         val paySummary: PayrollCalculator.MonthlyPaySummary? = null,
     ) : DashboardUiState
 

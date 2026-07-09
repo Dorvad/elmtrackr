@@ -88,6 +88,7 @@ import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.RefundClaim
@@ -480,7 +481,7 @@ private fun PhoneHoursReportTop(
 private fun TabletHoursReportTop(
     state: ReportsUiState.Ready,
     report: com.elmtrackr.app.domain.model.MonthlyReport,
-    currency: CurrencyCode,
+    currency: String,
     year: Int,
     month: Int,
     onPreviousMonth: () -> Unit,
@@ -660,7 +661,7 @@ internal fun HoursReport(
     onExportCsv: () -> Unit,
     onExportPdf: () -> Unit,
 ) {
-    val currency = state.settings?.currency ?: CurrencyCode.ILS
+    val currency = state.paySummary?.currencyCode ?: state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
     val report = state.report
     val isTablet = isTabletLayout()
 
@@ -810,7 +811,7 @@ internal fun HoursReport(
     // ── Shift Insights / QuickStats (web: 6-card grid) ────────────────────────
     if (!isTablet) {
     state.insights?.let { insights ->
-        val currency2 = state.settings?.currency ?: CurrencyCode.ILS
+        val currency2 = state.paySummary?.currencyCode ?: state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
         Spacer(Modifier.height(18.dp))
         ElmSectionHeader(stringResource(R.string.reports_shift_insights))
         Spacer(Modifier.height(8.dp))
@@ -952,7 +953,7 @@ internal fun HoursReport(
         ) {
             state.rawShifts.sortedByDescending { it.startTime }.forEachIndexed { index, shift ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                ShiftReportRow(shift, settings, state.profiles, state.rawShifts, state.zone)
+                ShiftReportRow(shift, settings, state.profiles, state.rawShifts, state.premiumProfiles, state.zone)
             }
         }
     }
@@ -1185,7 +1186,7 @@ private fun InsightStatCard(
 // ── Task breakdown row ─────────────────────────────────────────────────────────
 
 @Composable
-private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: CurrencyCode) {
+private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: String) {
     val tint = parseTaskColor(task.color)
     Column(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1349,7 +1350,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                     if (week.overtimeMinutes > 0) Spacer(Modifier.width(12.dp))
                     Spacer(Modifier.weight(1f))
                     Text(
-                        MoneyFormatter.format(pay, settings?.currency ?: CurrencyCode.ILS),
+                        MoneyFormatter.format(pay, settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuroraIndigo,
@@ -1369,6 +1370,7 @@ private fun ShiftReportRow(
     settings: UserSettings,
     profiles: List<CompensationProfile> = emptyList(),
     allShifts: List<Shift> = emptyList(),
+    premiumProfiles: List<PremiumProfile> = emptyList(),
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
     val breakdown = MonthlyReportBuilder.buildShiftBreakdown(shift, settings)
@@ -1380,6 +1382,7 @@ private fun ShiftReportRow(
         allShifts.ifEmpty { listOf(shift) },
         settings,
         profiles,
+        premiumProfiles,
     )
     val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
     val otThreshold = resolved.rules.dailyStandardMinutes
@@ -1482,7 +1485,7 @@ private fun RefundReview(
             shift.isCompleted && (shift.refundAction != null || shift.id in claimShiftIds)
         }
     }
-    val currency = state.settings?.currency ?: CurrencyCode.ILS
+    val currency = state.paySummary?.currencyCode ?: state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
     val allMonthsLabel = stringResource(R.string.reports_all_months)
     var exportingAll by rememberSaveable { mutableStateOf(false) }
     if (reimbursableShifts.isEmpty()) {
@@ -1494,7 +1497,7 @@ private fun RefundReview(
         )
         return
     }
-    if (claims.isNotEmpty()) RefundAnalytics(claims, state.allShifts, state.settings, state.profiles, state.zone)
+    if (claims.isNotEmpty()) RefundAnalytics(claims, state.allShifts, state.settings, state.profiles, state.premiumProfiles, state.zone)
     val exportRows = submittedExportRows(state.allShifts, claims)
     if (exportRows.isNotEmpty()) {
         Spacer(Modifier.height(14.dp))
@@ -1574,12 +1577,13 @@ private fun RefundAnalytics(
     shifts: List<Shift>,
     settings: UserSettings?,
     profiles: List<CompensationProfile> = emptyList(),
+    premiumProfiles: List<PremiumProfile> = emptyList(),
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
     val total = claims.sumOf { it.amount }
-    val currency = settings?.currency ?: CurrencyCode.ILS
+    val currency = settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
     val salary = settings?.let { s ->
-        val gross = PayrollCalculator.sumMonthlyPay(shifts.filter { it.isCompleted }, s, profiles).totalGross
+        val gross = PayrollCalculator.sumMonthlyPay(shifts.filter { it.isCompleted }, s, profiles, premiumProfiles).totalGross
         gross.takeIf { it > 0 }
     }
     Card(shape = RoundedCornerShape(CornerRadius.Large), colors = CardDefaults.cardColors(containerColor = AuroraIndigo)) {
@@ -1622,7 +1626,7 @@ private fun RefundMonthCard(
     onViewReceipt: (String) -> Unit,
     onNavigateToShift: (String) -> Unit,
     onExport: (List<Pair<Shift, RefundClaim>>, () -> Unit) -> Unit,
-    currency: CurrencyCode,
+    currency: String,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
     val submitted = shifts.count { it.refundAction == RefundAction.SUBMITTED }
@@ -1874,7 +1878,7 @@ private fun StatPill(label: String, value: String, background: Color, color: Col
 }
 
 @Composable
-private fun PayCell(label: String, amount: Double, currency: CurrencyCode, textColor: Color, bgColor: Color, modifier: Modifier) {
+private fun PayCell(label: String, amount: Double, currency: String, textColor: Color, bgColor: Color, modifier: Modifier) {
     Column(
         modifier.background(bgColor, RoundedCornerShape(CornerRadius.Medium)).padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

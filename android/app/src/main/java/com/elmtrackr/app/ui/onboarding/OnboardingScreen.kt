@@ -87,9 +87,7 @@ import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.ui.design.AppLogo
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.settings.IanaTimezonePicker
-import com.elmtrackr.app.ui.settings.clockStyleDisplayName
 import com.elmtrackr.app.ui.settings.currencyDisplayName
-import com.elmtrackr.app.ui.settings.WatchFacePreview
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
 import com.elmtrackr.app.security.BiometricAuthPrompt
@@ -126,10 +124,7 @@ fun OnboardingScreen(
     var weekendDays by rememberSaveable { mutableStateOf(listOf(5, 6)) }
     var timezone by rememberSaveable { mutableStateOf(TimeZone.getDefault().id) }
     var travelRefunds by rememberSaveable { mutableStateOf(false) }
-    var paidProjects by rememberSaveable { mutableStateOf(false) }
     var insights by rememberSaveable { mutableStateOf(true) }
-    var clockStyles by rememberSaveable { mutableStateOf(true) }
-    var clockStyle by rememberSaveable { mutableStateOf(ClockStyle.CLASSIC) }
     var enableAppLock by rememberSaveable { mutableStateOf(false) }
     var initializedFromSettings by rememberSaveable { mutableStateOf(false) }
 
@@ -155,10 +150,7 @@ fun OnboardingScreen(
             regionCode = settings.regionCode ?: regionCode
             currencyCode = settings.currencyCode ?: settings.currency.name
             travelRefunds = settings.featuresTravelRefunds
-            paidProjects = settings.featuresPaidProjects
             insights = settings.featuresInsights
-            clockStyles = settings.featuresClockStyles
-            clockStyle = settings.clockStyle
             initializedFromSettings = true
         }
     }
@@ -958,19 +950,6 @@ internal fun FeaturesStep(
 }
 
 @Composable
-internal fun ClockStyleStep(selected: ClockStyle, onSelect: (ClockStyle) -> Unit, onBack: () -> Unit, onNext: () -> Unit) {
-    StepHeader(stringResource(R.string.onboarding_clock_style_title), stringResource(R.string.onboarding_clock_style_subtitle))
-    ClockStyle.entries.chunked(2).forEach { rowStyles ->
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            rowStyles.forEach { style -> ClockStyleCard(style, selected == style, Modifier.weight(1f)) { onSelect(style) } }
-            if (rowStyles.size == 1) Spacer(Modifier.weight(1f))
-        }
-        Spacer(Modifier.height(10.dp))
-    }
-    Spacer(Modifier.height(10.dp)); NavRow(onBack, onNext)
-}
-
-@Composable
 private fun StepHeader(title: String, subtitle: String) {
     Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
     Spacer(Modifier.height(3.dp)); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1002,23 +981,6 @@ private fun FeatureCard(title: String, description: String, enabled: Boolean, on
                 Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (comingSoon) 0.5f else 1f))
             }
             Switch(enabled, onCheckedChange = onChange, enabled = !comingSoon)
-        }
-    }
-}
-
-@Composable
-private fun ClockStyleCard(style: ClockStyle, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(CornerRadius.Medium),
-        colors = CardDefaults.cardColors(containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(if (selected) 2.dp else 1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(9.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            WatchFacePreview(style, selected)
-            Spacer(Modifier.height(7.dp))
-            Text(clockStyleDisplayName(style), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

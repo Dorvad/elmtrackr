@@ -28,6 +28,8 @@ sealed interface SettingsUiState {
         val accountActionFeedback: UiText? = null,
         val appLockEnabled: Boolean = false,
         val reduceMotionEnabled: Boolean = false,
+        val compensationProfileCount: Int = 0,
+        val defaultCompensationProfileName: String? = null,
     ) : SettingsUiState
 
     data class Error(val message: String) : SettingsUiState

@@ -2,15 +2,22 @@ package com.elmtrackr.app.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.data.local.preferences.SetupChecklistPreferences
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
+import com.elmtrackr.app.data.repository.PremiumProfilesRepository
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
+import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.setup.SetupChecklist
+import com.elmtrackr.app.domain.setup.SetupChecklistInputs
+import com.elmtrackr.app.domain.setup.SetupStep
 import com.elmtrackr.app.domain.RefundPolicy
+import com.elmtrackr.app.widget.WidgetPinInspector
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.ReportsRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
@@ -48,6 +55,9 @@ class DashboardViewModel @Inject constructor(
     private val compensationProfilesRepository: CompensationProfilesRepository,
     private val tasksRepository: TasksRepository,
     private val appPreferences: com.elmtrackr.app.data.local.preferences.AppPreferencesStore,
+    private val premiumProfilesRepository: PremiumProfilesRepository,
+    private val setupPreferences: SetupChecklistPreferences,
+    private val widgetPinInspector: WidgetPinInspector,
 ) : ViewModel() {
 
     private val _refreshNonce = MutableStateFlow(0)
@@ -67,6 +77,7 @@ class DashboardViewModel @Inject constructor(
         val recentShifts: List<Shift>,
         val profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
         val activeTasks: List<Task>,
+        val premiumProfiles: List<com.elmtrackr.app.domain.model.PremiumProfile> = emptyList(),
     )
 
     val uiState: StateFlow<DashboardUiState> = _refreshNonce
@@ -107,17 +118,25 @@ class DashboardViewModel @Inject constructor(
                 raw.copy(recentShifts = recentShifts)
             }.combine(tasksRepository.observeActiveTasks(profile.id)) { raw, activeTasks ->
                 raw.copy(activeTasks = activeTasks)
+            }.combine(premiumProfilesRepository.observeProfiles(profile.id)) { raw, premiumProfiles ->
+                raw.copy(premiumProfiles = premiumProfiles)
             }.combine(flowOf(profile)) { raw, currentProfile ->
                 if (raw.settings == null) {
                     DashboardUiState.Loading
                 } else {
                 val completedMonthShifts = raw.monthShifts.filter { it.isCompleted }
+                val workZone = WorkTimezone.zoneFor(raw.settings)
+                // Same day-total definition as the widget/Wear surfaces, so the
+                // dashboard progress ring agrees with them on multi-shift days.
+                val todayCompletedMinutes = completedMonthShifts
+                    .filter { it.startTime.atZone(workZone).toLocalDate() == LocalDate.now(workZone) }
+                    .sumOf { com.elmtrackr.app.domain.ShiftDurationCalculator.netMinutes(it) ?: 0 }
                 val paySummary = raw.settings
                     .takeIf { settings ->
                         (settings.hourlyRate ?: 0.0) > 0.0 ||
                             raw.profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
                     }
-                    ?.let { PayrollCalculator.sumMonthlyPay(completedMonthShifts, it, raw.profiles) }
+                    ?.let { PayrollCalculator.sumMonthlyPay(completedMonthShifts, it, raw.profiles, raw.premiumProfiles) }
                 DashboardUiState.Ready(
                     activeShift = raw.activeShift,
                     monthlyReport = raw.report,
@@ -130,6 +149,7 @@ class DashboardViewModel @Inject constructor(
                     suggestionExplanation = _suggestionExplanation.value,
                     recentShifts = raw.recentShifts,
                     displayName = currentProfile.fullName,
+                    todayCompletedMinutes = todayCompletedMinutes,
                     unresolvedRefundCount = if (raw.settings.featuresTravelRefunds == true) {
                         val zone = WorkTimezone.zoneFor(raw.settings)
                         RefundPolicy.countUnresolved(raw.monthShifts, zone)
@@ -178,6 +198,16 @@ class DashboardViewModel @Inject constructor(
             val settings = settingsRepository.getSettings(userId) ?: return@launch
             if (settings.onboardingCompleted) {
                 compensationProfilesRepository.ensureMigrated(userId)
+            }
+        }
+        viewModelScope.launch {
+            // A first-ever punch from the widget or watch can't show the
+            // celebration; it leaves a pending marker for this visit instead.
+            val prefs = appPreferences.currentPreferences()
+            if (prefs.firstClockInCelebrationPending && !prefs.firstClockInCelebrated) {
+                appPreferences.setFirstClockInCelebrated(true)
+                appPreferences.setFirstClockInCelebrationPending(false)
+                _showFirstClockInCelebration.value = true
             }
         }
         viewModelScope.launch {
@@ -236,6 +266,7 @@ class DashboardViewModel @Inject constructor(
             selected?.let { tasksRepository.markTaskUsed(userId, it.id) }
             if (isFirstClockIn) {
                 appPreferences.setFirstClockInCelebrated(true)
+                appPreferences.setFirstClockInCelebrationPending(false)
                 _showFirstClockInCelebration.value = true
             }
         }
@@ -252,12 +283,16 @@ class DashboardViewModel @Inject constructor(
             val settings = settingsRepository.getSettings(userId) ?: return@launch
             val profiles = compensationProfilesRepository.getProfiles(userId)
             val snapshot = ShiftCompensationHelper.buildClockOutSnapshot(shift, settings, profiles)
-            shiftsRepository.clockOut(shiftId, compensationSnapshot = snapshot)
+            // Same guard as the notification/Wear paths: the shift can vanish
+            // (deleted on another device) between lookup and clock-out.
+            runCatching { shiftsRepository.clockOut(shiftId, compensationSnapshot = snapshot) }
         }
     }
 
     fun editActiveShiftStartTime(shiftId: String, newStartTime: Instant) {
         viewModelScope.launch {
+            // A future start would run the elapsed timer backwards.
+            if (newStartTime.isAfter(Instant.now())) return@launch
             val shift = shiftsRepository.getShiftById(shiftId) ?: return@launch
             if (!shift.isActive) return@launch
             shiftsRepository.updateShift(shift.copy(startTime = newStartTime, updatedAt = Instant.now()))
@@ -266,5 +301,90 @@ class DashboardViewModel @Inject constructor(
 
     fun retry() {
         _refreshNonce.value++
+    }
+
+    // ── Getting-started checklist ────────────────────────────────────────────
+
+    private val _widgetPinned = MutableStateFlow(widgetPinInspector.hasPinnedWidget())
+
+    /** Re-reads widget placement; called on dashboard resume so a freshly pinned widget completes the step. */
+    fun refreshWidgetPinState() {
+        _widgetPinned.value = widgetPinInspector.hasPinnedWidget()
+    }
+
+    val setupChecklist: StateFlow<SetupChecklistUiState?> =
+        authRepository.observeCurrentProfile().flatMapLatest { profile ->
+            if (profile == null) return@flatMapLatest flowOf(null)
+            combine(
+                settingsRepository.observeSettings(profile.id),
+                shiftsRepository.observeRecentCompletedShifts(profile.id, 1),
+                premiumProfilesRepository.observeProfiles(profile.id),
+                compensationProfilesRepository.observeProfiles(profile.id),
+                tasksRepository.observeActiveTasks(profile.id),
+            ) { settings, completedShifts, premiumProfiles, compensationProfiles, tasks ->
+                if (settings == null) return@combine null
+                ChecklistSignals(
+                    clockStyleCustomized = settings.clockStyle != ClockStyle.CLASSIC,
+                    hasCompletedShift = completedShifts.isNotEmpty(),
+                    hasCustomPremiumProfile = premiumProfiles.any { !it.isDefault },
+                    compensationProfileCount = compensationProfiles.size,
+                    hasAnyTask = tasks.isNotEmpty(),
+                )
+            }.combine(setupPreferences.preferences) { signals, prefs ->
+                signals?.let { it to prefs }
+            }.combine(_widgetPinned) { pair, widgetPinned ->
+                val (signals, prefs) = pair ?: return@combine null
+                SetupChecklist.build(
+                    SetupChecklistInputs(
+                        hasCompletedShift = signals.hasCompletedShift,
+                        clockStyleCustomized = signals.clockStyleCustomized,
+                        compensationProfileCount = signals.compensationProfileCount,
+                        hasCustomPremiumProfile = signals.hasCustomPremiumProfile,
+                        hasAnyTask = signals.hasAnyTask,
+                        hasPinnedWidget = widgetPinned,
+                        widgetPinSupported = widgetPinInspector.isPinSupported(),
+                        visitedStepKeys = prefs.setupChecklistVisitedSteps,
+                        dismissed = prefs.setupChecklistDismissed,
+                        celebrated = prefs.setupChecklistCelebrated,
+                    ),
+                )?.let { checklist ->
+                    SetupChecklistUiState(
+                        steps = checklist.steps,
+                        completedCount = checklist.completedCount,
+                        totalCount = checklist.totalCount,
+                        showCelebration = checklist.showCelebration,
+                    )
+                }
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    private data class ChecklistSignals(
+        val clockStyleCustomized: Boolean,
+        val hasCompletedShift: Boolean,
+        val hasCustomPremiumProfile: Boolean,
+        val compensationProfileCount: Int,
+        val hasAnyTask: Boolean,
+    )
+
+    /** Marks a teach-by-visiting step as seen when the user follows its call to action. */
+    fun markSetupStepVisited(step: SetupStep) {
+        viewModelScope.launch { setupPreferences.markSetupStepVisited(step.key) }
+    }
+
+    fun dismissSetupChecklist() {
+        viewModelScope.launch { setupPreferences.setSetupChecklistDismissed(true) }
+    }
+
+    fun markSetupChecklistCelebrated() {
+        viewModelScope.launch { setupPreferences.setSetupChecklistCelebrated(true) }
+    }
+
+    /** Asks the launcher to pin the main clock in/out widget. */
+    fun requestPinWidget() {
+        widgetPinInspector.requestPinWidget()
     }
 }

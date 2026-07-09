@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.DailyInsightsBuilder
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
+import com.elmtrackr.app.data.repository.PremiumProfilesRepository
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.MonthlyReportBuilder
@@ -52,12 +53,18 @@ class ReportsViewModel @Inject constructor(
     private val currentUserProvider: CurrentUserProvider,
     private val refundsRepository: RefundsRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
+    private val premiumProfilesRepository: PremiumProfilesRepository,
     private val refundReceiptStorage: RefundReceiptStorage?,
 ) : ViewModel() {
 
+    // Seeded with the device zone, then corrected to the work zone as soon as
+    // settings load (see uiState); near a month boundary the two can disagree
+    // by a whole month, which made Reports open on a different month than the
+    // dashboard summarizes.
     private val _selectedYear = MutableStateFlow(YearMonth.now(ZoneId.systemDefault()).year)
     private val _selectedMonth = MutableStateFlow(YearMonth.now(ZoneId.systemDefault()).monthValue)
     private val _refreshNonce = MutableStateFlow(0)
+    private var monthNavigated = false
 
     private data class ReportInputs(
         val report: MonthlyReport?,
@@ -115,6 +122,13 @@ class ReportsViewModel @Inject constructor(
                             report to settings
                         }.flatMapLatest { (report, settings) ->
                             val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneOffset.UTC
+                            if (!monthNavigated && settings != null) {
+                                val current = YearMonth.now(zone)
+                                if (_selectedYear.value != current.year || _selectedMonth.value != current.monthValue) {
+                                    _selectedYear.value = current.year
+                                    _selectedMonth.value = current.monthValue
+                                }
+                            }
                             combine(
                                 shiftsRepository.observeShiftsByMonthInZone(userId, year, month, zone),
                                 shiftsRepository.observeShiftsByMonthInZone(
@@ -130,8 +144,9 @@ class ReportsViewModel @Inject constructor(
                             }
                         },
                         compensationProfilesRepository.observeProfiles(userId),
+                        premiumProfilesRepository.observeProfiles(userId),
                         tasksRepository.observeAllTasks(userId),
-                    ) { inputs, profiles, tasks ->
+                    ) { inputs, profiles, premiumProfiles, tasks ->
                         val completedShifts = inputs.shifts.filter { it.isCompleted }
                         when {
                             inputs.settings == null -> ReportsUiState.Loading
@@ -146,10 +161,10 @@ class ReportsViewModel @Inject constructor(
                                 val paySummary = settings.takeIf {
                                     (it.hourlyRate ?: 0.0) > 0.0 ||
                                         profiles.any { p -> (p.baseHourlyRate ?: 0.0) > 0.0 }
-                                }?.let { PayrollCalculator.sumMonthlyPay(completedShifts, it, profiles) }
+                                }?.let { PayrollCalculator.sumMonthlyPay(completedShifts, it, profiles, premiumProfiles) }
                                 val prevCompleted = inputs.previousShifts.filter { it.isCompleted }
                                 val insights = settings.takeIf { it.featuresInsights }
-                                    ?.let { ReportInsightsBuilder.build(completedShifts, it, profiles) }
+                                    ?.let { ReportInsightsBuilder.build(completedShifts, it, profiles, premiumProfiles) }
                                 val dailyInsights = settings.takeIf { it.featuresInsights }
                                     ?.let {
                                         DailyInsightsBuilder.build(
@@ -157,6 +172,7 @@ class ReportsViewModel @Inject constructor(
                                             it,
                                             safeReport.totalMinutes,
                                             profiles,
+                                            premiumProfiles,
                                         )
                                     }
                                     ?: emptyList()
@@ -165,6 +181,7 @@ class ReportsViewModel @Inject constructor(
                                     settings = settings,
                                     tasks = tasks.filter { !it.isArchived },
                                     profiles = profiles,
+                                    premiumProfiles = premiumProfiles,
                                 )
                                 ReportsUiState.Ready(
                                     year = year,
@@ -174,12 +191,14 @@ class ReportsViewModel @Inject constructor(
                                         shifts = completedShifts,
                                         settings = settings,
                                         profiles = profiles,
+                                        premiumProfiles = premiumProfiles,
                                         prevMonthShifts = prevCompleted,
                                     ),
                                     paySummary = paySummary,
                                     rawShifts = completedShifts,
                                     settings = settings,
                                     profiles = profiles,
+                                    premiumProfiles = premiumProfiles,
                                     featuresTravelRefunds = settings.featuresTravelRefunds,
                                     insights = insights,
                                     dailyInsights = dailyInsights,
@@ -205,12 +224,14 @@ class ReportsViewModel @Inject constructor(
         )
 
     fun previousMonth() {
+        monthNavigated = true
         val prev = YearMonth.of(_selectedYear.value, _selectedMonth.value).minusMonths(1)
         _selectedYear.value = prev.year
         _selectedMonth.value = prev.monthValue
     }
 
     fun nextMonth() {
+        monthNavigated = true
         val current = YearMonth.of(_selectedYear.value, _selectedMonth.value)
         viewModelScope.launch {
             val userId = currentUserProvider.currentUserId() ?: return@launch

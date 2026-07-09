@@ -2,6 +2,7 @@ package com.elmtrackr.app.domain
 
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 
@@ -22,6 +23,7 @@ object ReportInsightsBuilder {
         shifts: List<Shift>,
         settings: UserSettings,
         profiles: List<CompensationProfile> = emptyList(),
+        premiumProfiles: List<PremiumProfile> = emptyList(),
     ): ReportInsights? {
         val completed = shifts.filter { it.isCompleted }
         if (completed.isEmpty()) return null
@@ -50,7 +52,7 @@ object ReportInsightsBuilder {
         var highestEarningAmount: Double? = null
         var hasPay = false
         for (shift in completed) {
-            val pay = PayrollCalculator.calculateShiftPayInContext(shift, completed, settings, profiles)?.totalGross
+            val pay = PayrollCalculator.calculateShiftPayInContext(shift, completed, settings, profiles, premiumProfiles)?.totalGross
             if (pay != null && pay > 0) {
                 hasPay = true
                 totalPay += pay

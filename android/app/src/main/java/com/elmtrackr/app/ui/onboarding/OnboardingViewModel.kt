@@ -109,10 +109,13 @@ class OnboardingViewModel @Inject constructor(
                 settingsRepository.saveSettings(
                     source.copy(
                         featuresTravelRefunds = input.featuresTravelRefunds,
-                        featuresPaidProjects = input.featuresPaidProjects,
+                        // The wizard has no steps for these three, so a replay
+                        // must not silently reset the user's existing choices
+                        // (e.g. a custom clock face) to the wizard defaults.
+                        featuresPaidProjects = if (input.preserveExisting) base.featuresPaidProjects else input.featuresPaidProjects,
                         featuresInsights = input.featuresInsights,
-                        featuresClockStyles = input.featuresClockStyles,
-                        clockStyle = input.clockStyle,
+                        featuresClockStyles = if (input.preserveExisting) base.featuresClockStyles else input.featuresClockStyles,
+                        clockStyle = if (input.preserveExisting) base.clockStyle else input.clockStyle,
                         onboardingCompleted = true,
                         onboardingCompletedAt = Instant.now(),
                         updatedAt = Instant.now(),

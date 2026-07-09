@@ -60,7 +60,7 @@ object ReportExporter {
         val accent = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AuroraPdfIndigo; strokeWidth = 7f }
         val plum = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AuroraPdfPlum; strokeWidth = 7f }
         val peach = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AuroraPdfPeach; strokeWidth = 7f }
-        val currency = state.settings?.currency ?: CurrencyCode.ILS
+        val currency = state.paySummary?.currencyCode ?: state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
         val monthLabel = "${Month.of(state.month).getDisplayName(TextStyle.FULL, locale)} ${state.year}"
         val zone = ZoneId.systemDefault()
         val dateFormat = DateTimeFormatter.ofPattern("EEE, dd MMM", locale).withZone(zone)
@@ -164,7 +164,7 @@ object ReportExporter {
             val pay = state.settings?.let { settings ->
                 settings.hourlyRate?.takeIf { it > 0 }?.let {
                     com.elmtrackr.app.domain.PayrollCalculator.calculateShiftPayInContext(
-                        shift, state.rawShifts, settings, state.profiles,
+                        shift, state.rawShifts, settings, state.profiles, state.premiumProfiles,
                     )
                 }
             }
@@ -242,7 +242,7 @@ object ReportExporter {
         rows: List<RefundPdfRow>,
         year: Int,
         month: Int,
-        currency: CurrencyCode,
+        currency: String,
         zone: ZoneId = ZoneId.systemDefault(),
     ) {
         shareRefundPdf(
@@ -260,7 +260,7 @@ object ReportExporter {
         rows: List<RefundPdfRow>,
         filenameSuffix: String,
         periodLabel: String,
-        currency: CurrencyCode,
+        currency: String,
         zone: ZoneId = ZoneId.systemDefault(),
     ) {
         val res = context.withAppLocale()
@@ -438,7 +438,7 @@ object ReportExporter {
     private fun drawTaskRow(
         canvas: android.graphics.Canvas,
         task: TaskMonthlyBreakdown,
-        currency: CurrencyCode,
+        currency: String,
         x: Float,
         y: Float,
         pageWidth: Int,

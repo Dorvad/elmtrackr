@@ -100,16 +100,18 @@ object PayrollCalculator {
         val isSpecial = segments.any { it.isWeeklyRest } ||
             (shift.isSpecialDay && !shift.forceRegularRate && resolved.rules.holidayManualSpecialDayEnabled)
 
+        val ilTotalGross = brackets.sumOf { it.amount }
+        val ilDeductions = deductionsFor(ilTotalGross, resolved.rules)
         return ShiftPayBreakdown(
             brackets = brackets,
-            totalGross = brackets.sumOf { it.amount },
+            totalGross = ilTotalGross,
             regularGross = regularGross,
             overtimeGross = overtimeGross,
             weekendGross = weekendGross,
             holidayGross = holidayGross,
             nightGross = 0.0,
-            deductionsGross = 0.0,
-            netGross = brackets.sumOf { it.amount },
+            deductionsGross = ilDeductions,
+            netGross = maxOf(0.0, ilTotalGross - ilDeductions),
             isSpecial = isSpecial,
             profileId = resolved.profileId,
             profileName = resolved.profileName,
@@ -196,15 +198,7 @@ object PayrollCalculator {
         }
 
         val totalGross = brackets.sumOf { it.amount }
-        var deductionsGross = 0.0
-        val rules = resolved.rules
-        if (rules.deductionsEnabled) {
-            deductionsGross = when (rules.deductionsMode) {
-                "percentage" -> totalGross * (rules.deductionsPercentage / 100.0)
-                "fixed" -> rules.deductionsFixedAmount
-                else -> 0.0
-            }
-        }
+        val deductionsGross = deductionsFor(totalGross, resolved.rules)
 
         return ShiftPayBreakdown(
             brackets = brackets,
@@ -316,6 +310,16 @@ object PayrollCalculator {
      *   (reporting-time / minimum-call pay).
      * Returns null for active shifts.
      */
+    /** Percentage/fixed deduction on a shift's gross, per the profile's rules. */
+    internal fun deductionsFor(totalGross: Double, rules: CompensationRules): Double {
+        if (!rules.deductionsEnabled) return 0.0
+        return when (rules.deductionsMode) {
+            "percentage" -> totalGross * (rules.deductionsPercentage / 100.0)
+            "fixed" -> rules.deductionsFixedAmount
+            else -> 0.0
+        }
+    }
+
     internal fun payableNetMinutes(shift: Shift, rules: CompensationRules): Int? {
         val gross = ShiftDurationCalculator.grossMinutes(shift) ?: return null
         var net = if (rules.paidBreaks) gross else maxOf(0, gross - shift.breakMinutes)

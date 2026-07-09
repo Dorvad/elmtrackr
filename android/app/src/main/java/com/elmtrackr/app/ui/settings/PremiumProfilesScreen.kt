@@ -3,6 +3,7 @@
 package com.elmtrackr.app.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,17 +27,21 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,6 +58,12 @@ import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.PremiumType
 import com.elmtrackr.app.domain.premium.PremiumTypeLabels
 import com.elmtrackr.app.ui.components.states.ErrorState
+import com.elmtrackr.app.ui.common.resolve
+import com.elmtrackr.app.domain.model.UiText
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalContext
+import com.elmtrackr.app.ui.design.AuroraHaptics
+import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.theme.Spacing
@@ -64,40 +75,49 @@ fun PremiumProfilesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     LaunchedEffect(Unit) { viewModel.ensureLoaded() }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings_premium_profiles)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        when (val state = uiState) {
-            PremiumProfilesUiState.Loading -> BoxCentered(Modifier.padding(padding)) {
-                CircularProgressIndicator()
+    // Save feedback via snackbar + success haptic, like Settings and Shifts.
+    val saveMessage = (uiState as? PremiumProfilesUiState.Ready)?.saveMessage
+    LaunchedEffect(saveMessage) {
+        val message = saveMessage ?: return@LaunchedEffect
+        if (message == UiText.Res(R.string.settings_premium_feedback_saved)) {
+            AuroraHaptics.success(haptic)
+        }
+        snackbarHostState.showSnackbar(message.resolve(context))
+        viewModel.clearSaveMessage()
+    }
+
+    // Same chrome as every other settings sub-screen (SettingsDetailHeader
+    // inside AuroraListScreen), instead of a one-off Scaffold + TopAppBar.
+    AuroraListScreen {
+        Box(Modifier.fillMaxSize()) {
+            when (val state = uiState) {
+                PremiumProfilesUiState.Loading -> BoxCentered(Modifier) {
+                    CircularProgressIndicator()
+                }
+                is PremiumProfilesUiState.Error -> ErrorState(
+                    message = state.message.asString(),
+                    onRetry = viewModel::ensureLoaded,
+                )
+                is PremiumProfilesUiState.Ready -> PremiumProfilesContent(
+                    state = state,
+                    onBack = onBack,
+                    onCreate = viewModel::openCreate,
+                    onEdit = viewModel::openEdit,
+                    onDelete = viewModel::deleteProfile,
+                    onDismissEditor = viewModel::dismissEditor,
+                    onSave = viewModel::saveEditor,
+                    onNameChange = viewModel::updateName,
+                    onMultiplierChange = viewModel::updateMultiplier,
+                    onPremiumTypeChange = viewModel::updatePremiumType,
+                )
             }
-            is PremiumProfilesUiState.Error -> ErrorState(
-                message = state.message.asString(),
-                onRetry = viewModel::ensureLoaded,
-                modifier = Modifier.padding(padding),
-            )
-            is PremiumProfilesUiState.Ready -> PremiumProfilesContent(
-                state = state,
-                modifier = Modifier.padding(padding),
-                onCreate = viewModel::openCreate,
-                onEdit = viewModel::openEdit,
-                onDelete = viewModel::deleteProfile,
-                onDismissEditor = viewModel::dismissEditor,
-                onSave = viewModel::saveEditor,
-                onNameChange = viewModel::updateName,
-                onMultiplierChange = viewModel::updateMultiplier,
-                onPremiumTypeChange = viewModel::updatePremiumType,
-                onDismissMessage = viewModel::clearSaveMessage,
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
     }
@@ -107,6 +127,7 @@ fun PremiumProfilesScreen(
 private fun PremiumProfilesContent(
     state: PremiumProfilesUiState.Ready,
     modifier: Modifier = Modifier,
+    onBack: () -> Unit = {},
     onCreate: () -> Unit,
     onEdit: (PremiumProfile) -> Unit,
     onDelete: (String) -> Unit,
@@ -115,26 +136,40 @@ private fun PremiumProfilesContent(
     onNameChange: (String) -> Unit,
     onMultiplierChange: (String) -> Unit,
     onPremiumTypeChange: (PremiumType) -> Unit,
-    onDismissMessage: () -> Unit,
 ) {
+    var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
+    pendingDeleteId?.let { deleteId ->
+        val name = state.profiles.firstOrNull { it.id == deleteId }?.name.orEmpty()
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text(stringResource(R.string.settings_delete_premium_title)) },
+            text = { Text(stringResource(R.string.settings_delete_premium_text, name)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDeleteId = null
+                    onDelete(deleteId)
+                }) { Text(stringResource(R.string.settings_delete_profile), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteId = null }) {
+                    Text(stringResource(R.string.dashboard_cancel))
+                }
+            },
+        )
+    }
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
+        item { SettingsDetailHeader(title = stringResource(R.string.settings_premium_profiles), onBack = onBack) }
         item {
             Text(
                 stringResource(R.string.settings_premium_profiles_intro),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        }
-        state.saveMessage?.let { message ->
-            item {
-                Text(message.asString(), color = MaterialTheme.colorScheme.primary)
-                LaunchedEffect(message) { onDismissMessage() }
-            }
         }
         item {
             ElmGradientButton(onClick = onCreate, modifier = Modifier.fillMaxWidth()) {
@@ -148,7 +183,7 @@ private fun PremiumProfilesContent(
             PremiumProfileCard(
                 profile = profile,
                 onEdit = { onEdit(profile) },
-                onDelete = { onDelete(profile.id) },
+                onDelete = { pendingDeleteId = profile.id },
             )
         }
         state.editor?.let { editor ->

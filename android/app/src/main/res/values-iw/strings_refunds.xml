@@ -108,4 +108,6 @@
     <string name="refunds_notice_deleted_cleanup_retry">הבקשה נמחקה. חלק מניקוי הקבלות יתבצע שוב מאוחר יותר.</string>
     <string name="refunds_notice_deleted_cloud_retry">הבקשה נמחקה. ניקוי הקבלה בענן יתבצע שוב מאוחר יותר.</string>
     <string name="refunds_notice_deleted_local_failed">הבקשה נמחקה. מחיקת קובץ הקבלה במכשיר לא הצליחה.</string>
+    <string name="refunds_delete_dialog_title">למחוק את הבקשה?</string>
+    <string name="refunds_delete_dialog_text">הבקשה וצילום הקבלה המצורף אליה יימחקו לצמיתות.</string>
 </resources>

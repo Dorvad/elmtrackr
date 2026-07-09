@@ -2,6 +2,7 @@ package com.elmtrackr.app.domain
 
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.UserSettings
@@ -75,6 +76,7 @@ object DailyInsightsBuilder {
         settings: UserSettings,
         totalMinutes: Int,
         profiles: List<CompensationProfile> = emptyList(),
+        premiumProfiles: List<PremiumProfile> = emptyList(),
     ): List<DailyInsight> {
         val fallback = DailyInsight(
             icon  = "✨",
@@ -84,7 +86,7 @@ object DailyInsightsBuilder {
         )
         if (completedShifts.isEmpty() || totalMinutes == 0) return listOf(fallback)
 
-        val pool = buildPool(completedShifts, settings, totalMinutes, profiles)
+        val pool = buildPool(completedShifts, settings, totalMinutes, profiles, premiumProfiles)
         if (pool.isEmpty()) return listOf(fallback)
 
         val dayIndex = (Instant.now().toEpochMilli() / 86_400_000).toInt()
@@ -97,11 +99,12 @@ object DailyInsightsBuilder {
         settings: UserSettings,
         totalMinutes: Int,
         profiles: List<CompensationProfile>,
+        premiumProfiles: List<PremiumProfile>,
     ): List<DailyInsight> {
         val totalHours = totalMinutes / 60.0
         val hoursInt = totalHours.roundToInt()
         val shiftCount = shifts.size
-        val totalGross = PayrollCalculator.sumMonthlyPay(shifts, settings, profiles).totalGross
+        val totalGross = PayrollCalculator.sumMonthlyPay(shifts, settings, profiles, premiumProfiles).totalGross
 
         val pool = mutableListOf<DailyInsight>()
 
