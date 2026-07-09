@@ -104,6 +104,7 @@ import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.setup.SetupStep
+import com.elmtrackr.app.domain.time.WorkTimezone
 import com.elmtrackr.app.ui.settings.SettingsLaunchRequest
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -384,8 +385,7 @@ private fun DashboardReady(
 
             val dailyOtMinutes = state.settings?.dailyOvertimeThresholdMinutes ?: (8 * 60)
             val currencyCode = state.paySummary?.currencyCode
-                ?: state.settings?.currencyCode
-                ?: state.settings?.currency?.name
+                ?: state.settings?.displayCurrencyCode()
                 ?: "ILS"
 
             if (activeShift == null && state.activeTasks.isNotEmpty()) {
@@ -423,6 +423,11 @@ private fun DashboardReady(
                     clockStyle = clockStyle,
                     activeShift = activeShift,
                     dailyOtMinutes = dailyOtMinutes,
+                    todayBaseMinutes = state.todayCompletedMinutes,
+                    activeStartedToday = run {
+                        val workZone = state.settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.systemDefault()
+                        activeShift?.startTime?.atZone(workZone)?.toLocalDate() == LocalDate.now(workZone)
+                    },
                     onClockIn = handleClockIn,
                     onClockOut = handleClockOut,
                     onEditStartTime = { showEditDialog = true },
@@ -657,6 +662,8 @@ private fun DashboardClockSection(
     clockStyle: SupportedClockStyle,
     activeShift: Shift?,
     dailyOtMinutes: Int,
+    todayBaseMinutes: Int = 0,
+    activeStartedToday: Boolean = true,
     onClockIn: () -> Unit,
     onClockOut: () -> Unit,
     onEditStartTime: () -> Unit,
@@ -684,6 +691,8 @@ private fun DashboardClockSection(
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
                     dailyOtMinutes = dailyOtMinutes,
+                    todayBaseMinutes = todayBaseMinutes,
+                    activeStartedToday = activeStartedToday,
                     onClockIn = onClockIn,
                     onClockOut = onClockOut,
                     onEditStartTime = onEditStartTime,
@@ -718,6 +727,8 @@ private fun DashboardClockSection(
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
                     dailyOtMinutes = dailyOtMinutes,
+                    todayBaseMinutes = todayBaseMinutes,
+                    activeStartedToday = activeStartedToday,
                     onClockIn = onClockIn,
                     onClockOut = onClockOut,
                     onEditStartTime = onEditStartTime,
@@ -732,13 +743,18 @@ private fun ClassicClockCard(
     activeShift: Shift?,
     elapsedSeconds: Long,
     dailyOtMinutes: Int,
+    todayBaseMinutes: Int = 0,
+    activeStartedToday: Boolean = true,
     onClockIn: () -> Unit,
     onClockOut: () -> Unit,
     onEditStartTime: () -> Unit,
 ) {
     val elapsedMinutes = elapsedSeconds / 60f
-    val progress = if (dailyOtMinutes > 0) (elapsedMinutes / dailyOtMinutes).coerceIn(0f, 1f) else 0f
-    val isOvertime = activeShift != null && elapsedMinutes > dailyOtMinutes
+    // Whole-day progress (completed shifts today + current shift), matching the
+    // widget and Wear surfaces; an overnight shift started yesterday counts 0.
+    val dayMinutes = todayBaseMinutes + if (activeStartedToday) elapsedMinutes else 0f
+    val progress = if (dailyOtMinutes > 0) (dayMinutes / dailyOtMinutes).coerceIn(0f, 1f) else 0f
+    val isOvertime = activeShift != null && dayMinutes > dailyOtMinutes
     val clockOutContentDescription = stringResource(R.string.dashboard_clock_out_accessibility)
 
     val progressColor = if (isOvertime) AuroraPeach else AuroraIndigo
@@ -1013,6 +1029,8 @@ private fun ExpressiveClockCard(
     activeShift: Shift?,
     elapsedSeconds: Long,
     dailyOtMinutes: Int,
+    todayBaseMinutes: Int = 0,
+    activeStartedToday: Boolean = true,
     onClockIn: () -> Unit,
     onClockOut: () -> Unit,
     onEditStartTime: () -> Unit,
@@ -1020,10 +1038,11 @@ private fun ExpressiveClockCard(
     val running = activeShift != null
     val clockInContentDescription = stringResource(R.string.dashboard_clock_in_accessibility)
     val clockOutContentDescription = stringResource(R.string.dashboard_clock_out_accessibility)
+    val daySeconds = todayBaseMinutes * 60L + if (activeStartedToday) elapsedSeconds else 0L
     val progress = if (running && dailyOtMinutes > 0) {
-        (elapsedSeconds / (dailyOtMinutes * 60f)).coerceIn(0f, 1f)
+        (daySeconds / (dailyOtMinutes * 60f)).coerceIn(0f, 1f)
     } else 0f
-    val overtime = running && elapsedSeconds > dailyOtMinutes * 60L
+    val overtime = running && daySeconds > dailyOtMinutes * 60L
     ExpressiveClockPulse(running = running) { pulse ->
     val background = when (style) {
         SupportedClockStyle.BOLD -> Color(0xff222038)

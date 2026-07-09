@@ -77,6 +77,7 @@ class DashboardViewModel @Inject constructor(
         val recentShifts: List<Shift>,
         val profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
         val activeTasks: List<Task>,
+        val premiumProfiles: List<com.elmtrackr.app.domain.model.PremiumProfile> = emptyList(),
     )
 
     val uiState: StateFlow<DashboardUiState> = _refreshNonce
@@ -117,17 +118,25 @@ class DashboardViewModel @Inject constructor(
                 raw.copy(recentShifts = recentShifts)
             }.combine(tasksRepository.observeActiveTasks(profile.id)) { raw, activeTasks ->
                 raw.copy(activeTasks = activeTasks)
+            }.combine(premiumProfilesRepository.observeProfiles(profile.id)) { raw, premiumProfiles ->
+                raw.copy(premiumProfiles = premiumProfiles)
             }.combine(flowOf(profile)) { raw, currentProfile ->
                 if (raw.settings == null) {
                     DashboardUiState.Loading
                 } else {
                 val completedMonthShifts = raw.monthShifts.filter { it.isCompleted }
+                val workZone = WorkTimezone.zoneFor(raw.settings)
+                // Same day-total definition as the widget/Wear surfaces, so the
+                // dashboard progress ring agrees with them on multi-shift days.
+                val todayCompletedMinutes = completedMonthShifts
+                    .filter { it.startTime.atZone(workZone).toLocalDate() == LocalDate.now(workZone) }
+                    .sumOf { com.elmtrackr.app.domain.ShiftDurationCalculator.netMinutes(it) ?: 0 }
                 val paySummary = raw.settings
                     .takeIf { settings ->
                         (settings.hourlyRate ?: 0.0) > 0.0 ||
                             raw.profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
                     }
-                    ?.let { PayrollCalculator.sumMonthlyPay(completedMonthShifts, it, raw.profiles) }
+                    ?.let { PayrollCalculator.sumMonthlyPay(completedMonthShifts, it, raw.profiles, raw.premiumProfiles) }
                 DashboardUiState.Ready(
                     activeShift = raw.activeShift,
                     monthlyReport = raw.report,
@@ -140,6 +149,7 @@ class DashboardViewModel @Inject constructor(
                     suggestionExplanation = _suggestionExplanation.value,
                     recentShifts = raw.recentShifts,
                     displayName = currentProfile.fullName,
+                    todayCompletedMinutes = todayCompletedMinutes,
                     unresolvedRefundCount = if (raw.settings.featuresTravelRefunds == true) {
                         val zone = WorkTimezone.zoneFor(raw.settings)
                         RefundPolicy.countUnresolved(raw.monthShifts, zone)

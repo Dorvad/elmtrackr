@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.DailyInsightsBuilder
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
+import com.elmtrackr.app.data.repository.PremiumProfilesRepository
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.MonthlyReportBuilder
@@ -52,6 +53,7 @@ class ReportsViewModel @Inject constructor(
     private val currentUserProvider: CurrentUserProvider,
     private val refundsRepository: RefundsRepository,
     private val compensationProfilesRepository: CompensationProfilesRepository,
+    private val premiumProfilesRepository: PremiumProfilesRepository,
     private val refundReceiptStorage: RefundReceiptStorage?,
 ) : ViewModel() {
 
@@ -130,8 +132,9 @@ class ReportsViewModel @Inject constructor(
                             }
                         },
                         compensationProfilesRepository.observeProfiles(userId),
+                        premiumProfilesRepository.observeProfiles(userId),
                         tasksRepository.observeAllTasks(userId),
-                    ) { inputs, profiles, tasks ->
+                    ) { inputs, profiles, premiumProfiles, tasks ->
                         val completedShifts = inputs.shifts.filter { it.isCompleted }
                         when {
                             inputs.settings == null -> ReportsUiState.Loading
@@ -146,10 +149,10 @@ class ReportsViewModel @Inject constructor(
                                 val paySummary = settings.takeIf {
                                     (it.hourlyRate ?: 0.0) > 0.0 ||
                                         profiles.any { p -> (p.baseHourlyRate ?: 0.0) > 0.0 }
-                                }?.let { PayrollCalculator.sumMonthlyPay(completedShifts, it, profiles) }
+                                }?.let { PayrollCalculator.sumMonthlyPay(completedShifts, it, profiles, premiumProfiles) }
                                 val prevCompleted = inputs.previousShifts.filter { it.isCompleted }
                                 val insights = settings.takeIf { it.featuresInsights }
-                                    ?.let { ReportInsightsBuilder.build(completedShifts, it, profiles) }
+                                    ?.let { ReportInsightsBuilder.build(completedShifts, it, profiles, premiumProfiles) }
                                 val dailyInsights = settings.takeIf { it.featuresInsights }
                                     ?.let {
                                         DailyInsightsBuilder.build(
@@ -157,6 +160,7 @@ class ReportsViewModel @Inject constructor(
                                             it,
                                             safeReport.totalMinutes,
                                             profiles,
+                                            premiumProfiles,
                                         )
                                     }
                                     ?: emptyList()
@@ -165,6 +169,7 @@ class ReportsViewModel @Inject constructor(
                                     settings = settings,
                                     tasks = tasks.filter { !it.isArchived },
                                     profiles = profiles,
+                                    premiumProfiles = premiumProfiles,
                                 )
                                 ReportsUiState.Ready(
                                     year = year,
@@ -174,12 +179,14 @@ class ReportsViewModel @Inject constructor(
                                         shifts = completedShifts,
                                         settings = settings,
                                         profiles = profiles,
+                                        premiumProfiles = premiumProfiles,
                                         prevMonthShifts = prevCompleted,
                                     ),
                                     paySummary = paySummary,
                                     rawShifts = completedShifts,
                                     settings = settings,
                                     profiles = profiles,
+                                    premiumProfiles = premiumProfiles,
                                     featuresTravelRefunds = settings.featuresTravelRefunds,
                                     insights = insights,
                                     dailyInsights = dailyInsights,

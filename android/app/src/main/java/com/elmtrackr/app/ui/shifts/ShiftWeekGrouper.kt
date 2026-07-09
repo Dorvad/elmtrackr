@@ -3,6 +3,7 @@ package com.elmtrackr.app.ui.shifts
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import java.time.DayOfWeek
@@ -31,6 +32,7 @@ object ShiftWeekGrouper {
         month: YearMonth,
         settings: UserSettings?,
         profiles: List<CompensationProfile> = emptyList(),
+        premiumProfiles: List<PremiumProfile> = emptyList(),
         zone: ZoneId = ZoneId.systemDefault(),
         locale: Locale = Locale.getDefault(),
     ): List<ShiftWeekSection> {
@@ -65,7 +67,7 @@ object ShiftWeekGrouper {
                 }
                 val pay = settings?.let { s ->
                     completed.takeIf { it.isNotEmpty() }?.let {
-                        PayrollCalculator.sumMonthlyPay(it, s, profiles).totalGross
+                        PayrollCalculator.sumMonthlyPay(it, s, profiles, premiumProfiles).totalGross
                     }
                 }
                 val isCurrentWeek = !today.isBefore(weekStart) && !today.isAfter(weekEnd)

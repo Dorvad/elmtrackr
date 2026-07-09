@@ -39,11 +39,19 @@ data class UserSettings(
         val DEFAULT_WEEKEND_DAYS = listOf(5, 6)     // Friday + Saturday
     }
 
+    /**
+     * The currency code every money display should use. The nullable string
+     * (mirrored from the default compensation profile) wins over the legacy
+     * enum so all screens agree after a profile currency change.
+     */
+    fun displayCurrencyCode(): String = currencyCode ?: currency.name
+
     data class Updates(
         val hourlyRate: Double? = null,
         val timezone: String? = null,
         val regionCode: RegionCode? = null,
         val currencyCode: String? = null,
+        val currency: CurrencyCode? = null,
         val defaultCompensationProfileId: String? = null,
         val dailyOvertimeThresholdMinutes: Int? = null,
         val weeklyOvertimeThresholdMinutes: Int? = null,
@@ -55,6 +63,7 @@ data class UserSettings(
         timezone = updates.timezone ?: timezone,
         regionCode = updates.regionCode ?: regionCode,
         currencyCode = updates.currencyCode ?: currencyCode,
+        currency = updates.currency ?: currency,
         defaultCompensationProfileId = updates.defaultCompensationProfileId ?: defaultCompensationProfileId,
         dailyOvertimeThresholdMinutes = updates.dailyOvertimeThresholdMinutes ?: dailyOvertimeThresholdMinutes,
         weeklyOvertimeThresholdMinutes = updates.weeklyOvertimeThresholdMinutes ?: weeklyOvertimeThresholdMinutes,

@@ -31,6 +31,7 @@ sealed interface DashboardUiState {
         val recentShifts: List<Shift> = emptyList(),
         val displayName: String? = null,
         val unresolvedRefundCount: Int = 0,
+        val todayCompletedMinutes: Int = 0,
         val paySummary: PayrollCalculator.MonthlyPaySummary? = null,
     ) : DashboardUiState
 

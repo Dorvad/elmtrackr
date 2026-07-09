@@ -51,6 +51,7 @@ import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -172,11 +173,12 @@ internal fun ShiftsHeroSummaryCard(
     settings: UserSettings?,
     month: YearMonth,
     profiles: List<CompensationProfile> = emptyList(),
+    premiumProfiles: List<PremiumProfile> = emptyList(),
     onPreviousMonth: (() -> Unit)? = null,
     onNextMonth: (() -> Unit)? = null,
 ) {
     val completed = remember(shifts) { shifts.filter { it.isCompleted } }
-    val summary = remember(completed, settings, month, profiles) {
+    val summary = remember(completed, settings, month, profiles, premiumProfiles) {
         val completedMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
         val report = settings?.let {
             MonthlyReportBuilder.buildMonthlyReport(month.year, month.monthValue, completed, it)
@@ -187,7 +189,7 @@ internal fun ShiftsHeroSummaryCard(
         val pay = settings?.let { s ->
             val hasRate = (s.hourlyRate ?: 0.0) > 0.0 ||
                 profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
-            if (hasRate) PayrollCalculator.sumMonthlyPay(completed, s, profiles).totalGross else null
+            if (hasRate) PayrollCalculator.sumMonthlyPay(completed, s, profiles, premiumProfiles).totalGross else null
         }
         HeroSummaryData(
             completedMinutes = completedMinutes,
@@ -436,6 +438,7 @@ internal fun ShiftRow(
     settings: UserSettings?,
     profiles: List<CompensationProfile> = emptyList(),
     allShiftsForPay: List<Shift> = emptyList(),
+    premiumProfiles: List<PremiumProfile> = emptyList(),
     showRefunds: Boolean,
     grouped: Boolean = false,
     entranceIndex: Int = 0,
@@ -449,7 +452,7 @@ internal fun ShiftRow(
         return
     }
 
-    val rowDisplay = display ?: buildShiftRowDisplay(shift, settings, profiles, allShiftsForPay, zone = rowZone, locale = appLocale())
+    val rowDisplay = display ?: buildShiftRowDisplay(shift, settings, profiles, allShiftsForPay, premiumProfiles, zone = rowZone, locale = appLocale())
 
     val rowModifier = if (grouped) {
         Modifier.fillMaxWidth()

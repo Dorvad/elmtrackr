@@ -286,4 +286,5 @@
     <!-- Crash reporting -->
     <string name="settings_crash_reports">Share crash reports</string>
     <string name="settings_crash_reports_desc">Send anonymous crash diagnostics to help fix bugs. Your shifts, pay, and personal details are never included.</string>
+    <string name="settings_night_il_note">Night work under the Israel preset is handled automatically: a shift with 2+ hours between 22:00 and 06:00 uses a shortened 7-hour daily standard, so overtime starts earlier. A separate night multiplier does not apply.</string>
 </resources>

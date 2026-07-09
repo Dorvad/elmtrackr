@@ -373,6 +373,43 @@ class DashboardViewModelTest {
     }
 
     @Test
+    fun `pay summary applies premium profiles to monthly totals`() = runTest {
+        val month = YearMonth.now(ZoneOffset.UTC)
+        var date = month.atDay(1)
+        while (date.dayOfWeek != DayOfWeek.MONDAY) date = date.plusDays(1)
+        val start = date.atTime(8, 0).toInstant(ZoneOffset.UTC)
+        premiumRepo.setProfiles(
+            com.elmtrackr.app.domain.model.PremiumProfile(
+                id = "prem-2x", userId = "u1", name = "Double",
+                multiplier = 2.0,
+                premiumType = com.elmtrackr.app.domain.model.PremiumType.HIGHEST_ONLY,
+                isDefault = false,
+                createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
+            ),
+        )
+        shiftsRepo.setShifts(
+            Shift(
+                "premium-shift", "u1",
+                startTime = start,
+                endTime = start.plusSeconds(4 * 3600L),
+                isSpecialDay = true,
+                premiumProfileId = "prem-2x",
+            ),
+        )
+        settingsRepo.setSettings(defaultSettings().copy(hourlyRate = 100.0))
+
+        val vm = buildVm()
+        val collected = mutableListOf<DashboardUiState>()
+        val job = launch { vm.uiState.collect { collected.add(it) } }
+        advanceUntilIdle()
+
+        val pay = collected.filterIsInstance<DashboardUiState.Ready>().last().paySummary
+        // 4h at 100/h x 2.0 premium — not the 1.5x holiday fallback.
+        assertEquals(800.0, pay?.totalGross ?: 0.0, 0.001)
+        job.cancel()
+    }
+
+    @Test
     fun `pay summary applies overtime tiers instead of flat hourly rate`() = runTest {
         val month = YearMonth.now(ZoneOffset.UTC)
         var date = month.atDay(1)

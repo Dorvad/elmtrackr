@@ -158,16 +158,18 @@ object IsraeliCompensationEngine {
         val isSpecial = segments.any { it.isWeeklyRest } ||
             (shift.isSpecialDay && resolved.rules.holidayManualSpecialDayEnabled)
 
+        val totalGross = brackets.sumOf { it.amount }
+        val deductionsGross = PayrollCalculator.deductionsFor(totalGross, resolved.rules)
         return ShiftPayBreakdown(
             brackets = brackets,
-            totalGross = brackets.sumOf { it.amount },
+            totalGross = totalGross,
             regularGross = regularGross,
             overtimeGross = overtimeGross,
             weekendGross = weekendGross,
             holidayGross = holidayGross,
             nightGross = 0.0,
-            deductionsGross = 0.0,
-            netGross = brackets.sumOf { it.amount },
+            deductionsGross = deductionsGross,
+            netGross = maxOf(0.0, totalGross - deductionsGross),
             isSpecial = isSpecial,
             profileId = resolved.profileId,
             profileName = resolved.profileName,

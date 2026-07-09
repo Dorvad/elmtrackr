@@ -357,17 +357,28 @@ internal fun CompensationSettingsContent(
                         rules = rules.copy(holidayMultiplier = it)
                     }
                 }
-                ToggleRow(stringResource(R.string.settings_night_shift), rules.nightEnabled) { rules = rules.copy(nightEnabled = it) }
-                if (rules.nightEnabled) {
-                    MultiplierField(stringResource(R.string.settings_night_multiplier), rules.nightMultiplier) {
-                        rules = rules.copy(nightMultiplier = it)
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TimeField(stringResource(R.string.settings_night_starts), rules.nightStartTime, Modifier.weight(1f)) {
-                            rules = rules.copy(nightStartTime = it)
+                if (regionCode == RegionCode.IL) {
+                    // The Israeli engine models night work as a shortened 7-hour
+                    // workday, not a separate multiplier; hiding these inert
+                    // fields keeps the screen honest about what changes pay.
+                    Text(
+                        stringResource(R.string.settings_night_il_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    ToggleRow(stringResource(R.string.settings_night_shift), rules.nightEnabled) { rules = rules.copy(nightEnabled = it) }
+                    if (rules.nightEnabled) {
+                        MultiplierField(stringResource(R.string.settings_night_multiplier), rules.nightMultiplier) {
+                            rules = rules.copy(nightMultiplier = it)
                         }
-                        TimeField(stringResource(R.string.settings_night_ends), rules.nightEndTime, Modifier.weight(1f)) {
-                            rules = rules.copy(nightEndTime = it)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TimeField(stringResource(R.string.settings_night_starts), rules.nightStartTime, Modifier.weight(1f)) {
+                                rules = rules.copy(nightStartTime = it)
+                            }
+                            TimeField(stringResource(R.string.settings_night_ends), rules.nightEndTime, Modifier.weight(1f)) {
+                                rules = rules.copy(nightEndTime = it)
+                            }
                         }
                     }
                 }
