@@ -57,6 +57,7 @@ class LocalShiftsRepositoryTest {
         userId: String = "u1",
         startTime: Long,
         endTime: Long? = null,
+        deletedAt: Long? = null,
     ) = ShiftEntity(
         localId = localId,
         remoteId = null,
@@ -75,11 +76,35 @@ class LocalShiftsRepositoryTest {
         taskHourlyRateSnapshot = null,
         createdAt = startTime,
         updatedAt = startTime,
-        deletedAt = null,
+        deletedAt = deletedAt,
         syncStatus = SyncStatus.SYNCED,
         lastSyncError = null,
         lastSyncedAt = null,
     )
+
+    @Test
+    fun `getShiftById hides soft-deleted shifts from the domain layer`() = runTest {
+        val dao = InMemoryShiftDao()
+        dao.insertShift(shiftEntity(localId = "gone", startTime = 1_000L, deletedAt = 2_000L))
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger())
+
+        assertEquals(null, repository.getShiftById("gone"))
+    }
+
+    @Test
+    fun `clockOut refuses a soft-deleted shift instead of resurrecting it`() = runTest {
+        val dao = InMemoryShiftDao()
+        dao.insertShift(shiftEntity(localId = "gone", startTime = 1_000L, deletedAt = 2_000L))
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger())
+
+        val result = runCatching { repository.clockOut("gone") }
+
+        assertEquals(true, result.isFailure)
+        val stored = dao.currentShifts.single()
+        assertEquals(null, stored.endTime)
+        assertEquals(2_000L, stored.deletedAt)
+        assertEquals(SyncStatus.SYNCED, stored.syncStatus)
+    }
 
     private class InMemoryShiftDao : ShiftDao {
         private val shifts = MutableStateFlow<List<ShiftEntity>>(emptyList())

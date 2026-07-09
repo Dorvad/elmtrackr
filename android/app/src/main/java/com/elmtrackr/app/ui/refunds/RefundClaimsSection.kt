@@ -109,6 +109,26 @@ fun RefundClaimsSection(
 ) {
     LaunchedEffect(shift) { viewModel.setShift(shift) }
     val state by viewModel.uiState.collectAsState()
+    var pendingDeleteClaimId by rememberSaveable { mutableStateOf<String?>(null) }
+
+    pendingDeleteClaimId?.let { claimId ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteClaimId = null },
+            title = { Text(stringResource(R.string.refunds_delete_dialog_title)) },
+            text = { Text(stringResource(R.string.refunds_delete_dialog_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDeleteClaimId = null
+                    viewModel.deleteClaim(claimId)
+                }) { Text(stringResource(R.string.refunds_delete), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteClaimId = null }) {
+                    Text(stringResource(R.string.refunds_cancel))
+                }
+            },
+        )
+    }
 
     val launchDocumentScanner = rememberDocumentScannerLauncher(
         onScanStarted = viewModel::onDocumentScannerLaunched,
@@ -213,7 +233,7 @@ fun RefundClaimsSection(
                 isDeleting = state.deletingClaimId == claim?.id,
                 onAdd = { viewModel.openForm(direction) },
                 onEdit = { edited -> viewModel.openForm(direction, edited) },
-                onDelete = { deleted -> viewModel.deleteClaim(deleted.id) },
+                onDelete = { deleted -> pendingDeleteClaimId = deleted.id },
                 onNoRide = { viewModel.updateRefundAction(RefundAction.NO_RIDE_TAKEN) },
                 onRemindLater = { viewModel.updateRefundAction(RefundAction.REMIND_LATER) },
                 onUndoAction = { viewModel.updateRefundAction(null) },

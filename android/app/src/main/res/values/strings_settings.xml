@@ -287,4 +287,10 @@
     <string name="settings_crash_reports">Share crash reports</string>
     <string name="settings_crash_reports_desc">Send anonymous crash diagnostics to help fix bugs. Your shifts, pay, and personal details are never included.</string>
     <string name="settings_night_il_note">Night work under the Israel preset is handled automatically: a shift with 2+ hours between 22:00 and 06:00 uses a shortened 7-hour daily standard, so overtime starts earlier. A separate night multiplier does not apply.</string>
+    <string name="settings_delete_premium_title">Delete premium rate?</string>
+    <string name="settings_delete_premium_text">\"%1$s\" will be removed. Shifts that used it keep their saved pay, but you can no longer apply it to new shifts.</string>
+    <string name="settings_discard_title">Discard changes?</string>
+    <string name="settings_discard_text">You have unsaved changes on this screen.</string>
+    <string name="settings_discard_confirm">Discard</string>
+    <string name="settings_discard_keep">Keep editing</string>
 </resources>

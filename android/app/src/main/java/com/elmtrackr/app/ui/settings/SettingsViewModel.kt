@@ -33,7 +33,9 @@ import kotlin.math.roundToInt
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
-enum class FeatureFlag { TRAVEL_REFUNDS, PAID_PROJECTS, INSIGHTS, CLOCK_STYLES, OVERTIME_REMINDERS }
+// Paid projects (tasks) are deliberately opt-in-by-use — creating a task turns
+// the feature's surfaces on — so there is no PAID_PROJECTS toggle here.
+enum class FeatureFlag { TRAVEL_REFUNDS, INSIGHTS, CLOCK_STYLES, OVERTIME_REMINDERS }
 
 data class SettingsFeatureFlags(
     val travelRefunds: Boolean,
@@ -345,7 +347,6 @@ class SettingsViewModel @Inject constructor(
             val existing = settingsRepository.getSettings(userId) ?: return@launch
             val updated = when (feature) {
                 FeatureFlag.TRAVEL_REFUNDS -> existing.copy(featuresTravelRefunds = enabled)
-                FeatureFlag.PAID_PROJECTS -> existing.copy(featuresPaidProjects = enabled)
                 FeatureFlag.INSIGHTS -> existing.copy(featuresInsights = enabled)
                 FeatureFlag.CLOCK_STYLES -> existing.copy(featuresClockStyles = enabled)
                 FeatureFlag.OVERTIME_REMINDERS -> existing.copy(featuresOvertimeReminders = enabled)

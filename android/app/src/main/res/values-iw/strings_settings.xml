@@ -287,4 +287,10 @@
     <string name="settings_crash_reports">שיתוף דוחות קריסה</string>
     <string name="settings_crash_reports_desc">שליחת נתוני אבחון אנונימיים כשמשהו משתבש, כדי לעזור בתיקון תקלות. נתוני משמרות, שכר ופרטים אישיים לעולם אינם נכללים.</string>
     <string name="settings_night_il_note">עבודת לילה לפי הכללים בישראל מטופלת אוטומטית: משמרת עם שעתיים ומעלה בין 22:00 ל־06:00 מחושבת לפי יום עבודה מקוצר של 7 שעות, כך שהשעות הנוספות מתחילות מוקדם יותר. מכפיל לילה נפרד אינו חל.</string>
+    <string name="settings_delete_premium_title">למחוק את תעריף הפרמיה?</string>
+    <string name="settings_delete_premium_text">\"%1$s\" יוסר. משמרות שהשתמשו בו ישמרו את השכר שנשמר, אך לא ניתן יהיה להחיל אותו על משמרות חדשות.</string>
+    <string name="settings_discard_title">לבטל את השינויים?</string>
+    <string name="settings_discard_text">יש במסך הזה שינויים שלא נשמרו.</string>
+    <string name="settings_discard_confirm">ביטול השינויים</string>
+    <string name="settings_discard_keep">המשך עריכה</string>
 </resources>

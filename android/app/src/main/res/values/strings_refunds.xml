@@ -108,4 +108,6 @@
     <string name="refunds_notice_deleted_cleanup_retry">Claim deleted. Some receipt cleanup will retry later.</string>
     <string name="refunds_notice_deleted_cloud_retry">Claim deleted. Cloud receipt cleanup will retry later.</string>
     <string name="refunds_notice_deleted_local_failed">Claim deleted. Local receipt file cleanup failed.</string>
+    <string name="refunds_delete_dialog_title">Delete this claim?</string>
+    <string name="refunds_delete_dialog_text">The claim and its attached receipt photo will be permanently deleted.</string>
 </resources>

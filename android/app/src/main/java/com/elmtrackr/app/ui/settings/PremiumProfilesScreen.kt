@@ -31,12 +31,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -117,6 +119,26 @@ private fun PremiumProfilesContent(
     onPremiumTypeChange: (PremiumType) -> Unit,
     onDismissMessage: () -> Unit,
 ) {
+    var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
+    pendingDeleteId?.let { deleteId ->
+        val name = state.profiles.firstOrNull { it.id == deleteId }?.name.orEmpty()
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text(stringResource(R.string.settings_delete_premium_title)) },
+            text = { Text(stringResource(R.string.settings_delete_premium_text, name)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDeleteId = null
+                    onDelete(deleteId)
+                }) { Text(stringResource(R.string.settings_delete_profile), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteId = null }) {
+                    Text(stringResource(R.string.dashboard_cancel))
+                }
+            },
+        )
+    }
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -148,7 +170,7 @@ private fun PremiumProfilesContent(
             PremiumProfileCard(
                 profile = profile,
                 onEdit = { onEdit(profile) },
-                onDelete = { onDelete(profile.id) },
+                onDelete = { pendingDeleteId = profile.id },
             )
         }
         state.editor?.let { editor ->

@@ -267,18 +267,6 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `updateFeatureFlag PAID_PROJECTS saves immediately`() = runTest {
-        val vm = buildVm()
-        repo.setSettings(defaultSettings().copy(featuresPaidProjects = false))
-        advanceUntilIdle()
-
-        vm.updateFeatureFlag(FeatureFlag.PAID_PROJECTS, true)
-        advanceUntilIdle()
-
-        assertEquals(true, repo.getSettings("u1")?.featuresPaidProjects)
-    }
-
-    @Test
     fun `updateFeatureFlag INSIGHTS saves immediately`() = runTest {
         val vm = buildVm()
         repo.setSettings(defaultSettings().copy(featuresInsights = false))

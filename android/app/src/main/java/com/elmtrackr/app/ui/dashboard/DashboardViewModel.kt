@@ -272,7 +272,9 @@ class DashboardViewModel @Inject constructor(
             val settings = settingsRepository.getSettings(userId) ?: return@launch
             val profiles = compensationProfilesRepository.getProfiles(userId)
             val snapshot = ShiftCompensationHelper.buildClockOutSnapshot(shift, settings, profiles)
-            shiftsRepository.clockOut(shiftId, compensationSnapshot = snapshot)
+            // Same guard as the notification/Wear paths: the shift can vanish
+            // (deleted on another device) between lookup and clock-out.
+            runCatching { shiftsRepository.clockOut(shiftId, compensationSnapshot = snapshot) }
         }
     }
 

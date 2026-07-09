@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -95,6 +99,17 @@ fun SettingsScreen(
     onPendingLaunchConsumed: () -> Unit = {},
 ) {
     var destination by rememberSaveable { mutableStateOf(SettingsDestination.HUB) }
+    var unsavedCount by remember { mutableStateOf(0) }
+    var pendingDiscardTarget by remember { mutableStateOf<SettingsDestination?>(null) }
+
+    // Leaving a detail screen with unsaved edits requires an explicit choice.
+    fun navigateGuarded(target: SettingsDestination) {
+        if (unsavedCount > 0 && target != destination) {
+            pendingDiscardTarget = target
+        } else {
+            destination = target
+        }
+    }
 
     LaunchedEffect(pendingLaunch) {
         val launch = pendingLaunch ?: return@LaunchedEffect
@@ -103,7 +118,27 @@ fun SettingsScreen(
     }
 
     BackHandler(enabled = destination != SettingsDestination.HUB) {
-        destination = destination.backDestination() ?: SettingsDestination.HUB
+        navigateGuarded(destination.backDestination() ?: SettingsDestination.HUB)
+    }
+
+    pendingDiscardTarget?.let { target ->
+        AlertDialog(
+            onDismissRequest = { pendingDiscardTarget = null },
+            title = { Text(stringResource(R.string.settings_discard_title)) },
+            text = { Text(stringResource(R.string.settings_discard_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDiscardTarget = null
+                    unsavedCount = 0
+                    destination = target
+                }) { Text(stringResource(R.string.settings_discard_confirm), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDiscardTarget = null }) {
+                    Text(stringResource(R.string.settings_discard_keep))
+                }
+            },
+        )
     }
 
     val uiState by viewModel.uiState.collectAsState()
@@ -163,8 +198,9 @@ fun SettingsScreen(
                             state = state,
                             destination = dest,
                             authState = authState,
-                            onNavigate = { destination = it },
-                            onNavigateBack = { destination = SettingsDestination.HUB },
+                            onNavigate = { navigateGuarded(it) },
+                            onNavigateBack = { navigateGuarded(SettingsDestination.HUB) },
+                            onUnsavedCountChange = { unsavedCount = it },
                             onSave = viewModel::saveSettings,
                             onSignOut = onSignOut,
                             onTheme = viewModel::saveTheme,
@@ -195,6 +231,7 @@ private fun SettingsFormHost(
     authState: AuthUiState?,
     onNavigate: (SettingsDestination) -> Unit,
     onNavigateBack: () -> Unit,
+    onUnsavedCountChange: (Int) -> Unit = {},
     onSave: (String, Double, Double, Double?, String, ClockStyle, CurrencyCode, List<Int>, SettingsFeatureFlags) -> Unit,
     onSignOut: () -> Unit,
     onTheme: (String) -> Unit,
@@ -210,24 +247,27 @@ private fun SettingsFormHost(
     val context = LocalContext.current
     val activity = context as FragmentActivity
     val biometricAvailability = remember { BiometricCapability.check(context) }
-    var displayName by remember(state.profile?.fullName) { mutableStateOf(state.profile?.fullName ?: "") }
-    var dailyOtText by remember(state.settings.dailyOvertimeThresholdMinutes) {
+    var displayName by remember { mutableStateOf(state.profile?.fullName ?: "") }
+    // Plain remember (no settings keys): each destination gets its own
+    // composition, so fields initialize on entry; keying on settings values
+    // let a background sync emission wipe text the user was typing.
+    var dailyOtText by remember {
         mutableStateOf(minutesToHours(state.settings.dailyOvertimeThresholdMinutes))
     }
-    var weeklyOtText by remember(state.settings.weeklyOvertimeThresholdMinutes) {
+    var weeklyOtText by remember {
         mutableStateOf(minutesToHours(state.settings.weeklyOvertimeThresholdMinutes))
     }
-    var hourlyRateText by remember(state.settings.hourlyRate) { mutableStateOf(state.settings.hourlyRate?.toString() ?: "") }
-    var timezone by remember(state.settings.timezone) { mutableStateOf(state.settings.timezone) }
-    var clockStyle by remember(state.settings.clockStyle) { mutableStateOf(supportedClockStyleOf(state.settings.clockStyle)) }
-    var currency by remember(state.settings.currency) { mutableStateOf(state.settings.currency) }
-    var travelRefunds by remember(state.settings.featuresTravelRefunds) { mutableStateOf(state.settings.featuresTravelRefunds) }
-    var insights by remember(state.settings.featuresInsights) { mutableStateOf(state.settings.featuresInsights) }
-    var clockStyles by remember(state.settings.featuresClockStyles) { mutableStateOf(state.settings.featuresClockStyles) }
-    var overtimeReminders by remember(state.settings.featuresOvertimeReminders) {
+    var hourlyRateText by remember { mutableStateOf(state.settings.hourlyRate?.toString() ?: "") }
+    var timezone by remember { mutableStateOf(state.settings.timezone) }
+    var clockStyle by remember { mutableStateOf(supportedClockStyleOf(state.settings.clockStyle)) }
+    var currency by remember { mutableStateOf(state.settings.currency) }
+    var travelRefunds by remember { mutableStateOf(state.settings.featuresTravelRefunds) }
+    var insights by remember { mutableStateOf(state.settings.featuresInsights) }
+    var clockStyles by remember { mutableStateOf(state.settings.featuresClockStyles) }
+    var overtimeReminders by remember {
         mutableStateOf(state.settings.featuresOvertimeReminders)
     }
-    var weekendDays by remember(state.settings.weekendDays) { mutableStateOf(state.settings.weekendDays) }
+    var weekendDays by remember { mutableStateOf(state.settings.weekendDays) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
@@ -296,6 +336,7 @@ private fun SettingsFormHost(
         ).count { it }
         else -> 0
     }
+    LaunchedEffect(unsavedCount) { onUnsavedCountChange(unsavedCount) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         when (destination) {

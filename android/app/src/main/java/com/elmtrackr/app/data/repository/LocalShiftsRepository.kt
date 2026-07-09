@@ -43,7 +43,11 @@ class LocalShiftsRepository @Inject constructor(
         shiftDao.observeActiveShift(userId).map { it.toDomainOrNull { entity -> entity.toDomain() } }
 
     override suspend fun getShiftById(localId: String): Shift? =
-        shiftDao.getShiftById(localId).toDomainOrNull { it.toDomain() }
+        // Soft-deleted rows stay invisible to the domain layer: a stale
+        // notification or edit action must not act on a shift that was
+        // deleted on another device (and would otherwise resurrect it).
+        shiftDao.getShiftById(localId)?.takeIf { it.deletedAt == null }
+            .toDomainOrNull { it.toDomain() }
 
     override suspend fun clockIn(
         userId: String,
@@ -92,7 +96,7 @@ class LocalShiftsRepository @Inject constructor(
         notes: String?,
         compensationSnapshot: CompensationSnapshot?,
     ): Shift {
-        val existing = shiftDao.getShiftById(localId)
+        val existing = shiftDao.getShiftById(localId)?.takeIf { it.deletedAt == null }
             ?: error("Shift $localId not found")
         val now = Instant.now().toEpochMilli()
         val updated = existing.copy(
