@@ -9,6 +9,13 @@ import java.io.FileInputStream
 
 /**
  * One-time migration from the legacy plaintext SQLite file to SQLCipher.
+ *
+ * The encrypted copy is created by opening the target with the same raw
+ * passphrase bytes Room later passes to SupportOpenHelperFactory, then pulling
+ * the plaintext content in via sqlcipher_export. Embedding the passphrase in
+ * an ATTACH ... KEY '<text>' statement instead would derive the key from the
+ * UTF-8 encoding of that text, which differs from the raw bytes for any byte
+ * >= 0x80 and would leave the exported database unopenable by Room.
  */
 object PlaintextDatabaseMigrator {
 
@@ -34,30 +41,26 @@ object PlaintextDatabaseMigrator {
         }
 
         System.loadLibrary("sqlcipher")
-        val passphraseChars = passphrase.toPassphraseChars()
         // Remove all leftovers of an interrupted earlier attempt. Deleting only
         // the main file is not enough: a stale .encrypting-journal sitting next
-        // to the fresh file ATTACH creates is treated by SQLite as a hot
-        // journal of that file and can make it unopenable (code 14).
+        // to a freshly created file of the same name is treated by SQLite as a
+        // hot journal of that file and can make it unopenable (code 14).
         deleteWithSidecars(tempFile)
 
-        var plaintextDb: SQLiteDatabase? = null
+        var encryptedDb: SQLiteDatabase? = null
         try {
-            plaintextDb = SQLiteDatabase.openDatabase(
-                dbFile.absolutePath,
-                "",
-                null,
-                SQLiteDatabase.OPEN_READWRITE,
-                null,
-            )
-            val escapedPath = tempFile.absolutePath.replace("'", "''")
-            plaintextDb.execSQL(
-                "ATTACH DATABASE '$escapedPath' AS encrypted KEY '${passphraseChars.escapeForSql()}'",
-            )
-            plaintextDb.execSQL("SELECT sqlcipher_export('encrypted')")
-            plaintextDb.execSQL("DETACH DATABASE encrypted")
-            plaintextDb.close()
-            plaintextDb = null
+            encryptedDb = SQLiteDatabase.openOrCreateDatabase(tempFile, passphrase, null, null)
+            val escapedPath = dbFile.absolutePath.replace("'", "''")
+            encryptedDb.execSQL("ATTACH DATABASE '$escapedPath' AS plaintext KEY ''")
+            encryptedDb.execSQL("SELECT sqlcipher_export('main', 'plaintext')")
+            // sqlcipher_export copies schema and data but not user_version;
+            // without it Room would treat the migrated database as version 0.
+            val userVersion = encryptedDb.rawQuery("PRAGMA plaintext.user_version", null)
+                .use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else 0L }
+            encryptedDb.execSQL("DETACH DATABASE plaintext")
+            encryptedDb.execSQL("PRAGMA user_version = $userVersion")
+            encryptedDb.close()
+            encryptedDb = null
 
             if (!dbFile.delete()) {
                 throw IllegalStateException("Could not remove plaintext database")
@@ -71,7 +74,7 @@ object PlaintextDatabaseMigrator {
             prefs.edit().putBoolean(MIGRATION_FLAG, true).apply()
         } catch (t: Throwable) {
             Log.e(TAG, "SQLCipher migration failed; ${diagnostics(dbFile, tempFile)}", t)
-            plaintextDb?.close()
+            encryptedDb?.close()
             // Only discard the encrypted copy while the plaintext original is
             // still in place. Once dbFile has been deleted, tempFile is the
             // only remaining copy of the user's data; recoverInterruptedSwap
@@ -86,9 +89,9 @@ object PlaintextDatabaseMigrator {
     /**
      * Finishes a migration that was killed between deleting the plaintext file
      * and renaming the encrypted copy into place. The temp file is only ever
-     * the sole survivor after sqlcipher_export and DETACH completed, so it is
-     * a full, consistent copy. Without this, the early no-database return
-     * would let Room create a fresh empty database and silently lose the data.
+     * the sole survivor after sqlcipher_export completed, so it is a full,
+     * consistent copy. Without this, the early no-database return would let
+     * Room create a fresh empty database and silently lose the data.
      */
     private fun recoverInterruptedSwap(
         dbFile: File,
@@ -134,14 +137,6 @@ object PlaintextDatabaseMigrator {
             return header.toString(Charsets.US_ASCII).startsWith("SQLite format 3")
         }
     }
-
-    private fun ByteArray.toPassphraseChars(): CharArray =
-        map { (it.toInt() and 0xFF).toChar() }.toCharArray()
-
-    private fun CharArray.escapeForSql(): String =
-        joinToString(separator = "") { char ->
-            if (char == '\'') "''" else char.toString()
-        }
 
     private val SIDECAR_SUFFIXES = listOf("-journal", "-wal", "-shm")
     private const val PREFS_NAME = "elmtrackr_db_migration"
