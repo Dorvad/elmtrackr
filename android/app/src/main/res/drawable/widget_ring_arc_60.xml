@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated day-goal ring arc at 60%. Track + aqua progress stroke. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <path
+        android:pathData="M60.0,8.0 A52.0,52.0 0 1 1 60.0,112.0 A52.0,52.0 0 1 1 60.0,8.0"
+        android:strokeColor="#2EFFFFFF"
+        android:strokeWidth="9.0"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M60.0,8.0 A52.0,52.0 0 1 1 29.44,102.07"
+        android:strokeColor="#22D3EE"
+        android:strokeWidth="9.0"
+        android:strokeLineCap="round" />
+</vector>

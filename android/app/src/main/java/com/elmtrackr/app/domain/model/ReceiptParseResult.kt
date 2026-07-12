@@ -18,4 +18,6 @@ data class ReceiptParseResult(
     val rawOcrText: String,
     val confidence: ReceiptParseConfidence,
     val parserVersion: String = ReceiptParser.VERSION,
+    /** True when the chosen amount sat on/next to a "total" label — used to arbitrate between OCR engines. */
+    val amountNearTotalKeyword: Boolean = false,
 )

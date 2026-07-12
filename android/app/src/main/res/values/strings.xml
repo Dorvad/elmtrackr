@@ -26,7 +26,10 @@
 
     <!-- Overtime reminder notifications -->
     <string name="notif_overtime_pre_warning_title">Overtime in 30 minutes</string>
+    <string name="notif_overtime_pre_warning_title_min">Overtime in %1$d minutes</string>
     <string name="notif_overtime_pre_warning_text">Clocked in since %1$s. Remember to clock out before overtime.</string>
+    <string name="notif_scheduled_reminder_title">Clock-out reminder</string>
+    <string name="notif_scheduled_reminder_text">You\'re still clocked in since %1$s.</string>
     <string name="notif_overtime_at_threshold_title">You\'re in overtime</string>
     <string name="notif_overtime_at_threshold_text">Clocked in since %1$s. Consider clocking out now.</string>
     <string name="notif_overtime_hourly_title">Still clocked in during overtime</string>

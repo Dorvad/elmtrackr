@@ -7,6 +7,9 @@
     <string name="setup_body">פותחים את ElmTrackr בטלפון המחובר, מתחברים, וחוזרים לכאן.</string>
     <string name="idle_last_punch">החתמה אחרונה</string>
     <string name="idle_tap_hint">הקשה לכניסה למשמרת</string>
+    <string name="countdown_punching_in">כניסה למשמרת</string>
+    <string name="countdown_punching_out">יציאה מהמשמרת</string>
+    <string name="countdown_tap_to_cancel">הקשה לביטול</string>
     <string name="running_since">מאז %1$s</string>
     <string name="punch_in">כניסה</string>
     <string name="punch_out">יציאה</string>

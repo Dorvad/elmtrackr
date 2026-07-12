@@ -7,6 +7,9 @@
     <string name="setup_body">Open ElmTrackr on your paired phone to sign in, then return here.</string>
     <string name="idle_last_punch">Last punch</string>
     <string name="idle_tap_hint">Tap to punch in</string>
+    <string name="countdown_punching_in">Punching in</string>
+    <string name="countdown_punching_out">Punching out</string>
+    <string name="countdown_tap_to_cancel">Tap to cancel</string>
     <string name="running_since">Since %1$s</string>
     <string name="punch_in">Punch in</string>
     <string name="punch_out">Punch out</string>

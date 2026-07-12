@@ -40,6 +40,7 @@ import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.notification.ReminderRulesCodec
 import com.elmtrackr.app.security.BiometricAvailability
 import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.auth.SignedOutContent
@@ -406,7 +407,10 @@ class FullAppScreenshotJvmTest {
             SettingsDestination.APPEARANCE -> AppearanceDetailScreen(
                 state, ClockStyle.MINIMAL, {}, true, {}, false, {}, {}, {},
             )
-            SettingsDestination.FEATURES -> FeaturesDetailScreen(true, {}, true, {}, true, {}, {})
+            SettingsDestination.FEATURES -> FeaturesDetailScreen(
+                true, {}, true, {}, true, {},
+                ReminderRulesCodec.DEFAULT_RULES, {}, {}, {}, {},
+            )
             SettingsDestination.HELP -> HelpDetailScreen(
                 state, AuthUiState.NotConfigured, {}, {}, {}, {}, {},
             )

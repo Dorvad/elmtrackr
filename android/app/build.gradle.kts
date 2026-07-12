@@ -165,6 +165,7 @@ dependencies {
 
     implementation(libs.google.mlkit.document.scanner)
     implementation(libs.google.mlkit.text.recognition)
+    implementation(libs.tesseract4android)
 
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.security.crypto)

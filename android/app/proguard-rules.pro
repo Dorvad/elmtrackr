@@ -162,6 +162,13 @@
 -dontwarn com.google.mlkit.**
 -keep class com.google.android.gms.internal.mlkit_** { *; }
 -dontwarn com.google.android.gms.internal.mlkit_**
+
+# ============================================================
+# Tesseract4Android — Hebrew OCR. JNI calls back into these
+# classes by name, so they must survive shrinking untouched.
+# ============================================================
+-keep class com.googlecode.tesseract.android.** { *; }
+-keep class com.googlecode.leptonica.android.** { *; }
 -dontwarn com.sun.nio.file.**
 -dontwarn org.slf4j.**
 -dontwarn javax.annotation.**

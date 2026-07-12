@@ -133,6 +133,76 @@ class ReceiptParserTest {
     }
 
     @Test
+    fun `parse total labeled with hebrew gershayim quote variant`() {
+        val text = """
+            סופר יוחננוף
+            תאריך: 05/06/2026
+            חלב 6.90
+            לחם 8.50
+            סה״כ 15.40 ₪
+        """.trimIndent()
+
+        val result = parser.parse(text)
+
+        assertEquals(15.4, result.amount!!, 0.001)
+        assertTrue(result.amountNearTotalKeyword)
+    }
+
+    @Test
+    fun `parse ignores vat line and picks the grand total`() {
+        val text = """
+            מסעדת השף
+            עסקית 35.90 ₪
+            מע"מ 17% 6.10 ₪
+            סה"כ לתשלום 42.00 ₪
+        """.trimIndent()
+
+        val result = parser.parse(text)
+
+        assertEquals(42.0, result.amount!!, 0.001)
+    }
+
+    @Test
+    fun `parse ignores cash tendered and change lines`() {
+        val text = """
+            קיוסק מרכזי
+            סה"כ 42.00 ₪
+            מזומן 100.00 ₪
+            עודף 58.00 ₪
+        """.trimIndent()
+
+        val result = parser.parse(text)
+
+        assertEquals(42.0, result.amount!!, 0.001)
+    }
+
+    @Test
+    fun `parse prefers total over subtotal in english`() {
+        val text = """
+            Coffee Corner
+            Subtotal 26.00
+            Total 29.50
+        """.trimIndent()
+
+        val result = parser.parse(text)
+
+        assertEquals(29.5, result.amount!!, 0.001)
+    }
+
+    @Test
+    fun `parse amount with shekel word as currency hint`() {
+        val text = """
+            חנות הספרים
+            לתשלום 55 שח
+        """.trimIndent()
+
+        val result = parser.parse(text)
+
+        assertEquals(55.0, result.amount!!, 0.001)
+        assertEquals("ILS", result.currency)
+    }
+
+    @Test
     fun `parse receipt without amount still extracts merchant and date`() {
         val text = """
             Yango

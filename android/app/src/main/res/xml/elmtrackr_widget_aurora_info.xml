@@ -12,4 +12,5 @@
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen"
     android:description="@string/widget_description_aurora"
+    android:previewLayout="@layout/widget_preview_card"
     android:initialLayout="@layout/widget_loading" />
