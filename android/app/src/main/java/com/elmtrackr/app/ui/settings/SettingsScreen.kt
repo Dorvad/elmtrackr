@@ -406,15 +406,23 @@ private fun SettingsFormHost(
                 onBack = onNavigateBack,
                 onTheme = onTheme,
             )
-            SettingsDestination.FEATURES -> FeaturesDetailScreen(
-                travelRefunds = travelRefunds,
-                onTravelRefundsChange = { travelRefunds = it },
-                insights = insights,
-                onInsightsChange = { insights = it },
-                overtimeReminders = overtimeReminders,
-                onOvertimeRemindersChange = { overtimeReminders = it },
-                onBack = onNavigateBack,
-            )
+            SettingsDestination.FEATURES -> {
+                val reminderRulesViewModel: ReminderRulesViewModel = hiltViewModel()
+                val reminderRules by reminderRulesViewModel.rules.collectAsState()
+                FeaturesDetailScreen(
+                    travelRefunds = travelRefunds,
+                    onTravelRefundsChange = { travelRefunds = it },
+                    insights = insights,
+                    onInsightsChange = { insights = it },
+                    overtimeReminders = overtimeReminders,
+                    onOvertimeRemindersChange = { overtimeReminders = it },
+                    reminderRules = reminderRules,
+                    onAddReminderRule = reminderRulesViewModel::addRule,
+                    onUpdateReminderRule = reminderRulesViewModel::updateRule,
+                    onRemoveReminderRule = reminderRulesViewModel::removeRule,
+                    onBack = onNavigateBack,
+                )
+            }
             SettingsDestination.HELP -> HelpDetailScreen(
                 state = state,
                 authState = authState,

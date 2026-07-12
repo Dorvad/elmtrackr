@@ -71,10 +71,19 @@ class ActiveShiftNotificationManager(private val context: Context) {
         notifManager.notify(NOTIFICATION_ID_ACTIVE, notification)
     }
 
-    fun showOvertimePreWarning(shift: Shift) {
+    fun showOvertimePreWarning(shift: Shift, minutesBefore: Int = 30) {
         showReminderNotification(
-            titleRes = R.string.notif_overtime_pre_warning_title,
+            titleRes = R.string.notif_overtime_pre_warning_title_min,
             textRes = R.string.notif_overtime_pre_warning_text,
+            shift = shift,
+            titleArg = minutesBefore,
+        )
+    }
+
+    fun showScheduledTimeReminder(shift: Shift) {
+        showReminderNotification(
+            titleRes = R.string.notif_scheduled_reminder_title,
+            textRes = R.string.notif_scheduled_reminder_text,
             shift = shift,
         )
     }
@@ -101,6 +110,7 @@ class ActiveShiftNotificationManager(private val context: Context) {
         textRes: Int,
         shift: Shift,
         textArg: Any? = formatStartTime(shift.startTime, ZoneId.systemDefault()),
+        titleArg: Any? = null,
     ) {
         if (!notifManager.areNotificationsEnabled()) return
 
@@ -129,9 +139,14 @@ class ActiveShiftNotificationManager(private val context: Context) {
             else -> localizedContext.getString(textRes, textArg)
         }
 
+        val contentTitle = when (titleArg) {
+            null -> localizedContext.getString(titleRes)
+            else -> localizedContext.getString(titleRes, titleArg)
+        }
+
         val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_REMINDERS)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(localizedContext.getString(titleRes))
+            .setContentTitle(contentTitle)
             .setContentText(contentText)
             .setContentIntent(tapIntent)
             .setAutoCancel(true)

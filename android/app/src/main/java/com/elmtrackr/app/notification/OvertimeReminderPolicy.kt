@@ -14,6 +14,59 @@ object OvertimeReminderPolicy {
     const val HOURLY_INTERVAL_MINUTES = 60L
     const val FALLBACK_THRESHOLD_MINUTES = 480L
 
+    /** Sentinel returned by [delayMinutesForRule] when the rule should not be scheduled. */
+    const val SKIP = -1L
+
+    /**
+     * Minutes until [rule] should next fire for a shift started at [startTime],
+     * or [SKIP] when the rule's moment has already passed (or can never occur
+     * for this threshold). AT_TIME rules resolve against [zone].
+     */
+    fun delayMinutesForRule(
+        rule: ReminderRule,
+        thresholdMinutes: Int,
+        startTime: Instant,
+        now: Instant = Instant.now(),
+        zone: java.time.ZoneId = java.time.ZoneId.systemDefault(),
+    ): Long {
+        val elapsed = elapsedMinutes(startTime, now)
+        return when (rule.kind) {
+            ReminderTriggerKind.BEFORE_OVERTIME -> {
+                val offset = rule.offsetMinutes.coerceAtLeast(1)
+                if (thresholdMinutes <= offset) return SKIP
+                if (elapsed >= thresholdMinutes) return SKIP
+                (thresholdMinutes - offset - elapsed).coerceAtLeast(0)
+            }
+            ReminderTriggerKind.AFTER_OVERTIME -> {
+                if (rule.offsetMinutes <= 0) {
+                    // Fires once, when overtime starts.
+                    if (elapsed >= thresholdMinutes) SKIP
+                    else (thresholdMinutes - elapsed)
+                } else {
+                    // Repeats every offsetMinutes after the threshold.
+                    val interval = rule.offsetMinutes.coerceAtLeast(MIN_REPEAT_INTERVAL_MINUTES)
+                    if (elapsed < thresholdMinutes) {
+                        thresholdMinutes - elapsed + interval
+                    } else {
+                        val intoOvertime = elapsed - thresholdMinutes
+                        val untilNext = interval - (intoOvertime % interval)
+                        if (untilNext == 0L) interval.toLong() else untilNext
+                    }
+                }
+            }
+            ReminderTriggerKind.AT_TIME -> {
+                val nowLocal = now.atZone(zone)
+                val target = nowLocal.toLocalDate()
+                    .atStartOfDay(zone)
+                    .plusMinutes(rule.timeMinuteOfDay.toLong())
+                val resolved = if (!target.isAfter(nowLocal)) target.plusDays(1) else target
+                Duration.between(nowLocal, resolved).toMinutes().coerceAtLeast(0)
+            }
+        }
+    }
+
+    private const val MIN_REPEAT_INTERVAL_MINUTES = 15
+
     fun preWarningDelayMinutes(
         thresholdMinutes: Int,
         startTime: Instant,

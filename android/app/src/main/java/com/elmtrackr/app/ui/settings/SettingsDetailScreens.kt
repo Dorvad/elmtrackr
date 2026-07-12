@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.BuildConfig
 import com.elmtrackr.app.R
 import com.elmtrackr.app.monitoring.CrashReporting
+import com.elmtrackr.app.notification.ReminderRule
 import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.ui.design.AuroraEaseOut
@@ -631,6 +632,10 @@ internal fun FeaturesDetailScreen(
     onInsightsChange: (Boolean) -> Unit,
     overtimeReminders: Boolean,
     onOvertimeRemindersChange: (Boolean) -> Unit,
+    reminderRules: List<ReminderRule>,
+    onAddReminderRule: () -> Unit,
+    onUpdateReminderRule: (ReminderRule) -> Unit,
+    onRemoveReminderRule: (String) -> Unit,
     onBack: () -> Unit,
 ) {
     LazyColumn(
@@ -664,6 +669,15 @@ internal fun FeaturesDetailScreen(
                 onCheckedChange = onOvertimeRemindersChange,
                 icon = Icons.Filled.NotificationsActive,
                 iconTint = AuroraIndigo,
+            )
+        }
+        item {
+            ReminderScheduleSection(
+                enabled = overtimeReminders,
+                rules = reminderRules,
+                onAddRule = onAddReminderRule,
+                onUpdateRule = onUpdateReminderRule,
+                onRemoveRule = onRemoveReminderRule,
             )
         }
         item {
