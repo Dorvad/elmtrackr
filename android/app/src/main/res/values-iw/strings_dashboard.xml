@@ -54,6 +54,8 @@
     <string name="dashboard_clock_time_flowing">הזמן זורם</string>
     <string name="dashboard_clock_in_orbit">במסלול</string>
     <string name="dashboard_clock_tide_rising">הגאות עולה</string>
+    <string name="dashboard_clock_growing">בצמיחה</string>
+    <string name="dashboard_clock_ready_to_grow">מוכנים לצמוח</string>
 
     <!-- Month summary -->
     <string name="dashboard_month_summary_title">סיכום %1$s</string>

@@ -83,6 +83,7 @@
     <string name="settings_face_blocks">בלוקים שעה־שעה</string>
     <string name="settings_face_orbit">לוויין במסלול</string>
     <string name="settings_face_tide">הגאות של היום שלך</string>
+    <string name="settings_face_sprout">צמח שגדל בכל שעה — פריחה מלאה בשעה השמינית</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">בלי שכר שעתי</string>

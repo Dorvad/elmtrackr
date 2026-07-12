@@ -83,6 +83,7 @@
     <string name="settings_face_blocks">Hour-by-hour blocks</string>
     <string name="settings_face_orbit">Orbiting satellite</string>
     <string name="settings_face_tide">Rising tide of your day</string>
+    <string name="settings_face_sprout">A plant that grows every hour — full bloom at eight</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">No hourly rate</string>

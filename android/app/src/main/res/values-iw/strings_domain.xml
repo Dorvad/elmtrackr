@@ -57,6 +57,7 @@
     <string name="clock_style_blocks">בלוקים</string>
     <string name="clock_style_orbit">אורביט</string>
     <string name="clock_style_tide">גאות</string>
+    <string name="clock_style_sprout">נבט</string>
 
     <!-- Currency display names -->
     <string name="currency_ils">שקל חדש</string>

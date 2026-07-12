@@ -102,6 +102,7 @@ internal fun clockStyleDisplayName(style: ClockStyle): String = stringResource(
         ClockStyle.BLOCKS -> R.string.clock_style_blocks
         ClockStyle.ORBIT -> R.string.clock_style_orbit
         ClockStyle.TIDE -> R.string.clock_style_tide
+        ClockStyle.SPROUT -> R.string.clock_style_sprout
     },
 )
 
@@ -374,6 +375,7 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
         ClockStyle.NIGHT, ClockStyle.TIDE -> Color(0xFF54D8E1)
         ClockStyle.RETRO -> Color(0xFFFFC857)
         ClockStyle.PRISM, ClockStyle.AURORA -> Color(0xFF9B7CFF)
+        ClockStyle.SPROUT -> Color(0xFF2E9E6B)
         else -> MaterialTheme.colorScheme.primary
     }
     Box(
@@ -478,6 +480,24 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
                     drawCircle(accent.copy(alpha = .2f), 8.dp.toPx(), sat)
                     drawCircle(accent, 4.dp.toPx(), sat)
                 }
+                ClockStyle.SPROUT -> {
+                    val groundY = size.height - 6.dp.toPx()
+                    drawLine(accent.copy(alpha = .3f), Offset(center.x - radius, groundY), Offset(center.x + radius, groundY), 2f, StrokeCap.Round)
+                    val top = Offset(center.x, groundY - size.height * .62f)
+                    drawLine(accent, Offset(center.x, groundY), top, 2.5f, StrokeCap.Round)
+                    drawOval(
+                        accent.copy(alpha = .85f),
+                        Offset(center.x - 11.dp.toPx(), groundY - size.height * .25f - 4.dp.toPx()),
+                        Size(11.dp.toPx(), 5.dp.toPx()),
+                    )
+                    drawOval(
+                        accent.copy(alpha = .85f),
+                        Offset(center.x, groundY - size.height * .42f - 4.dp.toPx()),
+                        Size(11.dp.toPx(), 5.dp.toPx()),
+                    )
+                    drawCircle(Color(0xFFB07CF8).copy(alpha = .45f + animatedPulse * .4f), 6.dp.toPx(), top)
+                    drawCircle(Color(0xFFFFC857), 2.5.dp.toPx(), top)
+                }
                 ClockStyle.TIDE -> {
                     val vesselRadius = size.minDimension * .42f
                     drawCircle(accent.copy(alpha = .35f), vesselRadius, center, style = Stroke(2f))
@@ -530,6 +550,7 @@ internal fun watchFaceDescription(style: ClockStyle): String = stringResource(
         ClockStyle.BLOCKS -> R.string.settings_face_blocks
         ClockStyle.ORBIT -> R.string.settings_face_orbit
         ClockStyle.TIDE -> R.string.settings_face_tide
+        ClockStyle.SPROUT -> R.string.settings_face_sprout
     },
 )
 

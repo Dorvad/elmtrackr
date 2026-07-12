@@ -57,6 +57,7 @@
     <string name="clock_style_blocks">Blocks</string>
     <string name="clock_style_orbit">Orbit</string>
     <string name="clock_style_tide">Tide</string>
+    <string name="clock_style_sprout">Sprout</string>
 
     <!-- Currency display names -->
     <string name="currency_ils">Israeli New Shekel</string>
