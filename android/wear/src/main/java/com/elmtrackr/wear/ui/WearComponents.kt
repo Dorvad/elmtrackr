@@ -1,25 +1,17 @@
 package com.elmtrackr.wear.ui
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,8 +26,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
@@ -45,62 +41,59 @@ import com.elmtrackr.wear.sync.WearAuroraColors
 internal val AuroraIndigo = Color(WearAuroraColors.INDIGO)
 internal val AuroraPlum = Color(WearAuroraColors.PLUM)
 internal val AuroraAqua = Color(WearAuroraColors.AQUA)
+internal val AuroraBlue = Color(0xFF3E8DF3)
 internal val AuroraSurface = Color(WearAuroraColors.SURFACE)
 internal val AuroraOnSurface = Color(WearAuroraColors.ON_SURFACE)
-internal val AuroraInk = Color(WearAuroraColors.INK2)
+internal val AuroraGreen = Color(0xFF34D399)
 
 /**
- * Watch-sized version of the phone app's aurora mesh: dark navy base with
- * softly drifting indigo/plum/aqua glows and a vignette that keeps the edge
- * of round screens dark.
+ * Clean indigo→blue gradient matching the tile mockup — deliberately static
+ * and minimal so type and the ring carry the composition.
  */
 @Composable
 fun WearAuroraBackground(modifier: Modifier = Modifier) {
-    val motion = wearMotionEnabled()
-    val transition = rememberInfiniteTransition(label = "wear-aurora")
-    val animatedDrift by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 18_000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "wear-aurora-drift",
-    )
-    val drift = if (motion) animatedDrift else 0.5f
-
     Canvas(modifier = modifier.fillMaxSize()) {
-        val w = size.width
-        val h = size.height
-        drawRect(AuroraSurface)
-
-        val dx = (drift - 0.5f) * w * 0.08f
-        val dy = (drift - 0.5f) * h * 0.06f
-
-        fun blob(center: Offset, radius: Float, color: Color, alpha: Float) {
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(color.copy(alpha = alpha), Color.Transparent),
-                    center = center,
-                    radius = radius,
-                ),
-                radius = radius,
-                center = center,
-            )
-        }
-
-        blob(Offset(w * 0.20f + dx, h * 0.12f + dy), w * 0.55f, AuroraIndigo, 0.35f)
-        blob(Offset(w * 0.85f - dx, h * 0.30f + dy), w * 0.50f, AuroraPlum, 0.30f)
-        blob(Offset(w * 0.50f + dx, h * 0.95f - dy), w * 0.60f, AuroraAqua, 0.22f)
-
-        // Vignette: fade to the base surface toward the bezel of round screens.
         drawRect(
-            brush = Brush.radialGradient(
-                colors = listOf(Color.Transparent, AuroraSurface.copy(alpha = 0.85f)),
-                center = Offset(w / 2f, h / 2f),
-                radius = maxOf(w, h) * 0.72f,
+            brush = Brush.linearGradient(
+                colors = listOf(AuroraIndigo, AuroraBlue),
+                start = Offset(size.width * 0.15f, 0f),
+                end = Offset(size.width * 0.85f, size.height),
             ),
         )
+    }
+}
+
+/** Letter-spaced wordmark shown at the top of every face. */
+@Composable
+fun WearBrandLabel(modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(R.string.app_name).uppercase(),
+        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 3.sp),
+        fontWeight = FontWeight.SemiBold,
+        color = AuroraOnSurface.copy(alpha = 0.85f),
+        textAlign = TextAlign.Center,
+        modifier = modifier,
+    )
+}
+
+/** The white bolt punch button from the mockup (visual only — the face is the tap target). */
+@Composable
+fun WearBoltButton(
+    modifier: Modifier = Modifier,
+    size: Dp = 60.dp,
+    isLoading: Boolean = false,
+) {
+    Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
+        Image(
+            painter = painterResource(R.drawable.tile_bolt_button),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(size),
+        )
+        if (isLoading) {
+            // Theme primary is Aurora indigo — reads well on the white circle.
+            CircularProgressIndicator(modifier = Modifier.size(size - 16.dp))
+        }
     }
 }
 
@@ -113,9 +106,7 @@ fun WearAppLogo(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(
-                Brush.linearGradient(listOf(AuroraIndigo, AuroraPlum, AuroraAqua)),
-            ),
+            .background(Color.White),
         contentAlignment = Alignment.Center,
     ) {
         Image(
@@ -130,69 +121,31 @@ fun WearAppLogo(
 }
 
 /**
- * Round punch button with an aurora gradient fill and press-scale feedback.
- */
-@Composable
-fun AuroraPunchButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    isLoading: Boolean = false,
-    gradient: List<Color> = listOf(AuroraIndigo, AuroraPlum),
-    diameter: Dp = 76.dp,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(
-        modifier = modifier
-            .size(diameter)
-            .wearPressScale(interactionSource)
-            .clip(CircleShape)
-            .background(Brush.linearGradient(if (enabled) gradient else listOf(AuroraInk, AuroraInk)))
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                enabled = enabled && !isLoading,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-        } else {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium,
-                color = AuroraOnSurface,
-            )
-        }
-    }
-}
-
-/**
- * Thin gradient arc hugging the screen edge that fills with the share of the
- * daily goal already worked.
+ * Thin ring hugging the screen edge that fills with the share of the daily
+ * goal already worked. White per the mockup; the gradient background does
+ * the coloring.
  */
 @Composable
 fun AuroraProgressRing(
     progressPercent: Int,
     modifier: Modifier = Modifier,
-    strokeWidth: Dp = 6.dp,
+    strokeWidth: Dp = 7.dp,
+    color: Color = Color.White,
 ) {
     val motion = wearMotionEnabled()
     val target = progressPercent.coerceIn(0, 100) / 100f
-    val animated by animateFloatAsState(
+    val animated = animateFloatAsState(
         targetValue = target,
         animationSpec = tween(if (motion) 900 else 0),
         label = "wear-progress-ring",
-    )
+    ).value
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val stroke = strokeWidth.toPx()
-        val inset = stroke / 2f + 2.dp.toPx()
+        val inset = stroke / 2f + 14.dp.toPx()
         val arcSize = Size(size.width - inset * 2f, size.height - inset * 2f)
         drawArc(
-            color = AuroraInk.copy(alpha = 0.35f),
+            color = color.copy(alpha = 0.25f),
             startAngle = -90f,
             sweepAngle = 360f,
             useCenter = false,
@@ -200,22 +153,16 @@ fun AuroraProgressRing(
             size = arcSize,
             style = Stroke(width = stroke, cap = StrokeCap.Round),
         )
-        if (animated > 0f) {
-            drawArc(
-                brush = Brush.sweepGradient(
-                    0f to AuroraIndigo,
-                    0.5f to AuroraPlum,
-                    1f to AuroraAqua,
-                    center = Offset(size.width / 2f, size.height / 2f),
-                ),
-                startAngle = -90f,
-                sweepAngle = 360f * animated,
-                useCenter = false,
-                topLeft = Offset(inset, inset),
-                size = arcSize,
-                style = Stroke(width = stroke, cap = StrokeCap.Round),
-            )
-        }
+        val sweep = (360f * animated).coerceAtLeast(8f)
+        drawArc(
+            color = color,
+            startAngle = -90f,
+            sweepAngle = sweep,
+            useCenter = false,
+            topLeft = Offset(inset, inset),
+            size = arcSize,
+            style = Stroke(width = stroke, cap = StrokeCap.Round),
+        )
     }
 }
 

@@ -14,6 +14,14 @@ class WearDisplayMathTest {
     }
 
     @Test
+    fun elapsedHm_formatsHoursMinutes() {
+        val start = 1_700_000_000_000L
+        assertEquals("2:34", WearDisplayMath.elapsedHm(start, start + (2 * 60 + 34) * 60_000L))
+        assertEquals("0:47", WearDisplayMath.elapsedHm(start, start + 47 * 60_000L))
+        assertEquals("0:00", WearDisplayMath.elapsedHm(0L, start))
+    }
+
+    @Test
     fun progressPercent_clamps() {
         assertEquals(50, WearDisplayMath.progressPercent(240, 480))
         assertEquals(100, WearDisplayMath.progressPercent(600, 480))

@@ -10,6 +10,10 @@
     <string name="countdown_punching_in">Punching in</string>
     <string name="countdown_punching_out">Punching out</string>
     <string name="countdown_tap_to_cancel">Tap to cancel</string>
+    <string name="wear_brand" translatable="false">E L M T R A C K R</string>
+    <string name="wear_on_shift">ON SHIFT</string>
+    <string name="wear_clocked_out">CLOCKED OUT</string>
+    <string name="wear_tap_to_stop">tap to stop</string>
     <string name="running_since">Since %1$s</string>
     <string name="punch_in">Punch in</string>
     <string name="punch_out">Punch out</string>

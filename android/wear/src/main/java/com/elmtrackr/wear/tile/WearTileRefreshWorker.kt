@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.wear.tiles.TileService
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.elmtrackr.wear.ElmTrackrWearApp
@@ -19,6 +20,9 @@ class WearTileRefreshWorker(
         val app = applicationContext as ElmTrackrWearApp
         app.wearStateRepository.refreshFromDataLayer()
         ElmTrackrComplicationBridge.requestUpdateAll(applicationContext)
+        // The complication bridge doesn't cover the tile — without this the
+        // tile's count-up freezes at whatever it showed when last rendered.
+        TileService.getUpdater(applicationContext).requestUpdate(ElmTrackrTileService::class.java)
         if (app.wearStateRepository.snapshot.value.isActive) {
             schedule(applicationContext)
         }

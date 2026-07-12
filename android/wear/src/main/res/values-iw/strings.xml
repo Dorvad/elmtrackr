@@ -10,6 +10,9 @@
     <string name="countdown_punching_in">כניסה למשמרת</string>
     <string name="countdown_punching_out">יציאה מהמשמרת</string>
     <string name="countdown_tap_to_cancel">הקשה לביטול</string>
+    <string name="wear_on_shift">במשמרת</string>
+    <string name="wear_clocked_out">לא במשמרת</string>
+    <string name="wear_tap_to_stop">הקשה לעצירה</string>
     <string name="running_since">מאז %1$s</string>
     <string name="punch_in">כניסה</string>
     <string name="punch_out">יציאה</string>
