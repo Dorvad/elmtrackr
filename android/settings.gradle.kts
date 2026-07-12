@@ -17,6 +17,12 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Tesseract4Android (on-device Hebrew OCR) is published on JitPack only.
+        maven("https://jitpack.io") {
+            content {
+                includeGroup("com.github.adaptech-cz.Tesseract4Android")
+            }
+        }
     }
 }
 

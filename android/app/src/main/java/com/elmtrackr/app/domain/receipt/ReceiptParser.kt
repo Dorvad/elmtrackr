@@ -13,6 +13,12 @@ import java.util.Locale
 /**
  * Parses on-device OCR text from receipts into structured fields.
  * Optimized for Israeli-style receipts (Hebrew labels, ₪ amounts, dd/MM/yyyy dates).
+ *
+ * Total-amount extraction scores every numeric candidate on the receipt:
+ * strong "total" labels (סה"כ, לתשלום, total …) dominate, lines that are known
+ * to carry non-total numbers (מע"מ, עודף, subtotal …) are penalized, and
+ * position (totals live near the bottom) plus the largest-amount heuristic
+ * break the remaining ties.
  */
 class ReceiptParser(
     private val zoneId: ZoneId = ZoneId.systemDefault(),
@@ -44,6 +50,7 @@ class ReceiptParser(
             rawOcrText = rawText,
             confidence = confidence,
             parserVersion = VERSION,
+            amountNearTotalKeyword = amountResult.nearTotalKeyword,
         )
     }
 
@@ -61,6 +68,11 @@ class ReceiptParser(
         .replace('\u00A0', ' ')
         .replace('\u200F', ' ')
         .replace('\u200E', ' ')
+        .replace('\u061C', ' ')
+        .replace('\u05F4', '"') // Hebrew gershayim -> ASCII quote (OCR emits both for סה"כ)
+        .replace('\u05F3', '\'') // Hebrew geresh
+        .replace('\u201D', '"')
+        .replace('\u201C', '"')
         .replace(Regex("[ \t]+"), " ")
         .trim()
 
@@ -70,71 +82,110 @@ class ReceiptParser(
         val nearTotalKeyword: Boolean,
     )
 
+    private data class AmountCandidate(
+        val value: Double,
+        val score: Int,
+        val nearTotal: Boolean,
+    )
+
     private fun extractAmount(lines: List<String>): AmountExtraction {
-        val candidates = mutableListOf<Triple<Double, Int, Boolean>>()
+        data class RawCandidate(
+            val value: Double,
+            val lineIndex: Int,
+            val strongKeyword: Boolean,
+            val adjacentKeyword: Boolean,
+            val weakKeyword: Boolean,
+            val negativeKeyword: Boolean,
+            val currencyHint: Boolean,
+            val hasDecimal: Boolean,
+        )
+
+        val raw = mutableListOf<RawCandidate>()
 
         lines.forEachIndexed { index, line ->
             if (isLikelyDateLine(line)) return@forEachIndexed
-            val nearTotal = isNearTotalKeyword(line) || hasAdjacentTotalContext(lines, index)
+            val canonLine = canonical(line)
+            val strong = containsAny(canonLine, STRONG_TOTAL_KEYWORDS)
+            val adjacent = !strong && hasAdjacentTotalContext(lines, index)
+            val weak = containsAny(canonLine, WEAK_TOTAL_KEYWORDS)
+            val negative = containsAny(canonLine, NEGATIVE_KEYWORDS)
+            val currencyHint = hasCurrencyHint(line)
+
             AMOUNT_PATTERN.findAll(line).forEach { match ->
                 if (isInsideDateMatch(line, match.range)) return@forEach
-                val value = match.groupValues[1].replace(",", "").toDoubleOrNull() ?: return@forEach
-                if (value in MIN_REASONABLE_AMOUNT..MAX_REASONABLE_AMOUNT) {
-                    val hasCurrencyHint = line.contains('₪') || line.contains('$') || line.contains('€') ||
-                        line.contains('£') || CURRENCY_PATTERN.containsMatchIn(line)
-                    val hasDecimal = match.groupValues[1].contains('.') || match.groupValues[1].contains(',')
-                    if (!nearTotal && !hasCurrencyHint && !hasDecimal) return@forEach
-                    candidates.add(Triple(value, scoreAmountLine(line, nearTotal), nearTotal))
-                }
+                val token = match.groupValues[1]
+                val value = token.replace(",", "").toDoubleOrNull() ?: return@forEach
+                if (value !in MIN_REASONABLE_AMOUNT..MAX_REASONABLE_AMOUNT) return@forEach
+                val hasDecimal = token.contains('.')
+                // A bare integer with no context is almost never the total (order
+                // numbers, quantities, street numbers) — require some signal.
+                if (!strong && !adjacent && !weak && !currencyHint && !hasDecimal) return@forEach
+                raw.add(
+                    RawCandidate(
+                        value = value,
+                        lineIndex = index,
+                        strongKeyword = strong,
+                        adjacentKeyword = adjacent,
+                        weakKeyword = weak,
+                        negativeKeyword = negative,
+                        currencyHint = currencyHint,
+                        hasDecimal = hasDecimal,
+                    ),
+                )
             }
         }
 
-        if (candidates.isEmpty()) return AmountExtraction(null, null, false)
+        if (raw.isEmpty()) return AmountExtraction(null, null, false)
+
+        val maxValue = raw.maxOf { it.value }
+        val candidates = raw.map { c ->
+            var score = 0
+            if (c.strongKeyword) score += 100
+            if (c.adjacentKeyword) score += 60
+            if (c.weakKeyword && !c.strongKeyword) score += 25
+            if (c.negativeKeyword) score -= 80
+            if (c.currencyHint) score += 15
+            if (c.hasDecimal) score += 5
+            if (c.value == maxValue) score += 20
+            // Totals cluster at the bottom of receipts.
+            if (lines.size > 1) score += (c.lineIndex * 10) / (lines.size - 1)
+            AmountCandidate(
+                value = c.value,
+                score = score,
+                nearTotal = (c.strongKeyword || c.adjacentKeyword) && !c.negativeKeyword,
+            )
+        }
 
         val best = candidates.maxWithOrNull(
-            compareBy<Triple<Double, Int, Boolean>> { it.third }
-                .thenBy { it.second }
-                .thenBy { it.first },
+            compareBy<AmountCandidate> { it.score }.thenBy { it.value },
         ) ?: return AmountExtraction(null, null, false)
 
         val currency = lines.firstNotNullOfOrNull { line ->
             CURRENCY_PATTERN.find(line)?.groupValues?.get(1)?.uppercase(Locale.US)
         }
 
-        return AmountExtraction(best.first, currency, best.third)
+        return AmountExtraction(best.value, currency, best.nearTotal)
     }
 
-    private fun scoreAmountLine(line: String, nearTotal: Boolean): Int {
-        var score = if (nearTotal) 100 else 0
-        val lower = line.lowercase(Locale.US)
-        TOTAL_KEYWORDS.forEach { keyword ->
-            if (lower.contains(keyword.lowercase(Locale.US)) || line.contains(keyword)) {
-                score += 50
-            }
-        }
-        if (line.contains('₪') || line.contains("ILS", ignoreCase = true) || line.contains("NIS", ignoreCase = true)) {
-            score += 10
-        }
-        return score
+    private fun hasCurrencyHint(line: String): Boolean {
+        if (line.contains('₪') || line.contains('$') || line.contains('€') || line.contains('£')) return true
+        if (CURRENCY_PATTERN.containsMatchIn(line)) return true
+        val tokens = canonical(line).split(Regex("[^\\p{L}\\p{N}]+"))
+        return tokens.any { it == "שח" || it == "שקל" || it == "שקלים" }
     }
 
     private fun isNearTotalKeyword(line: String): Boolean {
-        val lower = line.lowercase(Locale.US)
-        return TOTAL_KEYWORDS.any { keyword ->
-            lower.contains(keyword.lowercase(Locale.US)) || line.contains(keyword)
-        }
+        val canonLine = canonical(line)
+        return containsAny(canonLine, STRONG_TOTAL_KEYWORDS) || containsAny(canonLine, WEAK_TOTAL_KEYWORDS)
     }
 
     private fun hasAdjacentTotalContext(lines: List<String>, index: Int): Boolean {
         val window = listOfNotNull(lines.getOrNull(index - 1), lines.getOrNull(index + 1))
-        return window.any(::isNearTotalKeyword)
+        return window.any { containsAny(canonical(it), STRONG_TOTAL_KEYWORDS) }
     }
 
     private fun isLikelyDateLine(line: String): Boolean =
-        DATE_PATTERNS.any { (pattern, _) -> pattern.containsMatchIn(line) } &&
-            !TOTAL_KEYWORDS.any { keyword ->
-                line.contains(keyword, ignoreCase = true) || line.contains(keyword)
-            }
+        DATE_PATTERNS.any { (pattern, _) -> pattern.containsMatchIn(line) } && !isNearTotalKeyword(line)
 
     private fun isInsideDateMatch(line: String, range: IntRange): Boolean =
         DATE_PATTERNS.any { (pattern, _) ->
@@ -182,6 +233,7 @@ class ReceiptParser(
             Regex("^[₪$€£].*"),
             Regex("^\\d{1,2}[/\\-.]\\d{1,2}[/\\-.]\\d{2,4}"),
             Regex("^(tel|phone|fax|vat|ע\\.?מ\\.?|ח\\.?פ\\.?).*", RegexOption.IGNORE_CASE),
+            Regex("^(קבלה|חשבונית מס|חשבונית|receipt|invoice|tax invoice)\\b.*", RegexOption.IGNORE_CASE),
         )
 
         return lines
@@ -212,20 +264,8 @@ class ReceiptParser(
         }
     }
 
-    private fun computeConfidence(
-        amount: Double?,
-        amountNearTotal: Boolean,
-        date: Instant?,
-        merchant: String?,
-    ): ReceiptParseConfidence = when {
-        amount != null && amountNearTotal && date != null && merchant != null -> ReceiptParseConfidence.HIGH
-        amount != null && (amountNearTotal || date != null) -> ReceiptParseConfidence.MEDIUM
-        amount != null || date != null || merchant != null -> ReceiptParseConfidence.LOW
-        else -> ReceiptParseConfidence.NONE
-    }
-
     companion object {
-        const val VERSION = "1.0.0"
+        const val VERSION = "1.1.0"
 
         private const val MIN_REASONABLE_AMOUNT = 0.01
         private const val MAX_REASONABLE_AMOUNT = 50_000.0
@@ -233,19 +273,64 @@ class ReceiptParser(
         private const val MAX_MERCHANT_LENGTH = 80
         private const val MERCHANT_SCAN_LINES = 8
 
-        private val TOTAL_KEYWORDS = listOf(
+        internal fun computeConfidence(
+            amount: Double?,
+            amountNearTotal: Boolean,
+            date: Instant?,
+            merchant: String?,
+        ): ReceiptParseConfidence = when {
+            amount != null && amountNearTotal && date != null && merchant != null -> ReceiptParseConfidence.HIGH
+            amount != null && (amountNearTotal || date != null) -> ReceiptParseConfidence.MEDIUM
+            amount != null || date != null || merchant != null -> ReceiptParseConfidence.LOW
+            else -> ReceiptParseConfidence.NONE
+        }
+
+        /** Lowercased, quote-stripped form used for keyword matching (OCR mangles quotes in סה"כ). */
+        private fun canonical(line: String): String =
+            line.lowercase(Locale.US).replace(Regex("[\"'`’‘]"), "")
+
+        private fun containsAny(canonLine: String, keywords: List<String>): Boolean =
+            keywords.any { canonLine.contains(it) }
+
+        // Stored in canonical form: lowercase, quotes stripped.
+        private val STRONG_TOTAL_KEYWORDS = listOf(
+            "סהכ",
+            "סה כ",
+            "סך הכל",
+            "סך כל",
+            "לתשלום",
+            "סכום לחיוב",
+            "לחיוב",
+            "שולם",
             "total",
+            "grand total",
+            "balance due",
+            "amount due",
+            "to pay",
+        )
+
+        private val WEAK_TOTAL_KEYWORDS = listOf(
             "amount",
             "sum",
-            "balance due",
-            "grand total",
+            "סכום",
+        )
+
+        // Lines whose numbers are known NOT to be the receipt total.
+        private val NEGATIVE_KEYWORDS = listOf(
             "subtotal",
-            "סה\"כ",
-            "סהכ",
-            "סה״כ",
-            "לתשלום",
-            "סך הכל",
-            "סך הכל לתשלום",
+            "sub-total",
+            "סכום ביניים",
+            "ביניים",
+            "מעמ",
+            "vat",
+            "עודף",
+            "מזומן",
+            "החזר",
+            "הנחה",
+            "change",
+            "cash",
+            "discount",
+            "tip",
         )
 
         private val DATE_KEYWORDS = listOf(

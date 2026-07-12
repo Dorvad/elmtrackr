@@ -16,7 +16,7 @@ ElmTrackr is an **offline-first personal shift tracker and pay estimator for hou
 - Presets for US Federal (FLSA), California (daily OT + 7th-day premium), UK, EU, and fully custom rules
 - Reusable premium-rate profiles with six stacking policies, per-shift rate overrides, paid-project (task) rates
 
-Around that engine sits a complete personal workflow: clock in/out from the phone, watch tile/complication, five widget styles, a notification action, or app shortcuts; shift history with breaks, notes, and special days; monthly reports with weekly breakdowns, month-over-month comparisons, and CSV/PDF export; travel-refund tracking with CameraX receipt capture and ML Kit OCR; Hebrew/English localization with full RTL; SQLCipher-encrypted local storage with a functional no-account local mode.
+Around that engine sits a complete personal workflow: clock in/out from the phone, watch tile/complication, five widget styles, a notification action, or app shortcuts; shift history with breaks, notes, and special days; monthly reports with weekly breakdowns, month-over-month comparisons, and CSV/PDF export; travel-refund tracking with CameraX receipt capture and hybrid on-device OCR (ML Kit for Latin text and digits, Tesseract for Hebrew labels); Hebrew/English localization with full RTL; SQLCipher-encrypted local storage with a functional no-account local mode.
 
 **One sentence:** ElmTrackr tells an hourly worker, at any moment and without a network connection, exactly how many hours they've worked and what those hours should be worth under their real pay rules.
 
