@@ -13,6 +13,7 @@ import androidx.glance.action.Action
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
+import androidx.glance.appwidget.CircularProgressIndicator
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -45,16 +46,34 @@ private val Aqua = Color(0xFF22D3EE)
  */
 internal object WidgetSizes {
     val barSizes: Set<DpSize> = setOf(
-        DpSize(180.dp, 50.dp), DpSize(260.dp, 50.dp), DpSize(340.dp, 50.dp),
-        DpSize(180.dp, 100.dp), DpSize(260.dp, 100.dp), DpSize(340.dp, 100.dp),
+        DpSize(180.dp, 50.dp), DpSize(260.dp, 50.dp), DpSize(340.dp, 50.dp), DpSize(420.dp, 50.dp),
+        DpSize(180.dp, 100.dp), DpSize(260.dp, 100.dp), DpSize(340.dp, 100.dp), DpSize(420.dp, 100.dp),
     )
     val cardSizes: Set<DpSize> = setOf(
-        DpSize(180.dp, 110.dp), DpSize(250.dp, 110.dp),
-        DpSize(180.dp, 170.dp), DpSize(250.dp, 170.dp),
+        DpSize(180.dp, 110.dp), DpSize(250.dp, 110.dp), DpSize(340.dp, 110.dp),
+        DpSize(180.dp, 170.dp), DpSize(250.dp, 170.dp), DpSize(340.dp, 170.dp),
     )
     val squareSizes: Set<DpSize> = setOf(
-        DpSize(57.dp, 57.dp), DpSize(110.dp, 110.dp), DpSize(155.dp, 155.dp),
+        DpSize(57.dp, 57.dp), DpSize(110.dp, 110.dp), DpSize(155.dp, 155.dp), DpSize(200.dp, 200.dp),
     )
+}
+
+/** Picks the pre-rendered day-goal ring arc closest to [percent] (10% steps). */
+internal fun ringArcDrawable(percent: Int): Int {
+    val bucket = ((percent.coerceIn(0, 100) + 5) / 10) * 10
+    return when (bucket) {
+        0 -> R.drawable.widget_ring_arc_0
+        10 -> R.drawable.widget_ring_arc_10
+        20 -> R.drawable.widget_ring_arc_20
+        30 -> R.drawable.widget_ring_arc_30
+        40 -> R.drawable.widget_ring_arc_40
+        50 -> R.drawable.widget_ring_arc_50
+        60 -> R.drawable.widget_ring_arc_60
+        70 -> R.drawable.widget_ring_arc_70
+        80 -> R.drawable.widget_ring_arc_80
+        90 -> R.drawable.widget_ring_arc_90
+        else -> R.drawable.widget_ring_arc_100
+    }
 }
 
 /** Approximate width left for the middle column at the current breakpoint. */
@@ -239,26 +258,38 @@ internal fun WidgetProgressBar(percent: Int, barWidthDp: Int = 0) {
 }
 
 @androidx.compose.runtime.Composable
+internal fun WidgetBusySpinner(size: androidx.compose.ui.unit.Dp, onLight: Boolean = false) {
+    CircularProgressIndicator(
+        modifier = GlanceModifier.size(size),
+        color = ColorProvider(if (onLight) Indigo else Color.White),
+    )
+}
+
+@androidx.compose.runtime.Composable
 internal fun PunchInPillButton(state: WidgetPreferences.DisplayState) {
     Box(
         modifier = GlanceModifier
             .background(ImageProvider(R.drawable.widget_button_punch_in_white))
-            .padding(horizontal = 10.dp, vertical = 7.dp)
+            .padding(horizontal = 12.dp, vertical = 9.dp)
             .clickable(primaryActionClick(state)),
         contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = GlanceModifier
-                    .size(18.dp)
-                    .background(ImageProvider(R.drawable.widget_button)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Image(
-                    provider = ImageProvider(R.drawable.widget_icon_bolt),
-                    contentDescription = widgetClockInLabel(),
-                    modifier = GlanceModifier.size(10.dp),
-                )
+            if (state.isBusy) {
+                WidgetBusySpinner(size = 18.dp, onLight = true)
+            } else {
+                Box(
+                    modifier = GlanceModifier
+                        .size(18.dp)
+                        .background(ImageProvider(R.drawable.widget_button)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Image(
+                        provider = ImageProvider(R.drawable.widget_icon_bolt),
+                        contentDescription = widgetClockInLabel(),
+                        modifier = GlanceModifier.size(10.dp),
+                    )
+                }
             }
             Spacer(GlanceModifier.width(5.dp))
             Text(
@@ -278,22 +309,26 @@ internal fun PunchOutPillButton(state: WidgetPreferences.DisplayState) {
     Box(
         modifier = GlanceModifier
             .background(ImageProvider(R.drawable.widget_button_punch_out_outline))
-            .padding(horizontal = 10.dp, vertical = 7.dp)
+            .padding(horizontal = 12.dp, vertical = 9.dp)
             .clickable(primaryActionClick(state)),
         contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = GlanceModifier
-                    .size(18.dp)
-                    .background(ImageProvider(R.drawable.widget_button_round_outline)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Image(
-                    provider = ImageProvider(R.drawable.widget_icon_stop),
-                    contentDescription = widgetClockOutLabel(),
-                    modifier = GlanceModifier.size(8.dp),
-                )
+            if (state.isBusy) {
+                WidgetBusySpinner(size = 18.dp)
+            } else {
+                Box(
+                    modifier = GlanceModifier
+                        .size(18.dp)
+                        .background(ImageProvider(R.drawable.widget_button_round_outline)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Image(
+                        provider = ImageProvider(R.drawable.widget_icon_stop),
+                        contentDescription = widgetClockOutLabel(),
+                        modifier = GlanceModifier.size(8.dp),
+                    )
+                }
             }
             Spacer(GlanceModifier.width(5.dp))
             Text(
@@ -314,16 +349,20 @@ internal fun RoundToggleButton(state: WidgetPreferences.DisplayState) {
     val icon = if (state.isActive) R.drawable.widget_icon_stop else R.drawable.widget_icon_bolt
     Box(
         modifier = GlanceModifier
-            .size(44.dp)
+            .size(48.dp)
             .background(ImageProvider(bg))
             .clickable(primaryActionClick(state)),
         contentAlignment = Alignment.Center,
     ) {
-        Image(
-            provider = ImageProvider(icon),
-            contentDescription = widgetActionLabel(state),
-            modifier = GlanceModifier.size(if (state.isActive) 14.dp else 20.dp),
-        )
+        if (state.isBusy) {
+            WidgetBusySpinner(size = 22.dp, onLight = !state.isActive)
+        } else {
+            Image(
+                provider = ImageProvider(icon),
+                contentDescription = widgetActionLabel(state),
+                modifier = GlanceModifier.size(if (state.isActive) 15.dp else 22.dp),
+            )
+        }
     }
 }
 
@@ -614,7 +653,9 @@ internal fun TallCardWidgetContent(state: WidgetPreferences.DisplayState) {
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (state.isActive) {
+                if (state.isBusy) {
+                    WidgetBusySpinner(size = 22.dp, onLight = !state.isActive)
+                } else if (state.isActive) {
                     Box(
                         modifier = GlanceModifier
                             .size(22.dp)
@@ -678,26 +719,29 @@ internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
     val size = LocalSize.current
     val cell = if (size.width < size.height) size.width else size.height
     val ringSize = when {
+        cell >= 190.dp -> 152.dp
         cell >= 150.dp -> 116.dp
         cell >= 100.dp -> 84.dp
         else -> 52.dp
     }
     val bigFont = when {
+        cell >= 190.dp -> 30.sp
         cell >= 150.dp -> 24.sp
         cell >= 100.dp -> 18.sp
         else -> 14.sp
     }
     val smallFont = when {
+        cell >= 190.dp -> 14.sp
         cell >= 150.dp -> 12.sp
         cell >= 100.dp -> 9.sp
         else -> 7.sp
     }
     val boltSize = when {
+        cell >= 190.dp -> 38.dp
         cell >= 150.dp -> 30.dp
         cell >= 100.dp -> 22.dp
         else -> 16.dp
     }
-    val showProgressRing = state.isActive || state.progressPercent > 0
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -708,16 +752,13 @@ internal fun RingWidgetContent(state: WidgetPreferences.DisplayState) {
         Box(
             modifier = GlanceModifier
                 .size(ringSize)
-                .background(
-                    ImageProvider(
-                        if (showProgressRing) R.drawable.widget_ring_progress
-                        else R.drawable.widget_ring_open,
-                    ),
-                ),
+                .background(ImageProvider(ringArcDrawable(state.progressPercent))),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (state.isActive) {
+                if (state.isBusy) {
+                    WidgetBusySpinner(size = boltSize)
+                } else if (state.isActive) {
                     Text(
                         text = state.elapsedHms.ifEmpty { "0:00" },
                         style = TextStyle(
@@ -784,26 +825,31 @@ internal fun BigActionWidgetContent(state: WidgetPreferences.DisplayState) {
     val size = LocalSize.current
     val cell = if (size.width < size.height) size.width else size.height
     val buttonSize = when {
+        cell >= 190.dp -> 108.dp
         cell >= 150.dp -> 84.dp
         cell >= 100.dp -> 64.dp
         else -> 48.dp
     }
     val iconSize = when {
+        cell >= 190.dp -> 48.dp
         cell >= 150.dp -> 38.dp
         cell >= 100.dp -> 28.dp
         else -> 22.dp
     }
     val labelFont = when {
+        cell >= 190.dp -> 16.sp
         cell >= 150.dp -> 14.sp
         cell >= 100.dp -> 12.sp
         else -> 10.sp
     }
     val hintFont = when {
+        cell >= 190.dp -> 12.sp
         cell >= 150.dp -> 11.sp
         cell >= 100.dp -> 9.sp
         else -> 7.sp
     }
     val activeLabelFont = when {
+        cell >= 190.dp -> 15.sp
         cell >= 150.dp -> 13.sp
         cell >= 100.dp -> 11.sp
         else -> 9.sp
@@ -833,11 +879,15 @@ internal fun BigActionWidgetContent(state: WidgetPreferences.DisplayState) {
                         .background(ImageProvider(R.drawable.widget_button_round_outline)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Image(
-                        provider = ImageProvider(R.drawable.widget_icon_stop),
-                        contentDescription = widgetClockOutLabel(),
-                        modifier = GlanceModifier.size(iconSize - 8.dp),
-                    )
+                    if (state.isBusy) {
+                        WidgetBusySpinner(size = iconSize - 8.dp)
+                    } else {
+                        Image(
+                            provider = ImageProvider(R.drawable.widget_icon_stop),
+                            contentDescription = widgetClockOutLabel(),
+                            modifier = GlanceModifier.size(iconSize - 8.dp),
+                        )
+                    }
                 }
                 Spacer(GlanceModifier.height(4.dp))
                 Text(
@@ -858,11 +908,15 @@ internal fun BigActionWidgetContent(state: WidgetPreferences.DisplayState) {
                         .background(ImageProvider(R.drawable.widget_button_round_white)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Image(
-                        provider = ImageProvider(R.drawable.widget_icon_bolt),
-                        contentDescription = widgetClockInLabel(),
-                        modifier = GlanceModifier.size(iconSize),
-                    )
+                    if (state.isBusy) {
+                        WidgetBusySpinner(size = iconSize, onLight = true)
+                    } else {
+                        Image(
+                            provider = ImageProvider(R.drawable.widget_icon_bolt),
+                            contentDescription = widgetClockInLabel(),
+                            modifier = GlanceModifier.size(iconSize),
+                        )
+                    }
                 }
                 Spacer(GlanceModifier.height(6.dp))
                 Text(

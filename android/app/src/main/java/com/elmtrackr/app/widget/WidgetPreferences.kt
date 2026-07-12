@@ -24,6 +24,7 @@ object WidgetPreferences {
     val KEY_LAST_PUNCH_END_EPOCH = longPreferencesKey("widget_last_punch_end_epoch")
     val KEY_TODAY_MINUTES = intPreferencesKey("widget_today_minutes")
     val KEY_DAILY_GOAL_MINUTES = intPreferencesKey("widget_daily_goal_minutes")
+    val KEY_ACTION_IN_FLIGHT = booleanPreferencesKey("widget_action_in_flight")
 
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
 
@@ -38,6 +39,8 @@ object WidgetPreferences {
         val lastPunchEndEpochMillis: Long,
         val todayMinutes: Int,
         val dailyGoalMinutes: Int,
+        /** True while a punch tapped on this widget is still executing — buttons show a spinner. */
+        val isBusy: Boolean = false,
     ) {
         val elapsedHms: String
             get() = if (isActive && shiftStartEpochMillis > 0L) {
@@ -115,6 +118,7 @@ object WidgetPreferences {
         lastPunchEndEpochMillis = prefs[KEY_LAST_PUNCH_END_EPOCH] ?: 0L,
         todayMinutes = prefs[KEY_TODAY_MINUTES] ?: 0,
         dailyGoalMinutes = prefs[KEY_DAILY_GOAL_MINUTES] ?: WidgetShiftState.DEFAULT_DAILY_GOAL_MINUTES,
+        isBusy = prefs[KEY_ACTION_IN_FLIGHT] ?: false,
     )
 
     fun writeFromShift(state: WidgetShiftState): (Preferences) -> Preferences = { prefs ->
@@ -129,6 +133,8 @@ object WidgetPreferences {
             this[KEY_LAST_PUNCH_END_EPOCH] = state.lastPunchEndEpochMillis
             this[KEY_TODAY_MINUTES] = state.todayMinutes
             this[KEY_DAILY_GOAL_MINUTES] = state.dailyGoalMinutes
+            // Fresh state means any in-flight punch has landed.
+            this[KEY_ACTION_IN_FLIGHT] = false
         }
     }
 

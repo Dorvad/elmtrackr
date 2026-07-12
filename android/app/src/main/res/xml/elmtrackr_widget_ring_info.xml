@@ -6,10 +6,11 @@
     android:targetCellHeight="1"
     android:minResizeWidth="57dp"
     android:minResizeHeight="57dp"
-    android:maxResizeWidth="180dp"
-    android:maxResizeHeight="180dp"
+    android:maxResizeWidth="250dp"
+    android:maxResizeHeight="250dp"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen"
     android:description="@string/widget_description_ring"
+    android:previewLayout="@layout/widget_preview_ring"
     android:initialLayout="@layout/widget_loading" />
