@@ -14,8 +14,7 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { createClient } from "@/lib/supabase/client";
 import { getPasswordResetRedirectUrl } from "@/lib/supabase/auth-redirects";
 import { deleteOwnAccount } from "@/lib/account/deleteAccount";
-import { LEGAL_CONTACT_EMAIL } from "@/lib/legal/content";
-import Link from "next/link";
+import { LEGAL_CONTACT_EMAIL, PRIVACY_POLICY_URL, TERMS_URL } from "@/lib/legal/content";
 
 const WEEKDAYS = [
   { label: "Sun", value: 0 },
@@ -401,24 +400,28 @@ export default function SettingsPage() {
           <p className="text-xs text-gray-400 px-4 mb-3">
             ElmTrackr v1.0.1
           </p>
-          <Link
-            href="/privacy"
+          <a
+            href={PRIVACY_POLICY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-t border-gray-50 transition-colors"
           >
             <span className="text-sm font-semibold text-gray-800">Privacy Policy</span>
             <svg className="h-4 w-4 text-gray-300" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
-          </Link>
-          <Link
-            href="/terms"
+          </a>
+          <a
+            href={TERMS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-t border-gray-50 transition-colors"
           >
             <span className="text-sm font-semibold text-gray-800">Terms of Service</span>
             <svg className="h-4 w-4 text-gray-300" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
-          </Link>
+          </a>
           <p className="text-xs text-gray-400 px-4 py-3 border-t border-gray-50">
             Support:{" "}
             <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="font-semibold text-indigo-600">
