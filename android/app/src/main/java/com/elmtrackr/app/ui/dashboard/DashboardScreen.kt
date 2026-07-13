@@ -355,8 +355,14 @@ private fun DashboardReady(
         FirstClockInCelebrationDialog(onDismiss = onDismissFirstClockInCelebration)
     }
 
-    val clockStyle = state.settings?.clockStyle?.toSupportedOrDefault()
-        ?: SupportedClockStyle.CLASSIC
+    // "Clock faces" is a feature toggle. When it is off, the home-screen clock
+    // falls back to the default face regardless of the saved style; the saved
+    // choice is preserved and reapplied when the feature is turned back on.
+    val clockStyle = if (state.settings?.featuresClockStyles == false) {
+        SupportedClockStyle.CLASSIC
+    } else {
+        state.settings?.clockStyle?.toSupportedOrDefault() ?: SupportedClockStyle.CLASSIC
+    }
 
     val isTablet = isTabletLayout()
 
