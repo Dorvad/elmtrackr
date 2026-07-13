@@ -16,7 +16,14 @@ class ClockOutWidgetAction : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters,
     ) {
-        WidgetActions.clockOut(context)
-        WidgetActions.refreshWidgets(context)
+        ElmTrackrWidgetUpdater.setActionInFlight(context, glanceId, true)
+        try {
+            WidgetActions.clockOut(context)
+            WidgetActions.refreshWidgets(context)
+        } finally {
+            // refreshWidgets normally clears the flag with fresh state; this is
+            // the safety net for early returns (no user) and failures.
+            ElmTrackrWidgetUpdater.setActionInFlight(context, glanceId, false)
+        }
     }
 }

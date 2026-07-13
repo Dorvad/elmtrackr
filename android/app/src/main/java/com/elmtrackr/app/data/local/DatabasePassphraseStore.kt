@@ -31,9 +31,14 @@ class DatabasePassphraseStore(context: Context) {
             return Base64.decode(encoded, Base64.NO_WRAP)
         }
         val passphrase = ByteArray(PASSPHRASE_BYTES).also { SecureRandom().nextBytes(it) }
+        // commit(), not apply(): the database is encrypted with this key as
+        // soon as we return. If the async write were lost to a process kill,
+        // the next launch would mint a different key and the existing
+        // encrypted database would be permanently unopenable.
+        @Suppress("ApplySharedPref")
         securePrefs.edit()
             .putString(KEY_PASSPHRASE, Base64.encodeToString(passphrase, Base64.NO_WRAP))
-            .apply()
+            .commit()
         return passphrase
     }
 

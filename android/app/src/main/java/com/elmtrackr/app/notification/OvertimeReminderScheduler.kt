@@ -1,103 +1,77 @@
 package com.elmtrackr.app.notification
 
 import android.content.Context
+import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.time.WorkTimezone
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
+/**
+ * Schedules the user's configured reminder rules (see [ReminderRulesStore])
+ * for the active shift. Each rule gets its own unique one-time work item;
+ * repeating rules re-enqueue themselves from [ReminderRuleWorker].
+ */
 object OvertimeReminderScheduler {
-    const val PRE_WARNING_WORK = "overtime_pre_warning"
-    const val AT_THRESHOLD_WORK = "overtime_at_threshold"
-    const val HOURLY_WORK = "overtime_hourly"
-    private const val LEGACY_LONG_SHIFT_WORK = "long_shift_reminder"
+    const val RULE_TAG = "overtime_reminder_rules"
+    private const val RULE_WORK_PREFIX = "overtime_rule_"
 
-    fun scheduleForActiveShift(context: Context, shift: Shift, settings: UserSettings?) {
-        val workManager = WorkManager.getInstance(context)
-        workManager.cancelUniqueWork(LEGACY_LONG_SHIFT_WORK)
+    // Pre-rules work names, cancelled so pending jobs from older app versions don't linger.
+    private val LEGACY_WORK_NAMES = listOf(
+        "overtime_pre_warning",
+        "overtime_at_threshold",
+        "overtime_hourly",
+        "long_shift_reminder",
+    )
 
-        if (settings?.featuresOvertimeReminders != true) {
-            cancelAll(context)
-            return
-        }
+    suspend fun scheduleForActiveShift(context: Context, shift: Shift, settings: UserSettings?) {
+        cancelAll(context)
+
+        if (settings?.featuresOvertimeReminders != true) return
 
         val threshold = settings.dailyOvertimeThresholdMinutes
             .takeIf { it > 0 }
             ?: OvertimeReminderPolicy.FALLBACK_THRESHOLD_MINUTES.toInt()
+        val zone = WorkTimezone.zoneFor(settings)
         val now = Instant.now()
 
-        val preWarningDelay = OvertimeReminderPolicy.preWarningDelayMinutes(threshold, shift.startTime, now)
-        if (preWarningDelay >= 0) {
-            enqueuePreWarning(context, preWarningDelay)
-        } else {
-            workManager.cancelUniqueWork(PRE_WARNING_WORK)
-        }
-
-        enqueueAtThreshold(
-            context,
-            OvertimeReminderPolicy.atThresholdDelayMinutes(threshold, shift.startTime, now),
-        )
-
-        if (ActiveShiftNotificationManager.isShiftOverThreshold(shift.startTime, threshold.toLong())) {
-            scheduleHourly(context, shift, threshold, now)
-        } else {
-            workManager.cancelUniqueWork(HOURLY_WORK)
+        ReminderRulesStore.current(context).forEach { rule ->
+            enqueueRule(context, rule, shift, threshold, now, zone)
         }
     }
 
-    fun scheduleHourly(
+    fun enqueueRule(
         context: Context,
+        rule: ReminderRule,
         shift: Shift,
         thresholdMinutes: Int,
         now: Instant = Instant.now(),
+        zone: java.time.ZoneId = java.time.ZoneId.systemDefault(),
     ) {
-        enqueueHourly(
-            context,
-            OvertimeReminderPolicy.nextHourlyDelayMinutes(thresholdMinutes, shift.startTime, now),
+        val delay = OvertimeReminderPolicy.delayMinutesForRule(rule, thresholdMinutes, shift.startTime, now, zone)
+        if (delay < 0) return
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            RULE_WORK_PREFIX + rule.id,
+            ExistingWorkPolicy.REPLACE,
+            OneTimeWorkRequestBuilder<ReminderRuleWorker>()
+                .setInitialDelay(delay, TimeUnit.MINUTES)
+                .setInputData(
+                    Data.Builder()
+                        .putString(ReminderRuleWorker.KEY_RULE_JSON, ReminderRulesCodec.encode(listOf(rule)))
+                        .build(),
+                )
+                .addTag(RULE_TAG)
+                .build(),
         )
     }
 
     fun cancelAll(context: Context) {
         val workManager = WorkManager.getInstance(context)
-        workManager.cancelUniqueWork(PRE_WARNING_WORK)
-        workManager.cancelUniqueWork(AT_THRESHOLD_WORK)
-        workManager.cancelUniqueWork(HOURLY_WORK)
-        workManager.cancelUniqueWork(LEGACY_LONG_SHIFT_WORK)
-    }
-
-    private fun enqueuePreWarning(context: Context, delayMinutes: Long) {
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            PRE_WARNING_WORK,
-            ExistingWorkPolicy.REPLACE,
-            OneTimeWorkRequestBuilder<OvertimePreWarningWorker>()
-                .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
-                .addTag(PRE_WARNING_WORK)
-                .build(),
-        )
-    }
-
-    private fun enqueueAtThreshold(context: Context, delayMinutes: Long) {
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            AT_THRESHOLD_WORK,
-            ExistingWorkPolicy.REPLACE,
-            OneTimeWorkRequestBuilder<OvertimeAtThresholdWorker>()
-                .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
-                .addTag(AT_THRESHOLD_WORK)
-                .build(),
-        )
-    }
-
-    private fun enqueueHourly(context: Context, delayMinutes: Long) {
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            HOURLY_WORK,
-            ExistingWorkPolicy.REPLACE,
-            OneTimeWorkRequestBuilder<OvertimeHourlyReminderWorker>()
-                .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
-                .addTag(HOURLY_WORK)
-                .build(),
-        )
+        workManager.cancelAllWorkByTag(RULE_TAG)
+        LEGACY_WORK_NAMES.forEach(workManager::cancelUniqueWork)
     }
 }

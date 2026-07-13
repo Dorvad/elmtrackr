@@ -214,4 +214,46 @@ class MonthlyReportBuilderTest {
         assertEquals(480, weeks[3].totalMinutes)
         assertEquals("22+", weeks[3].dayRange)
     }
+
+    @Test
+    fun `groupByWeek - zone override buckets by the work timezone day`() {
+        // 2024-01-07T22:30Z is already Jan 8, 00:30 in Jerusalem: the shift
+        // belongs to the days 8-14 bucket in the work timezone, not days 1-7.
+        val shifts = listOf(
+            shift("s1", "2024-01-07T22:30:00Z", "2024-01-08T06:30:00Z"),
+        )
+
+        val utcWeeks = WeeklyBreakdownBuilder.groupByWeek(shifts)
+        val workWeeks = WeeklyBreakdownBuilder.groupByWeek(
+            shifts,
+            zoneOverride = java.time.ZoneId.of("Asia/Jerusalem"),
+        )
+
+        assertEquals(480, utcWeeks[0].totalMinutes)
+        assertEquals(0, utcWeeks[1].totalMinutes)
+        assertEquals(0, workWeeks[0].totalMinutes)
+        assertEquals(480, workWeeks[1].totalMinutes)
+    }
+
+    @Test
+    fun `buildMonthlyReport - weekly overtime uses the work timezone weeks`() {
+        val jerusalem = settings.copy(timezone = "Asia/Jerusalem")
+        // Six 8h evening shifts, all inside days 8-14 by Jerusalem time. The
+        // first starts before midnight UTC (Jan 7 UTC / Jan 8 Jerusalem); UTC
+        // grouping would split it into the previous bucket and miss the
+        // weekly-overtime overflow (2880 > 2400 → 480 OT minutes).
+        val shifts = listOf(
+            shift("s1", "2024-01-07T22:30:00Z", "2024-01-08T06:30:00Z"),
+            shift("s2", "2024-01-08T22:30:00Z", "2024-01-09T06:30:00Z"),
+            shift("s3", "2024-01-09T22:30:00Z", "2024-01-10T06:30:00Z"),
+            shift("s4", "2024-01-10T22:30:00Z", "2024-01-11T06:30:00Z"),
+            shift("s5", "2024-01-13T22:30:00Z", "2024-01-14T06:30:00Z"),
+            shift("s6", "2024-01-14T09:00:00Z", "2024-01-14T17:00:00Z"),
+        )
+
+        val report = MonthlyReportBuilder.buildMonthlyReport(2024, 1, shifts, jerusalem)
+
+        assertEquals(2880, report.totalMinutes)
+        assertEquals(480, report.overtimeMinutes)
+    }
 }

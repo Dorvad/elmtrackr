@@ -174,15 +174,20 @@ object PayrollCalculator {
         for (tier in tiers) {
             if (remaining <= 0) break
             val mins = if (tier.capMinutes == Int.MAX_VALUE) remaining else minOf(remaining, tier.capMinutes)
-            val (effectiveRate, nightPremium) = applyNightPremium(
+            val (nightStackedRate, nightFraction) = applyNightPremium(
                 tier.rate,
                 resolved,
                 shift,
                 zone,
                 shiftPremium?.premiumType,
             )
-            val amount = mins * ratePerMinute * effectiveRate
-            brackets += PayBracket(tier.label, mins, effectiveRate, amount)
+            // Night uplift applies to this tier's own minutes, proportional to
+            // the share of the shift inside the night window. The blended rate
+            // keeps totals exact and every category bucket non-negative.
+            val blendedRate = tier.rate + nightFraction * (nightStackedRate - tier.rate)
+            val amount = mins * ratePerMinute * blendedRate
+            val nightPremium = mins * ratePerMinute * nightFraction * (nightStackedRate - tier.rate)
+            brackets += PayBracket(tier.label, mins, blendedRate, amount)
 
             when {
                 tier.label.contains("Premium", ignoreCase = true) -> holidayGross += amount - nightPremium
@@ -644,6 +649,17 @@ object PayrollCalculator {
     internal fun combineRates(daily: Double, weekly: Double, policy: StackingPolicy): Double =
         PremiumStacking.combinePolicy(daily, weekly, policy)
 
+    /**
+     * Returns the night-stacked rate for a tier plus the fraction of the
+     * shift's net minutes that the night uplift applies to (1.0 for
+     * "entire_shift", window/net otherwise, 0.0 when night pay is inactive).
+     *
+     * The fraction lets the tier loop apply the uplift proportionally: paying
+     * the whole tier at the stacked rate would overcharge shifts that only
+     * partially overlap the night window, and attributing the whole shift's
+     * premium to every tier corrupted the category split (a bucket could go
+     * negative while "night pay" showed several times the real premium).
+     */
     private fun applyNightPremium(
         baseRate: Double,
         resolved: ResolvedCompensation,
@@ -656,7 +672,7 @@ object PayrollCalculator {
         val nightDelta = rules.nightMultiplier - 1.0
         if (nightDelta <= 0) return baseRate to 0.0
 
-        val net = ShiftDurationCalculator.netMinutes(shift) ?: return baseRate to 0.0
+        val net = ShiftDurationCalculator.netMinutes(shift)?.takeIf { it > 0 } ?: return baseRate to 0.0
         val nightMinutes = if (rules.nightApplyTo == "entire_shift") {
             net
         } else {
@@ -669,9 +685,8 @@ object PayrollCalculator {
         } else {
             PremiumStacking.combinePolicy(rules.nightMultiplier, baseRate, resolved.stackingPolicy)
         }
-        val hourlyRate = resolved.baseHourlyRate ?: return baseRate to 0.0
-        val premium = nightMinutes * (hourlyRate / 60.0) * (effectiveRate - baseRate)
-        return effectiveRate to premium
+        val nightFraction = (nightMinutes.toDouble() / net).coerceIn(0.0, 1.0)
+        return effectiveRate to nightFraction
     }
 
     private fun countNightMinutes(

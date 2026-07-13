@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ widget-picker preview for the 4×2 tall card. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background_aurora"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/widget_logo_circle"
+            android:contentDescription="@string/app_name"
+            android:padding="7dp"
+            android:src="@drawable/widget_logo_icon" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_status_badge"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:text="@string/widget_clocked_out"
+            android:textColor="#FFFFFF"
+            android:textSize="8sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="@string/widget_last_punch_upper"
+        android:textColor="#B3FFFFFF"
+        android:textSize="9sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_preview_time_idle"
+        android:textColor="#FFFFFF"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_preview_today_sub"
+        android:textColor="#BFFFFFFF"
+        android:textSize="11sp" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/widget_button_punch_in_white"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="10dp">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@string/widget_clock_in"
+            android:src="@drawable/widget_logo_icon" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/widget_punch_in"
+            android:textColor="#5B4DF2"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>

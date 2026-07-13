@@ -1,4 +1,8 @@
-export const LEGAL_CONTACT_EMAIL = "support@elmtrackr.app";
+export const LEGAL_CONTACT_EMAIL = "support@elmtrackr.site";
+
+// Canonical legal pages now live on the marketing site.
+export const PRIVACY_POLICY_URL = "https://elmtrackr.site/privacy";
+export const TERMS_URL = "https://elmtrackr.site/terms";
 
 export const PRIVACY_POLICY_LAST_UPDATED = "June 26, 2025";
 

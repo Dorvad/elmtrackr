@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, FormEvent, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient, isMissingConfig } from "@/lib/supabase/client";
+import { PRIVACY_POLICY_URL, TERMS_URL } from "@/lib/legal/content";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -192,13 +193,13 @@ function LoginPageContent() {
             {mode === "sign_up" && (
               <p className="text-xs text-center text-gray-400 leading-relaxed -mt-1">
                 By creating an account you agree to our{" "}
-                <Link href="/terms" className="font-semibold" style={{ color: "var(--au-indigo)" }}>
+                <a href={TERMS_URL} target="_blank" rel="noopener noreferrer" className="font-semibold" style={{ color: "var(--au-indigo)" }}>
                   Terms of Service
-                </Link>{" "}
+                </a>{" "}
                 and{" "}
-                <Link href="/privacy" className="font-semibold" style={{ color: "var(--au-indigo)" }}>
+                <a href={PRIVACY_POLICY_URL} target="_blank" rel="noopener noreferrer" className="font-semibold" style={{ color: "var(--au-indigo)" }}>
                   Privacy Policy
-                </Link>
+                </a>
                 .
               </p>
             )}

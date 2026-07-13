@@ -27,8 +27,11 @@ import com.elmtrackr.app.ui.design.LocalReduceMotion
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.update.InAppUpdateHost
 import com.elmtrackr.app.update.InAppUpdateManager
+import com.elmtrackr.app.update.InAppUpdatePrompt
+import com.elmtrackr.app.update.openPlayStoreListing
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -50,13 +53,13 @@ class MainActivity : AppCompatActivity() {
 
     var onNotificationPermissionResult: ((Boolean) -> Unit)? = null
 
-    private var flexibleUpdateReady by mutableStateOf(false)
+    private var updatePrompt by mutableStateOf<InAppUpdatePrompt?>(null)
     private lateinit var inAppUpdateManager: InAppUpdateManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        inAppUpdateManager = InAppUpdateManager(this) { flexibleUpdateReady = true }
+        inAppUpdateManager = InAppUpdateManager(this) { prompt -> updatePrompt = prompt }
         intent?.data?.toString()?.let { handleDeepLink(it) }
         setContent {
             val configuration = LocalConfiguration.current
@@ -76,12 +79,16 @@ class MainActivity : AppCompatActivity() {
                         lockEnabled = preferences.appLockEnabled,
                     ) {
                         InAppUpdateHost(
-                            updateReady = flexibleUpdateReady,
+                            prompt = updatePrompt,
                             onInstall = {
-                                flexibleUpdateReady = false
+                                updatePrompt = null
                                 inAppUpdateManager.completeFlexibleUpdate()
                             },
-                            onDismiss = { flexibleUpdateReady = false },
+                            onDismiss = { updatePrompt = null },
+                            onOpenPlayStore = {
+                                updatePrompt = null
+                                openPlayStoreListing(this@MainActivity)
+                            },
                         ) {
                             AppNavGraph()
                         }
@@ -101,6 +108,28 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         AppEntryPoints.background(this).dynamicShortcutsRefresher().refresh()
+        requestNotificationPermissionForActiveShift()
+    }
+
+    /**
+     * Users who clock in from the widget, shortcut, or watch never pass the
+     * in-app clock-in button — the only place the POST_NOTIFICATIONS request
+     * lived — so on Android 13+ their ongoing notification and every reminder
+     * stayed silently disabled. If a shift is running and the permission is
+     * still missing when the app opens, ask now (once per install, mirroring
+     * the educational-prompt bookkeeping).
+     */
+    private fun requestNotificationPermissionForActiveShift() {
+        if (NotificationPermissionCoordinator.hasPermission(this)) return
+        lifecycleScope.launch {
+            val deps = AppEntryPoints.background(this@MainActivity)
+            val userId = deps.currentUserProvider().currentUserId() ?: return@launch
+            val active = deps.shiftsRepository().observeActiveShift(userId).firstOrNull() != null
+            if (!active) return@launch
+            if (!NotificationPermissionCoordinator.shouldShowEducationalPrompt(this@MainActivity)) return@launch
+            NotificationPermissionCoordinator.markPromptShown(this@MainActivity)
+            requestNotificationPermission()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

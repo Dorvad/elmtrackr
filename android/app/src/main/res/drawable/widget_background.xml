@@ -1,11 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget background: purple-to-teal gradient matching the ElmTrackr Aurora palette. -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <gradient
-        android:startColor="#6047D7"
-        android:endColor="#3DC9F0"
-        android:angle="0"
-        android:type="linear" />
-    <corners android:radius="20dp" />
-</shape>
+<!--
+    Widget background: dark Aurora night surface. Deep navy base with soft
+    indigo and aqua glows layered from opposite corners, matching the in-app
+    AuroraMeshBackground, plus a hairline border for definition on any wallpaper.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#171D33" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#665B4DF2"
+                android:centerColor="#1A5B4DF2"
+                android:endColor="#00000000"
+                android:angle="315"
+                android:type="linear" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#00000000"
+                android:centerColor="#0D16C8D6"
+                android:endColor="#4D16C8D6"
+                android:angle="315"
+                android:type="linear" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+            <stroke android:width="1dp" android:color="#1FFFFFFF" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+</layer-list>

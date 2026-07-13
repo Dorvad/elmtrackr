@@ -54,14 +54,17 @@ class ReceiptImageStore @Inject constructor(
         }
     }
 
-    fun delete(path: String?) {
-        if (path == null) return
-        runCatching {
+    /** Returns true when the image no longer exists on disk afterwards. */
+    fun delete(path: String?): Boolean {
+        if (path == null) return true
+        return runCatching {
             val file = File(path)
-            if (file.canonicalPath.startsWith(rootDir.canonicalPath)) {
-                file.delete()
+            when {
+                !file.exists() -> true
+                !file.canonicalPath.startsWith(rootDir.canonicalPath + File.separator) -> false
+                else -> file.delete()
             }
-        }
+        }.getOrDefault(false)
     }
 
     companion object {

@@ -7,6 +7,13 @@
     <string name="setup_body">Open ElmTrackr on your paired phone to sign in, then return here.</string>
     <string name="idle_last_punch">Last punch</string>
     <string name="idle_tap_hint">Tap to punch in</string>
+    <string name="countdown_punching_in">Punching in</string>
+    <string name="countdown_punching_out">Punching out</string>
+    <string name="countdown_tap_to_cancel">Tap to cancel</string>
+    <string name="wear_brand" translatable="false">E L M T R A C K R</string>
+    <string name="wear_on_shift">ON SHIFT</string>
+    <string name="wear_clocked_out">CLOCKED OUT</string>
+    <string name="wear_tap_to_stop">tap to stop</string>
     <string name="running_since">Since %1$s</string>
     <string name="punch_in">Punch in</string>
     <string name="punch_out">Punch out</string>
@@ -21,4 +28,10 @@
     <string name="tile_on_phone">on phone</string>
     <string name="tile_tap_punch_out">tap to punch out</string>
     <string name="tile_tap_punch_in">tap to punch in</string>
+    <string name="wear_last_out_today">Last out • Today %1$s</string>
+    <string name="wear_last_out_yesterday">Last out • Yesterday %1$s</string>
+    <string name="wear_last_out_other">Last out • %1$s</string>
+    <string name="wear_comp_in">IN</string>
+    <string name="wear_comp_out">OUT</string>
+    <string name="wear_comp_clocked_in">Clocked in · %1$s</string>
 </resources>

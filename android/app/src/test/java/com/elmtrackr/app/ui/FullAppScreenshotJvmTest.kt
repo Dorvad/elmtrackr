@@ -40,6 +40,7 @@ import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.notification.ReminderRulesCodec
 import com.elmtrackr.app.security.BiometricAvailability
 import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.auth.SignedOutContent
@@ -138,6 +139,16 @@ class FullAppScreenshotJvmTest {
 
     @Test fun dashboardDark() = capture("26-dashboard-dark", darkTheme = true) {
         DashboardReadyPreview(state = sampleDashboardState())
+    }
+
+    @Test fun dashboardSprout() = capture("31-dashboard-sprout") {
+        // 5.5 hours logged: five leaves on the vine, stem still climbing.
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.SPROUT),
+                todayCompletedMinutes = 330,
+            ),
+        )
     }
 
     @Test fun dashboardSkeleton() = capture("09-dashboard-loading") {
@@ -406,7 +417,10 @@ class FullAppScreenshotJvmTest {
             SettingsDestination.APPEARANCE -> AppearanceDetailScreen(
                 state, ClockStyle.MINIMAL, {}, true, {}, false, {}, {}, {},
             )
-            SettingsDestination.FEATURES -> FeaturesDetailScreen(true, {}, true, {}, true, {}, {})
+            SettingsDestination.FEATURES -> FeaturesDetailScreen(
+                true, {}, true, {}, true, {},
+                ReminderRulesCodec.DEFAULT_RULES, {}, {}, {}, {},
+            )
             SettingsDestination.HELP -> HelpDetailScreen(
                 state, AuthUiState.NotConfigured, {}, {}, {}, {}, {},
             )

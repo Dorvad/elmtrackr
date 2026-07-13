@@ -1,6 +1,5 @@
 package com.elmtrackr.app.data.receipt
 
-import android.graphics.BitmapFactory
 import com.elmtrackr.app.domain.receipt.ReceiptTextRecognizer
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
@@ -21,11 +20,15 @@ class MLKitReceiptTextRecognizer @Inject constructor() : ReceiptTextRecognizer {
         runCatching {
             val file = File(imagePath)
             require(file.exists() && file.isFile && file.length() > 0) { "Receipt image not found" }
-            val bitmap = BitmapFactory.decodeFile(imagePath)
+            val bitmap = ReceiptBitmapDecoder.decodeDownscaled(imagePath)
                 ?: error("Unable to read receipt image")
-            val image = InputImage.fromBitmap(bitmap, 0)
-            val result = recognizer.process(image).await()
-            result.text.trim().ifBlank { error("No text detected on receipt") }
+            try {
+                val image = InputImage.fromBitmap(bitmap, 0)
+                val result = recognizer.process(image).await()
+                result.text.trim().ifBlank { error("No text detected on receipt") }
+            } finally {
+                bitmap.recycle()
+            }
         }
     }
 }

@@ -100,7 +100,7 @@ class ActiveShiftSideEffectsCoordinator @Inject constructor(
                     if (userId == null) {
                         // Signed out: push an empty state so the widget stops
                         // showing the previous user's shift.
-                        flowOf(WidgetRefresh(null, null, emptyList(), null))
+                        flowOf(WidgetRefresh(null, null, emptyList(), null, isSignedIn = false))
                     } else {
                         combine(
                             shiftsRepository.observeActiveShift(userId),
@@ -127,10 +127,13 @@ class ActiveShiftSideEffectsCoordinator @Inject constructor(
                 .collect { refresh ->
                     ElmTrackrWidgetUpdater.update(
                         app,
-                        refresh.activeShift,
-                        refresh.lastCompletedShift,
-                        refresh.todayShifts,
-                        refresh.settings,
+                        WidgetContext(
+                            activeShift = refresh.activeShift,
+                            lastCompletedShift = refresh.lastCompletedShift,
+                            todayShifts = refresh.todayShifts,
+                            settings = refresh.settings,
+                            isSignedIn = refresh.isSignedIn,
+                        ),
                     )
                 }
         }
@@ -227,6 +230,7 @@ class ActiveShiftSideEffectsCoordinator @Inject constructor(
         val lastCompletedShift: Shift?,
         val todayShifts: List<Shift>,
         val settings: UserSettings?,
+        val isSignedIn: Boolean = true,
     )
 
     companion object {

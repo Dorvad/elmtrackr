@@ -14,6 +14,8 @@
     <string name="widget_since">since %1$s</string>
     <string name="widget_today_short">Today %1$s</string>
     <string name="widget_tap_to_start">tap to start</string>
+    <string name="widget_yesterday_short">Yesterday %1$s</string>
+    <string name="widget_signed_out_hint">tap to sign in</string>
     <string name="widget_today_logged">Today %1$s logged</string>
     <string name="widget_no_time_today">No time logged today</string>
     <string name="widget_active_sub">Since %1$s · Today %2$s</string>
@@ -22,6 +24,14 @@
     <string name="widget_today_lower">today</string>
     <string name="widget_clock_in">Clock in</string>
     <string name="widget_clock_out">Clock out</string>
+
+    <!-- Static sample values shown only in the widget-picker preview layouts -->
+    <string name="widget_preview_time" translatable="false">2:45</string>
+    <string name="widget_preview_time_idle" translatable="false">17:30</string>
+    <string name="widget_preview_percent" translatable="false">68%</string>
+    <string name="widget_preview_goal_sub" translatable="false">68% of an 8h day · 2h 35m to goal</string>
+    <string name="widget_preview_today_sub" translatable="false">Today 5h 25m logged</string>
+    <string name="widget_preview_brand" translatable="false">elmtrackr</string>
 
     <!-- Notification channels -->
     <string name="notif_channel_active_shift">Active Shift</string>

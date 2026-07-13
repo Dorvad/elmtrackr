@@ -1,6 +1,7 @@
 package com.elmtrackr.app.widget
 
 import android.content.Context
+import androidx.glance.GlanceId
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
@@ -65,6 +66,29 @@ object ElmTrackrWidgetUpdater {
                     WidgetPreferences.writeFromShift(state)(it)
                 }
                 widget.update(context, glanceId)
+            }
+        }
+    }
+
+    /**
+     * Flip the in-flight flag on a single widget and re-render it immediately,
+     * so the tapped button shows a spinner while the punch executes.
+     */
+    suspend fun setActionInFlight(context: Context, glanceId: GlanceId, inFlight: Boolean) {
+        updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+            prefs.toMutablePreferences().apply {
+                this[WidgetPreferences.KEY_ACTION_IN_FLIGHT] = inFlight
+            }
+        }
+        rerender(context, glanceId)
+    }
+
+    private suspend fun rerender(context: Context, glanceId: GlanceId) {
+        val manager = GlanceAppWidgetManager(context)
+        for (widget in widgetTypes) {
+            if (manager.getGlanceIds(widget.javaClass).contains(glanceId)) {
+                widget.update(context, glanceId)
+                return
             }
         }
     }

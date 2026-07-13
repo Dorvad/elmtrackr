@@ -12,23 +12,33 @@ import kotlinx.coroutines.launch
 
 abstract class BaseElmTrackrWidgetReceiver : GlanceAppWidgetReceiver() {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
-        scope.launch {
-            runCatching { refreshWidgets(context) }
+        // goAsync keeps the process alive until the repaint lands; a plain
+        // fire-and-forget scope can be killed with the receiver, leaving a
+        // freshly added widget stuck on its placeholder state.
+        val pendingResult = goAsync()
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            try {
+                runCatching { refreshWidgets(context.applicationContext) }
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 
     private suspend fun refreshWidgets(context: Context) {
         val deps = AppEntryPoints.background(context)
-        val userId = deps.currentUserProvider().currentUserId() ?: return
-        val widgetContext = WidgetContextLoader.load(deps, userId)
+        val userId = deps.currentUserProvider().currentUserId()
+        val widgetContext = if (userId == null) {
+            WidgetContext(null, null, emptyList(), null, isSignedIn = false)
+        } else {
+            WidgetContextLoader.load(deps, userId)
+        }
         ElmTrackrWidgetUpdater.update(context, widgetContext)
     }
 }

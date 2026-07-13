@@ -14,12 +14,15 @@ data class BackupImportSummary(
     val importedShifts: Int = 0,
     val importedRefundClaims: Int = 0,
     val importedCompensationProfiles: Int = 0,
+    val importedPremiumProfiles: Int = 0,
+    val importedReceipts: Int = 0,
     val importedSettings: Int = 0,
     val skipped: Int = 0,
 ) {
     val importedTotal: Int
         get() = importedTasks + importedShifts + importedRefundClaims +
-            importedCompensationProfiles + importedSettings
+            importedCompensationProfiles + importedPremiumProfiles +
+            importedReceipts + importedSettings
 }
 
 class BackupImportException(message: String) : Exception(message)
@@ -46,6 +49,8 @@ object LocalBackupImporter {
         refundClaimDao: RefundClaimDao,
         settingsDao: SettingsDao,
         compensationProfileDao: CompensationProfileDao,
+        premiumProfileDao: com.elmtrackr.app.data.local.dao.PremiumProfileDao,
+        receiptDao: com.elmtrackr.app.data.local.dao.ReceiptDao,
     ): BackupImportSummary {
         val document = try {
             json.decodeFromString<LocalBackupDocument>(rawJson)
@@ -54,7 +59,7 @@ object LocalBackupImporter {
         } catch (e: IllegalArgumentException) {
             throw BackupImportException("This file is not an ElmTrackr backup.")
         }
-        if (document.formatVersion < BACKUP_FORMAT_VERSION) {
+        if (document.formatVersion < MIN_SUPPORTED_BACKUP_FORMAT_VERSION) {
             throw BackupImportException(
                 "This backup was created by an older app version and can't be imported.",
             )
@@ -72,6 +77,17 @@ object LocalBackupImporter {
             }
             compensationProfileDao.insert(row.toEntity(currentUserId).adopt(sameUser))
             importedProfiles++
+        }
+
+        var importedPremiumProfiles = 0
+        for (row in document.premiumProfiles) {
+            if (row.deletedAt != null) continue
+            if (premiumProfileDao.getByLocalId(row.localId) != null) {
+                skipped++
+                continue
+            }
+            premiumProfileDao.insert(row.toEntity(currentUserId).adopt(sameUser))
+            importedPremiumProfiles++
         }
 
         var importedTasks = 0
@@ -112,6 +128,19 @@ object LocalBackupImporter {
             importedClaims++
         }
 
+        var importedReceipts = 0
+        for (row in document.receipts) {
+            if (receiptDao.getById(row.id) != null) {
+                skipped++
+                continue
+            }
+            // Keep the receipt even when its claim didn't make it across — a
+            // dangling claim reference would violate the FK, so it's cleared.
+            val claimId = row.refundClaimId?.takeIf { refundClaimDao.getClaimById(it) != null }
+            receiptDao.insert(row.toEntity(currentUserId, claimId))
+            importedReceipts++
+        }
+
         var importedSettings = 0
         // user_settings has a unique userId index; never clobber existing settings.
         if (settingsDao.getSettings(currentUserId) == null) {
@@ -130,6 +159,8 @@ object LocalBackupImporter {
             importedShifts = importedShifts,
             importedRefundClaims = importedClaims,
             importedCompensationProfiles = importedProfiles,
+            importedPremiumProfiles = importedPremiumProfiles,
+            importedReceipts = importedReceipts,
             importedSettings = importedSettings,
             skipped = skipped,
         )
@@ -148,5 +179,8 @@ object LocalBackupImporter {
         if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
 
     private fun com.elmtrackr.app.data.local.entity.CompensationProfileEntity.adopt(sameUser: Boolean) =
+        if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
+
+    private fun com.elmtrackr.app.data.local.entity.PremiumProfileEntity.adopt(sameUser: Boolean) =
         if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
 }

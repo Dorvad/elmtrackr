@@ -57,7 +57,13 @@ object MonthlyReportBuilder {
         settings: UserSettings,
     ): MonthlyReport {
         val completed = shifts.filter { it.isCompleted }
-        val weeks = WeeklyBreakdownBuilder.groupByWeek(completed)
+        // Group in the work timezone — grouping in UTC while the per-shift
+        // breakdowns use the work zone bucketed evening shifts into the wrong
+        // week, shifting weekly-overtime minutes between weeks.
+        val weeks = WeeklyBreakdownBuilder.groupByWeek(
+            completed,
+            zoneOverride = com.elmtrackr.app.domain.time.WorkTimezone.zoneFor(settings),
+        )
         val breakdownMap = completed.associateWith { buildShiftBreakdown(it, settings) }
         val breakdownList = completed.map { breakdownMap.getValue(it) }
 

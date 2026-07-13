@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.R
@@ -138,7 +139,7 @@ private fun MonthNavRow(
         IconButton(
             onClick = onPrevious,
             modifier = Modifier
-                .size(40.dp)
+                .size(48.dp)
                 .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
         ) {
             Icon(Icons.Filled.ChevronLeft, stringResource(R.string.shifts_previous_month), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.mirrorInRtl())
@@ -148,12 +149,14 @@ private fun MonthNavRow(
             modifier = Modifier.padding(horizontal = Spacing.md),
             fontWeight = FontWeight.SemiBold,
             style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         IconButton(
             onClick = onNext,
             enabled = canGoNext,
             modifier = Modifier
-                .size(40.dp)
+                .size(48.dp)
                 .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
         ) {
             Icon(

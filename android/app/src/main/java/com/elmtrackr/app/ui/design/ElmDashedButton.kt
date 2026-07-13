@@ -18,17 +18,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.elmtrackr.app.ui.theme.AuroraHair
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import com.elmtrackr.app.ui.theme.CornerRadius
 
 /**
  * Dashed-outline CTA matching web `Add shift manually` links
- * (border: 1.5px dashed var(--au-hair), semi-transparent white fill).
+ * (1.5dp hairline border, semi-transparent surface fill — theme-aware so the
+ * outline and fill stay legible in both light and dark mode).
  */
 @Composable
 fun ElmDashedButton(
@@ -44,8 +43,8 @@ fun ElmDashedButton(
             .clip(shape)
             .auroraPressScale(interactionSource)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .border(1.5.dp, AuroraHair, shape)
-            .background(Color.White.copy(alpha = 0.5f), shape)
+            .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), shape)
             .padding(vertical = 16.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,

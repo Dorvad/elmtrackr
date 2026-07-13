@@ -6,6 +6,9 @@
     <string name="dashboard_notif_rationale_continue">Continue</string>
     <string name="dashboard_notif_rationale_not_now">Not now</string>
 
+    <!-- Load-failure fallback -->
+    <string name="dashboard_error_message">Something went wrong: %1$s</string>
+
     <!-- Header -->
     <string name="dashboard_greeting_morning">Good morning</string>
     <string name="dashboard_greeting_afternoon">Good afternoon</string>
@@ -54,6 +57,8 @@
     <string name="dashboard_clock_time_flowing">TIME FLOWING</string>
     <string name="dashboard_clock_in_orbit">IN ORBIT</string>
     <string name="dashboard_clock_tide_rising">TIDE RISING</string>
+    <string name="dashboard_clock_growing">GROWING</string>
+    <string name="dashboard_clock_ready_to_grow">READY TO GROW</string>
 
     <!-- Month summary -->
     <string name="dashboard_month_summary_title">%1$s Summary</string>

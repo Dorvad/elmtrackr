@@ -17,6 +17,13 @@ object WearDisplayMath {
         }
     }
 
+    /** Hours:minutes count-up (e.g. "2:34") for surfaces that refresh once a minute. */
+    fun elapsedHm(startEpochMillis: Long, nowMillis: Long = System.currentTimeMillis()): String {
+        if (startEpochMillis <= 0L) return "0:00"
+        val totalMinutes = ((nowMillis - startEpochMillis) / 60_000L).coerceAtLeast(0)
+        return String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60)
+    }
+
     fun minutesToHms(totalMinutes: Int): String {
         val minutes = totalMinutes.coerceAtLeast(0)
         val hours = minutes / 60

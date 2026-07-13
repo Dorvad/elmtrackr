@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="in_app_update_ready_message">גרסה חדשה של ElmTrackr מוכנה.</string>
+    <string name="in_app_update_restart">הפעלה מחדש</string>
+    <string name="in_app_update_play_store_message">גרסה חדשה יותר של ElmTrackr זמינה ב-Google Play.</string>
+    <string name="in_app_update_open_play_store">עדכון</string>
+</resources>

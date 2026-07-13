@@ -83,6 +83,7 @@
     <string name="settings_face_blocks">בלוקים שעה־שעה</string>
     <string name="settings_face_orbit">לוויין במסלול</string>
     <string name="settings_face_tide">הגאות של היום שלך</string>
+    <string name="settings_face_sprout">צמח שגדל בכל שעה — פריחה מלאה בשעה השמינית</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">בלי שכר שעתי</string>
@@ -166,7 +167,25 @@
     <string name="settings_insights_analytics">תובנות וניתוחים</string>
     <string name="settings_insights_analytics_desc">סיכומים חכמים, מגמות שבועיות וטיפים יומיים</string>
     <string name="settings_overtime_reminders">תזכורות שעות נוספות</string>
-    <string name="settings_overtime_reminders_desc">התראה 30 דקות לפני שעות נוספות, וכל שעה במהלכן</string>
+    <string name="settings_overtime_reminders_desc">תזכורות יציאה במהלך המשמרת, לפי לוח זמנים שבונים כאן למטה</string>
+    <string name="settings_reminder_schedule_title">לוח תזכורות</string>
+    <string name="settings_remind_me">להזכיר לי</string>
+    <string name="settings_rule_and">וגם</string>
+    <string name="settings_rule_add_and">+ וגם</string>
+    <string name="settings_rule_before_overtime">לפני שעות נוספות</string>
+    <string name="settings_rule_after_overtime">אחרי תחילת שעות נוספות</string>
+    <string name="settings_rule_at_specific_time">בשעה מסוימת</string>
+    <string name="settings_rule_minutes_short">%1$d דק׳</string>
+    <string name="settings_rule_one_hour">שעה</string>
+    <string name="settings_rule_when_it_starts">כשהן מתחילות</string>
+    <string name="settings_rule_every_minutes">כל %1$d דק׳</string>
+    <string name="settings_rule_every_hour">כל שעה</string>
+    <string name="settings_rule_every_n_hours">כל %1$d שעות</string>
+    <string name="settings_rule_remove">הסרת תזכורת</string>
+    <string name="settings_rule_pick_time">בחירת שעת תזכורת</string>
+    <string name="settings_rule_time_ok">אישור</string>
+    <string name="settings_rule_time_cancel">ביטול</string>
+    <string name="settings_reminder_schedule_footer">התזכורות נשלחות רק בזמן משמרת פעילה, ונשמרות במכשיר הזה בלבד.</string>
     <string name="settings_features_footer">עיצובי השעון עברו למראה ושעון. כיבוי פיצ׳ר מסתיר את הטאבים והכרטיסים שלו בכל האפליקציה.</string>
 
     <!-- Help & about -->

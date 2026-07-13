@@ -34,6 +34,7 @@ object WidgetStateMapper {
                 shiftStartEpochMillis = shift.startTime.toEpochMilli(),
                 todayMinutes = todayMinutes,
                 dailyGoalMinutes = dailyGoal,
+                isSignedIn = context.isSignedIn,
             )
         }
 
@@ -49,6 +50,7 @@ object WidgetStateMapper {
                 lastPunchEndEpochMillis = lastEnd.toEpochMilli(),
                 todayMinutes = todayMinutes,
                 dailyGoalMinutes = dailyGoal,
+                isSignedIn = context.isSignedIn,
             )
         } else {
             WidgetShiftState(
@@ -60,6 +62,7 @@ object WidgetStateMapper {
                 pendingCount = context.pendingCount,
                 todayMinutes = todayMinutes,
                 dailyGoalMinutes = dailyGoal,
+                isSignedIn = context.isSignedIn,
             )
         }
     }

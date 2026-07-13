@@ -25,6 +25,10 @@ data class UserSettings(
     val onboardingCompleted: Boolean = false,
     val onboardingCompletedAt: Instant? = null,
     val featuresTravelRefunds: Boolean = false,
+    // Reserved / not yet implemented. Persisted and synced for wire
+    // compatibility, but there is deliberately no settings switch and no
+    // consumer — it stays false until the paid-projects feature ships. Do not
+    // surface it in the UI until then.
     val featuresPaidProjects: Boolean = false,
     val featuresInsights: Boolean = true,
     val featuresClockStyles: Boolean = true,

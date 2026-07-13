@@ -1,8 +1,11 @@
 package com.elmtrackr.app.di
 
 import com.elmtrackr.app.data.receipt.MLKitReceiptTextRecognizer
+import com.elmtrackr.app.data.receipt.TesseractHebrewTextRecognizer
 import com.elmtrackr.app.data.repository.LocalReceiptsRepository
 import com.elmtrackr.app.domain.receipt.DefaultReceiptScanPipeline
+import com.elmtrackr.app.domain.receipt.HebrewOcr
+import com.elmtrackr.app.domain.receipt.LatinOcr
 import com.elmtrackr.app.domain.receipt.ReceiptScanPipeline
 import com.elmtrackr.app.domain.receipt.ReceiptTextRecognizer
 import com.elmtrackr.app.domain.repository.ReceiptsRepository
@@ -22,7 +25,13 @@ abstract class ReceiptModule {
 
     @Binds
     @Singleton
-    abstract fun bindReceiptTextRecognizer(impl: MLKitReceiptTextRecognizer): ReceiptTextRecognizer
+    @LatinOcr
+    abstract fun bindLatinReceiptTextRecognizer(impl: MLKitReceiptTextRecognizer): ReceiptTextRecognizer
+
+    @Binds
+    @Singleton
+    @HebrewOcr
+    abstract fun bindHebrewReceiptTextRecognizer(impl: TesseractHebrewTextRecognizer): ReceiptTextRecognizer
 
     @Binds
     @Singleton

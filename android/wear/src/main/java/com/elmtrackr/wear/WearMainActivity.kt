@@ -13,10 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.elmtrackr.wear.ui.ConfirmationOverlay
+import com.elmtrackr.wear.ui.CountdownOverlay
 import com.elmtrackr.wear.ui.IdleScreen
 import com.elmtrackr.wear.ui.RunningScreen
 import com.elmtrackr.wear.ui.SetupScreen
+import com.elmtrackr.wear.ui.WearAuroraBackground
 import com.elmtrackr.wear.ui.WearAuroraTheme
+import com.elmtrackr.wear.ui.WearLabels
 
 class WearMainActivity : ComponentActivity() {
 
@@ -34,31 +37,41 @@ class WearMainActivity : ComponentActivity() {
         setContent {
             WearAuroraTheme {
                 val display by viewModel.displayState.collectAsState()
-                val confirmation by viewModel.confirmationMessage.collectAsState()
+                val confirmation by viewModel.confirmation.collectAsState()
+                val countdown by viewModel.punchCountdown.collectAsState()
                 val isLoading by viewModel.isPunchInProgress.collectAsState()
-                val systemTime by viewModel.systemTimeLabel.collectAsState()
                 val snapshot = display.snapshot
 
                 Box(modifier = Modifier.fillMaxSize()) {
-                    if (confirmation != null) {
-                        BackHandler { viewModel.dismissConfirmation() }
+                    WearAuroraBackground()
+                    if (confirmation != null || countdown != null) {
+                        BackHandler {
+                            viewModel.cancelCountdown()
+                            viewModel.dismissConfirmation()
+                        }
                     }
                     when {
                         confirmation != null -> ConfirmationOverlay(confirmation!!)
                         !snapshot.signedIn -> SetupScreen(onRefresh = viewModel::refresh)
                         snapshot.isActive -> RunningScreen(
                             elapsed = display.elapsedHms,
-                            sinceLabel = snapshot.startTimeLabel,
                             progressPercent = display.progressPercent,
-                            onPunchOut = viewModel::punchOut,
+                            onPunchOut = viewModel::requestPunchOut,
                             isLoading = isLoading,
                         )
                         else -> IdleScreen(
-                            systemTime = systemTime,
-                            lastPunchLabel = snapshot.lastPunchLabel.ifBlank { snapshot.startTimeLabel },
+                            lastPunchLabel = WearLabels.lastPunch(this@WearMainActivity, snapshot).ifBlank {
+                                snapshot.startTimeLabel.takeIf { it != "--:--" }.orEmpty()
+                            },
                             todayShort = display.todayShort,
-                            onPunchIn = viewModel::punchIn,
+                            onPunchIn = viewModel::requestPunchIn,
                             isLoading = isLoading,
+                        )
+                    }
+                    countdown?.let { active ->
+                        CountdownOverlay(
+                            countdown = active,
+                            onCancel = viewModel::cancelCountdown,
                         )
                     }
                 }

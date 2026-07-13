@@ -4,7 +4,7 @@ import com.elmtrackr.app.domain.model.ClockStyle
 
 enum class SupportedClockStyle {
     CLASSIC, MINIMAL, FOCUS, BOLD, NIGHT, RETRO, AURORA, PULSE, DIAL, STRAND, PRISM,
-    SAND, BLOCKS, ORBIT, TIDE,
+    SAND, BLOCKS, ORBIT, TIDE, SPROUT,
 }
 
 fun ClockStyle.toSupportedOrDefault(): SupportedClockStyle = when (this) {
@@ -23,4 +23,5 @@ fun ClockStyle.toSupportedOrDefault(): SupportedClockStyle = when (this) {
     ClockStyle.BLOCKS  -> SupportedClockStyle.BLOCKS
     ClockStyle.ORBIT   -> SupportedClockStyle.ORBIT
     ClockStyle.TIDE    -> SupportedClockStyle.TIDE
+    ClockStyle.SPROUT  -> SupportedClockStyle.SPROUT
 }

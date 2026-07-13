@@ -14,9 +14,9 @@ data class LegalSection(
 )
 
 object LegalDocuments {
-    const val CONTACT_EMAIL = "support@elmtrackr.app"
+    const val CONTACT_EMAIL = "support@elmtrackr.site"
     const val LAST_UPDATED = "June 26, 2025"
-    const val PRIVACY_POLICY_URL = "https://www.dorsfolio.online/elmtrackr-privacy.html"
+    const val PRIVACY_POLICY_URL = "https://elmtrackr.site/privacy"
 
     val termsOfService: List<LegalSection> = listOf(
         LegalSection(R.string.legal_acceptance_title, R.string.legal_acceptance_body),
