@@ -32,6 +32,11 @@ fun InAppUpdateHost(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val restartMessage = stringResource(R.string.in_app_update_ready_message)
+    val restartActionLabel = stringResource(R.string.in_app_update_restart)
+    val playStoreMessage = stringResource(R.string.in_app_update_play_store_message)
+    val playStoreActionLabel = stringResource(R.string.in_app_update_open_play_store)
+
     Box(modifier = Modifier.fillMaxSize()) {
         content()
         SnackbarHost(
@@ -48,8 +53,8 @@ fun InAppUpdateHost(
             null -> Unit
             InAppUpdatePrompt.RestartReady -> {
                 val result = snackbarHostState.showSnackbar(
-                    message = stringResource(R.string.in_app_update_ready_message),
-                    actionLabel = stringResource(R.string.in_app_update_restart),
+                    message = restartMessage,
+                    actionLabel = restartActionLabel,
                     withDismissAction = true,
                     duration = SnackbarDuration.Indefinite,
                 )
@@ -60,8 +65,8 @@ fun InAppUpdateHost(
             }
             InAppUpdatePrompt.PlayStore -> {
                 val result = snackbarHostState.showSnackbar(
-                    message = stringResource(R.string.in_app_update_play_store_message),
-                    actionLabel = stringResource(R.string.in_app_update_open_play_store),
+                    message = playStoreMessage,
+                    actionLabel = playStoreActionLabel,
                     withDismissAction = true,
                     duration = SnackbarDuration.Long,
                 )
