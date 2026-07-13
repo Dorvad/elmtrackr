@@ -3,11 +3,7 @@ package com.elmtrackr.wear.ui
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -29,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,8 +46,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
@@ -58,164 +57,176 @@ import com.elmtrackr.wear.PunchCountdown
 import com.elmtrackr.wear.R
 import com.elmtrackr.wear.sync.WearConfirmation
 
+/**
+ * Face scaffold shared by every screen: wordmark pinned to the top, content
+ * centered on the vertical axis — the symmetric composition from the mockup.
+ */
 @Composable
-fun SetupScreen(onRefresh: () -> Unit) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Column(
+private fun WearFace(
+    onTap: (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .let { base ->
+                if (onTap != null) {
+                    base.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onTap,
+                    )
+                } else {
+                    base
+                }
+            },
     ) {
-        WearAppLogo(size = 36.dp)
-        Text(
-            text = stringResource(R.string.setup_title),
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 10.dp),
-        )
-        Text(
-            text = stringResource(R.string.setup_body),
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
-            color = AuroraOnSurface.copy(alpha = 0.75f),
-            modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
-        )
-        Button(
-            onClick = onRefresh,
-            modifier = Modifier.wearPressScale(interactionSource),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 10.dp),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Text(stringResource(R.string.wear_refresh))
+            WearBrandLabel()
+        }
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            content()
         }
     }
 }
 
 @Composable
+private fun StatusDotRow(label: String, dotColor: androidx.compose.ui.graphics.Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(dotColor),
+        )
+        Spacer(Modifier.width(5.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.5.sp),
+            fontWeight = FontWeight.Bold,
+            color = AuroraOnSurface.copy(alpha = 0.85f),
+        )
+    }
+}
+
+@Composable
+fun SetupScreen(onRefresh: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    WearFace {
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            WearAppLogo(size = 34.dp)
+            Text(
+                text = stringResource(R.string.setup_title),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            Text(
+                text = stringResource(R.string.setup_body),
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                color = AuroraOnSurface.copy(alpha = 0.75f),
+                modifier = Modifier.padding(top = 5.dp, bottom = 12.dp),
+            )
+            Button(
+                onClick = onRefresh,
+                modifier = Modifier.wearPressScale(interactionSource),
+            ) {
+                Text(stringResource(R.string.wear_refresh))
+            }
+        }
+    }
+}
+
+/** Clocked out: bolt button, PUNCH IN, status, last-punch detail — one tap anywhere punches in. */
+@Composable
 fun IdleScreen(
-    systemTime: String,
     lastPunchLabel: String,
     todayShort: String,
     onPunchIn: () -> Unit,
     isLoading: Boolean,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    val detail = listOfNotNull(
+        lastPunchLabel.ifBlank { null },
+        todayShort.ifBlank { null }?.let { stringResource(R.string.wear_today, it) },
+    ).joinToString(" · ")
+
+    WearFace(onTap = onPunchIn.takeIf { !isLoading }) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            WearAppLogo(size = 26.dp)
-            WearAnimatedTimeLabel(
-                value = systemTime,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            WearBoltButton(size = 60.dp, isLoading = isLoading)
+            Spacer(Modifier.height(10.dp))
             Text(
-                text = stringResource(R.string.idle_last_punch),
-                style = MaterialTheme.typography.labelSmall,
-                color = AuroraOnSurface.copy(alpha = 0.7f),
+                text = stringResource(R.string.punch_in).uppercase(),
+                style = MaterialTheme.typography.titleMedium.copy(letterSpacing = 1.sp),
+                fontWeight = FontWeight.Bold,
+                color = AuroraOnSurface,
             )
-            WearAnimatedTimeLabel(
-                value = lastPunchLabel.ifBlank { "--:--" },
-                style = MaterialTheme.typography.displaySmall,
+            Spacer(Modifier.height(6.dp))
+            StatusDotRow(
+                label = stringResource(R.string.wear_clocked_out),
+                dotColor = AuroraOnSurface.copy(alpha = 0.55f),
             )
-            if (todayShort.isNotBlank()) {
+            if (detail.isNotBlank()) {
                 Text(
-                    text = stringResource(R.string.wear_today, todayShort),
+                    text = detail,
                     style = MaterialTheme.typography.bodySmall,
-                    color = AuroraAqua,
-                    modifier = Modifier.padding(top = 4.dp),
+                    color = AuroraOnSurface.copy(alpha = 0.65f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    modifier = Modifier.padding(top = 4.dp, start = 16.dp, end = 16.dp),
                 )
             }
         }
-        AuroraPunchButton(
-            label = stringResource(R.string.punch_in),
-            onClick = onPunchIn,
-            isLoading = isLoading,
-            gradient = listOf(AuroraIndigo, AuroraAqua),
-            diameter = 68.dp,
-        )
     }
 }
 
+/** Clocked in: goal ring around a live count-up — one tap anywhere stops. */
 @Composable
 fun RunningScreen(
     elapsed: String,
-    sinceLabel: String,
     progressPercent: Int,
     onPunchOut: () -> Unit,
     isLoading: Boolean,
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    WearFace(onTap = onPunchOut.takeIf { !isLoading }) {
         AuroraProgressRing(progressPercent = progressPercent)
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                LiveDot()
-                Text(
-                    text = stringResource(R.string.running_since, sinceLabel),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AuroraOnSurface.copy(alpha = 0.8f),
-                    modifier = Modifier.padding(start = 6.dp),
-                )
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                WearAnimatedTimeLabel(elapsed, style = MaterialTheme.typography.displayLarge)
-                Text(
-                    text = stringResource(R.string.wear_percent_of_day, progressPercent),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AuroraAqua,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-            AuroraPunchButton(
-                label = stringResource(R.string.punch_out),
-                onClick = onPunchOut,
-                isLoading = isLoading,
-                gradient = listOf(AuroraPlum, AuroraIndigo),
-                diameter = 64.dp,
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            StatusDotRow(
+                label = stringResource(R.string.wear_on_shift),
+                dotColor = AuroraGreen,
             )
+            Spacer(Modifier.height(2.dp))
+            WearAnimatedTimeLabel(
+                value = elapsed.ifBlank { "0:00" },
+                style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+            )
+            Spacer(Modifier.height(2.dp))
+            if (isLoading) {
+                androidx.wear.compose.material3.CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.wear_tap_to_stop),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AuroraOnSurface.copy(alpha = 0.7f),
+                )
+            }
         }
     }
 }
 
-/** Pulsing "recording" dot shown while a shift is running. */
-@Composable
-private fun LiveDot() {
-    val motion = wearMotionEnabled()
-    val transition = rememberInfiniteTransition(label = "wear-live-dot")
-    val pulse by transition.animateFloat(
-        initialValue = 0.5f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "wear-live-dot-pulse",
-    )
-    val alpha = if (motion) pulse else 1f
-    Box(
-        modifier = Modifier
-            .size(7.dp)
-            .graphicsLayer { this.alpha = alpha }
-            .clip(CircleShape)
-            .background(AuroraAqua),
-    )
-}
-
 /**
- * Full-screen 3-2-1 countdown before a punch is sent: a draining gradient
- * ring, a haptic tick per second, and a tap anywhere to cancel.
+ * Full-screen 3-2-1 countdown before a punch is sent: a draining ring, a
+ * haptic tick per second, and a tap anywhere to cancel.
  */
 @Composable
 fun CountdownOverlay(
@@ -254,7 +265,7 @@ fun CountdownOverlay(
             val inset = stroke / 2f + 10.dp.toPx()
             val arcSize = Size(size.width - inset * 2f, size.height - inset * 2f)
             drawArc(
-                color = AuroraInk.copy(alpha = 0.3f),
+                color = AuroraOnSurface.copy(alpha = 0.2f),
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -263,12 +274,7 @@ fun CountdownOverlay(
                 style = Stroke(width = stroke, cap = StrokeCap.Round),
             )
             drawArc(
-                brush = Brush.sweepGradient(
-                    0f to AuroraAqua,
-                    0.5f to AuroraIndigo,
-                    1f to AuroraPlum,
-                    center = Offset(size.width / 2f, size.height / 2f),
-                ),
+                color = AuroraOnSurface,
                 startAngle = -90f,
                 sweepAngle = 360f * ring.value.coerceIn(0f, 1f),
                 useCenter = false,

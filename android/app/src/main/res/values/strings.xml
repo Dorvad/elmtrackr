@@ -33,7 +33,7 @@
     <string name="notif_overtime_at_threshold_title">You\'re in overtime</string>
     <string name="notif_overtime_at_threshold_text">Clocked in since %1$s. Consider clocking out now.</string>
     <string name="notif_overtime_hourly_title">Still clocked in during overtime</string>
-    <string name="notif_overtime_hourly_text">You\'ve been in overtime for %1$d hour(s). Don\'t forget to clock out.</string>
+    <string name="notif_overtime_hourly_text">You\'ve been in overtime for %1$s. Don\'t forget to clock out.</string>
 
     <!-- Legacy reminder strings (kept for screenshot/regression compatibility) -->
     <string name="notif_reminder_title">You\'re still clocked in</string>

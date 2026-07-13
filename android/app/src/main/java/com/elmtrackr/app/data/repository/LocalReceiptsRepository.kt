@@ -53,7 +53,7 @@ class LocalReceiptsRepository @Inject constructor(
     override suspend fun deleteByRefundClaimId(refundClaimId: String): Boolean {
         val receipt = receiptDao.getByRefundClaimId(refundClaimId) ?: return false
         receiptDao.deleteById(receipt.id)
-        return runCatching { receiptImageStore.delete(receipt.localImageUri) }.isFailure
+        return !receiptImageStore.delete(receipt.localImageUri)
     }
 
     override suspend fun deleteAllForUser(userId: String) {

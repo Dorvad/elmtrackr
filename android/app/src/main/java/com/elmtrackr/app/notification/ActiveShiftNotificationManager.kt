@@ -96,12 +96,12 @@ class ActiveShiftNotificationManager(private val context: Context) {
         )
     }
 
-    fun showOvertimeHourlyReminder(shift: Shift, hoursInOvertime: Long) {
+    fun showOvertimeHourlyReminder(shift: Shift, durationLabel: String) {
         showReminderNotification(
             titleRes = R.string.notif_overtime_hourly_title,
             textRes = R.string.notif_overtime_hourly_text,
             shift = shift,
-            textArg = hoursInOvertime,
+            textArg = durationLabel,
         )
     }
 

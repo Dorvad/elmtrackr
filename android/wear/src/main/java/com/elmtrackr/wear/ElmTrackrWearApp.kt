@@ -1,6 +1,8 @@
 package com.elmtrackr.wear
 
 import android.app.Application
+import android.os.VibrationEffect
+import android.os.Vibrator
 import com.elmtrackr.wear.sync.WearActionClient
 import com.elmtrackr.wear.sync.WearStateRepository
 import kotlinx.coroutines.CoroutineScope
@@ -25,5 +27,32 @@ class ElmTrackrWearApp : Application() {
         applicationScope.launch {
             wearStateRepository.bootstrap()
         }
+    }
+
+    /**
+     * Tile punches run here because the NoDisplay trampoline activity must
+     * finish immediately. Feedback is a system haptic (the tile has no UI of
+     * its own); the confirmation overlay still appears if the app is open.
+     */
+    fun punchFromTile(isPunchIn: Boolean) {
+        applicationScope.launch {
+            val result = if (isPunchIn) wearActionClient.punchIn() else wearActionClient.punchOut()
+            vibrate(success = result.success)
+            if (result.success) {
+                wearStateRepository.showConfirmation(
+                    getString(if (isPunchIn) R.string.confirmed_in else R.string.confirmed_out),
+                )
+            }
+        }
+    }
+
+    private fun vibrate(success: Boolean) {
+        val vibrator = getSystemService(Vibrator::class.java) ?: return
+        val effect = if (success) {
+            VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
+        } else {
+            VibrationEffect.createPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK)
+        }
+        runCatching { vibrator.vibrate(effect) }
     }
 }

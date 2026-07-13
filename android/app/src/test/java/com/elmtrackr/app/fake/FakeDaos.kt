@@ -565,3 +565,129 @@ class FakeTaskDao : com.elmtrackr.app.data.local.dao.TaskDao {
         refresh()
     }
 }
+
+// ---- FakePremiumProfileDao ----
+
+class FakePremiumProfileDao : com.elmtrackr.app.data.local.dao.PremiumProfileDao {
+    private val store = mutableMapOf<String, com.elmtrackr.app.data.local.entity.PremiumProfileEntity>()
+    private val _flow = MutableStateFlow<List<com.elmtrackr.app.data.local.entity.PremiumProfileEntity>>(emptyList())
+
+    private fun refresh() { _flow.value = store.values.toList() }
+
+    override fun observeProfiles(userId: String): Flow<List<com.elmtrackr.app.data.local.entity.PremiumProfileEntity>> =
+        _flow.map { it.filter { e -> e.userId == userId && !e.isArchived && e.deletedAt == null } }
+
+    override suspend fun getByUser(userId: String): List<com.elmtrackr.app.data.local.entity.PremiumProfileEntity> =
+        store.values.filter { it.userId == userId && !it.isArchived && it.deletedAt == null }
+
+    override suspend fun getByLocalId(localId: String): com.elmtrackr.app.data.local.entity.PremiumProfileEntity? =
+        store[localId]
+
+    override suspend fun getById(userId: String, localId: String): com.elmtrackr.app.data.local.entity.PremiumProfileEntity? =
+        store[localId]?.takeIf { it.userId == userId }
+
+    override suspend fun getByRemoteId(remoteId: String): com.elmtrackr.app.data.local.entity.PremiumProfileEntity? =
+        store.values.firstOrNull { it.remoteId == remoteId }
+
+    override suspend fun getPendingSyncProfiles(userId: String): List<com.elmtrackr.app.data.local.entity.PremiumProfileEntity> =
+        store.values.filter {
+            it.userId == userId && it.syncStatus in listOf(
+                SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED,
+            )
+        }
+
+    override suspend fun hasPendingSyncProfiles(userId: String): Boolean =
+        getPendingSyncProfiles(userId).isNotEmpty()
+
+    override fun observePendingSyncProfiles(userId: String): Flow<List<com.elmtrackr.app.data.local.entity.PremiumProfileEntity>> =
+        _flow.map {
+            it.filter { e ->
+                e.userId == userId && e.syncStatus in listOf(
+                    SyncStatus.PENDING_CREATE, SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE, SyncStatus.FAILED,
+                )
+            }
+        }
+
+    override suspend fun getAllProfilesForUser(userId: String): List<com.elmtrackr.app.data.local.entity.PremiumProfileEntity> =
+        store.values.filter { it.userId == userId && it.deletedAt == null }
+
+    override suspend fun upsert(profile: com.elmtrackr.app.data.local.entity.PremiumProfileEntity) = insert(profile)
+
+    override suspend fun insert(profile: com.elmtrackr.app.data.local.entity.PremiumProfileEntity) {
+        store[profile.localId] = profile
+        refresh()
+    }
+
+    override suspend fun updateSyncState(
+        localId: String,
+        status: SyncStatus,
+        remoteId: String?,
+        syncedAt: Long?,
+        error: String?,
+    ) {
+        store[localId]?.let {
+            store[localId] = it.copy(syncStatus = status, remoteId = remoteId, lastSyncedAt = syncedAt, lastSyncError = error)
+        }
+        refresh()
+    }
+
+    override suspend fun clearDefaultForUser(userId: String) {
+        store.replaceAll { _, value -> if (value.userId == userId) value.copy(isDefault = false) else value }
+        refresh()
+    }
+
+    override suspend fun deleteAllForUser(userId: String) {
+        store.entries.removeIf { it.value.userId == userId }
+        refresh()
+    }
+
+    override suspend fun adoptLegacyUser(userId: String) {
+        store.replaceAll { _, value -> if (value.userId == "local-user") value.copy(userId = userId) else value }
+        refresh()
+    }
+}
+
+// ---- FakeReceiptDao ----
+
+class FakeReceiptDao : com.elmtrackr.app.data.local.dao.ReceiptDao {
+    private val store = mutableMapOf<String, com.elmtrackr.app.data.local.entity.ReceiptEntity>()
+    private val _flow = MutableStateFlow<List<com.elmtrackr.app.data.local.entity.ReceiptEntity>>(emptyList())
+
+    private fun refresh() { _flow.value = store.values.toList() }
+
+    override suspend fun getById(id: String): com.elmtrackr.app.data.local.entity.ReceiptEntity? = store[id]
+
+    override suspend fun getByRefundClaimId(refundClaimId: String): com.elmtrackr.app.data.local.entity.ReceiptEntity? =
+        store.values.firstOrNull { it.refundClaimId == refundClaimId }
+
+    override fun observeByRefundClaimId(refundClaimId: String): Flow<com.elmtrackr.app.data.local.entity.ReceiptEntity?> =
+        _flow.map { it.firstOrNull { e -> e.refundClaimId == refundClaimId } }
+
+    override suspend fun insert(receipt: com.elmtrackr.app.data.local.entity.ReceiptEntity) {
+        store[receipt.id] = receipt
+        refresh()
+    }
+
+    override suspend fun update(receipt: com.elmtrackr.app.data.local.entity.ReceiptEntity) {
+        store[receipt.id] = receipt
+        refresh()
+    }
+
+    override suspend fun linkToClaim(id: String, refundClaimId: String?, updatedAt: Long) {
+        store[id]?.let { store[id] = it.copy(refundClaimId = refundClaimId, updatedAt = updatedAt) }
+        refresh()
+    }
+
+    override suspend fun getAllForUser(userId: String): List<com.elmtrackr.app.data.local.entity.ReceiptEntity> =
+        store.values.filter { it.userId == userId }
+
+    override suspend fun deleteAllForUser(userId: String) {
+        store.entries.removeIf { it.value.userId == userId }
+        refresh()
+    }
+
+    override suspend fun deleteById(id: String) {
+        store.remove(id)
+        refresh()
+    }
+}

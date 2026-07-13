@@ -106,6 +106,13 @@ object OvertimeReminderPolicy {
         }
     }
 
+    /** Whole minutes spent past the overtime threshold (0 when not yet in overtime). */
+    fun overtimeMinutesElapsed(
+        thresholdMinutes: Int,
+        startTime: Instant,
+        now: Instant = Instant.now(),
+    ): Long = (elapsedMinutes(startTime, now) - thresholdMinutes).coerceAtLeast(0)
+
     fun overtimeHoursElapsed(
         thresholdMinutes: Int,
         startTime: Instant,

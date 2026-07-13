@@ -113,10 +113,34 @@ internal fun widgetSecondaryBottom(state: WidgetPreferences.DisplayState): Strin
     val context = widgetContext()
     return when {
         state.isActive -> context.getString(R.string.widget_since, state.startTimeLabel)
+        !state.isSignedIn -> context.getString(R.string.widget_signed_out_hint)
+        state.lastPunchEndEpochMillis > 0L ->
+            lastPunchShortLabel(context, state.lastPunchEndEpochMillis)
         state.lastPunchLabel.isNotBlank() ->
             state.lastPunchLabel.removePrefix("Last out \u2022 ").removePrefix("Since ")
         state.todayMinutes > 0 -> context.getString(R.string.widget_today_short, state.todayShort)
         else -> context.getString(R.string.widget_tap_to_start)
+    }
+}
+
+/**
+ * Localized "Today 08:57" / "Yesterday 08:57" / "Wed 25 Jun 08:57" built at
+ * render time from the punch timestamp, so the day word follows the in-app
+ * language and rolls over at midnight without waiting for a state refresh.
+ */
+private fun lastPunchShortLabel(context: Context, endEpochMillis: Long): String {
+    val zone = java.time.ZoneId.systemDefault()
+    val end = java.time.Instant.ofEpochMilli(endEpochMillis).atZone(zone)
+    val today = java.time.LocalDate.now(zone)
+    val locale = context.resources.configuration.locales[0] ?: java.util.Locale.getDefault()
+    val time = end.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm", locale))
+    return when (end.toLocalDate()) {
+        today -> context.getString(R.string.widget_today_short, time)
+        today.minusDays(1) -> context.getString(R.string.widget_yesterday_short, time)
+        else -> {
+            val day = end.format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", locale))
+            "$day $time"
+        }
     }
 }
 
@@ -154,12 +178,14 @@ internal fun widgetClockInLabel(): String = widgetContext().getString(R.string.w
 internal fun widgetClockOutLabel(): String = widgetContext().getString(R.string.widget_clock_out)
 
 internal fun primaryActionClick(state: WidgetPreferences.DisplayState): Action =
-    if (state.isActive) {
-        actionRunCallback<ClockOutWidgetAction>(
+    when {
+        // Punching requires a signed-in user; route the tap into the app so it
+        // lands on the sign-in screen instead of doing nothing.
+        !state.isSignedIn -> openAppClick()
+        state.isActive -> actionRunCallback<ClockOutWidgetAction>(
             actionParametersOf(ClockOutWidgetAction.SHIFT_ID_KEY to state.shiftId),
         )
-    } else {
-        actionRunCallback<ClockInWidgetAction>()
+        else -> actionRunCallback<ClockInWidgetAction>()
     }
 
 internal fun openAppClick(): Action = actionStartActivity<MainActivity>()

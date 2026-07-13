@@ -387,4 +387,47 @@ class ReportsViewModelTest {
         advanceUntilIdle()
         assertEquals(before, vm.selectedYearMonth.value)
     }
+
+    @Test
+    fun `csv totals row matches the on-screen weekly-overtime report`() {
+        val vm = buildVm()
+        val settings = UserSettings(
+            id = "s", userId = "u1",
+            dailyOvertimeThresholdMinutes = 480,
+            weeklyOvertimeThresholdMinutes = 2400,
+            weekendDays = listOf(5, 6),
+        )
+        // Weekday shifts inside the days 8–14 bucket (Fri 12 / Sat 13 avoided):
+        // no shift exceeds the daily threshold, but the week totals
+        // 2640 > 2400 — 4h of weekly overtime that per-shift rows miss.
+        val shifts = (8..11).map { day ->
+            Shift(
+                id = "d$day", userId = "u1",
+                startTime = Instant.parse("2024-01-%02dT09:00:00Z".format(day)),
+                endTime = Instant.parse("2024-01-%02dT17:00:00Z".format(day)),
+                breakMinutes = 0,
+            )
+        } + listOf(
+            Shift(
+                id = "d14a", userId = "u1",
+                startTime = Instant.parse("2024-01-14T09:00:00Z"),
+                endTime = Instant.parse("2024-01-14T17:00:00Z"),
+                breakMinutes = 0,
+            ),
+            Shift(
+                id = "d14b", userId = "u1",
+                startTime = Instant.parse("2024-01-14T18:00:00Z"),
+                endTime = Instant.parse("2024-01-14T22:00:00Z"),
+                breakMinutes = 0,
+            ),
+        )
+
+        val csv = vm.buildCsvContent(shifts, settings, year = 2024, month = 1)
+
+        val totalRow = csv.lines().last()
+        assertTrue("Row should be the totals row: $totalRow", totalRow.startsWith("TOTAL"))
+        val cells = totalRow.split(",")
+        assertEquals("44.00", cells[4]) // total hours
+        assertEquals("4.00", cells[6])  // overtime hours — weekly-driven, was 0.00
+    }
 }

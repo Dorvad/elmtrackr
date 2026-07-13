@@ -19,6 +19,7 @@ import com.elmtrackr.wear.ui.RunningScreen
 import com.elmtrackr.wear.ui.SetupScreen
 import com.elmtrackr.wear.ui.WearAuroraBackground
 import com.elmtrackr.wear.ui.WearAuroraTheme
+import com.elmtrackr.wear.ui.WearLabels
 
 class WearMainActivity : ComponentActivity() {
 
@@ -39,7 +40,6 @@ class WearMainActivity : ComponentActivity() {
                 val confirmation by viewModel.confirmation.collectAsState()
                 val countdown by viewModel.punchCountdown.collectAsState()
                 val isLoading by viewModel.isPunchInProgress.collectAsState()
-                val systemTime by viewModel.systemTimeLabel.collectAsState()
                 val snapshot = display.snapshot
 
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -55,14 +55,14 @@ class WearMainActivity : ComponentActivity() {
                         !snapshot.signedIn -> SetupScreen(onRefresh = viewModel::refresh)
                         snapshot.isActive -> RunningScreen(
                             elapsed = display.elapsedHms,
-                            sinceLabel = snapshot.startTimeLabel,
                             progressPercent = display.progressPercent,
                             onPunchOut = viewModel::requestPunchOut,
                             isLoading = isLoading,
                         )
                         else -> IdleScreen(
-                            systemTime = systemTime,
-                            lastPunchLabel = snapshot.lastPunchLabel.ifBlank { snapshot.startTimeLabel },
+                            lastPunchLabel = WearLabels.lastPunch(this@WearMainActivity, snapshot).ifBlank {
+                                snapshot.startTimeLabel.takeIf { it != "--:--" }.orEmpty()
+                            },
                             todayShort = display.todayShort,
                             onPunchIn = viewModel::requestPunchIn,
                             isLoading = isLoading,

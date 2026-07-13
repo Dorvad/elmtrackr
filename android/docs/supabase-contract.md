@@ -214,7 +214,7 @@ Android pushes provider with capitalized label (e.g. `Lime`) — pull accepts an
 | `classic` | `CLASSIC` | yes (dedicated card) |
 | `minimal` | `MINIMAL` | yes (dedicated card) |
 | `aurora` | `AURORA` | yes (dedicated card) |
-| `focus`, `bold`, `night`, `retro`, `pulse`, `dial`, `strand`, `prism`, `sand`, `blocks`, `orbit` | same name | yes (`ExpressiveClockCard`) |
+| `focus`, `bold`, `night`, `retro`, `pulse`, `dial`, `strand`, `prism`, `sand`, `blocks`, `orbit`, `tide`, `sprout` | same name | yes (`ExpressiveClockCard`) |
 | unknown | `CLASSIC` | |
 
 All persisted styles render natively on the Android dashboard (`SupportedClockStyle.kt`); unknown values fall back to Classic.

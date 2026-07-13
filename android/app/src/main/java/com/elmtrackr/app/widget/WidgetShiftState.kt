@@ -13,6 +13,8 @@ data class WidgetContext(
     val todayShifts: List<Shift>,
     val settings: UserSettings?,
     val pendingCount: Int = 0,
+    /** False when no user is signed in — punch taps open the app instead. */
+    val isSignedIn: Boolean = true,
 )
 
 data class WidgetShiftState(
@@ -27,6 +29,7 @@ data class WidgetShiftState(
     val lastPunchEndEpochMillis: Long = 0L,
     val todayMinutes: Int = 0,
     val dailyGoalMinutes: Int = DEFAULT_DAILY_GOAL_MINUTES,
+    val isSignedIn: Boolean = true,
 ) {
     companion object {
         const val DEFAULT_DAILY_GOAL_MINUTES = 480
@@ -35,24 +38,18 @@ data class WidgetShiftState(
 
 object WidgetTimeFormat {
 
-    fun elapsedHms(startEpochMillis: Long, nowMillis: Long = System.currentTimeMillis()): String {
-        if (startEpochMillis <= 0L) return "0:00:00"
-        val totalSeconds = ((nowMillis - startEpochMillis) / 1000L).coerceAtLeast(0)
-        val hours = totalSeconds / 3600
-        val minutes = (totalSeconds % 3600) / 60
-        val seconds = totalSeconds % 60
-        return if (hours > 0) {
-            String.format("%d:%02d:%02d", hours, minutes, seconds)
-        } else {
-            String.format("%d:%02d", minutes, seconds)
-        }
+    // Widgets repaint at best every ~10 seconds (WidgetTimerScheduler), and
+    // far less often under Doze, so a seconds display would sit frozen or
+    // jump in visible chunks. h:mm matches the Wear tile.
+    fun elapsedHm(startEpochMillis: Long, nowMillis: Long = System.currentTimeMillis()): String {
+        if (startEpochMillis <= 0L) return "0:00"
+        val totalMinutes = ((nowMillis - startEpochMillis) / 60_000L).coerceAtLeast(0)
+        return String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60)
     }
 
-    fun minutesToHms(totalMinutes: Int): String {
+    fun minutesToHm(totalMinutes: Int): String {
         val minutes = totalMinutes.coerceAtLeast(0)
-        val hours = minutes / 60
-        val mins = minutes % 60
-        return String.format("%d:%02d:00", hours, mins)
+        return String.format("%d:%02d", minutes / 60, minutes % 60)
     }
 
     fun minutesToShort(totalMinutes: Int): String =

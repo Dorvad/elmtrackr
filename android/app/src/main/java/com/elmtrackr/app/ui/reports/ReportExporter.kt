@@ -34,7 +34,9 @@ data class RefundPdfRow(
 
 object ReportExporter {
     fun shareCsv(context: Context, content: String, filename: String) {
-        val file = exportFile(context, filename).apply { writeText(content) }
+        // UTF-8 BOM: without it Excel decodes the file with the system ANSI
+        // codepage and Hebrew notes/merchant names render as mojibake.
+        val file = exportFile(context, filename).apply { writeText("\uFEFF" + content) }
         shareFile(context, file, "text/csv", context.withAppLocale().getString(R.string.export_share_csv))
     }
 
@@ -234,7 +236,18 @@ object ReportExporter {
     }
 
     suspend fun loadReceipt(url: String): Bitmap? = withContext(Dispatchers.IO) {
-        runCatching { URL(url).openStream().use(BitmapFactory::decodeStream) }.getOrNull()
+        // Bounded timeouts: a stalled signed-URL endpoint must not hang the
+        // refund-PDF export coroutine indefinitely with no user feedback.
+        runCatching {
+            val connection = URL(url).openConnection() as java.net.HttpURLConnection
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 15_000
+            try {
+                connection.inputStream.use(BitmapFactory::decodeStream)
+            } finally {
+                connection.disconnect()
+            }
+        }.getOrNull()
     }
 
     fun shareRefundPdf(

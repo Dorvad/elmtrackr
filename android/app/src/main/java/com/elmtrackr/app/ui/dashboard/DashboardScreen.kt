@@ -90,6 +90,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
@@ -726,7 +727,8 @@ private fun DashboardClockSection(
                 SupportedClockStyle.SAND,
                 SupportedClockStyle.BLOCKS,
                 SupportedClockStyle.ORBIT,
-                SupportedClockStyle.TIDE -> ExpressiveClockCard(
+                SupportedClockStyle.TIDE,
+                SupportedClockStyle.SPROUT -> ExpressiveClockCard(
                     style = renderStyle,
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
@@ -1062,6 +1064,7 @@ private fun ExpressiveClockCard(
         style == SupportedClockStyle.RETRO -> Color(0xffffc857)
         style == SupportedClockStyle.NIGHT -> AuroraAqua
         style == SupportedClockStyle.TIDE -> AuroraAqua
+        style == SupportedClockStyle.SPROUT -> SproutLeafDeep
         else -> AuroraIndigo
     }
 
@@ -1085,6 +1088,7 @@ private fun ExpressiveClockCard(
                     SupportedClockStyle.BLOCKS -> stringResource(if (running) R.string.dashboard_clock_workday else R.string.dashboard_clock_ready_caps)
                     SupportedClockStyle.ORBIT -> stringResource(if (running) R.string.dashboard_clock_in_orbit else R.string.dashboard_clock_ready_caps)
                     SupportedClockStyle.TIDE -> stringResource(if (running) R.string.dashboard_clock_tide_rising else R.string.dashboard_clock_ready_caps)
+                    SupportedClockStyle.SPROUT -> stringResource(if (running) R.string.dashboard_clock_growing else R.string.dashboard_clock_ready_to_grow)
                     else -> ""
                 },
                 style = MaterialTheme.typography.labelSmall,
@@ -1315,6 +1319,12 @@ private fun ExpressiveClockCard(
                                 }
                             }
                         }
+                        SupportedClockStyle.SPROUT -> drawSproutFace(
+                            growthHours = (daySeconds / 3600f).coerceIn(0f, 8f),
+                            pulse = pulse,
+                            running = running,
+                            foreground = foreground,
+                        )
                         else -> Unit
                     }
                 }
@@ -1373,6 +1383,167 @@ private fun ExpressiveClockCard(
             ) { Text(stringResource(if (running) R.string.dashboard_clock_out else R.string.dashboard_clock_in), fontWeight = FontWeight.Bold) }
         }
     }
+    }
+}
+
+private val SproutLeafDeep = Color(0xFF2E9E6B)
+private val SproutLeafLight = Color(0xFF43C98A)
+private val SproutSoil = Color(0xFF7A5B44)
+private val SproutBud = Color(0xFF7C4DD4)
+private val SproutPetalA = Color(0xFF8B5CF6)
+private val SproutPetalB = Color(0xFFB07CF8)
+private val SproutCore = Color(0xFFFFC857)
+private val SproutFirefly = Color(0xFFFFE08A)
+private val SproutGlow = Color(0xFFFFB27D)
+
+/**
+ * Sprout face: the plant is the day. The stem rises with hours worked, one
+ * true leaf unfurls per hour (1–6), a bud forms in hour 7, and the flower
+ * blooms at eight. Growth tracks today's total, so the plant is worth a
+ * glance even while clocked out; sway, fireflies, and the petal shimmer
+ * only run during a shift.
+ */
+private fun DrawScope.drawSproutFace(
+    growthHours: Float,
+    pulse: Float,
+    running: Boolean,
+    foreground: Color,
+) {
+    val cx = size.width / 2f
+    val groundY = size.height - 16.dp.toPx()
+
+    fun smooth(raw: Float): Float {
+        val t = raw.coerceIn(0f, 1f)
+        return t * t * (3f - 2f * t)
+    }
+
+    if (running) {
+        val auraCenter = Offset(cx, groundY - 60.dp.toPx())
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(SproutLeafDeep.copy(alpha = 0.06f + pulse * 0.03f), Color.Transparent),
+                center = auraCenter,
+                radius = 80.dp.toPx(),
+            ),
+            radius = 80.dp.toPx(),
+            center = auraCenter,
+        )
+    }
+
+    drawLine(
+        foreground.copy(alpha = 0.12f),
+        Offset(size.width * 0.08f, groundY),
+        Offset(size.width * 0.92f, groundY),
+        2.dp.toPx(),
+        StrokeCap.Round,
+    )
+    drawOval(
+        SproutSoil.copy(alpha = 0.6f),
+        topLeft = Offset(cx - 27.dp.toPx(), groundY - 5.dp.toPx()),
+        size = Size(54.dp.toPx(), 10.dp.toPx()),
+    )
+
+    if (growthHours <= 0.05f) {
+        // A seed, waiting for the first clock-in of the day.
+        drawCircle(SproutLeafDeep, 4.dp.toPx(), Offset(cx, groundY - 4.dp.toPx()))
+        return
+    }
+
+    val stemH = 18.dp.toPx() + 15.dp.toPx() * growthHours
+    val sway = if (running) {
+        kotlin.math.sin(pulse * 2f * Math.PI.toFloat()) * 2.5.dp.toPx() * (growthHours / 2f).coerceAtMost(1f)
+    } else 0f
+    val tipX = cx + sway
+    val tipY = groundY - stemH
+    val ctrlX = cx - sway * 0.8f
+    val ctrlY = groundY - stemH * 0.5f
+
+    fun onStem(f: Float): Offset {
+        val inv = 1f - f
+        return Offset(
+            inv * inv * cx + 2f * inv * f * ctrlX + f * f * tipX,
+            inv * inv * groundY + 2f * inv * f * ctrlY + f * f * tipY,
+        )
+    }
+
+    val stem = Path().apply {
+        moveTo(cx, groundY)
+        quadraticTo(ctrlX, ctrlY, tipX, tipY)
+    }
+    drawPath(stem, SproutLeafDeep, style = Stroke(3.5.dp.toPx(), cap = StrokeCap.Round))
+
+    fun drawLeaf(at: Offset, dir: Int, length: Float, alpha: Float) {
+        if (length <= 0.5f) return
+        val leafTip = Offset(at.x + dir * length * 0.88f, at.y - length * 0.7f)
+        val blade = Path().apply {
+            moveTo(at.x, at.y)
+            quadraticTo(at.x + dir * length * 0.45f, at.y - length * 0.75f, leafTip.x, leafTip.y)
+            quadraticTo(at.x + dir * length * 0.62f, at.y + length * 0.06f, at.x, at.y)
+            close()
+        }
+        drawPath(blade, Brush.linearGradient(listOf(SproutLeafLight, SproutLeafDeep), start = at, end = leafTip), alpha = alpha)
+        drawLine(SproutLeafDeep.copy(alpha = alpha * 0.35f), at, leafTip, 1.dp.toPx(), StrokeCap.Round)
+    }
+
+    // First-hour cotyledon pair, folding away once true leaves arrive.
+    val cotyledon = smooth(growthHours) * (1f - smooth(growthHours - 1.2f))
+    if (cotyledon > 0.01f && growthHours < 2.2f) {
+        val at = onStem(0.97f)
+        drawLeaf(at, -1, 9.dp.toPx() * cotyledon, 0.95f)
+        drawLeaf(at, 1, 9.dp.toPx() * cotyledon, 0.95f)
+    }
+
+    // One true leaf per hour (hours 1-6), alternating sides bottom-up.
+    repeat(6) { i ->
+        val t = smooth(growthHours - (i + 1))
+        if (t <= 0f) return@repeat
+        val at = onStem(0.22f + i * 0.115f)
+        val dir = if (i % 2 == 0) -1 else 1
+        drawLeaf(at, dir, (24f - i * 1.6f).dp.toPx() * t, 0.95f)
+    }
+
+    // Hour 7 raises a bud; hour 8 opens it.
+    val tBud = smooth((growthHours - 7f) * 2f)
+    val tBloom = smooth((growthHours - 7.5f) * 2f)
+    val tip = onStem(1f)
+    if (tBloom > 0.01f) {
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    SproutGlow.copy(alpha = 0.25f * tBloom + if (running) pulse * 0.06f else 0f),
+                    Color.Transparent,
+                ),
+                center = tip,
+                radius = (16f + pulse * 3f).dp.toPx(),
+            ),
+            radius = 20.dp.toPx(),
+            center = tip,
+        )
+        repeat(6) { k ->
+            rotate(k * 60f + if (running) pulse * 6f else 0f, tip) {
+                drawOval(
+                    color = if (k % 2 == 0) SproutPetalA else SproutPetalB,
+                    topLeft = Offset(tip.x - 3.2.dp.toPx() * tBloom, tip.y - 16.dp.toPx() * tBloom),
+                    size = Size(6.4.dp.toPx() * tBloom, 16.dp.toPx() * tBloom),
+                    alpha = 0.95f,
+                )
+            }
+        }
+        drawCircle(SproutCore, 4.2.dp.toPx() * tBloom + 2.dp.toPx(), tip)
+    } else if (tBud > 0.01f) {
+        drawCircle(SproutBud, 5.dp.toPx() * tBud, Offset(tip.x, tip.y - 2.dp.toPx() * tBud))
+        drawLeaf(tip, -1, 7.dp.toPx() * tBud, 0.9f)
+        drawLeaf(tip, 1, 7.dp.toPx() * tBud, 0.9f)
+    }
+
+    // Fireflies drifting up while on shift — the "alive" cue that pulls you back.
+    if (running && growthHours >= 1.5f) {
+        repeat(3) { k ->
+            val phase = (pulse + k / 3f) % 1f
+            val fx = cx + (k - 1) * 26.dp.toPx() + kotlin.math.sin(phase * 6.28f + k) * 6.dp.toPx()
+            val fy = groundY - phase * (stemH + 20.dp.toPx())
+            drawCircle(SproutFirefly.copy(alpha = (1f - phase) * 0.5f), 1.8.dp.toPx(), Offset(fx, fy))
+        }
     }
 }
 
@@ -1895,7 +2066,10 @@ internal fun DashboardReadyPreview(
 @Composable
 private fun DashboardError(message: String) {
     Box(Modifier.fillMaxSize(), Alignment.Center) {
-        Text("Error: $message", color = MaterialTheme.colorScheme.error)
+        Text(
+            stringResource(R.string.dashboard_error_message, message),
+            color = MaterialTheme.colorScheme.error,
+        )
     }
 }
 

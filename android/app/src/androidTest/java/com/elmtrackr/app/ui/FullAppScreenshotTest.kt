@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.elmtrackr.app.data.local.entity.SyncStatus
+import com.elmtrackr.app.notification.ReminderRulesCodec
 import com.elmtrackr.app.data.sync.SyncDetails
 import com.elmtrackr.app.data.sync.SyncEntityType
 import com.elmtrackr.app.data.sync.SyncFailedRow
@@ -459,6 +460,10 @@ class FullAppScreenshotTest {
                 onInsightsChange = {},
                 overtimeReminders = true,
                 onOvertimeRemindersChange = {},
+                reminderRules = ReminderRulesCodec.DEFAULT_RULES,
+                onAddReminderRule = {},
+                onUpdateReminderRule = {},
+                onRemoveReminderRule = {},
                 onBack = {},
             )
             SettingsDestination.HELP -> HelpDetailScreen(

@@ -14,6 +14,8 @@
     <string name="widget_since">since %1$s</string>
     <string name="widget_today_short">Today %1$s</string>
     <string name="widget_tap_to_start">tap to start</string>
+    <string name="widget_yesterday_short">Yesterday %1$s</string>
+    <string name="widget_signed_out_hint">tap to sign in</string>
     <string name="widget_today_logged">Today %1$s logged</string>
     <string name="widget_no_time_today">No time logged today</string>
     <string name="widget_active_sub">Since %1$s · Today %2$s</string>

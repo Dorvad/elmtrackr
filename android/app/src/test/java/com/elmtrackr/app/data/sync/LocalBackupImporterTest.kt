@@ -1,12 +1,16 @@
 package com.elmtrackr.app.data.sync
 
 import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
+import com.elmtrackr.app.data.local.entity.PremiumProfileEntity
+import com.elmtrackr.app.data.local.entity.ReceiptEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.TaskEntity
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import com.elmtrackr.app.fake.FakeCompensationProfileDao
+import com.elmtrackr.app.fake.FakePremiumProfileDao
+import com.elmtrackr.app.fake.FakeReceiptDao
 import com.elmtrackr.app.fake.FakeRefundClaimDao
 import com.elmtrackr.app.fake.FakeSettingsDao
 import com.elmtrackr.app.fake.FakeShiftDao
@@ -24,11 +28,14 @@ class LocalBackupImporterTest {
     private val claimDao = FakeRefundClaimDao()
     private val settingsDao = FakeSettingsDao()
     private val profileDao = FakeCompensationProfileDao()
+    private val premiumDao = FakePremiumProfileDao()
+    private val receiptDao = FakeReceiptDao()
 
     private fun shift(localId: String = "shift-1", userId: String = "u1") = ShiftEntity(
         localId = localId, remoteId = "remote-$localId", userId = userId,
         startTime = 1_700_000_000_000, endTime = 1_700_030_000_000, breakMinutes = 30,
-        notes = "Night shift", isSpecialDay = true, refundAction = "REFUND",
+        notes = "Night shift", isSpecialDay = true, premiumProfileId = "premium-1",
+        refundAction = "REFUND",
         compensationProfileId = "profile-1", compensationSnapshotJson = """{"v":1}""",
         taskId = "task-1", taskNameSnapshot = "Delivery", taskIconSnapshot = "bike",
         taskHourlyRateSnapshot = 52.5, createdAt = 1, updatedAt = 2, deletedAt = null,
@@ -71,13 +78,32 @@ class LocalBackupImporterTest {
         syncStatus = SyncStatus.SYNCED, lastSyncError = null, lastSyncedAt = 3,
     )
 
+    private fun premium(localId: String = "premium-1", userId: String = "u1") = PremiumProfileEntity(
+        localId = localId, remoteId = "remote-$localId", userId = userId,
+        name = "Night bonus", multiplier = 1.25, premiumType = "NIGHT",
+        isDefault = false, isArchived = false, createdAt = 1, updatedAt = 2, deletedAt = null,
+        syncStatus = SyncStatus.SYNCED, lastSyncError = null, lastSyncedAt = 3,
+    )
+
+    private fun receipt(id: String = "receipt-1", userId: String = "u1") = ReceiptEntity(
+        id = id, userId = userId, refundClaimId = "claim-1",
+        localImageUri = "/data/receipts/r1.jpg", merchantName = "Lime",
+        amount = 12.5, currency = "ILS", receiptDate = 1_700_000_050_000,
+        rawOcrText = "Lime ride 12.50", parserVersion = "hybrid-2",
+        createdAt = 1, updatedAt = 2,
+    )
+
     private suspend fun exportSeeded(userId: String): String {
         taskDao.insert(task(userId = userId))
         shiftDao.insertShift(shift(userId = userId))
         claimDao.insertClaim(claim(userId = userId))
         settingsDao.insertSettings(settings(userId = userId))
         profileDao.insert(profile(userId = userId))
-        return LocalBackupExporter.export(userId, taskDao, shiftDao, claimDao, settingsDao, profileDao, "1.0")
+        premiumDao.insert(premium(userId = userId))
+        receiptDao.insert(receipt(userId = userId))
+        return LocalBackupExporter.export(
+            userId, taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao, "1.0",
+        )
     }
 
     private val shiftDao2 = FakeShiftDao()
@@ -85,17 +111,26 @@ class LocalBackupImporterTest {
     private val settingsDao2 = FakeSettingsDao()
     private val profileDao2 = FakeCompensationProfileDao()
     private val taskDao2 = FakeTaskDao()
+    private val premiumDao2 = FakePremiumProfileDao()
+    private val receiptDao2 = FakeReceiptDao()
+
+    private suspend fun importInto2(json: String, userId: String): BackupImportSummary =
+        LocalBackupImporter.import(
+            json, userId, taskDao2, shiftDao2, claimDao2, settingsDao2, profileDao2, premiumDao2, receiptDao2,
+        )
 
     @Test
     fun `export then import round-trips all entities for the same user`() = runTest {
         val json = exportSeeded("u1")
 
-        val summary = LocalBackupImporter.import(json, "u1", taskDao2, shiftDao2, claimDao2, settingsDao2, profileDao2)
+        val summary = importInto2(json, "u1")
 
         assertEquals(1, summary.importedTasks)
         assertEquals(1, summary.importedShifts)
         assertEquals(1, summary.importedRefundClaims)
         assertEquals(1, summary.importedCompensationProfiles)
+        assertEquals(1, summary.importedPremiumProfiles)
+        assertEquals(1, summary.importedReceipts)
         assertEquals(1, summary.importedSettings)
         assertEquals(0, summary.skipped)
 
@@ -104,24 +139,35 @@ class LocalBackupImporterTest {
         assertEquals(claim(), claimDao2.getClaimById("claim-1"))
         assertEquals(settings(), settingsDao2.getSettings("u1"))
         assertEquals(profile(), profileDao2.getByLocalId("profile-1"))
+        assertEquals(premium(), premiumDao2.getByLocalId("premium-1"))
+        assertEquals(receipt(), receiptDao2.getById("receipt-1"))
+    }
+
+    @Test
+    fun `shift premium profile assignment survives the round-trip`() = runTest {
+        val json = exportSeeded("u1")
+
+        importInto2(json, "u1")
+
+        assertEquals("premium-1", shiftDao2.getShiftById("shift-1")!!.premiumProfileId)
     }
 
     @Test
     fun `re-importing the same backup skips every row`() = runTest {
         val json = exportSeeded("u1")
-        LocalBackupImporter.import(json, "u1", taskDao2, shiftDao2, claimDao2, settingsDao2, profileDao2)
+        importInto2(json, "u1")
 
-        val second = LocalBackupImporter.import(json, "u1", taskDao2, shiftDao2, claimDao2, settingsDao2, profileDao2)
+        val second = importInto2(json, "u1")
 
         assertEquals(0, second.importedTotal)
-        assertEquals(5, second.skipped)
+        assertEquals(7, second.skipped)
     }
 
     @Test
     fun `importing another user's backup adopts rows and strips remote linkage`() = runTest {
         val json = exportSeeded("u1")
 
-        LocalBackupImporter.import(json, "u2", taskDao2, shiftDao2, claimDao2, settingsDao2, profileDao2)
+        importInto2(json, "u2")
 
         val imported = shiftDao2.getShiftById("shift-1")
         assertNotNull(imported)
@@ -139,7 +185,7 @@ class LocalBackupImporterTest {
         val mySettings = settings(userId = "u2").copy(localId = "settings-mine", timezone = "UTC")
         settingsDao2.insertSettings(mySettings)
 
-        val summary = LocalBackupImporter.import(json, "u2", taskDao2, shiftDao2, claimDao2, settingsDao2, profileDao2)
+        val summary = importInto2(json, "u2")
 
         assertEquals(0, summary.importedSettings)
         assertEquals("UTC", settingsDao2.getSettings("u2")!!.timezone)
@@ -149,18 +195,50 @@ class LocalBackupImporterTest {
     fun `claims without their shift are skipped`() = runTest {
         taskDao.insert(task())
         claimDao.insertClaim(claim(localId = "orphan-claim").copy(shiftLocalId = "missing-shift"))
-        val json = LocalBackupExporter.export("u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, "1.0")
+        val json = LocalBackupExporter.export(
+            "u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao, "1.0",
+        )
 
-        val summary = LocalBackupImporter.import(json, "u1", taskDao2, shiftDao2, claimDao2, settingsDao2, profileDao2)
+        val summary = importInto2(json, "u1")
 
         assertEquals(0, summary.importedRefundClaims)
         assertNull(claimDao2.getClaimById("orphan-claim"))
     }
 
     @Test
+    fun `receipt whose claim did not import keeps the row but clears the link`() = runTest {
+        shiftDao.insertShift(shift())
+        // No claim exported: the receipt references one that won't exist on import.
+        receiptDao.insert(receipt())
+        val json = LocalBackupExporter.export(
+            "u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao, "1.0",
+        )
+
+        val summary = importInto2(json, "u1")
+
+        assertEquals(1, summary.importedReceipts)
+        val imported = receiptDao2.getById("receipt-1")
+        assertNotNull(imported)
+        assertNull(imported!!.refundClaimId)
+    }
+
+    @Test
+    fun `version 2 backups without the newer sections still import`() = runTest {
+        val v2 = """
+            {"formatVersion":2,"exportedAt":"now","userId":"u1","appVersion":"0.9",
+             "tasks":[],"shifts":[],"refundClaims":[],"userSettings":[],"compensationProfiles":[]}
+        """.trimIndent()
+
+        val summary = importInto2(v2, "u1")
+
+        assertEquals(0, summary.importedTotal)
+        assertEquals(0, summary.skipped)
+    }
+
+    @Test
     fun `non-backup json is rejected with a friendly message`() = runTest {
         val error = runCatching {
-            LocalBackupImporter.import("""{"hello":"world"}""", "u1", taskDao2, shiftDao2, claimDao2, settingsDao2, profileDao2)
+            importInto2("""{"hello":"world"}""", "u1")
         }.exceptionOrNull()
 
         assertEquals("This file is not an ElmTrackr backup.", (error as BackupImportException).message)
@@ -173,7 +251,7 @@ class LocalBackupImporterTest {
              "tasks":[],"shifts":[],"refundClaims":[],"userSettings":[],"compensationProfiles":[]}
         """.trimIndent()
         val error = runCatching {
-            LocalBackupImporter.import(v1, "u1", taskDao2, shiftDao2, claimDao2, settingsDao2, profileDao2)
+            importInto2(v1, "u1")
         }.exceptionOrNull()
 
         assertEquals(

@@ -33,7 +33,7 @@
     <string name="notif_overtime_at_threshold_title">התחילו שעות נוספות</string>
     <string name="notif_overtime_at_threshold_text">במשמרת מאז %1$s. אולי הגיע הזמן לצאת.</string>
     <string name="notif_overtime_hourly_title">עדיין במשמרת, בשעות נוספות</string>
-    <string name="notif_overtime_hourly_text">כבר %1$d שעות בשעות נוספות. לא לשכוח לצאת ממשמרת.</string>
+    <string name="notif_overtime_hourly_text">כבר %1$s בשעות נוספות. לא לשכוח לצאת ממשמרת.</string>
 
     <!-- Legacy reminder strings (kept for screenshot/regression compatibility) -->
     <string name="notif_reminder_title">המשמרת עדיין פעילה</string>

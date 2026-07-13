@@ -31,6 +31,12 @@ class WidgetDateChangeReceiver : BroadcastReceiver() {
             try {
                 runCatching { WidgetActions.refreshWidgets(context.applicationContext) }
                 runCatching { WearSyncPublisher.refresh(context.applicationContext) }
+                // Reminder delays were computed against the previous clock and
+                // zone; recompute them so an "at 17:30" rule still fires at
+                // 17:30 after a timezone or DST change mid-shift.
+                runCatching {
+                    com.elmtrackr.app.notification.ActiveShiftRestorer.restore(context.applicationContext)
+                }
             } finally {
                 pendingResult.finish()
             }

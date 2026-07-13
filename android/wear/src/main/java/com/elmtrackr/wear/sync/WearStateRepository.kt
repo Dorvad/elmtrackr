@@ -13,8 +13,12 @@ import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.Wearable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -33,6 +37,10 @@ data class WearConfirmation(
 class WearStateRepository(
     private val context: Context,
 ) {
+    // Repository is application-lifetime; used for applying data-layer events
+    // after their buffer has been released.
+    private val applyScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private val cacheKey = stringPreferencesKey("snapshot_json")
 
     private val _snapshot = MutableStateFlow(WearShiftSnapshot.signedOut())
@@ -66,16 +74,22 @@ class WearStateRepository(
         }
     }
 
+    /**
+     * Parses the callback-scoped buffer synchronously (it is invalid once the
+     * listener returns) and applies the snapshots asynchronously — blocking
+     * the data-layer dispatch thread with runBlocking would stall delivery of
+     * subsequent events during a burst of phone-side updates.
+     */
     fun handleDataEvents(events: DataEventBuffer) {
-        for (event in events) {
-            if (event.type != DataEvent.TYPE_CHANGED) continue
+        val snapshots = events.mapNotNull { event ->
+            if (event.type != DataEvent.TYPE_CHANGED) return@mapNotNull null
             val item = event.dataItem
-            if (!item.uri.path.orEmpty().startsWith(SHIFT_STATE)) continue
-            parseDataItem(item)?.let { snapshot ->
-                kotlinx.coroutines.runBlocking {
-                    applySnapshot(snapshot)
-                }
-            }
+            if (!item.uri.path.orEmpty().startsWith(SHIFT_STATE)) return@mapNotNull null
+            parseDataItem(item)
+        }
+        if (snapshots.isEmpty()) return
+        applyScope.launch {
+            snapshots.forEach { applySnapshot(it) }
         }
     }
 

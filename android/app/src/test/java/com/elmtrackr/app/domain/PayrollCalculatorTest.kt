@@ -632,4 +632,77 @@ class PayrollCalculatorTest {
         assertEquals(1.25, bd.brackets[1].rate, 0.001)
         assertNear(478.50, bd.totalGross)
     }
+
+    // ── Custom night premium: proportional attribution (regression) ──────────
+
+    private fun nightRules(applyTo: String, overtime: Boolean = false) = CompensationRules(
+        overtimeEnabled = overtime,
+        dailyOvertimeTiers = if (overtime) listOf(OvertimeTier(480, 1.25)) else emptyList(),
+        weeklyOvertimeTiers = emptyList(),
+        weekendEnabled = false,
+        holidayEnabled = false,
+        nightEnabled = true,
+        nightStartTime = "22:00",
+        nightEndTime = "06:00",
+        nightMultiplier = 1.25,
+        nightApplyTo = applyTo,
+    )
+
+    @Test
+    fun `custom night window mode pays the uplift only on night minutes`() {
+        // 18:00 → 02:00 UTC: 480 net minutes, 240 inside the 22:00–06:00 window.
+        val p = profile(
+            RegionCode.CUSTOM,
+            rules = nightRules("minutes_inside_window"),
+            stacking = StackingPolicy.HIGHEST_ONLY,
+        )
+        val s = shift("2024-01-08T18:00:00Z", "2024-01-09T02:00:00Z")
+
+        val bd = PayrollCalculator.calculateShiftPay(s, settingsWithProfile(p), listOf(p))!!
+
+        // 480 min at 100% + 240 night min at +25% of 60/h = 480 + 60.
+        assertNear(540.0, bd.totalGross)
+        assertNear(60.0, bd.nightGross)
+        assertNear(480.0, bd.regularGross)
+    }
+
+    @Test
+    fun `custom night entire-shift mode pays the uplift on every minute`() {
+        val p = profile(
+            RegionCode.CUSTOM,
+            rules = nightRules("entire_shift"),
+            stacking = StackingPolicy.HIGHEST_ONLY,
+        )
+        val s = shift("2024-01-08T18:00:00Z", "2024-01-09T02:00:00Z")
+
+        val bd = PayrollCalculator.calculateShiftPay(s, settingsWithProfile(p), listOf(p))!!
+
+        assertNear(600.0, bd.totalGross)
+        assertNear(120.0, bd.nightGross)
+        assertNear(480.0, bd.regularGross)
+    }
+
+    @Test
+    fun `custom night with overtime keeps every category bucket non-negative`() {
+        // 16:00 → 02:00 UTC: 600 net minutes, 240 at night, 120 in daily OT.
+        val p = profile(
+            RegionCode.CUSTOM,
+            rules = nightRules("minutes_inside_window", overtime = true),
+            stacking = StackingPolicy.HIGHEST_ONLY,
+        )
+        val s = shift("2024-01-08T16:00:00Z", "2024-01-09T02:00:00Z")
+
+        val bd = PayrollCalculator.calculateShiftPay(s, settingsWithProfile(p), listOf(p))!!
+
+        assertTrue(bd.regularGross >= 0.0)
+        assertTrue(bd.overtimeGross >= 0.0)
+        assertTrue(bd.nightGross >= 0.0)
+        // Category buckets must partition the total exactly.
+        assertNear(
+            bd.totalGross,
+            bd.regularGross + bd.overtimeGross + bd.weekendGross + bd.holidayGross + bd.nightGross,
+        )
+        // Night premium never exceeds night minutes × delta (240 × 0.25 × 1.0/min).
+        assertTrue(bd.nightGross <= 60.0 + 0.01)
+    }
 }

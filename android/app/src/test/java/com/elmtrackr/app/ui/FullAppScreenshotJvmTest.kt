@@ -141,6 +141,16 @@ class FullAppScreenshotJvmTest {
         DashboardReadyPreview(state = sampleDashboardState())
     }
 
+    @Test fun dashboardSprout() = capture("31-dashboard-sprout") {
+        // 5.5 hours logged: five leaves on the vine, stem still climbing.
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.SPROUT),
+                todayCompletedMinutes = 330,
+            ),
+        )
+    }
+
     @Test fun dashboardSkeleton() = capture("09-dashboard-loading") {
         DashboardSkeleton(Modifier.fillMaxSize().padding(16.dp))
     }

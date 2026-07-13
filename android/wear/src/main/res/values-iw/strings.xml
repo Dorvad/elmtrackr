@@ -10,6 +10,9 @@
     <string name="countdown_punching_in">כניסה למשמרת</string>
     <string name="countdown_punching_out">יציאה מהמשמרת</string>
     <string name="countdown_tap_to_cancel">הקשה לביטול</string>
+    <string name="wear_on_shift">במשמרת</string>
+    <string name="wear_clocked_out">לא במשמרת</string>
+    <string name="wear_tap_to_stop">הקשה לעצירה</string>
     <string name="running_since">מאז %1$s</string>
     <string name="punch_in">כניסה</string>
     <string name="punch_out">יציאה</string>
@@ -24,4 +27,10 @@
     <string name="tile_on_phone">בטלפון</string>
     <string name="tile_tap_punch_out">הקשה ליציאה</string>
     <string name="tile_tap_punch_in">הקשה לכניסה</string>
+    <string name="wear_last_out_today">יציאה אחרונה • היום %1$s</string>
+    <string name="wear_last_out_yesterday">יציאה אחרונה • אתמול %1$s</string>
+    <string name="wear_last_out_other">יציאה אחרונה • %1$s</string>
+    <string name="wear_comp_in">במשמרת</string>
+    <string name="wear_comp_out">בחוץ</string>
+    <string name="wear_comp_clocked_in">במשמרת · %1$s</string>
 </resources>
