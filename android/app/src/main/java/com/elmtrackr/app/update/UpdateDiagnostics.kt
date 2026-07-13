@@ -2,6 +2,7 @@ package com.elmtrackr.app.update
 
 import com.elmtrackr.app.BuildConfig
 import com.elmtrackr.app.monitoring.CrashReporting
+import io.sentry.Breadcrumb
 import io.sentry.Sentry
 import io.sentry.SentryLevel
 
@@ -63,11 +64,11 @@ object UpdateDiagnostics {
         level: SentryLevel = SentryLevel.DEBUG,
     ) {
         if (!CrashReporting.isAvailable()) return
-        Sentry.addBreadcrumb { crumb ->
-            crumb.category = "in_app_update"
-            crumb.message = message
-            crumb.level = level
-            data.forEach { (key, value) -> crumb.setData(key, value) }
-        }
+        val crumb = Breadcrumb()
+        crumb.category = "in_app_update"
+        crumb.message = message
+        crumb.level = level
+        data.forEach { (key, value) -> crumb.setData(key, value) }
+        Sentry.addBreadcrumb(crumb)
     }
 }
