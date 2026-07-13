@@ -8,7 +8,7 @@ class InAppUpdateCooldownTest {
 
     @Test
     fun `flexible prompt allowed when never dismissed`() {
-        assertTrue(InAppUpdateCooldown.shouldOfferFlexiblePrompt(null, now = 1_000L))
+        assertTrue(InAppUpdateCooldown.shouldOfferFlexiblePrompt(null, nowMs = 1_000L))
     }
 
     @Test
@@ -27,7 +27,7 @@ class InAppUpdateCooldownTest {
 
     @Test
     fun `play store fallback allowed when never shown`() {
-        assertTrue(InAppUpdateCooldown.shouldShowPlayStoreFallback(null, now = 1_000L))
+        assertTrue(InAppUpdateCooldown.shouldShowPlayStoreFallback(null, nowMs = 1_000L))
     }
 
     @Test
