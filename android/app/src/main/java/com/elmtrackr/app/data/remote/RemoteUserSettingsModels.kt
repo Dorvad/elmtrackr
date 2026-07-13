@@ -18,7 +18,10 @@ data class RemoteUserSettingsRow(
     @SerialName("default_compensation_profile_id") val defaultCompensationProfileId: String? = null,
     @SerialName("onboarding_completed") val onboardingCompleted: Boolean = true,
     @SerialName("onboarding_completed_at") val onboardingCompletedAt: String? = null,
-    @SerialName("features_travel_refunds") val featuresTravelRefunds: Boolean = true,
+    // Travel refunds is opt-in: fall back to false (matching the local/domain
+    // default and onboarding) when a server row omits the column, so a missing
+    // value never silently switches the feature on.
+    @SerialName("features_travel_refunds") val featuresTravelRefunds: Boolean = false,
     @SerialName("features_paid_projects") val featuresPaidProjects: Boolean = false,
     @SerialName("features_insights") val featuresInsights: Boolean = true,
     @SerialName("features_clock_styles") val featuresClockStyles: Boolean = true,

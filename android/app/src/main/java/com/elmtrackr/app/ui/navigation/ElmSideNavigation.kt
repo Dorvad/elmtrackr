@@ -51,7 +51,6 @@ import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.auroraPressScale
 import com.elmtrackr.app.ui.theme.AuroraAqua
-import com.elmtrackr.app.ui.theme.AuroraHair
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.AuroraWhite
@@ -95,7 +94,7 @@ fun ElmSideNavigation(
         ) {
             SideNavLogo(modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp))
 
-            HorizontalDivider(color = AuroraHair, thickness = 1.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
             Column(
                 modifier = Modifier

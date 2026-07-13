@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.PremiumProfile
@@ -51,7 +52,7 @@ fun PremiumProfilePicker(
                 FilterChip(
                     selected = selected?.id == profile.id,
                     onClick = { onSelect(profile.id) },
-                    label = { Text(profile.displayLabel) },
+                    label = { Text(profile.displayLabel, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 )
             }
         }

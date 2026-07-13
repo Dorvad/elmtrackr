@@ -131,14 +131,9 @@ import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.auroraSecondaryText
 import com.elmtrackr.app.ui.theme.auroraWeekendBackground
 import com.elmtrackr.app.ui.theme.auroraWeekendInk
-import com.elmtrackr.app.ui.theme.AuroraHair
 import com.elmtrackr.app.ui.theme.AuroraIndigo
-import com.elmtrackr.app.ui.theme.AuroraInk2
 import com.elmtrackr.app.ui.theme.AuroraPeach
 import com.elmtrackr.app.ui.theme.AuroraPlum
-import com.elmtrackr.app.ui.theme.AuroraSurface
-import com.elmtrackr.app.ui.theme.AuroraSurfaceSub
-import com.elmtrackr.app.ui.theme.AuroraWeekendBg
 import com.elmtrackr.app.ui.theme.AuroraWhite
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import kotlinx.coroutines.delay
@@ -360,8 +355,14 @@ private fun DashboardReady(
         FirstClockInCelebrationDialog(onDismiss = onDismissFirstClockInCelebration)
     }
 
-    val clockStyle = state.settings?.clockStyle?.toSupportedOrDefault()
-        ?: SupportedClockStyle.CLASSIC
+    // "Clock faces" is a feature toggle. When it is off, the home-screen clock
+    // falls back to the default face regardless of the saved style; the saved
+    // choice is preserved and reapplied when the feature is turned back on.
+    val clockStyle = if (state.settings?.featuresClockStyles == false) {
+        SupportedClockStyle.CLASSIC
+    } else {
+        state.settings?.clockStyle?.toSupportedOrDefault() ?: SupportedClockStyle.CLASSIC
+    }
 
     val isTablet = isTabletLayout()
 

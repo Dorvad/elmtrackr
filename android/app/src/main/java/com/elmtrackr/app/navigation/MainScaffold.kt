@@ -71,7 +71,6 @@ import com.elmtrackr.app.ui.settings.SettingsScreen
 import com.elmtrackr.app.ui.shifts.ShiftsScreen
 import com.elmtrackr.app.ui.onboarding.OnboardingScreen
 import com.elmtrackr.app.ui.theme.AuroraAqua
-import com.elmtrackr.app.ui.theme.AuroraHair
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.auroraNavBarBackground
@@ -317,7 +316,7 @@ private fun ElmBottomNav(
     ) {
     Column(modifier = Modifier.fillMaxWidth()) {
       HorizontalDivider(
-        color = AuroraHair,
+        color = MaterialTheme.colorScheme.outlineVariant,
         thickness = 1.dp,
       )
       Row(
