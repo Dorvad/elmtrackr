@@ -1,11 +1,6 @@
-import type { Metadata } from "next";
-import { LegalDocument } from "@/components/legal/LegalDocument";
-
-export const metadata: Metadata = {
-  title: "Terms of Service — ElmTrackr",
-  description: "Terms of use for the ElmTrackr shift tracking app.",
-};
+import { redirect } from "next/navigation";
+import { TERMS_URL } from "@/lib/legal/content";
 
 export default function TermsPage() {
-  return <LegalDocument kind="terms" />;
+  redirect(TERMS_URL);
 }

@@ -1,11 +1,6 @@
-import type { Metadata } from "next";
-import { LegalDocument } from "@/components/legal/LegalDocument";
-
-export const metadata: Metadata = {
-  title: "Privacy Policy — ElmTrackr",
-  description: "How ElmTrackr collects, uses, and protects your data.",
-};
+import { redirect } from "next/navigation";
+import { PRIVACY_POLICY_URL } from "@/lib/legal/content";
 
 export default function PrivacyPage() {
-  return <LegalDocument kind="privacy" />;
+  redirect(PRIVACY_POLICY_URL);
 }
