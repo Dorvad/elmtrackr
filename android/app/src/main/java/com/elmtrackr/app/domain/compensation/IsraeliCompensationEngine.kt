@@ -283,7 +283,7 @@ object IsraeliCompensationEngine {
         if (net <= 0) return emptyList()
 
         val startMs = shift.startTime.toEpochMilli()
-        val endMs = shift.endTime!!.toEpochMilli()
+        val endMs = shift.endTime?.toEpochMilli() ?: return emptyList()
         val grossMinutes = ((endMs - startMs) / 60_000.0).coerceAtLeast(1.0)
         val breakRatio = net / grossMinutes
 

@@ -56,7 +56,7 @@ object ReportInsightsBuilder {
             if (pay != null && pay > 0) {
                 hasPay = true
                 totalPay += pay
-                if (highestEarningAmount == null || pay > highestEarningAmount!!) {
+                if (highestEarningAmount?.let { pay > it } != false) {
                     highestEarningAmount = pay
                     highestEarningShift = shift
                 }

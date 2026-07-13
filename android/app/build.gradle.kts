@@ -29,7 +29,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.elmlaunch.myapp"
+        applicationId = "com.elmtrackr.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 10

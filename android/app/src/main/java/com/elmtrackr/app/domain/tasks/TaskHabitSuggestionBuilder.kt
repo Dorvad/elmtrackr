@@ -87,7 +87,7 @@ object TaskHabitSuggestionBuilder {
             if (prev == null || shift.startTime.isAfter(prev)) lastUsed[taskId] = shift.startTime
         }
 
-        for ((taskId, count) in shiftsWithTasks.groupingBy { it.taskId!! }.eachCount()) {
+        for ((taskId, count) in shiftsWithTasks.mapNotNull { it.taskId }.groupingBy { it }.eachCount()) {
             scores[taskId] = scores.getOrDefault(taskId, 0) + minOf(count, USAGE_COUNT_CAP)
         }
 
