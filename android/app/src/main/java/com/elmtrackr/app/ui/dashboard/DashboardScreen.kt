@@ -131,14 +131,9 @@ import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.auroraSecondaryText
 import com.elmtrackr.app.ui.theme.auroraWeekendBackground
 import com.elmtrackr.app.ui.theme.auroraWeekendInk
-import com.elmtrackr.app.ui.theme.AuroraHair
 import com.elmtrackr.app.ui.theme.AuroraIndigo
-import com.elmtrackr.app.ui.theme.AuroraInk2
 import com.elmtrackr.app.ui.theme.AuroraPeach
 import com.elmtrackr.app.ui.theme.AuroraPlum
-import com.elmtrackr.app.ui.theme.AuroraSurface
-import com.elmtrackr.app.ui.theme.AuroraSurfaceSub
-import com.elmtrackr.app.ui.theme.AuroraWeekendBg
 import com.elmtrackr.app.ui.theme.AuroraWhite
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import kotlinx.coroutines.delay

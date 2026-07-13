@@ -116,7 +116,6 @@ import com.elmtrackr.app.ui.theme.AuroraAquaDeep
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeach
 import com.elmtrackr.app.ui.theme.AuroraPlum
-import com.elmtrackr.app.ui.theme.AuroraHair
 import com.elmtrackr.app.ui.theme.AuroraPeachDeep
 import com.elmtrackr.app.ui.theme.auroraOvertimeBackground
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
@@ -1715,7 +1714,7 @@ private fun OtThresholdFootnote(settings: UserSettings) {
                 ) {
                     OtThresholdLine(stringResource(R.string.reports_daily_ot_after), daily)
                     Spacer(Modifier.width(16.dp))
-                    Box(Modifier.width(1.dp).height(12.dp).background(AuroraHair))
+                    Box(Modifier.width(1.dp).height(12.dp).background(MaterialTheme.colorScheme.outlineVariant))
                     Spacer(Modifier.width(16.dp))
                     OtThresholdLine(stringResource(R.string.reports_weekly_ot_after), weekly)
                 }
