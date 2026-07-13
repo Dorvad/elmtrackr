@@ -27,6 +27,8 @@ import com.elmtrackr.app.ui.design.LocalReduceMotion
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.update.InAppUpdateHost
 import com.elmtrackr.app.update.InAppUpdateManager
+import com.elmtrackr.app.update.InAppUpdatePrompt
+import com.elmtrackr.app.update.openPlayStoreListing
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.firstOrNull
@@ -51,13 +53,13 @@ class MainActivity : AppCompatActivity() {
 
     var onNotificationPermissionResult: ((Boolean) -> Unit)? = null
 
-    private var flexibleUpdateReady by mutableStateOf(false)
+    private var updatePrompt by mutableStateOf<InAppUpdatePrompt?>(null)
     private lateinit var inAppUpdateManager: InAppUpdateManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        inAppUpdateManager = InAppUpdateManager(this) { flexibleUpdateReady = true }
+        inAppUpdateManager = InAppUpdateManager(this) { prompt -> updatePrompt = prompt }
         intent?.data?.toString()?.let { handleDeepLink(it) }
         setContent {
             val configuration = LocalConfiguration.current
@@ -77,12 +79,16 @@ class MainActivity : AppCompatActivity() {
                         lockEnabled = preferences.appLockEnabled,
                     ) {
                         InAppUpdateHost(
-                            updateReady = flexibleUpdateReady,
+                            prompt = updatePrompt,
                             onInstall = {
-                                flexibleUpdateReady = false
+                                updatePrompt = null
                                 inAppUpdateManager.completeFlexibleUpdate()
                             },
-                            onDismiss = { flexibleUpdateReady = false },
+                            onDismiss = { updatePrompt = null },
+                            onOpenPlayStore = {
+                                updatePrompt = null
+                                openPlayStoreListing(this@MainActivity)
+                            },
                         ) {
                             AppNavGraph()
                         }

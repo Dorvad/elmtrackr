@@ -13,21 +13,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.R
 
 /**
- * Wraps [content] and overlays a "restart to install" snackbar whenever a
- * flexible Google Play update has finished downloading ([updateReady] is true).
- *
- * Google Play does not restart the app automatically for flexible updates, so we
- * ask the user for confirmation before calling [onInstall]
- * (`AppUpdateManager.completeUpdate()`), as recommended by the in-app updates guide.
+ * Wraps [content] and overlays update prompts from [InAppUpdateManager]:
+ * - [InAppUpdatePrompt.RestartReady]: flexible download finished; confirm restart.
+ * - [InAppUpdatePrompt.PlayStore]: in-app flows unavailable; open the listing.
  */
 @Composable
 fun InAppUpdateHost(
-    updateReady: Boolean,
+    prompt: InAppUpdatePrompt?,
     onInstall: () -> Unit,
     onDismiss: () -> Unit,
+    onOpenPlayStore: () -> Unit,
     content: @Composable () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -43,17 +43,33 @@ fun InAppUpdateHost(
         )
     }
 
-    LaunchedEffect(updateReady) {
-        if (!updateReady) return@LaunchedEffect
-        val result = snackbarHostState.showSnackbar(
-            message = "A new version of ElmTrackr is ready.",
-            actionLabel = "Restart",
-            withDismissAction = true,
-            duration = SnackbarDuration.Indefinite,
-        )
-        when (result) {
-            SnackbarResult.ActionPerformed -> onInstall()
-            SnackbarResult.Dismissed -> onDismiss()
+    LaunchedEffect(prompt) {
+        when (prompt) {
+            null -> Unit
+            InAppUpdatePrompt.RestartReady -> {
+                val result = snackbarHostState.showSnackbar(
+                    message = stringResource(R.string.in_app_update_ready_message),
+                    actionLabel = stringResource(R.string.in_app_update_restart),
+                    withDismissAction = true,
+                    duration = SnackbarDuration.Indefinite,
+                )
+                when (result) {
+                    SnackbarResult.ActionPerformed -> onInstall()
+                    SnackbarResult.Dismissed -> onDismiss()
+                }
+            }
+            InAppUpdatePrompt.PlayStore -> {
+                val result = snackbarHostState.showSnackbar(
+                    message = stringResource(R.string.in_app_update_play_store_message),
+                    actionLabel = stringResource(R.string.in_app_update_open_play_store),
+                    withDismissAction = true,
+                    duration = SnackbarDuration.Long,
+                )
+                when (result) {
+                    SnackbarResult.ActionPerformed -> onOpenPlayStore()
+                    SnackbarResult.Dismissed -> onDismiss()
+                }
+            }
         }
     }
 }

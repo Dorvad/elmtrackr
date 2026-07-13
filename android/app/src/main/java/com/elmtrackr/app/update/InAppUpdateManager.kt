@@ -7,6 +7,7 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.google.android.play.core.appupdate.AppUpdateInfo
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
@@ -15,15 +16,19 @@ import com.google.android.play.core.install.InstallStateUpdatedListener
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
+import kotlinx.coroutines.launch
 
 /**
  * Drives Google Play in-app updates for [activity].
  *
  * On every resume it asks Play whether an update is available and applies
  * [InAppUpdatePolicy] to start the flexible or immediate flow. For flexible
- * updates it watches the install state and invokes [onFlexibleUpdateReady] once
- * the new version finishes downloading, so the UI can prompt the user to restart
- * via [completeFlexibleUpdate].
+ * updates it watches the install state and invokes [onPrompt] with
+ * [InAppUpdatePrompt.RestartReady] once the new version finishes downloading.
+ *
+ * When Play reports an update but no in-app flow can run, [onPrompt] may
+ * receive [InAppUpdatePrompt.PlayStore] (rate-limited) so users still have a
+ * path to update.
  *
  * Outside of Google Play (sideloaded debug builds, CI, emulators without Play)
  * the Play task fails or reports "no update available" and every method becomes a
@@ -32,23 +37,34 @@ import com.google.android.play.core.install.model.UpdateAvailability
 class InAppUpdateManager(
     private val activity: ComponentActivity,
     private val appUpdateManager: AppUpdateManager = AppUpdateManagerFactory.create(activity),
-    private val onFlexibleUpdateReady: () -> Unit,
+    private val promptStore: InAppUpdatePromptStore = InAppUpdatePromptStore(activity),
+    private val onPrompt: (InAppUpdatePrompt) -> Unit,
 ) : DefaultLifecycleObserver {
 
     private val updateLauncher = activity.registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult(),
     ) { result: ActivityResult ->
-        if (result.resultCode != Activity.RESULT_OK) {
-            // RESULT_CANCELED (user declined) or RESULT_IN_APP_UPDATE_FAILED. We do not
-            // re-prompt for a flexible update again this session to avoid nagging; an
-            // immediate update is re-offered on the next resume by the policy.
-            Log.d(TAG, "Update flow did not complete (resultCode=${result.resultCode}).")
+        when (result.resultCode) {
+            Activity.RESULT_OK -> Unit
+            Activity.RESULT_CANCELED -> {
+                flexibleFlowStarted = false
+                activity.lifecycleScope.launch {
+                    promptStore.recordFlexibleDismissed()
+                }
+                UpdateDiagnostics.recordUserDismissed()
+                Log.d(TAG, "Flexible update dismissed by user.")
+            }
+            else -> {
+                flexibleFlowStarted = false
+                UpdateDiagnostics.recordFlowFailed(result.resultCode)
+                Log.d(TAG, "Update flow did not complete (resultCode=${result.resultCode}).")
+            }
         }
     }
 
     private val installListener = InstallStateUpdatedListener { state ->
         if (state.installStatus() == InstallStatus.DOWNLOADED) {
-            onFlexibleUpdateReady()
+            onPrompt(InAppUpdatePrompt.RestartReady)
         }
     }
 
@@ -71,24 +87,20 @@ class InAppUpdateManager(
     fun checkForUpdate() {
         appUpdateManager.appUpdateInfo
             .addOnSuccessListener { info ->
-                // A flexible update finished downloading while we were away — prompt to install.
-                if (info.installStatus() == InstallStatus.DOWNLOADED) {
-                    onFlexibleUpdateReady()
-                    return@addOnSuccessListener
-                }
-                when (InAppUpdatePolicy.decide(info.toStatus())) {
-                    InAppUpdateAction.IMMEDIATE -> startFlow(info, AppUpdateType.IMMEDIATE)
-                    InAppUpdateAction.FLEXIBLE -> if (!flexibleFlowStarted) {
-                        registerListener()
-                        if (startFlow(info, AppUpdateType.FLEXIBLE)) {
-                            flexibleFlowStarted = true
-                        }
-                    }
-                    InAppUpdateAction.NONE -> Unit
+                activity.lifecycleScope.launch {
+                    handleUpdateInfo(info)
                 }
             }
             .addOnFailureListener { e ->
-                // Expected when the app was not installed from Google Play.
+                UpdateDiagnostics.recordCheck(
+                    status = InAppUpdateStatus(
+                        updateAvailable = false,
+                        flexibleAllowed = false,
+                        immediateAllowed = false,
+                    ),
+                    action = InAppUpdateAction.NONE,
+                    flexibleFlowStarted = flexibleFlowStarted,
+                )
                 Log.d(TAG, "Skipping in-app update check: ${e.message}")
             }
     }
@@ -96,6 +108,55 @@ class InAppUpdateManager(
     /** Completes a downloaded flexible update by restarting the app to install it. */
     fun completeFlexibleUpdate() {
         appUpdateManager.completeUpdate()
+    }
+
+    private suspend fun handleUpdateInfo(info: AppUpdateInfo) {
+        if (info.installStatus() == InstallStatus.DOWNLOADED) {
+            onPrompt(InAppUpdatePrompt.RestartReady)
+            return
+        }
+
+        val status = info.toStatus()
+        val action = InAppUpdatePolicy.decide(status)
+        UpdateDiagnostics.recordCheck(status, action, flexibleFlowStarted)
+
+        when (action) {
+            InAppUpdateAction.IMMEDIATE -> {
+                if (!startFlow(info, AppUpdateType.IMMEDIATE)) {
+                    maybeShowPlayStoreFallback(status, "immediate_start_failed")
+                }
+            }
+            InAppUpdateAction.FLEXIBLE -> offerFlexibleUpdate(info, status)
+            InAppUpdateAction.NONE -> {
+                if (status.updateAvailable) {
+                    maybeShowPlayStoreFallback(status, "no_allowed_flow")
+                }
+            }
+        }
+    }
+
+    private suspend fun offerFlexibleUpdate(info: AppUpdateInfo, status: InAppUpdateStatus) {
+        if (flexibleFlowStarted) return
+        val lastDismissedAt = promptStore.lastFlexibleDismissedAt()
+        if (!InAppUpdateCooldown.shouldOfferFlexiblePrompt(lastDismissedAt, System.currentTimeMillis())) {
+            return
+        }
+        registerListener()
+        if (startFlow(info, AppUpdateType.FLEXIBLE)) {
+            flexibleFlowStarted = true
+        } else {
+            maybeShowPlayStoreFallback(status, "flexible_start_failed")
+        }
+    }
+
+    private suspend fun maybeShowPlayStoreFallback(status: InAppUpdateStatus, reason: String) {
+        val lastShownAt = promptStore.lastPlayStoreFallbackShownAt()
+        if (!InAppUpdateCooldown.shouldShowPlayStoreFallback(lastShownAt, System.currentTimeMillis())) {
+            return
+        }
+        UpdateDiagnostics.recordPlayStoreFallback(reason, status)
+        promptStore.recordPlayStoreFallbackShown()
+        onPrompt(InAppUpdatePrompt.PlayStore)
     }
 
     private fun startFlow(info: AppUpdateInfo, @AppUpdateType type: Int): Boolean = try {
