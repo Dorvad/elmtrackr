@@ -21,7 +21,7 @@ object ReceiptParseResultMerger {
         if (hebrew == null && latin == null) {
             throw IllegalArgumentException("At least one parse result is required")
         }
-        if (hebrew == null) return latin!!
+        if (hebrew == null) return requireNotNull(latin) { "At least one parse result is required" }
         if (latin == null) return hebrew
 
         val amountSource = pickAmountSource(hebrew, latin)

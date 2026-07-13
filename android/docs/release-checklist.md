@@ -8,7 +8,7 @@ everything else is verified by code or CI.
 
 ## 0. Pre-flight decision: application ID
 
-`app/build.gradle.kts` currently sets:
+`app/build.gradle.kts` now sets:
 
 ```kotlin
 applicationId = "com.elmlaunch.myapp"
@@ -16,12 +16,11 @@ applicationId = "com.elmlaunch.myapp"
 
 **This identifier becomes permanent the moment the app is first published** —
 it can never be changed afterwards, and it is visible to users in the Play
-Store URL (`play.google.com/store/apps/details?id=...`). If this is a leftover
-placeholder, change it (e.g. to `com.elmtrackr.app`, matching the code
-namespace) **before** the first upload. Changing it later means publishing a
-brand-new app and losing all users, reviews, and history.
+Store URL (`play.google.com/store/apps/details?id=...`). The previous
+placeholder package has been replaced with the existing ElmLaunch ID before
+first upload.
 
-> Changing the ID now is safe for the store release, but any previously
+> Changing the ID before the store release is safe, but any previously
 > sideloaded debug/CI builds will appear as a separate app on testers' devices.
 
 ---
@@ -195,7 +194,7 @@ in `app/build.gradle.kts` — Play rejects reused version codes.
 
 | Blocker | State |
 |---|---|
-| Application ID decision | **Open — decide before first upload (§0)** |
+| Application ID decision | Done — app ID is `com.elmlaunch.myapp` (§0) |
 | Upload keystore | Guide ready (§1); generate + store manually |
 | Release signing config | Done — safe debug fallback when keystore absent |
 | R8 release build verified | Done in CI-equivalent build; re-verify on device (§2) |
