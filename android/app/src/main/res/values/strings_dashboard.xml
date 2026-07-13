@@ -6,6 +6,9 @@
     <string name="dashboard_notif_rationale_continue">Continue</string>
     <string name="dashboard_notif_rationale_not_now">Not now</string>
 
+    <!-- Load-failure fallback -->
+    <string name="dashboard_error_message">Something went wrong: %1$s</string>
+
     <!-- Header -->
     <string name="dashboard_greeting_morning">Good morning</string>
     <string name="dashboard_greeting_afternoon">Good afternoon</string>

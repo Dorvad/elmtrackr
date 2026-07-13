@@ -511,6 +511,7 @@ class SyncRepositoryImplTest {
         settingsDao = EmptySettingsDao(),
         compensationProfileDao = EmptyCompensationProfileDao(),
         premiumProfileDao = EmptyPremiumProfileDao(),
+        receiptDao = com.elmtrackr.app.fake.FakeReceiptDao(),
         taskDao = taskDao,
         profileDao = profileDao,
         syncCursorStore = syncCursorStore,

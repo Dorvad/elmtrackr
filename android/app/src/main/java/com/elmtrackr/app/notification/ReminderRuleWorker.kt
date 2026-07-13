@@ -51,12 +51,16 @@ class ReminderRuleWorker @AssistedInject constructor(
                     notifications.showOvertimeAtThreshold(shift)
                 } else {
                     if (ActiveShiftNotificationManager.isShiftOverThreshold(shift.startTime, threshold.toLong())) {
-                        val hoursInOvertime = OvertimeReminderPolicy.overtimeHoursElapsed(
+                        // Actual time in overtime, not a 60-minute bucket count:
+                        // with a 30-minute repeat interval the old hour-count
+                        // said "1 hour" at +30 and again at +60.
+                        val minutes = OvertimeReminderPolicy.overtimeMinutesElapsed(
                             threshold,
                             shift.startTime,
                             Instant.now(),
-                        ).coerceAtLeast(1)
-                        notifications.showOvertimeHourlyReminder(shift, hoursInOvertime)
+                        ).coerceAtLeast(rule.offsetMinutes.toLong())
+                        val label = String.format(java.util.Locale.US, "%d:%02d", minutes / 60, minutes % 60)
+                        notifications.showOvertimeHourlyReminder(shift, label)
                     }
                     OvertimeReminderScheduler.enqueueRule(applicationContext, rule, shift, threshold)
                 }

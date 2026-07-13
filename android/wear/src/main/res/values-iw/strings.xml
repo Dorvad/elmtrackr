@@ -27,4 +27,10 @@
     <string name="tile_on_phone">בטלפון</string>
     <string name="tile_tap_punch_out">הקשה ליציאה</string>
     <string name="tile_tap_punch_in">הקשה לכניסה</string>
+    <string name="wear_last_out_today">יציאה אחרונה • היום %1$s</string>
+    <string name="wear_last_out_yesterday">יציאה אחרונה • אתמול %1$s</string>
+    <string name="wear_last_out_other">יציאה אחרונה • %1$s</string>
+    <string name="wear_comp_in">במשמרת</string>
+    <string name="wear_comp_out">בחוץ</string>
+    <string name="wear_comp_clocked_in">במשמרת · %1$s</string>
 </resources>

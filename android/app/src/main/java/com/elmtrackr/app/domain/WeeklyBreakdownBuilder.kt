@@ -41,13 +41,14 @@ object WeeklyBreakdownBuilder {
         profiles: List<CompensationProfile> = emptyList(),
         premiumProfiles: List<PremiumProfile> = emptyList(),
         prevMonthShifts: List<Shift> = emptyList(),
+        zoneOverride: java.time.ZoneId? = null,
     ): List<WeeklyTotals> {
         val hasPay = settings?.let { s ->
             (s.hourlyRate ?: 0.0) > 0.0 ||
                 profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
         } == true
 
-        val zone = settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneOffset.UTC
+        val zone = zoneOverride ?: settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneOffset.UTC
 
         data class Bucket(
             val shiftList: MutableList<Shift> = mutableListOf(),

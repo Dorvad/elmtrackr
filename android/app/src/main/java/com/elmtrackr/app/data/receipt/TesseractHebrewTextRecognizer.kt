@@ -1,8 +1,6 @@
 package com.elmtrackr.app.data.receipt
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import com.elmtrackr.app.domain.receipt.ReceiptTextRecognizer
 import com.googlecode.tesseract.android.TessBaseAPI
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -32,7 +30,7 @@ class TesseractHebrewTextRecognizer @Inject constructor(
         runCatching {
             val file = File(imagePath)
             require(file.exists() && file.isFile && file.length() > 0) { "Receipt image not found" }
-            val bitmap = decodeDownscaled(imagePath)
+            val bitmap = ReceiptBitmapDecoder.decodeDownscaled(imagePath)
                 ?: error("Unable to read receipt image")
             engineMutex.withLock {
                 val tess = obtainEngine()
@@ -78,21 +76,8 @@ class TesseractHebrewTextRecognizer @Inject constructor(
         return baseDir
     }
 
-    private fun decodeDownscaled(imagePath: String): Bitmap? {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(imagePath, bounds)
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
-        var sampleSize = 1
-        while (maxOf(bounds.outWidth, bounds.outHeight) / (sampleSize * 2) >= MAX_DIMENSION_PX) {
-            sampleSize *= 2
-        }
-        val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-        return BitmapFactory.decodeFile(imagePath, options)
-    }
-
     private companion object {
         const val LANGUAGE = "heb"
-        const val MAX_DIMENSION_PX = 2048
 
         /** Bump when the bundled traineddata asset changes to force a re-copy. */
         const val TRAINEDDATA_VERSION = 1

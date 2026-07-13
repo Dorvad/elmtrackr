@@ -51,6 +51,7 @@ class SyncRepositoryImpl @Inject constructor(
     private val settingsDao: SettingsDao,
     private val compensationProfileDao: CompensationProfileDao,
     private val premiumProfileDao: PremiumProfileDao,
+    private val receiptDao: com.elmtrackr.app.data.local.dao.ReceiptDao,
     private val taskDao: TaskDao,
     private val profileDao: ProfileDao,
     private val syncCursorStore: SyncCursorStore,
@@ -178,6 +179,8 @@ class SyncRepositoryImpl @Inject constructor(
             refundClaimDao = refundClaimDao,
             settingsDao = settingsDao,
             compensationProfileDao = compensationProfileDao,
+            premiumProfileDao = premiumProfileDao,
+            receiptDao = receiptDao,
             appVersion = com.elmtrackr.app.BuildConfig.VERSION_NAME,
         )
 
@@ -190,6 +193,8 @@ class SyncRepositoryImpl @Inject constructor(
             refundClaimDao = refundClaimDao,
             settingsDao = settingsDao,
             compensationProfileDao = compensationProfileDao,
+            premiumProfileDao = premiumProfileDao,
+            receiptDao = receiptDao,
         )
 
     override suspend fun hasPendingWork(userId: String): Boolean =
@@ -326,8 +331,13 @@ class SyncRepositoryImpl @Inject constructor(
     private data class PullOutcome(
         val seenRemoteIds: Set<String>,
         val isFullSync: Boolean,
+        /** False when pagination bailed out early, so [seenRemoteIds] is incomplete. */
+        val drainedFully: Boolean = true,
     ) {
         val pulledAnyRows: Boolean get() = seenRemoteIds.isNotEmpty()
+
+        /** Tombstoning against a partial server view would delete valid local rows. */
+        val safeToTombstone: Boolean get() = isFullSync && pulledAnyRows && drainedFully
     }
 
     /**
@@ -350,6 +360,7 @@ class SyncRepositoryImpl @Inject constructor(
         val isFullSync = initialCursor == null
         var cursor = initialCursor
         var holdEpoch: Long? = null
+        var drainedFully = true
         val seenRemoteIds = mutableSetOf<String>()
 
         while (true) {
@@ -380,11 +391,15 @@ class SyncRepositoryImpl @Inject constructor(
             if (batch.size < PULL_PAGE_SIZE) break
             // A full page whose newest row does not advance the cursor means every
             // remaining fetch would return the same page (updated_at uses gte) — bail
-            // out instead of looping forever.
-            if (cursor == previousCursor) break
+            // out instead of looping forever. The server view is incomplete at
+            // this point, so downstream tombstoning must be skipped.
+            if (cursor == previousCursor) {
+                drainedFully = false
+                break
+            }
         }
 
-        return PullOutcome(seenRemoteIds = seenRemoteIds, isFullSync = isFullSync)
+        return PullOutcome(seenRemoteIds = seenRemoteIds, isFullSync = isFullSync, drainedFully = drainedFully)
     }
 
     // ── Tasks ───────────────────────────────────────────────────────────────
@@ -461,7 +476,7 @@ class SyncRepositoryImpl @Inject constructor(
                 true
             }
 
-            if (outcome.isFullSync && outcome.pulledAnyRows) {
+            if (outcome.safeToTombstone) {
                 val now = Instant.now().toEpochMilli()
                 taskDao.getAllTasksForUser(userId)
                     .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
@@ -562,7 +577,7 @@ class SyncRepositoryImpl @Inject constructor(
             applyRemoteShift(userId, remote, localActiveExists)
         }
 
-        if (outcome.isFullSync && outcome.pulledAnyRows) {
+        if (outcome.safeToTombstone) {
             val now = Instant.now().toEpochMilli()
             shiftDao.getAllShiftsForUser(userId)
                 .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
@@ -721,7 +736,7 @@ class SyncRepositoryImpl @Inject constructor(
             true
         }
 
-        if (outcome.isFullSync && outcome.pulledAnyRows) {
+        if (outcome.safeToTombstone) {
             val now = Instant.now().toEpochMilli()
             refundClaimDao.getAllClaimsForUser(userId)
                 .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
@@ -797,7 +812,7 @@ class SyncRepositoryImpl @Inject constructor(
             true
         }
 
-        if (outcome.isFullSync && outcome.pulledAnyRows) {
+        if (outcome.safeToTombstone) {
             val now = Instant.now().toEpochMilli()
             compensationProfileDao.getAllProfilesForUser(userId)
                 .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
@@ -874,7 +889,7 @@ class SyncRepositoryImpl @Inject constructor(
             true
         }
 
-        if (outcome.isFullSync && outcome.pulledAnyRows) {
+        if (outcome.safeToTombstone) {
             val now = Instant.now().toEpochMilli()
             premiumProfileDao.getAllProfilesForUser(userId)
                 .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }

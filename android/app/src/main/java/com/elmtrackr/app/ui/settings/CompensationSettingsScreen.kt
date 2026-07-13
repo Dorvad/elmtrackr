@@ -40,6 +40,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -116,18 +117,20 @@ internal fun CompensationSettingsContent(
     ) -> Unit,
     onDismissMessage: () -> Unit,
 ) {
-    var showCreateDialog by remember { mutableStateOf(false) }
-    var newProfileName by remember { mutableStateOf("") }
-    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showCreateDialog by rememberSaveable { mutableStateOf(false) }
+    var newProfileName by rememberSaveable { mutableStateOf("") }
+    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
 
-    var name by remember(state.profile.id) { mutableStateOf(state.profile.name) }
-    var regionCode by remember(state.profile.id) { mutableStateOf(state.profile.regionCode) }
-    var currencyCode by remember(state.profile.id) { mutableStateOf(state.profile.currencyCode) }
-    var timezone by remember(state.profile.id) { mutableStateOf(state.profile.timezone) }
-    var hourlyRateText by remember(state.profile.id) {
+    var name by rememberSaveable(state.profile.id) { mutableStateOf(state.profile.name) }
+    var regionCode by rememberSaveable(state.profile.id) { mutableStateOf(state.profile.regionCode) }
+    var currencyCode by rememberSaveable(state.profile.id) { mutableStateOf(state.profile.currencyCode) }
+    var timezone by rememberSaveable(state.profile.id) { mutableStateOf(state.profile.timezone) }
+    var hourlyRateText by rememberSaveable(state.profile.id) {
         mutableStateOf(state.profile.baseHourlyRate?.toString().orEmpty())
     }
-    var stackingPolicy by remember(state.profile.id) { mutableStateOf(state.profile.stackingPolicy) }
+    var stackingPolicy by rememberSaveable(state.profile.id) { mutableStateOf(state.profile.stackingPolicy) }
+    // CompensationRules is not Bundle-saveable; unsaved tier edits still reset
+    // on rotation. Tracked as a known limitation.
     var rules by remember(state.profile.id) { mutableStateOf(state.profile.rules) }
 
     LaunchedEffect(state.saveMessage) {

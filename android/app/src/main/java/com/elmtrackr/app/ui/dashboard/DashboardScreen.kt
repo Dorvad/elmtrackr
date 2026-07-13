@@ -2066,7 +2066,10 @@ internal fun DashboardReadyPreview(
 @Composable
 private fun DashboardError(message: String) {
     Box(Modifier.fillMaxSize(), Alignment.Center) {
-        Text("Error: $message", color = MaterialTheme.colorScheme.error)
+        Text(
+            stringResource(R.string.dashboard_error_message, message),
+            color = MaterialTheme.colorScheme.error,
+        )
     }
 }
 

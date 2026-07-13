@@ -50,12 +50,20 @@ object PlaintextDatabaseMigrator {
             plaintextDb.close()
             plaintextDb = null
 
-            if (!dbFile.delete()) {
-                throw IllegalStateException("Could not remove plaintext database")
-            }
+            // rename(2) replaces the target atomically on Android, so the
+            // plaintext file is never deleted before the encrypted copy is in
+            // place — a process death between the two steps can no longer
+            // strand the user with neither database.
             if (!tempFile.renameTo(dbFile)) {
-                throw IllegalStateException("Could not replace database with encrypted copy")
+                if (!dbFile.delete() || !tempFile.renameTo(dbFile)) {
+                    throw IllegalStateException("Could not replace database with encrypted copy")
+                }
             }
+            // Any sidecar journal belongs to the plaintext file and must not
+            // be replayed into the encrypted database.
+            File(dbFile.parentFile, "$DB_NAME-journal").delete()
+            File(dbFile.parentFile, "$DB_NAME-wal").delete()
+            File(dbFile.parentFile, "$DB_NAME-shm").delete()
             prefs.edit().putBoolean(MIGRATION_FLAG, true).apply()
         } catch (t: Throwable) {
             Log.e(TAG, "SQLCipher migration failed", t)

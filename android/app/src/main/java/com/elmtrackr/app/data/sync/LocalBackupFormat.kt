@@ -11,11 +11,15 @@ import kotlinx.serialization.Serializable
 /**
  * Versioned full-fidelity local backup format. Every entity column is included
  * so a backup can be re-imported without data loss. Bump [BACKUP_FORMAT_VERSION]
- * whenever a field is added; import tolerates unknown keys, so older app
- * versions' backups only fail when [LocalBackupDocument.formatVersion] predates
- * full-fidelity rows.
+ * whenever a field is added; import tolerates unknown keys and accepts any
+ * version back to [MIN_SUPPORTED_BACKUP_FORMAT_VERSION] (older documents simply
+ * lack the newer optional fields), so bumping the version never strands a
+ * user's existing backup files.
  */
-const val BACKUP_FORMAT_VERSION = 2
+const val BACKUP_FORMAT_VERSION = 3
+
+/** Version 1 predates full-fidelity rows and cannot be restored safely. */
+const val MIN_SUPPORTED_BACKUP_FORMAT_VERSION = 2
 
 @Serializable
 data class LocalBackupDocument(
@@ -28,6 +32,8 @@ data class LocalBackupDocument(
     val refundClaims: List<RefundClaimBackupRow> = emptyList(),
     val userSettings: List<UserSettingsBackupRow> = emptyList(),
     val compensationProfiles: List<CompensationProfileBackupRow> = emptyList(),
+    val premiumProfiles: List<PremiumProfileBackupRow> = emptyList(),
+    val receipts: List<ReceiptBackupRow> = emptyList(),
 )
 
 @Serializable
@@ -59,6 +65,7 @@ data class ShiftBackupRow(
     val forceRegularRate: Boolean = false,
     val refundAction: String? = null,
     val compensationProfileId: String? = null,
+    val premiumProfileId: String? = null,
     val compensationSnapshotJson: String? = null,
     val taskId: String? = null,
     val taskNameSnapshot: String? = null,
@@ -139,6 +146,43 @@ data class CompensationProfileBackupRow(
     val lastSyncedAt: Long? = null,
 )
 
+@Serializable
+data class PremiumProfileBackupRow(
+    val localId: String,
+    val remoteId: String? = null,
+    val name: String,
+    val multiplier: Double,
+    val premiumType: String,
+    val isDefault: Boolean,
+    val isArchived: Boolean,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+    val syncStatus: String,
+    val lastSyncedAt: Long? = null,
+)
+
+/**
+ * Receipts are local-only (never synced), so the backup row is their sole
+ * recovery path. The image binary itself is not embedded — after a restore
+ * the structured fields (amount, merchant, date, OCR text) survive even when
+ * [localImageUri] no longer resolves to a file.
+ */
+@Serializable
+data class ReceiptBackupRow(
+    val id: String,
+    val refundClaimId: String? = null,
+    val localImageUri: String,
+    val merchantName: String? = null,
+    val amount: Double? = null,
+    val currency: String? = null,
+    val receiptDate: Long? = null,
+    val rawOcrText: String? = null,
+    val parserVersion: String,
+    val createdAt: Long,
+    val updatedAt: Long,
+)
+
 internal fun syncStatusFromBackup(value: String): SyncStatus = SyncStatus.fromPersisted(value)
 
 internal fun TaskEntity.toBackupRow() = TaskBackupRow(
@@ -160,6 +204,7 @@ internal fun ShiftEntity.toBackupRow() = ShiftBackupRow(
     breakMinutes = breakMinutes, notes = notes, isSpecialDay = isSpecialDay,
     forceRegularRate = forceRegularRate,
     refundAction = refundAction, compensationProfileId = compensationProfileId,
+    premiumProfileId = premiumProfileId,
     compensationSnapshotJson = compensationSnapshotJson, taskId = taskId,
     taskNameSnapshot = taskNameSnapshot, taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot, createdAt = createdAt,
@@ -172,6 +217,7 @@ internal fun ShiftBackupRow.toEntity(userId: String) = ShiftEntity(
     endTime = endTime, breakMinutes = breakMinutes, notes = notes, isSpecialDay = isSpecialDay,
     forceRegularRate = forceRegularRate,
     refundAction = refundAction, compensationProfileId = compensationProfileId,
+    premiumProfileId = premiumProfileId,
     compensationSnapshotJson = compensationSnapshotJson, taskId = taskId,
     taskNameSnapshot = taskNameSnapshot, taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot, createdAt = createdAt,
@@ -240,4 +286,33 @@ internal fun CompensationProfileBackupRow.toEntity(userId: String) = Compensatio
     effectiveFrom = effectiveFrom, effectiveUntil = effectiveUntil, isDefault = isDefault,
     isArchived = isArchived, createdAt = createdAt, updatedAt = updatedAt, deletedAt = deletedAt,
     syncStatus = syncStatusFromBackup(syncStatus), lastSyncError = null, lastSyncedAt = lastSyncedAt,
+)
+
+internal fun com.elmtrackr.app.data.local.entity.PremiumProfileEntity.toBackupRow() = PremiumProfileBackupRow(
+    localId = localId, remoteId = remoteId, name = name, multiplier = multiplier,
+    premiumType = premiumType, isDefault = isDefault, isArchived = isArchived,
+    createdAt = createdAt, updatedAt = updatedAt, deletedAt = deletedAt,
+    syncStatus = syncStatus.name, lastSyncedAt = lastSyncedAt,
+)
+
+internal fun PremiumProfileBackupRow.toEntity(userId: String) = com.elmtrackr.app.data.local.entity.PremiumProfileEntity(
+    localId = localId, remoteId = remoteId, userId = userId, name = name,
+    multiplier = multiplier, premiumType = premiumType, isDefault = isDefault,
+    isArchived = isArchived, createdAt = createdAt, updatedAt = updatedAt,
+    deletedAt = deletedAt, syncStatus = syncStatusFromBackup(syncStatus),
+    lastSyncError = null, lastSyncedAt = lastSyncedAt,
+)
+
+internal fun com.elmtrackr.app.data.local.entity.ReceiptEntity.toBackupRow() = ReceiptBackupRow(
+    id = id, refundClaimId = refundClaimId, localImageUri = localImageUri,
+    merchantName = merchantName, amount = amount, currency = currency,
+    receiptDate = receiptDate, rawOcrText = rawOcrText, parserVersion = parserVersion,
+    createdAt = createdAt, updatedAt = updatedAt,
+)
+
+internal fun ReceiptBackupRow.toEntity(userId: String, refundClaimId: String?) = com.elmtrackr.app.data.local.entity.ReceiptEntity(
+    id = id, userId = userId, refundClaimId = refundClaimId, localImageUri = localImageUri,
+    merchantName = merchantName, amount = amount, currency = currency,
+    receiptDate = receiptDate, rawOcrText = rawOcrText, parserVersion = parserVersion,
+    createdAt = createdAt, updatedAt = updatedAt,
 )

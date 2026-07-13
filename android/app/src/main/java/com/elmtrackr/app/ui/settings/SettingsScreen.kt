@@ -249,27 +249,28 @@ private fun SettingsFormHost(
     val context = LocalContext.current
     val activity = context as FragmentActivity
     val biometricAvailability = remember { BiometricCapability.check(context) }
-    var displayName by remember { mutableStateOf(state.profile?.fullName ?: "") }
-    // Plain remember (no settings keys): each destination gets its own
+    var displayName by rememberSaveable { mutableStateOf(state.profile?.fullName ?: "") }
+    // rememberSaveable without settings keys: each destination gets its own
     // composition, so fields initialize on entry; keying on settings values
-    // let a background sync emission wipe text the user was typing.
-    var dailyOtText by remember {
+    // let a background sync emission wipe text the user was typing, while
+    // plain remember lost unsaved edits on rotation.
+    var dailyOtText by rememberSaveable {
         mutableStateOf(minutesToHours(state.settings.dailyOvertimeThresholdMinutes))
     }
-    var weeklyOtText by remember {
+    var weeklyOtText by rememberSaveable {
         mutableStateOf(minutesToHours(state.settings.weeklyOvertimeThresholdMinutes))
     }
-    var hourlyRateText by remember { mutableStateOf(state.settings.hourlyRate?.toString() ?: "") }
-    var timezone by remember { mutableStateOf(state.settings.timezone) }
-    var clockStyle by remember { mutableStateOf(supportedClockStyleOf(state.settings.clockStyle)) }
-    var currency by remember { mutableStateOf(state.settings.currency) }
-    var travelRefunds by remember { mutableStateOf(state.settings.featuresTravelRefunds) }
-    var insights by remember { mutableStateOf(state.settings.featuresInsights) }
-    var clockStyles by remember { mutableStateOf(state.settings.featuresClockStyles) }
-    var overtimeReminders by remember {
+    var hourlyRateText by rememberSaveable { mutableStateOf(state.settings.hourlyRate?.toString() ?: "") }
+    var timezone by rememberSaveable { mutableStateOf(state.settings.timezone) }
+    var clockStyle by rememberSaveable { mutableStateOf(supportedClockStyleOf(state.settings.clockStyle)) }
+    var currency by rememberSaveable { mutableStateOf(state.settings.currency) }
+    var travelRefunds by rememberSaveable { mutableStateOf(state.settings.featuresTravelRefunds) }
+    var insights by rememberSaveable { mutableStateOf(state.settings.featuresInsights) }
+    var clockStyles by rememberSaveable { mutableStateOf(state.settings.featuresClockStyles) }
+    var overtimeReminders by rememberSaveable {
         mutableStateOf(state.settings.featuresOvertimeReminders)
     }
-    var weekendDays by remember { mutableStateOf(state.settings.weekendDays) }
+    var weekendDays by rememberSaveable { mutableStateOf(state.settings.weekendDays) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current

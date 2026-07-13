@@ -42,6 +42,6 @@ class WidgetPreferencesTest {
         )
         assertEquals("PUNCH IN", state.actionLabel)
         assertTrue(state.progressSubLabel.contains("to goal"))
-        assertEquals("6:12:00", state.todayHms)
+        assertEquals("6:12", state.todayHms)
     }
 }

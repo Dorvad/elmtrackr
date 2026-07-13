@@ -6,6 +6,9 @@
     <string name="dashboard_notif_rationale_continue">המשך</string>
     <string name="dashboard_notif_rationale_not_now">לא עכשיו</string>
 
+    <!-- Load-failure fallback -->
+    <string name="dashboard_error_message">משהו השתבש: %1$s</string>
+
     <!-- Header -->
     <string name="dashboard_greeting_morning">בוקר טוב</string>
     <string name="dashboard_greeting_afternoon">צהריים טובים</string>

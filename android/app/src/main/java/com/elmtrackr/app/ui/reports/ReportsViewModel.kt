@@ -278,12 +278,17 @@ class ReportsViewModel @Inject constructor(
             ).joinToString(",")
         }
         lines += ""
+        // The totals row must agree with the on-screen monthly report, which
+        // applies max(daily, weekly) overtime per week. Summing the per-shift
+        // rows counts daily overtime only, so a month whose overtime was
+        // weekly-threshold-driven exported 0.00 while the screen showed hours.
+        val report = MonthlyReportBuilder.buildMonthlyReport(year, month, completed, reportSettings)
         lines += listOf(
             "TOTAL - $year-${month.toString().padStart(2, '0')}", "", "", "",
-            formatHoursDecimal(breakdowns.sumOf { it.totalMinutes }),
-            formatHoursDecimal(breakdowns.sumOf { it.regularMinutes }),
-            formatHoursDecimal(breakdowns.sumOf { it.overtimeMinutes }),
-            formatHoursDecimal(breakdowns.sumOf { it.weekendMinutes }),
+            formatHoursDecimal(report.totalMinutes),
+            formatHoursDecimal(report.regularMinutes),
+            formatHoursDecimal(report.overtimeMinutes),
+            formatHoursDecimal(report.weekendMinutes),
             "", "${completed.size} shifts",
         ).joinToString(",")
         return lines.joinToString("\n")

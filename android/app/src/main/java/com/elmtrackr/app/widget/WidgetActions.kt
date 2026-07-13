@@ -32,9 +32,14 @@ object WidgetActions {
      */
     suspend fun refreshWidgets(context: Context) {
         val deps = AppEntryPoints.background(context)
-        val userId = deps.currentUserProvider().currentUserId() ?: return
+        val userId = deps.currentUserProvider().currentUserId()
         runCatching {
-            ElmTrackrWidgetUpdater.update(context, WidgetContextLoader.load(deps, userId))
+            val widgetContext = if (userId == null) {
+                WidgetContext(null, null, emptyList(), null, isSignedIn = false)
+            } else {
+                WidgetContextLoader.load(deps, userId)
+            }
+            ElmTrackrWidgetUpdater.update(context, widgetContext)
         }
     }
 }

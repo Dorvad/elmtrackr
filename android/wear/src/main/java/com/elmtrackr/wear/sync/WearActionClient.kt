@@ -38,7 +38,9 @@ class WearActionClient(
             val phone = findPhoneNode()
                 ?: return PunchResult(success = false, errorCode = "phone_unreachable")
             val messageClient = Wearable.getMessageClient(appContext)
-            messageClient.addListener(this)
+            // Await registration: a fast phone can reply before an un-awaited
+            // listener is live, losing the result and forcing the timeout path.
+            messageClient.addListener(this).await()
             try {
                 pendingResult = null
                 messageClient.sendMessage(phone.id, path, ByteArray(0)).await()
@@ -55,7 +57,10 @@ class WearActionClient(
     private var pendingResult: PunchResult? = null
 
     private suspend fun waitForPunchResult(): PunchResult {
-        repeat(20) {
+        // 10s: the phone-side punch includes a Room write and a Supabase push;
+        // 5s produced false "failed" feedback on slow networks, and a retry
+        // after a false failure is how duplicate punches happen.
+        repeat(40) {
             pendingResult?.let { return it }
             delay(250)
         }

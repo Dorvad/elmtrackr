@@ -19,6 +19,7 @@ import com.elmtrackr.wear.ui.RunningScreen
 import com.elmtrackr.wear.ui.SetupScreen
 import com.elmtrackr.wear.ui.WearAuroraBackground
 import com.elmtrackr.wear.ui.WearAuroraTheme
+import com.elmtrackr.wear.ui.WearLabels
 
 class WearMainActivity : ComponentActivity() {
 
@@ -59,7 +60,7 @@ class WearMainActivity : ComponentActivity() {
                             isLoading = isLoading,
                         )
                         else -> IdleScreen(
-                            lastPunchLabel = snapshot.lastPunchLabel.ifBlank {
+                            lastPunchLabel = WearLabels.lastPunch(this@WearMainActivity, snapshot).ifBlank {
                                 snapshot.startTimeLabel.takeIf { it != "--:--" }.orEmpty()
                             },
                             todayShort = display.todayShort,

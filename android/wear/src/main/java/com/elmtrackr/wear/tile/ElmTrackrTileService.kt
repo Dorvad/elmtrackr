@@ -100,7 +100,8 @@ class ElmTrackrTileService : TileService() {
     private fun idleFace(snapshot: WearShiftSnapshot): LayoutElementBuilders.LayoutElement {
         val display = WearDisplayMath.displayFor(snapshot)
         val detail = listOfNotNull(
-            snapshot.lastPunchLabel.ifBlank { null } ?: snapshot.startTimeLabel.takeIf { it != "--:--" },
+            com.elmtrackr.wear.ui.WearLabels.lastPunch(this, snapshot).ifBlank { null }
+                ?: snapshot.startTimeLabel.takeIf { it != "--:--" },
             display.todayShort.takeIf { snapshot.todayMinutes > 0 }
                 ?.let { getString(R.string.wear_today, it) },
         ).joinToString(" · ")

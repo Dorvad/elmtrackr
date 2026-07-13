@@ -29,6 +29,7 @@ import com.elmtrackr.app.update.InAppUpdateHost
 import com.elmtrackr.app.update.InAppUpdateManager
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -101,6 +102,28 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         AppEntryPoints.background(this).dynamicShortcutsRefresher().refresh()
+        requestNotificationPermissionForActiveShift()
+    }
+
+    /**
+     * Users who clock in from the widget, shortcut, or watch never pass the
+     * in-app clock-in button — the only place the POST_NOTIFICATIONS request
+     * lived — so on Android 13+ their ongoing notification and every reminder
+     * stayed silently disabled. If a shift is running and the permission is
+     * still missing when the app opens, ask now (once per install, mirroring
+     * the educational-prompt bookkeeping).
+     */
+    private fun requestNotificationPermissionForActiveShift() {
+        if (NotificationPermissionCoordinator.hasPermission(this)) return
+        lifecycleScope.launch {
+            val deps = AppEntryPoints.background(this@MainActivity)
+            val userId = deps.currentUserProvider().currentUserId() ?: return@launch
+            val active = deps.shiftsRepository().observeActiveShift(userId).firstOrNull() != null
+            if (!active) return@launch
+            if (!NotificationPermissionCoordinator.shouldShowEducationalPrompt(this@MainActivity)) return@launch
+            NotificationPermissionCoordinator.markPromptShown(this@MainActivity)
+            requestNotificationPermission()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

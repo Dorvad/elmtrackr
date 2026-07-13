@@ -24,6 +24,10 @@ class ClockOutReceiver : BroadcastReceiver() {
         val shiftId = intent.getStringExtra(ActiveShiftNotificationManager.EXTRA_SHIFT_ID)
             ?: return
 
+        // Same guard as the widget/shortcut/Wear punch paths: the notification
+        // action must not clock out shifts while the app lock is engaged.
+        if (com.elmtrackr.app.security.AppLockActionGuard.blockIfLocked(context)) return
+
         val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
