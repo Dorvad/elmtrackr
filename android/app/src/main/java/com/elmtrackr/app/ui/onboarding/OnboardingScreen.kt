@@ -300,14 +300,16 @@ fun OnboardingScreen(
                                 error = (state as? OnboardingUiState.ValidationError)?.errors?.values?.firstOrNull()?.asString(),
                                 onBack = { step = 8 },
                                 onFinish = {
+                                    val validDailyOt = dailyOt ?: return@ReviewStep
+                                    val validWeeklyOt = weeklyOt ?: return@ReviewStep
                                     viewModel.completeOnboarding(
                                         OnboardingInput(
                                             displayName = displayName.trim(),
                                             regionCode = regionCode,
                                             currencyCode = currencyCode,
                                             timezone = timezone,
-                                            dailyOvertimeHours = dailyOt!!,
-                                            weeklyOvertimeHours = weeklyOt!!,
+                                            dailyOvertimeHours = validDailyOt,
+                                            weeklyOvertimeHours = validWeeklyOt,
                                             weekendDays = weekendDays,
                                             hourlyRate = hourlyRate,
                                             currency = currency,

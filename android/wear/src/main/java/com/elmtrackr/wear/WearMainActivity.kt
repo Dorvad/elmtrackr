@@ -51,7 +51,7 @@ class WearMainActivity : ComponentActivity() {
                         }
                     }
                     when {
-                        confirmation != null -> ConfirmationOverlay(confirmation!!)
+                        confirmation != null -> confirmation?.let { ConfirmationOverlay(it) }
                         !snapshot.signedIn -> SetupScreen(onRefresh = viewModel::refresh)
                         snapshot.isActive -> RunningScreen(
                             elapsed = display.elapsedHms,
