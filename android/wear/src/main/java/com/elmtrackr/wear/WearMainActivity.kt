@@ -32,6 +32,16 @@ class WearMainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Re-pull phone state every time the watch face comes forward. The common
+        // stuck-on-sign-in case is: open the watch app (signed out), sign in on
+        // the phone, then return to the watch — the view model's one-shot init
+        // refresh already ran, so without this the watch never learns it is now
+        // signed in.
+        viewModel.refresh()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
