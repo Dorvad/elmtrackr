@@ -24,9 +24,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.material.icons.Icons
@@ -176,6 +178,7 @@ fun CameraScreen(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
+                    .navigationBarsPadding()
                     .padding(start = 16.dp, bottom = 96.dp)
                     .size(72.dp)
                     .graphicsLayer {
@@ -188,7 +191,7 @@ fun CameraScreen(
         }
 
         Row(
-            Modifier.fillMaxWidth().padding(12.dp).align(Alignment.TopCenter),
+            Modifier.fillMaxWidth().align(Alignment.TopCenter).statusBarsPadding().padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -233,7 +236,7 @@ fun CameraScreen(
                 )
             },
             enabled = capturedThumbnail == null,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp),
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 28.dp),
             shape = RoundedCornerShape(CornerRadius.Large),
         ) {
             Icon(Icons.Filled.CameraAlt, contentDescription = null)
