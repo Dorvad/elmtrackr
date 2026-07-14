@@ -6,12 +6,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -29,6 +31,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -47,6 +50,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.elmtrackr.app.R
 import com.elmtrackr.app.notification.ReminderRule
 import com.elmtrackr.app.notification.ReminderRulesCodec
@@ -316,29 +321,79 @@ private fun RuleValueChip(rule: ReminderRule, onUpdate: (ReminderRule) -> Unit) 
         ReminderTriggerKind.AT_TIME -> {
             SentenceChip(text = formatMinuteOfDay(rule.timeMinuteOfDay), onClick = { showTimePicker = true })
             if (showTimePicker) {
-                val pickerState = rememberTimePickerState(
-                    initialHour = rule.timeMinuteOfDay / 60,
-                    initialMinute = rule.timeMinuteOfDay % 60,
-                    is24Hour = true,
-                )
-                AlertDialog(
-                    onDismissRequest = { showTimePicker = false },
-                    title = { Text(stringResource(R.string.settings_rule_pick_time)) },
-                    text = { TimePicker(state = pickerState) },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                showTimePicker = false
-                                onUpdate(rule.copy(timeMinuteOfDay = pickerState.hour * 60 + pickerState.minute))
-                            },
-                        ) { Text(stringResource(R.string.settings_rule_time_ok)) }
+                ReminderTimePickerDialog(
+                    initialMinuteOfDay = rule.timeMinuteOfDay,
+                    onConfirm = { minuteOfDay ->
+                        showTimePicker = false
+                        onUpdate(rule.copy(timeMinuteOfDay = minuteOfDay))
                     },
-                    dismissButton = {
-                        TextButton(onClick = { showTimePicker = false }) {
-                            Text(stringResource(R.string.settings_rule_time_cancel))
-                        }
-                    },
+                    onDismiss = { showTimePicker = false },
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Time picker hosted in a self-sizing [Dialog] instead of the platform
+ * [AlertDialog].
+ *
+ * A Material3 [TimePicker] needs the clock's full intrinsic size and switches
+ * to a wider horizontal layout when vertical space is tight. [AlertDialog] pins
+ * its content to the platform's phone-sized dialog width, so on tablets (and any
+ * landscape window) the clock is clipped. Wrapping a [Surface] sized to
+ * [IntrinsicSize.Min] with `usePlatformDefaultWidth = false` lets the dialog grow
+ * to whichever layout the picker chooses, matching the official "Time picker
+ * dialogs" guidance.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderTimePickerDialog(
+    initialMinuteOfDay: Int,
+    onConfirm: (minuteOfDay: Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val pickerState = rememberTimePickerState(
+        initialHour = initialMinuteOfDay / 60,
+        initialMinute = initialMinuteOfDay % 60,
+        is24Hour = true,
+    )
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .width(IntrinsicSize.Min)
+                .height(IntrinsicSize.Min),
+        ) {
+            Column(
+                modifier = Modifier.padding(Spacing.lg),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    stringResource(R.string.settings_rule_pick_time),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = Spacing.md),
+                )
+                TimePicker(state = pickerState)
+                Spacer(Modifier.height(Spacing.sm))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.settings_rule_time_cancel))
+                    }
+                    TextButton(
+                        onClick = { onConfirm(pickerState.hour * 60 + pickerState.minute) },
+                    ) {
+                        Text(stringResource(R.string.settings_rule_time_ok))
+                    }
+                }
             }
         }
     }
