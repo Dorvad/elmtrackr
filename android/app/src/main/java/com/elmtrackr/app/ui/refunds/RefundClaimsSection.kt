@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.elmtrackr.app.ui.common.AppTimePickerDialog
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.ui.theme.CornerRadius
@@ -52,9 +53,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -721,7 +720,6 @@ private fun DatePickerWrapper(currentMillis: Long, onConfirm: (Long) -> Unit, on
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerWrapper(
     currentMillis: Long,
@@ -730,13 +728,14 @@ private fun TimePickerWrapper(
     onDismiss: () -> Unit,
 ) {
     val zdt = Instant.ofEpochMilli(currentMillis).atZone(zone)
-    val state = rememberTimePickerState(initialHour = zdt.hour, initialMinute = zdt.minute, is24Hour = true)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.refunds_select_time)) },
-        text = { TimePicker(state = state) },
-        confirmButton = { TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text(stringResource(R.string.refunds_ok)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.refunds_cancel)) } },
+    AppTimePickerDialog(
+        initialHour = zdt.hour,
+        initialMinute = zdt.minute,
+        title = stringResource(R.string.refunds_select_time),
+        confirmLabel = stringResource(R.string.refunds_ok),
+        cancelLabel = stringResource(R.string.refunds_cancel),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
     )
 }
 

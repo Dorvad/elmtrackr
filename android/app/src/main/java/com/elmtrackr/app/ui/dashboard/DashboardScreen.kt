@@ -51,20 +51,18 @@ import androidx.compose.ui.res.stringResource
 import com.elmtrackr.app.MainActivity
 import com.elmtrackr.app.R
 import com.elmtrackr.app.notification.NotificationPermissionCoordinator
+import com.elmtrackr.app.ui.common.AppTimePickerDialog
 import kotlinx.coroutines.launch
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -1974,7 +1972,6 @@ private fun RecentShiftRow(
 
 // â”€â”€ Edit start time dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditStartTimeDialog(
     currentStartTime: Instant,
@@ -1984,41 +1981,29 @@ private fun EditStartTimeDialog(
 ) {
     // Work timezone, not device timezone: an entered wall-clock time must land
     // on the same work-day the rest of the app groups this shift into.
-    val zonedStart  = currentStartTime.atZone(zone)
-    val timePickerState = rememberTimePickerState(
-        initialHour   = zonedStart.hour,
-        initialMinute = zonedStart.minute,
-        is24Hour      = true,
-    )
-    val candidate = LocalDateTime.of(
-        zonedStart.toLocalDate(),
-        LocalTime.of(timePickerState.hour, timePickerState.minute),
-    ).atZone(zone).toInstant()
-    val isFuture = candidate.isAfter(Instant.now())
+    val zonedStart = currentStartTime.atZone(zone)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dashboard_edit_start_time)) },
-        text  = {
-            Column {
-                TimePicker(state = timePickerState)
-                if (isFuture) {
-                    Text(
-                        stringResource(R.string.dashboard_start_time_future_error),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
+    fun candidateFor(hour: Int, minute: Int): Instant =
+        LocalDateTime.of(zonedStart.toLocalDate(), LocalTime.of(hour, minute))
+            .atZone(zone).toInstant()
+
+    AppTimePickerDialog(
+        initialHour = zonedStart.hour,
+        initialMinute = zonedStart.minute,
+        title = stringResource(R.string.dashboard_edit_start_time),
+        confirmLabel = stringResource(R.string.dashboard_save),
+        cancelLabel = stringResource(R.string.dashboard_cancel),
+        onConfirm = { hour, minute -> onConfirm(candidateFor(hour, minute)) },
+        onDismiss = onDismiss,
+        confirmEnabled = { hour, minute -> !candidateFor(hour, minute).isAfter(Instant.now()) },
+        supportingContent = { hour, minute ->
+            if (candidateFor(hour, minute).isAfter(Instant.now())) {
+                Text(
+                    stringResource(R.string.dashboard_start_time_future_error),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = !isFuture,
-                onClick = { onConfirm(candidate) },
-            ) { Text(stringResource(R.string.dashboard_save)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dashboard_cancel)) }
         },
     )
 }

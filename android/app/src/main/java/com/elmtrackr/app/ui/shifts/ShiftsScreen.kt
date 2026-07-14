@@ -25,10 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -45,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.ui.common.AppTimePickerDialog
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.R
@@ -497,7 +495,6 @@ private fun DatePickerWrapper(currentMillis: Long, onConfirm: (Long) -> Unit, on
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerWrapper(
     currentMillis: Long,
@@ -506,13 +503,14 @@ private fun TimePickerWrapper(
     onDismiss: () -> Unit,
 ) {
     val zdt = Instant.ofEpochMilli(currentMillis).atZone(zone)
-    val state = rememberTimePickerState(initialHour = zdt.hour, initialMinute = zdt.minute, is24Hour = true)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.shifts_select_time)) },
-        text = { TimePicker(state = state) },
-        confirmButton = { TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text(stringResource(R.string.shifts_ok)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.shifts_cancel)) } },
+    AppTimePickerDialog(
+        initialHour = zdt.hour,
+        initialMinute = zdt.minute,
+        title = stringResource(R.string.shifts_select_time),
+        confirmLabel = stringResource(R.string.shifts_ok),
+        cancelLabel = stringResource(R.string.shifts_cancel),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
     )
 }
 
