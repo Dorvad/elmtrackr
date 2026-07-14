@@ -198,6 +198,7 @@
     <string name="settings_notification_done">סיום</string>
     <string name="settings_rule_summary_generic">%1$s %2$s</string>
     <string name="settings_rule_summary_at_time">%1$s · %2$s</string>
+    <string name="settings_reminder_schedule_empty">עדיין אין תזכורות. יש להקיש על “יצירת תזכורת” כדי להוסיף אחת.</string>
     <string name="settings_reminder_schedule_footer">התזכורות נשלחות רק בזמן משמרת פעילה, ונשמרות במכשיר הזה בלבד.</string>
     <string name="settings_features_footer">עיצובי השעון עברו למראה ושעון. כיבוי פיצ׳ר מסתיר את הטאבים והכרטיסים שלו בכל האפליקציה.</string>
 

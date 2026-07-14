@@ -198,6 +198,7 @@
     <string name="settings_notification_done">Done</string>
     <string name="settings_rule_summary_generic">%1$s %2$s</string>
     <string name="settings_rule_summary_at_time">%1$s · %2$s</string>
+    <string name="settings_reminder_schedule_empty">No reminders yet. Tap “Create notification” to add one.</string>
     <string name="settings_reminder_schedule_footer">Reminders fire only while you\'re clocked in. They\'re saved on this device.</string>
     <string name="settings_features_footer">Clock faces moved to Appearance. Turning a feature off hides its tabs and cards across the app.</string>
 

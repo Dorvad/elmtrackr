@@ -95,6 +95,16 @@ internal fun ReminderScheduleSection(
     Column(modifier = Modifier.fillMaxWidth()) {
         SettingsSubsectionLabel(stringResource(R.string.settings_reminder_schedule_title))
         Spacer(Modifier.height(Spacing.sm))
+        if (rules.isEmpty()) {
+            // The user is allowed to delete every notification; make it clear
+            // why nothing fires rather than showing a bare, silent list.
+            Text(
+                stringResource(R.string.settings_reminder_schedule_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(Spacing.xs))
+        }
         rules.forEach { rule ->
             ReminderRuleRow(rule = rule, onClick = { editingRuleId = rule.id })
             Spacer(Modifier.height(Spacing.xs))
