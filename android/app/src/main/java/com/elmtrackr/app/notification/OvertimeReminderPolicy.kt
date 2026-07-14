@@ -56,16 +56,33 @@ object OvertimeReminderPolicy {
             }
             ReminderTriggerKind.AT_TIME -> {
                 val nowLocal = now.atZone(zone)
-                val target = nowLocal.toLocalDate()
+                var target = nowLocal.toLocalDate()
                     .atStartOfDay(zone)
                     .plusMinutes(rule.timeMinuteOfDay.toLong())
-                val resolved = if (!target.isAfter(nowLocal)) target.plusDays(1) else target
-                Duration.between(nowLocal, resolved).toMinutes().coerceAtLeast(0)
+                if (!target.isAfter(nowLocal)) target = target.plusDays(1)
+                // Skip forward to the next selected weekday. A week has seven
+                // days, so at most seven steps are ever needed; the guard stops
+                // a runaway loop if daysOfWeek ever held only invalid values.
+                var guard = 0
+                while (!rule.firesOn(target.dayOfWeek) && guard < DAYS_IN_WEEK) {
+                    target = target.plusDays(1)
+                    guard++
+                }
+                if (!rule.firesOn(target.dayOfWeek)) return SKIP
+                // Round UP to whole minutes so WorkManager never fires before
+                // the target wall-clock time. Firing early would leave the
+                // target still "today" when the worker re-arms, yielding a
+                // ~0-minute delay that re-notifies in a loop until the clock
+                // catches up.
+                val seconds = Duration.between(nowLocal, target).seconds.coerceAtLeast(0)
+                (seconds + SECONDS_PER_MINUTE - 1) / SECONDS_PER_MINUTE
             }
         }
     }
 
     private const val MIN_REPEAT_INTERVAL_MINUTES = 15
+    private const val DAYS_IN_WEEK = 7
+    private const val SECONDS_PER_MINUTE = 60L
 
     fun preWarningDelayMinutes(
         thresholdMinutes: Int,

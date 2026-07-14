@@ -145,6 +145,75 @@ class OvertimeReminderPolicyTest {
         assertEquals(23 * 60L, delayFor(rule, startTime))
     }
 
+    // startTime (2024-01-08) is a Monday in UTC. ISO day-of-week: Mon=1 .. Sun=7.
+
+    @Test
+    fun `at-time rule fires today when today is a selected day and the time is ahead`() {
+        val rule = ReminderRule(
+            "r1",
+            ReminderTriggerKind.AT_TIME,
+            timeMinuteOfDay = 17 * 60 + 30,
+            daysOfWeek = setOf(1), // Monday
+        )
+        // Monday 09:00 -> Monday 17:30 is 8.5 hours away.
+        assertEquals(8 * 60L + 30, delayFor(rule, startTime))
+    }
+
+    @Test
+    fun `at-time rule skips forward to the next selected day`() {
+        val rule = ReminderRule(
+            "r1",
+            ReminderTriggerKind.AT_TIME,
+            timeMinuteOfDay = 17 * 60 + 30,
+            daysOfWeek = setOf(3), // Wednesday
+        )
+        // Monday 09:00 -> Wednesday 17:30 is 2 days + 8.5 hours.
+        assertEquals(2 * 24 * 60L + 8 * 60 + 30, delayFor(rule, startTime))
+    }
+
+    @Test
+    fun `at-time rule wraps to next week when only today is selected but the time passed`() {
+        val rule = ReminderRule(
+            "r1",
+            ReminderTriggerKind.AT_TIME,
+            timeMinuteOfDay = 8 * 60,
+            daysOfWeek = setOf(1), // Monday, but 08:00 already passed at 09:00
+        )
+        // Next Monday 08:00 is 6 days + 23 hours away.
+        assertEquals(6 * 24 * 60L + 23 * 60, delayFor(rule, startTime))
+    }
+
+    @Test
+    fun `at-time delay rounds up so the worker never fires before the target`() {
+        val rule = ReminderRule("r1", ReminderTriggerKind.AT_TIME, timeMinuteOfDay = 17 * 60)
+        val now = Instant.parse("2024-01-08T16:59:20Z") // 40s before 17:00
+        // Truncating would give 0; rounding up gives 1 so work never fires early.
+        assertEquals(1L, delayFor(rule, now))
+    }
+
+    @Test
+    fun `at-time re-arm exactly at the target rolls to the next day, not a zero-delay loop`() {
+        val rule = ReminderRule("r1", ReminderTriggerKind.AT_TIME, timeMinuteOfDay = 17 * 60)
+        val now = Instant.parse("2024-01-08T17:00:00Z") // exactly at target
+        assertEquals(24 * 60L, delayFor(rule, now))
+    }
+
+    @Test
+    fun `at-time rule with empty days behaves like every day`() {
+        val everyDay = ReminderRule("r1", ReminderTriggerKind.AT_TIME, timeMinuteOfDay = 17 * 60 + 30)
+        val allDays = everyDay.copy(daysOfWeek = (1..7).toSet())
+        assertEquals(delayFor(everyDay, startTime), delayFor(allDays, startTime))
+    }
+
+    @Test
+    fun `firesOn respects selected days and treats empty as every day`() {
+        val monOnly = ReminderRule("r1", ReminderTriggerKind.AT_TIME, daysOfWeek = setOf(1))
+        assertEquals(true, monOnly.firesOn(java.time.DayOfWeek.MONDAY))
+        assertEquals(false, monOnly.firesOn(java.time.DayOfWeek.TUESDAY))
+        val everyDay = ReminderRule("r2", ReminderTriggerKind.AT_TIME)
+        assertEquals(true, everyDay.firesOn(java.time.DayOfWeek.SATURDAY))
+    }
+
     // --- codec ---
 
     @Test
@@ -152,9 +221,18 @@ class OvertimeReminderPolicyTest {
         val rules = listOf(
             ReminderRule("a", ReminderTriggerKind.BEFORE_OVERTIME, offsetMinutes = 15),
             ReminderRule("b", ReminderTriggerKind.AFTER_OVERTIME, offsetMinutes = 120),
-            ReminderRule("c", ReminderTriggerKind.AT_TIME, timeMinuteOfDay = 17 * 60),
+            ReminderRule("c", ReminderTriggerKind.AT_TIME, timeMinuteOfDay = 17 * 60, daysOfWeek = setOf(1, 3, 5)),
         )
         assertEquals(rules, ReminderRulesCodec.decode(ReminderRulesCodec.encode(rules)))
+    }
+
+    @Test
+    fun `codec decodes rules saved before daysOfWeek existed as every day`() {
+        // Payload written by an older app version, without the daysOfWeek field.
+        val legacy = """[{"id":"c","kind":"AT_TIME","timeMinuteOfDay":1050}]"""
+        val decoded = ReminderRulesCodec.decode(legacy)
+        assertNotNull(decoded)
+        assertEquals(emptySet<Int>(), decoded!!.single().daysOfWeek)
     }
 
     @Test

@@ -170,8 +170,6 @@
     <string name="settings_overtime_reminders_desc">תזכורות יציאה במהלך המשמרת, לפי לוח זמנים שבונים כאן למטה</string>
     <string name="settings_reminder_schedule_title">לוח תזכורות</string>
     <string name="settings_remind_me">להזכיר לי</string>
-    <string name="settings_rule_and">וגם</string>
-    <string name="settings_rule_add_and">+ וגם</string>
     <string name="settings_rule_before_overtime">לפני שעות נוספות</string>
     <string name="settings_rule_after_overtime">אחרי תחילת שעות נוספות</string>
     <string name="settings_rule_at_specific_time">בשעה מסוימת</string>
@@ -181,10 +179,26 @@
     <string name="settings_rule_every_minutes">כל %1$d דק׳</string>
     <string name="settings_rule_every_hour">כל שעה</string>
     <string name="settings_rule_every_n_hours">כל %1$d שעות</string>
-    <string name="settings_rule_remove">הסרת תזכורת</string>
     <string name="settings_rule_pick_time">בחירת שעת תזכורת</string>
     <string name="settings_rule_time_ok">אישור</string>
     <string name="settings_rule_time_cancel">ביטול</string>
+    <string name="settings_rule_pick_days">חזרה בימים</string>
+    <string name="settings_rule_days_done">סיום</string>
+    <string name="settings_rule_every_day">בכל יום</string>
+    <string name="settings_day_short_sun">א׳</string>
+    <string name="settings_day_short_mon">ב׳</string>
+    <string name="settings_day_short_tue">ג׳</string>
+    <string name="settings_day_short_wed">ד׳</string>
+    <string name="settings_day_short_thu">ה׳</string>
+    <string name="settings_day_short_fri">ו׳</string>
+    <string name="settings_day_short_sat">ש׳</string>
+    <string name="settings_notification_create">יצירת תזכורת</string>
+    <string name="settings_notification_edit_title">עריכת תזכורת</string>
+    <string name="settings_notification_delete">מחיקת תזכורת</string>
+    <string name="settings_notification_done">סיום</string>
+    <string name="settings_rule_summary_generic">%1$s %2$s</string>
+    <string name="settings_rule_summary_at_time">%1$s · %2$s</string>
+    <string name="settings_reminder_schedule_empty">עדיין אין תזכורות. יש להקיש על “יצירת תזכורת” כדי להוסיף אחת.</string>
     <string name="settings_reminder_schedule_footer">התזכורות נשלחות רק בזמן משמרת פעילה, ונשמרות במכשיר הזה בלבד.</string>
     <string name="settings_features_footer">עיצובי השעון עברו למראה ושעון. כיבוי פיצ׳ר מסתיר את הטאבים והכרטיסים שלו בכל האפליקציה.</string>
 

@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
+import com.elmtrackr.app.domain.time.WorkTimezone
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.time.Instant
@@ -67,7 +68,22 @@ class ReminderRuleWorker @AssistedInject constructor(
             }
 
             ReminderTriggerKind.AT_TIME -> {
-                notifications.showScheduledTimeReminder(shift)
+                val zone = WorkTimezone.zoneFor(contextData.settings)
+                // Doze can delay the work past midnight onto a day the user
+                // didn't select; only notify when today is still a chosen day.
+                if (rule.firesOn(Instant.now().atZone(zone).dayOfWeek)) {
+                    notifications.showScheduledTimeReminder(shift)
+                }
+                // Re-arm for the next selected day so an overnight/multi-day
+                // shift keeps getting the reminder. enqueueUniqueWork replaces
+                // by rule id, so this never stacks duplicates.
+                OvertimeReminderScheduler.enqueueRule(
+                    applicationContext,
+                    rule,
+                    shift,
+                    threshold,
+                    zone = zone,
+                )
             }
         }
         return Result.success()
