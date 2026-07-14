@@ -31,9 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +49,7 @@ import com.elmtrackr.app.R
 import com.elmtrackr.app.notification.ReminderRule
 import com.elmtrackr.app.notification.ReminderRulesCodec
 import com.elmtrackr.app.notification.ReminderTriggerKind
+import com.elmtrackr.app.ui.common.AppTimePickerDialog
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
@@ -274,7 +273,6 @@ private fun RuleKindChip(rule: ReminderRule, onUpdate: (ReminderRule) -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RuleValueChip(rule: ReminderRule, onUpdate: (ReminderRule) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
@@ -316,28 +314,17 @@ private fun RuleValueChip(rule: ReminderRule, onUpdate: (ReminderRule) -> Unit) 
         ReminderTriggerKind.AT_TIME -> {
             SentenceChip(text = formatMinuteOfDay(rule.timeMinuteOfDay), onClick = { showTimePicker = true })
             if (showTimePicker) {
-                val pickerState = rememberTimePickerState(
+                AppTimePickerDialog(
                     initialHour = rule.timeMinuteOfDay / 60,
                     initialMinute = rule.timeMinuteOfDay % 60,
-                    is24Hour = true,
-                )
-                AlertDialog(
-                    onDismissRequest = { showTimePicker = false },
-                    title = { Text(stringResource(R.string.settings_rule_pick_time)) },
-                    text = { TimePicker(state = pickerState) },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                showTimePicker = false
-                                onUpdate(rule.copy(timeMinuteOfDay = pickerState.hour * 60 + pickerState.minute))
-                            },
-                        ) { Text(stringResource(R.string.settings_rule_time_ok)) }
+                    title = stringResource(R.string.settings_rule_pick_time),
+                    confirmLabel = stringResource(R.string.settings_rule_time_ok),
+                    cancelLabel = stringResource(R.string.settings_rule_time_cancel),
+                    onConfirm = { hour, minute ->
+                        showTimePicker = false
+                        onUpdate(rule.copy(timeMinuteOfDay = hour * 60 + minute))
                     },
-                    dismissButton = {
-                        TextButton(onClick = { showTimePicker = false }) {
-                            Text(stringResource(R.string.settings_rule_time_cancel))
-                        }
-                    },
+                    onDismiss = { showTimePicker = false },
                 )
             }
         }
