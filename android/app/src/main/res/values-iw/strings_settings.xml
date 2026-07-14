@@ -185,6 +185,22 @@
     <string name="settings_rule_pick_time">בחירת שעת תזכורת</string>
     <string name="settings_rule_time_ok">אישור</string>
     <string name="settings_rule_time_cancel">ביטול</string>
+    <string name="settings_rule_pick_days">חזרה בימים</string>
+    <string name="settings_rule_days_done">סיום</string>
+    <string name="settings_rule_every_day">בכל יום</string>
+    <string name="settings_day_short_sun">א׳</string>
+    <string name="settings_day_short_mon">ב׳</string>
+    <string name="settings_day_short_tue">ג׳</string>
+    <string name="settings_day_short_wed">ד׳</string>
+    <string name="settings_day_short_thu">ה׳</string>
+    <string name="settings_day_short_fri">ו׳</string>
+    <string name="settings_day_short_sat">ש׳</string>
+    <string name="settings_notification_create">יצירת תזכורת</string>
+    <string name="settings_notification_edit_title">עריכת תזכורת</string>
+    <string name="settings_notification_delete">מחיקת תזכורת</string>
+    <string name="settings_notification_done">סיום</string>
+    <string name="settings_rule_summary_generic">%1$s %2$s</string>
+    <string name="settings_rule_summary_at_time">%1$s · %2$s</string>
     <string name="settings_reminder_schedule_footer">התזכורות נשלחות רק בזמן משמרת פעילה, ונשמרות במכשיר הזה בלבד.</string>
     <string name="settings_features_footer">עיצובי השעון עברו למראה ושעון. כיבוי פיצ׳ר מסתיר את הטאבים והכרטיסים שלו בכל האפליקציה.</string>
 

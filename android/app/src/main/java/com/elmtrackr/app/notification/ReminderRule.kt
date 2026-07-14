@@ -3,6 +3,7 @@ package com.elmtrackr.app.notification
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.time.DayOfWeek
 import java.util.UUID
 
 /**
@@ -27,7 +28,12 @@ enum class ReminderTriggerKind {
 /**
  * One user-configured reminder, read as a sentence in the settings UI:
  * "Remind me [30 min] [before overtime]" / "and [every hour] [after overtime]"
- * / "and [at 17:30]".
+ * / "and [at 17:30] [on Sun, Mon]".
+ *
+ * [daysOfWeek] only applies to [ReminderTriggerKind.AT_TIME] rules. It holds
+ * ISO day-of-week values (Monday = 1 .. Sunday = 7, per [DayOfWeek.getValue]).
+ * An empty set means "every day" — this keeps rules persisted before the
+ * day-of-week option existed behaving exactly as they did.
  */
 @Serializable
 data class ReminderRule(
@@ -35,7 +41,11 @@ data class ReminderRule(
     val kind: ReminderTriggerKind,
     val offsetMinutes: Int = 0,
     val timeMinuteOfDay: Int = DEFAULT_TIME_MINUTE_OF_DAY,
+    val daysOfWeek: Set<Int> = emptySet(),
 ) {
+    /** True when this rule may fire on [day]; an empty [daysOfWeek] fires every day. */
+    fun firesOn(day: DayOfWeek): Boolean = daysOfWeek.isEmpty() || day.value in daysOfWeek
+
     companion object {
         const val DEFAULT_TIME_MINUTE_OF_DAY = 17 * 60
 
@@ -45,8 +55,15 @@ data class ReminderRule(
         fun newAfterOvertime(offsetMinutes: Int = 60) =
             ReminderRule(newId(), ReminderTriggerKind.AFTER_OVERTIME, offsetMinutes = offsetMinutes)
 
-        fun newAtTime(timeMinuteOfDay: Int = DEFAULT_TIME_MINUTE_OF_DAY) =
-            ReminderRule(newId(), ReminderTriggerKind.AT_TIME, timeMinuteOfDay = timeMinuteOfDay)
+        fun newAtTime(
+            timeMinuteOfDay: Int = DEFAULT_TIME_MINUTE_OF_DAY,
+            daysOfWeek: Set<Int> = emptySet(),
+        ) = ReminderRule(
+            newId(),
+            ReminderTriggerKind.AT_TIME,
+            timeMinuteOfDay = timeMinuteOfDay,
+            daysOfWeek = daysOfWeek,
+        )
 
         private fun newId(): String = UUID.randomUUID().toString()
     }

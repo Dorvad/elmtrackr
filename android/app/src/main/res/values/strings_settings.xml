@@ -185,6 +185,22 @@
     <string name="settings_rule_pick_time">Pick a reminder time</string>
     <string name="settings_rule_time_ok">OK</string>
     <string name="settings_rule_time_cancel">Cancel</string>
+    <string name="settings_rule_pick_days">Repeat on</string>
+    <string name="settings_rule_days_done">Done</string>
+    <string name="settings_rule_every_day">every day</string>
+    <string name="settings_day_short_sun">Sun</string>
+    <string name="settings_day_short_mon">Mon</string>
+    <string name="settings_day_short_tue">Tue</string>
+    <string name="settings_day_short_wed">Wed</string>
+    <string name="settings_day_short_thu">Thu</string>
+    <string name="settings_day_short_fri">Fri</string>
+    <string name="settings_day_short_sat">Sat</string>
+    <string name="settings_notification_create">Create notification</string>
+    <string name="settings_notification_edit_title">Edit notification</string>
+    <string name="settings_notification_delete">Delete notification</string>
+    <string name="settings_notification_done">Done</string>
+    <string name="settings_rule_summary_generic">%1$s %2$s</string>
+    <string name="settings_rule_summary_at_time">%1$s · %2$s</string>
     <string name="settings_reminder_schedule_footer">Reminders fire only while you\'re clocked in. They\'re saved on this device.</string>
     <string name="settings_features_footer">Clock faces moved to Appearance. Turning a feature off hides its tabs and cards across the app.</string>
 

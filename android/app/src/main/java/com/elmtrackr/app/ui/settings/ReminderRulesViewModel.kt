@@ -37,7 +37,9 @@ class ReminderRulesViewModel @Inject constructor(
     fun addRule() {
         val current = rules.value
         if (current.size >= ReminderRulesCodec.MAX_RULES) return
-        persist(current + ReminderRule.newBeforeOvertime())
+        // New notifications default to a timed reminder (a specific time, every
+        // day); the editor can switch it to a before/after-overtime rule.
+        persist(current + ReminderRule.newAtTime())
     }
 
     fun updateRule(updated: ReminderRule) {
