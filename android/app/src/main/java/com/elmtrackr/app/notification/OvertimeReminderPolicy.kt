@@ -69,13 +69,20 @@ object OvertimeReminderPolicy {
                     guard++
                 }
                 if (!rule.firesOn(target.dayOfWeek)) return SKIP
-                Duration.between(nowLocal, target).toMinutes().coerceAtLeast(0)
+                // Round UP to whole minutes so WorkManager never fires before
+                // the target wall-clock time. Firing early would leave the
+                // target still "today" when the worker re-arms, yielding a
+                // ~0-minute delay that re-notifies in a loop until the clock
+                // catches up.
+                val seconds = Duration.between(nowLocal, target).seconds.coerceAtLeast(0)
+                (seconds + SECONDS_PER_MINUTE - 1) / SECONDS_PER_MINUTE
             }
         }
     }
 
     private const val MIN_REPEAT_INTERVAL_MINUTES = 15
     private const val DAYS_IN_WEEK = 7
+    private const val SECONDS_PER_MINUTE = 60L
 
     fun preWarningDelayMinutes(
         thresholdMinutes: Int,

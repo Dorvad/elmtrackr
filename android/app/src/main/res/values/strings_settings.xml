@@ -170,8 +170,6 @@
     <string name="settings_overtime_reminders_desc">Get clock-out reminders while on shift, on a schedule you build below</string>
     <string name="settings_reminder_schedule_title">Reminder schedule</string>
     <string name="settings_remind_me">Remind me</string>
-    <string name="settings_rule_and">and</string>
-    <string name="settings_rule_add_and">+ and</string>
     <string name="settings_rule_before_overtime">before overtime</string>
     <string name="settings_rule_after_overtime">after overtime</string>
     <string name="settings_rule_at_specific_time">at a specific time</string>
@@ -181,7 +179,6 @@
     <string name="settings_rule_every_minutes">every %1$d min</string>
     <string name="settings_rule_every_hour">every hour</string>
     <string name="settings_rule_every_n_hours">every %1$d hours</string>
-    <string name="settings_rule_remove">Remove reminder</string>
     <string name="settings_rule_pick_time">Pick a reminder time</string>
     <string name="settings_rule_time_ok">OK</string>
     <string name="settings_rule_time_cancel">Cancel</string>

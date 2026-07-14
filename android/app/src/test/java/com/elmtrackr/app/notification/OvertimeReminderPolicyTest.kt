@@ -184,6 +184,21 @@ class OvertimeReminderPolicyTest {
     }
 
     @Test
+    fun `at-time delay rounds up so the worker never fires before the target`() {
+        val rule = ReminderRule("r1", ReminderTriggerKind.AT_TIME, timeMinuteOfDay = 17 * 60)
+        val now = Instant.parse("2024-01-08T16:59:20Z") // 40s before 17:00
+        // Truncating would give 0; rounding up gives 1 so work never fires early.
+        assertEquals(1L, delayFor(rule, now))
+    }
+
+    @Test
+    fun `at-time re-arm exactly at the target rolls to the next day, not a zero-delay loop`() {
+        val rule = ReminderRule("r1", ReminderTriggerKind.AT_TIME, timeMinuteOfDay = 17 * 60)
+        val now = Instant.parse("2024-01-08T17:00:00Z") // exactly at target
+        assertEquals(24 * 60L, delayFor(rule, now))
+    }
+
+    @Test
     fun `at-time rule with empty days behaves like every day`() {
         val everyDay = ReminderRule("r1", ReminderTriggerKind.AT_TIME, timeMinuteOfDay = 17 * 60 + 30)
         val allDays = everyDay.copy(daysOfWeek = (1..7).toSet())

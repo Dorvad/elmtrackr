@@ -39,6 +39,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,8 +80,8 @@ internal fun ReminderScheduleSection(
 ) {
     if (!enabled) return
 
-    var editingRuleId by remember { mutableStateOf<String?>(null) }
-    var openNewestAfterAdd by remember { mutableStateOf(false) }
+    var editingRuleId by rememberSaveable { mutableStateOf<String?>(null) }
+    var openNewestAfterAdd by rememberSaveable { mutableStateOf(false) }
 
     // Creating a notification appends a rule asynchronously (via the store);
     // once it lands, open its editor so the user can configure it right away.
