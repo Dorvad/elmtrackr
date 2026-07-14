@@ -83,10 +83,19 @@ The release build is minified by R8; test **it**, not the debug build.
 
 ```bash
 cd android
-./gradlew :app:bundleRelease        # .aab for Play upload
+./gradlew :app:bundleRelease        # phone .aab for Play upload
+./gradlew :wear:bundleRelease       # watch .aab for Play upload (same listing)
 ./gradlew :app:assembleRelease      # .apk for local device testing
 adb install app/build/outputs/apk/release/app-release.apk
 ```
+
+> **Watch app delivery.** The watch app is a separate artifact under the same
+> application id (`com.elmlaunch.myapp`), not an APK embedded in the phone build.
+> Upload **both** `.aab`s to the same Play Console app: the phone bundle and
+> `wear/build/outputs/bundle/release/wear-release.aab`. Play then delivers the
+> watch app to a paired watch automatically. Both bundles must be signed with
+> the same upload keystore (§1) — the `:wear` module reads it from
+> `local.properties` exactly like `:app`.
 
 Walk the entire flow on a real device, in this order (these are the areas R8
 most commonly breaks — serialization, reflection, deep links):

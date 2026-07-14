@@ -123,7 +123,12 @@ ksp {
 
 dependencies {
     implementation(project(":wear-sync"))
-    wearApp(project(":wear"))
+    // The watch app is NOT embedded in the phone APK. `wearApp(...)` is the
+    // legacy Wear 1.x micro-app mechanism; Wear OS 2+ (this app targets Wear OS
+    // 3, minSdk 30) ignores embedded APKs and will never install one from the
+    // phone. The watch app ships as its own artifact under the same application
+    // id (com.elmlaunch.myapp) and is delivered to the paired watch by Play.
+    // Build it with `./gradlew :wear:bundleRelease`.
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

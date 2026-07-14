@@ -200,15 +200,20 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Bundle release AAB
+      - name: Bundle release AAB (phone + watch)
         working-directory: android
-        run: ./gradlew :app:bundleRelease :app:lintVitalRelease --no-daemon --stacktrace
+        # The watch app is a separate same-package artifact, so it needs its own
+        # bundle. Both are uploaded to the same Play listing; Play delivers the
+        # watch bundle to a paired watch.
+        run: ./gradlew :app:bundleRelease :wear:bundleRelease :app:lintVitalRelease --no-daemon --stacktrace
 
       - name: Upload release AAB
         uses: actions/upload-artifact@v4
         with:
           # CI-only signing — NOT for Play Store. Build bundleRelease locally with elmtrackr-release.jks.
           name: ElmTrackr-release-CI-ONLY-DO-NOT-UPLOAD-TO-PLAY
-          path: android/app/build/outputs/bundle/release/*.aab
+          path: |
+            android/app/build/outputs/bundle/release/*.aab
+            android/wear/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 30

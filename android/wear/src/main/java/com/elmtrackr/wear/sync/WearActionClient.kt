@@ -28,7 +28,16 @@ class WearActionClient(
             Wearable.getMessageClient(appContext)
                 .sendMessage(phone.id, REFRESH, ByteArray(0))
                 .await()
-            wearStateRepository.refreshFromDataLayer()
+            // The phone answers REFRESH asynchronously: it reads its DB and pushes
+            // a new data item, which lands here as a DATA_CHANGED event a beat
+            // later. A single immediate read almost always loses that race and
+            // leaves the watch on the sign-in screen even though the phone is now
+            // signed in, so poll briefly until the signed-in state arrives.
+            repeat(REFRESH_POLL_ATTEMPTS) {
+                wearStateRepository.refreshFromDataLayer()
+                if (wearStateRepository.snapshot.value.signedIn) return
+                delay(REFRESH_POLL_INTERVAL_MS)
+            }
         }
     }
 
@@ -76,5 +85,12 @@ class WearActionClient(
     private suspend fun findPhoneNode(): Node? {
         val nodes = Wearable.getNodeClient(appContext).connectedNodes.await()
         return nodes.firstOrNull { it.isNearby } ?: nodes.firstOrNull()
+    }
+
+    private companion object {
+        // ~3s total: covers a phone DB read plus data-layer round trip without
+        // making a genuinely signed-out watch feel stuck on the sign-in screen.
+        const val REFRESH_POLL_ATTEMPTS = 12
+        const val REFRESH_POLL_INTERVAL_MS = 250L
     }
 }
