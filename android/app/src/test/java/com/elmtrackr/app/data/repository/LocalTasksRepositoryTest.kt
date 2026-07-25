@@ -155,6 +155,26 @@ class LocalTasksRepositoryTest {
             refresh()
         }
 
+        override suspend fun markSyncedIfUnchanged(
+            localId: String,
+            remoteId: String?,
+            syncedAt: Long?,
+            expectedUpdatedAt: Long,
+        ): Int {
+            val current = store[localId] ?: return 0
+            if (current.updatedAt != expectedUpdatedAt) return 0
+            store[localId] = current.copy(
+                syncStatus = SyncStatus.SYNCED, remoteId = remoteId, lastSyncedAt = syncedAt, lastSyncError = null,
+            )
+            refresh()
+            return 1
+        }
+
+        override suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?) {
+            store[localId]?.let { store[localId] = it.copy(remoteId = remoteId, lastSyncedAt = syncedAt) }
+            refresh()
+        }
+
         override suspend fun updateLastUsed(localId: String, lastUsedAt: Long, updatedAt: Long) {
             store[localId]?.let { store[localId] = it.copy(lastUsedAt = lastUsedAt, updatedAt = updatedAt) }
             refresh()

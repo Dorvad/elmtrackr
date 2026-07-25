@@ -71,6 +71,27 @@ interface CompensationProfileDao {
         error: String?,
     )
 
+    /**
+     * Marks a row SYNCED only if it hasn't been edited since the push snapshot
+     * was taken. Returns 0 when a concurrent edit won; the row must then stay
+     * pending so the newer state is pushed by a follow-up sync.
+     */
+    @Query(
+        "UPDATE compensation_profiles SET syncStatus = 'SYNCED', remoteId = :remoteId, " +
+            "lastSyncedAt = :syncedAt, lastSyncError = NULL " +
+            "WHERE localId = :localId AND updatedAt = :expectedUpdatedAt",
+    )
+    suspend fun markSyncedIfUnchanged(
+        localId: String,
+        remoteId: String?,
+        syncedAt: Long?,
+        expectedUpdatedAt: Long,
+    ): Int
+
+    /** Records the remote id without touching syncStatus or updatedAt. */
+    @Query("UPDATE compensation_profiles SET remoteId = :remoteId, lastSyncedAt = :syncedAt WHERE localId = :localId")
+    suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?)
+
     @Query("UPDATE compensation_profiles SET isDefault = 0 WHERE userId = :userId")
     suspend fun clearDefaultForUser(userId: String)
 

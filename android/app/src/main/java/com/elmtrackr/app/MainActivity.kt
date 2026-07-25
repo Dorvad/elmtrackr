@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import com.elmtrackr.app.data.local.preferences.AppPreferenceValues
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
+import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.navigation.AppNavGraph
@@ -43,6 +44,7 @@ class MainActivity : AppCompatActivity() {
 
     @Inject lateinit var authRepository: Lazy<AuthRepository>
     @Inject lateinit var appPreferences: AppPreferencesRepository
+    @Inject lateinit var syncTrigger: SyncTrigger
 
     val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -103,6 +105,15 @@ class MainActivity : AppCompatActivity() {
         if (!isChangingConfigurations) {
             AppLockController.lock()
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Pull remote changes whenever the app returns to the foreground, so
+        // edits made on another device show up without waiting for the
+        // 15-minute periodic worker. No-op when Supabase isn't configured, and
+        // WorkManager's KEEP policy debounces repeated foreground transitions.
+        syncTrigger.schedule()
     }
 
     override fun onResume() {

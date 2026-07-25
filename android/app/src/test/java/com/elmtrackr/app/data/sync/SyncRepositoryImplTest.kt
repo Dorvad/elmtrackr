@@ -388,6 +388,83 @@ class SyncRepositoryImplTest {
     }
 
     @Test
+    fun `shift edited while push is in flight stays pending`() = runTest {
+        val dao = InMemoryShiftDao()
+        val base = FakeRemoteShiftDataSource()
+        val remote = object : RemoteShiftDataSource by base {
+            override suspend fun update(remoteId: String, shift: RemoteShiftUpdate) {
+                // Simulate the user editing the shift while the push request is
+                // still on the wire: the row gains a newer updatedAt and goes
+                // back to PENDING_UPDATE before the push result is recorded.
+                val current = dao.getShiftById("local-1")!!
+                dao.upsertShift(
+                    current.copy(
+                        notes = "edited mid-push",
+                        updatedAt = current.updatedAt + 5_000,
+                        syncStatus = SyncStatus.PENDING_UPDATE,
+                    ),
+                )
+                base.update(remoteId, shift)
+            }
+        }
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        dao.insertShift(
+            shiftEntity(
+                localId = "local-1",
+                syncStatus = SyncStatus.PENDING_UPDATE,
+                remoteId = "remote-1",
+            ),
+        )
+
+        repository.syncAll("user-1")
+
+        // The mid-push edit must survive: the row stays pending so the newer
+        // state is pushed by the next sync instead of being silently dropped.
+        val after = dao.getShiftById("local-1")!!
+        assertEquals("edited mid-push", after.notes)
+        assertEquals(SyncStatus.PENDING_UPDATE, after.syncStatus)
+        assertEquals("remote-1", after.remoteId)
+    }
+
+    @Test
+    fun `create adopted mid-edit keeps remote id and stays pending`() = runTest {
+        val dao = InMemoryShiftDao()
+        val base = FakeRemoteShiftDataSource()
+        val remote = object : RemoteShiftDataSource by base {
+            override suspend fun insert(shift: RemoteShiftInsert): RemoteShiftRow {
+                val current = dao.getShiftById("local-1")!!
+                dao.upsertShift(
+                    current.copy(
+                        notes = "edited mid-push",
+                        updatedAt = current.updatedAt + 5_000,
+                        syncStatus = SyncStatus.PENDING_CREATE,
+                    ),
+                )
+                return base.insert(shift)
+            }
+        }
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        dao.insertShift(
+            shiftEntity(
+                localId = "local-1",
+                syncStatus = SyncStatus.PENDING_CREATE,
+            ),
+        )
+
+        repository.syncAll("user-1")
+
+        // The remote row now exists, so the local row must remember its id
+        // (the retry becomes an update, not a duplicate insert) while the
+        // newer edit stays pending.
+        val after = dao.getShiftById("local-1")!!
+        assertEquals("remote-1", after.remoteId)
+        assertEquals("edited mid-push", after.notes)
+        assertEquals(SyncStatus.PENDING_CREATE, after.syncStatus)
+    }
+
+    @Test
     fun `push updates remote profile display name`() = runTest {
         val dao = InMemoryProfileDao()
         val remote = FakeRemoteProfileDataSource()
@@ -677,6 +754,8 @@ class SyncRepositoryImplTest {
         override suspend fun getPendingSyncClaims(userId: String): List<RefundClaimEntity> = emptyList()
         override suspend fun hasPendingSyncClaims(userId: String): Boolean = false
         override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) = Unit
+        override suspend fun markSyncedIfUnchanged(localId: String, remoteId: String?, lastSyncedAt: Long?, expectedUpdatedAt: Long): Int = 1
+        override suspend fun attachRemoteId(localId: String, remoteId: String?, lastSyncedAt: Long?) = Unit
         override suspend fun getAllClaimsForUser(userId: String): List<RefundClaimEntity> = emptyList()
         override suspend fun deleteAllForUser(userId: String) = Unit
         override suspend fun getClaimByRemoteId(remoteId: String): RefundClaimEntity? = null
@@ -694,6 +773,8 @@ class SyncRepositoryImplTest {
         override suspend fun getPendingSyncSettings(userId: String): List<UserSettingsEntity> = emptyList()
         override suspend fun hasPendingSyncSettings(userId: String): Boolean = false
         override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) = Unit
+        override suspend fun markSyncedIfUnchanged(localId: String, remoteId: String?, lastSyncedAt: Long?, expectedUpdatedAt: Long): Int = 1
+        override suspend fun attachRemoteId(localId: String, remoteId: String?, lastSyncedAt: Long?) = Unit
         override suspend fun getAllSettingsForUser(userId: String): List<UserSettingsEntity> = emptyList()
         override suspend fun deleteAllForUser(userId: String) = Unit
         override suspend fun getSettingsByRemoteId(remoteId: String): UserSettingsEntity? = null
@@ -715,6 +796,8 @@ class SyncRepositoryImplTest {
         override suspend fun update(profile: CompensationProfileEntity) = Unit
         override suspend fun upsert(profile: CompensationProfileEntity) = Unit
         override suspend fun updateSyncState(localId: String, status: SyncStatus, remoteId: String?, syncedAt: Long?, error: String?) = Unit
+        override suspend fun markSyncedIfUnchanged(localId: String, remoteId: String?, syncedAt: Long?, expectedUpdatedAt: Long): Int = 1
+        override suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?) = Unit
         override suspend fun clearDefaultForUser(userId: String) = Unit
         override suspend fun deleteAllForUser(userId: String) = Unit
         override suspend fun markNeverSyncedPendingCreate(userId: String) = Unit
@@ -734,6 +817,8 @@ class SyncRepositoryImplTest {
         override suspend fun upsert(profile: PremiumProfileEntity) = Unit
         override suspend fun insert(profile: PremiumProfileEntity) = Unit
         override suspend fun updateSyncState(localId: String, status: SyncStatus, remoteId: String?, syncedAt: Long?, error: String?) = Unit
+        override suspend fun markSyncedIfUnchanged(localId: String, remoteId: String?, syncedAt: Long?, expectedUpdatedAt: Long): Int = 1
+        override suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?) = Unit
         override suspend fun clearDefaultForUser(userId: String) = Unit
         override suspend fun deleteAllForUser(userId: String) = Unit
         override suspend fun adoptLegacyUser(userId: String) = Unit
@@ -754,6 +839,8 @@ class SyncRepositoryImplTest {
         override suspend fun insert(task: TaskEntity) = Unit
         override suspend fun adoptLegacyUser(userId: String) = Unit
         override suspend fun updateSyncState(localId: String, status: SyncStatus, remoteId: String?, syncedAt: Long?, error: String?) = Unit
+        override suspend fun markSyncedIfUnchanged(localId: String, remoteId: String?, syncedAt: Long?, expectedUpdatedAt: Long): Int = 1
+        override suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?) = Unit
         override suspend fun updateLastUsed(localId: String, lastUsedAt: Long, updatedAt: Long) = Unit
         override suspend fun softDeleteTask(
             localId: String,
@@ -849,6 +936,26 @@ class SyncRepositoryImplTest {
                 store[localId] = it.copy(
                     syncStatus = status, remoteId = remoteId, lastSyncedAt = syncedAt, lastSyncError = error,
                 )
+            }
+        }
+
+        override suspend fun markSyncedIfUnchanged(
+            localId: String,
+            remoteId: String?,
+            syncedAt: Long?,
+            expectedUpdatedAt: Long,
+        ): Int {
+            val current = store[localId] ?: return 0
+            if (current.updatedAt != expectedUpdatedAt) return 0
+            store[localId] = current.copy(
+                syncStatus = SyncStatus.SYNCED, remoteId = remoteId, lastSyncedAt = syncedAt, lastSyncError = null,
+            )
+            return 1
+        }
+
+        override suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?) {
+            store[localId]?.let {
+                store[localId] = it.copy(remoteId = remoteId, lastSyncedAt = syncedAt)
             }
         }
 
@@ -997,6 +1104,35 @@ class SyncRepositoryImplTest {
                 } else {
                     it
                 }
+            }
+        }
+
+        override suspend fun markSyncedIfUnchanged(
+            localId: String,
+            remoteId: String?,
+            lastSyncedAt: Long?,
+            expectedUpdatedAt: Long,
+        ): Int {
+            var updatedRows = 0
+            shifts.value = shifts.value.map {
+                if (it.localId == localId && it.updatedAt == expectedUpdatedAt) {
+                    updatedRows = 1
+                    it.copy(
+                        syncStatus = SyncStatus.SYNCED,
+                        remoteId = remoteId,
+                        lastSyncedAt = lastSyncedAt,
+                        lastSyncError = null,
+                    )
+                } else {
+                    it
+                }
+            }
+            return updatedRows
+        }
+
+        override suspend fun attachRemoteId(localId: String, remoteId: String?, lastSyncedAt: Long?) {
+            shifts.value = shifts.value.map {
+                if (it.localId == localId) it.copy(remoteId = remoteId, lastSyncedAt = lastSyncedAt) else it
             }
         }
 

@@ -36,6 +36,10 @@
     <string name="settings_delete_account_title">למחוק את החשבון?</string>
     <string name="settings_delete_account_body">הפעולה מוחקת לצמיתות את חשבון הענן, המשמרות, ההגדרות, בקשות ההחזר וצילומי הקבלות. גם המידע המקומי במכשיר יימחק. אי אפשר לבטל את זה.</string>
     <string name="settings_deleting_account">מוחק חשבון…</string>
+    <string name="settings_delete_local_user">מחיקת משתמש</string>
+    <string name="settings_delete_local_user_title">למחוק את המשתמש?</string>
+    <string name="settings_delete_local_user_warning">מחיקה לצמיתות של המשתמש ושל כל המידע השמור במכשיר: משמרות, הגדרות, בקשות החזר וצילומי קבלות.</string>
+    <string name="settings_delete_local_user_body">הפעולה מוחקת לצמיתות את המשתמש ואת כל המידע השמור במכשיר: משמרות, הגדרות, בקשות החזר וצילומי קבלות. אי אפשר לבטל את זה.</string>
     <string name="settings_local_only_mode">מצב מקומי בלבד (Supabase לא מוגדר).</string>
 
     <!-- Pay & overtime -->

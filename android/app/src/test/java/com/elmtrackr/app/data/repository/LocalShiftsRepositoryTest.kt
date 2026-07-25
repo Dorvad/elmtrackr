@@ -188,6 +188,35 @@ class LocalShiftsRepositoryTest {
             }
         }
 
+        override suspend fun markSyncedIfUnchanged(
+            localId: String,
+            remoteId: String?,
+            lastSyncedAt: Long?,
+            expectedUpdatedAt: Long,
+        ): Int {
+            var updatedRows = 0
+            shifts.value = shifts.value.map {
+                if (it.localId == localId && it.updatedAt == expectedUpdatedAt) {
+                    updatedRows = 1
+                    it.copy(
+                        syncStatus = SyncStatus.SYNCED,
+                        remoteId = remoteId,
+                        lastSyncedAt = lastSyncedAt,
+                        lastSyncError = null,
+                    )
+                } else {
+                    it
+                }
+            }
+            return updatedRows
+        }
+
+        override suspend fun attachRemoteId(localId: String, remoteId: String?, lastSyncedAt: Long?) {
+            shifts.value = shifts.value.map {
+                if (it.localId == localId) it.copy(remoteId = remoteId, lastSyncedAt = lastSyncedAt) else it
+            }
+        }
+
         override suspend fun markNeverSyncedPendingCreate(userId: String) {
             shifts.value = shifts.value.map {
                 if (it.userId == userId && it.remoteId == null &&

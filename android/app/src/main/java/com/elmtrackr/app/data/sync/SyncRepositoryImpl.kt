@@ -436,13 +436,22 @@ class SyncRepositoryImpl @Inject constructor(
             // response collides with the row it already created — adopt it.
             if (RemoteSyncErrors.isUniqueViolation(e)) task.localId else throw e
         }
-        taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+        markTaskSynced(task, remoteId, syncedAt)
     }
 
     private suspend fun pushTaskUpdate(task: TaskEntity, syncedAt: Long) {
         val remoteId = task.remoteId ?: error("Missing remoteId for task ${task.localId}")
         tasksRemote.update(remoteId, task.toRemoteUpdate())
-        taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+        markTaskSynced(task, remoteId, syncedAt)
+    }
+
+    // A row edited while its push was in flight must stay pending — flipping it
+    // to SYNCED would silently drop the newer edit (it would never reach other
+    // devices). The remoteId is still recorded so a pending create retries as
+    // an update instead of inserting a duplicate.
+    private suspend fun markTaskSynced(task: TaskEntity, remoteId: String?, syncedAt: Long) {
+        val updated = taskDao.markSyncedIfUnchanged(task.localId, remoteId, syncedAt, task.updatedAt)
+        if (updated == 0) taskDao.attachRemoteId(task.localId, remoteId, syncedAt)
     }
 
     private suspend fun pushTaskDelete(task: TaskEntity, syncedAt: Long) {
@@ -516,7 +525,7 @@ class SyncRepositoryImpl @Inject constructor(
         val startTimeIso = epochToIso(shift.startTime)
         val existingRemote = shiftsRemote.findByUserAndStartTime(shift.userId, startTimeIso)
         if (existingRemote != null) {
-            shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, existingRemote.id, syncedAt, null)
+            markShiftSynced(shift, existingRemote.id, syncedAt)
             return
         }
 
@@ -528,12 +537,12 @@ class SyncRepositoryImpl @Inject constructor(
                     taskRemoteId = idMapper.taskLocalToRemote(shift.taskId),
                 ),
             )
-            shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, remote.id, syncedAt, null)
+            markShiftSynced(shift, remote.id, syncedAt)
         }.onFailure { error ->
             if (RemoteSyncErrors.isUniqueViolation(error)) {
                 val linked = shiftsRemote.findByUserAndStartTime(shift.userId, startTimeIso)
                     ?: throw error
-                shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, linked.id, syncedAt, null)
+                markShiftSynced(shift, linked.id, syncedAt)
             } else {
                 throw error
             }
@@ -550,7 +559,16 @@ class SyncRepositoryImpl @Inject constructor(
                 taskRemoteId = idMapper.taskLocalToRemote(shift.taskId),
             ),
         )
-        shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+        markShiftSynced(shift, remoteId, syncedAt)
+    }
+
+    // A shift edited while its push was in flight (clock-out, note change, …)
+    // must stay pending — flipping it to SYNCED would silently drop the newer
+    // edit and it would never reach other devices. The remoteId is still
+    // recorded so a pending create retries as an update, not a duplicate insert.
+    private suspend fun markShiftSynced(shift: ShiftEntity, remoteId: String?, syncedAt: Long) {
+        val updated = shiftDao.markSyncedIfUnchanged(shift.localId, remoteId, syncedAt, shift.updatedAt)
+        if (updated == 0) shiftDao.attachRemoteId(shift.localId, remoteId, syncedAt)
     }
 
     private suspend fun pushShiftDelete(shift: ShiftEntity, syncedAt: Long) {
@@ -688,13 +706,19 @@ class SyncRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             if (RemoteSyncErrors.isUniqueViolation(e)) claim.localId else throw e
         }
-        refundClaimDao.updateSyncState(claim.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+        markRefundClaimSynced(claim, remoteId, syncedAt)
     }
 
     private suspend fun pushRefundClaimUpdate(claim: RefundClaimEntity, syncedAt: Long) {
         val remoteId = claim.remoteId ?: error("Missing remoteId for claim ${claim.localId}")
         claimsRemote.update(remoteId, claim.toRemoteUpdate())
-        refundClaimDao.updateSyncState(claim.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+        markRefundClaimSynced(claim, remoteId, syncedAt)
+    }
+
+    // See markShiftSynced: a mid-push edit must keep the row pending.
+    private suspend fun markRefundClaimSynced(claim: RefundClaimEntity, remoteId: String?, syncedAt: Long) {
+        val updated = refundClaimDao.markSyncedIfUnchanged(claim.localId, remoteId, syncedAt, claim.updatedAt)
+        if (updated == 0) refundClaimDao.attachRemoteId(claim.localId, remoteId, syncedAt)
     }
 
     private suspend fun pushRefundClaimDelete(claim: RefundClaimEntity, syncedAt: Long) {
@@ -770,13 +794,25 @@ class SyncRepositoryImpl @Inject constructor(
             // instead of inserting the profile again.
             if (RemoteSyncErrors.isUniqueViolation(e)) profile.localId else throw e
         }
-        compensationProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+        markCompensationProfileSynced(profile, remoteId, syncedAt)
     }
 
     private suspend fun pushCompensationProfileUpdate(profile: CompensationProfileEntity, syncedAt: Long) {
         val remoteId = profile.remoteId ?: error("Missing remoteId for profile ${profile.localId}")
         compensationRemote.update(remoteId, profile.toRemoteUpdate())
-        compensationProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+        markCompensationProfileSynced(profile, remoteId, syncedAt)
+    }
+
+    // See markShiftSynced: a mid-push edit must keep the row pending.
+    private suspend fun markCompensationProfileSynced(
+        profile: CompensationProfileEntity,
+        remoteId: String?,
+        syncedAt: Long,
+    ) {
+        val updated = compensationProfileDao.markSyncedIfUnchanged(
+            profile.localId, remoteId, syncedAt, profile.updatedAt,
+        )
+        if (updated == 0) compensationProfileDao.attachRemoteId(profile.localId, remoteId, syncedAt)
     }
 
     private suspend fun pushCompensationProfileDelete(profile: CompensationProfileEntity, syncedAt: Long) {
@@ -847,13 +883,25 @@ class SyncRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             if (RemoteSyncErrors.isUniqueViolation(e)) profile.localId else throw e
         }
-        premiumProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+        markPremiumProfileSynced(profile, remoteId, syncedAt)
     }
 
     private suspend fun pushPremiumProfileUpdate(profile: PremiumProfileEntity, syncedAt: Long) {
         val remoteId = profile.remoteId ?: error("Missing remoteId for premium profile ${profile.localId}")
         premiumRemote.update(remoteId, profile.toRemoteUpdate())
-        premiumProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+        markPremiumProfileSynced(profile, remoteId, syncedAt)
+    }
+
+    // See markShiftSynced: a mid-push edit must keep the row pending.
+    private suspend fun markPremiumProfileSynced(
+        profile: PremiumProfileEntity,
+        remoteId: String?,
+        syncedAt: Long,
+    ) {
+        val updated = premiumProfileDao.markSyncedIfUnchanged(
+            profile.localId, remoteId, syncedAt, profile.updatedAt,
+        )
+        if (updated == 0) premiumProfileDao.attachRemoteId(profile.localId, remoteId, syncedAt)
     }
 
     private suspend fun pushPremiumProfileDelete(profile: PremiumProfileEntity, syncedAt: Long) {
@@ -914,7 +962,7 @@ class SyncRepositoryImpl @Inject constructor(
                     settings.deletedAt != null -> pushUserSettingsDelete(settings, now)
                     settings.remoteId == null -> {
                         val remote = settingsRemote.upsert(settings.toRemoteUpsert(profileRemoteId))
-                        settingsDao.updateSyncState(settings.localId, SyncStatus.SYNCED, remote.id, now, null)
+                        markUserSettingsSynced(settings, remote.id, now)
                     }
                     else -> pushUserSettingsUpdate(settings, profileRemoteId, now)
                 }
@@ -929,7 +977,19 @@ class SyncRepositoryImpl @Inject constructor(
     ) {
         val remoteId = settings.remoteId ?: error("Missing remoteId for settings ${settings.localId}")
         settingsRemote.update(remoteId, settings.toRemoteUpdate(profileRemoteId))
-        settingsDao.updateSyncState(settings.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+        markUserSettingsSynced(settings, remoteId, syncedAt)
+    }
+
+    // See markShiftSynced: a mid-push edit must keep the row pending.
+    private suspend fun markUserSettingsSynced(
+        settings: UserSettingsEntity,
+        remoteId: String?,
+        syncedAt: Long,
+    ) {
+        val updated = settingsDao.markSyncedIfUnchanged(
+            settings.localId, remoteId, syncedAt, settings.updatedAt,
+        )
+        if (updated == 0) settingsDao.attachRemoteId(settings.localId, remoteId, syncedAt)
     }
 
     private suspend fun pushUserSettingsDelete(settings: UserSettingsEntity, syncedAt: Long) {

@@ -205,6 +205,10 @@ internal fun ProfileDetailScreen(
     var showDeleteSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val initial = displayName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+    // Cloud accounts delete the Supabase account; local-only mode deletes the
+    // on-device user. Both routes go through the same deleteAccount() flow —
+    // only the wording differs.
+    val isCloudAccount = authState is AuthUiState.SignedIn
 
     if (showDeleteSheet) {
         ModalBottomSheet(
@@ -234,13 +238,19 @@ internal fun ProfileDetailScreen(
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    stringResource(R.string.settings_delete_account_title),
+                    stringResource(
+                        if (isCloudAccount) R.string.settings_delete_account_title
+                        else R.string.settings_delete_local_user_title,
+                    ),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    stringResource(R.string.settings_delete_account_body),
+                    stringResource(
+                        if (isCloudAccount) R.string.settings_delete_account_body
+                        else R.string.settings_delete_local_user_body,
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -259,7 +269,13 @@ internal fun ProfileDetailScreen(
                     ),
                 ) {
                     Text(
-                        stringResource(if (state.isDeletingAccount) R.string.settings_deleting_account else R.string.settings_delete_account),
+                        stringResource(
+                            when {
+                                state.isDeletingAccount -> R.string.settings_deleting_account
+                                isCloudAccount -> R.string.settings_delete_account
+                                else -> R.string.settings_delete_local_user
+                            },
+                        ),
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -353,7 +369,18 @@ internal fun ProfileDetailScreen(
                 }
             }
         }
-        if (authState is AuthUiState.SignedIn) {
+        if (authState is AuthUiState.NotConfigured) {
+            item {
+                Text(
+                    stringResource(R.string.settings_local_only_mode),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        // Deleting the user must be reachable in every mode: cloud accounts
+        // delete the Supabase account, local-only mode wipes the on-device user.
+        if (isCloudAccount || authState is AuthUiState.NotConfigured) {
             item {
                 SettingsSectionCardPlain {
                     Text(
@@ -364,14 +391,18 @@ internal fun ProfileDetailScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        stringResource(R.string.settings_delete_account_warning),
+                        stringResource(
+                            if (isCloudAccount) R.string.settings_delete_account_warning
+                            else R.string.settings_delete_local_user_warning,
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(12.dp))
                     Button(
                         onClick = { showDeleteSheet = true },
-                        enabled = !authState.isLoading && !state.isDeletingAccount,
+                        enabled = (authState as? AuthUiState.SignedIn)?.isLoading != true &&
+                            !state.isDeletingAccount,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(CornerRadius.Medium),
                         colors = ButtonDefaults.buttonColors(
@@ -381,17 +412,15 @@ internal fun ProfileDetailScreen(
                     ) {
                         Icon(Icons.Filled.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.settings_delete_account), fontWeight = FontWeight.Bold)
+                        Text(
+                            stringResource(
+                                if (isCloudAccount) R.string.settings_delete_account
+                                else R.string.settings_delete_local_user,
+                            ),
+                            fontWeight = FontWeight.Bold,
+                        )
                     }
                 }
-            }
-        } else if (authState is AuthUiState.NotConfigured) {
-            item {
-                Text(
-                    stringResource(R.string.settings_local_only_mode),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
         item { Spacer(Modifier.height(88.dp)) }
