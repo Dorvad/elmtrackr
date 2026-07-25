@@ -61,6 +61,27 @@ interface SettingsDao {
         lastSyncError: String?,
     )
 
+    /**
+     * Marks a row SYNCED only if it hasn't been edited since the push snapshot
+     * was taken. Returns 0 when a concurrent edit won; the row must then stay
+     * pending so the newer state is pushed by a follow-up sync.
+     */
+    @Query(
+        "UPDATE user_settings SET syncStatus = 'SYNCED', remoteId = :remoteId, " +
+            "lastSyncedAt = :lastSyncedAt, lastSyncError = NULL " +
+            "WHERE localId = :localId AND updatedAt = :expectedUpdatedAt"
+    )
+    suspend fun markSyncedIfUnchanged(
+        localId: String,
+        remoteId: String?,
+        lastSyncedAt: Long?,
+        expectedUpdatedAt: Long,
+    ): Int
+
+    /** Records the remote id without touching syncStatus or updatedAt. */
+    @Query("UPDATE user_settings SET remoteId = :remoteId, lastSyncedAt = :lastSyncedAt WHERE localId = :localId")
+    suspend fun attachRemoteId(localId: String, remoteId: String?, lastSyncedAt: Long?)
+
     @Query(
         "UPDATE user_settings SET syncStatus = 'PENDING_CREATE' WHERE userId = :userId " +
             "AND remoteId IS NULL AND syncStatus = 'SYNCED' AND deletedAt IS NULL"

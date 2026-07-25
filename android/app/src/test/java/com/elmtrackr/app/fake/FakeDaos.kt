@@ -66,6 +66,19 @@ class FakeShiftDao : ShiftDao {
         refresh()
     }
 
+    override suspend fun markSyncedIfUnchanged(localId: String, remoteId: String?, lastSyncedAt: Long?, expectedUpdatedAt: Long): Int {
+        val current = store[localId] ?: return 0
+        if (current.updatedAt != expectedUpdatedAt) return 0
+        store[localId] = current.copy(syncStatus = SyncStatus.SYNCED, remoteId = remoteId, lastSyncedAt = lastSyncedAt, lastSyncError = null)
+        refresh()
+        return 1
+    }
+
+    override suspend fun attachRemoteId(localId: String, remoteId: String?, lastSyncedAt: Long?) {
+        store[localId]?.let { store[localId] = it.copy(remoteId = remoteId, lastSyncedAt = lastSyncedAt) }
+        refresh()
+    }
+
     override suspend fun markNeverSyncedPendingCreate(userId: String) {
         store.replaceAll { _, value ->
             if (value.userId == userId && value.remoteId == null &&
@@ -183,6 +196,19 @@ class FakeRefundClaimDao : RefundClaimDao {
         refresh()
     }
 
+    override suspend fun markSyncedIfUnchanged(localId: String, remoteId: String?, lastSyncedAt: Long?, expectedUpdatedAt: Long): Int {
+        val current = store[localId] ?: return 0
+        if (current.updatedAt != expectedUpdatedAt) return 0
+        store[localId] = current.copy(syncStatus = SyncStatus.SYNCED, remoteId = remoteId, lastSyncedAt = lastSyncedAt, lastSyncError = null)
+        refresh()
+        return 1
+    }
+
+    override suspend fun attachRemoteId(localId: String, remoteId: String?, lastSyncedAt: Long?) {
+        store[localId]?.let { store[localId] = it.copy(remoteId = remoteId, lastSyncedAt = lastSyncedAt) }
+        refresh()
+    }
+
     override suspend fun markNeverSyncedPendingCreate(userId: String) {
         store.replaceAll { _, value ->
             if (value.userId == userId && value.remoteId == null &&
@@ -250,6 +276,19 @@ class FakeSettingsDao : SettingsDao {
 
     override suspend fun updateSyncState(localId: String, syncStatus: SyncStatus, remoteId: String?, lastSyncedAt: Long?, lastSyncError: String?) {
         store[localId]?.let { store[localId] = it.copy(syncStatus = syncStatus, remoteId = remoteId, lastSyncedAt = lastSyncedAt, lastSyncError = lastSyncError) }
+        refresh()
+    }
+
+    override suspend fun markSyncedIfUnchanged(localId: String, remoteId: String?, lastSyncedAt: Long?, expectedUpdatedAt: Long): Int {
+        val current = store[localId] ?: return 0
+        if (current.updatedAt != expectedUpdatedAt) return 0
+        store[localId] = current.copy(syncStatus = SyncStatus.SYNCED, remoteId = remoteId, lastSyncedAt = lastSyncedAt, lastSyncError = null)
+        refresh()
+        return 1
+    }
+
+    override suspend fun attachRemoteId(localId: String, remoteId: String?, lastSyncedAt: Long?) {
+        store[localId]?.let { store[localId] = it.copy(remoteId = remoteId, lastSyncedAt = lastSyncedAt) }
         refresh()
     }
 
@@ -457,6 +496,19 @@ class FakeCompensationProfileDao : com.elmtrackr.app.data.local.dao.Compensation
         refresh()
     }
 
+    override suspend fun markSyncedIfUnchanged(localId: String, remoteId: String?, syncedAt: Long?, expectedUpdatedAt: Long): Int {
+        val current = store[localId] ?: return 0
+        if (current.updatedAt != expectedUpdatedAt) return 0
+        store[localId] = current.copy(syncStatus = SyncStatus.SYNCED, remoteId = remoteId, lastSyncedAt = syncedAt, lastSyncError = null)
+        refresh()
+        return 1
+    }
+
+    override suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?) {
+        store[localId]?.let { store[localId] = it.copy(remoteId = remoteId, lastSyncedAt = syncedAt) }
+        refresh()
+    }
+
     override suspend fun clearDefaultForUser(userId: String) {
         store.replaceAll { _, value ->
             if (value.userId == userId) value.copy(isDefault = false) else value
@@ -555,6 +607,19 @@ class FakeTaskDao : com.elmtrackr.app.data.local.dao.TaskDao {
         refresh()
     }
 
+    override suspend fun markSyncedIfUnchanged(localId: String, remoteId: String?, syncedAt: Long?, expectedUpdatedAt: Long): Int {
+        val current = store[localId] ?: return 0
+        if (current.updatedAt != expectedUpdatedAt) return 0
+        store[localId] = current.copy(syncStatus = SyncStatus.SYNCED, remoteId = remoteId, lastSyncedAt = syncedAt, lastSyncError = null)
+        refresh()
+        return 1
+    }
+
+    override suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?) {
+        store[localId]?.let { store[localId] = it.copy(remoteId = remoteId, lastSyncedAt = syncedAt) }
+        refresh()
+    }
+
     override suspend fun updateLastUsed(localId: String, lastUsedAt: Long, updatedAt: Long) {
         store[localId]?.let { store[localId] = it.copy(lastUsedAt = lastUsedAt, updatedAt = updatedAt) }
         refresh()
@@ -628,6 +693,19 @@ class FakePremiumProfileDao : com.elmtrackr.app.data.local.dao.PremiumProfileDao
         store[localId]?.let {
             store[localId] = it.copy(syncStatus = status, remoteId = remoteId, lastSyncedAt = syncedAt, lastSyncError = error)
         }
+        refresh()
+    }
+
+    override suspend fun markSyncedIfUnchanged(localId: String, remoteId: String?, syncedAt: Long?, expectedUpdatedAt: Long): Int {
+        val current = store[localId] ?: return 0
+        if (current.updatedAt != expectedUpdatedAt) return 0
+        store[localId] = current.copy(syncStatus = SyncStatus.SYNCED, remoteId = remoteId, lastSyncedAt = syncedAt, lastSyncError = null)
+        refresh()
+        return 1
+    }
+
+    override suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?) {
+        store[localId]?.let { store[localId] = it.copy(remoteId = remoteId, lastSyncedAt = syncedAt) }
         refresh()
     }
 

@@ -31,6 +31,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DocumentScanner
@@ -67,6 +68,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -221,15 +223,14 @@ fun RefundClaimsSection(
         }
 
         directions.forEach { (direction, eligibility) ->
-            val claim = state.claims.firstOrNull { it.direction == direction }
             RefundClaimCard(
                 shift = shift,
-                claim = claim,
+                claims = state.claims.filter { it.direction == direction },
                 direction = direction,
                 eligibility = eligibility,
                 currency = currency,
-                hasLocalReceipt = claim?.id?.let { state.localReceiptsByClaimId.containsKey(it) } == true,
-                isDeleting = state.deletingClaimId == claim?.id,
+                localReceiptClaimIds = state.localReceiptsByClaimId.keys,
+                deletingClaimId = state.deletingClaimId,
                 onAdd = { viewModel.openForm(direction) },
                 onEdit = { edited -> viewModel.openForm(direction, edited) },
                 onDelete = { deleted -> pendingDeleteClaimId = deleted.id },
@@ -265,12 +266,12 @@ private fun MessageCard(message: String, isError: Boolean, onDismiss: () -> Unit
 @OptIn(ExperimentalLayoutApi::class)
 fun RefundClaimCard(
     shift: Shift,
-    claim: RefundClaim?,
+    claims: List<RefundClaim>,
     direction: RefundDirection,
     eligibility: RefundPolicy.Eligibility,
     currency: CurrencyCode,
-    hasLocalReceipt: Boolean,
-    isDeleting: Boolean,
+    localReceiptClaimIds: Set<String>,
+    deletingClaimId: String?,
     onAdd: () -> Unit,
     onEdit: (RefundClaim) -> Unit,
     onDelete: (RefundClaim) -> Unit,
@@ -297,7 +298,11 @@ fun RefundClaimCard(
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(directionLabelRes(direction)), fontWeight = FontWeight.Bold)
                     Text(
-                        stringResource(if (claim == null) R.string.refunds_no_claim_saved else R.string.refunds_claim_ready),
+                        if (claims.isEmpty()) {
+                            stringResource(R.string.refunds_no_rides_yet)
+                        } else {
+                            pluralStringResource(R.plurals.refunds_rides_saved, claims.size, claims.size)
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -317,12 +322,29 @@ fun RefundClaimCard(
                 }
             }
 
-            if (claim == null) {
+            claims.forEachIndexed { index, claim ->
+                if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                RefundClaimEntry(
+                    claim = claim,
+                    currency = currency,
+                    hasLocalReceipt = claim.id in localReceiptClaimIds,
+                    isDeleting = deletingClaimId == claim.id,
+                    onEdit = onEdit,
+                    onDelete = onDelete,
+                    onViewReceipt = onViewReceipt,
+                )
+            }
+
+            // A shift can hold any number of rides, so adding stays available
+            // after the first one is saved.
+            if (claims.isEmpty()) {
                 Button(
                     onClick = onAdd,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) {
-                    Text(stringResource(if (shift.refundAction == RefundAction.REMIND_LATER) R.string.refunds_add_receipt_now else R.string.refunds_add_claim))
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(if (shift.refundAction == RefundAction.REMIND_LATER) R.string.refunds_add_receipt_now else R.string.refunds_add_ride))
                 }
                 if (direction == RefundDirection.FROM_WORK) {
                     RefundActionRow(
@@ -333,52 +355,74 @@ fun RefundClaimCard(
                     )
                 }
             } else {
-                Text(
-                    stringResource(
-                        R.string.refunds_claim_summary,
-                        claim.provider.name.lowercase().replaceFirstChar { it.uppercase() },
-                        MoneyFormatter.format(claim.amount, currency),
-                    ),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    claim.rideAt.atZone(ZoneId.systemDefault()).let { zdt ->
-                        stringResource(
-                            R.string.refunds_date_at_time,
-                            zdt.format(refundDateFmt()),
-                            zdt.format(refundTimeFmt),
-                        )
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                claim.notes?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedButton(
+                    onClick = onAdd,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.refunds_add_another_ride))
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(
-                        onClick = { onEdit(claim) },
-                        enabled = !isDeleting,
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text(stringResource(R.string.refunds_edit)) }
-                    if (claim.receiptPath != null || hasLocalReceipt) {
-                        TextButton(
-                            onClick = { onViewReceipt(claim) },
-                            enabled = !isDeleting,
-                            modifier = Modifier.heightIn(min = 48.dp),
-                        ) { Text(stringResource(R.string.refunds_view_receipt)) }
-                    }
-                    TextButton(
-                        onClick = { onDelete(claim) },
-                        enabled = !isDeleting,
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) {
-                        if (isDeleting) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                        else Text(stringResource(R.string.refunds_delete), color = MaterialTheme.colorScheme.error)
-                    }
-                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RefundClaimEntry(
+    claim: RefundClaim,
+    currency: CurrencyCode,
+    hasLocalReceipt: Boolean,
+    isDeleting: Boolean,
+    onEdit: (RefundClaim) -> Unit,
+    onDelete: (RefundClaim) -> Unit,
+    onViewReceipt: (RefundClaim) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            stringResource(
+                R.string.refunds_claim_summary,
+                claim.provider.name.lowercase().replaceFirstChar { it.uppercase() },
+                MoneyFormatter.format(claim.amount, currency),
+            ),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            claim.rideAt.atZone(ZoneId.systemDefault()).let { zdt ->
+                stringResource(
+                    R.string.refunds_date_at_time,
+                    zdt.format(refundDateFmt()),
+                    zdt.format(refundTimeFmt),
+                )
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        claim.notes?.takeIf { it.isNotBlank() }?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(
+                onClick = { onEdit(claim) },
+                enabled = !isDeleting,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text(stringResource(R.string.refunds_edit)) }
+            if (claim.receiptPath != null || hasLocalReceipt) {
+                TextButton(
+                    onClick = { onViewReceipt(claim) },
+                    enabled = !isDeleting,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text(stringResource(R.string.refunds_view_receipt)) }
+            }
+            TextButton(
+                onClick = { onDelete(claim) },
+                enabled = !isDeleting,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
+                if (isDeleting) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                else Text(stringResource(R.string.refunds_delete), color = MaterialTheme.colorScheme.error)
             }
         }
     }

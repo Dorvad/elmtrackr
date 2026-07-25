@@ -36,6 +36,10 @@
     <string name="settings_delete_account_title">Delete account?</string>
     <string name="settings_delete_account_body">This permanently deletes your cloud account, shifts, settings, refund claims, and receipt photos. Local data on this device will also be removed. This cannot be undone.</string>
     <string name="settings_deleting_account">Deleting account…</string>
+    <string name="settings_delete_local_user">Delete user</string>
+    <string name="settings_delete_local_user_title">Delete user?</string>
+    <string name="settings_delete_local_user_warning">Permanently delete this user and all data stored on this device: shifts, settings, refund claims, and receipt photos.</string>
+    <string name="settings_delete_local_user_body">This permanently deletes the user and all data stored on this device: shifts, settings, refund claims, and receipt photos. This cannot be undone.</string>
     <string name="settings_local_only_mode">Running in local-only mode (Supabase not configured).</string>
 
     <!-- Pay & overtime -->
@@ -183,6 +187,9 @@
     <string name="settings_rule_time_ok">OK</string>
     <string name="settings_rule_time_cancel">Cancel</string>
     <string name="settings_rule_pick_days">Repeat on</string>
+    <string name="settings_rule_pick_days_hint">Tap a day to turn it on or off. The reminder is sent only on days marked with a checkmark.</string>
+    <string name="settings_rule_days_selected_summary">Reminder will be sent: %1$s</string>
+    <string name="settings_rule_days_none_selected">Select at least one day to save.</string>
     <string name="settings_rule_days_done">Done</string>
     <string name="settings_rule_every_day">every day</string>
     <string name="settings_day_short_sun">Sun</string>

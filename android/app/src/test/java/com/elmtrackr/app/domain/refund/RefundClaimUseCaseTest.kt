@@ -88,6 +88,96 @@ class RefundClaimUseCaseTest {
     }
 
     @Test
+    fun `upsert without claimId adds another ride in the same direction`() = runTest {
+        val shift = specialDayShift()
+        shiftsRepository.setShifts(shift)
+        val useCase = upsertUseCase()
+
+        val first = useCase(
+            RefundClaimUpsertInput(
+                shiftId = shift.id,
+                direction = RefundDirection.FROM_WORK,
+                provider = RefundProvider.TAXI,
+                amount = 30.0,
+                rideAt = shift.endTime!!,
+                notes = "First ride",
+            ),
+        )
+        val second = useCase(
+            RefundClaimUpsertInput(
+                shiftId = shift.id,
+                direction = RefundDirection.FROM_WORK,
+                provider = RefundProvider.LIME,
+                amount = 12.0,
+                rideAt = shift.endTime!!,
+                notes = "Second ride",
+            ),
+        )
+
+        assertTrue(first.claim.id != second.claim.id)
+        assertEquals(2, refundsRepository.observeClaimsForShift(shift.id).first().size)
+    }
+
+    @Test
+    fun `upsert with claimId updates that claim instead of adding one`() = runTest {
+        val shift = specialDayShift()
+        shiftsRepository.setShifts(shift)
+        val useCase = upsertUseCase()
+        val created = useCase(
+            RefundClaimUpsertInput(
+                shiftId = shift.id,
+                direction = RefundDirection.TO_WORK,
+                provider = RefundProvider.TAXI,
+                amount = 18.0,
+                rideAt = shift.startTime,
+                notes = "",
+            ),
+        )
+
+        val updated = useCase(
+            RefundClaimUpsertInput(
+                shiftId = shift.id,
+                claimId = created.claim.id,
+                direction = RefundDirection.TO_WORK,
+                provider = RefundProvider.TAXI,
+                amount = 25.0,
+                rideAt = shift.startTime,
+                notes = "Corrected amount",
+            ),
+        )
+
+        assertEquals(created.claim.id, updated.claim.id)
+        val claims = refundsRepository.observeClaimsForShift(shift.id).first()
+        assertEquals(1, claims.size)
+        assertEquals(25.0, claims.single().amount, 0.0)
+    }
+
+    @Test
+    fun `upsert saves claim on a shift that is still running`() = runTest {
+        val shift = Shift(
+            id = "active",
+            userId = "local-user",
+            startTime = Instant.parse("2024-01-08T12:00:00Z"),
+            endTime = null,
+        )
+        shiftsRepository.setShifts(shift)
+
+        val result = upsertUseCase()(
+            RefundClaimUpsertInput(
+                shiftId = shift.id,
+                direction = RefundDirection.TO_WORK,
+                provider = RefundProvider.OTHER,
+                amount = 6.0,
+                rideAt = shift.startTime,
+                notes = "",
+            ),
+        )
+
+        assertEquals(6.0, result.claim.amount, 0.0)
+        assertEquals(1, refundsRepository.observeClaimsForShift(shift.id).first().size)
+    }
+
+    @Test
     fun `delete soft-deletes claim before deleting receipt file`() = runTest {
         val events = mutableListOf<String>()
         val shift = specialDayShift()

@@ -7,10 +7,16 @@
     <string name="refunds_claim_icon_description">בקשת החזר</string>
     <string name="refunds_direction_to_work">נסיעה לעבודה</string>
     <string name="refunds_direction_from_work">נסיעה מהעבודה</string>
-    <string name="refunds_no_claim_saved">עוד לא נשמרה בקשה</string>
-    <string name="refunds_claim_ready">הבקשה מוכנה לייצוא</string>
+    <string name="refunds_no_rides_yet">עוד לא נוספו נסיעות</string>
+    <plurals name="refunds_rides_saved">
+        <item quantity="one">נשמרה נסיעה אחת</item>
+        <item quantity="two">נשמרו שתי נסיעות</item>
+        <item quantity="many">נשמרו %d נסיעות</item>
+        <item quantity="other">נשמרו %d נסיעות</item>
+    </plurals>
     <string name="refunds_add_receipt_now">הוספת קבלה עכשיו</string>
-    <string name="refunds_add_claim">הוספת בקשת החזר</string>
+    <string name="refunds_add_ride">הוספת נסיעה</string>
+    <string name="refunds_add_another_ride">הוספת נסיעה נוספת</string>
     <string name="refunds_claim_summary">%1$s - %2$s</string>
     <string name="refunds_date_at_time">%1$s בשעה %2$s</string>
     <string name="refunds_edit">עריכה</string>

@@ -932,4 +932,4 @@ private fun countUnsavedChanges(
 internal fun shouldShowRefundSection(
     featuresTravelRefunds: Boolean,
     shift: Shift?,
-): Boolean = featuresTravelRefunds && shift != null && shift.isCompleted
+): Boolean = featuresTravelRefunds && shift != null
