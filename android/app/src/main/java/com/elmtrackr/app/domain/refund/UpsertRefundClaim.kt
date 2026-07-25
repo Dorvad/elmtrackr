@@ -9,7 +9,6 @@ import com.elmtrackr.app.domain.model.RefundProvider
 import com.elmtrackr.app.domain.repository.RefundReceiptStorage
 import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
-import kotlinx.coroutines.flow.first
 import java.time.Instant
 import javax.inject.Inject
 
@@ -43,11 +42,10 @@ class UpsertRefundClaim @Inject constructor(
         val shift = shiftsRepository.getShiftById(input.shiftId)
             ?: error("Shift not found")
 
-        require(shift.isCompleted) { "Finish the shift before saving a travel refund claim" }
-
+        // A null claimId always creates a new claim: a shift may hold any
+        // number of rides per direction, so there is no fallback lookup that
+        // would silently turn an "add another ride" into an edit.
         val existing = input.claimId?.let { refundsRepository.getClaimById(it) }
-            ?: refundsRepository.observeClaimsForShift(input.shiftId).first()
-                .firstOrNull { it.direction == input.direction }
 
         val oldReceiptPath = existing?.receiptPath
         var uploadFailed = false

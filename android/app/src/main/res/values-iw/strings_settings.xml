@@ -183,6 +183,9 @@
     <string name="settings_rule_time_ok">אישור</string>
     <string name="settings_rule_time_cancel">ביטול</string>
     <string name="settings_rule_pick_days">חזרה בימים</string>
+    <string name="settings_rule_pick_days_hint">מקישים על יום כדי להפעיל או לכבות אותו. התזכורת תישלח רק בימים המסומנים בוי.</string>
+    <string name="settings_rule_days_selected_summary">התזכורת תישלח: %1$s</string>
+    <string name="settings_rule_days_none_selected">צריך לבחור לפחות יום אחד כדי לשמור.</string>
     <string name="settings_rule_days_done">סיום</string>
     <string name="settings_rule_every_day">בכל יום</string>
     <string name="settings_day_short_sun">א׳</string>

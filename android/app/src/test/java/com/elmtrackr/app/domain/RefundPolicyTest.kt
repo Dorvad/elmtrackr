@@ -23,7 +23,7 @@ class RefundPolicyTest {
     }
 
     @Test
-    fun `active shift is not eligible`() {
+    fun `active shift is eligible for both directions`() {
         val shift = Shift(
             id = "active",
             userId = "user",
@@ -31,9 +31,22 @@ class RefundPolicyTest {
             endTime = null,
         )
 
-        assertFalse(RefundPolicy.checkToWorkEligibility(shift, zone).eligible)
-        assertFalse(RefundPolicy.checkFromWorkEligibility(shift, zone).eligible)
-        assertFalse(RefundPolicy.isEligibleForRefund(shift, zone))
+        assertTrue(RefundPolicy.checkToWorkEligibility(shift, zone).eligible)
+        assertTrue(RefundPolicy.checkFromWorkEligibility(shift, zone).eligible)
+        assertTrue(RefundPolicy.isEligibleForRefund(shift, zone))
+    }
+
+    @Test
+    fun `active shift with remind later is not unresolved until completed`() {
+        val shift = Shift(
+            id = "active",
+            userId = "user",
+            startTime = Instant.parse("2024-01-08T12:00:00Z"),
+            endTime = null,
+            refundAction = RefundAction.REMIND_LATER,
+        )
+
+        assertFalse(RefundPolicy.isUnresolved(shift, zone))
     }
 
     @Test

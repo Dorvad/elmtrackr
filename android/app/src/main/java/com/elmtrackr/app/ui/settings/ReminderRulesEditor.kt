@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -26,6 +27,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -339,33 +341,79 @@ private fun RuleDaysChip(rule: ReminderRule, onUpdate: (ReminderRule) -> Unit) {
     SentenceChip(text = daysLabel(rule.daysOfWeek), onClick = { showDayPicker = true })
 
     if (showDayPicker) {
-        var selection by remember { mutableStateOf(rule.daysOfWeek) }
+        // An empty stored set means "every day"; materialise it before the
+        // dialog opens so all seven chips are visibly checked instead of
+        // relying on an implicit state the user can't see or reason about.
+        var selection by remember {
+            mutableStateOf(rule.daysOfWeek.ifEmpty { WEEK_ORDER.map { it.value }.toSet() })
+        }
         AlertDialog(
             onDismissRequest = { showDayPicker = false },
             title = { Text(stringResource(R.string.settings_rule_pick_days)) },
             text = {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    WEEK_ORDER.forEach { day ->
-                        val value = day.value
-                        FilterChip(
-                            selected = selection.isEmpty() || value in selection,
-                            onClick = {
-                                // An empty set means "every day"; materialise it
-                                // to a full set before toggling a single day off.
-                                val base = selection.ifEmpty { WEEK_ORDER.map { it.value }.toSet() }
-                                selection = if (value in base) base - value else base + value
-                            },
-                            label = { Text(dayShortLabel(day)) },
+                Column {
+                    Text(
+                        stringResource(R.string.settings_rule_pick_days_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(Spacing.sm))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        WEEK_ORDER.forEach { day ->
+                            val selected = day.value in selection
+                            FilterChip(
+                                selected = selected,
+                                onClick = {
+                                    selection =
+                                        if (selected) selection - day.value else selection + day.value
+                                },
+                                label = { Text(dayShortLabel(day)) },
+                                leadingIcon = if (selected) {
+                                    {
+                                        Icon(
+                                            Icons.Filled.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(FilterChipDefaults.IconSize),
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(Spacing.sm))
+                    // Live confirmation of what the current selection means, so
+                    // there is no doubt whether a checked chip is "on" or "off".
+                    if (selection.isEmpty()) {
+                        Text(
+                            stringResource(R.string.settings_rule_days_none_selected),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    } else {
+                        Text(
+                            stringResource(
+                                R.string.settings_rule_days_selected_summary,
+                                daysLabel(selection),
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
             },
             confirmButton = {
                 TextButton(
+                    enabled = selection.isNotEmpty(),
                     onClick = {
                         showDayPicker = false
-                        // Empty or all-seven both mean "every day"; store the
-                        // canonical empty set so the label reads "every day".
+                        // All seven days is stored as the canonical empty set so
+                        // the chip label reads "every day".
                         val normalized = if (selection.size >= WEEK_ORDER.size) emptySet() else selection
                         onUpdate(rule.copy(daysOfWeek = normalized))
                     },

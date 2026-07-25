@@ -183,6 +183,9 @@
     <string name="settings_rule_time_ok">OK</string>
     <string name="settings_rule_time_cancel">Cancel</string>
     <string name="settings_rule_pick_days">Repeat on</string>
+    <string name="settings_rule_pick_days_hint">Tap a day to turn it on or off. The reminder is sent only on days marked with a checkmark.</string>
+    <string name="settings_rule_days_selected_summary">Reminder will be sent: %1$s</string>
+    <string name="settings_rule_days_none_selected">Select at least one day to save.</string>
     <string name="settings_rule_days_done">Done</string>
     <string name="settings_rule_every_day">every day</string>
     <string name="settings_day_short_sun">Sun</string>

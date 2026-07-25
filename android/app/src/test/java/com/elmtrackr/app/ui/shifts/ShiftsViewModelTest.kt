@@ -542,6 +542,64 @@ class ShiftsViewModelTest {
     }
 
     @Test
+    fun `saving twice in the same direction keeps both rides`() = runTest {
+        val shift = specialDayShift()
+        shiftsRepo.setShifts(shift)
+        val vm = buildVm()
+
+        vm.saveRefundClaim(
+            shift.id,
+            RefundDirection.FROM_WORK,
+            RefundProvider.TAXI,
+            30.0,
+            shift.endTime!!,
+            "first",
+            null,
+        )
+        advanceUntilIdle()
+        vm.saveRefundClaim(
+            shift.id,
+            RefundDirection.FROM_WORK,
+            RefundProvider.LIME,
+            12.0,
+            shift.endTime!!,
+            "second",
+            null,
+        )
+        advanceUntilIdle()
+
+        val claims = refundsRepo.observeClaimsForShift(shift.id).first()
+        assertEquals(2, claims.size)
+        assertEquals(setOf("first", "second"), claims.mapNotNull { it.notes }.toSet())
+    }
+
+    @Test
+    fun `refund claim can be saved on a shift that is still running`() = runTest {
+        val shift = Shift(
+            "running",
+            "local-user",
+            Instant.parse("2024-01-08T12:00:00Z"),
+            null,
+        )
+        shiftsRepo.setShifts(shift)
+        val vm = buildVm()
+
+        vm.saveRefundClaim(
+            shift.id,
+            RefundDirection.TO_WORK,
+            RefundProvider.TAXI,
+            20.0,
+            shift.startTime,
+            "",
+            null,
+        )
+        advanceUntilIdle()
+
+        assertFalse(vm.formErrors.value.containsKey("refund"))
+        assertEquals(1, refundsRepo.observeClaimsForShift(shift.id).first().size)
+    }
+
+    @Test
     fun `claim is saved without receipt when storage upload fails`() = runTest {
         val shift = specialDayShift()
         shiftsRepo.setShifts(shift)

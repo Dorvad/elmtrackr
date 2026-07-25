@@ -95,7 +95,6 @@
     <string name="shifts_error_break_too_long">ההפסקה לא יכולה להיות ארוכה מהמשמרת עצמה</string>
     <string name="shifts_error_refund_amount">יש להזין סכום החזר תקין</string>
     <string name="shifts_error_refund_shift_missing">המשמרת לא נמצאה</string>
-    <string name="shifts_error_refund_unfinished">יש לסיים את המשמרת לפני שמירת בקשת החזר נסיעות</string>
     <string name="shifts_error_refund_sign_in">יש להתחבר לפני שמירת בקשה</string>
     <string name="shifts_error_refund_save_failed">שמירת בקשת ההחזר נכשלה</string>
 

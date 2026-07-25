@@ -318,20 +318,12 @@ class ShiftsViewModel @Inject constructor(
                 onComplete(false)
                 return@launch
             }
-            if (!shift.isCompleted) {
-                _formErrors.value = mapOf("refund" to UiText.Res(R.string.shifts_error_refund_unfinished))
-                onComplete(false)
-                return@launch
-            }
-            val existing = refundsRepository.observeClaimsForShift(shiftId).first()
-                .firstOrNull { it.direction == direction }
             val userId = currentUserProvider.currentUserId()
             if (userId == null) {
                 _formErrors.value = mapOf("refund" to UiText.Res(R.string.shifts_error_refund_sign_in))
                 onComplete(false)
                 return@launch
             }
-            val oldReceiptPath = existing?.receiptPath
             val receiptPath = if (receipt != null) {
                 val storage = refundReceiptStorage
                 val uploaded = storage?.let {
@@ -339,37 +331,23 @@ class ShiftsViewModel @Inject constructor(
                 }
                 if (uploaded == null) {
                     _refundNotice.value = "Claim saved without the new receipt. Receipt upload is unavailable; you can attach it later."
-                    oldReceiptPath
-                } else uploaded
-            } else oldReceiptPath
+                }
+                uploaded
+            } else null
 
             runCatching {
-                if (existing == null) {
-                    refundsRepository.addClaim(
-                        shiftLocalId = shiftId,
-                        userId = userId,
-                        direction = direction,
-                        provider = provider,
-                        amount = amount,
-                        notes = notes.ifBlank { null },
-                        rideAt = rideAt,
-                        receiptPath = receiptPath,
-                    )
-                } else {
-                    refundsRepository.updateClaim(
-                        existing.copy(
-                            provider = provider,
-                            amount = amount,
-                            rideAt = rideAt,
-                            notes = notes.ifBlank { null },
-                            receiptPath = receiptPath,
-                            updatedAt = Instant.now(),
-                        ),
-                    )
-                }
-                if (oldReceiptPath != null && oldReceiptPath != receiptPath) {
-                    runCatching { refundReceiptStorage?.delete(oldReceiptPath) }
-                }
+                // Every save is a new ride: a shift may carry several rides in
+                // each direction, so nothing is looked up or overwritten here.
+                refundsRepository.addClaim(
+                    shiftLocalId = shiftId,
+                    userId = userId,
+                    direction = direction,
+                    provider = provider,
+                    amount = amount,
+                    notes = notes.ifBlank { null },
+                    rideAt = rideAt,
+                    receiptPath = receiptPath,
+                )
                 updateShiftRefundAction(shift, RefundAction.SUBMITTED)
             }.onSuccess {
                 _formErrors.value = _formErrors.value - "refund"
