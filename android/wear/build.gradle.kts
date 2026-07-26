@@ -43,6 +43,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             // Match the phone module: fall back to debug signing when the upload
             // keystore is absent so release builds stay verifiable locally and on
             // CI. Debug-signed builds are rejected by Play, so this cannot ship by
@@ -68,12 +69,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
