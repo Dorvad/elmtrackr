@@ -44,12 +44,12 @@ object WidgetTimeFormat {
     fun elapsedHm(startEpochMillis: Long, nowMillis: Long = System.currentTimeMillis()): String {
         if (startEpochMillis <= 0L) return "0:00"
         val totalMinutes = ((nowMillis - startEpochMillis) / 60_000L).coerceAtLeast(0)
-        return String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60)
+        return String.format(java.util.Locale.US, "%d:%02d", totalMinutes / 60, totalMinutes % 60)
     }
 
     fun minutesToHm(totalMinutes: Int): String {
         val minutes = totalMinutes.coerceAtLeast(0)
-        return String.format("%d:%02d", minutes / 60, minutes % 60)
+        return String.format(java.util.Locale.US, "%d:%02d", minutes / 60, minutes % 60)
     }
 
     fun minutesToShort(totalMinutes: Int): String =

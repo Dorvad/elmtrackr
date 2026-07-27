@@ -68,46 +68,15 @@ object WidgetPreferences {
         val progressRemainderMinutes: Int
             get() = max(0, dailyGoalMinutes - todayMinutes)
 
-        val statusLabel: String
-            get() = if (isActive) "CLOCKED IN" else "CLOCKED OUT"
-
+        // User-facing sentences (status, action labels, hints) are resolved at
+        // render time in WidgetLayouts via string resources with the in-app
+        // locale — never computed here, where they cannot be localized.
         val primaryTimeLabel: String
             get() = when {
                 isActive -> elapsedHms.ifEmpty { startTimeLabel }
                 startTimeLabel != "--:--" -> startTimeLabel
                 else -> todayHms
             }
-
-        val progressSubLabel: String
-            get() = if (isActive) {
-                "$progressPercent% of an ${goalHoursLabel} day · started $startTimeLabel"
-            } else {
-                val remain = WidgetTimeFormat.minutesToShort(progressRemainderMinutes)
-                "$progressPercent% of an ${goalHoursLabel} day · ${remain} to goal"
-            }
-
-        val singleToggleSecondaryTop: String
-            get() = if (isActive) "on shift" else "last punch"
-
-        val singleToggleSecondaryBottom: String
-            get() = when {
-                isActive -> "since $startTimeLabel"
-                lastPunchLabel.isNotBlank() -> lastPunchLabel.removePrefix("Last out • ")
-                todayMinutes > 0 -> "Today $todayShort"
-                else -> "tap to start"
-            }
-
-        val tallLoggedLabel: String
-            get() = if (todayMinutes > 0) "Today $todayShort logged" else "No time logged today"
-
-        val tallActiveSubLabel: String
-            get() = "Since $startTimeLabel · Today $todayShort"
-
-        val actionLabel: String
-            get() = if (isActive) "PUNCH OUT" else "PUNCH IN"
-
-        val actionHint: String
-            get() = if (isActive) "tap to end shift" else "tap to start shift"
     }
 
     fun read(prefs: Preferences): DisplayState = DisplayState(

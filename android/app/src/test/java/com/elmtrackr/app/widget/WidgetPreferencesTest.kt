@@ -14,7 +14,7 @@ class WidgetPreferencesTest {
             shiftId = "shift-1",
             startTimeLabel = "08:57",
             dateLabel = "Wed 25 Jun",
-            lastPunchLabel = "Since 08:57",
+            lastPunchLabel = "",
             pendingCount = 0,
             shiftStartEpochMillis = started,
             lastPunchEndEpochMillis = 0L,
@@ -22,26 +22,44 @@ class WidgetPreferencesTest {
             dailyGoalMinutes = 480,
         )
         assertTrue(state.elapsedHms.startsWith("1:"))
-        assertEquals("PUNCH OUT", state.actionLabel)
+        assertEquals(state.elapsedHms, state.primaryTimeLabel)
         assertEquals(77, state.progressPercent)
     }
 
     @Test
-    fun `progress labels when idle`() {
+    fun `progress and time labels when idle`() {
         val state = WidgetPreferences.DisplayState(
             isActive = false,
             shiftId = "",
             startTimeLabel = "08:57",
             dateLabel = "Wed 25 Jun",
-            lastPunchLabel = "Last out • Today 08:57",
+            lastPunchLabel = "",
             pendingCount = 0,
             shiftStartEpochMillis = 0L,
             lastPunchEndEpochMillis = 0L,
             todayMinutes = 372,
             dailyGoalMinutes = 480,
         )
-        assertEquals("PUNCH IN", state.actionLabel)
-        assertTrue(state.progressSubLabel.contains("to goal"))
+        assertEquals("08:57", state.primaryTimeLabel)
         assertEquals("6:12", state.todayHms)
+        assertEquals(108, state.progressRemainderMinutes)
+        assertEquals(77, state.progressPercent)
+    }
+
+    @Test
+    fun `timer refresh aligns to the next minute rollover`() {
+        val start = 1_000_000L
+        // 4:17 into the shift: next flip in 43s, plus the 1s landing margin.
+        assertEquals(
+            44L,
+            WidgetTimerScheduler.alignedDelaySeconds(start, start + (4 * 60 + 17) * 1_000L),
+        )
+        // Exactly on a boundary: full minute plus margin, not an immediate re-run.
+        assertEquals(
+            61L,
+            WidgetTimerScheduler.alignedDelaySeconds(start, start + 300_000L),
+        )
+        // Unknown start falls back to a plain minute.
+        assertEquals(60L, WidgetTimerScheduler.alignedDelaySeconds(0L))
     }
 }

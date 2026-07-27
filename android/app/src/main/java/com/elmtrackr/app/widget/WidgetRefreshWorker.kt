@@ -22,13 +22,14 @@ class WidgetRefreshWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         val userId = currentUserProvider.currentUserId() ?: return Result.success()
         val widgetContext = WidgetContextLoader.load(shiftsRepository, settingsRepository, userId)
-        if (widgetContext.activeShift == null) {
+        val activeShift = widgetContext.activeShift
+        if (activeShift == null) {
             WidgetTimerScheduler.cancel(applicationContext)
             return Result.success()
         }
 
+        // update() re-schedules the chain aligned to the next minute rollover.
         ElmTrackrWidgetUpdater.update(applicationContext, widgetContext)
-        WidgetTimerScheduler.schedule(applicationContext)
         return Result.success()
     }
 }

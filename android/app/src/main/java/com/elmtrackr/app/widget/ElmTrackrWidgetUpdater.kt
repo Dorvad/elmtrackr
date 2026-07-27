@@ -31,7 +31,7 @@ object ElmTrackrWidgetUpdater {
         val locale = context.withAppLocale().resources.configuration.locales[0] ?: java.util.Locale.getDefault()
         val state = WidgetStateMapper.map(contextData, locale)
         if (state.isActive) {
-            WidgetTimerScheduler.schedule(context)
+            WidgetTimerScheduler.schedule(context, state.shiftStartEpochMillis)
         } else {
             WidgetTimerScheduler.cancel(context)
         }
