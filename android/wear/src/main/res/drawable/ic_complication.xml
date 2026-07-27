@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Monochrome white bolt for the complication provider: watch faces tint
+     provider icons themselves, so the glyph must be plain white, not brand
+     colored. Mirrors the tile's bolt mark. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
     <path
-        android:fillColor="#16C8D6"
-        android:pathData="M12,2a10,10 0,1 1,0 20a10,10 0,1 1,0 -20z" />
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M13.2,2.4 L6.4,13.5 L11.2,13.5 L10.1,21.6 L17.6,10.3 L12.3,10.3 Z" />
 </vector>

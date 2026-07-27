@@ -1,5 +1,6 @@
 package com.elmtrackr.wear.sync
 
+import java.util.Locale
 import kotlin.math.max
 
 object WearDisplayMath {
@@ -11,9 +12,9 @@ object WearDisplayMath {
         val minutes = (totalSeconds % 3600) / 60
         val seconds = totalSeconds % 60
         return if (hours > 0) {
-            String.format("%d:%02d:%02d", hours, minutes, seconds)
+            String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
         } else {
-            String.format("%d:%02d", minutes, seconds)
+            String.format(Locale.US, "%d:%02d", minutes, seconds)
         }
     }
 
@@ -21,14 +22,14 @@ object WearDisplayMath {
     fun elapsedHm(startEpochMillis: Long, nowMillis: Long = System.currentTimeMillis()): String {
         if (startEpochMillis <= 0L) return "0:00"
         val totalMinutes = ((nowMillis - startEpochMillis) / 60_000L).coerceAtLeast(0)
-        return String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60)
+        return String.format(Locale.US, "%d:%02d", totalMinutes / 60, totalMinutes % 60)
     }
 
     fun minutesToHms(totalMinutes: Int): String {
         val minutes = totalMinutes.coerceAtLeast(0)
         val hours = minutes / 60
         val mins = minutes % 60
-        return String.format("%d:%02d:00", hours, mins)
+        return String.format(Locale.US, "%d:%02d:00", hours, mins)
     }
 
     fun minutesToShort(totalMinutes: Int): String {

@@ -88,7 +88,8 @@ private fun WearFace(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 10.dp),
+                // Clear of the curved TimeText band along the top bezel.
+                .padding(top = 28.dp),
             contentAlignment = Alignment.TopCenter,
         ) {
             WearBrandLabel()

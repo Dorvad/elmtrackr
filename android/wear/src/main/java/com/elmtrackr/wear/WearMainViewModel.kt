@@ -13,10 +13,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 /** 3-2-1 pre-punch countdown shown as a full-screen overlay; tap to cancel. */
 data class PunchCountdown(
@@ -28,9 +27,17 @@ class WearMainViewModel(
     private val app: ElmTrackrWearApp,
 ) : ViewModel() {
 
-    private val tick = MutableStateFlow(System.currentTimeMillis())
-    private var tickerJob: Job? = null
     private var countdownJob: Job? = null
+
+    // Cold ticker: it runs only while displayState has subscribers, so the
+    // per-second loop stops (after the 5s grace) when the screen is off or
+    // the app is backgrounded instead of draining the watch battery forever.
+    private val tick = flow {
+        while (true) {
+            emit(System.currentTimeMillis())
+            delay(1_000)
+        }
+    }
 
     val displayState: StateFlow<WearDisplayState> = combine(
         app.wearStateRepository.snapshot,
@@ -45,27 +52,10 @@ class WearMainViewModel(
     private val _punchCountdown = MutableStateFlow<PunchCountdown?>(null)
     val punchCountdown: StateFlow<PunchCountdown?> = _punchCountdown.asStateFlow()
 
-    val systemTimeLabel: StateFlow<String> = tick
-        .combine(app.wearStateRepository.snapshot) { _, _ ->
-            LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
-
     init {
         viewModelScope.launch {
             app.wearStateRepository.bootstrap()
             app.wearActionClient.requestRefreshFromPhone()
-        }
-        startTicker()
-    }
-
-    private fun startTicker() {
-        tickerJob?.cancel()
-        tickerJob = viewModelScope.launch {
-            while (true) {
-                delay(1_000)
-                tick.value = System.currentTimeMillis()
-            }
         }
     }
 

@@ -6,8 +6,10 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.wear.tiles.TileService
 import com.elmtrackr.wear.sync.WearPaths.PAYLOAD_KEY
 import com.elmtrackr.wear.sync.WearPaths.SHIFT_STATE
+import com.elmtrackr.wear.tile.ElmTrackrTileService
 import com.elmtrackr.wear.tile.WearTileRefreshWorker
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
@@ -67,10 +69,13 @@ class WearStateRepository(
             val dataClient = Wearable.getDataClient(context)
             val uri = android.net.Uri.parse("wear://*$SHIFT_STATE")
             val items = dataClient.getDataItems(uri).await()
-            for (item in items) {
-                parseDataItem(item)?.let { applySnapshot(it) }
-            }
+            // Multiple nodes can each hold a data item; applying them in
+            // iteration order lets a stale phone snapshot overwrite a fresh
+            // one. Apply only the newest.
+            val newest = items.mapNotNull { parseDataItem(it) }
+                .maxByOrNull { it.updatedAtEpochMillis }
             items.release()
+            newest?.let { applySnapshot(it) }
         }
     }
 
@@ -106,6 +111,13 @@ class WearStateRepository(
             WearTileRefreshWorker.cancel(context)
         }
         ElmTrackrComplicationBridge.requestUpdateAll(context)
+        // Re-render the tile immediately on every state change. The refresh
+        // worker only drives the once-a-minute count-up while a shift runs;
+        // without this, a punch made FROM the tile keeps showing the old
+        // face for up to a minute, and a sign-in/out for up to an hour.
+        runCatching {
+            TileService.getUpdater(context).requestUpdate(ElmTrackrTileService::class.java)
+        }
     }
 
     suspend fun showConfirmation(message: String, isSuccess: Boolean = true) {

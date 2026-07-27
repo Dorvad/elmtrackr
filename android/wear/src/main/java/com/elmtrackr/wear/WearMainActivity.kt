@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.wear.compose.material3.TimeText
 import com.elmtrackr.wear.ui.ConfirmationOverlay
 import com.elmtrackr.wear.ui.CountdownOverlay
 import com.elmtrackr.wear.ui.IdleScreen
@@ -84,6 +85,10 @@ class WearMainActivity : ComponentActivity() {
                             onCancel = viewModel::cancelCountdown,
                         )
                     }
+                    // System time on every screen, curved along the bezel on
+                    // round displays, per the Wear OS app quality guidelines.
+                    // Drawn last so it stays visible above the overlays.
+                    TimeText()
                 }
             }
         }
