@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.sentry.android.gradle)
-    id("app.cash.paparazzi") version "2.0.0-alpha02"
+    id("app.cash.paparazzi") version "2.0.0-alpha05"
 }
 
 val localPropsFile = rootProject.file("local.properties")

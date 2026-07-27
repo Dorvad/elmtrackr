@@ -1,4 +1,11 @@
-# Add project-specific ProGuard rules here.
+# Project ProGuard/R8 rules.
+#
+# Philosophy: keep rules exist ONLY where something is genuinely resolved by
+# reflection, JNI, or class name at runtime. Library-wide `-keep class lib.**`
+# blocks defeat R8 optimization for every class they touch (Play's R8 insights
+# reported a 50% optimization rate under the old whole-library keeps) — AndroidX,
+# OkHttp/Okio, ML Kit, and Room all ship their own consumer rules, so they must
+# not be re-kept here.
 
 # ============================================================
 # Debugging — preserve source file names and line numbers
@@ -7,11 +14,7 @@
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
 
-# ============================================================
-# Kotlin metadata — required for reflection, serialization,
-# and many Jetpack libraries that inspect Kotlin annotations.
-# ============================================================
--keep class kotlin.Metadata { *; }
+# Annotations/signatures consumed at runtime by serialization and Jetpack.
 -keepattributes *Annotation*, InnerClasses, Signature, Exceptions
 
 # Suppress known-safe warnings from Kotlin stdlib
@@ -20,9 +23,10 @@
 
 # ============================================================
 # kotlinx.serialization
-# Keep every class annotated with @Serializable, its
-# generated Companion + serializer(), and the serialization
-# runtime infrastructure used by Supabase's postgrest module.
+# Generated serializers are looked up via Companion.serializer() /
+# the $serializer nested class; this also covers the @Serializable
+# DTOs inside supabase-kt. Field names are baked into the generated
+# serializers at compile time, so nothing else needs keeping.
 # ============================================================
 -dontnote kotlinx.serialization.AnnotationsKt
 
@@ -35,100 +39,62 @@
     static ** $serializer;
 }
 
--keepclasseswithmembers class kotlinx.serialization.** {
-    kotlinx.serialization.KSerializer serializer(...);
-}
-
--keepclassmembers class kotlinx.serialization.json.** {
-    *** Companion;
-}
-
 # ============================================================
-# Supabase — the client library uses reflection and service
-# loaders internally; keep the entire public surface to be safe.
+# Ktor (OkHttp engine used by Supabase) — the client engine is
+# discovered through ServiceLoader, so the container class must
+# survive by name. Everything else in Ktor/OkHttp/Okio is either
+# covered by the libraries' own consumer rules or plain code.
 # ============================================================
--keep class io.github.jan.supabase.** { *; }
--keepclassmembers class io.github.jan.supabase.** { *; }
--dontwarn io.github.jan.supabase.**
-
-# ============================================================
-# Ktor (OkHttp engine used by Supabase)
-# ============================================================
--keep class io.ktor.** { *; }
+-keep class io.ktor.client.engine.okhttp.OkHttpEngineContainer { *; }
+-keepclassmembers class io.ktor.** { volatile <fields>; }
 -dontwarn io.ktor.**
-
--keep class okhttp3.** { *; }
+-dontwarn io.github.jan.supabase.**
 -dontwarn okhttp3.**
--keep class okio.** { *; }
 -dontwarn okio.**
 
 # ============================================================
-# Room — entities, DAOs, and the database class are accessed
-# reflectively by the Room runtime; KSP-generated *_Impl
-# classes must also survive shrinking.
+# Room — the database implementation is resolved by name
+# (Class.forName(<Database>.name + "_Impl")). Scoped to this
+# app's package so library classes stay optimizable; Room's own
+# consumer rules cover the rest of its runtime.
 # ============================================================
--keep @androidx.room.Entity class * { *; }
--keep @androidx.room.Dao interface * { *; }
--keep @androidx.room.Database class * { *; }
--keepclassmembers @androidx.room.Database class * { *; }
+-keep class com.elmtrackr.app.**_Impl { *; }
+-keep class com.elmtrackr.app.**_Impl$* { *; }
 
 # TypeConverters are found by class name at runtime
 -keep @androidx.room.TypeConverters class * { *; }
-
-# KSP-generated Room implementations
--keep class **_Impl { *; }
--keep class **_Impl$* { *; }
+-keep class com.elmtrackr.app.data.local.converter.** { *; }
 
 # ============================================================
-# Domain model layer — data classes passed through Room
-# queries and mapped from Supabase JSON responses.
+# Domain model + Room entities — persisted names (enum wire
+# values, snapshot JSON) must stay stable across app updates.
 # ============================================================
 -keep class com.elmtrackr.app.domain.model.** { *; }
--keepclassmembers class com.elmtrackr.app.domain.model.** { *; }
--keepclassmembers enum com.elmtrackr.app.domain.model.ClockStyle {
-    public static **[] values();
-    public static ** valueOf(java.lang.String);
-    ** fromPersisted(...);
-}
-
-# Room entity and converter classes
 -keep class com.elmtrackr.app.data.local.entity.** { *; }
--keepclassmembers class com.elmtrackr.app.data.local.entity.** { *; }
--keep class com.elmtrackr.app.data.local.converter.** { *; }
--keepclassmembers class com.elmtrackr.app.data.local.converter.** { *; }
 
 # ============================================================
-# Jetpack Glance — widget composables, GlanceAppWidget,
-# GlanceAppWidgetReceiver, and action classes are loaded by
-# the launcher via ComponentName (reflection + class name).
+# App components loaded by class name by the system: Glance
+# widget receivers/actions (launcher ComponentName) and the
+# manifest-declared notification receivers. The Glance library
+# itself ships consumer rules and is not re-kept here.
 # ============================================================
--keep class androidx.glance.** { *; }
+-keep class com.elmtrackr.app.widget.** { *; }
+-keep class com.elmtrackr.app.notification.** { *; }
 -dontwarn androidx.glance.**
 
-# Keep all widget classes: receiver, actions, state, updater
--keep class com.elmtrackr.app.widget.** { *; }
--keepclassmembers class com.elmtrackr.app.widget.** { *; }
-
 # ============================================================
-# WorkManager — Worker subclasses are instantiated by name
-# from the WorkerFactory; they must not be renamed or removed.
+# WorkManager — workers are instantiated reflectively through the
+# (Context, WorkerParameters) constructor. Constructor-only keep:
+# worker bodies stay optimizable.
 # ============================================================
--keep class * extends androidx.work.Worker { *; }
--keep class * extends androidx.work.CoroutineWorker { *; }
 -keep class * extends androidx.work.ListenableWorker {
     public <init>(android.content.Context, androidx.work.WorkerParameters);
 }
 -dontwarn androidx.work.**
 
 # ============================================================
-# BroadcastReceivers & Services declared in AndroidManifest
-# (e.g. ClockOutReceiver) are loaded by class name by Android.
-# ============================================================
--keep class com.elmtrackr.app.notification.** { *; }
-
-# ============================================================
 # kotlinx.coroutines — volatile fields are accessed via
-# Unsafe; stripping them causes subtle runtime crashes.
+# atomic FU/Unsafe; stripping them causes subtle runtime crashes.
 # ============================================================
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
@@ -143,24 +109,17 @@
 }
 
 # ============================================================
-# SQLCipher — native library loaded at runtime
+# SQLCipher (net.zetetic) — the native library calls back into
+# these classes through JNI by name. (The old rule targeted the
+# legacy net.sqlcipher package, which this app does not use.)
 # ============================================================
--keep class net.sqlcipher.** { *; }
+-keep class net.zetetic.database.** { *; }
 -dontwarn net.sqlcipher.**
 
 # ============================================================
-# AndroidX Security Crypto & Biometric
+# ML Kit — ships its own consumer rules; only silence warnings.
 # ============================================================
--keep class androidx.security.crypto.** { *; }
--keep class androidx.biometric.** { *; }
--dontwarn androidx.security.crypto.**
-
-# ============================================================
-# ML Kit — text recognition and document scanner
-# ============================================================
--keep class com.google.mlkit.** { *; }
 -dontwarn com.google.mlkit.**
--keep class com.google.android.gms.internal.mlkit_** { *; }
 -dontwarn com.google.android.gms.internal.mlkit_**
 
 # ============================================================
