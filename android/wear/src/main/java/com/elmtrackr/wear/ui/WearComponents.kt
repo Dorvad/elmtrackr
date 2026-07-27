@@ -18,19 +18,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.MaterialTheme
@@ -41,26 +43,37 @@ import com.elmtrackr.wear.sync.WearAuroraColors
 internal val AuroraIndigo = Color(WearAuroraColors.INDIGO)
 internal val AuroraPlum = Color(WearAuroraColors.PLUM)
 internal val AuroraAqua = Color(WearAuroraColors.AQUA)
-internal val AuroraBlue = Color(0xFF3E8DF3)
-internal val AuroraSurface = Color(WearAuroraColors.SURFACE)
 internal val AuroraOnSurface = Color(WearAuroraColors.ON_SURFACE)
 internal val AuroraGreen = Color(0xFF34D399)
 
 /**
- * Clean indigo→blue gradient matching the tile mockup — deliberately static
- * and minimal so type and the ring carry the composition.
+ * Pure black face background, per the Wear OS quality guidelines: apps and
+ * tiles must sit on a black background so they blend with the bezel and save
+ * power on AMOLED displays. Brand color lives in the accents — the ring, the
+ * bolt button, and the status dots — instead of the backdrop.
  */
 @Composable
 fun WearAuroraBackground(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.fillMaxSize()) {
-        drawRect(
-            brush = Brush.linearGradient(
-                colors = listOf(AuroraIndigo, AuroraBlue),
-                start = Offset(size.width * 0.15f, 0f),
-                end = Offset(size.width * 0.85f, size.height),
-            ),
-        )
+        drawRect(color = Color.Black)
     }
+}
+
+/**
+ * Caps the effective font scale for oversized display text. Accessibility
+ * font sizes still grow the text up to [maxScale]; beyond that the numerals
+ * would push past the round bezel and clip, so growth stops there. Body and
+ * label text keeps scaling normally.
+ */
+@Composable
+fun TextStyle.withCappedFontScale(maxScale: Float = 1.3f): TextStyle {
+    val fontScale = LocalDensity.current.fontScale
+    if (fontScale <= maxScale) return this
+    val factor = maxScale / fontScale
+    return copy(
+        fontSize = fontSize * factor,
+        lineHeight = if (lineHeight.isSpecified) lineHeight * factor else lineHeight,
+    )
 }
 
 /** Letter-spaced wordmark shown at the top of every face. */

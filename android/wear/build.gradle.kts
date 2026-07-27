@@ -19,8 +19,8 @@ android {
         applicationId = "com.elmlaunch.myapp"
         minSdk = 30
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.1.0"
+        versionCode = 11
+        versionName = "1.1.1"
     }
 
     // The Play Store only delivers the watch app to a paired watch when it is

@@ -1,22 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Full-bleed indigo→blue gradient used as the tile (and app) background. -->
+<!-- Full-bleed black background for the tile (and app), per the Wear OS
+     quality guidelines: apps and tiles must sit on a black background so
+     they blend with the bezel and save power on AMOLED displays. Brand
+     color lives in the ring, bolt button, and accents instead. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="200dp"
     android:height="200dp"
     android:viewportWidth="200"
     android:viewportHeight="200">
-    <path android:pathData="M0,0h200v200h-200z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="linear"
-                android:startX="30"
-                android:startY="0"
-                android:endX="170"
-                android:endY="200">
-                <item android:offset="0" android:color="#FF5B4DF2" />
-                <item android:offset="1" android:color="#FF3E8DF3" />
-            </gradient>
-        </aapt:attr>
-    </path>
+    <path
+        android:pathData="M0,0h200v200h-200z"
+        android:fillColor="#FF000000" />
 </vector>
