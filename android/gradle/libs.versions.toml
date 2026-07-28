@@ -30,7 +30,7 @@ sqlcipher = "4.6.1"
 sqlite = "2.4.0"
 hilt = "2.60.1"
 hiltNavigationCompose = "1.2.0"
-hiltWork = "1.2.0"
+hiltWork = "1.4.0"
 junit = "4.13.2"
 robolectric = "4.14.1"
 androidxTestExtJunit = "1.3.0"
@@ -95,6 +95,10 @@ hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
+# Required as a KSP processor alongside hilt-work: this is what generates the
+# <Worker>_AssistedFactory + <Worker>_HiltModule pair that puts each @HiltWorker
+# into HiltWorkerFactory's map. Dagger's own hilt-compiler does not do it.
+androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltWork" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExtJunit" }
