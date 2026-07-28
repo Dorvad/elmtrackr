@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.shifts
 
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -53,6 +55,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -187,6 +190,50 @@ internal fun ShiftEditFormContent(
         taskId = taskId,
     )
 
+    // Closing with edits pending must ask first. The form already counts and displays
+    // them ("N unsaved changes"), but both exits — the back arrow and the back
+    // gesture — used to discard silently. Settings guards its detail screens the same
+    // way; this form is the one that did not.
+    var pendingDiscard by remember { mutableStateOf(false) }
+    fun requestClose() {
+        if (unsavedCount > 0) pendingDiscard = true else onClose()
+    }
+
+    // Owned here rather than by ShiftsScreen so the guard covers the back gesture too.
+    BackHandler { requestClose() }
+
+    if (pendingDiscard) {
+        AlertDialog(
+            onDismissRequest = { pendingDiscard = false },
+            title = { Text(stringResource(R.string.shifts_discard_title)) },
+            text = {
+                Text(
+                    pluralStringResource(
+                        R.plurals.shifts_discard_text,
+                        unsavedCount,
+                        unsavedCount,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDiscard = false
+                    onClose()
+                }) {
+                    Text(
+                        stringResource(R.string.shifts_discard_confirm),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDiscard = false }) {
+                    Text(stringResource(R.string.shifts_discard_keep))
+                }
+            },
+        )
+    }
+
     if (showDeleteConfirm && isEdit) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
@@ -218,7 +265,7 @@ internal fun ShiftEditFormContent(
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onClose) {
+                IconButton(onClick = { requestClose() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.shifts_back))
                 }
                 Column(modifier = Modifier.padding(start = 4.dp).weight(1f)) {

@@ -74,7 +74,7 @@ class ElmTrackrDatabaseMigrationTest {
         }
 
         helper.runMigrationsAndValidate(
-            TEST_DB_CHAIN, 13, true,
+            TEST_DB_CHAIN, 14, true,
             ElmTrackrDatabase.MIGRATION_2_3,
             ElmTrackrDatabase.MIGRATION_3_4,
             ElmTrackrDatabase.MIGRATION_4_5,
@@ -86,6 +86,7 @@ class ElmTrackrDatabaseMigrationTest {
             ElmTrackrDatabase.MIGRATION_10_11,
             ElmTrackrDatabase.MIGRATION_11_12,
             ElmTrackrDatabase.MIGRATION_12_13,
+            ElmTrackrDatabase.MIGRATION_13_14,
         ).use { db ->
             db.query("SELECT regionCode FROM user_settings WHERE localId = 'settings'").use { cursor ->
                 assertEquals(true, cursor.moveToFirst())
@@ -165,9 +166,61 @@ class ElmTrackrDatabaseMigrationTest {
         }
     }
 
+
+    @Test
+    fun migration13To14CollapsesDuplicateStartTimesKeepingTheSyncedRow() {
+        helper.createDatabase(TEST_DB_DEDUPE, 13).apply {
+            // Two local rows for the same (userId, startTime) — reachable before the
+            // unique index existed, via an unguarded manual add or a cross-account backup
+            // import. The synced row carrying the remoteId must survive; the other must be
+            // hard-deleted, because a tombstone would push a delete for the remote row the
+            // survivor now owns.
+            execSQL(
+                """
+                INSERT INTO shifts (
+                    localId, remoteId, userId, startTime, breakMinutes, isSpecialDay,
+                    forceRegularRate, createdAt, updatedAt, syncStatus
+                ) VALUES ('keep', 'remote-1', 'user', 1000, 0, 0, 0, 0, 50, 'SYNCED')
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO shifts (
+                    localId, remoteId, userId, startTime, breakMinutes, isSpecialDay,
+                    forceRegularRate, createdAt, updatedAt, syncStatus
+                ) VALUES ('drop', NULL, 'user', 1000, 0, 0, 0, 0, 90, 'PENDING_CREATE')
+                """.trimIndent(),
+            )
+            // A distinct start time for the same user must be untouched.
+            execSQL(
+                """
+                INSERT INTO shifts (
+                    localId, remoteId, userId, startTime, breakMinutes, isSpecialDay,
+                    forceRegularRate, createdAt, updatedAt, syncStatus
+                ) VALUES ('other', NULL, 'user', 2000, 0, 0, 0, 0, 10, 'PENDING_CREATE')
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB_DEDUPE, 14, true, ElmTrackrDatabase.MIGRATION_13_14,
+        ).use { db ->
+            db.query("SELECT localId FROM shifts WHERE startTime = 1000").use { cursor ->
+                assertEquals(1, cursor.count)
+                cursor.moveToFirst()
+                assertEquals("keep", cursor.getString(0))
+            }
+            db.query("SELECT localId FROM shifts WHERE startTime = 2000").use { cursor ->
+                assertEquals(1, cursor.count)
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "currency-migration-test"
         const val TEST_DB_CHAIN = "full-chain-migration-test"
         const val TEST_DB_REPAIR = "column-repair-migration-test"
+        const val TEST_DB_DEDUPE = "migration-dedupe-db"
     }
 }

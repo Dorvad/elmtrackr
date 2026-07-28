@@ -54,6 +54,9 @@ class ReportsViewModelTest {
             FakeCompensationProfilesRepository(),
             FakePremiumProfilesRepository(),
             FakeRefundReceiptStorage(),
+            // The production flowOn dispatcher would run the payroll transform off the
+            // test scheduler, so advanceUntilIdle could not await its emissions.
+            computationDispatcher = mainDispatcherRule.dispatcher,
         )
     }
 
@@ -368,6 +371,37 @@ class ReportsViewModelTest {
     }
 
     @Test
+    fun `csv neutralises spreadsheet formula prefixes in notes`() {
+        val vm = buildVm()
+        // A note that Excel/Sheets would execute on open; the leading apostrophe
+        // keeps the cell as text. No comma or quote is present, so the old
+        // escape returned it verbatim.
+        assertEquals(
+            "\"'=HYPERLINK(\"\"http://x\"\")\"",
+            vm.csvEscape("=HYPERLINK(\"http://x\")"),
+        )
+        assertEquals("\"'+1234\"", vm.csvEscape("+1234"))
+        assertEquals("\"'-1+2\"", vm.csvEscape("-1+2"))
+        assertEquals("\"'@SUM(A1)\"", vm.csvEscape("@SUM(A1)"))
+    }
+
+    @Test
+    fun `csv quotes plain notes and leaves inner text intact`() {
+        val vm = buildVm()
+        assertEquals("\"late ride\"", vm.csvEscape("late ride"))
+        // A formula character that is not leading is harmless and must not be touched.
+        assertEquals("\"7 = seven\"", vm.csvEscape("7 = seven"))
+    }
+
+    @Test
+    fun `csv escapes bare carriage return in notes`() {
+        val vm = buildVm()
+        // A bare CR broke row alignment because it was not an escape trigger.
+        assertEquals("\"'\rsecond line\"", vm.csvEscape("\rsecond line"))
+        assertEquals("\"first\rsecond\"", vm.csvEscape("first\rsecond"))
+    }
+
+    @Test
     fun `csv data row contains date and times`() {
         val vm = buildVm()
         val shift = completedShift()
@@ -397,10 +431,11 @@ class ReportsViewModelTest {
             weeklyOvertimeThresholdMinutes = 2400,
             weekendDays = listOf(5, 6),
         )
-        // Weekday shifts inside the days 8–14 bucket (Fri 12 / Sat 13 avoided):
-        // no shift exceeds the daily threshold, but the week totals
-        // 2640 > 2400 — 4h of weekly overtime that per-shift rows miss.
-        val shifts = (8..11).map { day ->
+        // One pay week: Sun 14 - Thu 18 Jan 2024 (Fri 19 / Sat 20 are the configured
+        // weekend and are avoided). Five 8h shifts hit the 2400 weekly threshold exactly,
+        // and a sixth 4h shift on the Sunday pushes the week to 2640 — 4h of weekly
+        // overtime that the per-shift rows, each within the 480 daily threshold, miss.
+        val shifts = (14..18).map { day ->
             Shift(
                 id = "d$day", userId = "u1",
                 startTime = Instant.parse("2024-01-%02dT09:00:00Z".format(day)),
@@ -408,12 +443,6 @@ class ReportsViewModelTest {
                 breakMinutes = 0,
             )
         } + listOf(
-            Shift(
-                id = "d14a", userId = "u1",
-                startTime = Instant.parse("2024-01-14T09:00:00Z"),
-                endTime = Instant.parse("2024-01-14T17:00:00Z"),
-                breakMinutes = 0,
-            ),
             Shift(
                 id = "d14b", userId = "u1",
                 startTime = Instant.parse("2024-01-14T18:00:00Z"),

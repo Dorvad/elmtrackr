@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
+import com.elmtrackr.app.security.AppLockActionGuard
 import com.elmtrackr.app.wear.WearSyncPublisher
 import com.elmtrackr.app.widget.WidgetActions
 import kotlinx.coroutines.CoroutineScope
@@ -24,12 +25,18 @@ class ClockOutReceiver : BroadcastReceiver() {
         val shiftId = intent.getStringExtra(ActiveShiftNotificationManager.EXTRA_SHIFT_ID)
             ?: return
 
-        // Same guard as the widget/shortcut/Wear punch paths: the notification
-        // action must not clock out shifts while the app lock is engaged.
-        if (com.elmtrackr.app.security.AppLockActionGuard.blockIfLocked(context)) return
-
         val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            // Same guard as the widget/shortcut/Wear punch paths: the notification
+            // action must not clock out shifts while the app lock is engaged. It
+            // runs inside the coroutine because resolving the persisted lock
+            // preference suspends — and outside the try/finally below, because a
+            // blocked punch must leave the shift running and its notification
+            // pinned rather than cleaning both up.
+            if (AppLockActionGuard.blockIfLocked(context)) {
+                pendingResult.finish()
+                return@launch
+            }
             try {
                 val deps = AppEntryPoints.background(context)
                 val userId = deps.currentUserProvider().currentUserId()

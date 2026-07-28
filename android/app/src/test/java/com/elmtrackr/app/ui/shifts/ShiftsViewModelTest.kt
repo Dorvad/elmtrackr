@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.shifts
 
+import com.elmtrackr.app.R
+
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakePremiumProfilesRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
@@ -15,6 +17,7 @@ import com.elmtrackr.app.domain.model.ReceiptUpload
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.PremiumType
 import com.elmtrackr.app.domain.model.Shift
@@ -621,7 +624,12 @@ class ShiftsViewModelTest {
         val claim = refundsRepo.observeClaimsForShift(shift.id).first().single()
         assertNull(claim.receiptPath)
         assertEquals(true, completed)
-        assertTrue(vm.refundNotice.value?.contains("saved without") == true)
+        // The notice must reach the snackbar flow the screen actually collects; the old
+        // dedicated refundNotice flow was read by nothing, so the user was never told.
+        assertEquals(
+            UiText.Res(R.string.shifts_refund_saved_without_receipt),
+            vm.userMessage.value,
+        )
     }
 
     @Test

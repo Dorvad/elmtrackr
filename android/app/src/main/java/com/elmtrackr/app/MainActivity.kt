@@ -65,8 +65,11 @@ class MainActivity : AppCompatActivity() {
         intent?.data?.toString()?.let { handleDeepLink(it) }
         setContent {
             val configuration = LocalConfiguration.current
-            val preferences by appPreferences.preferences
-                .collectAsState(initial = AppPreferenceValues())
+            // Nullable initial value on purpose: AppLockGate must be able to tell
+            // "app lock is off" from "the preference has not loaded yet".
+            val storedPreferences by appPreferences.preferences
+                .collectAsState(initial = null)
+            val preferences = storedPreferences ?: AppPreferenceValues()
             val systemDark = (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
                 Configuration.UI_MODE_NIGHT_YES
             val darkTheme = when (preferences.selectedTheme) {
@@ -78,7 +81,7 @@ class MainActivity : AppCompatActivity() {
                 CompositionLocalProvider(LocalReduceMotion provides preferences.reduceMotionEnabled) {
                     AppLockGate(
                         activity = this,
-                        lockEnabled = preferences.appLockEnabled,
+                        lockEnabled = storedPreferences?.appLockEnabled,
                     ) {
                         InAppUpdateHost(
                             prompt = updatePrompt,

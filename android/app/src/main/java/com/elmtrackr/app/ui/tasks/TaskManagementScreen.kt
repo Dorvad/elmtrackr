@@ -107,6 +107,7 @@ fun TaskManagementScreen(
                 onBack = onBack,
                 onSave = viewModel::saveTask,
                 onArchive = viewModel::archiveTask,
+                onRestore = viewModel::unarchiveTask,
                 onDelete = viewModel::deleteTask,
                 onDismissMessage = viewModel::clearMessage,
             )
@@ -126,6 +127,7 @@ internal fun TaskManagementContent(
     onBack: () -> Unit,
     onSave: (String?, String, String, String?, Double) -> Unit,
     onArchive: (String) -> Unit,
+    onRestore: (String) -> Unit = {},
     onDelete: (String) -> Unit = {},
     onDismissMessage: () -> Unit,
 ) {
@@ -250,6 +252,7 @@ internal fun TaskManagementContent(
                     onEdit = {},
                     onArchive = {},
                     onDelete = { deleteCandidate = task },
+                    onRestore = { onRestore(task.id) },
                 )
             }
         }
@@ -263,6 +266,7 @@ private fun TaskRow(
     onEdit: () -> Unit,
     onArchive: () -> Unit,
     onDelete: (() -> Unit)? = null,
+    onRestore: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     ElmCardPadded(modifier.padding(horizontal = 16.dp)) {
@@ -284,9 +288,16 @@ private fun TaskRow(
             if (!archived) {
                 TextButton(onClick = onEdit) { Text(stringResource(R.string.tasks_edit)) }
                 TextButton(onClick = onArchive) { Text(stringResource(R.string.tasks_archive)) }
-            } else if (onDelete != null) {
-                TextButton(onClick = onDelete) {
-                    Text(stringResource(R.string.tasks_delete), color = MaterialTheme.colorScheme.error)
+            } else {
+                // Restore comes first: archiving is a single unconfirmed tap, so it
+                // needs a way back that is at least as reachable as deletion.
+                onRestore?.let {
+                    TextButton(onClick = it) { Text(stringResource(R.string.tasks_restore)) }
+                }
+                onDelete?.let {
+                    TextButton(onClick = it) {
+                        Text(stringResource(R.string.tasks_delete), color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }

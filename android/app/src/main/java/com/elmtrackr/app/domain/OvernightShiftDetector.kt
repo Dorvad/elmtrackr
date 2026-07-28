@@ -14,14 +14,18 @@ import kotlin.math.roundToInt
  */
 object OvernightShiftDetector {
 
-    fun isOvernight(shift: Shift, zone: ZoneId = ZoneOffset.UTC): Boolean {
+    // No default zone on purpose. UTC defaults let call sites silently disagree with the
+    // pay engine: the PDF's "overnight" chip was decided in UTC while the CSV decided the
+    // same shift in the work zone. Callers must pass the shift's work timezone
+    // (WorkTimezone.zoneFor).
+    fun isOvernight(shift: Shift, zone: ZoneId): Boolean {
         val end = shift.endTime ?: return false
         val startDate = shift.startTime.atZone(zone).toLocalDate()
         val endDate = end.atZone(zone).toLocalDate()
         return startDate != endDate
     }
 
-    fun splitShiftByDay(shift: Shift, zone: ZoneId = ZoneOffset.UTC): List<DaySegment> {
+    fun splitShiftByDay(shift: Shift, zone: ZoneId): List<DaySegment> {
         val end = shift.endTime ?: return emptyList()
         val totalNet = ShiftDurationCalculator.netMinutes(shift)
             ?.takeIf { it > 0 } ?: return emptyList()

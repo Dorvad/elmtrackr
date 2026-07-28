@@ -63,8 +63,9 @@ class ShiftsViewModel @Inject constructor(
     private val _formErrors = MutableStateFlow<Map<String, UiText>>(emptyMap())
     val formErrors: StateFlow<Map<String, UiText>> = _formErrors.asStateFlow()
 
-    private val _refundNotice = MutableStateFlow<String?>(null)
-    val refundNotice: StateFlow<String?> = _refundNotice.asStateFlow()
+    // Receipt-upload notices go through _userMessage: the screen renders that as a
+    // snackbar, whereas the old dedicated flow was collected by nothing, so a claim
+    // saved without its receipt told the user nothing and they believed it attached.
 
     private val _userMessage = MutableStateFlow<UiText?>(null)
     val userMessage: StateFlow<UiText?> = _userMessage.asStateFlow()
@@ -198,7 +199,6 @@ class ShiftsViewModel @Inject constructor(
     fun closeForm() {
         _formTarget.value = null
         _formErrors.value = emptyMap()
-        _refundNotice.value = null
     }
 
     fun createShift(input: ShiftFormInput) {
@@ -311,7 +311,6 @@ class ShiftsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _formErrors.value = _formErrors.value - "refund"
-            _refundNotice.value = null
             val shift = shiftsRepository.getShiftById(shiftId)
             if (shift == null) {
                 _formErrors.value = mapOf("refund" to UiText.Res(R.string.shifts_error_refund_shift_missing))
@@ -330,7 +329,9 @@ class ShiftsViewModel @Inject constructor(
                     runCatching { it.upload(userId, shiftId, direction, receipt) }.getOrNull()
                 }
                 if (uploaded == null) {
-                    _refundNotice.value = "Claim saved without the new receipt. Receipt upload is unavailable; you can attach it later."
+                    // Surfaced, not swallowed: the claim is about to be saved without
+                    // its receipt, and the user must know so they can re-attach it.
+                    _userMessage.value = UiText.Res(R.string.shifts_refund_saved_without_receipt)
                 }
                 uploaded
             } else null

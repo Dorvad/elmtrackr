@@ -20,6 +20,7 @@ class LegacyDataAdopter @Inject constructor(
             database.taskDao().adoptLegacyUser(userId)
             database.compensationProfileDao().adoptLegacyUser(userId)
             database.premiumProfileDao().adoptLegacyUser(userId)
+            database.receiptDao().adoptOrphanedReceipts(userId)
         }
         appPreferences.setLegacyDataAdopted(true)
     }

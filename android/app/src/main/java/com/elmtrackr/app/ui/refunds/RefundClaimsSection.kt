@@ -156,15 +156,25 @@ fun RefundClaimsSection(
     }
 
     if (state.isProcessingReceipt) {
-        Dialog(onDismissRequest = {}) {
+        // Dismissible on purpose: OCR can stall on a large image, and a modal
+        // spinner with no exit previously required force-stopping the app.
+        Dialog(onDismissRequest = viewModel::cancelReceiptProcessing) {
             Surface(shape = RoundedCornerShape(CornerRadius.Medium)) {
-                Row(
+                Column(
                     Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-                    Text(stringResource(R.string.refunds_reading_receipt))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                        Text(stringResource(R.string.refunds_reading_receipt))
+                    }
+                    TextButton(
+                        onClick = viewModel::cancelReceiptProcessing,
+                        modifier = Modifier.align(Alignment.End),
+                    ) { Text(stringResource(R.string.refunds_cancel)) }
                 }
             }
         }

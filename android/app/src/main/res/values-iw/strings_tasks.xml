@@ -14,6 +14,7 @@
     <string name="tasks_rate_per_hour">%1$s לשעה</string>
     <string name="tasks_edit">עריכה</string>
     <string name="tasks_archive">לארכיון</string>
+    <string name="tasks_restore">שחזור</string>
     <string name="tasks_schedule_defaults">ברירות מחדל לפי שעות</string>
     <string name="tasks_schedule_defaults_hint">נלמד מהיסטוריית המשמרות — משמש להצעה אוטומטית.</string>
     <string name="tasks_more_rules">‎+%1$d נוספים</string>
@@ -41,5 +42,6 @@
     <!-- ViewModel messages -->
     <string name="tasks_msg_saved">המשימה נשמרה</string>
     <string name="tasks_msg_archived">המשימה הועברה לארכיון</string>
+    <string name="tasks_msg_restored">המשימה שוחזרה</string>
     <string name="tasks_msg_deleted">המשימה נמחקה</string>
 </resources>

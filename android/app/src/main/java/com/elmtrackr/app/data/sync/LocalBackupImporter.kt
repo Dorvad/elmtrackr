@@ -108,7 +108,15 @@ object LocalBackupImporter {
                 skipped++
                 continue
             }
-            shiftDao.insertShift(row.toEntity(currentUserId).adopt(sameUser))
+            val entity = row.toEntity(currentUserId).adopt(sameUser)
+            // (userId, startTime) is unique. De-duplicating on localId alone let a backup
+            // from another account import shifts this account already had at the same
+            // start time; both then mapped to one remote row on the next sync.
+            if (shiftDao.getShiftByStartTime(entity.userId, entity.startTime) != null) {
+                skipped++
+                continue
+            }
+            shiftDao.insertShift(entity)
             importedShifts++
         }
 

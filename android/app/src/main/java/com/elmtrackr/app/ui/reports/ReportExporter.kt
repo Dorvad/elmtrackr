@@ -9,6 +9,7 @@ import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.MonthlyReportBuilder
+import com.elmtrackr.app.domain.time.WorkTimezone
 import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.model.CurrencyCode
@@ -64,7 +65,10 @@ object ReportExporter {
         val peach = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AuroraPdfPeach; strokeWidth = 7f }
         val currency = state.paySummary?.currencyCode ?: state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
         val monthLabel = "${Month.of(state.month).getDisplayName(TextStyle.FULL, locale)} ${state.year}"
-        val zone = ZoneId.systemDefault()
+        // Work zone, not the device zone: the CSV, the Hours breakdown and the pay
+        // engine all bucket shifts by the configured work timezone, so a PDF printed in
+        // the device zone dated shifts differently from every other surface.
+        val zone = state.settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.systemDefault()
         val dateFormat = DateTimeFormatter.ofPattern("EEE, dd MMM", locale).withZone(zone)
         val timeFormat = DateTimeFormatter.ofPattern("HH:mm").withZone(zone)
 
@@ -163,8 +167,14 @@ object ReportExporter {
         state.rawShifts.sortedByDescending { it.startTime }.forEach { shift ->
             ensureSpace(38f)
             val breakdown = state.settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it) }
+            // Gate on either rate source, matching ReportsViewModel and
+            // WeeklyBreakdownBuilder. Checking only the legacy settings rate printed "-"
+            // in every Gross cell for users who configure rates on compensation profiles,
+            // even though the same PDF's header showed a monthly gross.
             val pay = state.settings?.let { settings ->
-                settings.hourlyRate?.takeIf { it > 0 }?.let {
+                val hasRate = (settings.hourlyRate ?: 0.0) > 0.0 ||
+                    state.profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
+                if (!hasRate) null else {
                     com.elmtrackr.app.domain.PayrollCalculator.calculateShiftPayInContext(
                         shift, state.rawShifts, settings, state.profiles, state.premiumProfiles,
                     )
@@ -179,7 +189,7 @@ object ReportExporter {
             val tags = buildList {
                 if (shift.isSpecialDay) add(res.getString(R.string.dashboard_pay_holiday))
                 if ((breakdown?.weekendMinutes ?: 0) > 0 && !shift.isSpecialDay) add(res.getString(R.string.dashboard_stat_weekend))
-                if (com.elmtrackr.app.domain.OvernightShiftDetector.isOvernight(shift)) add(res.getString(R.string.reports_chip_overnight))
+                if (com.elmtrackr.app.domain.OvernightShiftDetector.isOvernight(shift, zone)) add(res.getString(R.string.reports_chip_overnight))
             }.joinToString(" / ")
             canvas.drawText(dateFormat.format(shift.startTime), margin, y, body)
             canvas.drawText(timeText, margin + 94f, y, body)

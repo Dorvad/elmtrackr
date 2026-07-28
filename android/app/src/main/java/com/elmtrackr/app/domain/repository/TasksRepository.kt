@@ -11,6 +11,9 @@ interface TasksRepository {
     suspend fun upsertTask(task: Task): Task
     suspend fun archiveTask(userId: String, taskId: String)
 
+    /** Returns an archived task to the active list. Archiving must be reversible. */
+    suspend fun unarchiveTask(userId: String, taskId: String)
+
     /**
      * Permanently deletes a task (local soft delete synced as a remote delete).
      * Shifts that used the task keep their name/icon/rate snapshots.

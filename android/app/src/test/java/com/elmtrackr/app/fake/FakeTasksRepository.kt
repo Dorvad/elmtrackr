@@ -37,6 +37,12 @@ class FakeTasksRepository : TasksRepository {
         }
     }
 
+    override suspend fun unarchiveTask(userId: String, taskId: String) {
+        _tasks.value = _tasks.value.map {
+            if (it.userId == userId && it.id == taskId) it.copy(isArchived = false) else it
+        }
+    }
+
     override suspend fun deleteTask(userId: String, taskId: String) {
         _tasks.value = _tasks.value.filterNot { it.userId == userId && it.id == taskId }
     }

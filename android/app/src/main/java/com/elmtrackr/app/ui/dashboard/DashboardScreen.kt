@@ -52,6 +52,7 @@ import com.elmtrackr.app.MainActivity
 import com.elmtrackr.app.R
 import com.elmtrackr.app.notification.NotificationPermissionCoordinator
 import com.elmtrackr.app.ui.common.AppTimePickerDialog
+import com.elmtrackr.app.ui.common.LocalWorkZone
 import kotlinx.coroutines.launch
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -64,6 +65,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -264,6 +266,9 @@ private fun DashboardReady(
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
     val activity = context as? ComponentActivity
+    // Shift dates/times below must render in the work zone, like Reports and the shift
+    // list. Provided once here so nested cards cannot fall back to the device zone.
+    val workZone = state.settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.systemDefault()
     val scope = rememberCoroutineScope()
     var showNotificationRationale by rememberSaveable { mutableStateOf(false) }
     var pendingClockIn by rememberSaveable { mutableStateOf(false) }
@@ -364,6 +369,7 @@ private fun DashboardReady(
 
     val isTablet = isTabletLayout()
 
+    CompositionLocalProvider(LocalWorkZone provides workZone) {
     AuroraScreen {
             DashboardHeader(displayName = state.displayName)
 
@@ -513,6 +519,7 @@ private fun DashboardReady(
                     modifier = Modifier.auroraEnter(index = 3),
                 )
             }
+    }
     }
 }
 
@@ -1914,7 +1921,7 @@ private fun RecentShiftRow(
     showDivider: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val zone         = ZoneId.systemDefault()
+    val zone         = LocalWorkZone.current
     val dateText     = shift.startTime.atZone(zone).format(dateFormatter)
     val startText    = shift.startTime.atZone(zone).format(timeFormatter)
     val endText      = shift.endTime?.atZone(zone)?.format(timeFormatter) ?: "-"
@@ -2018,8 +2025,9 @@ private fun formatElapsedTime(seconds: Long): String {
     else "%02d:%02d".format(m, s)
 }
 
+@Composable
 private fun formatInstantTime(instant: Instant): String =
-    instant.atZone(ZoneId.systemDefault()).format(timeFormatter)
+    instant.atZone(LocalWorkZone.current).format(timeFormatter)
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

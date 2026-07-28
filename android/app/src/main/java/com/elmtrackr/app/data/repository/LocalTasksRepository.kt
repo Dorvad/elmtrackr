@@ -59,7 +59,22 @@ class LocalTasksRepository @Inject constructor(
         taskDao.insert(
             existing.copy(
                 isArchived = true,
-                syncStatus = SyncStatus.PENDING_UPDATE,
+                // Not a bare PENDING_UPDATE: archiving a task that had never synced
+                // would push an update with no remoteId and fail.
+                syncStatus = syncStatusForMutation(existing),
+                updatedAt = now,
+            ),
+        )
+        syncTrigger.schedule()
+    }
+
+    override suspend fun unarchiveTask(userId: String, taskId: String) {
+        val existing = taskDao.getById(userId, taskId) ?: return
+        val now = Instant.now().toEpochMilli()
+        taskDao.insert(
+            existing.copy(
+                isArchived = false,
+                syncStatus = syncStatusForMutation(existing),
                 updatedAt = now,
             ),
         )
