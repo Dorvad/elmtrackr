@@ -16,6 +16,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -48,6 +51,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material3.Button
@@ -84,7 +88,8 @@ private fun WearFace(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 10.dp),
+                // Clear of the curved TimeText band along the top bezel.
+                .padding(top = 28.dp),
             contentAlignment = Alignment.TopCenter,
         ) {
             WearBrandLabel()
@@ -118,8 +123,14 @@ private fun StatusDotRow(label: String, dotColor: androidx.compose.ui.graphics.C
 fun SetupScreen(onRefresh: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     WearFace {
+        // Scrollable so oversized accessibility fonts push content into a
+        // scroll instead of clipping it against the round bezel.
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 28.dp),
+            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             WearAppLogo(size = 34.dp)
@@ -180,8 +191,11 @@ fun IdleScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = AuroraOnSurface.copy(alpha = 0.65f),
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    modifier = Modifier.padding(top = 4.dp, start = 16.dp, end = 16.dp),
+                    // Two lines + ellipsis: large accessibility fonts wrap
+                    // instead of being clipped at the screen edge.
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp, start = 20.dp, end = 20.dp),
                 )
             }
         }
@@ -206,7 +220,11 @@ fun RunningScreen(
             Spacer(Modifier.height(2.dp))
             WearAnimatedTimeLabel(
                 value = elapsed.ifBlank { "0:00" },
-                style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+                // Capped scale: the count-up numerals grow with accessibility
+                // fonts up to the point where they would clip inside the ring.
+                style = MaterialTheme.typography.displayMedium
+                    .copy(fontWeight = FontWeight.Bold)
+                    .withCappedFontScale(),
             )
             Spacer(Modifier.height(2.dp))
             if (isLoading) {
@@ -252,7 +270,7 @@ fun CountdownOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AuroraSurface.copy(alpha = 0.94f))
+            .background(Color.Black.copy(alpha = 0.94f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -283,13 +301,17 @@ fun CountdownOverlay(
                 style = Stroke(width = stroke, cap = StrokeCap.Round),
             )
         }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.padding(horizontal = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Text(
                 text = stringResource(
                     if (countdown.isPunchIn) R.string.countdown_punching_in else R.string.countdown_punching_out,
                 ),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuroraOnSurface.copy(alpha = 0.75f),
+                textAlign = TextAlign.Center,
             )
             if (motion) {
                 AnimatedContent(
@@ -302,14 +324,14 @@ fun CountdownOverlay(
                 ) { seconds ->
                     Text(
                         text = seconds.toString(),
-                        style = MaterialTheme.typography.displayLarge,
+                        style = MaterialTheme.typography.displayLarge.withCappedFontScale(),
                         color = AuroraOnSurface,
                     )
                 }
             } else {
                 Text(
                     text = countdown.secondsLeft.toString(),
-                    style = MaterialTheme.typography.displayLarge,
+                    style = MaterialTheme.typography.displayLarge.withCappedFontScale(),
                     color = AuroraOnSurface,
                 )
             }
@@ -318,6 +340,7 @@ fun CountdownOverlay(
                 text = stringResource(R.string.countdown_tap_to_cancel),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuroraOnSurface.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center,
             )
         }
     }
@@ -380,7 +403,7 @@ fun ConfirmationOverlay(confirmation: WearConfirmation) {
             text = message,
             style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 10.dp),
+            modifier = Modifier.padding(top = 10.dp, start = 12.dp, end = 12.dp),
         )
     }
 }

@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.sentry.android.gradle)
-    id("app.cash.paparazzi") version "2.0.0-alpha02"
+    id("app.cash.paparazzi") version "2.0.0-alpha05"
 }
 
 val localPropsFile = rootProject.file("local.properties")
@@ -32,8 +32,8 @@ android {
         applicationId = "com.elmlaunch.myapp"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.1.0"
+        versionCode = 11
+        versionName = "1.1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")

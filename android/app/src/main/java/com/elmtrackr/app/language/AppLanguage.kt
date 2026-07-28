@@ -5,6 +5,10 @@ import android.content.res.Configuration
 import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 /**
@@ -37,11 +41,20 @@ enum class AppLanguage(val tag: String?) {
         }
 
         fun apply(context: Context, language: AppLanguage) {
-            AppLocaleStore.save(context.applicationContext, language.tag)
+            val appContext = context.applicationContext
+            AppLocaleStore.save(appContext, language.tag)
             val localeList = language.tag
                 ?.let { LocaleListCompat.forLanguageTags(it) }
                 ?: LocaleListCompat.getEmptyLocaleList()
             AppCompatDelegate.setApplicationLocales(localeList)
+            // Activities recreate themselves, but home-screen widgets hold
+            // stored labels (date line, last-punch text) formatted in the
+            // previous language until the next state change — rebuild them now.
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                runCatching {
+                    com.elmtrackr.app.widget.WidgetActions.refreshWidgets(appContext)
+                }
+            }
         }
     }
 }

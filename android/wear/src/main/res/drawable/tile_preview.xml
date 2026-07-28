@@ -1,24 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Tile-picker preview: gradient face with the white bolt button, matching the real tile. -->
+<!-- Tile-picker preview: black face with the white bolt button, matching the real tile. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="100dp"
     android:height="100dp"
     android:viewportWidth="100"
     android:viewportHeight="100">
-    <path android:pathData="M50,0a50,50 0 1,0 0,100a50,50 0 1,0 0,-100z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="linear"
-                android:startX="15"
-                android:startY="0"
-                android:endX="85"
-                android:endY="100">
-                <item android:offset="0" android:color="#FF5B4DF2" />
-                <item android:offset="1" android:color="#FF3E8DF3" />
-            </gradient>
-        </aapt:attr>
-    </path>
+    <path
+        android:pathData="M50,0a50,50 0 1,0 0,100a50,50 0 1,0 0,-100z"
+        android:fillColor="#FF000000" />
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M50,30a20,20 0 1,0 0,40a20,20 0 1,0 0,-40z" />

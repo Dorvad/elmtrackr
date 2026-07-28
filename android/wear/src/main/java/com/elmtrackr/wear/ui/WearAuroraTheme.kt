@@ -11,7 +11,10 @@ import com.elmtrackr.wear.sync.WearAuroraColors
 fun WearAuroraTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = MaterialTheme.colorScheme.copy(
-            background = Color(WearAuroraColors.SURFACE),
+            // Pure black background per the Wear OS quality guidelines (blends
+            // with the bezel, saves power on AMOLED). Brand color stays in the
+            // accents: primary/secondary, the ring, and the bolt button.
+            background = Color.Black,
             onBackground = Color(WearAuroraColors.ON_SURFACE),
             primary = Color(WearAuroraColors.INDIGO),
             secondary = Color(WearAuroraColors.AQUA),

@@ -25,10 +25,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
- * Glanceable tile matching the brand mockup: full-bleed indigo→blue
- * gradient, ELMTRACKR wordmark on top, and the whole face as one tap
- * target. Clocked out shows the white bolt button + PUNCH IN; clocked in
- * shows the day-goal ring around a live count-up.
+ * Glanceable tile: black face per the Wear OS quality guidelines, the
+ * ELMTRACKR wordmark on top, and the whole face as one tap target.
+ * Clocked out shows the white bolt button + PUNCH IN; clocked in shows
+ * the day-goal ring around a live count-up.
  */
 class ElmTrackrTileService : TileService() {
 
@@ -124,7 +124,8 @@ class ElmTrackrTileService : TileService() {
             .apply {
                 if (detail.isNotBlank()) {
                     addContent(spacer(2f))
-                    addContent(text(detail, Typography.TYPOGRAPHY_CAPTION3, WHITE_65))
+                    // Two lines so large system fonts wrap instead of clipping.
+                    addContent(text(detail, Typography.TYPOGRAPHY_CAPTION3, WHITE_65, maxLines = 2))
                 }
             }
             .build()
@@ -177,7 +178,7 @@ class ElmTrackrTileService : TileService() {
     }
 
     /**
-     * Shared face scaffold: gradient background, wordmark on top, optional
+     * Shared face scaffold: black background, wordmark on top, optional
      * day-goal ring, centered content, single full-face tap target.
      */
     private fun face(
@@ -272,10 +273,11 @@ class ElmTrackrTileService : TileService() {
 
     // --- Small helpers ---
 
-    private fun text(value: String, typography: Int, color: Int): Text =
+    private fun text(value: String, typography: Int, color: Int, maxLines: Int = 1): Text =
         Text.Builder(applicationContext, value)
             .setTypography(typography)
             .setColor(ColorBuilders.argb(color))
+            .setMaxLines(maxLines)
             .build()
 
     private fun spacer(heightDp: Float): LayoutElementBuilders.Spacer =
@@ -318,7 +320,9 @@ class ElmTrackrTileService : TileService() {
             .build()
 
     companion object {
-        private const val RESOURCES_VERSION = "2"
+        // v3: background image changed from the indigo gradient to black —
+        // the version bump forces renderers to drop the cached gradient.
+        private const val RESOURCES_VERSION = "3"
         private const val ID_BACKGROUND = "bg_gradient"
         private const val ID_BOLT_BUTTON = "bolt_button"
 
