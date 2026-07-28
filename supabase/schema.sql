@@ -187,8 +187,8 @@ create table if not exists public.refund_claims (
   notes         text,
   receipt_path  text,
   created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now(),
-  unique (shift_id, direction)
+  updated_at    timestamptz not null default now()
+  -- No unique (shift_id, direction): a shift may hold several rides per direction.
 );
 
 -- Migration: add direction column and update unique constraint for existing deployments
@@ -472,6 +472,89 @@ drop policy if exists "refund_receipts_delete" on storage.objects;
 create policy "refund_receipts_delete" on storage.objects
   for delete using (bucket_id = 'refund-receipts' and auth.uid()::text = (storage.foldername(name))[1]);
 
+-- ── Premium profiles (configurable shift premiums) ────────────
+-- Required for Android shift sync: RemoteShiftInsert/Update send
+-- premium_profile_id and force_regular_rate on every push, so a project
+-- bootstrapped from this file without them rejected every shift write with
+-- PGRST204 and stalled the whole shift queue. Safe to re-run.
+-- Source: supabase/migrations/20250703120000_premium_profiles.sql
+
+create table if not exists public.premium_profiles (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references auth.users(id) on delete cascade,
+  name          text not null,
+  multiplier    numeric(6, 3) not null default 1.5
+                check (multiplier > 0),
+  premium_type  text not null default 'highest_only'
+                check (premium_type in (
+                  'highest_only',
+                  'additive',
+                  'multiplicative',
+                  'base_plus_premium',
+                  'premium_in_regular_rate',
+                  'excluded_from_regular_rate'
+                )),
+  is_default    boolean not null default false,
+  is_archived   boolean not null default false,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index if not exists premium_profiles_user_id_idx
+  on public.premium_profiles (user_id);
+
+alter table public.shifts
+  add column if not exists premium_profile_id uuid
+  references public.premium_profiles(id) on delete set null;
+
+create index if not exists shifts_premium_profile_id_idx
+  on public.shifts (premium_profile_id);
+
+-- Per-shift override: pay at the regular rate even on a configured weekend day.
+-- Source: supabase/migrations/20260708000000_shifts_force_regular_rate.sql
+alter table public.shifts
+  add column if not exists force_regular_rate boolean not null default false;
+
+alter table public.premium_profiles enable row level security;
+
+drop policy if exists "Users can manage own premium profiles" on public.premium_profiles;
+create policy "Users can manage own premium profiles"
+  on public.premium_profiles
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop trigger if exists premium_profiles_updated_at on public.premium_profiles;
+create trigger premium_profiles_updated_at
+  before update on public.premium_profiles
+  for each row execute function public.handle_updated_at();
+
+-- Stacking options: the same six values are accepted on compensation_profiles
+-- as on premium_profiles. The inline check above only allows the original two.
+-- Source: supabase/migrations/20260706000000_compensation_stacking_options.sql
+alter table public.compensation_profiles
+  drop constraint if exists compensation_profiles_stacking_policy_check;
+
+alter table public.compensation_profiles
+  add constraint compensation_profiles_stacking_policy_check
+  check (stacking_policy in (
+    'highest_only',
+    'additive',
+    'multiplicative',
+    'base_plus_premium',
+    'premium_in_regular_rate',
+    'excluded_from_regular_rate'
+  ));
+
+-- Several refund claims may exist per shift and direction (multiple rides).
+-- Source: supabase/migrations/20260729000000_refund_claims_multiple_rides.sql
+alter table public.refund_claims
+  drop constraint if exists refund_claims_shift_id_direction_key;
+alter table public.refund_claims
+  drop constraint if exists refund_claims_shift_id_key;
+create index if not exists refund_claims_shift_id_direction_idx
+  on public.refund_claims (shift_id, direction);
+
 -- ── Tasks (paid projects / clock-in labels) ───────────────────
 -- Required for Android task sync. Safe to re-run.
 -- Source: supabase/migrations/20250628000000_tasks.sql
@@ -582,6 +665,9 @@ begin
   delete from public.shifts where user_id = uid;
   delete from public.tasks where user_id = uid;
   delete from public.compensation_profiles where user_id = uid;
+  -- Also covered by the auth.users cascade below, but listed explicitly so this
+  -- function is a complete record of what the account owns.
+  delete from public.premium_profiles where user_id = uid;
   delete from public.user_settings where user_id = uid;
   delete from public.profiles where id = uid;
 

@@ -315,14 +315,26 @@ object PayrollCalculator {
      *   (reporting-time / minimum-call pay).
      * Returns null for active shifts.
      */
-    /** Percentage/fixed deduction on a shift's gross, per the profile's rules. */
+    /**
+     * Deduction attributable to a single shift's gross.
+     *
+     * Only the percentage mode scales with one shift. A "fixed" deduction is a charge on
+     * the pay period (a monthly fee), so charging it per shift multiplied it by the shift
+     * count — 22 shifts against a 300 fixed amount deducted 6 600 from the month. The fixed
+     * amount is applied once by [fixedPeriodDeduction] at the summary level instead.
+     */
     internal fun deductionsFor(totalGross: Double, rules: CompensationRules): Double {
         if (!rules.deductionsEnabled) return 0.0
         return when (rules.deductionsMode) {
             "percentage" -> totalGross * (rules.deductionsPercentage / 100.0)
-            "fixed" -> rules.deductionsFixedAmount
             else -> 0.0
         }
+    }
+
+    /** The once-per-period portion of the deduction rules, or 0.0 when not in fixed mode. */
+    internal fun fixedPeriodDeduction(rules: CompensationRules): Double {
+        if (!rules.deductionsEnabled) return 0.0
+        return if (rules.deductionsMode == "fixed") rules.deductionsFixedAmount else 0.0
     }
 
     internal fun payableNetMinutes(shift: Shift, rules: CompensationRules): Int? {
@@ -360,14 +372,17 @@ object PayrollCalculator {
         var holidayGross = 0.0
         var nightGross = 0.0
         var deductionsGross = 0.0
-        var netGross = 0.0
         var currencyCode = "USD"
+        // Fixed deductions are charged once per period, not per shift. Keyed by profile so
+        // a month spanning two profiles charges each of their fees once.
+        val fixedDeductionsByProfile = mutableMapOf<String, Double>()
 
         PayWeekMinutes.forEachWithPriorWeekMinutes(shifts, { shift ->
             val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
             WorkTimezone.zoneFor(resolved, settings)
         }) { shift, _ ->
-            val bd = if (CompensationResolver.resolveShiftCompensation(shift, settings, profiles).regionCode == RegionCode.IL) {
+            val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+            val bd = if (resolved.regionCode == RegionCode.IL) {
                 IsraeliCompensationEngine.calculateIsraeliShiftPay(
                     shift, shifts, settings, profiles, premiumProfiles,
                 )
@@ -381,16 +396,27 @@ object PayrollCalculator {
             holidayGross += bd.holidayGross
             nightGross += bd.nightGross
             deductionsGross += bd.deductionsGross
-            netGross += bd.netGross
             specialGross += bd.weekendGross + bd.holidayGross
             currencyCode = bd.currencyCode
+            fixedPeriodDeduction(resolved.rules).takeIf { it != 0.0 }?.let { fixed ->
+                fixedDeductionsByProfile[resolved.profileId ?: PERIOD_DEDUCTION_FALLBACK_KEY] = fixed
+            }
         }
+
+        deductionsGross += fixedDeductionsByProfile.values.sum()
 
         return MonthlyPaySummary(
             totalGross, regularGross, overtimeGross, specialGross,
-            weekendGross, holidayGross, nightGross, deductionsGross, netGross, currencyCode,
+            weekendGross, holidayGross, nightGross, deductionsGross,
+            // Derived from the clamped total rather than summing per-shift nets: those are
+            // each floored at 0 while deductions kept accumulating, so the summary could
+            // report totalGross - deductionsGross != netGross.
+            netGross = maxOf(0.0, totalGross - deductionsGross),
+            currencyCode = currencyCode,
         )
     }
+
+    private const val PERIOD_DEDUCTION_FALLBACK_KEY = "__legacy_settings__"
 
     private fun buildTiers(
         resolved: ResolvedCompensation,

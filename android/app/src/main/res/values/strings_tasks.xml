@@ -14,6 +14,7 @@
     <string name="tasks_rate_per_hour">%1$s/hr</string>
     <string name="tasks_edit">Edit</string>
     <string name="tasks_archive">Archive</string>
+    <string name="tasks_restore">Restore</string>
     <string name="tasks_schedule_defaults">Schedule defaults</string>
     <string name="tasks_schedule_defaults_hint">Learned from your shift history — used for Suggested now.</string>
     <string name="tasks_more_rules">+%1$d more</string>
@@ -41,5 +42,6 @@
     <!-- ViewModel messages -->
     <string name="tasks_msg_saved">Task saved</string>
     <string name="tasks_msg_archived">Task archived</string>
+    <string name="tasks_msg_restored">Task restored</string>
     <string name="tasks_msg_deleted">Task deleted</string>
 </resources>

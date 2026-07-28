@@ -1,6 +1,5 @@
 package com.elmtrackr.app.ui.shifts
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -94,7 +93,8 @@ fun ShiftsScreen(
         }
     }
 
-    BackHandler(enabled = formTarget != null) { viewModel.closeForm() }
+    // The open form owns the back gesture (see ShiftEditFormContent): it must be able to
+    // intercept it and confirm before discarding unsaved edits.
 
     Box(Modifier.fillMaxSize()) {
     AnimatedContent(

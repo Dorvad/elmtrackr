@@ -32,6 +32,13 @@
     <string name="shifts_add_past_shift">Add a past shift</string>
 
     <!-- ShiftEditFormUi -->
+    <string name="shifts_discard_title">Discard changes?</string>
+    <plurals name="shifts_discard_text">
+        <item quantity="one">You have 1 unsaved change. Leaving now discards it.</item>
+        <item quantity="other">You have %d unsaved changes. Leaving now discards them.</item>
+    </plurals>
+    <string name="shifts_discard_confirm">Discard</string>
+    <string name="shifts_discard_keep">Keep editing</string>
     <string name="shifts_delete_dialog_title">Delete shift?</string>
     <string name="shifts_delete_dialog_text">This shift will be removed. The deletion will sync when online.</string>
     <string name="shifts_delete">Delete</string>
@@ -89,6 +96,7 @@
     <!-- ViewModel feedback and validation -->
     <string name="shifts_feedback_added">Shift added</string>
     <string name="shifts_feedback_updated">Shift updated</string>
+    <string name="shifts_refund_saved_without_receipt">Claim saved without the receipt — upload is unavailable right now. Open the claim to attach it later.</string>
     <string name="shifts_feedback_deleted">Shift deleted</string>
     <string name="shifts_error_end_after_start">End time must be after start time</string>
     <string name="shifts_error_break_negative">Break minutes must be zero or positive</string>

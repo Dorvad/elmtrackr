@@ -159,6 +159,46 @@ class MonthlyReportBuilderTest {
         assertEquals(0,   report.overtimeMinutes)
     }
 
+    @Test
+    fun `buildMonthlyReport - weekly threshold spans real weeks in a month that does not start on the week boundary`() {
+        // February 2024 starts on a Thursday. Seven 6h40m weekday-equivalent shifts on
+        // Feb 1-7 total 2800 minutes with no daily overtime (each is under 480).
+        //
+        // The old day-of-month bucketer put all seven in "days 1-7" and reported
+        // 2800 - 2400 = 400 weekly OT. Anchored to real Sunday-start weeks they split
+        // across Jan 28-Feb 3 and Feb 4-10, neither of which reaches 2400, so the
+        // correct answer is 0. Every pre-existing case used January 2024, which starts
+        // on a Monday and hid this.
+        val shifts = (1..7).map { day ->
+            val date = LocalDate.of(2024, 2, day)
+            // 08:00-14:40 = 400 minutes, below the 480 daily threshold.
+            shift("s$day", "${date}T08:00:00Z", "${date}T14:40:00Z")
+        }
+        val report = MonthlyReportBuilder.buildMonthlyReport(2024, 2, shifts, settings)
+
+        assertEquals(2800, report.totalMinutes)
+        assertEquals(0, report.overtimeMinutes)
+    }
+
+    @Test
+    fun `buildMonthlyReport - weekly threshold still applies within a single pay week`() {
+        // Sun 4 Feb - Thu 8 Feb 2024, one Sunday-start week: 5 x 500 min = 2500.
+        // Daily OT: 5 x (500-480) = 100. Weekly OT: 2500-2400 = 100. max = 100.
+        val shifts = (4..8).map { day ->
+            val date = LocalDate.of(2024, 2, day)
+            shift("s$day", "${date}T08:00:00Z", "${date}T16:20:00Z")
+        }
+        val report = MonthlyReportBuilder.buildMonthlyReport(2024, 2, shifts, settings)
+
+        assertEquals(2500, report.totalMinutes)
+        assertEquals(100, report.overtimeMinutes)
+    }
+
+    @Test
+    fun `defaultWeekStartDay is Sunday when no region is configured`() {
+        assertEquals(0, MonthlyReportBuilder.defaultWeekStartDay(settings))
+    }
+
     // ── filterByMonth ─────────────────────────────────────────────────────────
 
     @Test
@@ -238,10 +278,38 @@ class MonthlyReportBuilderTest {
     @Test
     fun `buildMonthlyReport - weekly overtime uses the work timezone weeks`() {
         val jerusalem = settings.copy(timezone = "Asia/Jerusalem")
-        // Six 8h evening shifts, all inside days 8-14 by Jerusalem time. The
-        // first starts before midnight UTC (Jan 7 UTC / Jan 8 Jerusalem); UTC
-        // grouping would split it into the previous bucket and miss the
-        // weekly-overtime overflow (2880 > 2400 → 480 OT minutes).
+        // Six 8h shifts that all fall in the Sun 14 - Sat 20 Jan pay week by Jerusalem
+        // time (UTC+2), so 6 x 480 = 2880 crosses the 2400 weekly threshold by 480. None
+        // produces daily overtime on its own (each is exactly the 480 threshold), so the
+        // 480 can only come from the weekly threshold.
+        //
+        // The first shift is the point of the test: 13 Jan 22:30 UTC is 14 Jan 00:30 in
+        // Jerusalem — Sunday, the first day of this pay week — but Saturday in UTC, the
+        // last day of the previous one. Grouping in UTC would split it off, leaving two
+        // weeks of 2400 and 480 and reporting no overtime at all.
+        val shifts = listOf(
+            shift("s1", "2024-01-13T22:30:00Z", "2024-01-14T06:30:00Z"),
+            shift("s2", "2024-01-14T22:30:00Z", "2024-01-15T06:30:00Z"),
+            shift("s3", "2024-01-15T22:30:00Z", "2024-01-16T06:30:00Z"),
+            shift("s4", "2024-01-16T22:30:00Z", "2024-01-17T06:30:00Z"),
+            shift("s5", "2024-01-17T22:30:00Z", "2024-01-18T06:30:00Z"),
+            shift("s6", "2024-01-18T09:00:00Z", "2024-01-18T17:00:00Z"),
+        )
+
+        val report = MonthlyReportBuilder.buildMonthlyReport(2024, 1, shifts, jerusalem)
+
+        assertEquals(2880, report.totalMinutes)
+        assertEquals(480, report.overtimeMinutes)
+    }
+
+    @Test
+    fun `buildMonthlyReport - a Mon-to-Sun stretch is two pay weeks, not one`() {
+        val jerusalem = settings.copy(timezone = "Asia/Jerusalem")
+        // The same six 8h shifts this test used to assert 480 OT for, back when weekly
+        // overtime was applied over day-of-month buckets. By Jerusalem time they land on
+        // Mon 8 - Thu 11 and Sun 14 Jan: 1920 minutes in the Sun 7 - Sat 13 pay week and
+        // 960 in the next. Neither reaches 2400, so the correct answer is no overtime —
+        // "days 8-14" is not a week under a Sunday week start.
         val shifts = listOf(
             shift("s1", "2024-01-07T22:30:00Z", "2024-01-08T06:30:00Z"),
             shift("s2", "2024-01-08T22:30:00Z", "2024-01-09T06:30:00Z"),
@@ -254,6 +322,6 @@ class MonthlyReportBuilderTest {
         val report = MonthlyReportBuilder.buildMonthlyReport(2024, 1, shifts, jerusalem)
 
         assertEquals(2880, report.totalMinutes)
-        assertEquals(480, report.overtimeMinutes)
+        assertEquals(0, report.overtimeMinutes)
     }
 }

@@ -112,14 +112,18 @@ class LocalShiftsRepository @Inject constructor(
         return updated.toDomain()
     }
 
-    override suspend fun createManualShift(shift: Shift): Shift {
+    // Same mutex as clockIn: this is a check-then-insert against the
+    // (userId, startTime) natural key, and two concurrent calls (a double tap on
+    // Save, or a manual add racing a sync-triggered write) could both pass the
+    // check and insert duplicates that the sync engine then mapped to one remote row.
+    override suspend fun createManualShift(shift: Shift): Shift = clockInMutex.withLock {
         shiftDao.getShiftByStartTime(shift.userId, shift.startTime.toEpochMilli())?.let { existing ->
-            return existing.toDomain()
+            return@withLock existing.toDomain()
         }
         val entity = shift.toEntity(syncStatus = SyncStatus.PENDING_CREATE)
         shiftDao.insertShift(entity)
         syncTrigger.schedule()
-        return entity.toDomain()
+        entity.toDomain()
     }
 
     override suspend fun updateShift(shift: Shift): Shift {

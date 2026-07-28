@@ -32,6 +32,15 @@
     <string name="shifts_add_past_shift">הוספת משמרת קודמת</string>
 
     <!-- ShiftEditFormUi -->
+    <string name="shifts_discard_title">לבטל את השינויים?</string>
+    <plurals name="shifts_discard_text">
+        <item quantity="one">יש שינוי אחד שלא נשמר. יציאה עכשיו תבטל אותו.</item>
+        <item quantity="two">יש שני שינויים שלא נשמרו. יציאה עכשיו תבטל אותם.</item>
+        <item quantity="many">יש %d שינויים שלא נשמרו. יציאה עכשיו תבטל אותם.</item>
+        <item quantity="other">יש %d שינויים שלא נשמרו. יציאה עכשיו תבטל אותם.</item>
+    </plurals>
+    <string name="shifts_discard_confirm">ביטול השינויים</string>
+    <string name="shifts_discard_keep">להמשיך לערוך</string>
     <string name="shifts_delete_dialog_title">למחוק את המשמרת?</string>
     <string name="shifts_delete_dialog_text">המשמרת תוסר. המחיקה תסתנכרן כשיהיה חיבור.</string>
     <string name="shifts_delete">מחיקה</string>
@@ -89,6 +98,7 @@
     <!-- ViewModel feedback and validation -->
     <string name="shifts_feedback_added">המשמרת נוספה</string>
     <string name="shifts_feedback_updated">המשמרת עודכנה</string>
+    <string name="shifts_refund_saved_without_receipt">הבקשה נשמרה בלי הקבלה — העלאת קבלות לא זמינה כרגע. אפשר לפתוח את הבקשה ולצרף אותה מאוחר יותר.</string>
     <string name="shifts_feedback_deleted">המשמרת נמחקה</string>
     <string name="shifts_error_end_after_start">שעת הסיום חייבת להיות אחרי שעת ההתחלה</string>
     <string name="shifts_error_break_negative">דקות ההפסקה חייבות להיות אפס או יותר</string>

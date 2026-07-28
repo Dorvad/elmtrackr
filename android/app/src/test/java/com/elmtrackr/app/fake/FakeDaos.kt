@@ -751,6 +751,13 @@ class FakeReceiptDao : com.elmtrackr.app.data.local.dao.ReceiptDao {
         refresh()
     }
 
+    override suspend fun adoptOrphanedReceipts(userId: String) {
+        store.replaceAll { _, value ->
+            if (value.userId == null || value.userId == "local-user") value.copy(userId = userId) else value
+        }
+        refresh()
+    }
+
     override suspend fun linkToClaim(id: String, refundClaimId: String?, updatedAt: Long) {
         store[id]?.let { store[id] = it.copy(refundClaimId = refundClaimId, updatedAt = updatedAt) }
         refresh()

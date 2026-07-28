@@ -2,6 +2,7 @@ package com.elmtrackr.app.ui.reports
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.di.ComputationDispatcher
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.DailyInsightsBuilder
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
@@ -25,6 +26,8 @@ import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +36,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -55,6 +59,10 @@ class ReportsViewModel @Inject constructor(
     private val compensationProfilesRepository: CompensationProfilesRepository,
     private val premiumProfilesRepository: PremiumProfilesRepository,
     private val refundReceiptStorage: RefundReceiptStorage?,
+    // Injected so tests can run the payroll transform on their own test dispatcher;
+    // production keeps it off the main thread (see flowOn below).
+    @ComputationDispatcher
+    private val computationDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
     // Seeded with the device zone, then corrected to the work zone as soon as
@@ -217,6 +225,12 @@ class ReportsViewModel @Inject constructor(
             }
         }
         .catch { e -> emit(ReportsUiState.Error(e.message ?: "Unknown error")) }
+        // The transform above runs the full month's payroll: sumMonthlyPay, the daily
+        // insights builder (which sums pay again) and the weekly breakdown, all of which
+        // walk each shift minute by minute in the IL engine. Without flowOn that ran in
+        // the stateIn coroutine — Dispatchers.Main.immediate — so a heavy month janked
+        // month navigation on mid-range devices.
+        .flowOn(computationDispatcher)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -307,8 +321,22 @@ class ReportsViewModel @Inject constructor(
     fun csvFilename(year: Int, month: Int): String =
         "elmtrackr-$year-${month.toString().padStart(2, '0')}.csv"
 
-    internal fun csvEscape(value: String): String =
-        if (value.contains(',') || value.contains('"') || value.contains('\n')) {
-            "\"${value.replace("\"", "\"\"")}\""
-        } else value
+    /**
+     * Quotes a CSV field and neutralises spreadsheet formula injection.
+     *
+     * Shift notes reach this file from the user, and via sync from any other device on the
+     * account. A note beginning `=`, `+`, `-`, `@`, tab or CR is executed as a formula when the
+     * export is opened in Excel or Sheets — the payroll recipient, not the author, runs it. The
+     * OWASP mitigation is to prefix such values with an apostrophe so the cell stays text.
+     * Everything is quoted unconditionally so the leading apostrophe cannot itself be read as
+     * data, and `\r` joins the escape triggers (a bare CR otherwise breaks row alignment).
+     */
+    internal fun csvEscape(value: String): String {
+        val neutralised = if (value.firstOrNull() in FORMULA_TRIGGERS) "'$value" else value
+        return "\"${neutralised.replace("\"", "\"\"")}\""
+    }
+
+    private companion object {
+        private val FORMULA_TRIGGERS = setOf('=', '+', '-', '@', '\t', '\r')
+    }
 }

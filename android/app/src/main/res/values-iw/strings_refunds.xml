@@ -95,6 +95,7 @@
     <!-- ViewModel messages -->
     <string name="refunds_err_load">טעינת בקשות ההחזר לא הצליחה</string>
     <string name="refunds_err_scanner">פתיחת סורק הקבלות לא הצליחה</string>
+    <string name="refunds_err_scan_failed">לא הצלחנו לקרוא את הקבלה. כדאי לצלם שוב בתמונה ברורה יותר, או להזין את הפרטים ידנית.</string>
     <string name="refunds_err_photo_not_saved">צילום הקבלה לא נשמר. כדאי לנסות שוב.</string>
     <string name="refunds_err_photo_store">לא הצלחנו לשמור את צילום הקבלה. כדאי לנסות שוב.</string>
     <string name="refunds_err_capture">צילום הקבלה לא הצליח</string>

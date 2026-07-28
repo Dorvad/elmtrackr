@@ -434,7 +434,7 @@ class SyncRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             // The insert carries the client-generated id; a retry after a lost
             // response collides with the row it already created — adopt it.
-            if (RemoteSyncErrors.isUniqueViolation(e)) task.localId else throw e
+            if (RemoteSyncErrors.isPrimaryKeyViolation(e, ENTITY_TASKS)) task.localId else throw e
         }
         markTaskSynced(task, remoteId, syncedAt)
     }
@@ -704,7 +704,9 @@ class SyncRepositoryImpl @Inject constructor(
         val remoteId = try {
             claimsRemote.insert(claim.toRemoteInsert(shiftRemoteId)).id
         } catch (e: Exception) {
-            if (RemoteSyncErrors.isUniqueViolation(e)) claim.localId else throw e
+            // Primary-key only: a shift may hold several rides per direction, and
+            // adopting the local id on any 23505 silently dropped the second one.
+            if (RemoteSyncErrors.isPrimaryKeyViolation(e, ENTITY_REFUND_CLAIMS)) claim.localId else throw e
         }
         markRefundClaimSynced(claim, remoteId, syncedAt)
     }
@@ -792,7 +794,11 @@ class SyncRepositoryImpl @Inject constructor(
             // The insert carries the client-generated id, so a retry after a lost
             // response collides with the row it already created — adopt that row
             // instead of inserting the profile again.
-            if (RemoteSyncErrors.isUniqueViolation(e)) profile.localId else throw e
+            if (RemoteSyncErrors.isPrimaryKeyViolation(e, ENTITY_COMPENSATION_PROFILES)) {
+                profile.localId
+            } else {
+                throw e
+            }
         }
         markCompensationProfileSynced(profile, remoteId, syncedAt)
     }
@@ -881,7 +887,11 @@ class SyncRepositoryImpl @Inject constructor(
         val remoteId = try {
             premiumRemote.insert(profile.toRemoteInsert()).id
         } catch (e: Exception) {
-            if (RemoteSyncErrors.isUniqueViolation(e)) profile.localId else throw e
+            if (RemoteSyncErrors.isPrimaryKeyViolation(e, ENTITY_PREMIUM_PROFILES)) {
+                profile.localId
+            } else {
+                throw e
+            }
         }
         markPremiumProfileSynced(profile, remoteId, syncedAt)
     }

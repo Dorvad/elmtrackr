@@ -1375,7 +1375,7 @@ private fun ShiftReportRow(
     val breakdown = MonthlyReportBuilder.buildShiftBreakdown(shift, settings)
     val date = shift.startTime.atZone(zone).toLocalDate()
     val weekend = CompensationResolver.isWeekendShift(shift, settings, profiles)
-    val overnight = OvernightShiftDetector.isOvernight(shift)
+    val overnight = OvernightShiftDetector.isOvernight(shift, zone)
     val pay = PayrollCalculator.calculateShiftPayInContext(
         shift,
         allShifts.ifEmpty { listOf(shift) },

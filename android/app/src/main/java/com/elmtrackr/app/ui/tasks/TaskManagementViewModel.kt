@@ -119,6 +119,14 @@ class TaskManagementViewModel @Inject constructor(
         }
     }
 
+    fun unarchiveTask(taskId: String) {
+        viewModelScope.launch {
+            val userId = currentUserProvider.currentUserId() ?: return@launch
+            tasksRepository.unarchiveTask(userId, taskId)
+            _message.value = UiText.Res(R.string.tasks_msg_restored)
+        }
+    }
+
     fun deleteTask(taskId: String) {
         viewModelScope.launch {
             val userId = currentUserProvider.currentUserId() ?: return@launch

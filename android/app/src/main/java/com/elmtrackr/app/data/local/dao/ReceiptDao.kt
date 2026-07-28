@@ -29,11 +29,19 @@ interface ReceiptDao {
     @Query("UPDATE receipts SET refundClaimId = :refundClaimId, updatedAt = :updatedAt WHERE id = :id")
     suspend fun linkToClaim(id: String, refundClaimId: String?, updatedAt: Long)
 
-    @Query("SELECT * FROM receipts WHERE userId = :userId")
+    // `userId IS NULL` is included deliberately. A receipt saved before the session
+    // resolved a user id (or in local-only mode) is owned by whoever used this device,
+    // but keying strictly on userId meant those rows escaped account deletion — leaving
+    // the receipt image and its full OCR text on disk — and were missing from backups.
+    @Query("SELECT * FROM receipts WHERE userId = :userId OR userId IS NULL")
     suspend fun getAllForUser(userId: String): List<ReceiptEntity>
 
-    @Query("DELETE FROM receipts WHERE userId = :userId")
+    @Query("DELETE FROM receipts WHERE userId = :userId OR userId IS NULL")
     suspend fun deleteAllForUser(userId: String)
+
+    /** Claims receipts written before a user id existed, matching the other DAOs' adoption. */
+    @Query("UPDATE receipts SET userId = :userId WHERE userId IS NULL OR userId = 'local-user'")
+    suspend fun adoptOrphanedReceipts(userId: String)
 
     @Query("DELETE FROM receipts WHERE id = :id")
     suspend fun deleteById(id: String)

@@ -93,6 +93,7 @@
     <!-- ViewModel messages -->
     <string name="refunds_err_load">Unable to load refund claims</string>
     <string name="refunds_err_scanner">Unable to open the receipt scanner</string>
+    <string name="refunds_err_scan_failed">Could not read this receipt. Try a clearer photo, or enter the details manually.</string>
     <string name="refunds_err_photo_not_saved">The receipt photo was not saved. Try again.</string>
     <string name="refunds_err_photo_store">The receipt photo could not be stored. Try again.</string>
     <string name="refunds_err_capture">Unable to capture receipt photo</string>

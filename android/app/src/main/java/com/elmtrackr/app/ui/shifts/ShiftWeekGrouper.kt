@@ -2,6 +2,7 @@ package com.elmtrackr.app.ui.shifts
 
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
+import com.elmtrackr.app.domain.compensation.RegionPresets
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
@@ -26,6 +27,13 @@ data class ShiftWeekSection(
 
 object ShiftWeekGrouper {
 
+    /**
+     * @param weekStartDay 0=Sun … 6=Sat. Defaults to the region preset's value so the
+     *   section boundaries match the pay weeks the totals are computed over. Hardcoding
+     *   Monday put an Israeli user's Sunday shift at the bottom of the previous week's
+     *   card while its minutes counted toward the next pay week, so the per-section hours
+     *   and pay disagreed with Reports for the same shifts.
+     */
     fun groupByWeek(
         shifts: List<Shift>,
         activeShift: Shift?,
@@ -35,6 +43,7 @@ object ShiftWeekGrouper {
         premiumProfiles: List<PremiumProfile> = emptyList(),
         zone: ZoneId = ZoneId.systemDefault(),
         locale: Locale = Locale.getDefault(),
+        weekStartDay: Int = resolveWeekStartDay(settings, profiles),
     ): List<ShiftWeekSection> {
         val weekLabelFmt = DateTimeFormatter.ofPattern("MMM d", locale)
         val displayShifts = buildList {
@@ -47,10 +56,11 @@ object ShiftWeekGrouper {
         if (displayShifts.isEmpty()) return emptyList()
 
         val today = LocalDate.now(zone)
+        val weekStartAnchor = WEEK_START_DAYS[weekStartDay.coerceIn(0, 6)]
         val grouped = displayShifts
             .groupBy { shift ->
                 shift.startTime.atZone(zone).toLocalDate()
-                    .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    .with(TemporalAdjusters.previousOrSame(weekStartAnchor))
             }
             .map { (weekStart, weekShifts) ->
                 val weekEnd = weekStart.plusDays(6)
@@ -95,4 +105,24 @@ object ShiftWeekGrouper {
 
         return grouped
     }
+
+    /** Same 0=Sun … 6=Sat encoding the compensation rules use. */
+    private val WEEK_START_DAYS = listOf(
+        DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+        DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY,
+    )
+
+    internal fun resolveWeekStartDay(
+        settings: UserSettings?,
+        profiles: List<CompensationProfile>,
+    ): Int {
+        val fromProfile = (profiles.firstOrNull { it.isDefault } ?: profiles.firstOrNull())
+            ?.rules?.weekStartDay
+        if (fromProfile != null) return fromProfile
+        return settings?.regionCode
+            ?.let { RegionPresets.forRegion(it).rules.weekStartDay }
+            ?: DEFAULT_WEEK_START_DAY
+    }
+
+    private const val DEFAULT_WEEK_START_DAY = 0
 }

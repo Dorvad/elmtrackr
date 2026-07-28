@@ -32,12 +32,33 @@ object RemoteSyncErrors {
         }
 
     fun isUniqueViolation(error: Throwable): Boolean {
-        val message = buildString {
-            append(error.message.orEmpty())
-            error.cause?.message?.let { append(' ').append(it) }
-        }
+        val message = messageOf(error)
         return message.contains("23505", ignoreCase = true) ||
             message.contains("duplicate key", ignoreCase = true) ||
             message.contains("shifts_user_id_start_time_uidx", ignoreCase = true)
+    }
+
+    /**
+     * True only when the conflicting constraint is [table]'s primary key.
+     *
+     * Inserts carry the client-generated local id as the primary key, so a retry after a
+     * lost response collides with the row it already created — the one case where adopting
+     * the local id as the remote id is correct. [isUniqueViolation] matches *any* 23505,
+     * which made that adoption swallow genuine business-rule conflicts: a second refund
+     * claim rejected by a `(shift_id, direction)` constraint was marked SYNCED against a
+     * remote id that existed on no row, so the ride never reached the server. When the
+     * constraint cannot be identified this returns false, and the caller rethrows — the row
+     * stays pending and is retried instead of being silently dropped.
+     */
+    fun isPrimaryKeyViolation(error: Throwable, table: String): Boolean {
+        if (!isUniqueViolation(error)) return false
+        val message = messageOf(error)
+        return message.contains("${table}_pkey", ignoreCase = true) ||
+            message.contains("Key (id)=", ignoreCase = true)
+    }
+
+    private fun messageOf(error: Throwable): String = buildString {
+        append(error.message.orEmpty())
+        error.cause?.message?.let { append(' ').append(it) }
     }
 }

@@ -40,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -265,7 +266,10 @@ internal fun SignedOutContent(
 ) {
     var mode           by rememberSaveable { mutableStateOf(AuthMode.SIGN_IN) }
     var email          by rememberSaveable { mutableStateOf("") }
-    var password       by rememberSaveable { mutableStateOf("") }
+    // Plain remember, not rememberSaveable: saved instance state is persisted by the
+    // platform, so the credential would be written to disk. Losing a half-typed
+    // password across process death is the cheaper trade.
+    var password       by remember { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
     BackHandler(enabled = mode != AuthMode.SIGN_IN) {
@@ -273,7 +277,9 @@ internal fun SignedOutContent(
         onClearError()
     }
 
-    val passwordFocusRequester = FocusRequester()
+    // remember: a fresh FocusRequester per recomposition is not attached to any node,
+    // so requestFocus() from the email field's onNext threw or silently no-oped.
+    val passwordFocusRequester = remember { FocusRequester() }
     val focusManager           = LocalFocusManager.current
 
     val emailError = if (email.isNotBlank() && '@' !in email) stringResource(R.string.auth_email_invalid) else null

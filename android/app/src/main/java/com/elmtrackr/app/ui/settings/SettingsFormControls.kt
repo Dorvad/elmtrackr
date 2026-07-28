@@ -120,9 +120,21 @@ internal fun currencyDisplayName(currency: CurrencyCode): String = stringResourc
     },
 )
 
+/**
+ * Formats stored minutes for the editable hours fields.
+ *
+ * Locale.ROOT because the value round-trips through [String.toDoubleOrNull], which only
+ * accepts a `.` separator. Formatting with the device locale wrote "8,60" on a
+ * comma-locale device, which then parsed to null and was rejected as "must be positive" —
+ * the app refusing to save the value it had just produced.
+ */
 internal fun minutesToHours(minutes: Int): String {
     val h = minutes / 60.0
-    return if (h == h.toLong().toDouble()) h.toLong().toString() else "%.2f".format(h)
+    return if (h == h.toLong().toDouble()) {
+        h.toLong().toString()
+    } else {
+        String.format(java.util.Locale.ROOT, "%.2f", h)
+    }
 }
 
 internal fun supportedClockStyleOf(style: ClockStyle): ClockStyle = style
@@ -554,6 +566,22 @@ internal fun watchFaceDescription(style: ClockStyle): String = stringResource(
     },
 )
 
+/**
+ * Keeps a decimal field parseable.
+ *
+ * Every value typed here is read back with [String.toDoubleOrNull], which accepts only a
+ * `.` separator. Unfiltered input let "50," or "50 " through: the rate then parsed to null
+ * and was saved as "no rate", silently zeroing all pay figures with no error shown. A comma
+ * is normalised rather than rejected because that is the separator key on many keyboards.
+ */
+internal fun sanitizeDecimalInput(raw: String, current: String): String {
+    val normalized = raw.replace(',', '.')
+    if (normalized.isEmpty()) return normalized
+    if (!normalized.all { it.isDigit() || it == '.' }) return current
+    if (normalized.count { it == '.' } > 1) return current
+    return normalized
+}
+
 @Composable
 internal fun HoursField(
     label: String,
@@ -563,7 +591,7 @@ internal fun HoursField(
 ) {
     OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = { onValueChange(sanitizeDecimalInput(it, value)) },
         label = { Text(label) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true,

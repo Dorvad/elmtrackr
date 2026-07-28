@@ -553,7 +553,11 @@ class RefundClaimViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isProcessingReceipt = true, errorMessage = null) }
             val previousPath = form.pendingPhotoPath?.takeIf { it != form.localReceiptImagePath }
-            val copied = receiptImageStore.copyToLocalStorage(uri, shift.id, form.direction)
+            // Null on oversize; a throw is still possible on IO failure, and the
+            // modal spinner must not outlive it.
+            val copied = runCatching {
+                receiptImageStore.copyToLocalStorage(uri, shift.id, form.direction)
+            }.getOrNull()
             if (copied == null) {
                 _uiState.update {
                     it.copy(
@@ -570,7 +574,21 @@ class RefundClaimViewModel @Inject constructor(
 
     private suspend fun processReceiptImageFromPath(path: String) {
         _uiState.update { it.copy(isProcessingReceipt = true, errorMessage = null) }
-        val parseResult = receiptScanPipeline.recognizeAndParse(path)
+        // The progress dialog is modal and non-dismissible, so any throw in the OCR
+        // pipeline (decode OOM, missing Tesseract data) used to strand the user
+        // behind a spinner with force-stop as the only exit. Always clear the flag,
+        // and surface the failure instead of swallowing it.
+        val parseResult = try {
+            receiptScanPipeline.recognizeAndParse(path)
+        } catch (error: Throwable) {
+            _uiState.update {
+                it.copy(
+                    isProcessingReceipt = false,
+                    errorMessage = UiText.Res(R.string.refunds_err_scan_failed),
+                )
+            }
+            return
+        }
         val ocrFailed = parseResult.confidence == ReceiptParseConfidence.NONE &&
             parseResult.rawOcrText.isBlank()
 
@@ -589,6 +607,11 @@ class RefundClaimViewModel @Inject constructor(
                 ),
             )
         }
+    }
+
+    /** Escape hatch for the modal processing dialog. */
+    fun cancelReceiptProcessing() {
+        _uiState.update { it.copy(isProcessingReceipt = false) }
     }
 
     private suspend fun refreshShift(shiftId: String) {

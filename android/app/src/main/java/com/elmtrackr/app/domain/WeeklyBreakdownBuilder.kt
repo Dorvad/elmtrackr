@@ -19,6 +19,12 @@ import kotlin.math.min
  *   Week 4: days 22+    ("22+")
  *
  * A shift can contribute at most 24 h to a bucket (guards corrupted data).
+ *
+ * These are **display** buckets for the Hours breakdown card, not pay weeks: they ignore
+ * the configured week start and bucket 4 spans up to ten days. Never use them to apply a
+ * weekly overtime threshold — see [MonthlyReportBuilder.buildMonthlyReport], which groups
+ * by [PayWeekMinutes.weekStart] instead. The per-bucket `overtimeMinutes` here is a
+ * daily-threshold sum only, which is why it is safe.
  */
 object WeeklyBreakdownBuilder {
 

@@ -37,7 +37,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         PremiumProfileEntity::class,
         TaskEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -106,6 +106,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_10_11,
                     MIGRATION_11_12,
                     MIGRATION_12_13,
+                    MIGRATION_13_14,
                 )
                 .build()
         }
@@ -402,6 +403,36 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
         internal val MIGRATION_12_13 = object : Migration(12, 13) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE shifts ADD COLUMN forceRegularRate INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /**
+         * Enforces one shift per (userId, startTime), which the sync engine already
+         * assumed. Duplicates are collapsed first, keeping the row most likely to be the
+         * server's: a synced row with a remoteId wins, then the most recently updated.
+         * Losing rows are deleted rather than soft-deleted — a tombstone would push a
+         * delete for the remote row the surviving duplicate shares.
+         */
+        internal val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    DELETE FROM shifts WHERE localId NOT IN (
+                        SELECT localId FROM shifts s
+                        WHERE s.localId = (
+                            SELECT localId FROM shifts d
+                            WHERE d.userId = s.userId AND d.startTime = s.startTime
+                            ORDER BY (d.remoteId IS NULL), d.updatedAt DESC, d.localId
+                            LIMIT 1
+                        )
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("DROP INDEX IF EXISTS `index_shifts_userId_startTime`")
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_shifts_userId_startTime` " +
+                        "ON `shifts` (`userId`, `startTime`)",
+                )
             }
         }
 

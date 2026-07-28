@@ -42,7 +42,12 @@ fun RemoteTaskRow.toLocalEntity(
         lastUsedAt = lastUsedAt?.let(::isoToEpoch),
         createdAt = created,
         updatedAt = updated,
-        deletedAt = if (isArchived) updated else null,
+        // Archived is not deleted. Deriving deletedAt from is_archived turned every
+        // archive into a deletion on the next pull: the row disappeared from the
+        // Archived list (which filters deletedAt IS NULL) and, with no unarchive
+        // path, was unrecoverable. The remote row carries no deletion timestamp, so
+        // a pulled task is by definition not deleted.
+        deletedAt = null,
         syncStatus = syncStatus,
         lastSyncError = null,
         lastSyncedAt = updated,

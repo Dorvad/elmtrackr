@@ -10,7 +10,12 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["userId"]),
         Index(value = ["userId", "endTime"]),
-        Index(value = ["userId", "startTime"]),
+        // Unique: the sync engine treats (userId, startTime) as a shift's natural key —
+        // pushShiftCreate resolves conflicts through findByUserAndStartTime and
+        // applyRemoteShift matches remote rows by start time. With two local rows sharing
+        // a start time, both adopted the same remoteId and then overwrote each other on
+        // the server. Mirrors shifts_user_id_start_time_uidx in Postgres.
+        Index(value = ["userId", "startTime"], unique = true),
         Index(value = ["syncStatus"]),
         Index(value = ["userId", "syncStatus"]),
         Index(value = ["remoteId"]),

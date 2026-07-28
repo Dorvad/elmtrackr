@@ -402,6 +402,50 @@ class PayrollCalculatorTest {
         assertNear(192.0, bd.netGross)
     }
 
+    @Test
+    fun `fixed deductions are charged once per period, not per shift`() {
+        // "Fixed" is a charge on the pay period (a monthly fee). Applying it per shift
+        // multiplied it by the shift count: 4 shifts x 300 deducted 1200 from a month.
+        val rules = RegionPresets.forRegion(RegionCode.US).rules.copy(
+            deductionsEnabled = true,
+            deductionsMode = "fixed",
+            deductionsFixedAmount = 300.0,
+        )
+        val p = profile(RegionCode.US, rate = 30.0, rules = rules)
+        val settings = settingsWithProfile(p)
+        val shifts = (8..11).map { day ->
+            shift("2024-01-%02dT09:00:00Z".format(day), "2024-01-%02dT17:00:00Z".format(day))
+        }
+
+        val summary = PayrollCalculator.sumMonthlyPay(shifts, settings, listOf(p))
+
+        assertNear(960.0, summary.totalGross)
+        assertNear(300.0, summary.deductionsGross)
+        assertNear(660.0, summary.netGross)
+        // No single shift carries the period fee.
+        val perShift = PayrollCalculator.calculateShiftPay(shifts.first(), settings, listOf(p))!!
+        assertNear(0.0, perShift.deductionsGross)
+    }
+
+    @Test
+    fun `monthly summary reconciles when deductions exceed gross`() {
+        // Per-shift net is floored at 0 while deductions kept accumulating, so the summary
+        // could report totalGross - deductionsGross != netGross.
+        val rules = RegionPresets.forRegion(RegionCode.US).rules.copy(
+            deductionsEnabled = true,
+            deductionsMode = "fixed",
+            deductionsFixedAmount = 5_000.0,
+        )
+        val p = profile(RegionCode.US, rate = 30.0, rules = rules)
+        val settings = settingsWithProfile(p)
+        val shifts = listOf(shift("2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z"))
+
+        val summary = PayrollCalculator.sumMonthlyPay(shifts, settings, listOf(p))
+
+        assertNear(240.0, summary.totalGross)
+        assertNear(0.0, summary.netGross)
+    }
+
     // ── Israeli weekly rest + overtime ────────────────────────────────────────
 
     private fun ilProfile(rate: Double = 58.0) = profile(
