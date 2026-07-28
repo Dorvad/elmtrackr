@@ -3,9 +3,21 @@
 # Philosophy: keep rules exist ONLY where something is genuinely resolved by
 # reflection, JNI, or class name at runtime. Library-wide `-keep class lib.**`
 # blocks defeat R8 optimization for every class they touch (Play's R8 insights
-# reported a 50% optimization rate under the old whole-library keeps) — AndroidX,
-# OkHttp/Okio, ML Kit, and Room all ship their own consumer rules, so they must
-# not be re-kept here.
+# reported a 50% optimization rate under the old whole-library keeps), so most
+# dependencies are deliberately left un-kept: AndroidX, OkHttp/Okio, Ktor,
+# supabase-kt, Glance and Room ship consumer rules and are verified working
+# without extra keeps here.
+#
+# Two exceptions are NOT optional, because they ship no usable consumer rules of
+# their own and rely on static singletons/registries that R8 *full mode*
+# rewrites: ML Kit and Tink (androidx.security.crypto). Removing ML Kit's keeps
+# once shipped a release that crashed with a NullPointerException as soon as the
+# travel-refund section composed. Verify with `unzip -l <aar> | grep proguard`
+# before assuming a library protects itself — most of these do not.
+#
+# When changing anything here, smoke-test the reflection-heavy paths on a real
+# release build: receipt scan (ML Kit + Tesseract), database open (SQLCipher +
+# Tink), widgets (Glance), sync (Ktor/serialization), and background workers.
 
 # ============================================================
 # Debugging — preserve source file names and line numbers
@@ -83,10 +95,16 @@
 -dontwarn androidx.glance.**
 
 # ============================================================
-# WorkManager — workers are instantiated reflectively through the
-# (Context, WorkerParameters) constructor. Constructor-only keep:
-# worker bodies stay optimizable.
+# WorkManager — worker class NAMES are persisted in WorkManager's own
+# database when work is enqueued, and Hilt's worker factory keys its map on
+# the same names. A rename therefore breaks two things at once: already-queued
+# jobs from a previous install can no longer be instantiated (logcat shows
+# "Could not instantiate <Worker>" and the job is dropped, silently stopping
+# sync), and the Hilt lookup misses so WorkManager falls back to the default
+# factory and tries a (Context, WorkerParameters) constructor that @HiltWorker
+# classes do not have. Keep names unconditionally; bodies stay optimizable.
 # ============================================================
+-keepnames class * extends androidx.work.ListenableWorker
 -keep class * extends androidx.work.ListenableWorker {
     public <init>(android.content.Context, androidx.work.WorkerParameters);
 }
@@ -117,8 +135,31 @@
 -dontwarn net.sqlcipher.**
 
 # ============================================================
-# ML Kit — ships its own consumer rules; only silence warnings.
+# androidx.security.crypto + Tink — same static-registry pattern that R8 full
+# mode broke in ML Kit, and it guards the database passphrase: a failure here
+# means the encrypted database cannot be opened at all. The optimization saved
+# by shrinking these is not worth that risk.
 # ============================================================
+-keep class androidx.security.crypto.** { *; }
+-keep class com.google.crypto.tink.** { *; }
+-dontwarn androidx.security.crypto.**
+-dontwarn com.google.crypto.tink.**
+
+# ============================================================
+# ML Kit / Play Services vision — MUST stay un-optimized.
+#
+# Do not reduce these to -dontwarn. ML Kit wires its recognizers through
+# static singletons and a dynamite module loader, and R8 full mode's
+# static-field and class-initializer optimizations break that: with only
+# -dontwarn, `TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)`
+# in MLKitReceiptTextRecognizer's constructor read a null internal instance and
+# threw NullPointerException the moment the travel-refund section composed
+# (tapping "Claim" on a shift). The library's own consumer rules do not cover
+# full-mode optimization, only shrinking.
+# ============================================================
+-keep class com.google.mlkit.** { *; }
+-keep class com.google.android.gms.internal.mlkit_** { *; }
+-keep class com.google.android.gms.vision.** { *; }
 -dontwarn com.google.mlkit.**
 -dontwarn com.google.android.gms.internal.mlkit_**
 
