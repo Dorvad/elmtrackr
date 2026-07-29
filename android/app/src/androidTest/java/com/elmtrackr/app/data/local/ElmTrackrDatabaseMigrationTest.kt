@@ -74,7 +74,7 @@ class ElmTrackrDatabaseMigrationTest {
         }
 
         helper.runMigrationsAndValidate(
-            TEST_DB_CHAIN, 14, true,
+            TEST_DB_CHAIN, 15, true,
             ElmTrackrDatabase.MIGRATION_2_3,
             ElmTrackrDatabase.MIGRATION_3_4,
             ElmTrackrDatabase.MIGRATION_4_5,
@@ -87,6 +87,7 @@ class ElmTrackrDatabaseMigrationTest {
             ElmTrackrDatabase.MIGRATION_11_12,
             ElmTrackrDatabase.MIGRATION_12_13,
             ElmTrackrDatabase.MIGRATION_13_14,
+            ElmTrackrDatabase.MIGRATION_14_15,
         ).use { db ->
             db.query("SELECT regionCode FROM user_settings WHERE localId = 'settings'").use { cursor ->
                 assertEquals(true, cursor.moveToFirst())
@@ -217,10 +218,78 @@ class ElmTrackrDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migration14To15AddsProjectDefaultsWithoutTouchingExistingData() {
+        helper.createDatabase(TEST_DB_PROJECTS, 14).apply {
+            execSQL(
+                """
+                INSERT INTO user_settings (
+                    localId, userId, timezone, dailyOvertimeThresholdMinutes,
+                    weeklyOvertimeThresholdMinutes, weekendDays, hourlyRate, currency,
+                    onboardingCompleted, featuresTravelRefunds, featuresPaidProjects,
+                    featuresInsights, featuresClockStyles, featuresOvertimeReminders,
+                    clockStyle, createdAt, updatedAt, syncStatus
+                ) VALUES (
+                    'settings', 'user', 'Asia/Jerusalem', 516, 2520, '5,6', 62.5, 'ILS',
+                    1, 1, 0, 1, 1, 1, 'AURORA', 0, 0, 'SYNCED'
+                )
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO shifts (
+                    localId, userId, startTime, endTime, breakMinutes, isSpecialDay,
+                    forceRegularRate, createdAt, updatedAt, syncStatus
+                ) VALUES ('shift1', 'user', 1000, 5000, 30, 0, 0, 0, 0, 'SYNCED')
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB_PROJECTS, 15, true, ElmTrackrDatabase.MIGRATION_14_15,
+        ).use { db ->
+            // New columns exist and read as "Paid Projects not configured".
+            db.query(
+                "SELECT projectsDefaultRegionCode, projectsDefaultCurrencyCode, projectsTaxLabel, " +
+                    "projectsTaxRateBasisPoints, projectsTaxInclusive, featuresPaidProjects " +
+                    "FROM user_settings WHERE localId = 'settings'",
+            ).use { cursor ->
+                assertEquals(true, cursor.moveToFirst())
+                assertEquals(true, cursor.isNull(0))
+                assertEquals(true, cursor.isNull(1))
+                assertEquals(true, cursor.isNull(2))
+                assertEquals(0, cursor.getInt(3))
+                assertEquals(0, cursor.getInt(4))
+                assertEquals(0, cursor.getInt(5))
+            }
+            // The existing user's pay setup and shift survive untouched.
+            db.query(
+                "SELECT hourlyRate, currency, clockStyle, weekendDays " +
+                    "FROM user_settings WHERE localId = 'settings'",
+            ).use { cursor ->
+                assertEquals(true, cursor.moveToFirst())
+                assertEquals(62.5, cursor.getDouble(0), 0.0001)
+                assertEquals("ILS", cursor.getString(1))
+                assertEquals("AURORA", cursor.getString(2))
+                assertEquals("5,6", cursor.getString(3))
+            }
+            db.query("SELECT startTime, endTime, breakMinutes FROM shifts WHERE localId = 'shift1'")
+                .use { cursor ->
+                    assertEquals(1, cursor.count)
+                    cursor.moveToFirst()
+                    assertEquals(1000, cursor.getLong(0))
+                    assertEquals(5000, cursor.getLong(1))
+                    assertEquals(30, cursor.getInt(2))
+                }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "currency-migration-test"
         const val TEST_DB_CHAIN = "full-chain-migration-test"
         const val TEST_DB_REPAIR = "column-repair-migration-test"
         const val TEST_DB_DEDUPE = "migration-dedupe-db"
+        const val TEST_DB_PROJECTS = "paid-projects-migration-test"
     }
 }

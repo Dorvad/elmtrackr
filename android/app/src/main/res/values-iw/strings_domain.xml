@@ -4,6 +4,7 @@
     <string name="nav_home">בית</string>
     <string name="nav_shifts">משמרות</string>
     <string name="nav_reports">דוחות</string>
+    <string name="nav_projects">פרויקטים</string>
     <string name="nav_settings">הגדרות</string>
     <string name="nav_tab_selected">%1$s, נבחר</string>
 

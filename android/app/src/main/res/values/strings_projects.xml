@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Paid Projects module -->
+    <string name="projects_title">Paid Projects</string>
+    <string name="projects_subtitle">Fixed-price work, the time you put in, and what you have been paid.</string>
+    <string name="projects_empty_title">No projects yet</string>
+    <string name="projects_empty_subtitle">Project tracking is on. Creating and tracking projects arrives in the next update.</string>
+    <string name="projects_create_cta">New project</string>
+    <string name="projects_placeholder_note">Paid Projects does not create official invoices. You can record a billing reference you issued elsewhere.</string>
+
+    <!-- Feature toggle (Settings → Features) -->
+    <string name="settings_paid_projects">Paid Projects</string>
+    <string name="settings_paid_projects_desc">Track fixed-price projects, time spent, payments, and your effective hourly rate.</string>
+    <string name="settings_feature_paid_projects_short">Paid Projects</string>
+
+    <!-- Dismissible discovery entry for existing users -->
+    <string name="projects_discovery_title">New: Paid Projects</string>
+    <string name="projects_discovery_body">Get paid a fixed price per project? Track the fee, your hours, payments received, and what is still outstanding.</string>
+    <string name="projects_discovery_action">Turn it on</string>
+    <string name="projects_discovery_dismiss">Not now</string>
+    <string name="projects_discovery_dismiss_a11y">Dismiss Paid Projects suggestion</string>
+
+    <!-- Onboarding: the question step -->
+    <string name="onboarding_step_paid_projects">Projects</string>
+    <string name="onboarding_paid_projects_title">Do you also get paid per project?</string>
+    <string name="onboarding_paid_projects_subtitle">Enable project tracking for fixed-price work, billable time, and payment follow-up.</string>
+    <string name="onboarding_paid_projects_yes">Yes, enable Paid Projects</string>
+    <string name="onboarding_paid_projects_yes_desc">Adds a Projects tab. You can turn it off any time in Settings.</string>
+    <string name="onboarding_paid_projects_no">Not now</string>
+    <string name="onboarding_paid_projects_no_desc">Keep the app as it is. Nothing changes.</string>
+
+    <!-- Onboarding: the optional project defaults step -->
+    <string name="onboarding_step_project_defaults">Project defaults</string>
+    <string name="onboarding_project_defaults_title">Project defaults</string>
+    <string name="onboarding_project_defaults_subtitle">Applied to new projects. Everything here is optional and editable later.</string>
+    <string name="onboarding_project_defaults_country">Country or region</string>
+    <string name="onboarding_project_defaults_currency">Default currency</string>
+    <string name="onboarding_project_defaults_tax_section">Tax (optional)</string>
+    <string name="onboarding_project_defaults_tax_label">Tax label</string>
+    <string name="onboarding_project_defaults_tax_label_placeholder">VAT</string>
+    <string name="onboarding_project_defaults_tax_label_helper">What the tax is called on your paperwork.</string>
+    <string name="onboarding_project_defaults_tax_rate">Tax rate (%)</string>
+    <string name="onboarding_project_defaults_tax_rate_helper">Leave empty to keep tax off. You can set a rate later in Settings.</string>
+    <string name="onboarding_project_defaults_tax_rate_error">Enter a rate between 0 and 100, or leave it empty.</string>
+    <string name="onboarding_project_defaults_tax_exclusive">Fee excludes tax</string>
+    <string name="onboarding_project_defaults_tax_exclusive_desc">Tax is added on top of the agreed fee.</string>
+    <string name="onboarding_project_defaults_tax_inclusive">Fee includes tax</string>
+    <string name="onboarding_project_defaults_tax_inclusive_desc">The agreed fee already contains the tax.</string>
+    <string name="onboarding_project_defaults_skip">Skip for now</string>
+    <string name="onboarding_project_defaults_disclaimer">ElmTrackr does not give tax advice and does not issue official invoices. Check the correct rate with your accountant or tax authority.</string>
+
+    <!-- Onboarding review row -->
+    <string name="onboarding_review_paid_projects">Paid Projects</string>
+    <string name="onboarding_review_paid_projects_on">On</string>
+    <string name="onboarding_review_paid_projects_off">Off</string>
+</resources>

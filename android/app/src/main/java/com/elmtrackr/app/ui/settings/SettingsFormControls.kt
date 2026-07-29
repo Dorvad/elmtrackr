@@ -174,12 +174,14 @@ internal fun payrollSummary(
 @Composable
 internal fun featuresSummary(
     travelRefunds: Boolean,
+    paidProjects: Boolean,
     insights: Boolean,
     clockStyles: Boolean,
     overtimeReminders: Boolean,
 ): String {
     val enabled = listOfNotNull(
         stringResource(R.string.settings_feature_travel_short).takeIf { travelRefunds },
+        stringResource(R.string.settings_feature_paid_projects_short).takeIf { paidProjects },
         stringResource(R.string.settings_feature_insights_short).takeIf { insights },
         stringResource(R.string.settings_feature_clock_styles_short).takeIf { clockStyles },
         stringResource(R.string.settings_feature_ot_reminders_short).takeIf { overtimeReminders },

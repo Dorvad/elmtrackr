@@ -56,12 +56,15 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.navDeepLink
+import com.elmtrackr.app.ui.projects.ProjectsScreen
 import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.auth.AuthViewModel
 import com.elmtrackr.app.ui.dashboard.DashboardScreen
@@ -90,8 +93,19 @@ private val navGradient = Brush.linearGradient(
     colorStops = arrayOf(0f to AuroraIndigo, 0.42f to AuroraPlum, 1f to AuroraAqua),
 )
 
+/**
+ * @param paidProjectsEnabled null while user settings load; see
+ * [PaidProjectsNavGuard]. Defaults to false so previews and screenshot tests
+ * render the four-destination bar.
+ * @param pendingDeepLink an in-app deep link waiting to be routed, if any.
+ */
 @Composable
-fun MainScaffold(authViewModel: AuthViewModel) {
+fun MainScaffold(
+    authViewModel: AuthViewModel,
+    paidProjectsEnabled: Boolean? = false,
+    pendingDeepLink: String? = null,
+    onDeepLinkConsumed: (String) -> Unit = {},
+) {
     var replayOnboarding by rememberSaveable { mutableStateOf(false) }
     var pendingShiftEditId by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingSettingsLaunch by rememberSaveable { mutableStateOf<String?>(null) }
@@ -115,6 +129,33 @@ fun MainScaffold(authViewModel: AuthViewModel) {
         }
     }
 
+    // One item list for both the bottom bar and the tablet rail, so the two
+    // surfaces cannot disagree about which destinations exist.
+    val navItems = remember(paidProjectsEnabled) {
+        BottomNavItem.visibleItems(paidProjectsEnabled == true)
+    }
+    val highlightedRoute = PaidProjectsNavGuard.highlightedRoute(currentRoute, paidProjectsEnabled)
+
+    // Turning the feature off while a gated destination is selected: leave the
+    // destination in the graph (removing it would crash) and move the user to
+    // the dashboard through the ordinary tab-navigation path, which keeps the
+    // back stack and per-tab saved state intact.
+    LaunchedEffect(paidProjectsEnabled, currentRoute) {
+        val target = PaidProjectsNavGuard.redirectTarget(currentRoute, paidProjectsEnabled)
+        if (target != null) navigateToTab(target)
+    }
+
+    // Deep links resolve only once the flag has loaded; while it is null the
+    // link stays pending rather than being routed to the wrong destination.
+    LaunchedEffect(pendingDeepLink, paidProjectsEnabled) {
+        val uri = pendingDeepLink ?: return@LaunchedEffect
+        if (!PaidProjectsNavGuard.isProjectsDeepLink(uri)) return@LaunchedEffect
+        val target = PaidProjectsNavGuard.deepLinkTarget(uri, paidProjectsEnabled)
+            ?: return@LaunchedEffect
+        navigateToTab(target)
+        onDeepLinkConsumed(uri)
+    }
+
     if (isTablet) {
         Row(
             modifier = Modifier
@@ -123,8 +164,9 @@ fun MainScaffold(authViewModel: AuthViewModel) {
         ) {
             if (!hideNavChrome) {
                 ElmSideNavigation(
-                    currentRoute = currentRoute,
+                    currentRoute = highlightedRoute,
                     onNavigate = navigateToTab,
+                    items = navItems,
                 )
             }
             NavHost(
@@ -176,8 +218,9 @@ fun MainScaffold(authViewModel: AuthViewModel) {
         bottomBar = {
             if (!hideNavChrome) {
             ElmBottomNav(
-                currentRoute = currentRoute,
+                currentRoute = highlightedRoute,
                 onNavigate   = navigateToTab,
+                items        = navItems,
             )
             }
         },
@@ -267,6 +310,17 @@ private fun NavGraphBuilder.mainNavGraph(
             },
         )
     }
+    // Registered unconditionally, and gated by PaidProjectsNavGuard rather
+    // than by presence in the graph: a NavHost whose current destination
+    // disappears throws, and rebuilding the graph would reset the back stack.
+    composable(
+        route = BottomNavItem.PROJECTS.route,
+        deepLinks = listOf(
+            navDeepLink { uriPattern = PaidProjectsNavGuard.PROJECTS_DEEP_LINK_PREFIX },
+        ),
+    ) {
+        ProjectsScreen()
+    }
     composable(BottomNavItem.SETTINGS.route) {
         SettingsScreen(
             authState = authState,
@@ -280,10 +334,12 @@ private fun NavGraphBuilder.mainNavGraph(
     }
 }
 
+/** Internal rather than private so JVM tests can render it directly. */
 @Composable
-private fun ElmBottomNav(
+internal fun ElmBottomNav(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
+    items: List<BottomNavItem>,
 ) {
   val navShape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
   val haptic = LocalHapticFeedback.current
@@ -327,7 +383,7 @@ private fun ElmBottomNav(
           .padding(horizontal = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
       ) {
-        BottomNavItem.entries.forEach { item ->
+        items.forEach { item ->
           val isSelected = currentRoute == item.route
           val interactionSource = remember { MutableInteractionSource() }
           val pillAlpha by animateFloatAsState(

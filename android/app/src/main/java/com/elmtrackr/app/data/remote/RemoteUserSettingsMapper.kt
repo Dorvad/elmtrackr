@@ -51,10 +51,18 @@ fun UserSettingsEntity.toRemoteUpdate(
     clockStyle = clockStyleToWire(clockStyle),
 )
 
+/**
+ * @param preserveLocal the row being replaced, when there is one. The Paid
+ * Projects defaults are not part of the Supabase contract yet, so a pull that
+ * rebuilt the entity from the remote row alone would silently reset the user's
+ * project currency, tax label and tax rate on every sync. Columns the wire
+ * format does not carry are copied across instead of defaulted.
+ */
 fun RemoteUserSettingsRow.toLocalEntity(
     existingLocalId: String? = null,
     defaultCompensationProfileLocalId: String? = null,
     syncStatus: SyncStatus = SyncStatus.SYNCED,
+    preserveLocal: UserSettingsEntity? = null,
 ): UserSettingsEntity {
     val created = isoToEpoch(createdAt)
     val updated = isoToEpoch(updatedAt)
@@ -78,6 +86,11 @@ fun RemoteUserSettingsRow.toLocalEntity(
         featuresInsights = featuresInsights,
         featuresClockStyles = featuresClockStyles,
         featuresOvertimeReminders = featuresOvertimeReminders,
+        projectsDefaultRegionCode = preserveLocal?.projectsDefaultRegionCode,
+        projectsDefaultCurrencyCode = preserveLocal?.projectsDefaultCurrencyCode,
+        projectsTaxLabel = preserveLocal?.projectsTaxLabel,
+        projectsTaxRateBasisPoints = preserveLocal?.projectsTaxRateBasisPoints ?: 0,
+        projectsTaxInclusive = preserveLocal?.projectsTaxInclusive ?: false,
         clockStyle = ClockStyle.fromPersisted(clockStyle).name,
         createdAt = created,
         updatedAt = updated,

@@ -25,14 +25,28 @@ data class UserSettings(
     val onboardingCompleted: Boolean = false,
     val onboardingCompletedAt: Instant? = null,
     val featuresTravelRefunds: Boolean = false,
-    // Reserved / not yet implemented. Persisted and synced for wire
-    // compatibility, but there is deliberately no settings switch and no
-    // consumer — it stays false until the paid-projects feature ships. Do not
-    // surface it in the UI until then.
+    /**
+     * Master switch for the optional Paid Projects module. Off for every
+     * existing user; turning it off hides all project surfaces but never
+     * deletes project data.
+     */
     val featuresPaidProjects: Boolean = false,
     val featuresInsights: Boolean = true,
     val featuresClockStyles: Boolean = true,
     val featuresOvertimeReminders: Boolean = true,
+    /**
+     * Defaults applied to newly created projects. Collected in the optional
+     * onboarding step and editable later; all of them are safe to leave unset.
+     * Not part of the Supabase wire format yet — see AGENTS/contract notes.
+     */
+    val projectsDefaultRegionCode: RegionCode? = null,
+    val projectsDefaultCurrencyCode: String? = null,
+    /** e.g. "VAT" / "מע״מ". Null means the app falls back to a generic label. */
+    val projectsTaxLabel: String? = null,
+    /** Basis points: 1800 = 18.00 %. Zero means project tax is off. */
+    val projectsTaxRateBasisPoints: Int = 0,
+    /** True = the project fee already includes tax. */
+    val projectsTaxInclusive: Boolean = false,
     val clockStyle: ClockStyle = ClockStyle.CLASSIC,
     val createdAt: Instant = Instant.EPOCH,
     val updatedAt: Instant = Instant.EPOCH,
@@ -49,6 +63,12 @@ data class UserSettings(
      * enum so all screens agree after a profile currency change.
      */
     fun displayCurrencyCode(): String = currencyCode ?: currency.name
+
+    /** Currency a newly created project defaults to. */
+    fun projectsCurrencyCode(): String = projectsDefaultCurrencyCode ?: displayCurrencyCode()
+
+    /** False when the user skipped or cleared the optional project tax rate. */
+    val projectsTaxEnabled: Boolean get() = projectsTaxRateBasisPoints > 0
 
     data class Updates(
         val hourlyRate: Double? = null,

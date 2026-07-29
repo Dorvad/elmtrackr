@@ -1034,6 +1034,9 @@ class SyncRepositoryImpl @Inject constructor(
                         remote.toLocalEntity(
                             existingLocalId = existing.localId,
                             defaultCompensationProfileLocalId = profileLocalId,
+                            // Paid Projects defaults are local-only until the
+                            // Supabase contract carries them; keep them.
+                            preserveLocal = existing,
                         ),
                     )
             }

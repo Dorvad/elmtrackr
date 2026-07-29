@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -87,12 +88,15 @@ internal fun SettingsHub(
     timezone: String,
     clockStyle: ClockStyle,
     travelRefunds: Boolean,
+    paidProjects: Boolean,
     insights: Boolean,
     clockStyles: Boolean,
     overtimeReminders: Boolean,
     authState: AuthUiState?,
     onNavigate: (SettingsDestination) -> Unit,
     onSignOut: () -> Unit,
+    onEnablePaidProjects: () -> Unit = {},
+    onDismissPaidProjectsDiscovery: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = Modifier
@@ -108,6 +112,14 @@ internal fun SettingsHub(
                 email = state.profile?.email,
                 onClick = { onNavigate(SettingsDestination.PROFILE) },
             )
+        }
+        if (state.showPaidProjectsDiscovery) {
+            item {
+                PaidProjectsDiscoveryCard(
+                    onEnable = onEnablePaidProjects,
+                    onDismiss = onDismissPaidProjectsDiscovery,
+                )
+            }
         }
         item {
             SettingsGroupedSection(title = stringResource(R.string.settings_section_tracking_pay)) {
@@ -139,7 +151,9 @@ internal fun SettingsHub(
                 )
                 SettingsHubNavRow(
                     title = stringResource(R.string.settings_features),
-                    subtitle = featuresSummary(travelRefunds, insights, clockStyles, overtimeReminders),
+                    subtitle = featuresSummary(
+                        travelRefunds, paidProjects, insights, clockStyles, overtimeReminders,
+                    ),
                     onClick = { onNavigate(SettingsDestination.FEATURES) },
                     icon = Icons.Filled.Tune,
                     iconTint = AuroraAqua,
@@ -657,6 +671,8 @@ internal fun AppearanceDetailScreen(
 internal fun FeaturesDetailScreen(
     travelRefunds: Boolean,
     onTravelRefundsChange: (Boolean) -> Unit,
+    paidProjects: Boolean,
+    onPaidProjectsChange: (Boolean) -> Unit,
     insights: Boolean,
     onInsightsChange: (Boolean) -> Unit,
     overtimeReminders: Boolean,
@@ -682,6 +698,14 @@ internal fun FeaturesDetailScreen(
                 onCheckedChange = onTravelRefundsChange,
                 icon = Icons.Filled.LocalShipping,
                 iconTint = AuroraPeachDeep,
+            )
+            SettingsToggleRow(
+                title = stringResource(R.string.settings_paid_projects),
+                description = stringResource(R.string.settings_paid_projects_desc),
+                checked = paidProjects,
+                onCheckedChange = onPaidProjectsChange,
+                icon = Icons.Outlined.WorkOutline,
+                iconTint = AuroraPlum,
             )
             SettingsToggleRow(
                 title = stringResource(R.string.settings_insights_analytics),

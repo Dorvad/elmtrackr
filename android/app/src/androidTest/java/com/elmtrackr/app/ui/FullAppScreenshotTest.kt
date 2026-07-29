@@ -360,7 +360,11 @@ class FullAppScreenshotTest {
                 .padding(horizontal = 20.dp, vertical = 24.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            OnboardingProgress(step)
+            OnboardingProgress(
+                step = step,
+                totalSteps = 10,
+                titleRes = com.elmtrackr.app.R.string.onboarding_step_review,
+            )
             Spacer(Modifier.height(24.dp))
             content()
         }
@@ -407,6 +411,7 @@ class FullAppScreenshotTest {
                 timezone = "Asia/Jerusalem",
                 clockStyle = ClockStyle.MINIMAL,
                 travelRefunds = true,
+                paidProjects = false,
                 insights = true,
                 clockStyles = true,
                 overtimeReminders = true,
@@ -456,6 +461,8 @@ class FullAppScreenshotTest {
             SettingsDestination.FEATURES -> FeaturesDetailScreen(
                 travelRefunds = true,
                 onTravelRefundsChange = {},
+                paidProjects = false,
+                onPaidProjectsChange = {},
                 insights = true,
                 onInsightsChange = {},
                 overtimeReminders = true,

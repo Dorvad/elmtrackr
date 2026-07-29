@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Paid Projects module -->
+    <string name="projects_title">פרויקטים בתשלום</string>
+    <string name="projects_subtitle">עבודה במחיר קבוע, השעות שהשקעתם ומה שכבר שולם.</string>
+    <string name="projects_empty_title">אין עדיין פרויקטים</string>
+    <string name="projects_empty_subtitle">מעקב הפרויקטים פעיל. יצירה ומעקב אחר פרויקטים יגיעו בעדכון הבא.</string>
+    <string name="projects_create_cta">פרויקט חדש</string>
+    <string name="projects_placeholder_note">פרויקטים בתשלום אינו מפיק חשבוניות רשמיות. ניתן לתעד אסמכתא לחיוב שהופקה במקום אחר.</string>
+
+    <!-- Feature toggle (Settings → Features) -->
+    <string name="settings_paid_projects">פרויקטים בתשלום</string>
+    <string name="settings_paid_projects_desc">מעקב אחר פרויקטים במחיר קבוע, שעות עבודה, תשלומים והשכר האפקטיבי לשעה.</string>
+    <string name="settings_feature_paid_projects_short">פרויקטים בתשלום</string>
+
+    <!-- Dismissible discovery entry for existing users -->
+    <string name="projects_discovery_title">חדש: פרויקטים בתשלום</string>
+    <string name="projects_discovery_body">מקבלים מחיר קבוע לפרויקט? עקבו אחרי התמורה, השעות, התשלומים שהתקבלו ומה שנותר לגבות.</string>
+    <string name="projects_discovery_action">הפעלה</string>
+    <string name="projects_discovery_dismiss">לא כרגע</string>
+    <string name="projects_discovery_dismiss_a11y">הסתרת ההצעה לפרויקטים בתשלום</string>
+
+    <!-- Onboarding: the question step -->
+    <string name="onboarding_step_paid_projects">פרויקטים</string>
+    <string name="onboarding_paid_projects_title">מקבלים תשלום גם לפי פרויקט?</string>
+    <string name="onboarding_paid_projects_subtitle">הפעילו מעקב אחר פרויקטים במחיר קבוע, שעות עבודה ותשלומים.</string>
+    <string name="onboarding_paid_projects_yes">כן, להפעיל פרויקטים בתשלום</string>
+    <string name="onboarding_paid_projects_yes_desc">מוסיף טאב פרויקטים. אפשר לכבות בכל רגע בהגדרות.</string>
+    <string name="onboarding_paid_projects_no">לא כרגע</string>
+    <string name="onboarding_paid_projects_no_desc">האפליקציה נשארת כמו שהיא. שום דבר לא משתנה.</string>
+
+    <!-- Onboarding: the optional project defaults step -->
+    <string name="onboarding_step_project_defaults">ברירת מחדל לפרויקט</string>
+    <string name="onboarding_project_defaults_title">ברירות מחדל לפרויקטים</string>
+    <string name="onboarding_project_defaults_subtitle">יחולו על פרויקטים חדשים. כל השדות אופציונליים וניתנים לשינוי בהמשך.</string>
+    <string name="onboarding_project_defaults_country">מדינה או אזור</string>
+    <string name="onboarding_project_defaults_currency">מטבע ברירת מחדל</string>
+    <string name="onboarding_project_defaults_tax_section">מס (אופציונלי)</string>
+    <string name="onboarding_project_defaults_tax_label">שם המס</string>
+    <string name="onboarding_project_defaults_tax_label_placeholder">מע״מ</string>
+    <string name="onboarding_project_defaults_tax_label_helper">איך המס נקרא במסמכים שלכם.</string>
+    <string name="onboarding_project_defaults_tax_rate">שיעור המס (%)</string>
+    <string name="onboarding_project_defaults_tax_rate_helper">השארת השדה ריק תשאיר את המס כבוי. אפשר להגדיר שיעור בהמשך בהגדרות.</string>
+    <string name="onboarding_project_defaults_tax_rate_error">הזינו שיעור בין 0 ל-100, או השאירו ריק.</string>
+    <string name="onboarding_project_defaults_tax_exclusive">התמורה ללא מס</string>
+    <string name="onboarding_project_defaults_tax_exclusive_desc">המס מתווסף מעל התמורה שהוסכמה.</string>
+    <string name="onboarding_project_defaults_tax_inclusive">התמורה כוללת מס</string>
+    <string name="onboarding_project_defaults_tax_inclusive_desc">התמורה שהוסכמה כבר כוללת את המס.</string>
+    <string name="onboarding_project_defaults_skip">לדלג לעכשיו</string>
+    <string name="onboarding_project_defaults_disclaimer">ElmTrackr אינו מספק ייעוץ מס ואינו מפיק חשבוניות רשמיות. בדקו את השיעור הנכון עם רואה החשבון או רשות המסים.</string>
+
+    <!-- Onboarding review row -->
+    <string name="onboarding_review_paid_projects">פרויקטים בתשלום</string>
+    <string name="onboarding_review_paid_projects_on">פעיל</string>
+    <string name="onboarding_review_paid_projects_off">כבוי</string>
+</resources>

@@ -37,7 +37,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         PremiumProfileEntity::class,
         TaskEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -107,6 +107,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_11_12,
                     MIGRATION_12_13,
                     MIGRATION_13_14,
+                    MIGRATION_14_15,
                 )
                 .build()
         }
@@ -432,6 +433,34 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE UNIQUE INDEX IF NOT EXISTS `index_shifts_userId_startTime` " +
                         "ON `shifts` (`userId`, `startTime`)",
+                )
+            }
+        }
+
+        /**
+         * Paid Projects activation shell: per-user defaults for newly created
+         * projects (country/region, currency, tax label, optional tax rate and
+         * tax-inclusive preference).
+         *
+         * Purely additive. The nullable columns default to NULL and the two
+         * NOT NULL columns default to 0, which reads as "no project tax
+         * configured" — the module ships disabled for every existing user, so
+         * nothing about their hours, pay, or navigation changes. No table is
+         * rebuilt and no index is added, so there is nothing here for Room's
+         * post-migration validation to reject.
+         */
+        internal val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE user_settings ADD COLUMN projectsDefaultRegionCode TEXT")
+                db.execSQL("ALTER TABLE user_settings ADD COLUMN projectsDefaultCurrencyCode TEXT")
+                db.execSQL("ALTER TABLE user_settings ADD COLUMN projectsTaxLabel TEXT")
+                db.execSQL(
+                    "ALTER TABLE user_settings ADD COLUMN projectsTaxRateBasisPoints " +
+                        "INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL(
+                    "ALTER TABLE user_settings ADD COLUMN projectsTaxInclusive " +
+                        "INTEGER NOT NULL DEFAULT 0",
                 )
             }
         }

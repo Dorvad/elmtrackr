@@ -366,7 +366,11 @@ class FullAppScreenshotJvmTest {
         Column(
             Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 24.dp).verticalScroll(rememberScrollState()),
         ) {
-            OnboardingProgress(step)
+            OnboardingProgress(
+                step = step,
+                totalSteps = 10,
+                titleRes = com.elmtrackr.app.R.string.onboarding_step_review,
+            )
             Spacer(Modifier.height(24.dp))
             content()
         }
@@ -404,7 +408,7 @@ class FullAppScreenshotJvmTest {
         when (destination) {
             SettingsDestination.HUB -> SettingsHub(
                 state, "Dor", "50.0", CurrencyCode.ILS, "8", "40", listOf(5, 6),
-                "Asia/Jerusalem", ClockStyle.MINIMAL, true, true, true, true,
+                "Asia/Jerusalem", ClockStyle.MINIMAL, true, false, true, true, true,
                 AuthUiState.NotConfigured, {}, {},
             )
             SettingsDestination.PROFILE -> ProfileDetailScreen(
@@ -418,7 +422,7 @@ class FullAppScreenshotJvmTest {
                 state, ClockStyle.MINIMAL, {}, true, {}, false, {}, {}, {},
             )
             SettingsDestination.FEATURES -> FeaturesDetailScreen(
-                true, {}, true, {}, true, {},
+                true, {}, false, {}, true, {}, true, {},
                 ReminderRulesCodec.DEFAULT_RULES, {}, {}, {}, {},
             )
             SettingsDestination.HELP -> HelpDetailScreen(

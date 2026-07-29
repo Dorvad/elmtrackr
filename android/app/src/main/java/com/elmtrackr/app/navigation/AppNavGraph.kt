@@ -43,6 +43,8 @@ fun AppNavGraph() {
     val authViewModel: AuthViewModel = hiltViewModel()
     val navController = rememberNavController()
     val navState by shellViewModel.navState.collectAsState()
+    val paidProjectsEnabled by shellViewModel.paidProjectsEnabled.collectAsState()
+    val pendingDeepLink by shellViewModel.pendingDeepLink.collectAsState()
 
     LaunchedEffect(navState) {
         val route = when (navState) {
@@ -72,7 +74,12 @@ fun AppNavGraph() {
             OnboardingScreen()
         }
         composable(AppRoute.MAIN) {
-            MainScaffold(authViewModel = authViewModel)
+            MainScaffold(
+                authViewModel = authViewModel,
+                paidProjectsEnabled = paidProjectsEnabled,
+                pendingDeepLink = pendingDeepLink,
+                onDeepLinkConsumed = shellViewModel::consumeDeepLink,
+            )
         }
     }
 }

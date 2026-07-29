@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.R
 import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
+import com.elmtrackr.app.data.local.preferences.FeatureDiscoveryPreferences
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.AuthResult
@@ -13,6 +14,7 @@ import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.repository.AuthRepository
+import com.elmtrackr.app.domain.projects.PaidProjectsDiscovery
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.data.sync.SyncHealth
 import com.elmtrackr.app.data.sync.SyncRepository
@@ -23,8 +25,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -51,6 +55,7 @@ class SettingsViewModel @Inject constructor(
     private val syncRepository: SyncRepository,
     private val syncTrigger: SyncTrigger,
     private val appPreferences: AppLockPreferencesStore,
+    private val featureDiscoveryPreferences: FeatureDiscoveryPreferences,
 ) : ViewModel() {
 
     private val _isSaving = MutableStateFlow(false)
@@ -178,12 +183,22 @@ class SettingsViewModel @Inject constructor(
         val syncHealth: SyncHealth?,
     )
 
+    private val paidProjectsDiscoveryDismissed = featureDiscoveryPreferences.preferences
+        .map { it.paidProjectsDiscoveryDismissed }
+        .distinctUntilChanged()
+
     val uiState: StateFlow<SettingsUiState> = combine(
         coreData,
         extras,
-    ) { core, extras ->
+        paidProjectsDiscoveryDismissed,
+    ) { core, extras, discoveryDismissed ->
         if (core.settings == null) SettingsUiState.Loading
         else SettingsUiState.Ready(
+            showPaidProjectsDiscovery = PaidProjectsDiscovery.shouldShow(
+                onboardingCompleted = core.settings.onboardingCompleted,
+                paidProjectsEnabled = core.settings.featuresPaidProjects,
+                dismissed = discoveryDismissed,
+            ),
             settings = core.settings,
             profile = extras.profile,
             selectedTheme = extras.theme,
@@ -392,6 +407,35 @@ class SettingsViewModel @Inject constructor(
     fun setReduceMotion(enabled: Boolean) {
         viewModelScope.launch {
             appPreferences.setReduceMotion(enabled)
+        }
+    }
+
+    /**
+     * Hides the Paid Projects discovery entry for good. Dismissing it does not
+     * touch the feature flag — the user can still turn the module on from
+     * Settings → Features at any time.
+     */
+    fun dismissPaidProjectsDiscovery() {
+        viewModelScope.launch {
+            featureDiscoveryPreferences.setPaidProjectsDiscoveryDismissed(true)
+        }
+    }
+
+    /**
+     * Turns Paid Projects on straight from the discovery entry and stops the
+     * entry coming back. Only this flag changes: every other setting, and all
+     * existing hours and pay data, is left exactly as it was.
+     */
+    fun enablePaidProjectsFromDiscovery() {
+        viewModelScope.launch {
+            val userId = authRepository.getCurrentProfile()?.id ?: return@launch
+            val existing = settingsRepository.getSettings(userId) ?: return@launch
+            if (!existing.featuresPaidProjects) {
+                settingsRepository.saveSettings(
+                    existing.copy(featuresPaidProjects = true, updatedAt = Instant.now()),
+                )
+            }
+            featureDiscoveryPreferences.setPaidProjectsDiscoveryDismissed(true)
         }
     }
 

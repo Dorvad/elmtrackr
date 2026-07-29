@@ -213,6 +213,8 @@ fun SettingsScreen(
                             onSyncNow = viewModel::syncNow,
                             onSetAppLockEnabled = viewModel::setAppLockEnabled,
                             onReduceMotionChange = viewModel::setReduceMotion,
+                            onEnablePaidProjects = viewModel::enablePaidProjectsFromDiscovery,
+                            onDismissPaidProjectsDiscovery = viewModel::dismissPaidProjectsDiscovery,
                         )
                         is SettingsUiState.Error -> ErrorState(
                             message = state.message,
@@ -245,6 +247,8 @@ private fun SettingsFormHost(
     onSyncNow: () -> Unit,
     onSetAppLockEnabled: (Boolean) -> Unit,
     onReduceMotionChange: (Boolean) -> Unit,
+    onEnablePaidProjects: () -> Unit = {},
+    onDismissPaidProjectsDiscovery: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val activity = context as FragmentActivity
@@ -265,6 +269,7 @@ private fun SettingsFormHost(
     var clockStyle by rememberSaveable { mutableStateOf(supportedClockStyleOf(state.settings.clockStyle)) }
     var currency by rememberSaveable { mutableStateOf(state.settings.currency) }
     var travelRefunds by rememberSaveable { mutableStateOf(state.settings.featuresTravelRefunds) }
+    var paidProjects by rememberSaveable { mutableStateOf(state.settings.featuresPaidProjects) }
     var insights by rememberSaveable { mutableStateOf(state.settings.featuresInsights) }
     var clockStyles by rememberSaveable { mutableStateOf(state.settings.featuresClockStyles) }
     var overtimeReminders by rememberSaveable {
@@ -315,7 +320,7 @@ private fun SettingsFormHost(
             weekendDays,
             SettingsFeatureFlags(
                 travelRefunds = travelRefunds,
-                paidProjects = state.settings.featuresPaidProjects,
+                paidProjects = paidProjects,
                 insights = insights,
                 clockStyles = clockStyles,
                 overtimeReminders = overtimeReminders,
@@ -341,6 +346,7 @@ private fun SettingsFormHost(
         ).count { it }
         SettingsDestination.FEATURES -> listOf(
             travelRefunds != state.settings.featuresTravelRefunds,
+            paidProjects != state.settings.featuresPaidProjects,
             insights != state.settings.featuresInsights,
             overtimeReminders != state.settings.featuresOvertimeReminders,
         ).count { it }
@@ -361,12 +367,15 @@ private fun SettingsFormHost(
                 timezone = timezone,
                 clockStyle = clockStyle,
                 travelRefunds = travelRefunds,
+                paidProjects = paidProjects,
                 insights = insights,
                 clockStyles = clockStyles,
                 overtimeReminders = overtimeReminders,
                 authState = authState,
                 onNavigate = onNavigate,
                 onSignOut = onSignOut,
+                onEnablePaidProjects = onEnablePaidProjects,
+                onDismissPaidProjectsDiscovery = onDismissPaidProjectsDiscovery,
             )
             SettingsDestination.PROFILE -> ProfileDetailScreen(
                 state = state,
@@ -413,6 +422,8 @@ private fun SettingsFormHost(
                 FeaturesDetailScreen(
                     travelRefunds = travelRefunds,
                     onTravelRefundsChange = { travelRefunds = it },
+                    paidProjects = paidProjects,
+                    onPaidProjectsChange = { paidProjects = it },
                     insights = insights,
                     onInsightsChange = { insights = it },
                     overtimeReminders = overtimeReminders,

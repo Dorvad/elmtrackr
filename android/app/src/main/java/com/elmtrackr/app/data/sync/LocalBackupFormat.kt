@@ -16,7 +16,7 @@ import kotlinx.serialization.Serializable
  * lack the newer optional fields), so bumping the version never strands a
  * user's existing backup files.
  */
-const val BACKUP_FORMAT_VERSION = 3
+const val BACKUP_FORMAT_VERSION = 4
 
 /** Version 1 predates full-fidelity rows and cannot be restored safely. */
 const val MIN_SUPPORTED_BACKUP_FORMAT_VERSION = 2
@@ -116,6 +116,11 @@ data class UserSettingsBackupRow(
     val featuresInsights: Boolean,
     val featuresClockStyles: Boolean,
     val featuresOvertimeReminders: Boolean,
+    val projectsDefaultRegionCode: String? = null,
+    val projectsDefaultCurrencyCode: String? = null,
+    val projectsTaxLabel: String? = null,
+    val projectsTaxRateBasisPoints: Int = 0,
+    val projectsTaxInclusive: Boolean = false,
     val clockStyle: String,
     val createdAt: Long,
     val updatedAt: Long,
@@ -250,7 +255,13 @@ internal fun UserSettingsEntity.toBackupRow() = UserSettingsBackupRow(
     onboardingCompleted = onboardingCompleted, onboardingCompletedAt = onboardingCompletedAt,
     featuresTravelRefunds = featuresTravelRefunds, featuresPaidProjects = featuresPaidProjects,
     featuresInsights = featuresInsights, featuresClockStyles = featuresClockStyles,
-    featuresOvertimeReminders = featuresOvertimeReminders, clockStyle = clockStyle,
+    featuresOvertimeReminders = featuresOvertimeReminders,
+    projectsDefaultRegionCode = projectsDefaultRegionCode,
+    projectsDefaultCurrencyCode = projectsDefaultCurrencyCode,
+    projectsTaxLabel = projectsTaxLabel,
+    projectsTaxRateBasisPoints = projectsTaxRateBasisPoints,
+    projectsTaxInclusive = projectsTaxInclusive,
+    clockStyle = clockStyle,
     createdAt = createdAt, updatedAt = updatedAt, deletedAt = deletedAt,
     syncStatus = syncStatus.name, lastSyncedAt = lastSyncedAt,
 )
@@ -265,7 +276,13 @@ internal fun UserSettingsBackupRow.toEntity(userId: String) = UserSettingsEntity
     onboardingCompleted = onboardingCompleted, onboardingCompletedAt = onboardingCompletedAt,
     featuresTravelRefunds = featuresTravelRefunds, featuresPaidProjects = featuresPaidProjects,
     featuresInsights = featuresInsights, featuresClockStyles = featuresClockStyles,
-    featuresOvertimeReminders = featuresOvertimeReminders, clockStyle = clockStyle,
+    featuresOvertimeReminders = featuresOvertimeReminders,
+    projectsDefaultRegionCode = projectsDefaultRegionCode,
+    projectsDefaultCurrencyCode = projectsDefaultCurrencyCode,
+    projectsTaxLabel = projectsTaxLabel,
+    projectsTaxRateBasisPoints = projectsTaxRateBasisPoints,
+    projectsTaxInclusive = projectsTaxInclusive,
+    clockStyle = clockStyle,
     createdAt = createdAt, updatedAt = updatedAt, deletedAt = deletedAt,
     syncStatus = syncStatusFromBackup(syncStatus), lastSyncError = null, lastSyncedAt = lastSyncedAt,
 )
