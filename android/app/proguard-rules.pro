@@ -95,14 +95,18 @@
 -dontwarn androidx.glance.**
 
 # ============================================================
-# WorkManager — worker class NAMES are persisted in WorkManager's own
-# database when work is enqueued, and Hilt's worker factory keys its map on
-# the same names. A rename therefore breaks two things at once: already-queued
-# jobs from a previous install can no longer be instantiated (logcat shows
+# WorkManager — worker class NAMES are persisted in WorkManager's own database
+# when work is enqueued, and HiltWorkerFactory keys its map on the same names,
+# so a rename orphans already-queued jobs from a previous install: logcat shows
 # "Could not instantiate <Worker>" and the job is dropped, silently stopping
-# sync), and the Hilt lookup misses so WorkManager falls back to the default
-# factory and tries a (Context, WorkerParameters) constructor that @HiltWorker
-# classes do not have. Keep names unconditionally; bodies stay optimizable.
+# sync. Keep names unconditionally; bodies stay optimizable.
+#
+# Note for future debugging: that same log line also appears when the name was
+# never renamed at all. If HiltWorkerFactory's map is empty it returns null and
+# WorkManager falls back to its default factory, which looks for a
+# (Context, WorkerParameters) constructor that @AssistedInject workers do not
+# have. That is a build-configuration fault, not a keep-rule fault — see
+# HiltWorkerGenerationTest — so do not add keeps here trying to fix it.
 # ============================================================
 -keepnames class * extends androidx.work.ListenableWorker
 -keep class * extends androidx.work.ListenableWorker {
