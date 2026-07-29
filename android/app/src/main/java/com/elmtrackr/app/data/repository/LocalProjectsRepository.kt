@@ -120,6 +120,9 @@ class LocalProjectsRepository @Inject constructor(
     override fun observeBillingRecords(projectId: String): Flow<List<ProjectBillingRecord>> =
         billingRecordDao.observeForProject(projectId).map { rows -> rows.map { it.toDomain() } }
 
+    override fun observeAllBillingRecords(userId: String): Flow<List<ProjectBillingRecord>> =
+        billingRecordDao.observeForUser(userId).map { rows -> rows.map { it.toDomain() } }
+
     override suspend fun getBillingRecords(projectId: String): List<ProjectBillingRecord> =
         billingRecordDao.getForProject(projectId).map { it.toDomain() }
 
@@ -180,6 +183,9 @@ class LocalProjectsRepository @Inject constructor(
 
     override fun observePayments(projectId: String): Flow<List<ProjectPayment>> =
         paymentDao.observeForProject(projectId).map { rows -> rows.map { it.toDomain() } }
+
+    override fun observeAllPayments(userId: String): Flow<List<ProjectPayment>> =
+        paymentDao.observeForUser(userId).map { rows -> rows.map { it.toDomain() } }
 
     override suspend fun getPayments(projectId: String): List<ProjectPayment> =
         paymentDao.getForProject(projectId).map { it.toDomain() }

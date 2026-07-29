@@ -38,6 +38,9 @@ interface ProjectsRepository {
 
     fun observeBillingRecords(projectId: String): Flow<List<ProjectBillingRecord>>
 
+    /** Every billing record for the user, so a list screen can derive statuses in one pass. */
+    fun observeAllBillingRecords(userId: String): Flow<List<ProjectBillingRecord>>
+
     suspend fun getBillingRecords(projectId: String): List<ProjectBillingRecord>
 
     suspend fun getBillingRecord(recordId: String): ProjectBillingRecord?
@@ -55,6 +58,9 @@ interface ProjectsRepository {
     // ── Payments ──────────────────────────────────────────────────────────────
 
     fun observePayments(projectId: String): Flow<List<ProjectPayment>>
+
+    /** Every payment for the user, paired with [observeAllBillingRecords]. */
+    fun observeAllPayments(userId: String): Flow<List<ProjectPayment>>
 
     suspend fun getPayments(projectId: String): List<ProjectPayment>
 

@@ -319,7 +319,7 @@ private fun NavGraphBuilder.mainNavGraph(
             navDeepLink { uriPattern = PaidProjectsNavGuard.PROJECTS_DEEP_LINK_PREFIX },
         ),
     ) {
-        ProjectsScreen()
+        ProjectsScreen(onFormVisibilityChanged = onFormVisibilityChanged)
     }
     composable(BottomNavItem.SETTINGS.route) {
         SettingsScreen(
