@@ -10,6 +10,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.elmtrackr.app.data.local.converter.Converters
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.ProfileDao
+import com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao
+import com.elmtrackr.app.data.local.dao.ProjectDao
+import com.elmtrackr.app.data.local.dao.ProjectPaymentDao
 import com.elmtrackr.app.data.local.dao.ReceiptDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
@@ -18,6 +21,9 @@ import com.elmtrackr.app.data.local.dao.PremiumProfileDao
 import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
 import com.elmtrackr.app.data.local.entity.PremiumProfileEntity
 import com.elmtrackr.app.data.local.entity.ProfileEntity
+import com.elmtrackr.app.data.local.entity.ProjectBillingRecordEntity
+import com.elmtrackr.app.data.local.entity.ProjectEntity
+import com.elmtrackr.app.data.local.entity.ProjectPaymentEntity
 import com.elmtrackr.app.data.local.entity.ReceiptEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
@@ -36,8 +42,11 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         CompensationProfileEntity::class,
         PremiumProfileEntity::class,
         TaskEntity::class,
+        ProjectEntity::class,
+        ProjectBillingRecordEntity::class,
+        ProjectPaymentEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -55,6 +64,12 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
     abstract fun premiumProfileDao(): PremiumProfileDao
 
     abstract fun taskDao(): TaskDao
+
+    abstract fun projectDao(): ProjectDao
+
+    abstract fun projectBillingRecordDao(): ProjectBillingRecordDao
+
+    abstract fun projectPaymentDao(): ProjectPaymentDao
 
     companion object {
         @Volatile private var INSTANCE: ElmTrackrDatabase? = null
@@ -108,6 +123,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_12_13,
                     MIGRATION_13_14,
                     MIGRATION_14_15,
+                    MIGRATION_15_16,
                 )
                 .build()
         }
@@ -462,6 +478,168 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     "ALTER TABLE user_settings ADD COLUMN projectsTaxInclusive " +
                         "INTEGER NOT NULL DEFAULT 0",
                 )
+            }
+        }
+
+        /**
+         * Paid Projects data model: projects, their billing records and their
+         * payments, plus a nullable project link on shifts.
+         *
+         * Purely additive and non-destructive:
+         *  - three new tables, so no existing row is read or rewritten;
+         *  - the two new `shifts` columns are nullable with no default and are
+         *    never backfilled, so existing shifts stay exactly as they were and
+         *    no wage calculation changes;
+         *  - no existing column, index or constraint is touched.
+         *
+         * Money columns are TEXT holding canonical decimal strings — never REAL.
+         * Binary floating point cannot represent most decimal amounts exactly,
+         * and a stored fee must round-trip byte for byte. Calendar dates are
+         * INTEGER epoch days; timestamps are INTEGER epoch millis.
+         *
+         * No SQL foreign keys, matching how shifts reference tasks: this schema
+         * soft-deletes, and the repository cascades a project delete to its
+         * children. Every index created here is declared on the corresponding
+         * entity — the 7→8 migration once created indexes that were not, and
+         * Room rejected every upgraded database until 8→9 repaired it.
+         */
+        internal val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS projects (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        clientName TEXT,
+                        clientId TEXT,
+                        description TEXT,
+                        workStatus TEXT NOT NULL,
+                        currencyCode TEXT NOT NULL,
+                        baseFee TEXT NOT NULL,
+                        taxLabel TEXT,
+                        taxRatePercent TEXT NOT NULL,
+                        taxMode TEXT NOT NULL,
+                        taxAmount TEXT NOT NULL,
+                        clientTotal TEXT NOT NULL,
+                        hourBudgetMinutes INTEGER,
+                        targetHourlyRate TEXT,
+                        startDate INTEGER,
+                        deadline INTEGER,
+                        completionDate INTEGER,
+                        notes TEXT,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        archivedAt INTEGER,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_projects_userId` ON `projects` (`userId`)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_projects_userId_workStatus` " +
+                        "ON `projects` (`userId`, `workStatus`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_projects_userId_syncStatus` " +
+                        "ON `projects` (`userId`, `syncStatus`)",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_projects_remoteId` ON `projects` (`remoteId`)")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS project_billing_records (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        projectLocalId TEXT NOT NULL,
+                        baseAmount TEXT NOT NULL,
+                        taxLabel TEXT,
+                        taxRatePercent TEXT NOT NULL,
+                        taxMode TEXT NOT NULL,
+                        taxAmount TEXT NOT NULL,
+                        totalAmount TEXT NOT NULL,
+                        currencyCode TEXT NOT NULL,
+                        externalReference TEXT,
+                        billedOn INTEGER NOT NULL,
+                        dueOn INTEGER,
+                        cancelledAt INTEGER,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_billing_records_userId` " +
+                        "ON `project_billing_records` (`userId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_billing_records_projectLocalId` " +
+                        "ON `project_billing_records` (`projectLocalId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_billing_records_userId_syncStatus` " +
+                        "ON `project_billing_records` (`userId`, `syncStatus`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_billing_records_remoteId` " +
+                        "ON `project_billing_records` (`remoteId`)",
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS project_payments (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        projectLocalId TEXT NOT NULL,
+                        billingRecordLocalId TEXT NOT NULL,
+                        paidOn INTEGER NOT NULL,
+                        amount TEXT NOT NULL,
+                        currencyCode TEXT NOT NULL,
+                        method TEXT,
+                        externalReference TEXT,
+                        notes TEXT,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_payments_userId` " +
+                        "ON `project_payments` (`userId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_payments_projectLocalId` " +
+                        "ON `project_payments` (`projectLocalId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_payments_billingRecordLocalId` " +
+                        "ON `project_payments` (`billingRecordLocalId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_payments_userId_syncStatus` " +
+                        "ON `project_payments` (`userId`, `syncStatus`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_payments_remoteId` " +
+                        "ON `project_payments` (`remoteId`)",
+                )
+
+                db.execSQL("ALTER TABLE shifts ADD COLUMN projectId TEXT")
+                db.execSQL("ALTER TABLE shifts ADD COLUMN projectNameSnapshot TEXT")
             }
         }
 

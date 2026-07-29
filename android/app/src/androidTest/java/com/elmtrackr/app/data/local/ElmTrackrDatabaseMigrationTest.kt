@@ -74,7 +74,7 @@ class ElmTrackrDatabaseMigrationTest {
         }
 
         helper.runMigrationsAndValidate(
-            TEST_DB_CHAIN, 15, true,
+            TEST_DB_CHAIN, 16, true,
             ElmTrackrDatabase.MIGRATION_2_3,
             ElmTrackrDatabase.MIGRATION_3_4,
             ElmTrackrDatabase.MIGRATION_4_5,
@@ -88,6 +88,7 @@ class ElmTrackrDatabaseMigrationTest {
             ElmTrackrDatabase.MIGRATION_12_13,
             ElmTrackrDatabase.MIGRATION_13_14,
             ElmTrackrDatabase.MIGRATION_14_15,
+            ElmTrackrDatabase.MIGRATION_15_16,
         ).use { db ->
             db.query("SELECT regionCode FROM user_settings WHERE localId = 'settings'").use { cursor ->
                 assertEquals(true, cursor.moveToFirst())
@@ -285,11 +286,202 @@ class ElmTrackrDatabaseMigrationTest {
         }
     }
 
+    /**
+     * Every supported production schema version must upgrade cleanly to the
+     * current one. `runMigrationsAndValidate` compares the migrated database
+     * against the exported schema, so this covers both "the SQL runs" and "the
+     * result is exactly what Room expects".
+     *
+     * Version 9 is absent from [SUPPORTED_START_VERSIONS] because `9.json` was
+     * never exported (a pre-existing gap in app/schemas): MigrationTestHelper
+     * cannot create a database at a version it has no schema for. Versions 8 and
+     * 10 on either side are covered, and the 8→9→10 hop is exercised by every
+     * chain that starts at or below 8.
+     */
+    @Test
+    fun everySupportedStartVersionMigratesToCurrent() {
+        for (startVersion in SUPPORTED_START_VERSIONS) {
+            val dbName = "chain-from-$startVersion"
+            helper.createDatabase(dbName, startVersion).close()
+            helper.runMigrationsAndValidate(dbName, CURRENT_VERSION, true, *ALL_MIGRATIONS).close()
+        }
+    }
+
+    /** Data written at the oldest supported version must survive to the newest. */
+    @Test
+    fun dataWrittenAtVersion1SurvivesToCurrent() {
+        helper.createDatabase(TEST_DB_V1_DATA, 1).apply {
+            execSQL(
+                """
+                INSERT INTO user_settings (
+                    localId, userId, timezone, dailyOvertimeThresholdMinutes,
+                    weeklyOvertimeThresholdMinutes, weekendDays, hourlyRate, onboardingCompleted,
+                    featuresTravelRefunds, featuresPaidProjects, featuresInsights,
+                    featuresClockStyles, clockStyle, createdAt, updatedAt, syncStatus
+                ) VALUES (
+                    'settings', 'user', 'Asia/Jerusalem', 480, 2400, '5,6', 55.5, 1,
+                    1, 0, 1, 1, 'CLASSIC', 0, 0, 'SYNCED'
+                )
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO shifts (
+                    localId, userId, startTime, endTime, breakMinutes, isSpecialDay,
+                    createdAt, updatedAt, syncStatus
+                ) VALUES ('shift1', 'user', 1000, 29800000, 30, 0, 0, 0, 'SYNCED')
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB_V1_DATA, CURRENT_VERSION, true, *ALL_MIGRATIONS)
+            .use { db ->
+                db.query(
+                    "SELECT hourlyRate, featuresPaidProjects FROM user_settings WHERE localId = 'settings'",
+                ).use { cursor ->
+                    assertEquals(true, cursor.moveToFirst())
+                    assertEquals(55.5, cursor.getDouble(0), 0.0001)
+                    // Paid Projects stays off for an upgrading user.
+                    assertEquals(0, cursor.getInt(1))
+                }
+                db.query(
+                    "SELECT startTime, endTime, breakMinutes, projectId, projectNameSnapshot " +
+                        "FROM shifts WHERE localId = 'shift1'",
+                ).use { cursor ->
+                    assertEquals(1, cursor.count)
+                    cursor.moveToFirst()
+                    assertEquals(1000L, cursor.getLong(0))
+                    assertEquals(29800000L, cursor.getLong(1))
+                    assertEquals(30, cursor.getInt(2))
+                    // The project relationship is nullable and never backfilled.
+                    assertEquals(true, cursor.isNull(3))
+                    assertEquals(true, cursor.isNull(4))
+                }
+            }
+    }
+
+    @Test
+    fun migration15To16CreatesProjectTablesAndLeavesExistingDataAlone() {
+        helper.createDatabase(TEST_DB_PROJECT_TABLES, 15).apply {
+            execSQL(
+                """
+                INSERT INTO user_settings (
+                    localId, userId, timezone, dailyOvertimeThresholdMinutes,
+                    weeklyOvertimeThresholdMinutes, weekendDays, hourlyRate, currency,
+                    onboardingCompleted, featuresTravelRefunds, featuresPaidProjects,
+                    featuresInsights, featuresClockStyles, featuresOvertimeReminders,
+                    projectsTaxRateBasisPoints, projectsTaxInclusive,
+                    clockStyle, createdAt, updatedAt, syncStatus
+                ) VALUES (
+                    'settings', 'user', 'Asia/Jerusalem', 516, 2520, '5,6', 62.5, 'ILS',
+                    1, 1, 0, 1, 1, 1, 0, 0, 'AURORA', 0, 0, 'SYNCED'
+                )
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO shifts (
+                    localId, userId, startTime, endTime, breakMinutes, isSpecialDay,
+                    forceRegularRate, taskId, taskHourlyRateSnapshot,
+                    createdAt, updatedAt, syncStatus
+                ) VALUES ('shift1', 'user', 1000, 5000, 30, 0, 0, 'task-1', 120.0, 0, 0, 'SYNCED')
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB_PROJECT_TABLES, 16, true, ElmTrackrDatabase.MIGRATION_15_16,
+        ).use { db ->
+            // The three tables exist and are empty: no project data is invented.
+            listOf("projects", "project_billing_records", "project_payments").forEach { table ->
+                db.query("SELECT COUNT(*) FROM $table").use { cursor ->
+                    assertEquals(true, cursor.moveToFirst())
+                    assertEquals(0, cursor.getInt(0))
+                }
+            }
+            // Money columns are TEXT, never REAL.
+            db.query("PRAGMA table_info(`projects`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndexOrThrow("name")
+                val typeIndex = cursor.getColumnIndexOrThrow("type")
+                val types = mutableMapOf<String, String>()
+                while (cursor.moveToNext()) {
+                    types[cursor.getString(nameIndex)] = cursor.getString(typeIndex)
+                }
+                assertEquals("TEXT", types["baseFee"])
+                assertEquals("TEXT", types["taxAmount"])
+                assertEquals("TEXT", types["clientTotal"])
+                assertEquals("TEXT", types["targetHourlyRate"])
+            }
+            db.query("PRAGMA table_info(`project_payments`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndexOrThrow("name")
+                val typeIndex = cursor.getColumnIndexOrThrow("type")
+                var amountType: String? = null
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) == "amount") amountType = cursor.getString(typeIndex)
+                }
+                assertEquals("TEXT", amountType)
+            }
+            // The existing shift keeps its task link and rate, and gains a null
+            // project link.
+            db.query(
+                "SELECT taskId, taskHourlyRateSnapshot, projectId, projectNameSnapshot " +
+                    "FROM shifts WHERE localId = 'shift1'",
+            ).use { cursor ->
+                assertEquals(true, cursor.moveToFirst())
+                assertEquals("task-1", cursor.getString(0))
+                assertEquals(120.0, cursor.getDouble(1), 0.0001)
+                assertEquals(true, cursor.isNull(2))
+                assertEquals(true, cursor.isNull(3))
+            }
+            // Pay-relevant settings are untouched.
+            db.query(
+                "SELECT hourlyRate, clockStyle, featuresPaidProjects FROM user_settings " +
+                    "WHERE localId = 'settings'",
+            ).use { cursor ->
+                assertEquals(true, cursor.moveToFirst())
+                assertEquals(62.5, cursor.getDouble(0), 0.0001)
+                assertEquals("AURORA", cursor.getString(1))
+                assertEquals(0, cursor.getInt(2))
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "currency-migration-test"
         const val TEST_DB_CHAIN = "full-chain-migration-test"
         const val TEST_DB_REPAIR = "column-repair-migration-test"
         const val TEST_DB_DEDUPE = "migration-dedupe-db"
         const val TEST_DB_PROJECTS = "paid-projects-migration-test"
+        const val TEST_DB_PROJECT_TABLES = "project-tables-migration-test"
+        const val TEST_DB_V1_DATA = "v1-data-migration-test"
+
+        const val CURRENT_VERSION = 16
+
+        /**
+         * Schema versions a production database can currently be at. 9 is
+         * missing because `9.json` was never exported; see
+         * everySupportedStartVersionMigratesToCurrent.
+         */
+        val SUPPORTED_START_VERSIONS = listOf(1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15)
+
+        val ALL_MIGRATIONS = arrayOf(
+            ElmTrackrDatabase.MIGRATION_1_2,
+            ElmTrackrDatabase.MIGRATION_2_3,
+            ElmTrackrDatabase.MIGRATION_3_4,
+            ElmTrackrDatabase.MIGRATION_4_5,
+            ElmTrackrDatabase.MIGRATION_5_6,
+            ElmTrackrDatabase.MIGRATION_6_7,
+            ElmTrackrDatabase.MIGRATION_7_8,
+            ElmTrackrDatabase.MIGRATION_8_9,
+            ElmTrackrDatabase.MIGRATION_9_10,
+            ElmTrackrDatabase.MIGRATION_10_11,
+            ElmTrackrDatabase.MIGRATION_11_12,
+            ElmTrackrDatabase.MIGRATION_12_13,
+            ElmTrackrDatabase.MIGRATION_13_14,
+            ElmTrackrDatabase.MIGRATION_14_15,
+            ElmTrackrDatabase.MIGRATION_15_16,
+        )
     }
 }

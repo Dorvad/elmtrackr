@@ -102,7 +102,8 @@ class LocalBackupImporterTest {
         premiumDao.insert(premium(userId = userId))
         receiptDao.insert(receipt(userId = userId))
         return LocalBackupExporter.export(
-            userId, taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao, "1.0",
+            userId, taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao,
+            projectDao, billingDao, paymentDao, "1.0",
         )
     }
 
@@ -113,10 +114,17 @@ class LocalBackupImporterTest {
     private val taskDao2 = FakeTaskDao()
     private val premiumDao2 = FakePremiumProfileDao()
     private val receiptDao2 = FakeReceiptDao()
+    private val projectDao = com.elmtrackr.app.fake.FakeProjectDao()
+    private val billingDao = com.elmtrackr.app.fake.FakeProjectBillingRecordDao()
+    private val paymentDao = com.elmtrackr.app.fake.FakeProjectPaymentDao()
+    private val projectDao2 = com.elmtrackr.app.fake.FakeProjectDao()
+    private val billingDao2 = com.elmtrackr.app.fake.FakeProjectBillingRecordDao()
+    private val paymentDao2 = com.elmtrackr.app.fake.FakeProjectPaymentDao()
 
     private suspend fun importInto2(json: String, userId: String): BackupImportSummary =
         LocalBackupImporter.import(
             json, userId, taskDao2, shiftDao2, claimDao2, settingsDao2, profileDao2, premiumDao2, receiptDao2,
+            projectDao2, billingDao2, paymentDao2,
         )
 
     @Test
@@ -196,7 +204,8 @@ class LocalBackupImporterTest {
         taskDao.insert(task())
         claimDao.insertClaim(claim(localId = "orphan-claim").copy(shiftLocalId = "missing-shift"))
         val json = LocalBackupExporter.export(
-            "u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao, "1.0",
+            "u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao,
+            projectDao, billingDao, paymentDao, "1.0",
         )
 
         val summary = importInto2(json, "u1")
@@ -211,7 +220,8 @@ class LocalBackupImporterTest {
         // No claim exported: the receipt references one that won't exist on import.
         receiptDao.insert(receipt())
         val json = LocalBackupExporter.export(
-            "u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao, "1.0",
+            "u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao,
+            projectDao, billingDao, paymentDao, "1.0",
         )
 
         val summary = importInto2(json, "u1")

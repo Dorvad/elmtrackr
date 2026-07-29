@@ -52,6 +52,9 @@ class SyncRepositoryImpl @Inject constructor(
     private val compensationProfileDao: CompensationProfileDao,
     private val premiumProfileDao: PremiumProfileDao,
     private val receiptDao: com.elmtrackr.app.data.local.dao.ReceiptDao,
+    private val projectDao: com.elmtrackr.app.data.local.dao.ProjectDao,
+    private val projectBillingRecordDao: com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao,
+    private val projectPaymentDao: com.elmtrackr.app.data.local.dao.ProjectPaymentDao,
     private val taskDao: TaskDao,
     private val profileDao: ProfileDao,
     private val syncCursorStore: SyncCursorStore,
@@ -181,6 +184,9 @@ class SyncRepositoryImpl @Inject constructor(
             compensationProfileDao = compensationProfileDao,
             premiumProfileDao = premiumProfileDao,
             receiptDao = receiptDao,
+            projectDao = projectDao,
+            projectBillingRecordDao = projectBillingRecordDao,
+            projectPaymentDao = projectPaymentDao,
             appVersion = com.elmtrackr.app.BuildConfig.VERSION_NAME,
         )
 
@@ -195,6 +201,9 @@ class SyncRepositoryImpl @Inject constructor(
             compensationProfileDao = compensationProfileDao,
             premiumProfileDao = premiumProfileDao,
             receiptDao = receiptDao,
+            projectDao = projectDao,
+            projectBillingRecordDao = projectBillingRecordDao,
+            projectPaymentDao = projectPaymentDao,
         )
 
     override suspend fun hasPendingWork(userId: String): Boolean =
@@ -204,6 +213,10 @@ class SyncRepositoryImpl @Inject constructor(
             compensationProfileDao.hasPendingSyncProfiles(userId) ||
             premiumProfileDao.hasPendingSyncProfiles(userId) ||
             taskDao.hasPendingSyncTasks(userId) ||
+            // Paid Projects tables are local-only until the Supabase contract
+            // carries them, so their pending rows are deliberately not counted
+            // here — reporting unsyncable work would show a permanent
+            // "N changes waiting" badge the user can never clear.
             profileDao.hasPendingSyncProfiles(userId)
 
     override suspend fun syncAll(userId: String): SyncResult {

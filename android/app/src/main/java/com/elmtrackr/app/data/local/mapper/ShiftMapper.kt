@@ -26,6 +26,8 @@ fun ShiftEntity.toDomain(): Shift = Shift(
     taskNameSnapshot = taskNameSnapshot,
     taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
+    projectId = projectId,
+    projectNameSnapshot = projectNameSnapshot,
     createdAt = Instant.ofEpochMilli(createdAt),
     updatedAt = Instant.ofEpochMilli(updatedAt),
 )
@@ -54,6 +56,8 @@ fun Shift.toEntity(
     taskNameSnapshot = taskNameSnapshot,
     taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
+    projectId = projectId,
+    projectNameSnapshot = projectNameSnapshot,
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
     deletedAt = deletedAt,
