@@ -230,7 +230,7 @@ invoice, receipt book or accounting software" — the user's system, not this on
 
 ## 9. Automated test results
 
-**1,335 tests, 0 failures.** `assembleDebug`, `lintDebug` (0 findings),
+**1,336 tests across 115 classes, 0 failures, 0 errors.** `assembleDebug`, `lintDebug` (0 findings),
 `compileDebugAndroidTestKotlin` and `testDebugUnitTest` all pass.
 
 The eight long-standing `ProjectsRenderTest` failures are resolved — see item 2
