@@ -41,6 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.ui.common.AppTimePickerDialog
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.common.asString
@@ -70,6 +71,7 @@ fun ShiftsScreen(
     val formTarget by viewModel.formTarget.collectAsState()
     val formErrors by viewModel.formErrors.collectAsState()
     val featuresTravelRefunds by viewModel.featuresTravelRefunds.collectAsState()
+    val formProjects by viewModel.formProjects.collectAsState()
     val selectedMonth by viewModel.selectedMonth.collectAsState()
     val userMessage by viewModel.userMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -111,6 +113,7 @@ fun ShiftsScreen(
                 profiles = (uiState as? ShiftsUiState.Ready)?.profiles.orEmpty(),
                 allShiftsForPay = (uiState as? ShiftsUiState.Ready)?.shifts.orEmpty(),
                 tasks = (uiState as? ShiftsUiState.Ready)?.tasks.orEmpty(),
+                projects = formProjects,
                 errors = formErrors,
                 featuresTravelRefunds = featuresTravelRefunds,
                 onSuggestTaskForStart = viewModel::suggestTaskForStart,
@@ -347,6 +350,7 @@ private fun ShiftFormContent(
     profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
     allShiftsForPay: List<com.elmtrackr.app.domain.model.Shift> = emptyList(),
     tasks: List<com.elmtrackr.app.domain.model.Task>,
+    projects: List<com.elmtrackr.app.domain.model.Project> = emptyList(),
     errors: Map<String, com.elmtrackr.app.domain.model.UiText>,
     featuresTravelRefunds: Boolean,
     onSuggestTaskForStart: suspend (Instant) -> String? = { null },
@@ -388,6 +392,16 @@ private fun ShiftFormContent(
         mutableStateOf(initialShift?.compensationProfileId ?: settings?.defaultCompensationProfileId)
     }
     var taskId by rememberSaveable { mutableStateOf(initialShift?.taskId) }
+    // Seeded from the shift so an existing project link survives rotation and is
+    // never dropped by a save that only touched other fields.
+    var compensationSourceName by rememberSaveable {
+        mutableStateOf(
+            (initialShift?.compensationSource ?: CompensationSource.EMPLOYEE).name,
+        )
+    }
+    val compensationSource = CompensationSource.fromPersisted(compensationSourceName)
+    var projectIdRaw by rememberSaveable { mutableStateOf(initialShift?.projectId.orEmpty()) }
+    val projectId = projectIdRaw.takeIf { it.isNotEmpty() }
 
     LaunchedEffect(navState, startMillis) {
         if (navState is ShiftFormNavState.Create && taskId == null) {
@@ -471,6 +485,11 @@ private fun ShiftFormContent(
             tasks = tasks,
             taskId = taskId,
             onTaskIdChange = { taskId = it },
+            projects = projects,
+            compensationSource = compensationSource,
+            onCompensationSourceChange = { compensationSourceName = it.name },
+            projectId = projectId,
+            onProjectIdChange = { projectIdRaw = it.orEmpty() },
             showRefundSection = shouldShowRefundSection(featuresTravelRefunds, initialShift),
             initialShift = initialShift,
         )

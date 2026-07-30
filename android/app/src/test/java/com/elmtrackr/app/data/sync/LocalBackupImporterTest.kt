@@ -152,6 +152,94 @@ class LocalBackupImporterTest {
     }
 
     @Test
+    fun `a project shift keeps its compensation source and project link through the round-trip`() = runTest {
+        shiftDao.insertShift(
+            shift(localId = "project-shift").copy(
+                projectId = "p1",
+                projectNameSnapshot = "Website rebuild",
+                compensationSource = "PROJECT",
+            ),
+        )
+        val json = LocalBackupExporter.export(
+            "u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao,
+            projectDao, billingDao, paymentDao, "1.0",
+        )
+
+        importInto2(json, "u1")
+
+        val restored = shiftDao2.getShiftById("project-shift")!!
+        assertEquals("PROJECT", restored.compensationSource)
+        assertEquals("p1", restored.projectId)
+        assertEquals("Website rebuild", restored.projectNameSnapshot)
+    }
+
+    @Test
+    fun `a backup written before the compensation source existed imports as employee work`() = runTest {
+        // Format 5 and earlier had no compensationSource field. It must stay
+        // absent rather than be invented, because NULL already means EMPLOYEE and
+        // writing a value in would differ from what the exporter produced.
+        val legacy = """
+            {
+              "formatVersion": 5,
+              "exportedAt": "2026-07-01T00:00:00Z",
+              "userId": "u1",
+              "appVersion": "1.0",
+              "shifts": [
+                {
+                  "localId": "legacy-shift",
+                  "startTime": 1700000000000,
+                  "endTime": 1700030000000,
+                  "breakMinutes": 0,
+                  "isSpecialDay": false,
+                  "createdAt": 1,
+                  "updatedAt": 2,
+                  "syncStatus": "SYNCED"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        importInto2(legacy, "u1")
+
+        val restored = shiftDao2.getShiftById("legacy-shift")!!
+        assertEquals(null, restored.compensationSource)
+        assertEquals(
+            com.elmtrackr.app.domain.model.CompensationSource.EMPLOYEE,
+            com.elmtrackr.app.domain.model.CompensationSource.fromPersisted(restored.compensationSource),
+        )
+    }
+
+    @Test
+    fun `an unrecognised compensation source in a backup imports as employee work`() = runTest {
+        // Normalised rather than stored verbatim: a hand-edited backup must not be
+        // able to make a shift disappear from someone's pay.
+        val tampered = """
+            {
+              "formatVersion": 6,
+              "exportedAt": "2026-07-01T00:00:00Z",
+              "userId": "u1",
+              "appVersion": "1.0",
+              "shifts": [
+                {
+                  "localId": "tampered-shift",
+                  "startTime": 1700000000000,
+                  "breakMinutes": 0,
+                  "isSpecialDay": false,
+                  "compensationSource": "UNPAID",
+                  "createdAt": 1,
+                  "updatedAt": 2,
+                  "syncStatus": "SYNCED"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        importInto2(tampered, "u1")
+
+        assertEquals("EMPLOYEE", shiftDao2.getShiftById("tampered-shift")!!.compensationSource)
+    }
+
+    @Test
     fun `shift premium profile assignment survives the round-trip`() = runTest {
         val json = exportSeeded("u1")
 

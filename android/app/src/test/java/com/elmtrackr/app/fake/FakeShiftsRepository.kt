@@ -1,6 +1,7 @@
 package com.elmtrackr.app.fake
 
 import com.elmtrackr.app.domain.model.CompensationSnapshot
+import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +22,9 @@ class FakeShiftsRepository : ShiftsRepository {
 
     override fun observeShifts(userId: String): Flow<List<Shift>> = _shifts
 
+    override fun observeShiftsForProject(userId: String, projectId: String): Flow<List<Shift>> =
+        _shifts.map { list -> list.filter { it.userId == userId && it.projectId == projectId } }
+
     override fun observeActiveShift(userId: String): Flow<Shift?> =
         _shifts.map { list -> list.firstOrNull { it.isActive } }
 
@@ -34,6 +38,9 @@ class FakeShiftsRepository : ShiftsRepository {
         taskNameSnapshot: String?,
         taskIconSnapshot: String?,
         taskHourlyRateSnapshot: Double?,
+        compensationSource: CompensationSource,
+        projectId: String?,
+        projectNameSnapshot: String?,
     ): Shift {
         _shifts.value.firstOrNull { it.userId == userId && it.isActive }?.let { return it }
 
@@ -47,6 +54,9 @@ class FakeShiftsRepository : ShiftsRepository {
             taskNameSnapshot = taskNameSnapshot,
             taskIconSnapshot = taskIconSnapshot,
             taskHourlyRateSnapshot = taskHourlyRateSnapshot,
+            compensationSource = compensationSource,
+            projectId = projectId?.takeIf { compensationSource.isProjectTime },
+            projectNameSnapshot = projectNameSnapshot?.takeIf { compensationSource.isProjectTime },
         )
         _shifts.value = _shifts.value + shift
         return shift

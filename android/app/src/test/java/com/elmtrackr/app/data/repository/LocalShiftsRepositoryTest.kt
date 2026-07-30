@@ -5,6 +5,7 @@ import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import com.elmtrackr.app.fake.FakeRefundsRepository
@@ -274,6 +275,13 @@ class LocalShiftsRepositoryTest {
             fromEpoch: Long,
             toEpoch: Long,
         ): Flow<List<ShiftEntity>> = observeShiftsByDateRange(userId, fromEpoch, toEpoch)
+
+        override fun observeShiftsForProject(
+            userId: String,
+            projectId: String,
+        ): Flow<List<ShiftEntity>> = shifts.map { list ->
+            list.filter { it.userId == userId && it.projectId == projectId && it.deletedAt == null }
+        }
 
         private companion object {
             val pendingStatuses = setOf(

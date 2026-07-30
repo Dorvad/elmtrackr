@@ -164,7 +164,7 @@
     <string name="project_detail_no_billing">עוד לא תועדה דרישת חיוב.</string>
     <string name="project_detail_billing_disclaimer">ElmTrackr אינו מפיק חשבוניות רשמיות. תעדו אסמכתא מהחשבונית שהפקתם במקום אחר.</string>
     <string name="project_detail_no_time_yet">עוד לא נרשמו שעות לפרויקט הזה.</string>
-    <string name="project_detail_time_pending">קישור משמרות לפרויקטים יגיע בעדכון הבא. שעות שכבר מקושרות נספרות כאן.</string>
+    <string name="project_detail_time_pending">התחילו משמרת ובחרו את הפרויקט הזה כדי לרשום לו שעות.</string>
     <string name="project_detail_shift_count">%1$d משמרות</string>
     <string name="project_detail_budget_used">%1$s מתוך %2$s נוצלו</string>
     <string name="project_detail_no_description">אין תיאור.</string>
@@ -187,4 +187,45 @@
     <string name="project_error_tax_rate">הזינו שיעור בין 0 ל-100</string>
     <string name="project_error_currency">בחרו מטבע</string>
     <string name="project_error_deadline">תאריך היעד לא יכול להיות לפני תאריך ההתחלה</string>
+
+    <!-- Project time tracking -->
+    <string name="project_time_source_title">למה השעות האלה?</string>
+    <string name="project_time_source_hourly">עבודה שעתית</string>
+    <string name="project_time_source_hourly_desc">משולמת כשכר. נכללת בשעות נוספות ובתוספות.</string>
+    <string name="project_time_source_project">שעות פרויקט</string>
+    <string name="project_time_source_project_desc">נרשמות מול שכר הפרויקט. לא משולמות כשכר ולא נחשבות שעות נוספות.</string>
+    <string name="project_time_pick_project">פרויקט</string>
+    <string name="project_time_pick_project_hint">בחרו לאיזה פרויקט השעות שייכות.</string>
+    <string name="project_time_no_projects">אין פרויקט פתוח לרישום שעות. התחילו או חדשו פרויקט קודם.</string>
+    <string name="project_time_note">הערה (לא חובה)</string>
+    <string name="project_time_note_hint">על מה עבדתם. נשמר עם המשמרת.</string>
+    <string name="project_time_client_currency">%1$s · %2$s</string>
+    <string name="project_time_shift_label">שעות פרויקט</string>
+    <string name="project_time_shift_label_named">שעות פרויקט · %1$s</string>
+    <string name="project_time_shift_unpaid_note">לא משולם כשכר — השעות האלה נכללות בשכר הפרויקט.</string>
+
+    <!-- Active project shift -->
+    <string name="project_active_title">רושמים שעות ל%1$s</string>
+    <string name="project_active_current_rate">תעריף עד כה</string>
+    <string name="project_active_projected_rate">תעריף אם תסיימו עכשיו</string>
+    <string name="project_active_no_rate">עוד אין מספיק שעות</string>
+    <string name="project_active_budget_left">נשארו %1$s מהמסגרת</string>
+    <string name="project_active_budget_over">%1$s מעל המסגרת</string>
+    <string name="project_active_target_left">נשארו %1$s עד שתרדו מ-%2$s לשעה</string>
+    <string name="project_active_target_passed">כבר מתחת ליעד של %1$s לשעה</string>
+    <string name="project_active_feature_off">פרויקטים בתשלום כובו, אבל המשמרת הזו עדיין נרשמת ל%1$s. סיימו כרגיל — היא נשארת שעות פרויקט ולא הופכת לשעות בתשלום.</string>
+    <string name="project_active_feature_off_unknown">פרויקטים בתשלום כובו, אבל המשמרת הזו עדיין נרשמת כשעות פרויקט. סיימו כרגיל — היא לא תהפוך לשעות בתשלום.</string>
+
+    <!-- After a project shift -->
+    <string name="project_shift_done_title">%1$s נוספו ל%2$s</string>
+    <string name="project_shift_done_rate">התעריף בפועל הוא כעת %1$s לשעה</string>
+    <string name="project_shift_done_no_rate">עוד אין תעריף — שכר הפרויקט לא הוגדר.</string>
+    <string name="project_shift_done_view">מעבר לפרויקט</string>
+    <string name="project_shift_done_dismiss">סגירה</string>
+
+    <!-- Editing a shift -->
+    <string name="project_edit_source_title">תגמול</string>
+    <string name="project_edit_source_helper">שינוי כאן מחשב את המשמרת מחדש. שעות נחשבות כשכר או כשעות פרויקט, לעולם לא כשניהם.</string>
+    <string name="project_edit_to_project_warning">המשמרת הזו לא תשולם יותר כשכר, והשעות שלה ייצאו מסך השעות הנוספות והתוספות.</string>
+    <string name="project_edit_to_hourly_warning">המשמרת הזו תשולם שוב כשכר, והשעות שלה ייצאו מהפרויקט.</string>
 </resources>

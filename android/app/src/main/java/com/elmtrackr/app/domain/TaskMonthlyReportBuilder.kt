@@ -17,7 +17,10 @@ object TaskMonthlyReportBuilder {
         profiles: List<CompensationProfile> = emptyList(),
         premiumProfiles: List<PremiumProfile> = emptyList(),
     ): List<TaskMonthlyBreakdown> {
-        val completed = shifts.filter { it.isCompleted }
+        // Employee-paid only: this groups task hours with their pay and overtime
+        // split. A project shift may also carry a task, but its hours are paid by
+        // the project fee, so including them would attribute project time to wages.
+        val completed = shifts.employeePaidOnly().filter { it.isCompleted }
         if (completed.isEmpty()) return emptyList()
 
         val taskById = tasks.associateBy { it.id }

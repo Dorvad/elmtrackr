@@ -512,6 +512,22 @@ internal fun ShiftRow(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
+                // Project time carries no wage, so the row says why instead of
+                // showing an empty pay column.
+                if (shift.isProjectTime) {
+                    Row(
+                        modifier = Modifier.padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        ShiftTypeBadge(
+                            label = shift.projectNameSnapshot
+                                ?.let { stringResource(R.string.project_time_shift_label_named, it) }
+                                ?: stringResource(R.string.project_time_shift_label),
+                            background = auroraWeekendBackground(),
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
+                }
                 if (rowDisplay.weekend || rowDisplay.hasOt || shift.isSpecialDay || shift.premiumProfileId != null) {
                     Row(
                         modifier = Modifier.padding(top = 4.dp),

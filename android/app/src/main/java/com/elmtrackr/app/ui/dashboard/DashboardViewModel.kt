@@ -6,13 +6,18 @@ import com.elmtrackr.app.data.local.preferences.SetupChecklistPreferences
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.data.repository.PremiumProfilesRepository
 import com.elmtrackr.app.domain.MonthlyReportBuilder
+import com.elmtrackr.app.domain.employeePaidOnly
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
 import com.elmtrackr.app.domain.model.ClockStyle
+import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.MonthlyReport
+import com.elmtrackr.app.domain.model.Project
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.projects.ProjectClockInOptions
+import com.elmtrackr.app.domain.repository.ProjectsRepository
 import com.elmtrackr.app.domain.setup.SetupChecklist
 import com.elmtrackr.app.domain.setup.SetupChecklistInputs
 import com.elmtrackr.app.domain.setup.SetupStep
@@ -32,6 +37,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -58,6 +64,7 @@ class DashboardViewModel @Inject constructor(
     private val premiumProfilesRepository: PremiumProfilesRepository,
     private val setupPreferences: SetupChecklistPreferences,
     private val widgetPinInspector: WidgetPinInspector,
+    private val projectsRepository: ProjectsRepository,
 ) : ViewModel() {
 
     private val _refreshNonce = MutableStateFlow(0)
@@ -66,8 +73,62 @@ class DashboardViewModel @Inject constructor(
     private val _suggestedTaskId = MutableStateFlow<String?>(null)
     private val _showSuggestedNow = MutableStateFlow(false)
     private val _suggestionExplanation = MutableStateFlow<String?>(null)
+    private val _selectedCompensationSource = MutableStateFlow(CompensationSource.EMPLOYEE)
+    private val _selectedProjectId = MutableStateFlow<String?>(null)
+    private val _projectClockInNote = MutableStateFlow("")
 
     val showFirstClockInCelebration: StateFlow<Boolean> = _showFirstClockInCelebration
+
+    /**
+     * Clockable projects, or empty when Paid Projects is off. Projects stay stored
+     * while the feature is disabled, so this gates on the flag rather than on
+     * whether any project exists.
+     */
+    private val clockableProjects: StateFlow<List<Project>> =
+        authRepository.observeCurrentProfile()
+            .flatMapLatest { profile ->
+                if (profile == null) return@flatMapLatest flowOf(emptyList())
+                settingsRepository.observeSettings(profile.id).flatMapLatest { settings ->
+                    if (settings?.featuresPaidProjects != true) {
+                        flowOf(emptyList())
+                    } else {
+                        projectsRepository.observeProjects(profile.id)
+                    }
+                }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * The project an active project shift belongs to, together with that project's
+     * other shifts. Null for hourly work, which is what keeps the project panel
+     * off the dashboard for an ordinary punch.
+     *
+     * Deliberately *not* projected here. The projected rate and budget move with
+     * the clock, and a ticking flow in a ViewModel never reaches quiescence; the
+     * card owns its own tick, next to the elapsed-time timer that already exists
+     * for the same reason.
+     */
+    private val activeProjectState: StateFlow<ActiveProjectState?> =
+        authRepository.observeCurrentProfile()
+            .flatMapLatest { profile ->
+                if (profile == null) return@flatMapLatest flowOf(null)
+                shiftsRepository.observeActiveShift(profile.id).flatMapLatest { activeShift ->
+                    val projectId = activeShift?.takeIf { it.isProjectTime }?.projectId
+                        ?: return@flatMapLatest flowOf(null)
+                    combine(
+                        projectsRepository.observeProject(projectId),
+                        shiftsRepository.observeShiftsForProject(profile.id, projectId),
+                    ) { project, projectShifts ->
+                        project?.let { ActiveProjectState(it, projectShifts) }
+                    }
+                }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private data class ActiveProjectState(
+        val project: Project,
+        val projectShifts: List<Shift>,
+    )
 
     private data class RawData(
         val activeShift: Shift?,
@@ -127,8 +188,13 @@ class DashboardViewModel @Inject constructor(
                 val completedMonthShifts = raw.monthShifts.filter { it.isCompleted }
                 val workZone = WorkTimezone.zoneFor(raw.settings)
                 // Same day-total definition as the widget/Wear surfaces, so the
-                // dashboard progress ring agrees with them on multi-shift days.
+                // dashboard progress ring agrees with them on multi-shift days —
+                // except that project time is excluded here. The ring turns over at
+                // the daily overtime threshold, and an overtime state is a pay
+                // classification, so project hours must not trip it; the widget and
+                // Wear surfaces show raw tracked hours and are unaffected.
                 val todayCompletedMinutes = completedMonthShifts
+                    .employeePaidOnly()
                     .filter { it.startTime.atZone(workZone).toLocalDate() == LocalDate.now(workZone) }
                     .sumOf { com.elmtrackr.app.domain.ShiftDurationCalculator.netMinutes(it) ?: 0 }
                 val paySummary = raw.settings
@@ -181,6 +247,46 @@ class DashboardViewModel @Inject constructor(
         .combine(_suggestionExplanation) { state, explanation ->
             when (state) {
                 is DashboardUiState.Ready -> state.copy(suggestionExplanation = explanation)
+                else -> state
+            }
+        }
+        .combine(clockableProjects) { state, projects ->
+            when (state) {
+                is DashboardUiState.Ready ->
+                    state.copy(projectOptions = ProjectClockInOptions.options(projects))
+                else -> state
+            }
+        }
+        .combine(
+            combine(
+                _selectedCompensationSource,
+                _selectedProjectId,
+                _projectClockInNote,
+            ) { source, projectId, note -> Triple(source, projectId, note) },
+        ) { state, (source, projectId, note) ->
+            when (state) {
+                is DashboardUiState.Ready -> state.copy(
+                    // A selection the user can no longer act on is not shown as
+                    // chosen: the selector falls back to hourly work.
+                    selectedCompensationSource = if (state.canSelectProjectTime) {
+                        source
+                    } else {
+                        CompensationSource.EMPLOYEE
+                    },
+                    selectedProjectId = projectId?.takeIf { id ->
+                        state.projectOptions.any { it.projectId == id }
+                    },
+                    projectClockInNote = note,
+                )
+                else -> state
+            }
+        }
+        .combine(activeProjectState) { state, active ->
+            when (state) {
+                is DashboardUiState.Ready -> state.copy(
+                    activeProject = active?.project,
+                    activeProjectShifts = active?.projectShifts.orEmpty(),
+                )
                 else -> state
             }
         }
@@ -255,14 +361,30 @@ class DashboardViewModel @Inject constructor(
             val selected = tasks.firstOrNull { it.id == _selectedTaskId.value }
                 ?: TaskSorting.byRecency(tasks).firstOrNull()
             val taskParams = TaskClockInHelper.paramsFromTask(selected)
-            shiftsRepository.clockIn(
+            // Falls back to employee-paid work if the feature is off or the picked
+            // project is no longer clockable, so a punch is never lost and never
+            // becomes project time with no project attached.
+            val selection = ProjectClockInOptions.resolve(
+                paidProjectsEnabled = settings.featuresPaidProjects == true,
+                requested = _selectedCompensationSource.value,
+                selectedProjectId = _selectedProjectId.value,
+                projects = clockableProjects.value,
+            )
+            val shift = shiftsRepository.clockIn(
                 userId = userId,
                 compensationProfileId = settings.defaultCompensationProfileId ?: defaultProfile?.id,
                 taskId = taskParams.taskId,
                 taskNameSnapshot = taskParams.taskNameSnapshot,
                 taskIconSnapshot = taskParams.taskIconSnapshot,
                 taskHourlyRateSnapshot = taskParams.taskHourlyRateSnapshot,
+                compensationSource = selection.compensationSource,
+                projectId = selection.projectId,
+                projectNameSnapshot = selection.projectNameSnapshot,
             )
+            _projectClockInNote.value.trim().takeIf { it.isNotEmpty() }?.let { note ->
+                shiftsRepository.updateShift(shift.copy(notes = note))
+            }
+            _projectClockInNote.value = ""
             selected?.let { tasksRepository.markTaskUsed(userId, it.id) }
             if (isFirstClockIn) {
                 appPreferences.setFirstClockInCelebrated(true)
@@ -282,12 +404,58 @@ class DashboardViewModel @Inject constructor(
             val shift = shiftsRepository.getShiftById(shiftId) ?: return@launch
             val settings = settingsRepository.getSettings(userId) ?: return@launch
             val profiles = compensationProfilesRepository.getProfiles(userId)
-            val snapshot = ShiftCompensationHelper.buildClockOutSnapshot(shift, settings, profiles)
+            // A project shift is paid by the project's fee, so it takes no wage
+            // snapshot — one would record rules no calculation will ever read.
+            val snapshot = if (shift.isEmployeePaid) {
+                ShiftCompensationHelper.buildClockOutSnapshot(shift, settings, profiles)
+            } else {
+                null
+            }
             // Same guard as the notification/Wear paths: the shift can vanish
             // (deleted on another device) between lookup and clock-out.
-            runCatching { shiftsRepository.clockOut(shiftId, compensationSnapshot = snapshot) }
+            val clockedOut = runCatching {
+                shiftsRepository.clockOut(shiftId, compensationSnapshot = snapshot)
+            }.getOrNull()
+            if (clockedOut != null && clockedOut.isProjectTime) {
+                _projectShiftSummary.value = buildProjectShiftSummary(userId, clockedOut)
+            }
         }
     }
+
+    /**
+     * Non-blocking summary shown after a project shift ends: how much time was
+     * added and what the project's effective rate is now. Null when there is
+     * nothing to say — no project, or a project whose fee is not set yet.
+     */
+    private val _projectShiftSummary = MutableStateFlow<ProjectShiftSummary?>(null)
+    val projectShiftSummary: StateFlow<ProjectShiftSummary?> = _projectShiftSummary
+
+    fun dismissProjectShiftSummary() {
+        _projectShiftSummary.value = null
+    }
+
+    private suspend fun buildProjectShiftSummary(userId: String, shift: Shift): ProjectShiftSummary? {
+        val projectId = shift.projectId ?: return null
+        val project = projectsRepository.getProject(userId, projectId) ?: return null
+        val projectShifts = shiftsRepository.observeShiftsForProject(userId, projectId).first()
+        val time = com.elmtrackr.app.domain.projects.ProjectMetrics.timeSummary(projectShifts, projectId)
+        return ProjectShiftSummary(
+            projectId = projectId,
+            projectName = project.name,
+            addedMinutes = com.elmtrackr.app.domain.ShiftDurationCalculator.netMinutes(shift) ?: 0,
+            effectiveHourlyRate = com.elmtrackr.app.domain.projects.ProjectMetrics.effectiveHourlyRate(
+                project.fee,
+                time.trackedMinutes,
+            ),
+        )
+    }
+
+    data class ProjectShiftSummary(
+        val projectId: String,
+        val projectName: String,
+        val addedMinutes: Int,
+        val effectiveHourlyRate: com.elmtrackr.app.domain.money.Money?,
+    )
 
     fun editActiveShiftStartTime(shiftId: String, newStartTime: Instant) {
         viewModelScope.launch {
@@ -386,5 +554,33 @@ class DashboardViewModel @Inject constructor(
     /** Asks the launcher to pin the main clock in/out widget. */
     fun requestPinWidget() {
         widgetPinInspector.requestPinWidget()
+    }
+
+    // ── Project time selection ────────────────────────────────────────────────
+
+    /**
+     * Chooses what the next clock-in records. Switching back to hourly work drops
+     * the project selection and note, so a stale project cannot leak into an
+     * employee-paid shift.
+     */
+    fun selectCompensationSource(source: CompensationSource) {
+        _selectedCompensationSource.value = source
+        if (source.isEmployeePaid) {
+            _selectedProjectId.value = null
+            _projectClockInNote.value = ""
+        } else if (_selectedProjectId.value == null) {
+            _selectedProjectId.value = ProjectClockInOptions.options(clockableProjects.value)
+                .firstOrNull()
+                ?.projectId
+        }
+    }
+
+    fun selectClockInProject(projectId: String) {
+        _selectedProjectId.value = projectId
+        _selectedCompensationSource.value = CompensationSource.PROJECT
+    }
+
+    fun setProjectClockInNote(note: String) {
+        _projectClockInNote.value = note
     }
 }

@@ -101,6 +101,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.MoneyFormatter
+import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
@@ -160,9 +161,11 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
     onNavigateToReports: () -> Unit = {},
     onNavigateToSettings: (SettingsLaunchRequest) -> Unit = {},
+    onNavigateToProjects: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val showCelebration by viewModel.showFirstClockInCelebration.collectAsState()
+    val projectShiftSummary by viewModel.projectShiftSummary.collectAsState()
     val setupChecklist by viewModel.setupChecklist.collectAsState()
     // Plain remember: restoring the overlay after a tab switch stranded users
     // inside task management when they came back to the dashboard.
@@ -217,6 +220,15 @@ fun DashboardScreen(
                             onNavigateToReports = onNavigateToReports,
                             onSelectTask = viewModel::selectTask,
                             onManageTasks = { showTasks = true },
+                            onSelectCompensationSource = viewModel::selectCompensationSource,
+                            onSelectClockInProject = viewModel::selectClockInProject,
+                            onProjectNoteChange = viewModel::setProjectClockInNote,
+                            projectShiftSummary = projectShiftSummary,
+                            onDismissProjectShiftSummary = viewModel::dismissProjectShiftSummary,
+                            onViewProject = {
+                                viewModel.dismissProjectShiftSummary()
+                                onNavigateToProjects()
+                            },
                             showFirstClockInCelebration = showCelebration,
                             onDismissFirstClockInCelebration = viewModel::dismissFirstClockInCelebration,
                             setupChecklist = setupChecklist,
@@ -254,6 +266,12 @@ private fun DashboardReady(
     onNavigateToReports: () -> Unit,
     onSelectTask: (String) -> Unit,
     onManageTasks: () -> Unit,
+    onSelectCompensationSource: (CompensationSource) -> Unit = {},
+    onSelectClockInProject: (String) -> Unit = {},
+    onProjectNoteChange: (String) -> Unit = {},
+    projectShiftSummary: DashboardViewModel.ProjectShiftSummary? = null,
+    onDismissProjectShiftSummary: () -> Unit = {},
+    onViewProject: () -> Unit = {},
     showFirstClockInCelebration: Boolean,
     onDismissFirstClockInCelebration: () -> Unit,
     setupChecklist: SetupChecklistUiState? = null,
@@ -413,6 +431,64 @@ private fun DashboardReady(
                 )
             }
 
+            // Non-blocking: sits above the clock and is dismissed with a tap, so
+            // it never stands between the user and their next punch.
+            projectShiftSummary?.let { summary ->
+                ProjectShiftSummaryCard(
+                    summary = summary,
+                    onDismiss = onDismissProjectShiftSummary,
+                    onViewProject = onViewProject,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                        .auroraEnter(index = 1),
+                )
+            }
+
+            if (activeShift == null && state.canSelectProjectTime) {
+                ProjectTimeSelector(
+                    options = state.projectOptions,
+                    selectedSource = state.selectedCompensationSource,
+                    selectedProjectId = state.selectedProjectId,
+                    note = state.projectClockInNote,
+                    onSelectSource = onSelectCompensationSource,
+                    onSelectProject = onSelectClockInProject,
+                    onNoteChange = onProjectNoteChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                        .auroraEnter(index = 1),
+                )
+            }
+
+            if (activeShift?.isProjectTime == true) {
+                val activeProject = state.activeProject
+                if (activeProject != null) {
+                    ActiveProjectShiftCard(
+                        project = activeProject,
+                        activeShift = activeShift,
+                        projectShifts = state.activeProjectShifts,
+                        // Switched off mid-shift: the shift is kept as project
+                        // time and can still be clocked out.
+                        featureDisabled = state.settings?.featuresPaidProjects != true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                            .auroraEnter(index = 1),
+                    )
+                } else {
+                    // The project row could not be read — deleted, or the feature
+                    // was switched off. Either way the shift stays project time.
+                    DisabledProjectShiftNotice(
+                        projectName = activeShift.projectNameSnapshot,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                            .auroraEnter(index = 1),
+                    )
+                }
+            }
+
             if (activeShift != null && !activeShift.taskNameSnapshot.isNullOrBlank()) {
                 val taskColor = state.activeTasks.firstOrNull { it.id == activeShift.taskId }?.color
                 com.elmtrackr.app.ui.tasks.ActiveShiftTaskBadge(
@@ -435,7 +511,11 @@ private fun DashboardReady(
                     todayBaseMinutes = state.todayCompletedMinutes,
                     activeStartedToday = run {
                         val workZone = state.settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.systemDefault()
-                        activeShift?.startTime?.atZone(workZone)?.toLocalDate() == LocalDate.now(workZone)
+                        // A running project shift is excluded for the same reason
+                        // as completed ones: its hours must not drive the ring past
+                        // the overtime threshold.
+                        activeShift?.isEmployeePaid == true &&
+                            activeShift.startTime.atZone(workZone).toLocalDate() == LocalDate.now(workZone)
                     },
                     onClockIn = handleClockIn,
                     onClockOut = handleClockOut,

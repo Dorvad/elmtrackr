@@ -164,7 +164,7 @@
     <string name="project_detail_no_billing">No billing request recorded yet.</string>
     <string name="project_detail_billing_disclaimer">ElmTrackr does not create official invoices. Record a reference from the invoice you issued elsewhere.</string>
     <string name="project_detail_no_time_yet">No time tracked against this project yet.</string>
-    <string name="project_detail_time_pending">Linking shifts to projects arrives in the next update. Hours already linked are counted here.</string>
+    <string name="project_detail_time_pending">Clock in and pick this project to track time against it.</string>
     <string name="project_detail_shift_count">%1$d shifts</string>
     <string name="project_detail_budget_used">%1$s of %2$s used</string>
     <string name="project_detail_no_description">No description.</string>
@@ -187,4 +187,45 @@
     <string name="project_error_tax_rate">Enter a rate between 0 and 100</string>
     <string name="project_error_currency">Pick a currency</string>
     <string name="project_error_deadline">Deadline cannot be before the start date</string>
+
+    <!-- Project time tracking -->
+    <string name="project_time_source_title">What is this time for?</string>
+    <string name="project_time_source_hourly">Hourly work</string>
+    <string name="project_time_source_hourly_desc">Paid as wages. Counts towards overtime and premiums.</string>
+    <string name="project_time_source_project">Project time</string>
+    <string name="project_time_source_project_desc">Tracked against a project fee. Not paid as wages and not counted as overtime.</string>
+    <string name="project_time_pick_project">Project</string>
+    <string name="project_time_pick_project_hint">Pick which project this time belongs to.</string>
+    <string name="project_time_no_projects">No project is open for time tracking. Start or resume a project first.</string>
+    <string name="project_time_note">Note (optional)</string>
+    <string name="project_time_note_hint">What you worked on. Saved with the shift.</string>
+    <string name="project_time_client_currency">%1$s · %2$s</string>
+    <string name="project_time_shift_label">Project time</string>
+    <string name="project_time_shift_label_named">Project time · %1$s</string>
+    <string name="project_time_shift_unpaid_note">Not paid as wages — this time counts towards the project fee.</string>
+
+    <!-- Active project shift -->
+    <string name="project_active_title">Tracking %1$s</string>
+    <string name="project_active_current_rate">Rate so far</string>
+    <string name="project_active_projected_rate">Rate if you stop now</string>
+    <string name="project_active_no_rate">Not enough hours yet</string>
+    <string name="project_active_budget_left">%1$s of budget left</string>
+    <string name="project_active_budget_over">%1$s over budget</string>
+    <string name="project_active_target_left">%1$s left before you drop below %2$s per hour</string>
+    <string name="project_active_target_passed">Already below your %1$s per hour target</string>
+    <string name="project_active_feature_off">Paid Projects is switched off, but this shift is still tracked against %1$s. Clock out as usual — it stays project time, not paid hours.</string>
+    <string name="project_active_feature_off_unknown">Paid Projects is switched off, but this shift is still tracked as project time. Clock out as usual — it will not become paid hours.</string>
+
+    <!-- After a project shift -->
+    <string name="project_shift_done_title">%1$s added to %2$s</string>
+    <string name="project_shift_done_rate">Effective rate is now %1$s per hour</string>
+    <string name="project_shift_done_no_rate">No rate yet — the project fee has not been set.</string>
+    <string name="project_shift_done_view">View project</string>
+    <string name="project_shift_done_dismiss">Dismiss</string>
+
+    <!-- Editing a shift -->
+    <string name="project_edit_source_title">Compensation</string>
+    <string name="project_edit_source_helper">Changing this recalculates the shift. Time counts as wages or as project time, never both.</string>
+    <string name="project_edit_to_project_warning">This shift will no longer be paid as wages, and its hours will leave your overtime and premium totals.</string>
+    <string name="project_edit_to_hourly_warning">This shift will be paid as wages again, and its hours will leave the project.</string>
 </resources>

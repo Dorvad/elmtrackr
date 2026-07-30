@@ -37,9 +37,20 @@ data class Shift(
     val projectId: String? = null,
     /** Kept so a deleted project still labels its shifts, like the task snapshots. */
     val projectNameSnapshot: String? = null,
+    /**
+     * Whether this shift's time is paid as wages or tracked against a project.
+     * The one switch every pay calculation consults; see [CompensationSource].
+     */
+    val compensationSource: CompensationSource = CompensationSource.EMPLOYEE,
     val createdAt: Instant = Instant.EPOCH,
     val updatedAt: Instant = Instant.EPOCH,
 ) {
     val isActive: Boolean get() = endTime == null
     val isCompleted: Boolean get() = endTime != null
+
+    /** True when this shift feeds wages, overtime and premiums. */
+    val isEmployeePaid: Boolean get() = compensationSource.isEmployeePaid
+
+    /** True when this shift's time belongs to a project instead of to wages. */
+    val isProjectTime: Boolean get() = compensationSource.isProjectTime
 }

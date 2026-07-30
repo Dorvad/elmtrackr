@@ -31,6 +31,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +72,8 @@ import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.WeekendRules
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.CompensationSource
+import com.elmtrackr.app.domain.projects.ProjectClockInOptions
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
@@ -144,6 +149,15 @@ internal fun ShiftEditFormContent(
     tasks: List<Task>,
     taskId: String?,
     onTaskIdChange: (String?) -> Unit,
+    /**
+     * Every project the user has. Empty when Paid Projects is off, which hides the
+     * compensation-source controls entirely.
+     */
+    projects: List<com.elmtrackr.app.domain.model.Project> = emptyList(),
+    compensationSource: CompensationSource = CompensationSource.EMPLOYEE,
+    onCompensationSourceChange: (CompensationSource) -> Unit = {},
+    projectId: String? = null,
+    onProjectIdChange: (String?) -> Unit = {},
     showRefundSection: Boolean,
     initialShift: Shift?,
 ) {
@@ -162,7 +176,7 @@ internal fun ShiftEditFormContent(
 
     val unsavedCount = remember(
         navState, startMillis, endMillis, hasEndTime, breakMinutes, notesText, premiumProfileId,
-        premiumMode, compensationProfileId, taskId,
+        premiumMode, compensationProfileId, taskId, compensationSource, projectId,
     ) {
         countUnsavedChanges(
             navState = navState,
@@ -175,6 +189,8 @@ internal fun ShiftEditFormContent(
             premiumMode = premiumMode,
             compensationProfileId = compensationProfileId,
             taskId = taskId,
+            compensationSource = compensationSource,
+            projectId = projectId,
         )
     }
 
@@ -188,6 +204,8 @@ internal fun ShiftEditFormContent(
         refundAction = initialShift?.refundAction,
         compensationProfileId = compensationProfileId,
         taskId = taskId,
+        compensationSource = compensationSource,
+        projectId = projectId,
     )
 
     // Closing with edits pending must ask first. The form already counts and displays
@@ -397,6 +415,15 @@ internal fun ShiftEditFormContent(
                         )
                     }
                 }
+
+                ShiftCompensationSourceSection(
+                    projects = projects,
+                    compensationSource = compensationSource,
+                    onCompensationSourceChange = onCompensationSourceChange,
+                    projectId = projectId,
+                    onProjectIdChange = onProjectIdChange,
+                    initialShift = initialShift,
+                )
 
                 if (activeTasks.isNotEmpty()) {
                     FormSectionCard(title = stringResource(R.string.shifts_task_label)) {
@@ -672,6 +699,120 @@ private fun LivePayPreviewCard(
     }
 }
 
+/**
+ * Whether this shift is paid as wages or tracked against a project, and which
+ * project.
+ *
+ * Rendered only when Paid Projects is on and there is something to pick, or when
+ * the shift already *is* project time — a shift that carries a project must keep
+ * showing it even after the feature is switched off, so the user can see why it
+ * is not in their pay.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ShiftCompensationSourceSection(
+    projects: List<com.elmtrackr.app.domain.model.Project>,
+    compensationSource: CompensationSource,
+    onCompensationSourceChange: (CompensationSource) -> Unit,
+    projectId: String?,
+    onProjectIdChange: (String?) -> Unit,
+    initialShift: Shift?,
+) {
+    val clockable = remember(projects) { projects.filter(ProjectClockInOptions::isClockable) }
+    // A project already linked to this shift stays selectable even if it is no
+    // longer clockable, so editing an unrelated field cannot drop the link.
+    val linked = remember(projects, projectId) { projects.firstOrNull { it.id == projectId } }
+    val selectable = remember(clockable, linked) {
+        (clockable + listOfNotNull(linked)).distinctBy { it.id }
+    }
+    if (selectable.isEmpty() && !compensationSource.isProjectTime) return
+
+    FormSectionCard(title = stringResource(R.string.project_edit_source_title)) {
+        val sources = listOf(CompensationSource.EMPLOYEE, CompensationSource.PROJECT)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            sources.forEachIndexed { index, source ->
+                SegmentedButton(
+                    selected = compensationSource == source,
+                    onClick = {
+                        onCompensationSourceChange(source)
+                        if (source.isEmployeePaid) {
+                            onProjectIdChange(null)
+                        } else if (projectId == null) {
+                            onProjectIdChange(selectable.firstOrNull()?.id)
+                        }
+                    },
+                    enabled = source.isEmployeePaid || selectable.isNotEmpty(),
+                    shape = SegmentedButtonDefaults.itemShape(index, sources.size),
+                    label = {
+                        Text(
+                            stringResource(
+                                when (source) {
+                                    CompensationSource.EMPLOYEE -> R.string.project_time_source_hourly
+                                    CompensationSource.PROJECT -> R.string.project_time_source_project
+                                },
+                            ),
+                        )
+                    },
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            stringResource(R.string.project_edit_source_helper),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        if (compensationSource.isProjectTime) {
+            Spacer(Modifier.height(Spacing.sm))
+            if (selectable.isEmpty()) {
+                // Reachable when the module was switched off while this shift was
+                // linked. The project row is not loaded, so the shift's own name
+                // snapshot is what tells the user which project the hours are on.
+                val snapshotName = initialShift?.projectNameSnapshot
+                Text(
+                    text = snapshotName
+                        ?.let { stringResource(R.string.project_time_shift_label_named, it) }
+                        ?: stringResource(R.string.project_time_no_projects),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    selectable.forEach { project ->
+                        FilterChip(
+                            selected = projectId == project.id,
+                            onClick = { onProjectIdChange(project.id) },
+                            label = { Text(project.name) },
+                        )
+                    }
+                }
+            }
+        }
+
+        // Reassigning is the one edit that moves hours between the two sides, so
+        // say which totals will change before the user saves.
+        val initialSource = initialShift?.compensationSource
+        if (initialSource != null && initialSource != compensationSource) {
+            Spacer(Modifier.height(Spacing.sm))
+            Text(
+                stringResource(
+                    if (compensationSource.isProjectTime) {
+                        R.string.project_edit_to_project_warning
+                    } else {
+                        R.string.project_edit_to_hourly_warning
+                    },
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
 @Composable
 private fun FormSectionCard(
     title: String,
@@ -939,6 +1080,8 @@ private fun countUnsavedChanges(
     premiumMode: String = "auto",
     compensationProfileId: String?,
     taskId: String?,
+    compensationSource: CompensationSource = CompensationSource.EMPLOYEE,
+    projectId: String? = null,
 ): Int {
     val initial = when (navState) {
         is ShiftFormNavState.Create -> null
@@ -955,6 +1098,7 @@ private fun countUnsavedChanges(
         if (premiumMode == "off") count++
         if (compensationProfileId != null) count++
         if (taskId != null) count++
+        if (compensationSource.isProjectTime) count++
         return count
     }
     var count = 0
@@ -973,6 +1117,8 @@ private fun countUnsavedChanges(
     if (premiumMode != initialMode && !(premiumMode == "on" && initialMode == "on")) count++
     if (compensationProfileId != initial.compensationProfileId) count++
     if (taskId != initial.taskId) count++
+    if (compensationSource != initial.compensationSource) count++
+    if (projectId != initial.projectId) count++
     return count
 }
 

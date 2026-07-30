@@ -65,7 +65,10 @@ object MonthlyReportBuilder {
         settings: UserSettings,
         weekStartDay: Int = defaultWeekStartDay(settings),
     ): MonthlyReport {
-        val completed = shifts.filter { it.isCompleted }
+        // Employee-paid only: this report's regular/overtime/weekend split is a
+        // pay classification, and project time is paid by the project fee. Project
+        // hours are still visible on the project and in the shift list.
+        val completed = shifts.employeePaidOnly().filter { it.isCompleted }
         // Group in the work timezone — grouping in UTC while the per-shift
         // breakdowns use the work zone bucketed evening shifts into the wrong
         // week, shifting weekly-overtime minutes between weeks.

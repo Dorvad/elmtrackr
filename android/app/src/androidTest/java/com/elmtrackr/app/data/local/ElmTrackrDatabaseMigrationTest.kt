@@ -448,6 +448,58 @@ class ElmTrackrDatabaseMigrationTest {
         }
     }
 
+    /**
+     * 16 -> 17 adds the compensation-source discriminator. The column must arrive
+     * NULL on every existing shift: NULL reads as EMPLOYEE, so an upgraded
+     * database pays exactly what it paid before the upgrade.
+     */
+    @Test
+    fun migration16To17AddsCompensationSourceWithoutTouchingExistingShifts() {
+        helper.createDatabase(TEST_DB_COMP_SOURCE, 16).apply {
+            execSQL(
+                """
+                INSERT INTO shifts (
+                    localId, userId, startTime, endTime, breakMinutes, isSpecialDay,
+                    forceRegularRate, taskId, taskHourlyRateSnapshot, projectId,
+                    createdAt, updatedAt, syncStatus
+                ) VALUES ('shift1', 'user', 1000, 29800000, 30, 0, 0, 'task-1', 120.0, NULL, 0, 0, 'SYNCED')
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB_COMP_SOURCE, 17, true, ElmTrackrDatabase.MIGRATION_16_17,
+        ).use { db ->
+            db.query("PRAGMA table_info(`shifts`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndexOrThrow("name")
+                val typeIndex = cursor.getColumnIndexOrThrow("type")
+                val notNullIndex = cursor.getColumnIndexOrThrow("notnull")
+                var found = false
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) != "compensationSource") continue
+                    found = true
+                    assertEquals("TEXT", cursor.getString(typeIndex))
+                    // Nullable, so no existing row needs a value written into it.
+                    assertEquals(0, cursor.getInt(notNullIndex))
+                }
+                assertEquals(true, found)
+            }
+            db.query(
+                "SELECT startTime, endTime, breakMinutes, taskHourlyRateSnapshot, " +
+                    "compensationSource FROM shifts WHERE localId = 'shift1'",
+            ).use { cursor ->
+                assertEquals(true, cursor.moveToFirst())
+                assertEquals(1000L, cursor.getLong(0))
+                assertEquals(29800000L, cursor.getLong(1))
+                assertEquals(30, cursor.getInt(2))
+                assertEquals(120.0, cursor.getDouble(3), 0.0001)
+                // Not backfilled: NULL means EMPLOYEE, the pre-upgrade meaning.
+                assertEquals(true, cursor.isNull(4))
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "currency-migration-test"
         const val TEST_DB_CHAIN = "full-chain-migration-test"
@@ -456,15 +508,16 @@ class ElmTrackrDatabaseMigrationTest {
         const val TEST_DB_PROJECTS = "paid-projects-migration-test"
         const val TEST_DB_PROJECT_TABLES = "project-tables-migration-test"
         const val TEST_DB_V1_DATA = "v1-data-migration-test"
+        const val TEST_DB_COMP_SOURCE = "compensation-source-migration-test"
 
-        const val CURRENT_VERSION = 16
+        const val CURRENT_VERSION = 17
 
         /**
          * Schema versions a production database can currently be at. 9 is
          * missing because `9.json` was never exported; see
          * everySupportedStartVersionMigratesToCurrent.
          */
-        val SUPPORTED_START_VERSIONS = listOf(1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15)
+        val SUPPORTED_START_VERSIONS = listOf(1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16)
 
         val ALL_MIGRATIONS = arrayOf(
             ElmTrackrDatabase.MIGRATION_1_2,
@@ -482,6 +535,7 @@ class ElmTrackrDatabaseMigrationTest {
             ElmTrackrDatabase.MIGRATION_13_14,
             ElmTrackrDatabase.MIGRATION_14_15,
             ElmTrackrDatabase.MIGRATION_15_16,
+            ElmTrackrDatabase.MIGRATION_16_17,
         )
     }
 }

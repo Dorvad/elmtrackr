@@ -54,10 +54,11 @@ class DashboardViewModelTest {
     private val premiumRepo = FakePremiumProfilesRepository()
     private val setupPrefs = FakeSetupChecklistPreferences()
     private val widgetPin = FakeWidgetPinInspector()
+    private val projectsRepo = com.elmtrackr.app.fake.FakeProjectsRepository()
 
     private fun buildVm() = DashboardViewModel(
         shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, appPrefs,
-        premiumRepo, setupPrefs, widgetPin,
+        premiumRepo, setupPrefs, widgetPin, projectsRepo,
     )
 
     private fun defaultSettings() = UserSettings(
@@ -392,7 +393,7 @@ class DashboardViewModelTest {
         val prefs = FakeAppPreferencesStore(firstClockInCelebrationPending = true)
         val vm = DashboardViewModel(
             shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, prefs,
-            premiumRepo, setupPrefs, widgetPin,
+            premiumRepo, setupPrefs, widgetPin, projectsRepo,
         )
         settingsRepo.setSettings(defaultSettings())
         advanceUntilIdle()

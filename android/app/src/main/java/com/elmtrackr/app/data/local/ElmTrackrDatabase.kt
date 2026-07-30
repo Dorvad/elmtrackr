@@ -46,7 +46,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         ProjectBillingRecordEntity::class,
         ProjectPaymentEntity::class,
     ],
-    version = 16,
+    version = 17,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -124,6 +124,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_13_14,
                     MIGRATION_14_15,
                     MIGRATION_15_16,
+                    MIGRATION_16_17,
                 )
                 .build()
         }
@@ -640,6 +641,22 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
 
                 db.execSQL("ALTER TABLE shifts ADD COLUMN projectId TEXT")
                 db.execSQL("ALTER TABLE shifts ADD COLUMN projectNameSnapshot TEXT")
+            }
+        }
+
+        /**
+         * Marks what a shift's time is compensated by: employee wages or project
+         * time. See CompensationSource.
+         *
+         * Purely additive and deliberately not backfilled. The column is nullable
+         * with no default, and NULL is read as EMPLOYEE, so every shift written
+         * before this upgrade keeps its exact wage, overtime and premium
+         * behaviour. Writing a value into existing rows would risk changing
+         * someone's recorded pay during an upgrade, which is why it is left NULL.
+         */
+        internal val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE shifts ADD COLUMN compensationSource TEXT")
             }
         }
 

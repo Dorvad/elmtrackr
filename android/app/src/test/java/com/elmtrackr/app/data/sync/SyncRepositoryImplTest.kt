@@ -1202,6 +1202,13 @@ class SyncRepositoryImplTest {
             toEpoch: Long,
         ): Flow<List<ShiftEntity>> = observeShiftsByDateRange(userId, fromEpoch, toEpoch)
 
+        override fun observeShiftsForProject(
+            userId: String,
+            projectId: String,
+        ): Flow<List<ShiftEntity>> = shifts.map { list ->
+            list.filter { it.userId == userId && it.projectId == projectId && it.deletedAt == null }
+        }
+
         private companion object {
             val pendingStatuses = setOf(
                 SyncStatus.PENDING_CREATE,

@@ -1,10 +1,13 @@
 package com.elmtrackr.app.ui.dashboard
 
 import com.elmtrackr.app.domain.PayrollCalculator
+import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.model.Project
+import com.elmtrackr.app.domain.projects.ProjectClockInOption
 import com.elmtrackr.app.domain.setup.SetupStepState
 
 /** Getting-started checklist as rendered on the dashboard. */
@@ -33,7 +36,30 @@ sealed interface DashboardUiState {
         val unresolvedRefundCount: Int = 0,
         val todayCompletedMinutes: Int = 0,
         val paySummary: PayrollCalculator.MonthlyPaySummary? = null,
-    ) : DashboardUiState
+        /**
+         * Clockable projects. Empty when Paid Projects is disabled, which is what
+         * hides the compensation-source selector entirely.
+         */
+        val projectOptions: List<ProjectClockInOption> = emptyList(),
+        /** What the next clock-in will record. */
+        val selectedCompensationSource: CompensationSource = CompensationSource.EMPLOYEE,
+        val selectedProjectId: String? = null,
+        /** Optional note carried into the project shift on clock-in. */
+        val projectClockInNote: String = "",
+        /**
+         * The project an active *project* shift belongs to. Null for an employee
+         * shift, for no active shift, or when the project row can no longer be
+         * read. The live figures are projected in the card, which owns the tick.
+         */
+        val activeProject: Project? = null,
+        /** That project's shifts, for its banked-hours total. */
+        val activeProjectShifts: List<Shift> = emptyList(),
+    ) : DashboardUiState {
+        /** The selector only appears when there is a project to pick. */
+        val canSelectProjectTime: Boolean get() = projectOptions.isNotEmpty()
+
+        val activeShiftIsProjectTime: Boolean get() = activeShift?.isProjectTime == true
+    }
 
     data class Error(val message: String) : DashboardUiState
 }

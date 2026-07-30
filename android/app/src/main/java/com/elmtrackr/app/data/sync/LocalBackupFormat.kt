@@ -9,6 +9,7 @@ import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.TaskEntity
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
+import com.elmtrackr.app.domain.model.CompensationSource
 import kotlinx.serialization.Serializable
 
 /**
@@ -19,7 +20,7 @@ import kotlinx.serialization.Serializable
  * lack the newer optional fields), so bumping the version never strands a
  * user's existing backup files.
  */
-const val BACKUP_FORMAT_VERSION = 5
+const val BACKUP_FORMAT_VERSION = 6
 
 /** Version 1 predates full-fidelity rows and cannot be restored safely. */
 const val MIN_SUPPORTED_BACKUP_FORMAT_VERSION = 2
@@ -79,6 +80,12 @@ data class ShiftBackupRow(
     val taskHourlyRateSnapshot: Double? = null,
     val projectId: String? = null,
     val projectNameSnapshot: String? = null,
+    /**
+     * EMPLOYEE / PROJECT. Absent in documents written before format 6, where it
+     * parses as null and is read back as EMPLOYEE — the meaning every shift in
+     * those backups had.
+     */
+    val compensationSource: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,
@@ -298,7 +305,8 @@ internal fun ShiftEntity.toBackupRow() = ShiftBackupRow(
     compensationSnapshotJson = compensationSnapshotJson, taskId = taskId,
     taskNameSnapshot = taskNameSnapshot, taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
-    projectId = projectId, projectNameSnapshot = projectNameSnapshot, createdAt = createdAt,
+    projectId = projectId, projectNameSnapshot = projectNameSnapshot,
+    compensationSource = compensationSource, createdAt = createdAt,
     updatedAt = updatedAt, deletedAt = deletedAt, syncStatus = syncStatus.name,
     lastSyncedAt = lastSyncedAt,
 )
@@ -312,7 +320,13 @@ internal fun ShiftBackupRow.toEntity(userId: String) = ShiftEntity(
     compensationSnapshotJson = compensationSnapshotJson, taskId = taskId,
     taskNameSnapshot = taskNameSnapshot, taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
-    projectId = projectId, projectNameSnapshot = projectNameSnapshot, createdAt = createdAt,
+    projectId = projectId, projectNameSnapshot = projectNameSnapshot,
+    // An unrecognised value is normalised to EMPLOYEE rather than stored
+    // verbatim, so a hand-edited backup cannot make a shift disappear from
+    // someone's pay. An absent value stays absent: NULL already means EMPLOYEE,
+    // and writing one in would differ from what the exporter wrote out.
+    compensationSource = compensationSource?.let { CompensationSource.fromPersisted(it).name },
+    createdAt = createdAt,
     updatedAt = updatedAt, deletedAt = deletedAt,
     syncStatus = syncStatusFromBackup(syncStatus), lastSyncError = null, lastSyncedAt = lastSyncedAt,
 )

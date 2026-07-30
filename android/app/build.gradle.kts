@@ -194,6 +194,9 @@ dependencies {
     testImplementation(project(":wear-sync"))
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
+    // For IdlingPolicies: the Robolectric Compose tests need a longer idling
+    // budget than Espresso's 60s default (see ProjectsRenderTest).
+    testImplementation(libs.androidx.test.espresso.core)
 
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.test.ext.junit)

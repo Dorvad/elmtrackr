@@ -166,4 +166,15 @@ interface ShiftDao {
         fromEpoch: Long,
         toEpoch: Long,
     ): Flow<List<ShiftEntity>>
+
+    /**
+     * Every shift linked to a project, active or completed. Scoped to the project
+     * rather than to a month so a project's tracked hours are complete however
+     * long the work ran.
+     */
+    @Query(
+        "SELECT * FROM shifts WHERE userId = :userId AND projectId = :projectId " +
+            "AND deletedAt IS NULL ORDER BY startTime DESC"
+    )
+    fun observeShiftsForProject(userId: String, projectId: String): Flow<List<ShiftEntity>>
 }

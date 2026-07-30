@@ -121,6 +121,9 @@ class FakeShiftDao : ShiftDao {
     override fun observeShiftsForDay(userId: String, fromEpoch: Long, toEpoch: Long): Flow<List<ShiftEntity>> =
         observeShiftsByDateRange(userId, fromEpoch, toEpoch)
 
+    override fun observeShiftsForProject(userId: String, projectId: String): Flow<List<ShiftEntity>> =
+        _flow.map { it.filter { e -> e.userId == userId && e.projectId == projectId && e.deletedAt == null } }
+
     override fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<ShiftEntity>> =
         _flow.map {
             it.filter { e -> e.userId == userId && e.endTime != null && e.deletedAt == null }

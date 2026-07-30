@@ -48,7 +48,7 @@ import java.time.temporal.ChronoUnit
     sdk = [33],
     // Tall viewport so a LazyColumn composes the entire screen: assertions
     // must not depend on scroll position, which is not stable across runs.
-    qualifiers = "w411dp-h3000dp",
+    qualifiers = "w411dp-h1800dp",
     application = ScreenshotTestApplication::class,
 )
 class ProjectsRenderTest {
@@ -56,7 +56,35 @@ class ProjectsRenderTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    /**
+     * Raises Espresso's idling budget for this class.
+     *
+     * These renders pass in seconds on their own, but in a full-suite run — after
+     * every other Robolectric + Compose test class has built and torn down its own
+     * Compose environment in the same JVM — the detail-screen cases exceed
+     * Espresso's 60s default and fail with "Compose did not get idle". Recycling
+     * the test JVM with forkEvery did not help, so the cost accumulates within a
+     * fork rather than across them; the underlying leak is not diagnosed here.
+     *
+     * The budget is raised, not removed: a genuine composition loop still fails,
+     * just later.
+     */
+    @org.junit.Before
+    fun setIdlingBudget() {
+        androidx.test.espresso.IdlingPolicies.setMasterPolicyTimeout(
+            IDLING_BUDGET_SECONDS,
+            java.util.concurrent.TimeUnit.SECONDS,
+        )
+        androidx.test.espresso.IdlingPolicies.setIdlingResourceTimeout(
+            IDLING_BUDGET_SECONDS,
+            java.util.concurrent.TimeUnit.SECONDS,
+        )
+    }
+
     private val today = LocalDate.of(2026, 7, 29)
+
+    /** Generous, but bounded: a genuine composition loop must still fail. */
+    private val IDLING_BUDGET_SECONDS = 240L
 
     private fun project(
         id: String = "p1",

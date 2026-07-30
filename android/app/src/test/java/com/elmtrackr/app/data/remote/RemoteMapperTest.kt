@@ -43,6 +43,58 @@ class RemoteMapperTest {
         assertEquals("Design", insert.taskNameSnapshot)
     }
 
+    /**
+     * The remote shift schema has no project columns, so a pull carries no value
+     * for the project link or the compensation source. Rebuilding a row without
+     * preserving the local values would drop a shift's project and turn tracked
+     * project time back into paid hourly work on the next sync.
+     */
+    @Test
+    fun `a pull preserves the local project link and compensation source`() {
+        val existing = RemoteShiftRow(
+            id = "remote-1",
+            userId = "user-1",
+            startTime = "2024-06-01T08:00:00Z",
+            createdAt = "2024-06-01T08:00:00Z",
+            updatedAt = "2024-06-01T08:00:00Z",
+        ).toLocalEntity(existingLocalId = "local-1").copy(
+            projectId = "p1",
+            projectNameSnapshot = "Website rebuild",
+            compensationSource = "PROJECT",
+        )
+
+        val pulled = RemoteShiftRow(
+            id = "remote-1",
+            userId = "user-1",
+            startTime = "2024-06-01T08:00:00Z",
+            endTime = "2024-06-01T16:00:00Z",
+            createdAt = "2024-06-01T08:00:00Z",
+            updatedAt = "2024-06-01T18:00:00Z",
+        ).toLocalEntity(existingLocalId = "local-1", preserveLocal = existing)
+
+        assertEquals("p1", pulled.projectId)
+        assertEquals("Website rebuild", pulled.projectNameSnapshot)
+        assertEquals("PROJECT", pulled.compensationSource)
+        // The remote fields still win where the remote has them.
+        assertEquals(1_717_257_600_000L, pulled.endTime)
+    }
+
+    @Test
+    fun `a pull with no local row leaves the project fields empty`() {
+        val inserted = RemoteShiftRow(
+            id = "remote-2",
+            userId = "user-1",
+            startTime = "2024-06-01T08:00:00Z",
+            createdAt = "2024-06-01T08:00:00Z",
+            updatedAt = "2024-06-01T08:00:00Z",
+        ).toLocalEntity()
+
+        assertNull(inserted.projectId)
+        assertNull(inserted.projectNameSnapshot)
+        // Null reads as employee work, which is what a shift from the server is.
+        assertNull(inserted.compensationSource)
+    }
+
     @Test
     fun `unknown refund action maps to null`() {
         val remote = RemoteShiftRow(

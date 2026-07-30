@@ -289,6 +289,13 @@ private fun NavGraphBuilder.mainNavGraph(
                 }
             },
             onNavigateToSettings = onOpenSettings,
+            onNavigateToProjects = {
+                navController.navigate(BottomNavItem.PROJECTS.route) {
+                    popUpTo(BottomNavItem.DASHBOARD.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            },
         )
     }
     composable(BottomNavItem.SHIFTS.route) {

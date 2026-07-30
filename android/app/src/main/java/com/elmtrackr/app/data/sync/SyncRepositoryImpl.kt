@@ -641,6 +641,9 @@ class SyncRepositoryImpl @Inject constructor(
                         premiumProfileLocalId = idMapper.premiumProfileRemoteToLocal(remote.premiumProfileId),
                         taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
                         syncStatus = SyncStatus.SYNCED,
+                        // The project link and compensation source live only
+                        // locally; a pull must not erase them.
+                        preserveLocal = existing,
                     ),
                 )
             }
@@ -658,6 +661,7 @@ class SyncRepositoryImpl @Inject constructor(
                             premiumProfileLocalId = idMapper.premiumProfileRemoteToLocal(remote.premiumProfileId),
                             taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
                             syncStatus = SyncStatus.SYNCED,
+                            preserveLocal = existingByStartTime,
                         ),
                     )
                 }

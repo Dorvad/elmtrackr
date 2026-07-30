@@ -46,6 +46,11 @@ data class ShiftEntity(
     // rate for the employee's base pay rate.
     val projectId: String? = null,
     val projectNameSnapshot: String? = null,
+    /**
+     * EMPLOYEE / PROJECT. Nullable, and NULL reads as EMPLOYEE, so every row
+     * written before this column existed keeps its exact wage behaviour.
+     */
+    val compensationSource: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,
