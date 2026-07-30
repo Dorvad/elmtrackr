@@ -58,7 +58,17 @@ data class ProjectFormInput(
 ) {
     val amount: BigDecimal? get() = amountText.trim().takeIf { it.isNotEmpty() }?.toBigDecimalOrNull()
     val taxRate: BigDecimal get() = taxRateText.trim().toBigDecimalOrNull() ?: BigDecimal.ZERO
-    val hourBudgetHours: Double? get() = hourBudgetText.trim().takeIf { it.isNotEmpty() }?.toDoubleOrNull()
+    /**
+     * The hour budget as the user typed it.
+     *
+     * BigDecimal rather than Double even though hours are not money: 2.35 hours
+     * is 140.99999999999997 minutes in binary floating point, and while rounding
+     * currently rescues that, nothing in the type system says it has to. Keeping
+     * the whole project domain free of binary floating point removes the
+     * question instead of relying on the answer.
+     */
+    val hourBudgetHours: BigDecimal?
+        get() = hourBudgetText.trim().takeIf { it.isNotEmpty() }?.toBigDecimalOrNull()
     val targetHourlyRate: BigDecimal?
         get() = targetHourlyRateText.trim().takeIf { it.isNotEmpty() }?.toBigDecimalOrNull()
 
@@ -82,6 +92,8 @@ data class ProjectFormInput(
     }
 
     companion object {
+
+        internal val MINUTES_PER_HOUR = BigDecimal("60")
 
         /** A blank form seeded from the user's Paid Projects defaults. */
         fun forNewProject(settings: UserSettings?): ProjectFormInput {
@@ -119,8 +131,18 @@ data class ProjectFormInput(
                 ?.stripTrailingZeros()
                 ?.toPlainString()
                 .orEmpty(),
+            // Two decimal places, then trailing zeros dropped: 90 minutes reads
+            // as "1.5" and 120 as "2". Division by 60 does not terminate for
+            // most values, so an unbounded conversion put "1.6666666666666667"
+            // in the field for a 100-minute budget. Two places always round-trip
+            // back to the same whole minute.
             hourBudgetText = project.hourBudgetMinutes
-                ?.let { minutes -> (minutes / 60.0).toString().removeSuffix(".0") }
+                ?.let { minutes ->
+                    BigDecimal(minutes)
+                        .divide(MINUTES_PER_HOUR, 2, java.math.RoundingMode.HALF_UP)
+                        .stripTrailingZeros()
+                        .toPlainString()
+                }
                 .orEmpty(),
             targetHourlyRateText = project.targetHourlyRate
                 ?.amount
@@ -184,7 +206,8 @@ object ProjectFormValidator {
             val hours = input.hourBudgetHours
             when {
                 hours == null -> errors[ProjectFormField.HOUR_BUDGET] = ProjectFormError.NOT_A_NUMBER
-                hours <= 0.0 -> errors[ProjectFormField.HOUR_BUDGET] = ProjectFormError.MUST_BE_POSITIVE
+                hours.signum() <= 0 -> errors[ProjectFormField.HOUR_BUDGET] =
+                    ProjectFormError.MUST_BE_POSITIVE
             }
         }
 
@@ -230,7 +253,11 @@ object ProjectFormValidator {
             description = input.description.trim().takeIf { it.isNotEmpty() },
             workStatus = input.workStatus,
             fee = fee,
-            hourBudgetMinutes = input.hourBudgetHours?.let { Math.round(it * 60).toInt() },
+            hourBudgetMinutes = input.hourBudgetHours?.let { hours ->
+                hours.multiply(ProjectFormInput.MINUTES_PER_HOUR)
+                    .setScale(0, java.math.RoundingMode.HALF_UP)
+                    .toInt()
+            },
             targetHourlyRate = input.targetHourlyRate?.let { Money.of(it, fee.currencyCode) },
             startDate = input.startDate,
             deadline = input.deadline,

@@ -116,6 +116,25 @@ class ProjectBillingReminderWorker @AssistedInject constructor(
                 localized.getString(R.string.project_reminder_overdue_text, amount, due)
         }
 
+        // What a lock screen is allowed to show.
+        //
+        // This is the first notification ElmTrackr sends that carries a monetary
+        // amount — the active-shift one is a start time and a chronometer — so it
+        // is the first that could put someone's outstanding balance on a screen
+        // sitting face-up on a desk. The visibility is stated rather than left to
+        // the default so the intent is legible here, and a public version is
+        // supplied so a user who has told Android to hide sensitive content gets
+        // something useful instead of a bare placeholder: the project is named,
+        // the figure is not.
+        val publicVersion = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_PROJECT_BILLING)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(localized.getString(R.string.project_reminder_public_text))
+            .setContentIntent(openApp())
+            .setAutoCancel(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
+
         val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_PROJECT_BILLING)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
@@ -123,6 +142,8 @@ class ProjectBillingReminderWorker @AssistedInject constructor(
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(openApp())
             .setAutoCancel(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(publicVersion)
             .build()
 
         // Caught rather than only pre-checked: POST_NOTIFICATIONS can be revoked

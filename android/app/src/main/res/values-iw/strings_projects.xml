@@ -408,4 +408,7 @@
     <string name="project_a11y_project_card">%1$s, %2$s</string>
     <string name="project_a11y_error">שגיאה: %1$s</string>
     <string name="nav_destination_added">%1$s נוסף לניווט</string>
+
+    <!-- Prompt 8: lock-screen redaction. Named the project, never the amount. -->
+    <string name="project_reminder_public_text">תשלום שממתין לגבייה</string>
 </resources>
