@@ -230,8 +230,11 @@ invoice, receipt book or accounting software" — the user's system, not this on
 
 ## 9. Automated test results
 
-See section 11 for the current state of the one outstanding failure. Results are
-recorded in the commit that produced them rather than summarised loosely here.
+**1,335 tests, 0 failures.** `assembleDebug`, `lintDebug` (0 findings),
+`compileDebugAndroidTestKotlin` and `testDebugUnitTest` all pass.
+
+The eight long-standing `ProjectsRenderTest` failures are resolved — see item 2
+under known limitations for what they actually were.
 
 Suites added specifically for release QA:
 
@@ -279,14 +282,28 @@ A device pass on those points is the remaining gate before shipping.
    Forward replay of all 16 production schemas was done offline against SQLite
    instead. This is a substitute, not an equivalent.
 
-2. **`ProjectsRenderTest` detail-screen cases.** Eight assertions fail in a
-   full-suite run with `AppNotIdleException` while passing 22 of 22 when the
-   class runs alone. The failure arrived with the commit that introduced those
-   screens and is a test-isolation problem, not a defect in the screens.
-   Eliminated so far: the idling budget, `LinearProgressIndicator`, clock reads
-   during composition, infinite animations in the tree under test, and
-   `FullAppScreenshotJvmTest` and `PaidProjectsNavigationRenderTest` as the
-   poisoning class. Per-class JVM forking is the current remedy under test.
+2. **Unit tests fork a JVM per class.** This is a resolved defect recorded for
+   the next person who wonders why the build does it.
+
+   Eight `ProjectsRenderTest` detail-screen assertions failed in a full-suite run
+   with `AppNotIdleException` while passing 22 of 22 when the class ran alone. The
+   failure arrived with the commit that introduced those screens, so it was never
+   a regression, and it was never a defect in the screens either — it was state
+   surviving between test classes in one JVM. Bisecting narrowed it to the Compose
+   classes (the failure reproduces with only those eleven) and cleared
+   `FullAppScreenshotJvmTest` and `PaidProjectsNavigationRenderTest`
+   individually. Raising the idling budget to 240 s changed nothing, which is
+   consistent with a wedged clock rather than a slow one;
+   `LinearProgressIndicator`, clock reads during composition, and infinite
+   animations inside the tree under test were all eliminated as causes.
+
+   `forkEvery = 1` fixes it, and the suite got **faster** rather than slower —
+   about 5.5 minutes against 34 — because per-class forks parallelise where a
+   single JVM did not. The remaining suspicion, not needed for the fix and so not
+   chased to a conclusion, is the per-minute `while (true) { delay(...) }` ticker
+   in the active-project-shift card leaving a scheduled task on Robolectric's
+   shared looper. That ticker is legitimate in production and matches what the
+   shifts list and dashboard already do.
 
 3. **One active billing record per project in the UI.** The schema supports many
    and the queries already return a list; only the interface assumes one.

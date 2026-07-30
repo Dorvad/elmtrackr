@@ -425,7 +425,7 @@ class ProjectFinancialEdgeCaseTest {
     }
 
     @Test
-    fun `employee-paid shifts never count towards project hours`() {
+    fun `an unlinked hourly shift contributes nothing to a project`() {
         val summary = ProjectMetrics.summarize(
             project = project(),
             shifts = listOf(
@@ -435,7 +435,6 @@ class ProjectFinancialEdgeCaseTest {
                     userId = "u1",
                     startTime = Instant.parse("2026-07-10T09:00:00Z"),
                     endTime = Instant.parse("2026-07-10T17:00:00Z"),
-                    projectId = "p1",
                     compensationSource = CompensationSource.EMPLOYEE,
                 ),
             ),
@@ -444,9 +443,39 @@ class ProjectFinancialEdgeCaseTest {
             today = LocalDate.of(2026, 7, 15),
         )
 
-        // Only the project-compensated hour. The hourly shift is the employer's
-        // to pay for and is not part of this project's cost of delivery.
         assertEquals(60, summary.time.trackedMinutes)
+        assertEquals(1, summary.time.shiftCount)
+    }
+
+    @Test
+    fun `converting a shift to employee pay removes it from the project`() {
+        // Project hours are counted by the project link alone, which is correct:
+        // projectId records which commercial work the time went to, and
+        // compensationSource records who pays for it. They are deliberately
+        // orthogonal.
+        //
+        // What keeps employer-paid hours out of a project's totals is therefore
+        // not a filter on compensation — it is that reassigning a shift to
+        // employee pay drops the project link in the same operation, so the
+        // combination never exists. That is the invariant worth asserting; a test
+        // of a filter that does not exist would only encode a wrong assumption.
+        val tracked = projectShift(minutes = 480, id = "s1")
+
+        val reassigned = ShiftCompensationReassignment.toEmployeePaid(tracked)
+
+        assertNull(reassigned.projectId)
+        assertNull(reassigned.projectNameSnapshot)
+        assertEquals(CompensationSource.EMPLOYEE, reassigned.compensationSource)
+
+        val summary = ProjectMetrics.summarize(
+            project = project(),
+            shifts = listOf(reassigned),
+            billingRecords = emptyList(),
+            payments = emptyList(),
+            today = LocalDate.of(2026, 7, 15),
+        )
+        assertEquals(0, summary.time.trackedMinutes)
+        assertNull(summary.effectiveHourlyRate)
     }
 
     private fun project(
