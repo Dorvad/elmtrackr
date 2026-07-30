@@ -104,7 +104,9 @@ fun ProjectCard(
             if (summary.billing.outstanding.isPositive) {
                 Spacer(Modifier.height(Spacing.xs))
                 ProjectInfoRow(
-                    label = stringResource(R.string.project_detail_outstanding),
+                    // Short form: a card row is the one place the full glossary
+                    // term does not fit beside its amount.
+                    label = stringResource(R.string.project_detail_outstanding_short),
                     value = summary.billing.outstanding.formatted(),
                     emphasis = true,
                     valueColor = if (summary.billing.isOverdue) {

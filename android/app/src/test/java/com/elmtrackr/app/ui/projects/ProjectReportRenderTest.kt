@@ -27,6 +27,7 @@ import com.elmtrackr.app.domain.projects.ProjectReportBuilder
 import com.elmtrackr.app.domain.projects.ProjectReportFilter
 import com.elmtrackr.app.domain.projects.ProjectTimeSummary
 import com.elmtrackr.app.ui.dashboard.ProjectDashboardCard
+import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -190,7 +191,7 @@ class ProjectReportRenderTest {
         composeRule.onAllNodesWithText("Contracted base fees").onFirst().assertIsDisplayed()
         composeRule.onNodeWithText("Billed").assertIsDisplayed()
         composeRule.onNodeWithText("Cash received").assertIsDisplayed()
-        composeRule.onAllNodesWithText("Outstanding").onFirst().assertIsDisplayed()
+        composeRule.onAllNodesWithText("Outstanding balance").onFirst().assertIsDisplayed()
     }
 
     @Test
@@ -223,8 +224,10 @@ class ProjectReportRenderTest {
         }
 
         // Each currency gets its own row, labelled with its code.
-        composeRule.onNodeWithText("Contracted base fees · USD").assertIsDisplayed()
-        composeRule.onNodeWithText("Contracted base fees · ILS").assertIsDisplayed()
+        composeRule.onNodeWithText("Contracted base fees (${BidiText.isolate("USD")})")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Contracted base fees (${BidiText.isolate("ILS")})")
+            .assertIsDisplayed()
         // And the reason is stated on screen.
         composeRule.onNodeWithText(
             "does not convert between currencies",
@@ -405,8 +408,10 @@ class ProjectReportRenderTest {
             )
         }
 
-        composeRule.onNodeWithText("Outstanding · USD").assertIsDisplayed()
-        composeRule.onNodeWithText("Outstanding · ILS").assertIsDisplayed()
+        composeRule.onNodeWithText("Outstanding balance (${BidiText.isolate("USD")})")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Outstanding balance (${BidiText.isolate("ILS")})")
+            .assertIsDisplayed()
     }
 
     @Test
@@ -425,7 +430,7 @@ class ProjectReportRenderTest {
                 onOpenProjects = {},
             )
         }
-        composeRule.onAllNodesWithText("Outstanding").onFirst().assertIsDisplayed()
+        composeRule.onAllNodesWithText("Outstanding balance").onFirst().assertIsDisplayed()
     }
 
     // ── Filters ───────────────────────────────────────────────────────────────

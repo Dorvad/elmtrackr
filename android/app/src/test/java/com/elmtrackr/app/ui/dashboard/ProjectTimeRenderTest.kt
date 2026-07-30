@@ -19,6 +19,7 @@ import com.elmtrackr.app.domain.money.Money
 import com.elmtrackr.app.domain.money.ProjectFee
 import com.elmtrackr.app.domain.money.TaxMode
 import com.elmtrackr.app.domain.projects.ProjectClockInOptions
+import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -170,7 +171,9 @@ class ProjectTimeRenderTest {
         }
 
         composeRule.onNodeWithText("Website rebuild").assertIsDisplayed()
-        composeRule.onNodeWithText("Acme Ltd · USD").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            "${BidiText.isolate("Acme Ltd")} · ${BidiText.isolate("USD")}",
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -239,7 +242,8 @@ class ProjectTimeRenderTest {
             )
         }
 
-        composeRule.onNodeWithText("Tracking Website rebuild").assertIsDisplayed()
+        composeRule.onNodeWithText("Tracking ${BidiText.isolate("Website rebuild")}")
+            .assertIsDisplayed()
         composeRule.onAllNodesWithText(
             "Not paid as wages",
             substring = true,
@@ -351,7 +355,8 @@ class ProjectTimeRenderTest {
             )
         }
 
-        composeRule.onNodeWithText("Tracking Website rebuild").assertIsDisplayed()
+        composeRule.onNodeWithText("Tracking ${BidiText.isolate("Website rebuild")}")
+            .assertIsDisplayed()
     }
 
     // ── Feature-disabled notice ───────────────────────────────────────────────
@@ -391,7 +396,10 @@ class ProjectTimeRenderTest {
             )
         }
 
-        composeRule.onNodeWithText("added to Website rebuild", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText(
+            "added to ${BidiText.isolate("Website rebuild")}",
+            substring = true,
+        ).assertIsDisplayed()
         composeRule.onNodeWithText("Effective rate is now", substring = true).assertIsDisplayed()
     }
 

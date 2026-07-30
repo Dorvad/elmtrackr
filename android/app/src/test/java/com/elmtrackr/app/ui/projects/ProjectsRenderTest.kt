@@ -24,6 +24,7 @@ import com.elmtrackr.app.domain.projects.ProjectListFilter
 import com.elmtrackr.app.domain.projects.ProjectMetrics
 import com.elmtrackr.app.domain.projects.ProjectStatusFilter
 import com.elmtrackr.app.domain.projects.ProjectSummary
+import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -343,9 +344,11 @@ class ProjectsRenderTest {
         composeRule.setContent {
             Themed { ProjectDetailScreen(billed, listOf(record), listOf(payment), {}, {}, {}, {}) }
         }
-        composeRule.onNodeWithText("Billing reference").assertExists()
-        composeRule.onNodeWithText("2026-014").assertExists()
-        composeRule.onNodeWithText("Outstanding").assertExists()
+        composeRule.onNodeWithText("External billing reference").assertExists()
+        // The reference is isolated on screen so Hebrew around it cannot
+        // reorder it; the isolates are invisible but present in the node text.
+        composeRule.onNodeWithText(BidiText.isolate("2026-014")).assertExists()
+        composeRule.onNodeWithText("Outstanding balance").assertExists()
         // Appears twice by design: the Overview pill and the Billing row.
         composeRule.onAllNodesWithText("Partially paid").onFirst().assertExists()
     }

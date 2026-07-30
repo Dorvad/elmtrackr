@@ -313,7 +313,7 @@
     <string name="project_dash_title">Projects</string>
     <string name="project_dash_active">%1$d active</string>
     <string name="project_dash_unbilled">%1$d not billed</string>
-    <string name="project_dash_outstanding">Outstanding</string>
+    <string name="project_dash_outstanding">Outstanding balance</string>
     <string name="project_dash_overdue">Overdue</string>
     <string name="project_dash_received">Project payments received</string>
     <string name="project_dash_received_period">This month</string>
@@ -365,7 +365,7 @@
     <string name="project_report_tax">Tax</string>
     <string name="project_report_billed">Billed</string>
     <string name="project_report_paid">Paid</string>
-    <string name="project_report_outstanding">Outstanding</string>
+    <string name="project_report_outstanding">Outstanding balance</string>
     <string name="project_report_value_per_hour">Project value per hour</string>
     <string name="project_report_efficiency_note">Project value per hour is the agreed fee before tax divided by hours worked. Expenses are not tracked, so this is not net profit.</string>
     <string name="project_report_currency_note">Amounts are grouped by currency. ElmTrackr does not convert between currencies.</string>

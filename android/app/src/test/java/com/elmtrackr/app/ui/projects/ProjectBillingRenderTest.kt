@@ -24,6 +24,7 @@ import com.elmtrackr.app.domain.projects.ProjectBillingCorrection
 import com.elmtrackr.app.domain.projects.ProjectBillingFormInput
 import com.elmtrackr.app.domain.projects.ProjectBillingStatusResolver
 import com.elmtrackr.app.domain.projects.ProjectPaymentFormInput
+import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -149,9 +150,7 @@ class ProjectBillingRenderTest {
             )
         }
 
-        composeRule.onNodeWithText(
-            "External invoice or billing reference",
-        ).assertIsDisplayed()
+        composeRule.onNodeWithText("External billing reference").assertIsDisplayed()
     }
 
     @Test
@@ -295,7 +294,8 @@ class ProjectBillingRenderTest {
         render { PaymentHistoryRow(payment = payment(), onDelete = {}) }
 
         composeRule.onNodeWithText("5,000.00", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Bank transfer · TRX-9").assertIsDisplayed()
+        composeRule.onNodeWithText("Bank transfer · ${BidiText.isolate("TRX-9")}")
+            .assertIsDisplayed()
     }
 
     @Test
