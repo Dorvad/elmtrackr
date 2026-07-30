@@ -129,7 +129,7 @@ import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
 import kotlin.math.abs
 
-private enum class ReportTab { HOURS, REFUNDS }
+private enum class ReportTab { HOURS, REFUNDS, PROJECTS }
 
 // ── Insight color palette ─────────────────────────────────────────────────────
 
@@ -178,6 +178,9 @@ fun ReportsScreen(
 
     val effectiveTab = when {
         activeTab == ReportTab.REFUNDS && !refundsEnabled -> ReportTab.HOURS
+        // Paid Projects switched off: the tab disappears and Hours takes over,
+        // so the screen is exactly what an hourly-only user has always seen.
+        activeTab == ReportTab.PROJECTS && ready?.projectReport == null -> ReportTab.HOURS
         else -> activeTab
     }
 
@@ -204,6 +207,7 @@ fun ReportsScreen(
         ReportTabs(
             selected = effectiveTab,
             refundsEnabled = refundsEnabled,
+            projectsEnabled = ready?.projectReport != null,
             onSelect = { activeTab = it },
         )
         val embedNavInHoursCard = effectiveTab == ReportTab.HOURS && ready?.report?.shiftCount?.let { it > 0 } == true
@@ -252,6 +256,19 @@ fun ReportsScreen(
                             },
                             onNavigateToShift = onNavigateToShift,
                         )
+                        ReportTab.PROJECTS -> state.projectReport?.let { projectReport ->
+                            com.elmtrackr.app.ui.projects.ProjectReportSection(
+                                report = projectReport,
+                                onExportCsv = {
+                                    ReportExporter.shareCsv(
+                                        context,
+                                        viewModel.buildProjectCsv(projectReport),
+                                        viewModel.projectCsvFilename(projectReport),
+                                    )
+                                },
+                            )
+                        } ?: ReportsEmptyContent()
+
                         ReportTab.HOURS -> if (state.report.shiftCount == 0) {
                             ReportsEmptyContent()
                         } else {
@@ -287,7 +304,12 @@ fun ReportsScreen(
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun ReportTabs(selected: ReportTab, refundsEnabled: Boolean, onSelect: (ReportTab) -> Unit) {
+private fun ReportTabs(
+    selected: ReportTab,
+    refundsEnabled: Boolean,
+    projectsEnabled: Boolean,
+    onSelect: (ReportTab) -> Unit,
+) {
     val shape = RoundedCornerShape(CornerRadius.Large)
     Row(
         modifier = Modifier
@@ -300,6 +322,13 @@ private fun ReportTabs(selected: ReportTab, refundsEnabled: Boolean, onSelect: (
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         TabButton(stringResource(R.string.reports_tab_hours), selected == ReportTab.HOURS, Modifier.weight(1f)) { onSelect(ReportTab.HOURS) }
+        if (projectsEnabled) {
+            TabButton(
+                stringResource(R.string.reports_tab_projects),
+                selected == ReportTab.PROJECTS,
+                Modifier.weight(1f),
+            ) { onSelect(ReportTab.PROJECTS) }
+        }
         if (refundsEnabled) {
             TabButton(stringResource(R.string.reports_tab_refunds), selected == ReportTab.REFUNDS, Modifier.weight(1f)) { onSelect(ReportTab.REFUNDS) }
         }

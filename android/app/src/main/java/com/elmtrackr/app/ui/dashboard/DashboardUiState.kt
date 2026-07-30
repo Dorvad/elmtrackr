@@ -54,6 +54,11 @@ sealed interface DashboardUiState {
         val activeProject: Project? = null,
         /** That project's shifts, for its banked-hours total. */
         val activeProjectShifts: List<Shift> = emptyList(),
+        /**
+         * The restrained project block. Null while Paid Projects is off, which
+         * leaves the dashboard exactly as it was for an hourly-only user.
+         */
+        val projectSummary: com.elmtrackr.app.domain.projects.ProjectDashboardSummary? = null,
     ) : DashboardUiState {
         /** The selector only appears when there is a project to pick. */
         val canSelectProjectTime: Boolean get() = projectOptions.isNotEmpty()

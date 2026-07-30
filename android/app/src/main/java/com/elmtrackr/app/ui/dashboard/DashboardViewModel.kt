@@ -17,6 +17,8 @@ import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.projects.ProjectClockInOptions
+import com.elmtrackr.app.domain.projects.ProjectDashboardSummary
+import com.elmtrackr.app.domain.projects.ProjectDashboardSummaryBuilder
 import com.elmtrackr.app.domain.repository.ProjectsRepository
 import com.elmtrackr.app.domain.setup.SetupChecklist
 import com.elmtrackr.app.domain.setup.SetupChecklistInputs
@@ -129,6 +131,54 @@ class DashboardViewModel @Inject constructor(
         val project: Project,
         val projectShifts: List<Shift>,
     )
+
+    /**
+     * The dashboard's project block, or null while Paid Projects is off — which is
+     * what leaves the existing dashboard exactly as it was.
+     *
+     * Nothing here is combined with the hourly pay summary. They are different
+     * accounting bases and the card labels them separately.
+     */
+    private val projectDashboardSummary: StateFlow<ProjectDashboardSummary?> =
+        authRepository.observeCurrentProfile()
+            .flatMapLatest { profile ->
+                if (profile == null) return@flatMapLatest flowOf(null)
+                settingsRepository.observeSettings(profile.id).flatMapLatest { settings ->
+                    if (settings?.featuresPaidProjects != true) {
+                        flowOf(null)
+                    } else {
+                        val zone = WorkTimezone.zoneFor(settings)
+                        combine(
+                            projectsRepository.observeProjects(profile.id),
+                            projectsRepository.observeAllBillingRecords(profile.id),
+                            projectsRepository.observeAllPayments(profile.id),
+                            shiftsRepository.observeShifts(profile.id),
+                        ) { projects, records, payments, shifts ->
+                            val today = LocalDate.now(zone)
+                            val timeByProject = com.elmtrackr.app.domain.projects.ProjectMetrics
+                                .timeSummaries(shifts.filter { it.isProjectTime })
+                            ProjectDashboardSummaryBuilder.build(
+                                summaries = projects.map { project ->
+                                    com.elmtrackr.app.domain.projects.ProjectMetrics.summarize(
+                                        project = project,
+                                        shifts = emptyList(),
+                                        billingRecords = records,
+                                        payments = payments,
+                                        today = today,
+                                        timeSummary = timeByProject[project.id]
+                                            ?: com.elmtrackr.app.domain.projects.ProjectTimeSummary(),
+                                    )
+                                },
+                                billingRecords = records,
+                                payments = payments,
+                                today = today,
+                            )
+                        }
+                    }
+                }
+            }
+            .catch { emit(null) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private data class RawData(
         val activeShift: Shift?,
@@ -287,6 +337,12 @@ class DashboardViewModel @Inject constructor(
                     activeProject = active?.project,
                     activeProjectShifts = active?.projectShifts.orEmpty(),
                 )
+                else -> state
+            }
+        }
+        .combine(projectDashboardSummary) { state, projectSummary ->
+            when (state) {
+                is DashboardUiState.Ready -> state.copy(projectSummary = projectSummary)
                 else -> state
             }
         }

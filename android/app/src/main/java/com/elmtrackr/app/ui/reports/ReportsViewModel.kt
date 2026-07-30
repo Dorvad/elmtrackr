@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
+import kotlinx.coroutines.flow.flowOf
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -59,6 +60,7 @@ class ReportsViewModel @Inject constructor(
     private val compensationProfilesRepository: CompensationProfilesRepository,
     private val premiumProfilesRepository: PremiumProfilesRepository,
     private val refundReceiptStorage: RefundReceiptStorage?,
+    private val projectsRepository: com.elmtrackr.app.domain.repository.ProjectsRepository,
     // Injected so tests can run the payroll transform on their own test dispatcher;
     // production keeps it off the main thread (see flowOn below).
     @ComputationDispatcher
@@ -73,6 +75,128 @@ class ReportsViewModel @Inject constructor(
     private val _selectedMonth = MutableStateFlow(YearMonth.now(ZoneId.systemDefault()).monthValue)
     private val _refreshNonce = MutableStateFlow(0)
     private var monthNavigated = false
+
+    /**
+     * The project report's own filters. Held apart from the month selector so
+     * narrowing to one client does not disturb the hourly report beside it.
+     */
+    private val _projectFilter =
+        MutableStateFlow(com.elmtrackr.app.domain.projects.ProjectReportFilter())
+
+    fun onProjectFilterChange(filter: com.elmtrackr.app.domain.projects.ProjectReportFilter) {
+        _projectFilter.value = filter
+    }
+
+    /**
+     * The project report for the selected month, or null while Paid Projects is
+     * off — which is what leaves the hourly report untouched.
+     *
+     * Project money is never merged into [ReportsUiState.Ready.paySummary]: hourly
+     * earnings are work performed in the month while project payments are cash
+     * received, and the two are reported as separate lines.
+     */
+    private val projectReport: kotlinx.coroutines.flow.Flow<ProjectReportBundle?> =
+        combine(_selectedYear, _selectedMonth, _projectFilter) { year, month, filter ->
+            Triple(year, month, filter)
+        }.flatMapLatest { (year, month, filter) ->
+            currentUserProvider.userId.flatMapLatest { userId ->
+                if (userId == null) return@flatMapLatest flowOf(null)
+                settingsRepository.observeSettings(userId).flatMapLatest { settings ->
+                    if (settings?.featuresPaidProjects != true) {
+                        flowOf(null)
+                    } else {
+                        val zone = WorkTimezone.zoneFor(settings)
+                        combine(
+                            projectsRepository.observeProjects(userId),
+                            projectsRepository.observeAllBillingRecords(userId),
+                            projectsRepository.observeAllPayments(userId),
+                            shiftsRepository.observeShiftsByMonthInZone(userId, year, month, zone),
+                        ) { projects, records, payments, monthShifts ->
+                            buildProjectBundle(
+                                projects = projects,
+                                records = records,
+                                payments = payments,
+                                monthShifts = monthShifts,
+                                filter = filter.copy(
+                                    from = filter.from ?: LocalDate.of(year, month, 1),
+                                    to = filter.to
+                                        ?: LocalDate.of(year, month, 1).plusMonths(1).minusDays(1),
+                                ),
+                                zone = zone,
+                            )
+                        }
+                    }
+                }
+            }
+        }.catch { emit(null) }
+
+    private data class ProjectReportBundle(
+        val report: com.elmtrackr.app.domain.projects.ProjectReport,
+        val filter: com.elmtrackr.app.domain.projects.ProjectReportFilter,
+        val clients: List<String>,
+        val currencies: List<String>,
+        val projects: List<com.elmtrackr.app.domain.model.Project>,
+    )
+
+    private fun buildProjectBundle(
+        projects: List<com.elmtrackr.app.domain.model.Project>,
+        records: List<com.elmtrackr.app.domain.model.ProjectBillingRecord>,
+        payments: List<com.elmtrackr.app.domain.model.ProjectPayment>,
+        monthShifts: List<Shift>,
+        filter: com.elmtrackr.app.domain.projects.ProjectReportFilter,
+        zone: ZoneId,
+    ): ProjectReportBundle {
+        val today = LocalDate.now(zone)
+        // Project time only: an employee-paid shift is not project hours.
+        val projectShifts = monthShifts.filter { it.isProjectTime && it.isCompleted }
+        val minutesByProject = com.elmtrackr.app.domain.projects.ProjectMetrics
+            .timeSummaries(projectShifts)
+            .mapValues { it.value.trackedMinutes }
+        val activeDays = projectShifts
+            .map { WorkTimezone.shiftLocalDate(it, zone) }
+            .distinct()
+            .size
+
+        val summaries = projects.map { project ->
+            com.elmtrackr.app.domain.projects.ProjectMetrics.summarize(
+                project = project,
+                shifts = emptyList(),
+                billingRecords = records,
+                payments = payments,
+                today = today,
+                timeSummary = com.elmtrackr.app.domain.projects.ProjectTimeSummary(
+                    trackedMinutes = minutesByProject[project.id] ?: 0,
+                    shiftCount = projectShifts.count { it.projectId == project.id },
+                ),
+            )
+        }
+
+        return ProjectReportBundle(
+            report = com.elmtrackr.app.domain.projects.ProjectReportBuilder.build(
+                summaries = summaries,
+                billingRecords = records,
+                payments = payments,
+                filter = filter,
+                projectMinutes = minutesByProject,
+                activeDays = activeDays,
+                today = today,
+            ),
+            filter = filter,
+            clients = com.elmtrackr.app.domain.projects.ProjectReportFilterEngine
+                .availableClients(summaries),
+            currencies = com.elmtrackr.app.domain.projects.ProjectReportFilterEngine
+                .availableCurrencies(summaries),
+            projects = com.elmtrackr.app.domain.projects.ProjectReportFilterEngine
+                .availableProjects(summaries),
+        )
+    }
+
+    /** The project CSV for the current report. Hourly CSV export is untouched. */
+    fun buildProjectCsv(report: com.elmtrackr.app.domain.projects.ProjectReport): String =
+        com.elmtrackr.app.domain.projects.ProjectReportCsv.build(report)
+
+    fun projectCsvFilename(report: com.elmtrackr.app.domain.projects.ProjectReport): String =
+        com.elmtrackr.app.domain.projects.ProjectReportCsv.filename(report)
 
     private data class ReportInputs(
         val report: MonthlyReport?,
@@ -231,6 +355,24 @@ class ReportsViewModel @Inject constructor(
         // the stateIn coroutine — Dispatchers.Main.immediate — so a heavy month janked
         // month navigation on mid-range devices.
         .flowOn(computationDispatcher)
+        // Combined last so the project report cannot delay the hourly one: an
+        // hourly-only user gets null here and the state is exactly as before.
+        .combine(projectReport) { state, bundle ->
+            when (state) {
+                is ReportsUiState.Ready -> if (bundle == null) {
+                    state
+                } else {
+                    state.copy(
+                        projectReport = bundle.report,
+                        projectFilter = bundle.filter,
+                        projectClients = bundle.clients,
+                        projectCurrencies = bundle.currencies,
+                        availableProjects = bundle.projects,
+                    )
+                }
+                else -> state
+            }
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

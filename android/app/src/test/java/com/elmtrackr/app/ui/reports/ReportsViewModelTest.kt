@@ -54,6 +54,7 @@ class ReportsViewModelTest {
             FakeCompensationProfilesRepository(),
             FakePremiumProfilesRepository(),
             FakeRefundReceiptStorage(),
+            com.elmtrackr.app.fake.FakeProjectsRepository(),
             // The production flowOn dispatcher would run the payroll transform off the
             // test scheduler, so advanceUntilIdle could not await its emissions.
             computationDispatcher = mainDispatcherRule.dispatcher,

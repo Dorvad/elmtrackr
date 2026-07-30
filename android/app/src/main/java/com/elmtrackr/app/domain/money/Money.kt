@@ -93,6 +93,12 @@ class Money private constructor(
     val isPositive: Boolean get() = amount.signum() > 0
     val isNegative: Boolean get() = amount.signum() < 0
 
+    /**
+     * The magnitude, sign dropped. For text like "N below target", where the
+     * sentence already carries the direction and "-N below" would read wrong.
+     */
+    val absoluteValue: Money get() = if (isNegative) Money.of(amount.abs(), currencyCode) else this
+
     operator fun plus(other: Money): Money {
         requireSameCurrency(other)
         return of(amount.add(other.amount), currencyCode)

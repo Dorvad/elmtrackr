@@ -308,4 +308,79 @@
     <string name="project_reminder_overdue_text">%1$s לתשלום, היה עד %2$s.</string>
     <string name="notif_channel_project_billing">חיוב פרויקטים</string>
     <string name="notif_channel_project_billing_desc">תזכורות על תשלומי פרויקטים שמועד פירעונם הגיע או חלף.</string>
+
+    <!-- Dashboard project block -->
+    <string name="project_dash_title">פרויקטים</string>
+    <string name="project_dash_active">%1$d פעילים</string>
+    <string name="project_dash_unbilled">%1$d לא חויבו</string>
+    <string name="project_dash_outstanding">יתרה לתשלום</string>
+    <string name="project_dash_overdue">בפיגור</string>
+    <string name="project_dash_received">תשלומי פרויקטים שהתקבלו</string>
+    <string name="project_dash_received_period">החודש</string>
+    <string name="project_dash_tax_collected">מס שנאסף</string>
+    <string name="project_dash_revenue_before_tax">הכנסה מפרויקטים לפני מס</string>
+    <string name="project_dash_attention">%1$d דורשים תשומת לב</string>
+    <string name="project_dash_open">מעבר לפרויקטים</string>
+    <string name="project_dash_basis_note">שכר שעתי הוא שווי העבודה שבוצעה החודש. תשלומי פרויקטים הם כסף שהתקבל החודש. הם לא מחוברים יחד כי הם מודדים דברים שונים.</string>
+
+    <!-- Accounting basis labels -->
+    <string name="project_basis_hourly">שכר שעתי</string>
+    <string name="project_basis_hourly_desc">שווי העבודה השעתית שבוצעה בתקופה הזו.</string>
+    <string name="project_basis_received">תשלומי פרויקטים שהתקבלו</string>
+    <string name="project_basis_received_desc">תשלומי פרויקטים שנכנסו בתקופה הזו.</string>
+    <string name="project_basis_work_performed">עבודה שבוצעה</string>
+    <string name="project_basis_billed">סכום שחויב</string>
+    <string name="project_basis_cash">כסף שהתקבל</string>
+    <string name="project_basis_tax">מס שנאסף</string>
+    <string name="project_basis_outstanding">יתרה לתשלום</string>
+
+    <!-- Project health -->
+    <string name="project_health_on_track">במסלול</string>
+    <string name="project_health_on_track_why">אין מה שדורש תשומת לב.</string>
+    <string name="project_health_near_budget">קרוב למסגרת השעות</string>
+    <string name="project_health_near_budget_why">%1$d%% ממסגרת השעות נוצלו.</string>
+    <string name="project_health_over_budget">מעל מסגרת השעות</string>
+    <string name="project_health_over_budget_why">%1$s מעל מסגרת השעות.</string>
+    <string name="project_health_rate_below">התעריף בפועל מתחת ליעד</string>
+    <string name="project_health_rate_below_why">%1$s לשעה מתחת ליעד שלכם.</string>
+    <string name="project_health_due_soon">תשלום לתשלום בקרוב</string>
+    <string name="project_health_due_soon_why">%1$s לתשלום בעוד %2$d ימים.</string>
+    <string name="project_health_overdue">תשלום בפיגור</string>
+    <string name="project_health_overdue_why">%1$s בפיגור של %2$d ימים.</string>
+    <string name="project_health_not_billed">הושלם אך לא חויב</string>
+    <string name="project_health_not_billed_why">העבודה הסתיימה ודבר לא חויב.</string>
+
+    <!-- Project report -->
+    <string name="project_report_title">דוח פרויקטים</string>
+    <string name="project_report_empty">אין פרויקטים שמתאימים לסינון הזה.</string>
+    <string name="project_report_section_time">שעות פרויקטים</string>
+    <string name="project_report_section_value">שווי הפרויקטים</string>
+    <string name="project_report_section_efficiency">יעילות הכנסה</string>
+    <string name="project_report_tracked_hours">שעות שנרשמו</string>
+    <string name="project_report_active_days">ימי עבודה</string>
+    <string name="project_report_average">ממוצע לפרויקט</string>
+    <string name="project_report_over_budget">שעות מעל המסגרת</string>
+    <string name="project_report_contracted">שכר בסיס מוסכם</string>
+    <string name="project_report_client_totals">סה"כ ללקוח</string>
+    <string name="project_report_tax">מס</string>
+    <string name="project_report_billed">חויב</string>
+    <string name="project_report_paid">שולם</string>
+    <string name="project_report_outstanding">יתרה לתשלום</string>
+    <string name="project_report_value_per_hour">שווי פרויקט לשעה</string>
+    <string name="project_report_efficiency_note">שווי פרויקט לשעה הוא השכר המוסכם לפני מס חלקי השעות שעבדתם. הוצאות אינן נרשמות, ולכן זה אינו רווח נקי.</string>
+    <string name="project_report_currency_note">הסכומים מקובצים לפי מטבע. ElmTrackr אינו מבצע המרות מטבע.</string>
+    <string name="project_report_export">ייצוא CSV של פרויקטים</string>
+
+    <!-- Report filters -->
+    <string name="project_filter_title">סינון</string>
+    <string name="project_filter_from">מתאריך</string>
+    <string name="project_filter_to">עד תאריך</string>
+    <string name="project_filter_project">פרויקט</string>
+    <string name="project_filter_client">לקוח</string>
+    <string name="project_filter_work_status">מצב העבודה</string>
+    <string name="project_filter_billing_status">מצב החיוב</string>
+    <string name="project_filter_currency">מטבע</string>
+    <string name="project_filter_any">הכל</string>
+    <string name="project_filter_include_archived">כולל ארכיון</string>
+    <string name="project_filter_clear">ניקוי הסינון</string>
 </resources>

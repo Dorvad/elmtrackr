@@ -5,6 +5,7 @@
     <string name="reports_subtitle">Your performance overview</string>
     <string name="reports_tab_hours">Hours</string>
     <string name="reports_tab_refunds">Travel Refunds</string>
+    <string name="reports_tab_projects">Projects</string>
     <string name="reports_empty_title">No completed shifts</string>
     <string name="reports_empty_subtitle">Complete some shifts to see your report.</string>
 

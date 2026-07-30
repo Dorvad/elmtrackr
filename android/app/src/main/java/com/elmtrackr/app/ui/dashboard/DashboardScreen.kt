@@ -431,6 +431,19 @@ private fun DashboardReady(
                 )
             }
 
+            // Added alongside the existing hourly content, never replacing it, and
+            // only when Paid Projects is on.
+            state.projectSummary?.let { projectSummary ->
+                ProjectDashboardCard(
+                    summary = projectSummary,
+                    onOpenProjects = onViewProject,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                        .auroraEnter(index = 2),
+                )
+            }
+
             // Non-blocking: sits above the clock and is dismissed with a tap, so
             // it never stands between the user and their next punch.
             projectShiftSummary?.let { summary ->

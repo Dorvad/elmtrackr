@@ -308,4 +308,79 @@
     <string name="project_reminder_overdue_text">%1$s outstanding, due %2$s.</string>
     <string name="notif_channel_project_billing">Project billing</string>
     <string name="notif_channel_project_billing_desc">Reminders about project payments that are due or overdue.</string>
+
+    <!-- Dashboard project block -->
+    <string name="project_dash_title">Projects</string>
+    <string name="project_dash_active">%1$d active</string>
+    <string name="project_dash_unbilled">%1$d not billed</string>
+    <string name="project_dash_outstanding">Outstanding</string>
+    <string name="project_dash_overdue">Overdue</string>
+    <string name="project_dash_received">Project payments received</string>
+    <string name="project_dash_received_period">This month</string>
+    <string name="project_dash_tax_collected">Tax collected</string>
+    <string name="project_dash_revenue_before_tax">Project revenue before tax</string>
+    <string name="project_dash_attention">%1$d need attention</string>
+    <string name="project_dash_open">View projects</string>
+    <string name="project_dash_basis_note">Hourly earnings are the value of work performed this month. Project payments are cash received this month. They are not added together because they measure different things.</string>
+
+    <!-- Accounting basis labels -->
+    <string name="project_basis_hourly">Hourly earnings</string>
+    <string name="project_basis_hourly_desc">Value of hourly work performed in this period.</string>
+    <string name="project_basis_received">Project payments received</string>
+    <string name="project_basis_received_desc">Project payments that arrived in this period.</string>
+    <string name="project_basis_work_performed">Work performed</string>
+    <string name="project_basis_billed">Amount billed</string>
+    <string name="project_basis_cash">Cash received</string>
+    <string name="project_basis_tax">Tax collected</string>
+    <string name="project_basis_outstanding">Outstanding</string>
+
+    <!-- Project health -->
+    <string name="project_health_on_track">On track</string>
+    <string name="project_health_on_track_why">Nothing needs attention.</string>
+    <string name="project_health_near_budget">Near hour budget</string>
+    <string name="project_health_near_budget_why">%1$d%% of the hour budget used.</string>
+    <string name="project_health_over_budget">Over hour budget</string>
+    <string name="project_health_over_budget_why">%1$s past the hour budget.</string>
+    <string name="project_health_rate_below">Effective rate below target</string>
+    <string name="project_health_rate_below_why">%1$s per hour below your target.</string>
+    <string name="project_health_due_soon">Payment due soon</string>
+    <string name="project_health_due_soon_why">%1$s due in %2$d days.</string>
+    <string name="project_health_overdue">Payment overdue</string>
+    <string name="project_health_overdue_why">%1$s overdue by %2$d days.</string>
+    <string name="project_health_not_billed">Completed but not billed</string>
+    <string name="project_health_not_billed_why">The work is finished and nothing has been billed.</string>
+
+    <!-- Project report -->
+    <string name="project_report_title">Project report</string>
+    <string name="project_report_empty">No projects match these filters.</string>
+    <string name="project_report_section_time">Project time</string>
+    <string name="project_report_section_value">Project value</string>
+    <string name="project_report_section_efficiency">Revenue efficiency</string>
+    <string name="project_report_tracked_hours">Tracked hours</string>
+    <string name="project_report_active_days">Active days</string>
+    <string name="project_report_average">Average per project</string>
+    <string name="project_report_over_budget">Hours above budget</string>
+    <string name="project_report_contracted">Contracted base fees</string>
+    <string name="project_report_client_totals">Client totals</string>
+    <string name="project_report_tax">Tax</string>
+    <string name="project_report_billed">Billed</string>
+    <string name="project_report_paid">Paid</string>
+    <string name="project_report_outstanding">Outstanding</string>
+    <string name="project_report_value_per_hour">Project value per hour</string>
+    <string name="project_report_efficiency_note">Project value per hour is the agreed fee before tax divided by hours worked. Expenses are not tracked, so this is not net profit.</string>
+    <string name="project_report_currency_note">Amounts are grouped by currency. ElmTrackr does not convert between currencies.</string>
+    <string name="project_report_export">Export projects CSV</string>
+
+    <!-- Report filters -->
+    <string name="project_filter_title">Filters</string>
+    <string name="project_filter_from">From</string>
+    <string name="project_filter_to">To</string>
+    <string name="project_filter_project">Project</string>
+    <string name="project_filter_client">Client</string>
+    <string name="project_filter_work_status">Work status</string>
+    <string name="project_filter_billing_status">Billing status</string>
+    <string name="project_filter_currency">Currency</string>
+    <string name="project_filter_any">Any</string>
+    <string name="project_filter_include_archived">Include archived</string>
+    <string name="project_filter_clear">Clear filters</string>
 </resources>
