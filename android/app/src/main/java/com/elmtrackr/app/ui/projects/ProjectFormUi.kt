@@ -368,7 +368,7 @@ fun ProjectFormScreen(
 }
 
 @Composable
-private fun ProjectTextField(
+internal fun ProjectTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
@@ -395,7 +395,7 @@ private fun ProjectTextField(
  * can be removed as easily as it is set.
  */
 @Composable
-private fun ProjectDateRow(
+internal fun ProjectDateRow(
     label: String,
     date: LocalDate?,
     onChange: (LocalDate?) -> Unit,
@@ -439,7 +439,7 @@ private fun ProjectDateRow(
 
 /** Searchable ISO 4217 picker; the app's own currencies float to the top. */
 @Composable
-private fun CurrencyPickerDialog(
+internal fun CurrencyPickerDialog(
     selected: String,
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,

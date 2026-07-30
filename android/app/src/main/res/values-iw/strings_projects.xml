@@ -228,4 +228,84 @@
     <string name="project_edit_source_helper">שינוי כאן מחשב את המשמרת מחדש. שעות נחשבות כשכר או כשעות פרויקט, לעולם לא כשניהם.</string>
     <string name="project_edit_to_project_warning">המשמרת הזו לא תשולם יותר כשכר, והשעות שלה ייצאו מסך השעות הנוספות והתוספות.</string>
     <string name="project_edit_to_hourly_warning">המשמרת הזו תשולם שוב כשכר, והשעות שלה ייצאו מהפרויקט.</string>
+
+    <!-- Record billing details -->
+    <string name="project_billing_action">סימון כמחויב</string>
+    <string name="project_billing_form_title">תיעוד פרטי חיוב</string>
+    <string name="project_billing_form_subtitle">ElmTrackr אינו מפיק חשבוניות רשמיות. תעדו מה חייבתם ואת האסמכתא מהחשבונית שהפקתם במקום אחר.</string>
+    <string name="project_billing_amount">סכום החיוב (לפני מס)</string>
+    <string name="project_billing_amount_helper">ברירת המחדל היא השכר שהוסכם לפרויקט. שנו אם חייבתם סכום אחר.</string>
+    <string name="project_billing_currency">מטבע</string>
+    <string name="project_billing_date">תאריך החיוב</string>
+    <string name="project_billing_due_date">תאריך לתשלום</string>
+    <string name="project_billing_due_date_helper">לא חובה. משמש למעקב פיגורים ולתזכורות.</string>
+    <string name="project_billing_reference_label">אסמכתא או מספר חשבונית חיצוני</string>
+    <string name="project_billing_reference_helper">המספר מהחשבונית, מפנקס הקבלות או מתוכנת ההנהלת חשבונות.</string>
+    <string name="project_billing_notes">הערות</string>
+    <string name="project_billing_save">שמירת פרטי החיוב</string>
+    <string name="project_billing_preview">סה"כ ללקוח %1$s</string>
+    <string name="project_billing_error_due_before_billed">תאריך התשלום לא יכול להיות לפני תאריך החיוב</string>
+    <string name="project_billing_already_billed">לפרויקט הזה יש כבר רשומת חיוב.</string>
+
+    <!-- Billing correction -->
+    <string name="project_billing_correct">תיקון פרטי החיוב</string>
+    <string name="project_billing_cancel_record">ביטול רשומת החיוב</string>
+    <string name="project_billing_cancel_confirm_title">לבטל את רשומת החיוב?</string>
+    <string name="project_billing_cancel_confirm_text">היא תישאר גלויה כמבוטלת, ותוכלו לתעד פרטים מתוקנים לאחר מכן.</string>
+    <string name="project_billing_cancel_confirm">ביטול הרשומה</string>
+    <string name="project_billing_cancel_keep">להשאיר</string>
+    <string name="project_billing_blocked_has_payments">תועדו תשלומים מול רשומת החיוב הזו, ולכן לא ניתן להחליף אותה. היסטוריית התשלומים חייבת להישאר כפי שהיא. מחקו קודם את התשלומים אם תועדו בטעות.</string>
+    <string name="project_billing_blocked_cancelled">רשומת החיוב הזו כבר מבוטלת.</string>
+    <string name="project_billing_restore">שחזור רשומת החיוב</string>
+
+    <!-- Record payment -->
+    <string name="project_payment_action">תיעוד תשלום</string>
+    <string name="project_payment_form_title">תיעוד תשלום</string>
+    <string name="project_payment_amount">הסכום שהתקבל</string>
+    <string name="project_payment_amount_helper">היתרה לתשלום היא %1$s.</string>
+    <string name="project_payment_date">תאריך התשלום</string>
+    <string name="project_payment_method">אמצעי תשלום</string>
+    <string name="project_payment_reference">אסמכתא</string>
+    <string name="project_payment_notes">הערות</string>
+    <string name="project_payment_save">שמירת התשלום</string>
+    <string name="project_payment_method_bank_transfer">העברה בנקאית</string>
+    <string name="project_payment_method_cash">מזומן</string>
+    <string name="project_payment_method_card">כרטיס</string>
+    <string name="project_payment_method_check">צ\'ק</string>
+    <string name="project_payment_method_paypal">PayPal</string>
+    <string name="project_payment_method_payment_app">אפליקציית תשלום</string>
+    <string name="project_payment_method_other">אחר</string>
+
+    <!-- Payment errors -->
+    <string name="project_payment_error_amount">הזינו סכום גדול מאפס</string>
+    <string name="project_payment_error_negative">תשלום לא יכול להיות שלילי</string>
+    <string name="project_payment_error_overpayment">זה יותר מ-%1$s שנותרו לתשלום. תעדו %1$s או פחות.</string>
+    <string name="project_payment_error_currency">התשלום הזה ב-%1$s ורשומת החיוב ב-%2$s. ElmTrackr אינו מבצע המרות מטבע.</string>
+    <string name="project_payment_error_no_record">תעדו את פרטי החיוב לפני תיעוד תשלום.</string>
+
+    <!-- Payment history -->
+    <string name="project_payment_history">היסטוריית תשלומים</string>
+    <string name="project_payment_history_empty">עוד לא תועדו תשלומים.</string>
+    <string name="project_payment_row">%1$s · %2$s</string>
+    <string name="project_payment_delete">מחיקת התשלום</string>
+    <string name="project_payment_delete_confirm_title">למחוק את התשלום?</string>
+    <string name="project_payment_delete_confirm_text">היתרה לתשלום ומצב החיוב יחושבו מחדש. לא ניתן לשחזר.</string>
+    <string name="project_payment_delete_confirm">מחיקה</string>
+    <string name="project_payment_delete_keep">להשאיר</string>
+
+    <!-- Overdue -->
+    <string name="project_billing_overdue_days">בפיגור של %1$d ימים</string>
+    <string name="project_billing_overdue_one_day">בפיגור של יום</string>
+    <string name="project_billing_due_today">לתשלום היום</string>
+    <string name="project_billing_due_in_days">לתשלום בעוד %1$d ימים</string>
+
+    <!-- Billing reminders -->
+    <string name="project_reminder_upcoming_title">%1$s לתשלום בקרוב</string>
+    <string name="project_reminder_upcoming_text">%1$s לתשלום, עד %2$s.</string>
+    <string name="project_reminder_due_today_title">%1$s לתשלום היום</string>
+    <string name="project_reminder_due_today_text">%1$s לתשלום.</string>
+    <string name="project_reminder_overdue_title">%1$s בפיגור</string>
+    <string name="project_reminder_overdue_text">%1$s לתשלום, היה עד %2$s.</string>
+    <string name="notif_channel_project_billing">חיוב פרויקטים</string>
+    <string name="notif_channel_project_billing_desc">תזכורות על תשלומי פרויקטים שמועד פירעונם הגיע או חלף.</string>
 </resources>

@@ -5,6 +5,18 @@ import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.model.Project
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.model.ProjectBillingRecord
+import com.elmtrackr.app.domain.model.ProjectPayment
+import com.elmtrackr.app.domain.projects.BillingFormError
+import com.elmtrackr.app.domain.projects.BillingFormResult
+import com.elmtrackr.app.domain.projects.PaymentFormResult
+import com.elmtrackr.app.domain.projects.PaymentRejection
+import com.elmtrackr.app.domain.projects.ProjectBillingCorrection
+import com.elmtrackr.app.domain.projects.ProjectBillingFormInput
+import com.elmtrackr.app.domain.projects.ProjectBillingFormValidator
+import com.elmtrackr.app.domain.projects.ProjectPaymentFormInput
+import com.elmtrackr.app.domain.projects.ProjectPaymentFormValidator
+import com.elmtrackr.app.domain.projects.ProjectPaymentRejectedException
 import com.elmtrackr.app.domain.projects.ProjectFormInput
 import com.elmtrackr.app.domain.projects.ProjectFormValidator
 import com.elmtrackr.app.domain.projects.ProjectListFilter
@@ -179,5 +191,146 @@ class ProjectsViewModel @Inject constructor(
             projectsRepository.deleteProject(userId, summary.project.id)
             onDeleted()
         }
+    }
+
+    // ── Billing ───────────────────────────────────────────────────────────────
+
+    /** Today in the user's work timezone, which is what every due date is judged against. */
+    private suspend fun today(): LocalDate {
+        val settings = currentUserProvider.currentUserId()?.let { settingsRepository.getSettings(it) }
+        return LocalDate.now(settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.systemDefault())
+    }
+
+    /** Form pre-filled from the project's current fee, so accepting it bills what was agreed. */
+    suspend fun newBillingInput(project: Project): ProjectBillingFormInput =
+        ProjectBillingFormInput.from(project, today())
+
+    private val _billingError = MutableStateFlow<Map<String, BillingFormError>>(emptyMap())
+    val billingError: StateFlow<Map<String, BillingFormError>> = _billingError
+
+    private val _paymentRejection = MutableStateFlow<PaymentRejection?>(null)
+    val paymentRejection: StateFlow<PaymentRejection?> = _paymentRejection
+
+    fun clearBillingError() { _billingError.value = emptyMap() }
+
+    fun clearPaymentRejection() { _paymentRejection.value = null }
+
+    /**
+     * Records billing details for a project — not an invoice. The fee snapshot is
+     * built once from the form and stored verbatim; nothing recomputes it from the
+     * project afterwards.
+     */
+    fun recordBilling(input: ProjectBillingFormInput, onSaved: () -> Unit = {}) {
+        viewModelScope.launch {
+            val userId = currentUserProvider.currentUserId() ?: return@launch
+            when (val result = ProjectBillingFormValidator.validate(input)) {
+                is BillingFormResult.Invalid -> _billingError.value = result.errors
+                is BillingFormResult.Valid -> {
+                    _billingError.value = emptyMap()
+                    val now = Instant.now()
+                    projectsRepository.upsertBillingRecord(
+                        ProjectBillingRecord(
+                            id = "",
+                            userId = userId,
+                            projectId = input.projectId,
+                            fee = result.fee,
+                            externalReference = input.externalReference.trim().ifBlank { null },
+                            notes = input.notes.trim().ifBlank { null },
+                            billedOn = input.billedOn,
+                            dueOn = input.dueOn,
+                            createdAt = now,
+                            updatedAt = now,
+                        ),
+                    )
+                    onSaved()
+                }
+            }
+        }
+    }
+
+    /**
+     * Withdraws a billing record so a corrected one can be recorded.
+     *
+     * Refused once payments exist: the payment history is the record of money that
+     * actually moved, and it must keep pointing at the amounts it settled.
+     */
+    fun cancelBilling(
+        record: ProjectBillingRecord,
+        payments: List<ProjectPayment>,
+        onBlocked: (ProjectBillingCorrection.Block) -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            val verdict = ProjectBillingCorrection.canCancel(record, payments)
+            verdict.blockedReason?.let { return@launch onBlocked(it) }
+            projectsRepository.cancelBillingRecord(record.id)
+        }
+    }
+
+    fun restoreBilling(recordId: String) {
+        viewModelScope.launch { projectsRepository.restoreBillingRecord(recordId) }
+    }
+
+    // ── Payments ──────────────────────────────────────────────────────────────
+
+    /** Form pre-filled with the outstanding balance — the common case is paying it off. */
+    suspend fun newPaymentInput(
+        record: ProjectBillingRecord,
+        payments: List<ProjectPayment>,
+    ): ProjectPaymentFormInput = ProjectPaymentFormInput.forRecord(record, payments, today())
+
+    /**
+     * Records or updates a payment. Every rule — currency match, positive amount,
+     * no overpayment — is checked here and again in the repository, so a stale
+     * screen cannot write a payment the balance will not support.
+     */
+    fun savePayment(
+        input: ProjectPaymentFormInput,
+        billingRecord: ProjectBillingRecord?,
+        existingPayments: List<ProjectPayment>,
+        onSaved: () -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            val userId = currentUserProvider.currentUserId() ?: return@launch
+            when (
+                val result = ProjectPaymentFormValidator.validate(input, billingRecord, existingPayments)
+            ) {
+                is PaymentFormResult.NotANumber ->
+                    _paymentRejection.value = PaymentRejection.ZeroAmount
+                is PaymentFormResult.Rejected -> _paymentRejection.value = result.reason
+                is PaymentFormResult.Valid -> {
+                    _paymentRejection.value = null
+                    val now = Instant.now()
+                    runCatching {
+                        projectsRepository.upsertPayment(
+                            ProjectPayment(
+                                id = input.paymentId.orEmpty(),
+                                userId = userId,
+                                projectId = input.projectId,
+                                billingRecordId = input.billingRecordId,
+                                paidOn = input.paidOn,
+                                amount = result.amount,
+                                method = input.method?.name,
+                                externalReference = input.externalReference.trim().ifBlank { null },
+                                notes = input.notes.trim().ifBlank { null },
+                                createdAt = now,
+                                updatedAt = now,
+                            ),
+                        )
+                    }.onFailure { error ->
+                        (error as? ProjectPaymentRejectedException)?.let {
+                            _paymentRejection.value = it.reason
+                            return@launch
+                        }
+                        throw error
+                    }
+                    onSaved()
+                }
+            }
+        }
+    }
+
+    /** Deleting recalculates the balance, and therefore the derived status. */
+    fun deletePayment(paymentId: String) {
+        viewModelScope.launch { projectsRepository.deletePayment(paymentId) }
     }
 }

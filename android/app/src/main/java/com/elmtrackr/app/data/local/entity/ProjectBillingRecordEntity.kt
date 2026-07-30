@@ -39,6 +39,8 @@ data class ProjectBillingRecordEntity(
     val currencyCode: String,
     /** Reference the user created elsewhere, not one ElmTrackr issued. */
     val externalReference: String?,
+    /** Free text the user attached when recording the billing details. */
+    val notes: String? = null,
     /** Epoch day. */
     val billedOn: Long,
     val dueOn: Long?,

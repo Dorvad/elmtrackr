@@ -59,15 +59,17 @@ class ProjectsRenderTest {
     /**
      * Raises Espresso's idling budget for this class.
      *
-     * These renders pass in seconds on their own, but in a full-suite run — after
-     * every other Robolectric + Compose test class has built and torn down its own
-     * Compose environment in the same JVM — the detail-screen cases exceed
-     * Espresso's 60s default and fail with "Compose did not get idle". Recycling
-     * the test JVM with forkEvery did not help, so the cost accumulates within a
-     * fork rather than across them; the underlying leak is not diagnosed here.
+     * These renders pass in seconds on their own. In a full-suite run — once other
+     * Robolectric + Compose classes have built and torn down their own Compose
+     * environments in the same JVM — the detail-screen cases instead spin without
+     * ever reporting idle, which points at leaked global Compose state rather than
+     * at anything this screen does. The raised budget does not cure that, and
+     * recycling the JVM with forkEvery did not either; both are recorded here so
+     * the next attempt does not repeat them.
      *
-     * The budget is raised, not removed: a genuine composition loop still fails,
-     * just later.
+     * These cases are known to fail in a full-suite run on this checkout and pass
+     * when the class is run on its own. The behaviour predates the Paid Projects
+     * work: the same failures reproduce on the commit before it.
      */
     @org.junit.Before
     fun setIdlingBudget() {

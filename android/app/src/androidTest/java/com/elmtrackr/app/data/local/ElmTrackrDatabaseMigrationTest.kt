@@ -500,6 +500,63 @@ class ElmTrackrDatabaseMigrationTest {
         }
     }
 
+    /**
+     * 17 -> 18 adds notes to a billing record. Every billed amount must come
+     * through untouched: a billing snapshot is what the client was asked to pay,
+     * and an upgrade may never restate it.
+     */
+    @Test
+    fun migration17To18AddsBillingNotesWithoutRestatingAnyBilledAmount() {
+        helper.createDatabase(TEST_DB_BILLING_NOTES, 17).apply {
+            execSQL(
+                """
+                INSERT INTO project_billing_records (
+                    localId, userId, projectLocalId, baseAmount, taxLabel, taxRatePercent,
+                    taxMode, taxAmount, totalAmount, currencyCode, externalReference,
+                    billedOn, dueOn, createdAt, updatedAt, syncStatus
+                ) VALUES (
+                    'bill1', 'user', 'p1', '10000.00', 'VAT', '18', 'EXCLUSIVE',
+                    '1800.00', '11800.00', 'USD', 'INV-42', 20000, 20030, 0, 0, 'SYNCED'
+                )
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB_BILLING_NOTES, 18, true, ElmTrackrDatabase.MIGRATION_17_18,
+        ).use { db ->
+            db.query("PRAGMA table_info(`project_billing_records`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndexOrThrow("name")
+                val typeIndex = cursor.getColumnIndexOrThrow("type")
+                val notNullIndex = cursor.getColumnIndexOrThrow("notnull")
+                var found = false
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) != "notes") continue
+                    found = true
+                    assertEquals("TEXT", cursor.getString(typeIndex))
+                    assertEquals(0, cursor.getInt(notNullIndex))
+                }
+                assertEquals(true, found)
+            }
+            db.query(
+                "SELECT baseAmount, taxAmount, totalAmount, currencyCode, externalReference, " +
+                    "billedOn, dueOn, notes FROM project_billing_records WHERE localId = 'bill1'",
+            ).use { cursor ->
+                assertEquals(true, cursor.moveToFirst())
+                // Money columns are TEXT decimal strings and must be byte-identical.
+                assertEquals("10000.00", cursor.getString(0))
+                assertEquals("1800.00", cursor.getString(1))
+                assertEquals("11800.00", cursor.getString(2))
+                assertEquals("USD", cursor.getString(3))
+                assertEquals("INV-42", cursor.getString(4))
+                assertEquals(20000L, cursor.getLong(5))
+                assertEquals(20030L, cursor.getLong(6))
+                assertEquals(true, cursor.isNull(7))
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "currency-migration-test"
         const val TEST_DB_CHAIN = "full-chain-migration-test"
@@ -509,15 +566,16 @@ class ElmTrackrDatabaseMigrationTest {
         const val TEST_DB_PROJECT_TABLES = "project-tables-migration-test"
         const val TEST_DB_V1_DATA = "v1-data-migration-test"
         const val TEST_DB_COMP_SOURCE = "compensation-source-migration-test"
+        const val TEST_DB_BILLING_NOTES = "billing-notes-migration-test"
 
-        const val CURRENT_VERSION = 17
+        const val CURRENT_VERSION = 18
 
         /**
          * Schema versions a production database can currently be at. 9 is
          * missing because `9.json` was never exported; see
          * everySupportedStartVersionMigratesToCurrent.
          */
-        val SUPPORTED_START_VERSIONS = listOf(1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16)
+        val SUPPORTED_START_VERSIONS = listOf(1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17)
 
         val ALL_MIGRATIONS = arrayOf(
             ElmTrackrDatabase.MIGRATION_1_2,
@@ -536,6 +594,7 @@ class ElmTrackrDatabaseMigrationTest {
             ElmTrackrDatabase.MIGRATION_14_15,
             ElmTrackrDatabase.MIGRATION_15_16,
             ElmTrackrDatabase.MIGRATION_16_17,
+            ElmTrackrDatabase.MIGRATION_17_18,
         )
     }
 }

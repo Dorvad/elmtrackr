@@ -20,7 +20,7 @@ import kotlinx.serialization.Serializable
  * lack the newer optional fields), so bumping the version never strands a
  * user's existing backup files.
  */
-const val BACKUP_FORMAT_VERSION = 6
+const val BACKUP_FORMAT_VERSION = 7
 
 /** Version 1 predates full-fidelity rows and cannot be restored safely. */
 const val MIN_SUPPORTED_BACKUP_FORMAT_VERSION = 2
@@ -251,6 +251,8 @@ data class ProjectBillingRecordBackupRow(
     val totalAmount: String,
     val currencyCode: String,
     val externalReference: String? = null,
+    /** Absent in documents written before format 7; reads back as no note. */
+    val notes: String? = null,
     val billedOn: Long,
     val dueOn: Long? = null,
     val cancelledAt: Long? = null,
@@ -465,7 +467,8 @@ internal fun ProjectBillingRecordEntity.toBackupRow() = ProjectBillingRecordBack
     baseAmount = baseAmount.toPlainString(), taxLabel = taxLabel,
     taxRatePercent = taxRatePercent.toPlainString(), taxMode = taxMode,
     taxAmount = taxAmount.toPlainString(), totalAmount = totalAmount.toPlainString(),
-    currencyCode = currencyCode, externalReference = externalReference, billedOn = billedOn,
+    currencyCode = currencyCode, externalReference = externalReference, notes = notes,
+    billedOn = billedOn,
     dueOn = dueOn, cancelledAt = cancelledAt, createdAt = createdAt, updatedAt = updatedAt,
     deletedAt = deletedAt, syncStatus = syncStatus.name, lastSyncedAt = lastSyncedAt,
 )
@@ -475,7 +478,8 @@ internal fun ProjectBillingRecordBackupRow.toEntity(userId: String) = ProjectBil
     baseAmount = decimalFromBackup(baseAmount), taxLabel = taxLabel,
     taxRatePercent = decimalFromBackup(taxRatePercent), taxMode = taxMode,
     taxAmount = decimalFromBackup(taxAmount), totalAmount = decimalFromBackup(totalAmount),
-    currencyCode = currencyCode, externalReference = externalReference, billedOn = billedOn,
+    currencyCode = currencyCode, externalReference = externalReference, notes = notes,
+    billedOn = billedOn,
     dueOn = dueOn, cancelledAt = cancelledAt, createdAt = createdAt, updatedAt = updatedAt,
     deletedAt = deletedAt, syncStatus = syncStatusFromBackup(syncStatus), lastSyncError = null,
     lastSyncedAt = lastSyncedAt,

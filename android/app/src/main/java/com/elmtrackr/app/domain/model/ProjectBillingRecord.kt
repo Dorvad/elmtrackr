@@ -28,6 +28,7 @@ data class ProjectBillingRecord(
     val fee: ProjectFee,
     /** An invoice or reference number the user created elsewhere. */
     val externalReference: String? = null,
+    val notes: String? = null,
     val billedOn: LocalDate,
     val dueOn: LocalDate? = null,
     /** Non-null once withdrawn. A cancelled record never becomes overdue. */

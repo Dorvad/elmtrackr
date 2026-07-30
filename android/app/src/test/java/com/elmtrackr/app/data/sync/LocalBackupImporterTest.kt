@@ -239,6 +239,140 @@ class LocalBackupImporterTest {
         assertEquals("EMPLOYEE", shiftDao2.getShiftById("tampered-shift")!!.compensationSource)
     }
 
+    /**
+     * A billing record whose project is missing is skipped as an orphan by the
+     * importer, so these cases seed the parent project too.
+     */
+    private fun projectEntity(localId: String = "p1", userId: String = "u1") =
+        com.elmtrackr.app.data.local.entity.ProjectEntity(
+            localId = localId,
+            remoteId = null,
+            userId = userId,
+            name = "Website rebuild",
+            clientName = "Acme Ltd",
+            clientId = null,
+            description = null,
+            workStatus = "ACTIVE",
+            currencyCode = "USD",
+            baseFee = java.math.BigDecimal("10000.00"),
+            taxLabel = "VAT",
+            taxRatePercent = java.math.BigDecimal("18"),
+            taxMode = "EXCLUSIVE",
+            taxAmount = java.math.BigDecimal("1800.00"),
+            clientTotal = java.math.BigDecimal("11800.00"),
+            hourBudgetMinutes = null,
+            targetHourlyRate = null,
+            startDate = null,
+            deadline = null,
+            completionDate = null,
+            notes = null,
+            createdAt = 1,
+            updatedAt = 2,
+            archivedAt = null,
+            deletedAt = null,
+            syncStatus = SyncStatus.SYNCED,
+            lastSyncError = null,
+            lastSyncedAt = 3,
+        )
+
+    @Test
+    fun `a billing record keeps every billed amount and its note through the round-trip`() = runTest {
+        // A billing snapshot is what the client was asked to pay. Export and
+        // re-import must not restate a single figure.
+        projectDao.upsert(projectEntity())
+        billingDao.upsert(
+            com.elmtrackr.app.data.local.entity.ProjectBillingRecordEntity(
+                localId = "bill1",
+                remoteId = null,
+                userId = "u1",
+                projectLocalId = "p1",
+                baseAmount = java.math.BigDecimal("10000.00"),
+                taxLabel = "VAT",
+                taxRatePercent = java.math.BigDecimal("18"),
+                taxMode = "EXCLUSIVE",
+                taxAmount = java.math.BigDecimal("1800.00"),
+                totalAmount = java.math.BigDecimal("11800.00"),
+                currencyCode = "USD",
+                externalReference = "INV-42",
+                notes = "Paid by transfer, ref TRX-9",
+                billedOn = 20000,
+                dueOn = 20030,
+                cancelledAt = null,
+                createdAt = 1,
+                updatedAt = 2,
+                deletedAt = null,
+                syncStatus = SyncStatus.SYNCED,
+                lastSyncError = null,
+                lastSyncedAt = 3,
+            ),
+        )
+        val json = LocalBackupExporter.export(
+            "u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao,
+            projectDao, billingDao, paymentDao, "1.0",
+        )
+
+        importInto2(json, "u1")
+
+        val restored = billingDao2.getByLocalId("bill1")!!
+        assertEquals(0, java.math.BigDecimal("10000.00").compareTo(restored.baseAmount))
+        assertEquals(0, java.math.BigDecimal("1800.00").compareTo(restored.taxAmount))
+        assertEquals(0, java.math.BigDecimal("11800.00").compareTo(restored.totalAmount))
+        assertEquals("USD", restored.currencyCode)
+        assertEquals("INV-42", restored.externalReference)
+        assertEquals("Paid by transfer, ref TRX-9", restored.notes)
+        assertEquals(20030L, restored.dueOn)
+    }
+
+    @Test
+    fun `a billing record from a backup written before notes existed imports without one`() = runTest {
+        val legacy = """
+            {
+              "formatVersion": 6,
+              "exportedAt": "2026-07-01T00:00:00Z",
+              "userId": "u1",
+              "appVersion": "1.0",
+              "projects": [
+                {
+                  "localId": "p1",
+                  "name": "Website rebuild",
+                  "workStatus": "ACTIVE",
+                  "currencyCode": "USD",
+                  "baseFee": "500.00",
+                  "taxRatePercent": "0",
+                  "taxMode": "NONE",
+                  "taxAmount": "0.00",
+                  "clientTotal": "500.00",
+                  "createdAt": 1,
+                  "updatedAt": 2,
+                  "syncStatus": "SYNCED"
+                }
+              ],
+              "projectBillingRecords": [
+                {
+                  "localId": "legacy-bill",
+                  "projectLocalId": "p1",
+                  "baseAmount": "500.00",
+                  "taxRatePercent": "0",
+                  "taxMode": "NONE",
+                  "taxAmount": "0.00",
+                  "totalAmount": "500.00",
+                  "currencyCode": "USD",
+                  "billedOn": 20000,
+                  "createdAt": 1,
+                  "updatedAt": 2,
+                  "syncStatus": "SYNCED"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        importInto2(legacy, "u1")
+
+        val restored = billingDao2.getByLocalId("legacy-bill")!!
+        assertEquals(null, restored.notes)
+        assertEquals(0, java.math.BigDecimal("500.00").compareTo(restored.totalAmount))
+    }
+
     @Test
     fun `shift premium profile assignment survives the round-trip`() = runTest {
         val json = exportSeeded("u1")

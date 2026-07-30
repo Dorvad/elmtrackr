@@ -46,7 +46,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         ProjectBillingRecordEntity::class,
         ProjectPaymentEntity::class,
     ],
-    version = 17,
+    version = 18,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -125,6 +125,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_14_15,
                     MIGRATION_15_16,
                     MIGRATION_16_17,
+                    MIGRATION_17_18,
                 )
                 .build()
         }
@@ -657,6 +658,21 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
         internal val MIGRATION_16_17 = object : Migration(16, 17) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE shifts ADD COLUMN compensationSource TEXT")
+            }
+        }
+
+        /**
+         * Notes on a billing record, entered on the "record billing details"
+         * form.
+         *
+         * Purely additive: one nullable column, no default, no backfill, no
+         * table rebuilt. Existing billing records read back with a null note and
+         * every billed amount is untouched — a billing snapshot must never be
+         * restated by an upgrade.
+         */
+        internal val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE project_billing_records ADD COLUMN notes TEXT")
             }
         }
 

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ProjectBillingRecord
 import com.elmtrackr.app.domain.model.ProjectPayment
+import com.elmtrackr.app.domain.projects.ProjectBillingCorrection
 import com.elmtrackr.app.domain.projects.ProjectBillingStatusResolver
 import com.elmtrackr.app.domain.projects.ProjectSummary
 import com.elmtrackr.app.domain.projects.ProjectWorkAction
@@ -54,9 +56,53 @@ fun ProjectDetailScreen(
     onWorkAction: (ProjectWorkAction) -> Unit,
     onDelete: () -> Unit,
     onBack: () -> Unit,
+    onRecordBilling: () -> Unit = {},
+    onRecordPayment: (ProjectBillingRecord) -> Unit = {},
+    onCancelBilling: (ProjectBillingRecord) -> Unit = {},
+    onRestoreBilling: (String) -> Unit = {},
+    onDeletePayment: (String) -> Unit = {},
+    /** Set when a correction was refused, so the reason can be shown. */
+    correctionBlock: ProjectBillingCorrection.Block? = null,
+    onDismissCorrectionBlock: () -> Unit = {},
 ) {
     val project = summary.project
     var confirmDelete by rememberSaveable(project.id) { mutableStateOf(false) }
+    var confirmCancelBilling by rememberSaveable(project.id) { mutableStateOf<String?>(null) }
+
+    correctionBlock?.let { block ->
+        AlertDialog(
+            onDismissRequest = onDismissCorrectionBlock,
+            title = { Text(stringResource(R.string.project_billing_correct)) },
+            text = { Text(correctionBlockedMessage(block)) },
+            confirmButton = {
+                TextButton(onClick = onDismissCorrectionBlock) {
+                    Text(stringResource(R.string.project_billing_cancel_keep))
+                }
+            },
+        )
+    }
+
+    confirmCancelBilling?.let { recordId ->
+        val record = billingRecords.firstOrNull { it.id == recordId }
+        AlertDialog(
+            onDismissRequest = { confirmCancelBilling = null },
+            title = { Text(stringResource(R.string.project_billing_cancel_confirm_title)) },
+            text = { Text(stringResource(R.string.project_billing_cancel_confirm_text)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmCancelBilling = null
+                        record?.let(onCancelBilling)
+                    },
+                ) { Text(stringResource(R.string.project_billing_cancel_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmCancelBilling = null }) {
+                    Text(stringResource(R.string.project_billing_cancel_keep))
+                }
+            },
+        )
+    }
 
     if (confirmDelete) {
         AlertDialog(
@@ -215,15 +261,24 @@ fun ProjectDetailScreen(
                         }
                     }
                 }
+                // How late, or how long until due. Days only, from the work
+                // timezone's today, so it cannot read a day out.
+                dueStatusText(summary.billing)?.let { text ->
+                    ProjectInfoRow(
+                        label = stringResource(R.string.project_detail_due_on),
+                        value = text,
+                        valueColor = if (summary.billing.isOverdue) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                }
                 if (billingRecords.any { it.isCancelled }) {
                     Spacer(Modifier.height(Spacing.xs))
                     ProjectNoteText(stringResource(R.string.project_detail_cancelled_billing))
                 }
                 Spacer(Modifier.height(Spacing.sm))
-                ProjectInfoRow(
-                    label = stringResource(R.string.project_detail_payments),
-                    value = stringResource(R.string.project_detail_payment_count, payments.size),
-                )
                 ProjectInfoRow(
                     label = stringResource(R.string.project_detail_total_paid),
                     value = summary.billing.paid.formatted(),
@@ -246,6 +301,50 @@ fun ProjectDetailScreen(
                 }
                 Spacer(Modifier.height(Spacing.xs))
                 ProjectNoteText(stringResource(R.string.project_detail_billing_disclaimer))
+
+                // Actions. "Mark as billed" only while nothing is billed; the MVP
+                // shows one active record at a time, and the schema does not stop
+                // more being added later.
+                Spacer(Modifier.height(Spacing.sm))
+                if (ProjectBillingCorrection.canRecordBilling(billingRecords)) {
+                    Button(onClick = onRecordBilling, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.project_billing_action))
+                    }
+                } else {
+                    val record = ProjectBillingStatusResolver.activeRecords(billingRecords).first()
+                    if (summary.billing.outstanding.isPositive) {
+                        Button(
+                            onClick = { onRecordPayment(record) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text(stringResource(R.string.project_payment_action)) }
+                    }
+                    TextButton(
+                        onClick = { confirmCancelBilling = record.id },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.project_billing_cancel_record)) }
+                }
+                billingRecords.firstOrNull { it.isCancelled }?.let { cancelled ->
+                    TextButton(
+                        onClick = { onRestoreBilling(cancelled.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.project_billing_restore)) }
+                }
+            }
+        }
+
+        // ── Payment history ───────────────────────────────────────────────────
+        item {
+            ProjectSectionCard(stringResource(R.string.project_payment_history)) {
+                if (payments.isEmpty()) {
+                    ProjectNoteText(stringResource(R.string.project_payment_history_empty))
+                } else {
+                    payments.sortedByDescending { it.paidOn }.forEach { payment ->
+                        PaymentHistoryRow(
+                            payment = payment,
+                            onDelete = { onDeletePayment(payment.id) },
+                        )
+                    }
+                }
             }
         }
 

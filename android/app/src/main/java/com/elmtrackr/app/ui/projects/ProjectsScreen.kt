@@ -30,8 +30,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.elmtrackr.app.domain.projects.ProjectBillingCorrection
+import com.elmtrackr.app.domain.projects.ProjectBillingFormInput
+import com.elmtrackr.app.domain.projects.ProjectPaymentFormInput
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,7 +56,7 @@ import com.elmtrackr.app.ui.design.auroraSubScreenTransition
 import com.elmtrackr.app.ui.theme.Spacing
 
 /** Where inside the Projects tab the user is. */
-private enum class ProjectsDestination { LIST, DETAIL, FORM }
+private enum class ProjectsDestination { LIST, DETAIL, FORM, BILLING, PAYMENT }
 
 /**
  * The Paid Projects destination: list, detail and form.
@@ -73,6 +78,13 @@ fun ProjectsScreen(
     var destination by rememberSaveable { mutableStateOf(ProjectsDestination.LIST) }
     var selectedProjectId by rememberSaveable { mutableStateOf<String?>(null) }
     var editingProjectId by rememberSaveable { mutableStateOf<String?>(null) }
+    // Plain remember: these carry a pre-filled form built from data that is
+    // re-read on the way in, so restoring a stale copy after process death would
+    // show amounts that no longer match the project.
+    var billingInput by remember { mutableStateOf<ProjectBillingFormInput?>(null) }
+    var paymentInput by remember { mutableStateOf<ProjectPaymentFormInput?>(null) }
+    var correctionBlock by remember { mutableStateOf<ProjectBillingCorrection.Block?>(null) }
+    val scope = rememberCoroutineScope()
 
     val ready = state as? ProjectsUiState.Ready
     val selected = selectedProjectId?.let { ready?.summary(it) }
@@ -93,6 +105,9 @@ fun ProjectsScreen(
         destination = when (destination) {
             ProjectsDestination.FORM ->
                 if (editingProjectId != null) ProjectsDestination.DETAIL else ProjectsDestination.LIST
+            // The billing and payment forms are opened from a project, so back
+            // returns there rather than all the way out to the list.
+            ProjectsDestination.BILLING, ProjectsDestination.PAYMENT -> ProjectsDestination.DETAIL
             else -> ProjectsDestination.LIST
         }
         if (destination == ProjectsDestination.LIST) selectedProjectId = null
@@ -159,6 +174,29 @@ fun ProjectsScreen(
                                     summary = summary,
                                     billingRecords = billingRecords,
                                     payments = payments,
+                                    onRecordBilling = {
+                                        scope.launch {
+                                            viewModel.clearBillingError()
+                                            billingInput = viewModel.newBillingInput(summary.project)
+                                            destination = ProjectsDestination.BILLING
+                                        }
+                                    },
+                                    onRecordPayment = { record ->
+                                        scope.launch {
+                                            viewModel.clearPaymentRejection()
+                                            paymentInput = viewModel.newPaymentInput(record, payments)
+                                            destination = ProjectsDestination.PAYMENT
+                                        }
+                                    },
+                                    onCancelBilling = { record ->
+                                        viewModel.cancelBilling(record, payments) { blocked ->
+                                            correctionBlock = blocked
+                                        }
+                                    },
+                                    onRestoreBilling = viewModel::restoreBilling,
+                                    onDeletePayment = viewModel::deletePayment,
+                                    correctionBlock = correctionBlock,
+                                    onDismissCorrectionBlock = { correctionBlock = null },
                                     onEdit = {
                                         editingProjectId = projectId
                                         destination = ProjectsDestination.FORM
@@ -176,6 +214,57 @@ fun ProjectsScreen(
                                         selectedProjectId = null
                                         destination = ProjectsDestination.LIST
                                     },
+                                )
+                            }
+                        }
+
+                        ProjectsDestination.BILLING -> {
+                            val input = billingInput
+                            if (input == null) {
+                                LoadingState()
+                            } else {
+                                val billingErrors by viewModel.billingError.collectAsState()
+                                ProjectBillingFormScreen(
+                                    initialInput = input,
+                                    errors = billingErrors,
+                                    onSave = { edited ->
+                                        viewModel.recordBilling(edited) {
+                                            destination = ProjectsDestination.DETAIL
+                                        }
+                                    },
+                                    onBack = { destination = ProjectsDestination.DETAIL },
+                                )
+                            }
+                        }
+
+                        ProjectsDestination.PAYMENT -> {
+                            val input = paymentInput
+                            val summary = selectedProjectId?.let { current.summary(it) }
+                            val projectId = summary?.project?.id
+                            val records by remember(projectId) {
+                                projectId?.let { viewModel.billingRecordsFor(it) }
+                                    ?: kotlinx.coroutines.flow.flowOf(emptyList())
+                            }.collectAsState(initial = emptyList())
+                            val payments by remember(projectId) {
+                                projectId?.let { viewModel.paymentsFor(it) }
+                                    ?: kotlinx.coroutines.flow.flowOf(emptyList())
+                            }.collectAsState(initial = emptyList())
+                            val record = input?.billingRecordId?.let { id -> records.firstOrNull { it.id == id } }
+                            if (input == null || record == null) {
+                                LoadingState()
+                            } else {
+                                val rejection by viewModel.paymentRejection.collectAsState()
+                                ProjectPaymentFormScreen(
+                                    initialInput = input,
+                                    billingRecord = record,
+                                    existingPayments = payments,
+                                    rejection = rejection,
+                                    onSave = { edited ->
+                                        viewModel.savePayment(edited, record, payments) {
+                                            destination = ProjectsDestination.DETAIL
+                                        }
+                                    },
+                                    onBack = { destination = ProjectsDestination.DETAIL },
                                 )
                             }
                         }

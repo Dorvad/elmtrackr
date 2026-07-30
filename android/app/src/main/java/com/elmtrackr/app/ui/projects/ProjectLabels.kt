@@ -91,3 +91,23 @@ fun workStatusLabel(status: ProjectWorkStatus): String =
 @Composable
 fun billingStatusLabel(status: ProjectBillingStatus): String =
     stringResource(ProjectLabels.billingStatus(status))
+
+fun paymentMethodLabel(method: com.elmtrackr.app.domain.model.PaymentMethod): Int = when (method) {
+    com.elmtrackr.app.domain.model.PaymentMethod.BANK_TRANSFER -> R.string.project_payment_method_bank_transfer
+    com.elmtrackr.app.domain.model.PaymentMethod.CASH -> R.string.project_payment_method_cash
+    com.elmtrackr.app.domain.model.PaymentMethod.CARD -> R.string.project_payment_method_card
+    com.elmtrackr.app.domain.model.PaymentMethod.CHECK -> R.string.project_payment_method_check
+    com.elmtrackr.app.domain.model.PaymentMethod.PAYPAL -> R.string.project_payment_method_paypal
+    com.elmtrackr.app.domain.model.PaymentMethod.PAYMENT_APP -> R.string.project_payment_method_payment_app
+    com.elmtrackr.app.domain.model.PaymentMethod.OTHER -> R.string.project_payment_method_other
+}
+
+fun billingFormError(error: com.elmtrackr.app.domain.projects.BillingFormError): Int = when (error) {
+    com.elmtrackr.app.domain.projects.BillingFormError.AMOUNT_REQUIRED -> R.string.project_error_required
+    com.elmtrackr.app.domain.projects.BillingFormError.AMOUNT_NOT_A_NUMBER -> R.string.project_error_not_a_number
+    com.elmtrackr.app.domain.projects.BillingFormError.AMOUNT_NOT_POSITIVE -> R.string.project_error_positive
+    com.elmtrackr.app.domain.projects.BillingFormError.TAX_RATE_INVALID -> R.string.project_error_tax_rate
+    com.elmtrackr.app.domain.projects.BillingFormError.CURRENCY_REQUIRED -> R.string.project_error_currency
+    com.elmtrackr.app.domain.projects.BillingFormError.DUE_BEFORE_BILLED ->
+        R.string.project_billing_error_due_before_billed
+}

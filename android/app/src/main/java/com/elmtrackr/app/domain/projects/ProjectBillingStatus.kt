@@ -49,7 +49,18 @@ data class ProjectBillingState(
     /** Negative once the due date has passed. Null with no due date. */
     val daysUntilDue: Long?,
     val activeBillingRecordId: String?,
-)
+) {
+    /**
+     * Whole days the money is late by, or null when it is not overdue.
+     *
+     * Counted from the day *after* the due date, so a record due yesterday is one
+     * day overdue rather than zero. Date-only arithmetic throughout: comparing
+     * instants would flip a project overdue several hours early or late depending
+     * on the zone.
+     */
+    val daysOverdue: Long?
+        get() = if (isOverdue) daysUntilDue?.let { -it } else null
+}
 
 /**
  * Derives [ProjectBillingStatus] from records, payments, balances and dates.
