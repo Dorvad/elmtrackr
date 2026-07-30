@@ -61,15 +61,23 @@ class ProjectsRenderTest {
      *
      * These renders pass in seconds on their own. In a full-suite run — once other
      * Robolectric + Compose classes have built and torn down their own Compose
-     * environments in the same JVM — the detail-screen cases instead spin without
-     * ever reporting idle, which points at leaked global Compose state rather than
-     * at anything this screen does. The raised budget does not cure that, and
-     * recycling the JVM with forkEvery did not either; both are recorded here so
-     * the next attempt does not repeat them.
+     * environments in the same JVM — the detail-screen cases instead fail with
+     * AppNotIdleException, which points at leaked global Compose state rather than
+     * at anything this screen does. The list and form cases in this class pass in
+     * the same run.
      *
-     * These cases are known to fail in a full-suite run on this checkout and pass
-     * when the class is run on its own. The behaviour predates the Paid Projects
-     * work: the same failures reproduce on the commit before it.
+     * The failure arrived with this class, in the commit that first added these
+     * screens, and is not a regression from the later shift, billing or reporting
+     * work: the same eight cases fail identically on that earlier commit.
+     *
+     * Ruled out so far, so the next attempt does not repeat them: raising the
+     * idling budget (240s changes nothing, so this is not slowness); recycling the
+     * JVM with forkEvery; LinearProgressIndicator, which these fixtures never
+     * compose because none of them set an hour budget; clock reads during
+     * composition; and an infinite animation in the tree under test — every
+     * rememberInfiniteTransition in the app sits in a skeleton or in the scaffold
+     * background, neither of which ProjectDetailScreen reaches when called
+     * directly like this.
      */
     @org.junit.Before
     fun setIdlingBudget() {
