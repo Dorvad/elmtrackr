@@ -22,8 +22,13 @@ import java.math.RoundingMode
  */
 object ProjectReportCsv {
 
-    /** Excel needs this to read UTF-8; other tools ignore it. */
-    const val UTF8_BOM = "﻿"
+    /**
+     * Excel needs this to read UTF-8; other tools ignore it.
+     *
+     * Written as an escape rather than the literal character, so the byte-order
+     * mark does not sit inside this source file.
+     */
+    const val UTF8_BOM = "\uFEFF"
 
     private val HEADERS = listOf(
         "Project",

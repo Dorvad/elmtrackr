@@ -80,6 +80,13 @@ class ProjectBillingReminderWorker @AssistedInject constructor(
     }
 
     private fun post(reminder: BillingReminder) {
+        // Both guards are deliberate. areNotificationsEnabled covers a user who
+        // turned the channel off; the explicit POST_NOTIFICATIONS check covers the
+        // runtime permission on API 33+, which is what notify() actually requires.
+        val manager = NotificationManagerCompat.from(context)
+        if (!manager.areNotificationsEnabled()) return
+        if (!hasPostNotificationsPermission()) return
+
         val localized = context.withAppLocale()
         val locale = localized.resources.configuration.locales[0]
         val amount = MoneyFormat.format(reminder.outstanding, locale)
@@ -113,10 +120,26 @@ class ProjectBillingReminderWorker @AssistedInject constructor(
             .setAutoCancel(true)
             .build()
 
-        runCatching {
-            NotificationManagerCompat.from(context).notify(notificationId(reminder.projectId), notification)
+        // Caught rather than only pre-checked: POST_NOTIFICATIONS can be revoked
+        // between the check above and this call, and a missed reminder must not
+        // crash a background worker.
+        try {
+            manager.notify(notificationId(reminder.projectId), notification)
+        } catch (e: SecurityException) {
+            return
         }
     }
+
+    /**
+     * POST_NOTIFICATIONS is only a runtime permission from API 33; below that it is
+     * granted at install time and there is nothing to check.
+     */
+    private fun hasPostNotificationsPermission(): Boolean =
+        android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU ||
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.POST_NOTIFICATIONS,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
     private fun openApp(): PendingIntent = PendingIntent.getActivity(
         context,
