@@ -64,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.R
@@ -772,7 +773,12 @@ private fun ShiftCompensationSourceSection(
                 val snapshotName = initialShift?.projectNameSnapshot
                 Text(
                     text = snapshotName
-                        ?.let { stringResource(R.string.project_time_shift_label_named, it) }
+                        ?.let {
+                            stringResource(
+                                R.string.project_time_shift_label_named,
+                                BidiText.isolate(it),
+                            )
+                        }
                         ?: stringResource(R.string.project_time_no_projects),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

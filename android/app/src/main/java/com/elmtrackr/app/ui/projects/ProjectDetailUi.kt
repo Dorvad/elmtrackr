@@ -35,6 +35,7 @@ import com.elmtrackr.app.domain.projects.ProjectBillingStatusResolver
 import com.elmtrackr.app.domain.projects.ProjectSummary
 import com.elmtrackr.app.domain.projects.ProjectWorkAction
 import com.elmtrackr.app.domain.projects.ProjectWorkStatusActions
+import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.settings.SettingsDetailHeader
 import com.elmtrackr.app.ui.theme.CornerRadius
@@ -242,7 +243,11 @@ fun ProjectDetailScreen(
                 } else {
                     active.forEach { record ->
                         record.externalReference?.let {
-                            ProjectInfoRow(stringResource(R.string.project_detail_billing_reference), it)
+                            ProjectInfoRow(
+                                label = stringResource(R.string.project_detail_billing_reference),
+                                value = BidiText.isolate(it),
+                                a11yValue = stringResource(R.string.project_a11y_reference, it),
+                            )
                         }
                         ProjectInfoRow(
                             label = stringResource(R.string.project_detail_billed_on),

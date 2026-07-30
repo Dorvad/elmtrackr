@@ -41,6 +41,7 @@ import com.elmtrackr.app.domain.projects.ProjectBillingFormValidator
 import com.elmtrackr.app.domain.projects.ProjectBillingState
 import com.elmtrackr.app.domain.projects.ProjectPaymentFormInput
 import com.elmtrackr.app.domain.projects.ProjectPaymentValidator
+import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.settings.SettingsDetailHeader
 import com.elmtrackr.app.ui.theme.Spacing
 import java.time.LocalDate
@@ -313,8 +314,8 @@ fun ProjectPaymentFormScreen(
 fun paymentRejectionMessage(rejection: PaymentRejection): String = when (rejection) {
     is PaymentRejection.CurrencyMismatch -> stringResource(
         R.string.project_payment_error_currency,
-        rejection.paymentCurrency,
-        rejection.billingCurrency,
+        BidiText.isolate(rejection.paymentCurrency),
+        BidiText.isolate(rejection.billingCurrency),
     )
     PaymentRejection.ZeroAmount -> stringResource(R.string.project_payment_error_amount)
     PaymentRejection.NegativeAmount -> stringResource(R.string.project_payment_error_negative)
@@ -402,9 +403,12 @@ fun PaymentHistoryRow(
                 fontWeight = FontWeight.SemiBold,
             )
             val method = PaymentMethod.fromPersisted(payment.method)
+            // The reference is isolated: it is the user's own token, often
+            // digits and hyphens, and in Hebrew it would otherwise be reordered
+            // by the method name beside it.
             val detail = listOfNotNull(
                 method?.let { stringResource(paymentMethodLabel(it)) },
-                payment.externalReference,
+                payment.externalReference?.let { BidiText.isolate(it) },
             ).joinToString(" · ")
             if (detail.isNotEmpty()) {
                 Text(

@@ -1,5 +1,6 @@
 package com.elmtrackr.app.domain.money
 
+import com.elmtrackr.app.domain.text.BidiText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -73,16 +74,51 @@ class MoneyFormatTest {
         assertFalse(MoneyFormat.formatTaxRate(BigDecimal("18.00"), english).contains(".0"))
     }
 
+    /**
+     * The unit words moved to the resource layer in the localisation pass, so
+     * "h" and "m" are no longer built into the formatter — a Hebrew UI needs
+     * שע׳ and דק׳, and only the resources know which language is on screen.
+     * What stays here is the split into parts and the localised numerals; the
+     * assembled string is covered by ProjectDurationRenderTest in both locales.
+     */
     @Test
-    fun `durations render as hours and minutes`() {
-        assertEquals("8h", MoneyFormat.formatMinutes(480, english))
-        assertEquals("8h 30m", MoneyFormat.formatMinutes(510, english))
-        assertEquals("0h", MoneyFormat.formatMinutes(0, english))
-        assertEquals("40h", MoneyFormat.formatMinutes(2400, english))
+    fun `durations split into hour and minute parts`() {
+        MoneyFormat.durationParts(480, english).let {
+            assertEquals(8, it.hours)
+            assertEquals(0, it.minutes)
+        }
+        MoneyFormat.durationParts(510, english).let {
+            assertEquals(8, it.hours)
+            assertEquals(30, it.minutes)
+        }
+        MoneyFormat.durationParts(0, english).let {
+            assertEquals(0, it.hours)
+            assertEquals(0, it.minutes)
+        }
     }
 
     @Test
-    fun `durations beyond a day still read in hours`() {
-        assertEquals("100h 1m", MoneyFormat.formatMinutes(6001, english))
+    fun `durations beyond a day still count in hours`() {
+        val parts = MoneyFormat.durationParts(6001, english)
+
+        assertEquals(100, parts.hours)
+        assertEquals(1, parts.minutes)
+    }
+
+    @Test
+    fun `duration numerals are grouped for the locale and isolated`() {
+        val parts = MoneyFormat.durationParts(60 * 2400, english)
+
+        // 2,400 hours: grouped by the locale, not printed as raw digits.
+        assertEquals("2,400", BidiText.strip(parts.hoursText))
+        assertTrue(BidiText.containsIsolates(parts.hoursText))
+    }
+
+    @Test
+    fun `a negative duration is clamped rather than rendered with a sign`() {
+        val parts = MoneyFormat.durationParts(-90, english)
+
+        assertEquals(0, parts.hours)
+        assertEquals(0, parts.minutes)
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -44,6 +45,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
@@ -422,9 +424,26 @@ internal fun SettingsToggleRow(
     iconTint: Color = AuroraIndigo,
 ) {
     val haptic = LocalHapticFeedback.current
+    // The whole row is the switch, as one node.
+    //
+    // With an interactive Switch and the title in a separate Text beside it, a
+    // screen reader reaches an unnamed control and announces "switch, off" —
+    // correct about the state and silent about which setting it belongs to,
+    // which is the one thing the user needed. Merging the row gives the control
+    // the title as its name and the row as its target, and matches the pattern
+    // already used on the compensation settings screen.
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .toggleable(
+                value = checked,
+                enabled = enabled,
+                role = Role.Switch,
+                onValueChange = { value ->
+                    AuroraHaptics.toggle(haptic)
+                    onCheckedChange(value)
+                },
+            )
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -458,12 +477,11 @@ internal fun SettingsToggleRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.5f),
             )
         }
+        // Null handler: the row owns the toggle action, so the switch is the
+        // visual state and not a second, separately-announced control.
         Switch(
             checked = checked,
-            onCheckedChange = { value ->
-                AuroraHaptics.toggle(haptic)
-                onCheckedChange(value)
-            },
+            onCheckedChange = null,
             enabled = enabled,
         )
     }

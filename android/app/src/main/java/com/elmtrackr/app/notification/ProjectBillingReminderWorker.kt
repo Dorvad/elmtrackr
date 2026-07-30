@@ -20,6 +20,7 @@ import com.elmtrackr.app.domain.projects.BillingReminderKind
 import com.elmtrackr.app.domain.projects.ProjectBillingReminderPolicy
 import com.elmtrackr.app.domain.repository.ProjectsRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
+import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.domain.time.WorkTimezone
 import com.elmtrackr.app.language.withAppLocale
 import dagger.assisted.Assisted
@@ -94,13 +95,17 @@ class ProjectBillingReminderWorker @AssistedInject constructor(
             DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale),
         )
 
+        // The project name is the user's own text and may be Hebrew, English or
+        // a mix of both; isolating it keeps it whole inside a notification title
+        // written in the other direction.
+        val name = BidiText.isolate(reminder.projectName)
         val title = when (reminder.kind) {
             BillingReminderKind.UPCOMING ->
-                localized.getString(R.string.project_reminder_upcoming_title, reminder.projectName)
+                localized.getString(R.string.project_reminder_upcoming_title, name)
             BillingReminderKind.DUE_TODAY ->
-                localized.getString(R.string.project_reminder_due_today_title, reminder.projectName)
+                localized.getString(R.string.project_reminder_due_today_title, name)
             BillingReminderKind.OVERDUE ->
-                localized.getString(R.string.project_reminder_overdue_title, reminder.projectName)
+                localized.getString(R.string.project_reminder_overdue_title, name)
         }
         val text = when (reminder.kind) {
             BillingReminderKind.UPCOMING ->

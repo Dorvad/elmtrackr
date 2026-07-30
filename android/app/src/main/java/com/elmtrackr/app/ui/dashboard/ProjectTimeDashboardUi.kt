@@ -35,6 +35,7 @@ import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.projects.ProjectClockInOption
 import com.elmtrackr.app.domain.projects.ProjectShiftProjectionCalculator
 import com.elmtrackr.app.domain.money.Money
+import com.elmtrackr.app.domain.text.BidiText
 import kotlinx.coroutines.delay
 import java.time.Instant
 import com.elmtrackr.app.ui.projects.formatted
@@ -134,11 +135,11 @@ fun ProjectTimeSelector(
                                             ?.let {
                                                 stringResource(
                                                     R.string.project_time_client_currency,
-                                                    it,
-                                                    option.currencyCode,
+                                                    BidiText.isolate(it),
+                                                    BidiText.isolate(option.currencyCode),
                                                 )
                                             }
-                                            ?: option.currencyCode,
+                                            ?: BidiText.isolate(option.currencyCode),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -204,7 +205,7 @@ fun ActiveProjectShiftCard(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Text(
-                text = stringResource(R.string.project_active_title, projectName),
+                text = stringResource(R.string.project_active_title, BidiText.isolate(projectName)),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
             )
@@ -328,7 +329,7 @@ fun ProjectShiftSummaryCard(
                 text = stringResource(
                     R.string.project_shift_done_title,
                     formattedMinutes(summary.addedMinutes),
-                    summary.projectName,
+                    BidiText.isolate(summary.projectName),
                 ),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,

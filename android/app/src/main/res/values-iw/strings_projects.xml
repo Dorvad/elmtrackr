@@ -110,10 +110,10 @@
     <string name="project_form_currency_note">ElmTrackr אינו מבצע המרות מטבע. תשלומים לפרויקט הזה יירשמו ב-%1$s.</string>
     <string name="project_form_currency_search">חיפוש קוד מטבע</string>
     <string name="project_form_entry_mode">איזה סכום ידוע לכם?</string>
-    <string name="project_form_entry_fee">התמורה שלכם לפני מס</string>
-    <string name="project_form_entry_total">הסכום ללקוח</string>
-    <string name="project_form_amount_fee_label">התמורה שלכם לפני מס</string>
-    <string name="project_form_amount_total_label">הסכום ללקוח</string>
+    <string name="project_form_entry_fee">התשלום לפני מס</string>
+    <string name="project_form_entry_total">סה״כ לתשלום על ידי הלקוח</string>
+    <string name="project_form_amount_fee_label">התשלום לפני מס</string>
+    <string name="project_form_amount_total_label">סה״כ לתשלום על ידי הלקוח</string>
     <string name="project_form_tax_enabled">הוספת מס לפרויקט</string>
     <string name="project_form_tax_label">שם המס</string>
     <string name="project_form_tax_label_hint">מע״מ</string>
@@ -130,10 +130,10 @@
     <string name="project_form_breakdown_title">פירוט</string>
 
     <!-- Amounts -->
-    <string name="project_amount_base">התמורה שלכם לפני מס</string>
+    <string name="project_amount_base">התשלום לפני מס</string>
     <string name="project_amount_tax">מס</string>
     <string name="project_amount_tax_named">%1$s (%2$s)</string>
-    <string name="project_amount_client_total">הסכום ללקוח</string>
+    <string name="project_amount_client_total">סה״כ לתשלום על ידי הלקוח</string>
 
     <!-- Detail -->
     <string name="project_detail_section_overview">סקירה</string>
@@ -154,9 +154,9 @@
     <string name="project_detail_completed_on">הושלם בתאריך</string>
     <string name="project_detail_billing_status">סטטוס החיוב</string>
     <string name="project_detail_total_paid">סך התשלומים</string>
-    <string name="project_detail_outstanding">יתרה לגבייה</string>
+    <string name="project_detail_outstanding">יתרה לתשלום</string>
     <string name="project_detail_credit">נרשם מעל סכום החיוב</string>
-    <string name="project_detail_billing_reference">אסמכתא לחיוב</string>
+    <string name="project_detail_billing_reference">אסמכתת חיוב חיצונית</string>
     <string name="project_detail_billed_on">תאריך החיוב</string>
     <string name="project_detail_due_on">מועד לתשלום</string>
     <string name="project_detail_payments">תשלומים</string>
@@ -230,7 +230,7 @@
     <string name="project_edit_to_hourly_warning">המשמרת הזו תשולם שוב כשכר, והשעות שלה ייצאו מהפרויקט.</string>
 
     <!-- Record billing details -->
-    <string name="project_billing_action">סימון כמחויב</string>
+    <string name="project_billing_action">סימון כחויב</string>
     <string name="project_billing_form_title">תיעוד פרטי חיוב</string>
     <string name="project_billing_form_subtitle">ElmTrackr אינו מפיק חשבוניות רשמיות. תעדו מה חייבתם ואת האסמכתא מהחשבונית שהפקתם במקום אחר.</string>
     <string name="project_billing_amount">סכום החיוב (לפני מס)</string>
@@ -239,7 +239,7 @@
     <string name="project_billing_date">תאריך החיוב</string>
     <string name="project_billing_due_date">תאריך לתשלום</string>
     <string name="project_billing_due_date_helper">לא חובה. משמש למעקב פיגורים ולתזכורות.</string>
-    <string name="project_billing_reference_label">אסמכתא או מספר חשבונית חיצוני</string>
+    <string name="project_billing_reference_label">אסמכתת חיוב חיצונית</string>
     <string name="project_billing_reference_helper">המספר מהחשבונית, מפנקס הקבלות או מתוכנת ההנהלת חשבונות.</string>
     <string name="project_billing_notes">הערות</string>
     <string name="project_billing_save">שמירת פרטי החיוב</string>
@@ -383,4 +383,29 @@
     <string name="project_filter_any">הכל</string>
     <string name="project_filter_include_archived">כולל ארכיון</string>
     <string name="project_filter_clear">ניקוי הסינון</string>
+    <!-- Prompt 7: internationalisation and accessibility -->
+
+    <string name="project_duration_hm">%1$s שע׳ %2$s דק׳</string>
+    <string name="project_duration_h">%1$s שע׳</string>
+    <string name="project_duration_m">%1$s דק׳</string>
+
+    <string name="project_money_with_code">%1$s %2$s</string>
+    <string name="project_money_label_with_code">%1$s (%2$s)</string>
+
+    <string name="project_detail_outstanding_short">יתרה</string>
+    <string name="project_amount_client_total_short">סה״כ ללקוח</string>
+
+    <string name="project_fee">תשלום על הפרויקט</string>
+    <string name="project_payment_received">תשלום שהתקבל</string>
+
+    <string name="project_a11y_row">%1$s: %2$s</string>
+    <string name="project_a11y_work_status">מצב הפרויקט: %1$s</string>
+    <string name="project_a11y_billing_status">מצב החיוב: %1$s</string>
+    <string name="project_a11y_days_overdue">באיחור של %1$s ימים</string>
+    <string name="project_a11y_currency">מטבע: %1$s</string>
+    <string name="project_a11y_reference">אסמכתא %1$s</string>
+    <string name="project_a11y_budget_used">נוצלו %1$s מתקציב השעות</string>
+    <string name="project_a11y_project_card">%1$s, %2$s</string>
+    <string name="project_a11y_error">שגיאה: %1$s</string>
+    <string name="nav_destination_added">%1$s נוסף לניווט</string>
 </resources>

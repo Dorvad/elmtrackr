@@ -44,6 +44,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.design.mirrorInRtl
@@ -521,7 +522,12 @@ internal fun ShiftRow(
                     ) {
                         ShiftTypeBadge(
                             label = shift.projectNameSnapshot
-                                ?.let { stringResource(R.string.project_time_shift_label_named, it) }
+                                ?.let {
+                                    stringResource(
+                                        R.string.project_time_shift_label_named,
+                                        BidiText.isolate(it),
+                                    )
+                                }
                                 ?: stringResource(R.string.project_time_shift_label),
                             background = auroraWeekendBackground(),
                             color = MaterialTheme.colorScheme.tertiary,

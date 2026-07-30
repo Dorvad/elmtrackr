@@ -54,10 +54,32 @@ object CurrencyScales {
         }.getOrDefault(MoneyPolicy.DEFAULT_FRACTION_DIGITS)
     }
 
-    /** True for a syntactically plausible ISO 4217 alphabetic code. */
+    /**
+     * True for a syntactically plausible ISO 4217 alphabetic code.
+     *
+     * Deliberately lenient, and used on the way *out* of storage: a project
+     * saved under a code this build of Android has no data for must still load,
+     * still display, and still be editable. Rejecting it here would make a
+     * user's own project unreadable after an OS downgrade or a currency
+     * rename. Use [isKnownIso4217] to validate something a user just typed.
+     */
     fun isValidCode(currencyCode: String?): Boolean {
         val code = currencyCode?.trim()?.uppercase() ?: return false
         return code.length == 3 && code.all { it in 'A'..'Z' }
+    }
+
+    /**
+     * True when the platform's ISO 4217 table actually contains this code.
+     *
+     * Stricter than [isValidCode], and meant for input validation, where
+     * catching "USB" for "USD" is worth more than accepting an unknown code.
+     * Kept separate from [isValidCode] on purpose: input can be corrected by
+     * the person typing it, stored data cannot.
+     */
+    fun isKnownIso4217(currencyCode: String?): Boolean {
+        if (!isValidCode(currencyCode)) return false
+        val code = normalize(currencyCode!!)
+        return runCatching { java.util.Currency.getInstance(code) }.getOrNull() != null
     }
 
     fun normalize(currencyCode: String): String = currencyCode.trim().uppercase()

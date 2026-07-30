@@ -6,7 +6,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.money.MoneyByCurrency
+import com.elmtrackr.app.domain.text.BidiText
 
 /**
  * Renders a [MoneyByCurrency] as one row per currency.
@@ -39,12 +42,22 @@ fun MoneyByCurrencyRows(
             )
             return@Column
         }
-        // Two or more: the currency code goes in the label so each row stands
-        // alone and nothing implies they can be added.
+        // Two or more: the currency is named on both sides of the row — in the
+        // label so each row stands alone and nothing implies they can be added,
+        // and in the value so a bare "$" is not the only thing distinguishing
+        // one row from the next.
+        //
+        // The label goes through a translated pattern rather than being glued
+        // together here, and the code is isolated, so a Hebrew label followed
+        // by "USD" does not come out with the code reversed or displaced.
         amounts.entries().forEach { amount ->
             ProjectInfoRow(
-                label = "$label · ${amount.currencyCode}",
-                value = amount.formatted(),
+                label = stringResource(
+                    R.string.project_money_label_with_code,
+                    label,
+                    BidiText.isolate(amount.currencyCode),
+                ),
+                value = amount.formattedWithCode(),
                 emphasis = emphasis,
                 valueColor = valueColor,
             )

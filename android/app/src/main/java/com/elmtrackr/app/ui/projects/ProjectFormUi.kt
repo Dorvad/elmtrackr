@@ -41,6 +41,7 @@ import com.elmtrackr.app.domain.projects.ProjectAmountEntryMode
 import com.elmtrackr.app.domain.projects.ProjectFormField
 import com.elmtrackr.app.domain.projects.ProjectFormInput
 import com.elmtrackr.app.domain.projects.ProjectFormValidator
+import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.settings.SettingsDetailHeader
 import com.elmtrackr.app.ui.theme.CornerRadius
@@ -193,7 +194,12 @@ fun ProjectFormScreen(
                     Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(Modifier.height(Spacing.xs))
-                ProjectNoteText(stringResource(R.string.project_form_currency_note, currencyCode))
+                ProjectNoteText(
+                    stringResource(
+                        R.string.project_form_currency_note,
+                        BidiText.isolate(currencyCode),
+                    ),
+                )
 
                 Spacer(Modifier.height(Spacing.md))
                 Text(

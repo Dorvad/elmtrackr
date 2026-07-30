@@ -42,7 +42,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -54,6 +56,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.LaunchedEffect
@@ -135,6 +138,27 @@ fun MainScaffold(
         BottomNavItem.visibleItems(paidProjectsEnabled == true)
     }
     val highlightedRoute = PaidProjectsNavGuard.highlightedRoute(currentRoute, paidProjectsEnabled)
+
+    // A destination appearing in the bottom bar is obvious to anyone looking at
+    // it and completely silent to anyone who is not. Turning Paid Projects on in
+    // Settings changes the navigation of a screen the user is not currently
+    // looking at, so accessibility services are told in words.
+    //
+    // Only the transition is announced, never the initial state: a user who
+    // already has the feature on does not want to be told about it every time
+    // the scaffold composes. The guard is the previous count, so the first pass
+    // records and stays quiet.
+    val view = LocalView.current
+    val newDestinationAnnouncement =
+        stringResource(R.string.nav_destination_added, stringResource(R.string.nav_projects))
+    var announcedItemCount by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(navItems.size) {
+        val previous = announcedItemCount
+        announcedItemCount = navItems.size
+        if (previous != null && navItems.size > previous && !view.isInEditMode) {
+            view.announceForAccessibility(newDestinationAnnouncement)
+        }
+    }
 
     // Turning the feature off while a gated destination is selected: leave the
     // destination in the graph (removing it would crash) and move the user to
@@ -350,6 +374,18 @@ internal fun ElmBottomNav(
 ) {
   val navShape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
   val haptic = LocalHapticFeedback.current
+  // Five destinations and a large font scale cannot both fit. Rather than
+  // ellipsise every label into "Proje…", or let the bar scroll sideways — which
+  // hides destinations behind a gesture nobody expects in a bottom bar — the
+  // labels drop out and the icons carry the bar.
+  //
+  // Nothing is lost to accessibility: the full name, the tab role and the
+  // selected state all live on the semantics of the item below, so TalkBack
+  // still announces "Projects, selected" whether or not the label is drawn.
+  // Five items get less room each than four, so they give up their labels
+  // sooner.
+  val labelsFit = LocalDensity.current.fontScale <=
+    if (items.size >= BottomNavItem.MAX_PRIMARY_DESTINATIONS) 1.3f else 1.5f
   Box(
     modifier = Modifier
       .fillMaxWidth()
@@ -459,13 +495,18 @@ internal fun ElmBottomNav(
                 modifier = Modifier.size(20.dp),
               )
             }
-            Text(
-              text = tabLabel,
-              fontSize = 10.5.sp,
-              lineHeight = 14.sp,
-              color = if (isSelected) auroraNavSelectedLabel() else auroraNavUnselectedLabel(),
-              fontWeight = FontWeight.SemiBold,
-            )
+            if (labelsFit) {
+              Text(
+                text = tabLabel,
+                fontSize = 10.5.sp,
+                lineHeight = 14.sp,
+                color = if (isSelected) auroraNavSelectedLabel() else auroraNavUnselectedLabel(),
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+              )
+            }
           }
         }
       }

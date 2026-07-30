@@ -1,6 +1,7 @@
 package com.elmtrackr.app.domain.projects
 
 import com.elmtrackr.app.domain.money.Money
+import com.elmtrackr.app.domain.text.BidiText
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -118,8 +119,17 @@ object ProjectReportCsv {
      * Every field is quoted, and a quote inside becomes two. Quoting
      * unconditionally rather than only when needed keeps Hebrew, commas and
      * newlines all safe without the writer having to detect them.
+     *
+     * Bidi isolate characters are removed on the way out. Nothing in this file
+     * adds them — the export reads model values, not screen text — but this is
+     * the single point every field passes through, and an invisible U+2068 in an
+     * exported project name would be a real defect in someone's spreadsheet:
+     * two cells that look identical would not compare equal, and a lookup
+     * against the same name typed by hand would silently miss. Hebrew and every
+     * other script are untouched; only the four isolate controls go.
      */
-    internal fun quote(value: String): String = "\"" + value.replace("\"", "\"\"") + "\""
+    internal fun quote(value: String): String =
+        "\"" + BidiText.strip(value).replace("\"", "\"\"") + "\""
 
     /** Plain decimal at the currency's own scale. No symbol, no grouping. */
     internal fun amount(money: Money): String = money.amount.toPlainString()

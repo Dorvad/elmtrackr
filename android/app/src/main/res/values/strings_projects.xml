@@ -154,9 +154,9 @@
     <string name="project_detail_completed_on">Completed on</string>
     <string name="project_detail_billing_status">Billing status</string>
     <string name="project_detail_total_paid">Total paid</string>
-    <string name="project_detail_outstanding">Outstanding</string>
+    <string name="project_detail_outstanding">Outstanding balance</string>
     <string name="project_detail_credit">Recorded above the billed total</string>
-    <string name="project_detail_billing_reference">Billing reference</string>
+    <string name="project_detail_billing_reference">External billing reference</string>
     <string name="project_detail_billed_on">Billed on</string>
     <string name="project_detail_due_on">Due</string>
     <string name="project_detail_payments">Payments</string>
@@ -239,7 +239,7 @@
     <string name="project_billing_date">Billing date</string>
     <string name="project_billing_due_date">Due date</string>
     <string name="project_billing_due_date_helper">Optional. Used for overdue tracking and reminders.</string>
-    <string name="project_billing_reference_label">External invoice or billing reference</string>
+    <string name="project_billing_reference_label">External billing reference</string>
     <string name="project_billing_reference_helper">The number from your invoice, receipt book or accounting software.</string>
     <string name="project_billing_notes">Notes</string>
     <string name="project_billing_save">Save billing details</string>
@@ -383,4 +383,37 @@
     <string name="project_filter_any">Any</string>
     <string name="project_filter_include_archived">Include archived</string>
     <string name="project_filter_clear">Clear filters</string>
+    <!-- Prompt 7: internationalisation and accessibility -->
+
+    <!-- Durations. The numeral is supplied already localised; only the unit
+         words differ per language, and a translator may reorder the parts. -->
+    <string name="project_duration_hm">%1$sh %2$sm</string>
+    <string name="project_duration_h">%1$sh</string>
+    <string name="project_duration_m">%1$sm</string>
+
+    <!-- An amount shown next to a different currency, where the symbol alone
+         does not say which currency this row is. -->
+    <string name="project_money_with_code">%1$s %2$s</string>
+    <string name="project_money_label_with_code">%1$s (%2$s)</string>
+
+    <!-- Short forms, for the bottom bar and the narrow card rows only. -->
+    <string name="project_detail_outstanding_short">Outstanding</string>
+    <string name="project_amount_client_total_short">Client total</string>
+
+    <!-- Glossary terms the module needed names for. -->
+    <string name="project_fee">Project fee</string>
+    <string name="project_payment_received">Payment received</string>
+
+    <!-- Accessibility. Label and value are announced as one phrase, so a
+         screen reader does not read a column of numbers with no names. -->
+    <string name="project_a11y_row">%1$s: %2$s</string>
+    <string name="project_a11y_work_status">Project status: %1$s</string>
+    <string name="project_a11y_billing_status">Billing status: %1$s</string>
+    <string name="project_a11y_days_overdue">Overdue by %1$s days</string>
+    <string name="project_a11y_currency">Currency: %1$s</string>
+    <string name="project_a11y_reference">Reference %1$s</string>
+    <string name="project_a11y_budget_used">Hour budget %1$s used</string>
+    <string name="project_a11y_project_card">%1$s, %2$s</string>
+    <string name="project_a11y_error">Error: %1$s</string>
+    <string name="nav_destination_added">%1$s added to navigation</string>
 </resources>

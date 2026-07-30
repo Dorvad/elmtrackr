@@ -7,6 +7,7 @@ import com.elmtrackr.app.domain.model.ProjectWorkStatus
 import com.elmtrackr.app.domain.money.Money
 import com.elmtrackr.app.domain.money.ProjectFee
 import com.elmtrackr.app.domain.money.TaxMode
+import com.elmtrackr.app.domain.text.BidiText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -287,5 +288,36 @@ class ProjectReportCsvTest {
             index++
         }
         return count
+    }
+    // ── Isolate characters never reach a spreadsheet ─────────────────────────
+
+    @Test
+    fun `a bidi isolate in a project name is stripped from the export`() {
+        // Screen text carries invisible isolate controls so that Hebrew and
+        // Latin runs do not reorder. A spreadsheet must not: two cells that look
+        // identical would not compare equal, and a VLOOKUP against the name
+        // typed by hand would silently miss.
+        val csv = ProjectReportCsv.build(
+            report(listOf(project(name = "\u2068Acme\u2069 \u05e4\u05e8\u05d5\u05d9\u05e7\u05d8"))),
+            includeBom = false,
+        )
+
+        assertFalse(BidiText.containsIsolates(csv))
+        assertTrue(csv.contains("Acme \u05e4\u05e8\u05d5\u05d9\u05e7\u05d8"))
+    }
+
+    @Test
+    fun `stripping isolates leaves Hebrew and punctuation intact`() {
+        val name = "\u05e4\u05e8\u05d5\u05d9\u05e7\u05d8 \u05d0\u05e7\u05de\u05d4, 2026-014"
+        val csv = ProjectReportCsv.build(report(listOf(project(name = name))), includeBom = false)
+
+        // The comma is still quoted, the Hebrew is still Hebrew, the reference is
+        // still in order.
+        assertTrue(csv.contains(name))
+    }
+
+    @Test
+    fun `quoting still doubles embedded quotes after stripping`() {
+        assertEquals("\"say \"\"hi\"\"\"", ProjectReportCsv.quote("say \"hi\""))
     }
 }
