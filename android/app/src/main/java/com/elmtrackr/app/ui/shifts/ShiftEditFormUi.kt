@@ -31,9 +31,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -81,7 +78,9 @@ import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.ui.design.AuroraHaptics
+import com.elmtrackr.app.ui.design.ElmChoiceChip
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
 import com.elmtrackr.app.ui.refunds.RefundClaimsSection
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
@@ -729,33 +728,28 @@ private fun ShiftCompensationSourceSection(
 
     FormSectionCard(title = stringResource(R.string.project_edit_source_title)) {
         val sources = listOf(CompensationSource.EMPLOYEE, CompensationSource.PROJECT)
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            sources.forEachIndexed { index, source ->
-                SegmentedButton(
-                    selected = compensationSource == source,
-                    onClick = {
-                        onCompensationSourceChange(source)
-                        if (source.isEmployeePaid) {
-                            onProjectIdChange(null)
-                        } else if (projectId == null) {
-                            onProjectIdChange(selectable.firstOrNull()?.id)
-                        }
-                    },
-                    enabled = source.isEmployeePaid || selectable.isNotEmpty(),
-                    shape = SegmentedButtonDefaults.itemShape(index, sources.size),
-                    label = {
-                        Text(
-                            stringResource(
-                                when (source) {
-                                    CompensationSource.EMPLOYEE -> R.string.project_time_source_hourly
-                                    CompensationSource.PROJECT -> R.string.project_time_source_project
-                                },
-                            ),
-                        )
+        ElmSegmentedPillRow(
+            options = sources.map { source ->
+                stringResource(
+                    when (source) {
+                        CompensationSource.EMPLOYEE -> R.string.project_time_source_hourly
+                        CompensationSource.PROJECT -> R.string.project_time_source_project
                     },
                 )
-            }
-        }
+            },
+            selectedIndex = sources.indexOf(compensationSource).coerceAtLeast(0),
+            enabledOptions = sources.map { it.isEmployeePaid || selectable.isNotEmpty() },
+            onSelect = { index ->
+                val source = sources[index]
+                onCompensationSourceChange(source)
+                if (source.isEmployeePaid) {
+                    onProjectIdChange(null)
+                } else if (projectId == null) {
+                    onProjectIdChange(selectable.firstOrNull()?.id)
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
         Spacer(Modifier.height(6.dp))
         Text(
             stringResource(R.string.project_edit_source_helper),
@@ -788,11 +782,16 @@ private fun ShiftCompensationSourceSection(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     selectable.forEach { project ->
-                        FilterChip(
+                        ElmChoiceChip(
                             selected = projectId == project.id,
                             onClick = { onProjectIdChange(project.id) },
-                            label = { Text(project.name) },
-                        )
+                        ) {
+                            Text(
+                                project.name,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
                     }
                 }
             }

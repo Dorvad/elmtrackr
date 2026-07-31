@@ -51,6 +51,7 @@ import com.elmtrackr.app.ui.components.states.LoadingState
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.AuroraStateCrossfade
 import com.elmtrackr.app.ui.design.ElmChoiceChip
+import com.elmtrackr.app.ui.design.ElmDashedButton
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraSubScreenTransition
 import com.elmtrackr.app.ui.theme.Spacing
@@ -401,8 +402,18 @@ internal fun ProjectsList(
                     subtitle = stringResource(R.string.projects_no_matches_subtitle),
                 )
             }
-            else -> items(state.visibleProjects, key = { it.project.id }) { summary ->
-                ProjectCard(summary = summary, onClick = { onOpen(summary.project.id) })
+            else -> {
+                items(state.visibleProjects, key = { it.project.id }) { summary ->
+                    ProjectCard(summary = summary, onClick = { onOpen(summary.project.id) })
+                }
+                // Quiet add affordance at the end of the list, per the reference
+                // frames — reachable without scrolling back up to the header CTA.
+                item {
+                    ElmDashedButton(
+                        label = stringResource(R.string.projects_add_another),
+                        onClick = onCreate,
+                    )
+                }
             }
         }
 

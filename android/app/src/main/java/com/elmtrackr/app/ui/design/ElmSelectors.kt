@@ -39,6 +39,8 @@ fun ElmSegmentedPillRow(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    /** Per-option enabled flags; null means every option is selectable. */
+    enabledOptions: List<Boolean>? = null,
 ) {
     val haptic = LocalHapticFeedback.current
     Row(
@@ -50,6 +52,7 @@ fun ElmSegmentedPillRow(
     ) {
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
+            val enabled = enabledOptions?.getOrNull(index) ?: true
             val shape = RoundedCornerShape(9.dp)
             Box(
                 modifier = Modifier
@@ -71,6 +74,7 @@ fun ElmSegmentedPillRow(
                     )
                     .selectable(
                         selected = selected,
+                        enabled = enabled,
                         role = Role.RadioButton,
                         onClick = {
                             AuroraHaptics.toggle(haptic)
@@ -81,15 +85,16 @@ fun ElmSegmentedPillRow(
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
+                val ink = if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (selected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                    color = if (enabled) ink else ink.copy(alpha = 0.38f),
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                 )

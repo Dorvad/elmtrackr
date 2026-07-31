@@ -58,6 +58,7 @@
     <string name="projects_search_hint">Search projects or clients</string>
     <string name="projects_search_clear">Clear search</string>
     <string name="projects_create">New project</string>
+    <string name="projects_add_another">Add a project</string>
     <string name="projects_no_matches_title">No projects match</string>
     <string name="projects_no_matches_subtitle">Try a different search or status filter.</string>
     <string name="projects_count">%1$d projects</string>

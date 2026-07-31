@@ -35,9 +35,11 @@ import com.elmtrackr.app.domain.projects.ProjectSummary
 import com.elmtrackr.app.domain.projects.ProjectWorkAction
 import com.elmtrackr.app.domain.projects.ProjectWorkStatusActions
 import com.elmtrackr.app.domain.text.BidiText
+import androidx.compose.ui.graphics.StrokeCap
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmOutlinedButton
 import com.elmtrackr.app.ui.settings.SettingsDetailHeader
+import com.elmtrackr.app.ui.theme.AuroraPeachDeep
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
 
@@ -190,9 +192,15 @@ fun ProjectDetailScreen(
                     )
                     summary.budgetUtilization?.let { used ->
                         Spacer(Modifier.height(Spacing.xs))
+                        // Burn bar per the Aurora reference: rounded on a tinted
+                        // track, and peach once the budget is spent.
                         LinearProgressIndicator(
                             progress = { used.coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxWidth().height(6.dp),
+                            modifier = Modifier.fillMaxWidth().height(8.dp),
+                            color = if (used > 1f) AuroraPeachDeep else MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            strokeCap = StrokeCap.Round,
+                            drawStopIndicator = {},
                         )
                         Spacer(Modifier.height(Spacing.xs))
                         ProjectNoteText(
