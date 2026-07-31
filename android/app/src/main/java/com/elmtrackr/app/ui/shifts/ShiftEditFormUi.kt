@@ -556,7 +556,6 @@ internal fun ShiftEditFormContent(
                         minLines = 3,
                         maxLines = 5,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(CornerRadius.Medium),
                     )
                 }
 

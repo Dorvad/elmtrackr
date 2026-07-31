@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.WorkOutline
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,7 +53,6 @@ import com.elmtrackr.app.ui.design.AuroraStateCrossfade
 import com.elmtrackr.app.ui.design.ElmChoiceChip
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraSubScreenTransition
-import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
 
 /** Where inside the Projects tab the user is. */
@@ -341,7 +339,6 @@ internal fun ProjectsList(
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(stringResource(R.string.projects_search_hint)) },
                 singleLine = true,
-                shape = RoundedCornerShape(CornerRadius.Small),
                 trailingIcon = {
                     if (state.query.isNotEmpty()) {
                         IconButton(onClick = { onQueryChange("") }) {

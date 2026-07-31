@@ -153,7 +153,6 @@ fun ProjectTimeSelector(
                 label = { Text(stringResource(R.string.project_time_note)) },
                 supportingText = { Text(stringResource(R.string.project_time_note_hint)) },
                 singleLine = true,
-                shape = RoundedCornerShape(CornerRadius.Small),
                 modifier = Modifier.fillMaxWidth(),
             )
         }
