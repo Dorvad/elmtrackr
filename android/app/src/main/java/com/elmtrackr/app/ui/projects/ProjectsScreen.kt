@@ -18,7 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.WorkOutline
-import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,8 +51,10 @@ import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.components.states.LoadingState
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.AuroraStateCrossfade
+import com.elmtrackr.app.ui.design.ElmChoiceChip
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraSubScreenTransition
+import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
 
 /** Where inside the Projects tab the user is. */
@@ -339,6 +341,7 @@ internal fun ProjectsList(
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(stringResource(R.string.projects_search_hint)) },
                 singleLine = true,
+                shape = RoundedCornerShape(CornerRadius.Small),
                 trailingIcon = {
                     if (state.query.isNotEmpty()) {
                         IconButton(onClick = { onQueryChange("") }) {
@@ -365,16 +368,16 @@ internal fun ProjectsList(
                     val count = state.counts[filter] ?: 0
                     // Hide empty status views, except the default and the one in use.
                     if (count > 0 || filter == ProjectStatusFilter.ALL || filter == state.filter) {
-                        FilterChip(
+                        ElmChoiceChip(
                             selected = state.filter == filter,
                             onClick = { onFilterChange(filter) },
-                            label = {
-                                Text(
-                                    text = "${stringResource(ProjectLabels.statusFilter(filter))} ($count)",
-                                    style = MaterialTheme.typography.labelMedium,
-                                )
-                            },
-                        )
+                        ) {
+                            Text(
+                                text = "${stringResource(ProjectLabels.statusFilter(filter))} ($count)",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
                     }
                 }
             }

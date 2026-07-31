@@ -3,6 +3,7 @@ package com.elmtrackr.app.ui.projects
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,11 +30,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.projects.ProjectSummary
+import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
 
@@ -56,11 +59,25 @@ fun ProjectCard(
     // open, rather than whichever card now sits in the same list position.
     var expanded by rememberSaveable(project.id) { mutableStateOf(false) }
 
+    // Aurora card chrome — the soft indigo shadow and hairline border ElmCard
+    // draws — replicated here because this card is clickable.
+    val shape = RoundedCornerShape(CornerRadius.Large)
     Card(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().animateContentSize(),
-        shape = RoundedCornerShape(CornerRadius.Large),
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize()
+            .shadow(
+                elevation = 8.dp,
+                shape = shape,
+                clip = false,
+                ambientColor = AuroraIndigo.copy(alpha = 0.05f),
+                spotColor = AuroraIndigo.copy(alpha = 0.34f),
+            )
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(Modifier.padding(Spacing.md)) {
             Row(verticalAlignment = Alignment.Top) {

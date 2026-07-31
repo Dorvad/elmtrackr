@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
@@ -37,6 +36,7 @@ import com.elmtrackr.app.domain.projects.ProjectWorkAction
 import com.elmtrackr.app.domain.projects.ProjectWorkStatusActions
 import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.design.ElmOutlinedButton
 import com.elmtrackr.app.ui.settings.SettingsDetailHeader
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
@@ -312,16 +312,16 @@ fun ProjectDetailScreen(
                 // more being added later.
                 Spacer(Modifier.height(Spacing.sm))
                 if (ProjectBillingCorrection.canRecordBilling(billingRecords)) {
-                    Button(onClick = onRecordBilling, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.project_billing_action))
+                    ElmGradientButton(onClick = onRecordBilling, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.project_billing_action), fontWeight = FontWeight.Bold)
                     }
                 } else {
                     val record = ProjectBillingStatusResolver.activeRecords(billingRecords).first()
                     if (summary.billing.outstanding.isPositive) {
-                        Button(
+                        ElmGradientButton(
                             onClick = { onRecordPayment(record) },
                             modifier = Modifier.fillMaxWidth(),
-                        ) { Text(stringResource(R.string.project_payment_action)) }
+                        ) { Text(stringResource(R.string.project_payment_action), fontWeight = FontWeight.Bold) }
                     }
                     TextButton(
                         onClick = { confirmCancelBilling = record.id },
@@ -371,7 +371,7 @@ fun ProjectDetailScreen(
         item {
             ProjectSectionCard(stringResource(R.string.project_actions_title)) {
                 ProjectWorkStatusActions.available(project.workStatus).forEach { action ->
-                    OutlinedButton(
+                    ElmOutlinedButton(
                         onClick = { onWorkAction(action) },
                         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                     ) { Text(stringResource(ProjectLabels.workAction(action))) }
