@@ -53,6 +53,18 @@
                     android:host="auth" />
             </intent-filter>
 
+            <!-- Paid Projects deep link: elmtrackr://projects
+                 Routed through PaidProjectsNavGuard, which sends it to the
+                 dashboard while the feature is disabled. -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="elmtrackr"
+                    android:host="projects" />
+            </intent-filter>
+
             <!-- App shortcuts: static "New Manual Shift" + dynamic Clock Out while clocked in. -->
             <meta-data
                 android:name="android.app.shortcuts"

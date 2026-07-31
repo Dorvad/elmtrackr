@@ -121,10 +121,17 @@ object IsraeliCompensationEngine {
         premiumProfiles: List<PremiumProfile> = emptyList(),
     ): ShiftPayBreakdown? {
         if (shift.endTime == null) return null
+        // Project time is paid by the project's fee, never as wages.
+        if (!shift.isEmployeePaid) return null
         val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
         val hourlyRate = resolved.baseHourlyRate?.takeIf { it > 0 } ?: return null
         val zone = WorkTimezone.zoneFor(resolved, settings)
-        val weekState = weekStateBeforeShift(shift, allShiftsInWeek, resolved, zone, settings, profiles, premiumProfiles)
+        // Employee-only week context, so project hours cannot consume the weekly
+        // regular-hours allowance and push real work into overtime.
+        val employeeShiftsInWeek = allShiftsInWeek.filter { it.isEmployeePaid }
+        val weekState = weekStateBeforeShift(
+            shift, employeeShiftsInWeek, resolved, zone, settings, profiles, premiumProfiles,
+        )
         val segments = classifyShiftSegments(
             shift = shift,
             weeklyRegularMinutesBefore = weekState.weeklyRegularMinutes,

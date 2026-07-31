@@ -25,7 +25,9 @@ object ReportInsightsBuilder {
         profiles: List<CompensationProfile> = emptyList(),
         premiumProfiles: List<PremiumProfile> = emptyList(),
     ): ReportInsights? {
-        val completed = shifts.filter { it.isCompleted }
+        // Employee-paid only: every figure here is an employee-compensation one —
+        // overtime and weekend shift counts, average and highest pay per shift.
+        val completed = shifts.employeePaidOnly().filter { it.isCompleted }
         if (completed.isEmpty()) return null
 
         val durations = completed.map { ShiftDurationCalculator.netMinutes(it) ?: 0 }

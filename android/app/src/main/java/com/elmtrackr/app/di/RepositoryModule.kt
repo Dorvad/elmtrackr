@@ -3,6 +3,7 @@ package com.elmtrackr.app.di
 import com.elmtrackr.app.data.repository.LocalCompensationProfilesRepository
 import com.elmtrackr.app.data.repository.LocalPremiumProfilesRepository
 import com.elmtrackr.app.data.repository.PremiumProfilesRepository
+import com.elmtrackr.app.data.repository.LocalProjectsRepository
 import com.elmtrackr.app.data.repository.LocalRefundsRepository
 import com.elmtrackr.app.data.repository.LocalReportsRepository
 import com.elmtrackr.app.data.repository.LocalSettingsRepository
@@ -15,6 +16,7 @@ import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.PreferencesCurrentUserProvider
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.RefundsRepository
+import com.elmtrackr.app.domain.repository.ProjectsRepository
 import com.elmtrackr.app.domain.repository.ReportsRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
@@ -49,6 +51,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindTasksRepository(impl: LocalTasksRepository): TasksRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindProjectsRepository(impl: LocalProjectsRepository): ProjectsRepository
 
     @Binds
     @Singleton

@@ -36,9 +36,14 @@ internal fun buildShiftRowDisplay(
 ): ShiftRowDisplayModel {
     val rowWeekdayFmt = DateTimeFormatter.ofPattern("EEE", locale)
     val zdt = shift.startTime.atZone(zone)
-    val weekend = settings?.let { CompensationResolver.isWeekendShift(shift, it, profiles) } == true
+    // Weekend and overtime are pay classifications. Project time is paid by the
+    // project's fee, so neither badge applies to it — and its pay is already null
+    // because PayrollCalculator refuses project shifts.
+    val weekend = shift.isEmployeePaid &&
+        settings?.let { CompensationResolver.isWeekendShift(shift, it, profiles) } == true
     val breakdown = settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it) }
-    val hasOt = (breakdown?.overtimeMinutes ?: 0) > 0 && !shift.isSpecialDay && !weekend
+    val hasOt = shift.isEmployeePaid &&
+        (breakdown?.overtimeMinutes ?: 0) > 0 && !shift.isSpecialDay && !weekend
     val pay = settings?.let {
         PayrollCalculator.calculateShiftPayInContext(
             shift,

@@ -3,6 +3,7 @@ package com.elmtrackr.app.data.local.mapper
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.domain.compensation.CompensationRulesCodec
+import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.Shift
 import java.time.Instant
@@ -26,6 +27,9 @@ fun ShiftEntity.toDomain(): Shift = Shift(
     taskNameSnapshot = taskNameSnapshot,
     taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
+    projectId = projectId,
+    projectNameSnapshot = projectNameSnapshot,
+    compensationSource = CompensationSource.fromPersisted(compensationSource),
     createdAt = Instant.ofEpochMilli(createdAt),
     updatedAt = Instant.ofEpochMilli(updatedAt),
 )
@@ -54,6 +58,9 @@ fun Shift.toEntity(
     taskNameSnapshot = taskNameSnapshot,
     taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
+    projectId = projectId,
+    projectNameSnapshot = projectNameSnapshot,
+    compensationSource = compensationSource.name,
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
     deletedAt = deletedAt,

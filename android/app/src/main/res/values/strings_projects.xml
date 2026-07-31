@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Paid Projects module -->
+    <string name="projects_title">Paid Projects</string>
+    <string name="projects_subtitle">Fixed-price work, the time you put in, and what you have been paid.</string>
+    <string name="projects_empty_title">No projects yet</string>
+    <string name="projects_empty_subtitle">Add your first fixed-price project to track its fee, your hours, and what has been paid.</string>
+    <string name="projects_create_cta">New project</string>
+    <string name="projects_footer_note">ElmTrackr does not create official invoices. You can record a billing reference you issued elsewhere.</string>
+
+    <!-- Feature toggle (Settings → Features) -->
+    <string name="settings_paid_projects">Paid Projects</string>
+    <string name="settings_paid_projects_desc">Track fixed-price projects, time spent, payments, and your effective hourly rate.</string>
+    <string name="settings_feature_paid_projects_short">Paid Projects</string>
+
+    <!-- Dismissible discovery entry for existing users -->
+    <string name="projects_discovery_title">New: Paid Projects</string>
+    <string name="projects_discovery_body">Get paid a fixed price per project? Track the fee, your hours, payments received, and what is still outstanding.</string>
+    <string name="projects_discovery_action">Turn it on</string>
+    <string name="projects_discovery_dismiss">Not now</string>
+    <string name="projects_discovery_dismiss_a11y">Dismiss Paid Projects suggestion</string>
+
+    <!-- Onboarding: the question step -->
+    <string name="onboarding_step_paid_projects">Projects</string>
+    <string name="onboarding_paid_projects_title">Do you also get paid per project?</string>
+    <string name="onboarding_paid_projects_subtitle">Enable project tracking for fixed-price work, billable time, and payment follow-up.</string>
+    <string name="onboarding_paid_projects_yes">Yes, enable Paid Projects</string>
+    <string name="onboarding_paid_projects_yes_desc">Adds a Projects tab. You can turn it off any time in Settings.</string>
+    <string name="onboarding_paid_projects_no">Not now</string>
+    <string name="onboarding_paid_projects_no_desc">Keep the app as it is. Nothing changes.</string>
+
+    <!-- Onboarding: the optional project defaults step -->
+    <string name="onboarding_step_project_defaults">Project defaults</string>
+    <string name="onboarding_project_defaults_title">Project defaults</string>
+    <string name="onboarding_project_defaults_subtitle">Applied to new projects. Everything here is optional and editable later.</string>
+    <string name="onboarding_project_defaults_country">Country or region</string>
+    <string name="onboarding_project_defaults_currency">Default currency</string>
+    <string name="onboarding_project_defaults_tax_section">Tax (optional)</string>
+    <string name="onboarding_project_defaults_tax_label">Tax label</string>
+    <string name="onboarding_project_defaults_tax_label_placeholder">VAT</string>
+    <string name="onboarding_project_defaults_tax_label_helper">What the tax is called on your paperwork.</string>
+    <string name="onboarding_project_defaults_tax_rate">Tax rate (%)</string>
+    <string name="onboarding_project_defaults_tax_rate_helper">Leave empty to keep tax off. You can set a rate later in Settings.</string>
+    <string name="onboarding_project_defaults_tax_rate_error">Enter a rate between 0 and 100, or leave it empty.</string>
+    <string name="onboarding_project_defaults_tax_exclusive">Fee excludes tax</string>
+    <string name="onboarding_project_defaults_tax_exclusive_desc">Tax is added on top of the agreed fee.</string>
+    <string name="onboarding_project_defaults_tax_inclusive">Fee includes tax</string>
+    <string name="onboarding_project_defaults_tax_inclusive_desc">The agreed fee already contains the tax.</string>
+    <string name="onboarding_project_defaults_skip">Skip for now</string>
+    <string name="onboarding_project_defaults_disclaimer">ElmTrackr does not give tax advice and does not issue official invoices. Check the correct rate with your accountant or tax authority.</string>
+
+    <!-- Onboarding review row -->
+    <string name="onboarding_review_paid_projects">Paid Projects</string>
+    <string name="onboarding_review_paid_projects_on">On</string>
+    <string name="onboarding_review_paid_projects_off">Off</string>
+
+    <!-- Projects list -->
+    <string name="projects_search_hint">Search projects or clients</string>
+    <string name="projects_search_clear">Clear search</string>
+    <string name="projects_create">New project</string>
+    <string name="projects_no_matches_title">No projects match</string>
+    <string name="projects_no_matches_subtitle">Try a different search or status filter.</string>
+    <string name="projects_count">%1$d projects</string>
+    <string name="projects_show_more">More detail</string>
+    <string name="projects_show_less">Less detail</string>
+
+    <!-- Work status -->
+    <string name="project_status_draft">Draft</string>
+    <string name="project_status_active">Active</string>
+    <string name="project_status_paused">Paused</string>
+    <string name="project_status_completed">Completed</string>
+    <string name="project_status_cancelled">Cancelled</string>
+    <string name="project_status_archived">Archived</string>
+    <string name="project_filter_all">All</string>
+
+    <!-- Billing status -->
+    <string name="project_billing_not_billed">Not billed</string>
+    <string name="project_billing_billed">Billed</string>
+    <string name="project_billing_partially_paid">Partially paid</string>
+    <string name="project_billing_paid">Paid</string>
+    <string name="project_billing_overdue">Overdue</string>
+
+    <!-- Work status actions -->
+    <string name="project_action_save_draft">Save as draft</string>
+    <string name="project_action_start">Start project</string>
+    <string name="project_action_pause">Pause</string>
+    <string name="project_action_resume">Resume</string>
+    <string name="project_action_complete">Complete</string>
+    <string name="project_action_cancel">Cancel project</string>
+    <string name="project_action_archive">Archive</string>
+    <string name="project_action_unarchive">Restore from archive</string>
+    <string name="project_actions_title">Project status</string>
+    <string name="project_actions_note">Completing a project does not mark it paid, and recording payment does not complete it.</string>
+
+    <!-- Form -->
+    <string name="project_form_new_title">New project</string>
+    <string name="project_form_edit_title">Edit project</string>
+    <string name="project_form_section_basics">Project</string>
+    <string name="project_form_section_amount">Amount</string>
+    <string name="project_form_section_tax">Tax</string>
+    <string name="project_form_section_time">Time and targets</string>
+    <string name="project_form_section_dates">Dates</string>
+    <string name="project_form_section_notes">Notes</string>
+    <string name="project_form_name">Project name</string>
+    <string name="project_form_client">Client name</string>
+    <string name="project_form_description">Description</string>
+    <string name="project_form_notes">Notes</string>
+    <string name="project_form_currency">Currency</string>
+    <string name="project_form_currency_change">Change currency</string>
+    <string name="project_form_currency_note">ElmTrackr does not convert currencies. Payments for this project must be recorded in %1$s.</string>
+    <string name="project_form_currency_search">Search currency code</string>
+    <string name="project_form_entry_mode">Which amount do you know?</string>
+    <string name="project_form_entry_fee">Your fee before tax</string>
+    <string name="project_form_entry_total">Client total</string>
+    <string name="project_form_amount_fee_label">Your fee before tax</string>
+    <string name="project_form_amount_total_label">Client total</string>
+    <string name="project_form_tax_enabled">Add tax to this project</string>
+    <string name="project_form_tax_label">Tax label</string>
+    <string name="project_form_tax_label_hint">VAT</string>
+    <string name="project_form_tax_rate">Tax rate (%)</string>
+    <string name="project_form_tax_note">Your own label and rate. ElmTrackr does not decide which tax applies and gives no tax advice.</string>
+    <string name="project_form_hour_budget">Hour budget</string>
+    <string name="project_form_target_rate">Target hourly rate</string>
+    <string name="project_form_start_date">Start date</string>
+    <string name="project_form_deadline">Deadline</string>
+    <string name="project_form_date_none">Not set</string>
+    <string name="project_form_date_clear">Clear</string>
+    <string name="project_form_save">Save project</string>
+    <string name="project_form_billed_warning">This project has a recorded billing request. Changing the amount updates the project only — the billing request keeps the amount it was billed at. Correct it from the Billing section.</string>
+    <string name="project_form_breakdown_title">Breakdown</string>
+
+    <!-- Amounts -->
+    <string name="project_amount_base">Your fee before tax</string>
+    <string name="project_amount_tax">Tax</string>
+    <string name="project_amount_tax_named">%1$s (%2$s)</string>
+    <string name="project_amount_client_total">Client total</string>
+
+    <!-- Detail -->
+    <string name="project_detail_section_overview">Overview</string>
+    <string name="project_detail_section_time">Time</string>
+    <string name="project_detail_section_billing">Billing</string>
+    <string name="project_detail_section_notes">Notes</string>
+    <string name="project_detail_edit">Edit project</string>
+    <string name="project_detail_client">Client</string>
+    <string name="project_detail_work_status">Work status</string>
+    <string name="project_detail_currency">Currency</string>
+    <string name="project_detail_hours_tracked">Hours tracked</string>
+    <string name="project_detail_hour_budget">Hour budget</string>
+    <string name="project_detail_effective_rate">Effective hourly rate</string>
+    <string name="project_detail_effective_rate_note">Your fee before tax divided by hours tracked. Income tax, expenses and other deductions still apply.</string>
+    <string name="project_detail_target_rate">Target hourly rate</string>
+    <string name="project_detail_deadline">Deadline</string>
+    <string name="project_detail_start_date">Start date</string>
+    <string name="project_detail_completed_on">Completed on</string>
+    <string name="project_detail_billing_status">Billing status</string>
+    <string name="project_detail_total_paid">Total paid</string>
+    <string name="project_detail_outstanding">Outstanding balance</string>
+    <string name="project_detail_credit">Recorded above the billed total</string>
+    <string name="project_detail_billing_reference">External billing reference</string>
+    <string name="project_detail_billed_on">Billed on</string>
+    <string name="project_detail_due_on">Due</string>
+    <string name="project_detail_payments">Payments</string>
+    <string name="project_detail_payment_count">%1$d payments</string>
+    <string name="project_detail_no_billing">No billing request recorded yet.</string>
+    <string name="project_detail_billing_disclaimer">ElmTrackr does not create official invoices. Record a reference from the invoice you issued elsewhere.</string>
+    <string name="project_detail_no_time_yet">No time tracked against this project yet.</string>
+    <string name="project_detail_time_pending">Clock in and pick this project to track time against it.</string>
+    <string name="project_detail_shift_count">%1$d shifts</string>
+    <string name="project_detail_budget_used">%1$s of %2$s used</string>
+    <string name="project_detail_no_description">No description.</string>
+    <string name="project_detail_not_set">Not set</string>
+    <string name="project_detail_no_rate_yet">Track time to see this</string>
+    <string name="project_detail_cancelled_billing">This billing request was cancelled.</string>
+
+    <!-- Delete and archive -->
+    <string name="project_delete">Delete project</string>
+    <string name="project_delete_confirm_title">Delete this project?</string>
+    <string name="project_delete_confirm_text">This draft has no tracked time, billing requests or payments, so it can be removed for good. This cannot be undone.</string>
+    <string name="project_delete_confirm">Delete</string>
+    <string name="project_delete_keep">Keep</string>
+    <string name="project_delete_blocked">This project has tracked time, billing requests or payments. Archive it instead — archived projects stay in your reports.</string>
+
+    <!-- Form errors -->
+    <string name="project_error_required">Required</string>
+    <string name="project_error_not_a_number">Enter a number</string>
+    <string name="project_error_positive">Must be more than zero</string>
+    <string name="project_error_tax_rate">Enter a rate between 0 and 100</string>
+    <string name="project_error_currency">Pick a currency</string>
+    <string name="project_error_deadline">Deadline cannot be before the start date</string>
+
+    <!-- Project time tracking -->
+    <string name="project_time_source_title">What is this time for?</string>
+    <string name="project_time_source_hourly">Hourly work</string>
+    <string name="project_time_source_hourly_desc">Paid as wages. Counts towards overtime and premiums.</string>
+    <string name="project_time_source_project">Project time</string>
+    <string name="project_time_source_project_desc">Tracked against a project fee. Not paid as wages and not counted as overtime.</string>
+    <string name="project_time_pick_project">Project</string>
+    <string name="project_time_pick_project_hint">Pick which project this time belongs to.</string>
+    <string name="project_time_no_projects">No project is open for time tracking. Start or resume a project first.</string>
+    <string name="project_time_note">Note (optional)</string>
+    <string name="project_time_note_hint">What you worked on. Saved with the shift.</string>
+    <string name="project_time_client_currency">%1$s · %2$s</string>
+    <string name="project_time_shift_label">Project time</string>
+    <string name="project_time_shift_label_named">Project time · %1$s</string>
+    <string name="project_time_shift_unpaid_note">Not paid as wages — this time counts towards the project fee.</string>
+
+    <!-- Active project shift -->
+    <string name="project_active_title">Tracking %1$s</string>
+    <string name="project_active_current_rate">Rate so far</string>
+    <string name="project_active_projected_rate">Rate if you stop now</string>
+    <string name="project_active_no_rate">Not enough hours yet</string>
+    <string name="project_active_budget_left">%1$s of budget left</string>
+    <string name="project_active_budget_over">%1$s over budget</string>
+    <string name="project_active_target_left">%1$s left before you drop below %2$s per hour</string>
+    <string name="project_active_target_passed">Already below your %1$s per hour target</string>
+    <string name="project_active_feature_off">Paid Projects is switched off, but this shift is still tracked against %1$s. Clock out as usual — it stays project time, not paid hours.</string>
+    <string name="project_active_feature_off_unknown">Paid Projects is switched off, but this shift is still tracked as project time. Clock out as usual — it will not become paid hours.</string>
+
+    <!-- After a project shift -->
+    <string name="project_shift_done_title">%1$s added to %2$s</string>
+    <string name="project_shift_done_rate">Effective rate is now %1$s per hour</string>
+    <string name="project_shift_done_no_rate">No rate yet — the project fee has not been set.</string>
+    <string name="project_shift_done_view">View project</string>
+    <string name="project_shift_done_dismiss">Dismiss</string>
+
+    <!-- Editing a shift -->
+    <string name="project_edit_source_title">Compensation</string>
+    <string name="project_edit_source_helper">Changing this recalculates the shift. Time counts as wages or as project time, never both.</string>
+    <string name="project_edit_to_project_warning">This shift will no longer be paid as wages, and its hours will leave your overtime and premium totals.</string>
+    <string name="project_edit_to_hourly_warning">This shift will be paid as wages again, and its hours will leave the project.</string>
+
+    <!-- Record billing details -->
+    <string name="project_billing_action">Mark as billed</string>
+    <string name="project_billing_form_title">Record billing details</string>
+    <string name="project_billing_form_subtitle">ElmTrackr does not create official invoices. Record what you billed and the reference from the invoice you issued elsewhere.</string>
+    <string name="project_billing_amount">Amount billed (before tax)</string>
+    <string name="project_billing_amount_helper">Defaults to this project\'s agreed fee. Change it if you billed a different amount.</string>
+    <string name="project_billing_currency">Currency</string>
+    <string name="project_billing_date">Billing date</string>
+    <string name="project_billing_due_date">Due date</string>
+    <string name="project_billing_due_date_helper">Optional. Used for overdue tracking and reminders.</string>
+    <string name="project_billing_reference_label">External billing reference</string>
+    <string name="project_billing_reference_helper">The number from your invoice, receipt book or accounting software.</string>
+    <string name="project_billing_notes">Notes</string>
+    <string name="project_billing_save">Save billing details</string>
+    <string name="project_billing_preview">Client total %1$s</string>
+    <string name="project_billing_error_due_before_billed">Due date cannot be before the billing date</string>
+    <string name="project_billing_already_billed">This project already has a billing record.</string>
+
+    <!-- Billing correction -->
+    <string name="project_billing_correct">Correct billing details</string>
+    <string name="project_billing_cancel_record">Cancel this billing record</string>
+    <string name="project_billing_cancel_confirm_title">Cancel this billing record?</string>
+    <string name="project_billing_cancel_confirm_text">It stays visible as cancelled, and you can record corrected details afterwards.</string>
+    <string name="project_billing_cancel_confirm">Cancel record</string>
+    <string name="project_billing_cancel_keep">Keep it</string>
+    <string name="project_billing_blocked_has_payments">Payments have been recorded against this billing record, so it cannot be replaced. Payment history has to stay as it is. Delete the payments first if they were recorded in error.</string>
+    <string name="project_billing_blocked_cancelled">This billing record is already cancelled.</string>
+    <string name="project_billing_restore">Restore this billing record</string>
+
+    <!-- Record payment -->
+    <string name="project_payment_action">Record payment</string>
+    <string name="project_payment_form_title">Record payment</string>
+    <string name="project_payment_amount">Amount received</string>
+    <string name="project_payment_amount_helper">Outstanding balance is %1$s.</string>
+    <string name="project_payment_date">Payment date</string>
+    <string name="project_payment_method">Payment method</string>
+    <string name="project_payment_reference">Reference</string>
+    <string name="project_payment_notes">Notes</string>
+    <string name="project_payment_save">Save payment</string>
+    <string name="project_payment_method_bank_transfer">Bank transfer</string>
+    <string name="project_payment_method_cash">Cash</string>
+    <string name="project_payment_method_card">Card</string>
+    <string name="project_payment_method_check">Check</string>
+    <string name="project_payment_method_paypal">PayPal</string>
+    <string name="project_payment_method_payment_app">Payment app</string>
+    <string name="project_payment_method_other">Other</string>
+
+    <!-- Payment errors -->
+    <string name="project_payment_error_amount">Enter an amount greater than zero</string>
+    <string name="project_payment_error_negative">A payment cannot be negative</string>
+    <string name="project_payment_error_overpayment">That is more than the %1$s still outstanding. Record %1$s or less.</string>
+    <string name="project_payment_error_currency">This payment is in %1$s but the billing record is in %2$s. ElmTrackr does not convert currencies.</string>
+    <string name="project_payment_error_no_record">Record the billing details before recording a payment.</string>
+
+    <!-- Payment history -->
+    <string name="project_payment_history">Payment history</string>
+    <string name="project_payment_history_empty">No payments recorded yet.</string>
+    <string name="project_payment_row">%1$s · %2$s</string>
+    <string name="project_payment_delete">Delete payment</string>
+    <string name="project_payment_delete_confirm_title">Delete this payment?</string>
+    <string name="project_payment_delete_confirm_text">The outstanding balance and billing status will be recalculated. This cannot be undone.</string>
+    <string name="project_payment_delete_confirm">Delete</string>
+    <string name="project_payment_delete_keep">Keep</string>
+
+    <!-- Overdue -->
+    <string name="project_billing_overdue_days">%1$d days overdue</string>
+    <string name="project_billing_overdue_one_day">1 day overdue</string>
+    <string name="project_billing_due_today">Due today</string>
+    <string name="project_billing_due_in_days">Due in %1$d days</string>
+
+    <!-- Billing reminders -->
+    <string name="project_reminder_upcoming_title">%1$s is due soon</string>
+    <string name="project_reminder_upcoming_text">%1$s outstanding, due %2$s.</string>
+    <string name="project_reminder_due_today_title">%1$s is due today</string>
+    <string name="project_reminder_due_today_text">%1$s outstanding.</string>
+    <string name="project_reminder_overdue_title">%1$s is overdue</string>
+    <string name="project_reminder_overdue_text">%1$s outstanding, due %2$s.</string>
+    <string name="notif_channel_project_billing">Project billing</string>
+    <string name="notif_channel_project_billing_desc">Reminders about project payments that are due or overdue.</string>
+
+    <!-- Dashboard project block -->
+    <string name="project_dash_title">Projects</string>
+    <string name="project_dash_active">%1$d active</string>
+    <string name="project_dash_unbilled">%1$d not billed</string>
+    <string name="project_dash_outstanding">Outstanding balance</string>
+    <string name="project_dash_overdue">Overdue</string>
+    <string name="project_dash_received">Project payments received</string>
+    <string name="project_dash_received_period">This month</string>
+    <string name="project_dash_tax_collected">Tax collected</string>
+    <string name="project_dash_revenue_before_tax">Project revenue before tax</string>
+    <string name="project_dash_attention">%1$d need attention</string>
+    <string name="project_dash_open">View projects</string>
+    <string name="project_dash_basis_note">Hourly earnings are the value of work performed this month. Project payments are cash received this month. They are not added together because they measure different things.</string>
+
+    <!-- Accounting basis labels -->
+    <string name="project_basis_hourly">Hourly earnings</string>
+    <string name="project_basis_hourly_desc">Value of hourly work performed in this period.</string>
+    <string name="project_basis_received">Project payments received</string>
+    <string name="project_basis_received_desc">Project payments that arrived in this period.</string>
+    <string name="project_basis_work_performed">Work performed</string>
+    <string name="project_basis_billed">Amount billed</string>
+    <string name="project_basis_cash">Cash received</string>
+    <string name="project_basis_tax">Tax collected</string>
+    <string name="project_basis_outstanding">Outstanding</string>
+
+    <!-- Project health -->
+    <string name="project_health_on_track">On track</string>
+    <string name="project_health_on_track_why">Nothing needs attention.</string>
+    <string name="project_health_near_budget">Near hour budget</string>
+    <string name="project_health_near_budget_why">%1$d%% of the hour budget used.</string>
+    <string name="project_health_over_budget">Over hour budget</string>
+    <string name="project_health_over_budget_why">%1$s past the hour budget.</string>
+    <string name="project_health_rate_below">Effective rate below target</string>
+    <string name="project_health_rate_below_why">%1$s per hour below your target.</string>
+    <string name="project_health_due_soon">Payment due soon</string>
+    <string name="project_health_due_soon_why">%1$s due in %2$d days.</string>
+    <string name="project_health_overdue">Payment overdue</string>
+    <string name="project_health_overdue_why">%1$s overdue by %2$d days.</string>
+    <string name="project_health_not_billed">Completed but not billed</string>
+    <string name="project_health_not_billed_why">The work is finished and nothing has been billed.</string>
+
+    <!-- Project report -->
+    <string name="project_report_title">Project report</string>
+    <string name="project_report_empty">No projects match these filters.</string>
+    <string name="project_report_section_time">Project time</string>
+    <string name="project_report_section_value">Project value</string>
+    <string name="project_report_section_efficiency">Revenue efficiency</string>
+    <string name="project_report_tracked_hours">Tracked hours</string>
+    <string name="project_report_active_days">Active days</string>
+    <string name="project_report_average">Average per project</string>
+    <string name="project_report_over_budget">Hours above budget</string>
+    <string name="project_report_contracted">Contracted base fees</string>
+    <string name="project_report_client_totals">Client totals</string>
+    <string name="project_report_tax">Tax</string>
+    <string name="project_report_billed">Billed</string>
+    <string name="project_report_paid">Paid</string>
+    <string name="project_report_outstanding">Outstanding balance</string>
+    <string name="project_report_value_per_hour">Project value per hour</string>
+    <string name="project_report_efficiency_note">Project value per hour is the agreed fee before tax divided by hours worked. Expenses are not tracked, so this is not net profit.</string>
+    <string name="project_report_currency_note">Amounts are grouped by currency. ElmTrackr does not convert between currencies.</string>
+    <string name="project_report_export">Export projects CSV</string>
+
+    <!-- Report filters -->
+    <string name="project_filter_title">Filters</string>
+    <string name="project_filter_from">From</string>
+    <string name="project_filter_to">To</string>
+    <string name="project_filter_project">Project</string>
+    <string name="project_filter_client">Client</string>
+    <string name="project_filter_work_status">Work status</string>
+    <string name="project_filter_billing_status">Billing status</string>
+    <string name="project_filter_currency">Currency</string>
+    <string name="project_filter_any">Any</string>
+    <string name="project_filter_include_archived">Include archived</string>
+    <string name="project_filter_clear">Clear filters</string>
+    <!-- Prompt 7: internationalisation and accessibility -->
+
+    <!-- Durations. The numeral is supplied already localised; only the unit
+         words differ per language, and a translator may reorder the parts. -->
+    <string name="project_duration_hm">%1$sh %2$sm</string>
+    <string name="project_duration_h">%1$sh</string>
+    <string name="project_duration_m">%1$sm</string>
+
+    <!-- An amount shown next to a different currency, where the symbol alone
+         does not say which currency this row is. -->
+    <string name="project_money_with_code">%1$s %2$s</string>
+    <string name="project_money_label_with_code">%1$s (%2$s)</string>
+
+    <!-- Short forms, for the bottom bar and the narrow card rows only. -->
+    <string name="project_detail_outstanding_short">Outstanding</string>
+    <string name="project_amount_client_total_short">Client total</string>
+
+    <!-- Glossary terms the module needed names for. -->
+    <string name="project_fee">Project fee</string>
+    <string name="project_payment_received">Payment received</string>
+
+    <!-- Accessibility. Label and value are announced as one phrase, so a
+         screen reader does not read a column of numbers with no names. -->
+    <string name="project_a11y_row">%1$s: %2$s</string>
+    <string name="project_a11y_work_status">Project status: %1$s</string>
+    <string name="project_a11y_billing_status">Billing status: %1$s</string>
+    <string name="project_a11y_days_overdue">Overdue by %1$s days</string>
+    <string name="project_a11y_currency">Currency: %1$s</string>
+    <string name="project_a11y_reference">Reference %1$s</string>
+    <string name="project_a11y_budget_used">Hour budget %1$s used</string>
+    <string name="project_a11y_project_card">%1$s, %2$s</string>
+    <string name="project_a11y_error">Error: %1$s</string>
+    <string name="nav_destination_added">%1$s added to navigation</string>
+
+    <!-- Prompt 8: lock-screen redaction. Named the project, never the amount. -->
+    <string name="project_reminder_public_text">Payment due</string>
+</resources>

@@ -109,13 +109,44 @@ class OnboardingViewModel @Inject constructor(
                 settingsRepository.saveSettings(
                     source.copy(
                         featuresTravelRefunds = input.featuresTravelRefunds,
-                        // The wizard has no steps for these three, so a replay
-                        // must not silently reset the user's existing choices
-                        // (e.g. a custom clock face) to the wizard defaults.
-                        featuresPaidProjects = if (input.preserveExisting) base.featuresPaidProjects else input.featuresPaidProjects,
+                        // The wizard now has an explicit Paid Projects step and
+                        // seeds it from stored settings on replay, so the answer
+                        // is always the user's own — guarding it behind
+                        // preserveExisting would make the step a no-op on replay.
+                        featuresPaidProjects = input.featuresPaidProjects,
                         featuresInsights = input.featuresInsights,
+                        // Still no wizard steps for these two, so a replay must
+                        // not silently reset the user's existing choices (e.g. a
+                        // custom clock face) to the wizard defaults.
                         featuresClockStyles = if (input.preserveExisting) base.featuresClockStyles else input.featuresClockStyles,
                         clockStyle = if (input.preserveExisting) base.clockStyle else input.clockStyle,
+                        // Only written while the module is on, so declining
+                        // Paid Projects cannot wipe defaults saved earlier.
+                        projectsDefaultRegionCode = if (input.featuresPaidProjects) {
+                            input.projectsDefaultRegionCode
+                        } else {
+                            base.projectsDefaultRegionCode
+                        },
+                        projectsDefaultCurrencyCode = if (input.featuresPaidProjects) {
+                            input.projectsDefaultCurrencyCode
+                        } else {
+                            base.projectsDefaultCurrencyCode
+                        },
+                        projectsTaxLabel = if (input.featuresPaidProjects) {
+                            input.projectsTaxLabel
+                        } else {
+                            base.projectsTaxLabel
+                        },
+                        projectsTaxRateBasisPoints = if (input.featuresPaidProjects) {
+                            input.projectsTaxRateBasisPoints
+                        } else {
+                            base.projectsTaxRateBasisPoints
+                        },
+                        projectsTaxInclusive = if (input.featuresPaidProjects) {
+                            input.projectsTaxInclusive
+                        } else {
+                            base.projectsTaxInclusive
+                        },
                         onboardingCompleted = true,
                         onboardingCompletedAt = Instant.now(),
                         updatedAt = Instant.now(),

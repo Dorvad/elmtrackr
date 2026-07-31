@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Paid Projects module -->
+    <string name="projects_title">פרויקטים בתשלום</string>
+    <string name="projects_subtitle">עבודה במחיר קבוע, השעות שהשקעתם ומה שכבר שולם.</string>
+    <string name="projects_empty_title">אין עדיין פרויקטים</string>
+    <string name="projects_empty_subtitle">הוסיפו פרויקט ראשון במחיר קבוע כדי לעקוב אחרי התמורה, השעות ומה שכבר שולם.</string>
+    <string name="projects_create_cta">פרויקט חדש</string>
+    <string name="projects_footer_note">ElmTrackr אינו מפיק חשבוניות רשמיות. ניתן לתעד אסמכתא לחיוב שהופקה במקום אחר.</string>
+
+    <!-- Feature toggle (Settings → Features) -->
+    <string name="settings_paid_projects">פרויקטים בתשלום</string>
+    <string name="settings_paid_projects_desc">מעקב אחר פרויקטים במחיר קבוע, שעות עבודה, תשלומים והשכר האפקטיבי לשעה.</string>
+    <string name="settings_feature_paid_projects_short">פרויקטים בתשלום</string>
+
+    <!-- Dismissible discovery entry for existing users -->
+    <string name="projects_discovery_title">חדש: פרויקטים בתשלום</string>
+    <string name="projects_discovery_body">מקבלים מחיר קבוע לפרויקט? עקבו אחרי התמורה, השעות, התשלומים שהתקבלו ומה שנותר לגבות.</string>
+    <string name="projects_discovery_action">הפעלה</string>
+    <string name="projects_discovery_dismiss">לא כרגע</string>
+    <string name="projects_discovery_dismiss_a11y">הסתרת ההצעה לפרויקטים בתשלום</string>
+
+    <!-- Onboarding: the question step -->
+    <string name="onboarding_step_paid_projects">פרויקטים</string>
+    <string name="onboarding_paid_projects_title">מקבלים תשלום גם לפי פרויקט?</string>
+    <string name="onboarding_paid_projects_subtitle">הפעילו מעקב אחר פרויקטים במחיר קבוע, שעות עבודה ותשלומים.</string>
+    <string name="onboarding_paid_projects_yes">כן, להפעיל פרויקטים בתשלום</string>
+    <string name="onboarding_paid_projects_yes_desc">מוסיף טאב פרויקטים. אפשר לכבות בכל רגע בהגדרות.</string>
+    <string name="onboarding_paid_projects_no">לא כרגע</string>
+    <string name="onboarding_paid_projects_no_desc">האפליקציה נשארת כמו שהיא. שום דבר לא משתנה.</string>
+
+    <!-- Onboarding: the optional project defaults step -->
+    <string name="onboarding_step_project_defaults">ברירת מחדל לפרויקט</string>
+    <string name="onboarding_project_defaults_title">ברירות מחדל לפרויקטים</string>
+    <string name="onboarding_project_defaults_subtitle">יחולו על פרויקטים חדשים. כל השדות אופציונליים וניתנים לשינוי בהמשך.</string>
+    <string name="onboarding_project_defaults_country">מדינה או אזור</string>
+    <string name="onboarding_project_defaults_currency">מטבע ברירת מחדל</string>
+    <string name="onboarding_project_defaults_tax_section">מס (אופציונלי)</string>
+    <string name="onboarding_project_defaults_tax_label">שם המס</string>
+    <string name="onboarding_project_defaults_tax_label_placeholder">מע״מ</string>
+    <string name="onboarding_project_defaults_tax_label_helper">איך המס נקרא במסמכים שלכם.</string>
+    <string name="onboarding_project_defaults_tax_rate">שיעור המס (%)</string>
+    <string name="onboarding_project_defaults_tax_rate_helper">השארת השדה ריק תשאיר את המס כבוי. אפשר להגדיר שיעור בהמשך בהגדרות.</string>
+    <string name="onboarding_project_defaults_tax_rate_error">הזינו שיעור בין 0 ל-100, או השאירו ריק.</string>
+    <string name="onboarding_project_defaults_tax_exclusive">התמורה ללא מס</string>
+    <string name="onboarding_project_defaults_tax_exclusive_desc">המס מתווסף מעל התמורה שהוסכמה.</string>
+    <string name="onboarding_project_defaults_tax_inclusive">התמורה כוללת מס</string>
+    <string name="onboarding_project_defaults_tax_inclusive_desc">התמורה שהוסכמה כבר כוללת את המס.</string>
+    <string name="onboarding_project_defaults_skip">לדלג לעכשיו</string>
+    <string name="onboarding_project_defaults_disclaimer">ElmTrackr אינו מספק ייעוץ מס ואינו מפיק חשבוניות רשמיות. בדקו את השיעור הנכון עם רואה החשבון או רשות המסים.</string>
+
+    <!-- Onboarding review row -->
+    <string name="onboarding_review_paid_projects">פרויקטים בתשלום</string>
+    <string name="onboarding_review_paid_projects_on">פעיל</string>
+    <string name="onboarding_review_paid_projects_off">כבוי</string>
+
+    <!-- Projects list -->
+    <string name="projects_search_hint">חיפוש פרויקטים או לקוחות</string>
+    <string name="projects_search_clear">ניקוי החיפוש</string>
+    <string name="projects_create">פרויקט חדש</string>
+    <string name="projects_no_matches_title">אין פרויקטים מתאימים</string>
+    <string name="projects_no_matches_subtitle">נסו חיפוש אחר או סינון אחר לפי סטטוס.</string>
+    <string name="projects_count">%1$d פרויקטים</string>
+    <string name="projects_show_more">עוד פרטים</string>
+    <string name="projects_show_less">פחות פרטים</string>
+
+    <!-- Work status -->
+    <string name="project_status_draft">טיוטה</string>
+    <string name="project_status_active">פעיל</string>
+    <string name="project_status_paused">מושהה</string>
+    <string name="project_status_completed">הושלם</string>
+    <string name="project_status_cancelled">בוטל</string>
+    <string name="project_status_archived">בארכיון</string>
+    <string name="project_filter_all">הכול</string>
+
+    <!-- Billing status -->
+    <string name="project_billing_not_billed">לא חויב</string>
+    <string name="project_billing_billed">חויב</string>
+    <string name="project_billing_partially_paid">שולם חלקית</string>
+    <string name="project_billing_paid">שולם</string>
+    <string name="project_billing_overdue">בפיגור</string>
+
+    <!-- Work status actions -->
+    <string name="project_action_save_draft">שמירה כטיוטה</string>
+    <string name="project_action_start">התחלת הפרויקט</string>
+    <string name="project_action_pause">השהיה</string>
+    <string name="project_action_resume">חזרה לעבודה</string>
+    <string name="project_action_complete">סיום</string>
+    <string name="project_action_cancel">ביטול הפרויקט</string>
+    <string name="project_action_archive">העברה לארכיון</string>
+    <string name="project_action_unarchive">שחזור מהארכיון</string>
+    <string name="project_actions_title">סטטוס הפרויקט</string>
+    <string name="project_actions_note">סיום פרויקט אינו מסמן אותו כמשולם, ורישום תשלום אינו מסיים אותו.</string>
+
+    <!-- Form -->
+    <string name="project_form_new_title">פרויקט חדש</string>
+    <string name="project_form_edit_title">עריכת פרויקט</string>
+    <string name="project_form_section_basics">פרויקט</string>
+    <string name="project_form_section_amount">סכום</string>
+    <string name="project_form_section_tax">מס</string>
+    <string name="project_form_section_time">שעות ויעדים</string>
+    <string name="project_form_section_dates">תאריכים</string>
+    <string name="project_form_section_notes">הערות</string>
+    <string name="project_form_name">שם הפרויקט</string>
+    <string name="project_form_client">שם הלקוח</string>
+    <string name="project_form_description">תיאור</string>
+    <string name="project_form_notes">הערות</string>
+    <string name="project_form_currency">מטבע</string>
+    <string name="project_form_currency_change">שינוי מטבע</string>
+    <string name="project_form_currency_note">ElmTrackr אינו מבצע המרות מטבע. תשלומים לפרויקט הזה יירשמו ב-%1$s.</string>
+    <string name="project_form_currency_search">חיפוש קוד מטבע</string>
+    <string name="project_form_entry_mode">איזה סכום ידוע לכם?</string>
+    <string name="project_form_entry_fee">התשלום לפני מס</string>
+    <string name="project_form_entry_total">סה״כ לתשלום על ידי הלקוח</string>
+    <string name="project_form_amount_fee_label">התשלום לפני מס</string>
+    <string name="project_form_amount_total_label">סה״כ לתשלום על ידי הלקוח</string>
+    <string name="project_form_tax_enabled">הוספת מס לפרויקט</string>
+    <string name="project_form_tax_label">שם המס</string>
+    <string name="project_form_tax_label_hint">מע״מ</string>
+    <string name="project_form_tax_rate">שיעור המס (%)</string>
+    <string name="project_form_tax_note">השם והשיעור הם שלכם. ElmTrackr אינו קובע איזה מס חל ואינו מספק ייעוץ מס.</string>
+    <string name="project_form_hour_budget">תקציב שעות</string>
+    <string name="project_form_target_rate">שכר יעד לשעה</string>
+    <string name="project_form_start_date">תאריך התחלה</string>
+    <string name="project_form_deadline">תאריך יעד</string>
+    <string name="project_form_date_none">לא הוגדר</string>
+    <string name="project_form_date_clear">ניקוי</string>
+    <string name="project_form_save">שמירת הפרויקט</string>
+    <string name="project_form_billed_warning">לפרויקט הזה קיימת דרישת חיוב מתועדת. שינוי הסכום מעדכן את הפרויקט בלבד — דרישת החיוב נשארת בסכום שבו חויבה. לתיקון, היכנסו למקטע החיוב.</string>
+    <string name="project_form_breakdown_title">פירוט</string>
+
+    <!-- Amounts -->
+    <string name="project_amount_base">התשלום לפני מס</string>
+    <string name="project_amount_tax">מס</string>
+    <string name="project_amount_tax_named">%1$s (%2$s)</string>
+    <string name="project_amount_client_total">סה״כ לתשלום על ידי הלקוח</string>
+
+    <!-- Detail -->
+    <string name="project_detail_section_overview">סקירה</string>
+    <string name="project_detail_section_time">שעות</string>
+    <string name="project_detail_section_billing">חיוב</string>
+    <string name="project_detail_section_notes">הערות</string>
+    <string name="project_detail_edit">עריכת הפרויקט</string>
+    <string name="project_detail_client">לקוח</string>
+    <string name="project_detail_work_status">סטטוס העבודה</string>
+    <string name="project_detail_currency">מטבע</string>
+    <string name="project_detail_hours_tracked">שעות שנרשמו</string>
+    <string name="project_detail_hour_budget">תקציב שעות</string>
+    <string name="project_detail_effective_rate">שכר אפקטיבי לשעה</string>
+    <string name="project_detail_effective_rate_note">התמורה לפני מס חלקי השעות שנרשמו. מס הכנסה, הוצאות וניכויים אחרים עדיין חלים.</string>
+    <string name="project_detail_target_rate">שכר יעד לשעה</string>
+    <string name="project_detail_deadline">תאריך יעד</string>
+    <string name="project_detail_start_date">תאריך התחלה</string>
+    <string name="project_detail_completed_on">הושלם בתאריך</string>
+    <string name="project_detail_billing_status">סטטוס החיוב</string>
+    <string name="project_detail_total_paid">סך התשלומים</string>
+    <string name="project_detail_outstanding">יתרה לתשלום</string>
+    <string name="project_detail_credit">נרשם מעל סכום החיוב</string>
+    <string name="project_detail_billing_reference">אסמכתת חיוב חיצונית</string>
+    <string name="project_detail_billed_on">תאריך החיוב</string>
+    <string name="project_detail_due_on">מועד לתשלום</string>
+    <string name="project_detail_payments">תשלומים</string>
+    <string name="project_detail_payment_count">%1$d תשלומים</string>
+    <string name="project_detail_no_billing">עוד לא תועדה דרישת חיוב.</string>
+    <string name="project_detail_billing_disclaimer">ElmTrackr אינו מפיק חשבוניות רשמיות. תעדו אסמכתא מהחשבונית שהפקתם במקום אחר.</string>
+    <string name="project_detail_no_time_yet">עוד לא נרשמו שעות לפרויקט הזה.</string>
+    <string name="project_detail_time_pending">התחילו משמרת ובחרו את הפרויקט הזה כדי לרשום לו שעות.</string>
+    <string name="project_detail_shift_count">%1$d משמרות</string>
+    <string name="project_detail_budget_used">%1$s מתוך %2$s נוצלו</string>
+    <string name="project_detail_no_description">אין תיאור.</string>
+    <string name="project_detail_not_set">לא הוגדר</string>
+    <string name="project_detail_no_rate_yet">רשמו שעות כדי לראות</string>
+    <string name="project_detail_cancelled_billing">דרישת החיוב הזו בוטלה.</string>
+
+    <!-- Delete and archive -->
+    <string name="project_delete">מחיקת הפרויקט</string>
+    <string name="project_delete_confirm_title">למחוק את הפרויקט?</string>
+    <string name="project_delete_confirm_text">בטיוטה הזו אין שעות, דרישות חיוב או תשלומים, ולכן אפשר למחוק אותה לגמרי. לא ניתן לשחזר.</string>
+    <string name="project_delete_confirm">מחיקה</string>
+    <string name="project_delete_keep">השארה</string>
+    <string name="project_delete_blocked">לפרויקט הזה יש שעות, דרישות חיוב או תשלומים. העבירו אותו לארכיון — פרויקטים בארכיון נשארים בדוחות.</string>
+
+    <!-- Form errors -->
+    <string name="project_error_required">שדה חובה</string>
+    <string name="project_error_not_a_number">הזינו מספר</string>
+    <string name="project_error_positive">חייב להיות גדול מאפס</string>
+    <string name="project_error_tax_rate">הזינו שיעור בין 0 ל-100</string>
+    <string name="project_error_currency">בחרו מטבע</string>
+    <string name="project_error_deadline">תאריך היעד לא יכול להיות לפני תאריך ההתחלה</string>
+
+    <!-- Project time tracking -->
+    <string name="project_time_source_title">למה השעות האלה?</string>
+    <string name="project_time_source_hourly">עבודה שעתית</string>
+    <string name="project_time_source_hourly_desc">משולמת כשכר. נכללת בשעות נוספות ובתוספות.</string>
+    <string name="project_time_source_project">שעות פרויקט</string>
+    <string name="project_time_source_project_desc">נרשמות מול שכר הפרויקט. לא משולמות כשכר ולא נחשבות שעות נוספות.</string>
+    <string name="project_time_pick_project">פרויקט</string>
+    <string name="project_time_pick_project_hint">בחרו לאיזה פרויקט השעות שייכות.</string>
+    <string name="project_time_no_projects">אין פרויקט פתוח לרישום שעות. התחילו או חדשו פרויקט קודם.</string>
+    <string name="project_time_note">הערה (לא חובה)</string>
+    <string name="project_time_note_hint">על מה עבדתם. נשמר עם המשמרת.</string>
+    <string name="project_time_client_currency">%1$s · %2$s</string>
+    <string name="project_time_shift_label">שעות פרויקט</string>
+    <string name="project_time_shift_label_named">שעות פרויקט · %1$s</string>
+    <string name="project_time_shift_unpaid_note">לא משולם כשכר — השעות האלה נכללות בשכר הפרויקט.</string>
+
+    <!-- Active project shift -->
+    <string name="project_active_title">רושמים שעות ל%1$s</string>
+    <string name="project_active_current_rate">תעריף עד כה</string>
+    <string name="project_active_projected_rate">תעריף אם תסיימו עכשיו</string>
+    <string name="project_active_no_rate">עוד אין מספיק שעות</string>
+    <string name="project_active_budget_left">נשארו %1$s מהמסגרת</string>
+    <string name="project_active_budget_over">%1$s מעל המסגרת</string>
+    <string name="project_active_target_left">נשארו %1$s עד שתרדו מ-%2$s לשעה</string>
+    <string name="project_active_target_passed">כבר מתחת ליעד של %1$s לשעה</string>
+    <string name="project_active_feature_off">פרויקטים בתשלום כובו, אבל המשמרת הזו עדיין נרשמת ל%1$s. סיימו כרגיל — היא נשארת שעות פרויקט ולא הופכת לשעות בתשלום.</string>
+    <string name="project_active_feature_off_unknown">פרויקטים בתשלום כובו, אבל המשמרת הזו עדיין נרשמת כשעות פרויקט. סיימו כרגיל — היא לא תהפוך לשעות בתשלום.</string>
+
+    <!-- After a project shift -->
+    <string name="project_shift_done_title">%1$s נוספו ל%2$s</string>
+    <string name="project_shift_done_rate">התעריף בפועל הוא כעת %1$s לשעה</string>
+    <string name="project_shift_done_no_rate">עוד אין תעריף — שכר הפרויקט לא הוגדר.</string>
+    <string name="project_shift_done_view">מעבר לפרויקט</string>
+    <string name="project_shift_done_dismiss">סגירה</string>
+
+    <!-- Editing a shift -->
+    <string name="project_edit_source_title">תגמול</string>
+    <string name="project_edit_source_helper">שינוי כאן מחשב את המשמרת מחדש. שעות נחשבות כשכר או כשעות פרויקט, לעולם לא כשניהם.</string>
+    <string name="project_edit_to_project_warning">המשמרת הזו לא תשולם יותר כשכר, והשעות שלה ייצאו מסך השעות הנוספות והתוספות.</string>
+    <string name="project_edit_to_hourly_warning">המשמרת הזו תשולם שוב כשכר, והשעות שלה ייצאו מהפרויקט.</string>
+
+    <!-- Record billing details -->
+    <string name="project_billing_action">סימון כחויב</string>
+    <string name="project_billing_form_title">תיעוד פרטי חיוב</string>
+    <string name="project_billing_form_subtitle">ElmTrackr אינו מפיק חשבוניות רשמיות. תעדו מה חייבתם ואת האסמכתא מהחשבונית שהפקתם במקום אחר.</string>
+    <string name="project_billing_amount">סכום החיוב (לפני מס)</string>
+    <string name="project_billing_amount_helper">ברירת המחדל היא השכר שהוסכם לפרויקט. שנו אם חייבתם סכום אחר.</string>
+    <string name="project_billing_currency">מטבע</string>
+    <string name="project_billing_date">תאריך החיוב</string>
+    <string name="project_billing_due_date">תאריך לתשלום</string>
+    <string name="project_billing_due_date_helper">לא חובה. משמש למעקב פיגורים ולתזכורות.</string>
+    <string name="project_billing_reference_label">אסמכתת חיוב חיצונית</string>
+    <string name="project_billing_reference_helper">המספר מהחשבונית, מפנקס הקבלות או מתוכנת ההנהלת חשבונות.</string>
+    <string name="project_billing_notes">הערות</string>
+    <string name="project_billing_save">שמירת פרטי החיוב</string>
+    <string name="project_billing_preview">סה"כ ללקוח %1$s</string>
+    <string name="project_billing_error_due_before_billed">תאריך התשלום לא יכול להיות לפני תאריך החיוב</string>
+    <string name="project_billing_already_billed">לפרויקט הזה יש כבר רשומת חיוב.</string>
+
+    <!-- Billing correction -->
+    <string name="project_billing_correct">תיקון פרטי החיוב</string>
+    <string name="project_billing_cancel_record">ביטול רשומת החיוב</string>
+    <string name="project_billing_cancel_confirm_title">לבטל את רשומת החיוב?</string>
+    <string name="project_billing_cancel_confirm_text">היא תישאר גלויה כמבוטלת, ותוכלו לתעד פרטים מתוקנים לאחר מכן.</string>
+    <string name="project_billing_cancel_confirm">ביטול הרשומה</string>
+    <string name="project_billing_cancel_keep">להשאיר</string>
+    <string name="project_billing_blocked_has_payments">תועדו תשלומים מול רשומת החיוב הזו, ולכן לא ניתן להחליף אותה. היסטוריית התשלומים חייבת להישאר כפי שהיא. מחקו קודם את התשלומים אם תועדו בטעות.</string>
+    <string name="project_billing_blocked_cancelled">רשומת החיוב הזו כבר מבוטלת.</string>
+    <string name="project_billing_restore">שחזור רשומת החיוב</string>
+
+    <!-- Record payment -->
+    <string name="project_payment_action">תיעוד תשלום</string>
+    <string name="project_payment_form_title">תיעוד תשלום</string>
+    <string name="project_payment_amount">הסכום שהתקבל</string>
+    <string name="project_payment_amount_helper">היתרה לתשלום היא %1$s.</string>
+    <string name="project_payment_date">תאריך התשלום</string>
+    <string name="project_payment_method">אמצעי תשלום</string>
+    <string name="project_payment_reference">אסמכתא</string>
+    <string name="project_payment_notes">הערות</string>
+    <string name="project_payment_save">שמירת התשלום</string>
+    <string name="project_payment_method_bank_transfer">העברה בנקאית</string>
+    <string name="project_payment_method_cash">מזומן</string>
+    <string name="project_payment_method_card">כרטיס</string>
+    <string name="project_payment_method_check">צ\'ק</string>
+    <string name="project_payment_method_paypal">PayPal</string>
+    <string name="project_payment_method_payment_app">אפליקציית תשלום</string>
+    <string name="project_payment_method_other">אחר</string>
+
+    <!-- Payment errors -->
+    <string name="project_payment_error_amount">הזינו סכום גדול מאפס</string>
+    <string name="project_payment_error_negative">תשלום לא יכול להיות שלילי</string>
+    <string name="project_payment_error_overpayment">זה יותר מ-%1$s שנותרו לתשלום. תעדו %1$s או פחות.</string>
+    <string name="project_payment_error_currency">התשלום הזה ב-%1$s ורשומת החיוב ב-%2$s. ElmTrackr אינו מבצע המרות מטבע.</string>
+    <string name="project_payment_error_no_record">תעדו את פרטי החיוב לפני תיעוד תשלום.</string>
+
+    <!-- Payment history -->
+    <string name="project_payment_history">היסטוריית תשלומים</string>
+    <string name="project_payment_history_empty">עוד לא תועדו תשלומים.</string>
+    <string name="project_payment_row">%1$s · %2$s</string>
+    <string name="project_payment_delete">מחיקת התשלום</string>
+    <string name="project_payment_delete_confirm_title">למחוק את התשלום?</string>
+    <string name="project_payment_delete_confirm_text">היתרה לתשלום ומצב החיוב יחושבו מחדש. לא ניתן לשחזר.</string>
+    <string name="project_payment_delete_confirm">מחיקה</string>
+    <string name="project_payment_delete_keep">להשאיר</string>
+
+    <!-- Overdue -->
+    <string name="project_billing_overdue_days">בפיגור של %1$d ימים</string>
+    <string name="project_billing_overdue_one_day">בפיגור של יום</string>
+    <string name="project_billing_due_today">לתשלום היום</string>
+    <string name="project_billing_due_in_days">לתשלום בעוד %1$d ימים</string>
+
+    <!-- Billing reminders -->
+    <string name="project_reminder_upcoming_title">%1$s לתשלום בקרוב</string>
+    <string name="project_reminder_upcoming_text">%1$s לתשלום, עד %2$s.</string>
+    <string name="project_reminder_due_today_title">%1$s לתשלום היום</string>
+    <string name="project_reminder_due_today_text">%1$s לתשלום.</string>
+    <string name="project_reminder_overdue_title">%1$s בפיגור</string>
+    <string name="project_reminder_overdue_text">%1$s לתשלום, היה עד %2$s.</string>
+    <string name="notif_channel_project_billing">חיוב פרויקטים</string>
+    <string name="notif_channel_project_billing_desc">תזכורות על תשלומי פרויקטים שמועד פירעונם הגיע או חלף.</string>
+
+    <!-- Dashboard project block -->
+    <string name="project_dash_title">פרויקטים</string>
+    <string name="project_dash_active">%1$d פעילים</string>
+    <string name="project_dash_unbilled">%1$d לא חויבו</string>
+    <string name="project_dash_outstanding">יתרה לתשלום</string>
+    <string name="project_dash_overdue">בפיגור</string>
+    <string name="project_dash_received">תשלומי פרויקטים שהתקבלו</string>
+    <string name="project_dash_received_period">החודש</string>
+    <string name="project_dash_tax_collected">מס שנאסף</string>
+    <string name="project_dash_revenue_before_tax">הכנסה מפרויקטים לפני מס</string>
+    <string name="project_dash_attention">%1$d דורשים תשומת לב</string>
+    <string name="project_dash_open">מעבר לפרויקטים</string>
+    <string name="project_dash_basis_note">שכר שעתי הוא שווי העבודה שבוצעה החודש. תשלומי פרויקטים הם כסף שהתקבל החודש. הם לא מחוברים יחד כי הם מודדים דברים שונים.</string>
+
+    <!-- Accounting basis labels -->
+    <string name="project_basis_hourly">שכר שעתי</string>
+    <string name="project_basis_hourly_desc">שווי העבודה השעתית שבוצעה בתקופה הזו.</string>
+    <string name="project_basis_received">תשלומי פרויקטים שהתקבלו</string>
+    <string name="project_basis_received_desc">תשלומי פרויקטים שנכנסו בתקופה הזו.</string>
+    <string name="project_basis_work_performed">עבודה שבוצעה</string>
+    <string name="project_basis_billed">סכום שחויב</string>
+    <string name="project_basis_cash">כסף שהתקבל</string>
+    <string name="project_basis_tax">מס שנאסף</string>
+    <string name="project_basis_outstanding">יתרה לתשלום</string>
+
+    <!-- Project health -->
+    <string name="project_health_on_track">במסלול</string>
+    <string name="project_health_on_track_why">אין מה שדורש תשומת לב.</string>
+    <string name="project_health_near_budget">קרוב למסגרת השעות</string>
+    <string name="project_health_near_budget_why">%1$d%% ממסגרת השעות נוצלו.</string>
+    <string name="project_health_over_budget">מעל מסגרת השעות</string>
+    <string name="project_health_over_budget_why">%1$s מעל מסגרת השעות.</string>
+    <string name="project_health_rate_below">התעריף בפועל מתחת ליעד</string>
+    <string name="project_health_rate_below_why">%1$s לשעה מתחת ליעד שלכם.</string>
+    <string name="project_health_due_soon">תשלום לתשלום בקרוב</string>
+    <string name="project_health_due_soon_why">%1$s לתשלום בעוד %2$d ימים.</string>
+    <string name="project_health_overdue">תשלום בפיגור</string>
+    <string name="project_health_overdue_why">%1$s בפיגור של %2$d ימים.</string>
+    <string name="project_health_not_billed">הושלם אך לא חויב</string>
+    <string name="project_health_not_billed_why">העבודה הסתיימה ודבר לא חויב.</string>
+
+    <!-- Project report -->
+    <string name="project_report_title">דוח פרויקטים</string>
+    <string name="project_report_empty">אין פרויקטים שמתאימים לסינון הזה.</string>
+    <string name="project_report_section_time">שעות פרויקטים</string>
+    <string name="project_report_section_value">שווי הפרויקטים</string>
+    <string name="project_report_section_efficiency">יעילות הכנסה</string>
+    <string name="project_report_tracked_hours">שעות שנרשמו</string>
+    <string name="project_report_active_days">ימי עבודה</string>
+    <string name="project_report_average">ממוצע לפרויקט</string>
+    <string name="project_report_over_budget">שעות מעל המסגרת</string>
+    <string name="project_report_contracted">שכר בסיס מוסכם</string>
+    <string name="project_report_client_totals">סה"כ ללקוח</string>
+    <string name="project_report_tax">מס</string>
+    <string name="project_report_billed">חויב</string>
+    <string name="project_report_paid">שולם</string>
+    <string name="project_report_outstanding">יתרה לתשלום</string>
+    <string name="project_report_value_per_hour">שווי פרויקט לשעה</string>
+    <string name="project_report_efficiency_note">שווי פרויקט לשעה הוא השכר המוסכם לפני מס חלקי השעות שעבדתם. הוצאות אינן נרשמות, ולכן זה אינו רווח נקי.</string>
+    <string name="project_report_currency_note">הסכומים מקובצים לפי מטבע. ElmTrackr אינו מבצע המרות מטבע.</string>
+    <string name="project_report_export">ייצוא CSV של פרויקטים</string>
+
+    <!-- Report filters -->
+    <string name="project_filter_title">סינון</string>
+    <string name="project_filter_from">מתאריך</string>
+    <string name="project_filter_to">עד תאריך</string>
+    <string name="project_filter_project">פרויקט</string>
+    <string name="project_filter_client">לקוח</string>
+    <string name="project_filter_work_status">מצב העבודה</string>
+    <string name="project_filter_billing_status">מצב החיוב</string>
+    <string name="project_filter_currency">מטבע</string>
+    <string name="project_filter_any">הכל</string>
+    <string name="project_filter_include_archived">כולל ארכיון</string>
+    <string name="project_filter_clear">ניקוי הסינון</string>
+    <!-- Prompt 7: internationalisation and accessibility -->
+
+    <string name="project_duration_hm">%1$s שע׳ %2$s דק׳</string>
+    <string name="project_duration_h">%1$s שע׳</string>
+    <string name="project_duration_m">%1$s דק׳</string>
+
+    <string name="project_money_with_code">%1$s %2$s</string>
+    <string name="project_money_label_with_code">%1$s (%2$s)</string>
+
+    <string name="project_detail_outstanding_short">יתרה</string>
+    <string name="project_amount_client_total_short">סה״כ ללקוח</string>
+
+    <string name="project_fee">תשלום על הפרויקט</string>
+    <string name="project_payment_received">תשלום שהתקבל</string>
+
+    <string name="project_a11y_row">%1$s: %2$s</string>
+    <string name="project_a11y_work_status">מצב הפרויקט: %1$s</string>
+    <string name="project_a11y_billing_status">מצב החיוב: %1$s</string>
+    <string name="project_a11y_days_overdue">באיחור של %1$s ימים</string>
+    <string name="project_a11y_currency">מטבע: %1$s</string>
+    <string name="project_a11y_reference">אסמכתא %1$s</string>
+    <string name="project_a11y_budget_used">נוצלו %1$s מתקציב השעות</string>
+    <string name="project_a11y_project_card">%1$s, %2$s</string>
+    <string name="project_a11y_error">שגיאה: %1$s</string>
+    <string name="nav_destination_added">%1$s נוסף לניווט</string>
+
+    <!-- Prompt 8: lock-screen redaction. Named the project, never the amount. -->
+    <string name="project_reminder_public_text">תשלום שממתין לגבייה</string>
+</resources>

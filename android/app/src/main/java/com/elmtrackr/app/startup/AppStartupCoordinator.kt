@@ -9,6 +9,7 @@ import com.elmtrackr.app.di.ApplicationScope
 import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.notification.NotificationChannels
+import com.elmtrackr.app.notification.ProjectBillingReminderWorker
 import com.elmtrackr.app.security.AppLockController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -32,6 +33,11 @@ class AppStartupCoordinator @Inject constructor(
         }
         NotificationChannels.createAll(application)
         RefundReceiptPhotoCleanupWorker.schedule(application)
+        // Enqueued unconditionally; the worker itself checks the feature flag and
+        // the notification permission on each run, and posts nothing when either
+        // is off. That keeps the decision in one tested place instead of splitting
+        // it between here and the worker.
+        ProjectBillingReminderWorker.schedule(application)
         if (SupabaseClientProvider.isConfigured()) {
             syncScheduler.schedulePeriodic()
         }

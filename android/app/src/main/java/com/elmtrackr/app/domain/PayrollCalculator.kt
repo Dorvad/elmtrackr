@@ -37,6 +37,10 @@ object PayrollCalculator {
         isSeventhConsecutiveWorkday: Boolean = false,
     ): ShiftPayBreakdown? {
         if (shift.endTime == null) return null
+        // Project time earns the project's fixed fee, not wages. Refusing it here
+        // rather than only at the call sites means a caller that passes a mixed
+        // list still gets employee-only pay.
+        if (!shift.isEmployeePaid) return null
         val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
         if (resolved.regionCode == RegionCode.IL) {
             return if (allShiftsInWeek.isNotEmpty()) {
@@ -230,17 +234,22 @@ object PayrollCalculator {
         profiles: List<CompensationProfile> = emptyList(),
         premiumProfiles: List<PremiumProfile> = emptyList(),
     ): ShiftPayBreakdown? {
+        if (!shift.isEmployeePaid) return null
+        // The week context must be employee-only too: project hours must not push
+        // genuine employee hours over a daily or weekly overtime threshold, nor
+        // count as one of the six prior workdays for a seventh-day premium.
+        val employeeShifts = allCompletedShifts.employeePaidOnly()
         val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
         if (resolved.regionCode == RegionCode.IL) {
             return IsraeliCompensationEngine.calculateIsraeliShiftPay(
-                shift, allCompletedShifts, settings, profiles, premiumProfiles,
+                shift, employeeShifts, settings, profiles, premiumProfiles,
             )
         }
         val zone = WorkTimezone.zoneFor(resolved, settings)
         val prior = priorStraightTimeMinutesBefore(
-            shift, allCompletedShifts, settings, profiles, zone, resolved.rules,
+            shift, employeeShifts, settings, profiles, zone, resolved.rules,
         )
-        val seventhDay = isSeventhConsecutiveWorkday(shift, allCompletedShifts, resolved.rules, zone)
+        val seventhDay = isSeventhConsecutiveWorkday(shift, employeeShifts, resolved.rules, zone)
         return calculateShiftPay(
             shift, settings, profiles, prior, premiumProfiles,
             isSeventhConsecutiveWorkday = seventhDay,
@@ -265,6 +274,7 @@ object PayrollCalculator {
         val weekStart = PayWeekMinutes.weekStart(shift, zone, anchorRules.weekStartDay)
         return completedShifts
             .asSequence()
+            .filter { it.isEmployeePaid }
             .filter { it.id != shift.id && it.endTime != null }
             .filter { PayWeekMinutes.weekStart(it, zone, anchorRules.weekStartDay) == weekStart }
             .filter { it.startTime.isBefore(shift.startTime) }
@@ -295,6 +305,7 @@ object PayrollCalculator {
         val shiftDate = shift.startTime.atZone(zone).toLocalDate()
         val priorDates = completedShifts
             .asSequence()
+            .filter { it.isEmployeePaid }
             .filter { it.id != shift.id && it.endTime != null }
             .filter { PayWeekMinutes.weekStart(it, zone, rules.weekStartDay) == weekStart }
             .filter { it.startTime.isBefore(shift.startTime) }
@@ -364,6 +375,9 @@ object PayrollCalculator {
         profiles: List<CompensationProfile> = emptyList(),
         premiumProfiles: List<PremiumProfile> = emptyList(),
     ): MonthlyPaySummary {
+        // Employee-only from here down: project shifts contribute no gross, and
+        // must not appear in the week accumulation that drives overtime either.
+        @Suppress("NAME_SHADOWING") val shifts = shifts.employeePaidOnly()
         var totalGross = 0.0
         var regularGross = 0.0
         var overtimeGross = 0.0

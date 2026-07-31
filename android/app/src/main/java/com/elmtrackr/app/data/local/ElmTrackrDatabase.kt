@@ -10,6 +10,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.elmtrackr.app.data.local.converter.Converters
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.ProfileDao
+import com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao
+import com.elmtrackr.app.data.local.dao.ProjectDao
+import com.elmtrackr.app.data.local.dao.ProjectPaymentDao
 import com.elmtrackr.app.data.local.dao.ReceiptDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
@@ -18,6 +21,9 @@ import com.elmtrackr.app.data.local.dao.PremiumProfileDao
 import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
 import com.elmtrackr.app.data.local.entity.PremiumProfileEntity
 import com.elmtrackr.app.data.local.entity.ProfileEntity
+import com.elmtrackr.app.data.local.entity.ProjectBillingRecordEntity
+import com.elmtrackr.app.data.local.entity.ProjectEntity
+import com.elmtrackr.app.data.local.entity.ProjectPaymentEntity
 import com.elmtrackr.app.data.local.entity.ReceiptEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
@@ -36,8 +42,11 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         CompensationProfileEntity::class,
         PremiumProfileEntity::class,
         TaskEntity::class,
+        ProjectEntity::class,
+        ProjectBillingRecordEntity::class,
+        ProjectPaymentEntity::class,
     ],
-    version = 14,
+    version = 18,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -55,6 +64,12 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
     abstract fun premiumProfileDao(): PremiumProfileDao
 
     abstract fun taskDao(): TaskDao
+
+    abstract fun projectDao(): ProjectDao
+
+    abstract fun projectBillingRecordDao(): ProjectBillingRecordDao
+
+    abstract fun projectPaymentDao(): ProjectPaymentDao
 
     companion object {
         @Volatile private var INSTANCE: ElmTrackrDatabase? = null
@@ -107,6 +122,10 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_11_12,
                     MIGRATION_12_13,
                     MIGRATION_13_14,
+                    MIGRATION_14_15,
+                    MIGRATION_15_16,
+                    MIGRATION_16_17,
+                    MIGRATION_17_18,
                 )
                 .build()
         }
@@ -433,6 +452,227 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     "CREATE UNIQUE INDEX IF NOT EXISTS `index_shifts_userId_startTime` " +
                         "ON `shifts` (`userId`, `startTime`)",
                 )
+            }
+        }
+
+        /**
+         * Paid Projects activation shell: per-user defaults for newly created
+         * projects (country/region, currency, tax label, optional tax rate and
+         * tax-inclusive preference).
+         *
+         * Purely additive. The nullable columns default to NULL and the two
+         * NOT NULL columns default to 0, which reads as "no project tax
+         * configured" — the module ships disabled for every existing user, so
+         * nothing about their hours, pay, or navigation changes. No table is
+         * rebuilt and no index is added, so there is nothing here for Room's
+         * post-migration validation to reject.
+         */
+        internal val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE user_settings ADD COLUMN projectsDefaultRegionCode TEXT")
+                db.execSQL("ALTER TABLE user_settings ADD COLUMN projectsDefaultCurrencyCode TEXT")
+                db.execSQL("ALTER TABLE user_settings ADD COLUMN projectsTaxLabel TEXT")
+                db.execSQL(
+                    "ALTER TABLE user_settings ADD COLUMN projectsTaxRateBasisPoints " +
+                        "INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL(
+                    "ALTER TABLE user_settings ADD COLUMN projectsTaxInclusive " +
+                        "INTEGER NOT NULL DEFAULT 0",
+                )
+            }
+        }
+
+        /**
+         * Paid Projects data model: projects, their billing records and their
+         * payments, plus a nullable project link on shifts.
+         *
+         * Purely additive and non-destructive:
+         *  - three new tables, so no existing row is read or rewritten;
+         *  - the two new `shifts` columns are nullable with no default and are
+         *    never backfilled, so existing shifts stay exactly as they were and
+         *    no wage calculation changes;
+         *  - no existing column, index or constraint is touched.
+         *
+         * Money columns are TEXT holding canonical decimal strings — never REAL.
+         * Binary floating point cannot represent most decimal amounts exactly,
+         * and a stored fee must round-trip byte for byte. Calendar dates are
+         * INTEGER epoch days; timestamps are INTEGER epoch millis.
+         *
+         * No SQL foreign keys, matching how shifts reference tasks: this schema
+         * soft-deletes, and the repository cascades a project delete to its
+         * children. Every index created here is declared on the corresponding
+         * entity — the 7→8 migration once created indexes that were not, and
+         * Room rejected every upgraded database until 8→9 repaired it.
+         */
+        internal val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS projects (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        clientName TEXT,
+                        clientId TEXT,
+                        description TEXT,
+                        workStatus TEXT NOT NULL,
+                        currencyCode TEXT NOT NULL,
+                        baseFee TEXT NOT NULL,
+                        taxLabel TEXT,
+                        taxRatePercent TEXT NOT NULL,
+                        taxMode TEXT NOT NULL,
+                        taxAmount TEXT NOT NULL,
+                        clientTotal TEXT NOT NULL,
+                        hourBudgetMinutes INTEGER,
+                        targetHourlyRate TEXT,
+                        startDate INTEGER,
+                        deadline INTEGER,
+                        completionDate INTEGER,
+                        notes TEXT,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        archivedAt INTEGER,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_projects_userId` ON `projects` (`userId`)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_projects_userId_workStatus` " +
+                        "ON `projects` (`userId`, `workStatus`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_projects_userId_syncStatus` " +
+                        "ON `projects` (`userId`, `syncStatus`)",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_projects_remoteId` ON `projects` (`remoteId`)")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS project_billing_records (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        projectLocalId TEXT NOT NULL,
+                        baseAmount TEXT NOT NULL,
+                        taxLabel TEXT,
+                        taxRatePercent TEXT NOT NULL,
+                        taxMode TEXT NOT NULL,
+                        taxAmount TEXT NOT NULL,
+                        totalAmount TEXT NOT NULL,
+                        currencyCode TEXT NOT NULL,
+                        externalReference TEXT,
+                        billedOn INTEGER NOT NULL,
+                        dueOn INTEGER,
+                        cancelledAt INTEGER,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_billing_records_userId` " +
+                        "ON `project_billing_records` (`userId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_billing_records_projectLocalId` " +
+                        "ON `project_billing_records` (`projectLocalId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_billing_records_userId_syncStatus` " +
+                        "ON `project_billing_records` (`userId`, `syncStatus`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_billing_records_remoteId` " +
+                        "ON `project_billing_records` (`remoteId`)",
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS project_payments (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        projectLocalId TEXT NOT NULL,
+                        billingRecordLocalId TEXT NOT NULL,
+                        paidOn INTEGER NOT NULL,
+                        amount TEXT NOT NULL,
+                        currencyCode TEXT NOT NULL,
+                        method TEXT,
+                        externalReference TEXT,
+                        notes TEXT,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_payments_userId` " +
+                        "ON `project_payments` (`userId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_payments_projectLocalId` " +
+                        "ON `project_payments` (`projectLocalId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_payments_billingRecordLocalId` " +
+                        "ON `project_payments` (`billingRecordLocalId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_payments_userId_syncStatus` " +
+                        "ON `project_payments` (`userId`, `syncStatus`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_project_payments_remoteId` " +
+                        "ON `project_payments` (`remoteId`)",
+                )
+
+                db.execSQL("ALTER TABLE shifts ADD COLUMN projectId TEXT")
+                db.execSQL("ALTER TABLE shifts ADD COLUMN projectNameSnapshot TEXT")
+            }
+        }
+
+        /**
+         * Marks what a shift's time is compensated by: employee wages or project
+         * time. See CompensationSource.
+         *
+         * Purely additive and deliberately not backfilled. The column is nullable
+         * with no default, and NULL is read as EMPLOYEE, so every shift written
+         * before this upgrade keeps its exact wage, overtime and premium
+         * behaviour. Writing a value into existing rows would risk changing
+         * someone's recorded pay during an upgrade, which is why it is left NULL.
+         */
+        internal val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE shifts ADD COLUMN compensationSource TEXT")
+            }
+        }
+
+        /**
+         * Notes on a billing record, entered on the "record billing details"
+         * form.
+         *
+         * Purely additive: one nullable column, no default, no backfill, no
+         * table rebuilt. Existing billing records read back with a null note and
+         * every billed amount is untouched — a billing snapshot must never be
+         * restated by an upgrade.
+         */
+        internal val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE project_billing_records ADD COLUMN notes TEXT")
             }
         }
 

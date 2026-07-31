@@ -61,6 +61,7 @@ class ShiftsViewModelTest {
         currentUser,
         refundsRepo,
         receiptStorage,
+        com.elmtrackr.app.fake.FakeProjectsRepository(),
     )
 
     private fun seedSettings(userId: String = "u1") {

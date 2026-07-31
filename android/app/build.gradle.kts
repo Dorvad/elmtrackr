@@ -105,6 +105,25 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+
+        // Give each Robolectric + Compose test class a fresh JVM.
+        //
+        // Compose keeps process-global state — the recomposer attached to the
+        // test thread, and the Espresso idling policies Compose's test rule
+        // drives — and Robolectric tears an Android environment down and builds
+        // another one inside the same process for every class. In a full-suite
+        // run the project detail-screen renders stopped ever reporting idle and
+        // failed with AppNotIdleException, while passing 22 of 22 when the class
+        // ran on its own. That difference is the leak, not the screen.
+        //
+        // Recycling the JVM per class is the ordinary remedy and costs start-up
+        // time on a few hundred classes rather than correctness on all of them.
+        // Raising the idling budget was tried first and changed nothing, which is
+        // consistent with a wedged clock rather than a slow one.
+        unitTests.all {
+            it.forkEvery = 1
+            it.maxParallelForks = (Runtime.getRuntime().availableProcessors() - 2).coerceAtLeast(1)
+        }
     }
 
     sourceSets {
@@ -194,6 +213,9 @@ dependencies {
     testImplementation(project(":wear-sync"))
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
+    // For IdlingPolicies: the Robolectric Compose tests need a longer idling
+    // budget than Espresso's 60s default (see ProjectsRenderTest).
+    testImplementation(libs.androidx.test.espresso.core)
 
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.test.ext.junit)

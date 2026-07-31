@@ -1,6 +1,7 @@
 package com.elmtrackr.app.domain.repository
 
 import com.elmtrackr.app.domain.model.CompensationSnapshot
+import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.Shift
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
@@ -14,7 +15,14 @@ interface ShiftsRepository {
 
     suspend fun getShiftById(localId: String): Shift?
 
-    /** Creates a new shift with only a start time (clock-in). */
+    /**
+     * Creates a new shift with only a start time (clock-in).
+     *
+     * [compensationSource] decides whether the shift is paid as employee work or
+     * tracked against [projectId]. It defaults to EMPLOYEE, so every existing
+     * caller — the widget, the Wear app, the shortcut — keeps clocking in
+     * ordinary hourly work.
+     */
     suspend fun clockIn(
         userId: String,
         compensationProfileId: String? = null,
@@ -22,6 +30,9 @@ interface ShiftsRepository {
         taskNameSnapshot: String? = null,
         taskIconSnapshot: String? = null,
         taskHourlyRateSnapshot: Double? = null,
+        compensationSource: CompensationSource = CompensationSource.EMPLOYEE,
+        projectId: String? = null,
+        projectNameSnapshot: String? = null,
     ): Shift
 
     /** Sets end time on an active shift (clock-out). */
@@ -46,6 +57,9 @@ interface ShiftsRepository {
     fun observeShiftsForDay(userId: String, zone: ZoneId, date: LocalDate): Flow<List<Shift>>
 
     fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<Shift>>
+
+    /** Every shift linked to [projectId], for the project's tracked-hours total. */
+    fun observeShiftsForProject(userId: String, projectId: String): Flow<List<Shift>>
 
     suspend fun hasAnyShifts(userId: String): Boolean
 }

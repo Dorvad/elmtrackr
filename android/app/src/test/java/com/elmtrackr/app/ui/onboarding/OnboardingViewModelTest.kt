@@ -202,7 +202,6 @@ class OnboardingViewModelTest {
                 hourlyRate = 30.0,
                 clockStyle = com.elmtrackr.app.domain.model.ClockStyle.AURORA,
                 featuresClockStyles = false,
-                featuresPaidProjects = true,
                 createdAt = Instant.EPOCH,
                 updatedAt = Instant.EPOCH,
             ),
@@ -213,10 +212,122 @@ class OnboardingViewModelTest {
         advanceUntilIdle()
 
         val saved = settingsRepo.getSettings("u1")
-        // The wizard has no steps for these, so replay must not reset them.
+        // The wizard still has no steps for these, so replay must not reset them.
         assertEquals(com.elmtrackr.app.domain.model.ClockStyle.AURORA, saved?.clockStyle)
         assertEquals(false, saved?.featuresClockStyles)
-        assertEquals(true, saved?.featuresPaidProjects)
+    }
+
+    @Test
+    fun `replay onboarding keeps paid projects on when the user answers yes again`() = runTest {
+        // The wizard has an explicit Paid Projects step that the screen seeds
+        // from stored settings, so on replay the input carries the answer.
+        settingsRepo.setSettings(
+            UserSettings(
+                id = "settings",
+                userId = "u1",
+                featuresPaidProjects = true,
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            ),
+        )
+        val vm = buildVm()
+
+        vm.completeOnboarding(
+            validInput().copy(preserveExisting = true, featuresPaidProjects = true),
+        )
+        advanceUntilIdle()
+
+        assertEquals(true, settingsRepo.getSettings("u1")?.featuresPaidProjects)
+    }
+
+    @Test
+    fun `replay onboarding can turn paid projects off`() = runTest {
+        settingsRepo.setSettings(
+            UserSettings(
+                id = "settings",
+                userId = "u1",
+                featuresPaidProjects = true,
+                projectsTaxLabel = "VAT",
+                projectsTaxRateBasisPoints = 1800,
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            ),
+        )
+        val vm = buildVm()
+
+        vm.completeOnboarding(
+            validInput().copy(preserveExisting = true, featuresPaidProjects = false),
+        )
+        advanceUntilIdle()
+
+        val saved = settingsRepo.getSettings("u1")!!
+        assertEquals(false, saved.featuresPaidProjects)
+        // Turning the module off hides it; the configuration survives.
+        assertEquals("VAT", saved.projectsTaxLabel)
+        assertEquals(1800, saved.projectsTaxRateBasisPoints)
+    }
+
+    @Test
+    fun `new user enabling paid projects stores the flag and the defaults`() = runTest {
+        val vm = buildVm()
+
+        vm.completeOnboarding(
+            validInput().copy(
+                featuresPaidProjects = true,
+                projectsDefaultRegionCode = com.elmtrackr.app.domain.model.RegionCode.IL,
+                projectsDefaultCurrencyCode = "ILS",
+                projectsTaxLabel = "VAT",
+                projectsTaxRateBasisPoints = 1800,
+                projectsTaxInclusive = true,
+            ),
+        )
+        advanceUntilIdle()
+
+        val saved = settingsRepo.getSettings("u1")!!
+        assertEquals(true, saved.featuresPaidProjects)
+        assertEquals(com.elmtrackr.app.domain.model.RegionCode.IL, saved.projectsDefaultRegionCode)
+        assertEquals("ILS", saved.projectsDefaultCurrencyCode)
+        assertEquals("VAT", saved.projectsTaxLabel)
+        assertEquals(1800, saved.projectsTaxRateBasisPoints)
+        assertEquals(true, saved.projectsTaxInclusive)
+        assertEquals(true, saved.projectsTaxEnabled)
+    }
+
+    @Test
+    fun `new user enabling paid projects but skipping tax stores tax as off`() = runTest {
+        val vm = buildVm()
+
+        vm.completeOnboarding(
+            validInput().copy(
+                featuresPaidProjects = true,
+                projectsDefaultRegionCode = com.elmtrackr.app.domain.model.RegionCode.IL,
+                projectsDefaultCurrencyCode = "ILS",
+                // Skipped: no label, no rate, no preference.
+            ),
+        )
+        advanceUntilIdle()
+
+        val saved = settingsRepo.getSettings("u1")!!
+        assertEquals(true, saved.featuresPaidProjects)
+        assertEquals(null, saved.projectsTaxLabel)
+        assertEquals(0, saved.projectsTaxRateBasisPoints)
+        assertEquals(false, saved.projectsTaxInclusive)
+        assertEquals(false, saved.projectsTaxEnabled)
+    }
+
+    @Test
+    fun `new user skipping paid projects leaves the module off`() = runTest {
+        val vm = buildVm()
+
+        vm.completeOnboarding(validInput().copy(featuresPaidProjects = false))
+        advanceUntilIdle()
+
+        val saved = settingsRepo.getSettings("u1")!!
+        assertEquals(false, saved.featuresPaidProjects)
+        assertEquals(null, saved.projectsDefaultRegionCode)
+        assertEquals(0, saved.projectsTaxRateBasisPoints)
+        // Declining is not a failure: onboarding still completes.
+        assertEquals(true, saved.onboardingCompleted)
     }
 
     @Test

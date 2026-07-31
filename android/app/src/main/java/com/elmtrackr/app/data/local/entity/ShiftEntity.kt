@@ -40,6 +40,17 @@ data class ShiftEntity(
     val taskNameSnapshot: String? = null,
     val taskIconSnapshot: String? = null,
     val taskHourlyRateSnapshot: Double? = null,
+    // Paid Projects link. Nullable and never backfilled: existing shifts stay
+    // exactly as they were. Deliberately no project rate column — a project fee
+    // must never reach CompensationResolver, which substitutes a shift's task
+    // rate for the employee's base pay rate.
+    val projectId: String? = null,
+    val projectNameSnapshot: String? = null,
+    /**
+     * EMPLOYEE / PROJECT. Nullable, and NULL reads as EMPLOYEE, so every row
+     * written before this column existed keeps its exact wage behaviour.
+     */
+    val compensationSource: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

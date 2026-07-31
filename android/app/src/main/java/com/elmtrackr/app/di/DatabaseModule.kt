@@ -4,6 +4,9 @@ import android.content.Context
 import com.elmtrackr.app.data.local.ElmTrackrDatabase
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.ProfileDao
+import com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao
+import com.elmtrackr.app.data.local.dao.ProjectDao
+import com.elmtrackr.app.data.local.dao.ProjectPaymentDao
 import com.elmtrackr.app.data.local.dao.ReceiptDao
 import com.elmtrackr.app.data.local.dao.PremiumProfileDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
@@ -51,4 +54,15 @@ object DatabaseModule {
 
     @Provides
     fun provideTaskDao(database: ElmTrackrDatabase): TaskDao = database.taskDao()
+
+    @Provides
+    fun provideProjectDao(database: ElmTrackrDatabase): ProjectDao = database.projectDao()
+
+    @Provides
+    fun provideProjectBillingRecordDao(database: ElmTrackrDatabase): ProjectBillingRecordDao =
+        database.projectBillingRecordDao()
+
+    @Provides
+    fun provideProjectPaymentDao(database: ElmTrackrDatabase): ProjectPaymentDao =
+        database.projectPaymentDao()
 }

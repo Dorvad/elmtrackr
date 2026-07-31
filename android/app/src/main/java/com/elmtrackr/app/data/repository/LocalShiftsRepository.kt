@@ -12,6 +12,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import com.elmtrackr.app.domain.compensation.CompensationRulesCodec
 import com.elmtrackr.app.domain.model.CompensationSnapshot
+import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
@@ -56,6 +57,9 @@ class LocalShiftsRepository @Inject constructor(
         taskNameSnapshot: String?,
         taskIconSnapshot: String?,
         taskHourlyRateSnapshot: Double?,
+        compensationSource: CompensationSource,
+        projectId: String?,
+        projectNameSnapshot: String?,
     ): Shift = clockInMutex.withLock {
         shiftDao.getActiveShifts(userId).maxByOrNull { it.startTime }?.let { activeShift ->
             return activeShift.toDomain()
@@ -78,6 +82,11 @@ class LocalShiftsRepository @Inject constructor(
             taskNameSnapshot = taskNameSnapshot,
             taskIconSnapshot = taskIconSnapshot,
             taskHourlyRateSnapshot = taskHourlyRateSnapshot,
+            // Project time only when the caller asked for it. A project link
+            // without PROJECT here would still be paid as wages.
+            projectId = projectId?.takeIf { compensationSource.isProjectTime },
+            projectNameSnapshot = projectNameSnapshot?.takeIf { compensationSource.isProjectTime },
+            compensationSource = compensationSource.name,
             createdAt = now,
             updatedAt = now,
             deletedAt = null,
@@ -178,6 +187,10 @@ class LocalShiftsRepository @Inject constructor(
 
     override fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<Shift>> =
         shiftDao.observeRecentCompletedShifts(userId, limit).map { entities -> entities.mapToDomain { it.toDomain() } }
+
+    override fun observeShiftsForProject(userId: String, projectId: String): Flow<List<Shift>> =
+        shiftDao.observeShiftsForProject(userId, projectId)
+            .map { entities -> entities.mapToDomain { it.toDomain() } }
 
     override suspend fun hasAnyShifts(userId: String): Boolean =
         shiftDao.hasAnyShifts(userId)

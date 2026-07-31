@@ -16,13 +16,17 @@ data class BackupImportSummary(
     val importedCompensationProfiles: Int = 0,
     val importedPremiumProfiles: Int = 0,
     val importedReceipts: Int = 0,
+    val importedProjects: Int = 0,
+    val importedProjectBillingRecords: Int = 0,
+    val importedProjectPayments: Int = 0,
     val importedSettings: Int = 0,
     val skipped: Int = 0,
 ) {
     val importedTotal: Int
         get() = importedTasks + importedShifts + importedRefundClaims +
             importedCompensationProfiles + importedPremiumProfiles +
-            importedReceipts + importedSettings
+            importedReceipts + importedProjects + importedProjectBillingRecords +
+            importedProjectPayments + importedSettings
 }
 
 class BackupImportException(message: String) : Exception(message)
@@ -51,6 +55,9 @@ object LocalBackupImporter {
         compensationProfileDao: CompensationProfileDao,
         premiumProfileDao: com.elmtrackr.app.data.local.dao.PremiumProfileDao,
         receiptDao: com.elmtrackr.app.data.local.dao.ReceiptDao,
+        projectDao: com.elmtrackr.app.data.local.dao.ProjectDao,
+        projectBillingRecordDao: com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao,
+        projectPaymentDao: com.elmtrackr.app.data.local.dao.ProjectPaymentDao,
     ): BackupImportSummary {
         val document = try {
             json.decodeFromString<LocalBackupDocument>(rawJson)
@@ -149,6 +156,50 @@ object LocalBackupImporter {
             importedReceipts++
         }
 
+        // Projects before billing records before payments: a child whose parent
+        // did not make it across is skipped rather than failing the restore, so
+        // no orphaned money row is ever written.
+        var importedProjects = 0
+        for (row in document.projects) {
+            if (row.deletedAt != null) continue
+            if (projectDao.getByLocalId(row.localId) != null) {
+                skipped++
+                continue
+            }
+            projectDao.upsert(row.toEntity(currentUserId).adopt(sameUser))
+            importedProjects++
+        }
+
+        var importedBillingRecords = 0
+        for (row in document.projectBillingRecords) {
+            if (row.deletedAt != null) continue
+            if (projectBillingRecordDao.getByLocalId(row.localId) != null) {
+                skipped++
+                continue
+            }
+            if (projectDao.getByLocalId(row.projectLocalId) == null) {
+                skipped++
+                continue
+            }
+            projectBillingRecordDao.upsert(row.toEntity(currentUserId).adopt(sameUser))
+            importedBillingRecords++
+        }
+
+        var importedProjectPayments = 0
+        for (row in document.projectPayments) {
+            if (row.deletedAt != null) continue
+            if (projectPaymentDao.getByLocalId(row.localId) != null) {
+                skipped++
+                continue
+            }
+            if (projectBillingRecordDao.getByLocalId(row.billingRecordLocalId) == null) {
+                skipped++
+                continue
+            }
+            projectPaymentDao.upsert(row.toEntity(currentUserId).adopt(sameUser))
+            importedProjectPayments++
+        }
+
         var importedSettings = 0
         // user_settings has a unique userId index; never clobber existing settings.
         if (settingsDao.getSettings(currentUserId) == null) {
@@ -169,6 +220,9 @@ object LocalBackupImporter {
             importedCompensationProfiles = importedProfiles,
             importedPremiumProfiles = importedPremiumProfiles,
             importedReceipts = importedReceipts,
+            importedProjects = importedProjects,
+            importedProjectBillingRecords = importedBillingRecords,
+            importedProjectPayments = importedProjectPayments,
             importedSettings = importedSettings,
             skipped = skipped,
         )
@@ -190,5 +244,14 @@ object LocalBackupImporter {
         if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
 
     private fun com.elmtrackr.app.data.local.entity.PremiumProfileEntity.adopt(sameUser: Boolean) =
+        if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
+
+    private fun com.elmtrackr.app.data.local.entity.ProjectEntity.adopt(sameUser: Boolean) =
+        if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
+
+    private fun com.elmtrackr.app.data.local.entity.ProjectBillingRecordEntity.adopt(sameUser: Boolean) =
+        if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
+
+    private fun com.elmtrackr.app.data.local.entity.ProjectPaymentEntity.adopt(sameUser: Boolean) =
         if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
 }

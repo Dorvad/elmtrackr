@@ -30,6 +30,8 @@ object AppPreferenceKeys {
     val SETUP_CHECKLIST_DISMISSED = booleanPreferencesKey("setup_checklist_dismissed")
     val SETUP_CHECKLIST_VISITED_STEPS = stringSetPreferencesKey("setup_checklist_visited_steps")
     val SETUP_CHECKLIST_CELEBRATED = booleanPreferencesKey("setup_checklist_celebrated")
+    val PAID_PROJECTS_DISCOVERY_DISMISSED =
+        booleanPreferencesKey("paid_projects_discovery_dismissed")
 }
 
 data class AppPreferenceValues(
@@ -45,13 +47,15 @@ data class AppPreferenceValues(
     val setupChecklistDismissed: Boolean = false,
     val setupChecklistVisitedSteps: Set<String> = emptySet(),
     val setupChecklistCelebrated: Boolean = false,
+    val paidProjectsDiscoveryDismissed: Boolean = false,
 )
 
 class AppPreferencesRepository(private val context: Context) :
     AppPreferencesStore,
     AppLockPreferencesStore,
     OnboardingPreferences,
-    SetupChecklistPreferences {
+    SetupChecklistPreferences,
+    FeatureDiscoveryPreferences {
 
     override val preferences: Flow<AppPreferenceValues> =
         context.appPreferencesDataStore.data.map { prefs ->
@@ -68,6 +72,8 @@ class AppPreferencesRepository(private val context: Context) :
                 setupChecklistDismissed = prefs[AppPreferenceKeys.SETUP_CHECKLIST_DISMISSED] ?: false,
                 setupChecklistVisitedSteps = prefs[AppPreferenceKeys.SETUP_CHECKLIST_VISITED_STEPS] ?: emptySet(),
                 setupChecklistCelebrated = prefs[AppPreferenceKeys.SETUP_CHECKLIST_CELEBRATED] ?: false,
+                paidProjectsDiscoveryDismissed =
+                    prefs[AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED] ?: false,
             )
         }
 
@@ -125,5 +131,11 @@ class AppPreferencesRepository(private val context: Context) :
 
     override suspend fun setSetupChecklistCelebrated(celebrated: Boolean) {
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.SETUP_CHECKLIST_CELEBRATED] = celebrated }
+    }
+
+    override suspend fun setPaidProjectsDiscoveryDismissed(dismissed: Boolean) {
+        context.appPreferencesDataStore.edit {
+            it[AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED] = dismissed
+        }
     }
 }

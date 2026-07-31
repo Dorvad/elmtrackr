@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.data.auth.SessionBootstrapGate
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
+import com.elmtrackr.app.navigation.DeepLinkRouter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,7 +24,32 @@ class AppShellViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val settingsRepository: SettingsRepository,
     private val sessionBootstrapGate: SessionBootstrapGate,
+    private val deepLinkRouter: DeepLinkRouter,
 ) : ViewModel() {
+
+    /**
+     * Whether the optional Paid Projects module is on. Null while settings are
+     * still loading — the navigation guard needs to tell "off" from "unknown"
+     * so a cold start does not bounce the user off a restored projects tab.
+     */
+    val paidProjectsEnabled: StateFlow<Boolean?> = authRepository.observeCurrentProfile()
+        .flatMapLatest { profile ->
+            if (profile == null) {
+                flowOf(null)
+            } else {
+                settingsRepository.observeSettings(profile.id).map { it?.featuresPaidProjects }
+            }
+        }
+        .catch { emit(null) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    val pendingDeepLink: StateFlow<String?> = deepLinkRouter.pending
+
+    fun consumeDeepLink(uri: String) = deepLinkRouter.consume(uri)
 
     val navState: StateFlow<AppNavState> = combine(
         authRepository.observePasswordRecoveryRequired(),

@@ -33,6 +33,9 @@ object LocalBackupExporter {
         compensationProfileDao: CompensationProfileDao,
         premiumProfileDao: com.elmtrackr.app.data.local.dao.PremiumProfileDao,
         receiptDao: com.elmtrackr.app.data.local.dao.ReceiptDao,
+        projectDao: com.elmtrackr.app.data.local.dao.ProjectDao,
+        projectBillingRecordDao: com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao,
+        projectPaymentDao: com.elmtrackr.app.data.local.dao.ProjectPaymentDao,
         appVersion: String,
     ): String {
         val backup = LocalBackupDocument(
@@ -47,6 +50,10 @@ object LocalBackupExporter {
             compensationProfiles = compensationProfileDao.getAllProfilesForUser(userId).map { it.toBackupRow() },
             premiumProfiles = premiumProfileDao.getAllProfilesForUser(userId).map { it.toBackupRow() },
             receipts = receiptDao.getAllForUser(userId).map { it.toBackupRow() },
+            projects = projectDao.getAllForUser(userId).map { it.toBackupRow() },
+            projectBillingRecords = projectBillingRecordDao.getAllForUser(userId)
+                .map { it.toBackupRow() },
+            projectPayments = projectPaymentDao.getAllForUser(userId).map { it.toBackupRow() },
         )
         return json.encodeToString(backup)
     }

@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.shell
 
 import com.elmtrackr.app.domain.model.Profile
+import com.elmtrackr.app.navigation.DeepLinkRouter
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeSessionBootstrapGate
 import com.elmtrackr.app.fake.FakeSettingsRepository
@@ -24,8 +25,10 @@ class AppShellViewModelTest {
     private val authRepo = FakeAuthRepository()
     private val settingsRepo = FakeSettingsRepository()
     private val sessionBootstrapGate = FakeSessionBootstrapGate()
+    private val deepLinkRouter = DeepLinkRouter()
 
-    private fun buildVm() = AppShellViewModel(authRepo, settingsRepo, sessionBootstrapGate)
+    private fun buildVm() =
+        AppShellViewModel(authRepo, settingsRepo, sessionBootstrapGate, deepLinkRouter)
 
     private fun setOnboarding(completed: Boolean) {
         settingsRepo.setSettings(
@@ -240,5 +243,43 @@ class AppShellViewModelTest {
 
         assertEquals(AppNavState.Auth, states.last())
         job.cancel()
+    }
+
+    @Test
+    fun `paidProjectsEnabled is null until settings load`() = runTest {
+        val vm = buildVm()
+        assertEquals(null, vm.paidProjectsEnabled.value)
+    }
+
+    @Test
+    fun `paidProjectsEnabled follows the stored flag`() = runTest {
+        val vm = buildVm()
+        val observed = mutableListOf<Boolean?>()
+        val job = launch { vm.paidProjectsEnabled.collect { observed.add(it) } }
+
+        authRepo.setProfile(testProfile())
+        settingsRepo.setSettings(
+            UserSettings(id = "s", userId = "user-1", featuresPaidProjects = true),
+        )
+        advanceUntilIdle()
+        assertEquals(true, vm.paidProjectsEnabled.value)
+
+        settingsRepo.setSettings(
+            UserSettings(id = "s", userId = "user-1", featuresPaidProjects = false),
+        )
+        advanceUntilIdle()
+        assertEquals(false, vm.paidProjectsEnabled.value)
+
+        job.cancel()
+    }
+
+    @Test
+    fun `pending deep link is exposed and consumable`() = runTest {
+        val vm = buildVm()
+        deepLinkRouter.submit("elmtrackr://projects")
+        assertEquals("elmtrackr://projects", vm.pendingDeepLink.value)
+
+        vm.consumeDeepLink("elmtrackr://projects")
+        assertEquals(null, vm.pendingDeepLink.value)
     }
 }

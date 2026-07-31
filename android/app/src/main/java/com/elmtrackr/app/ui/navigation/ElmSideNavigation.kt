@@ -68,11 +68,17 @@ private val sideNavPillGradient = Brush.linearGradient(
 
 private val SideNavWidth = 220.dp
 
+/**
+ * @param items the enabled primary destinations. Comes from the same
+ * [BottomNavItem.visibleItems] call the phone bar uses, so tablet and phone
+ * always show the same set. Defaults to the feature-off list.
+ */
 @Composable
 fun ElmSideNavigation(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
+    items: List<BottomNavItem> = BottomNavItem.visibleItems(paidProjectsEnabled = false),
 ) {
     Surface(
         modifier = modifier
@@ -102,7 +108,7 @@ fun ElmSideNavigation(
                     .padding(horizontal = 12.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                BottomNavItem.entries.forEach { item ->
+                items.forEach { item ->
                     SideNavItem(
                         item = item,
                         isSelected = currentRoute == item.route,

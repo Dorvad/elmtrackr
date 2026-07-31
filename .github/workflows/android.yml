@@ -147,7 +147,7 @@ jobs:
           arch: x86_64
           target: google_apis
           working-directory: android
-          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.elmtrackr.app.data.local.ElmTrackrDatabaseMigrationTest,com.elmtrackr.app.data.local.dao.ShiftDaoTest,com.elmtrackr.app.data.local.dao.SettingsDaoTest --no-daemon
+          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.elmtrackr.app.data.local.ElmTrackrDatabaseMigrationTest,com.elmtrackr.app.data.local.dao.ShiftDaoTest,com.elmtrackr.app.data.local.dao.SettingsDaoTest,com.elmtrackr.app.data.local.dao.ProjectDaoTest --no-daemon
 
   release:
     name: Build release AAB

@@ -16,6 +16,9 @@ import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.RefundProvider
 import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.RefundReceiptStorage
+import com.elmtrackr.app.domain.projects.ProjectClockInOptions
+import com.elmtrackr.app.domain.projects.ShiftCompensationReassignment
+import com.elmtrackr.app.domain.repository.ProjectsRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
@@ -55,6 +58,7 @@ class ShiftsViewModel @Inject constructor(
     private val currentUserProvider: CurrentUserProvider,
     private val refundsRepository: RefundsRepository,
     private val refundReceiptStorage: RefundReceiptStorage?,
+    private val projectsRepository: ProjectsRepository,
 ) : ViewModel() {
 
     private val _formTarget = MutableStateFlow<ShiftFormNavState?>(null)
@@ -89,6 +93,29 @@ class ShiftsViewModel @Inject constructor(
     @Volatile private var workZone: ZoneId = ZoneId.systemDefault()
     @Volatile private var monthNavigated = false
     val selectedMonth: StateFlow<YearMonth> = _selectedMonth.asStateFlow()
+
+    /**
+     * Every project, for the shift form. Not filtered to clockable ones: a shift
+     * already linked to a completed or archived project must still show which
+     * project that is, so the form can keep the link instead of dropping it.
+     *
+     * Empty while Paid Projects is off, which hides the compensation controls
+     * without touching the stored project links.
+     */
+    val formProjects: StateFlow<List<com.elmtrackr.app.domain.model.Project>> =
+        currentUserProvider.userId
+            .filterNotNull()
+            .flatMapLatest { userId ->
+                settingsRepository.observeSettings(userId).flatMapLatest { settings ->
+                    if (settings?.featuresPaidProjects != true) {
+                        flowOf(emptyList())
+                    } else {
+                        projectsRepository.observeProjects(userId)
+                    }
+                }
+            }
+            .catch { emit(emptyList()) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val featuresTravelRefunds: StateFlow<Boolean> = currentUserProvider.userId
         .filterNotNull()
@@ -228,7 +255,13 @@ class ShiftsViewModel @Inject constructor(
             )
             val task = input.taskId?.let { tasksRepository.getTaskById(userId, it) }
             shift = TaskSnapshotApplier.applyToShift(shift, task)
-            if (shift.isCompleted) {
+            shift = ShiftCompensationReassignment.apply(
+                shift = shift,
+                requested = input.compensationSource,
+                project = resolveClockableProject(userId, settings, input),
+            )
+            // A project shift earns the project fee, so no wage snapshot is taken.
+            if (shift.isCompleted && shift.isEmployeePaid) {
                 shift = shift.copy(
                     compensationSnapshot = ShiftCompensationHelper.buildClockOutSnapshot(
                         shift, settings, profiles,
@@ -263,7 +296,18 @@ class ShiftsViewModel @Inject constructor(
                 updatedAt = Instant.now(),
             )
             updated = TaskSnapshotApplier.applyToShift(updated, task)
-            val payAffecting = updated.startTime != existing.startTime ||
+            // Reassigning between wages and project time is the one edit that
+            // changes which side pays for the hours, so it always recalculates.
+            // Billing records and payments are untouched: a billed amount is a
+            // frozen snapshot, and only the tracked hours move.
+            updated = ShiftCompensationReassignment.apply(
+                shift = updated,
+                requested = input.compensationSource,
+                project = resolveFormProject(userId, settings, input, existing),
+            )
+            val payAffecting = updated.compensationSource != existing.compensationSource ||
+                updated.projectId != existing.projectId ||
+                updated.startTime != existing.startTime ||
                 updated.endTime != existing.endTime ||
                 updated.breakMinutes != existing.breakMinutes ||
                 updated.isSpecialDay != existing.isSpecialDay ||
@@ -272,7 +316,7 @@ class ShiftsViewModel @Inject constructor(
                 updated.compensationProfileId != existing.compensationProfileId ||
                 updated.taskId != existing.taskId ||
                 updated.taskHourlyRateSnapshot != existing.taskHourlyRateSnapshot
-            val finalShift = if (updated.isCompleted && payAffecting) {
+            val finalShift = if (updated.isCompleted && payAffecting && updated.isEmployeePaid) {
                 updated.copy(
                     compensationSnapshot = ShiftCompensationHelper.buildClockOutSnapshot(
                         updated, settings, profiles,
@@ -285,6 +329,43 @@ class ShiftsViewModel @Inject constructor(
             closeForm()
             _userMessage.value = UiText.Res(R.string.shifts_feedback_updated)
         }
+    }
+
+    /**
+     * The project a form input points at, or null when project time is not
+     * available: the feature is off, no id was given, or the project is not open
+     * for time tracking.
+     */
+    private suspend fun resolveClockableProject(
+        userId: String,
+        settings: com.elmtrackr.app.domain.model.UserSettings,
+        input: ShiftFormInput,
+    ): com.elmtrackr.app.domain.model.Project? {
+        if (settings.featuresPaidProjects != true) return null
+        if (!input.compensationSource.isProjectTime) return null
+        val projectId = input.projectId ?: return null
+        return projectsRepository.getProject(userId, projectId)
+            ?.takeIf { ProjectClockInOptions.isClockable(it) }
+    }
+
+    /**
+     * Like [resolveClockableProject], but a shift that is *already* linked to a
+     * project keeps that link even after the project stops being clockable.
+     * Completing or archiving a project must not silently convert its recorded
+     * hours into paid wages the next time an unrelated field on the shift is
+     * edited.
+     */
+    private suspend fun resolveFormProject(
+        userId: String,
+        settings: com.elmtrackr.app.domain.model.UserSettings,
+        input: ShiftFormInput,
+        existing: Shift,
+    ): com.elmtrackr.app.domain.model.Project? {
+        resolveClockableProject(userId, settings, input)?.let { return it }
+        if (!input.compensationSource.isProjectTime) return null
+        val unchanged = input.projectId != null && input.projectId == existing.projectId
+        if (!unchanged) return null
+        return projectsRepository.getProject(userId, existing.projectId!!)
     }
 
     fun deleteShift(shiftId: String) {

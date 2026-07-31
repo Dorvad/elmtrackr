@@ -84,9 +84,12 @@ object DailyInsightsBuilder {
             text  = UiText.Res(R.string.insight_fallback_text),
             color = InsightColor.INDIGO,
         )
-        if (completedShifts.isEmpty() || totalMinutes == 0) return listOf(fallback)
+        // Employee-paid only, so the shift count stays consistent with
+        // [totalMinutes], which the caller takes from the monthly report.
+        val employeeShifts = completedShifts.employeePaidOnly()
+        if (employeeShifts.isEmpty() || totalMinutes == 0) return listOf(fallback)
 
-        val pool = buildPool(completedShifts, settings, totalMinutes, profiles, premiumProfiles)
+        val pool = buildPool(employeeShifts, settings, totalMinutes, profiles, premiumProfiles)
         if (pool.isEmpty()) return listOf(fallback)
 
         val dayIndex = (Instant.now().toEpochMilli() / 86_400_000).toInt()

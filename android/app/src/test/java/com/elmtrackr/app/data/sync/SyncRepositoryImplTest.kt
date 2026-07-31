@@ -589,6 +589,9 @@ class SyncRepositoryImplTest {
         compensationProfileDao = EmptyCompensationProfileDao(),
         premiumProfileDao = EmptyPremiumProfileDao(),
         receiptDao = com.elmtrackr.app.fake.FakeReceiptDao(),
+        projectDao = com.elmtrackr.app.fake.FakeProjectDao(),
+        projectBillingRecordDao = com.elmtrackr.app.fake.FakeProjectBillingRecordDao(),
+        projectPaymentDao = com.elmtrackr.app.fake.FakeProjectPaymentDao(),
         taskDao = taskDao,
         profileDao = profileDao,
         syncCursorStore = syncCursorStore,
@@ -1198,6 +1201,13 @@ class SyncRepositoryImplTest {
             fromEpoch: Long,
             toEpoch: Long,
         ): Flow<List<ShiftEntity>> = observeShiftsByDateRange(userId, fromEpoch, toEpoch)
+
+        override fun observeShiftsForProject(
+            userId: String,
+            projectId: String,
+        ): Flow<List<ShiftEntity>> = shifts.map { list ->
+            list.filter { it.userId == userId && it.projectId == projectId && it.deletedAt == null }
+        }
 
         private companion object {
             val pendingStatuses = setOf(

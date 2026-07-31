@@ -49,6 +49,12 @@ object WeeklyBreakdownBuilder {
         prevMonthShifts: List<Shift> = emptyList(),
         zoneOverride: java.time.ZoneId? = null,
     ): List<WeeklyTotals> {
+        // Employee-paid only. Each bucket reports overtime minutes and pay, both of
+        // which are employee-compensation figures; project time is paid by the
+        // project's fee and is reported on the project instead. Applied to the
+        // previous month too so the delta compares like with like.
+        @Suppress("NAME_SHADOWING") val shifts = shifts.employeePaidOnly()
+        @Suppress("NAME_SHADOWING") val prevMonthShifts = prevMonthShifts.employeePaidOnly()
         val hasPay = settings?.let { s ->
             (s.hourlyRate ?: 0.0) > 0.0 ||
                 profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }

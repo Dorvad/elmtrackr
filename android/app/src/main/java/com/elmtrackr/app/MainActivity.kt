@@ -21,6 +21,8 @@ import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.navigation.AppNavGraph
+import com.elmtrackr.app.navigation.DeepLinkRouter
+import com.elmtrackr.app.navigation.PaidProjectsNavGuard
 import com.elmtrackr.app.notification.NotificationPermissionCoordinator
 import com.elmtrackr.app.security.AppLockController
 import com.elmtrackr.app.ui.security.AppLockGate
@@ -45,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var authRepository: Lazy<AuthRepository>
     @Inject lateinit var appPreferences: AppPreferencesRepository
     @Inject lateinit var syncTrigger: SyncTrigger
+    @Inject lateinit var deepLinkRouter: DeepLinkRouter
 
     val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -152,7 +155,19 @@ class MainActivity : AppCompatActivity() {
         intent.data?.toString()?.let { handleDeepLink(it) }
     }
 
+    /**
+     * Auth callbacks are consumed imperatively by [AuthRepository] and never
+     * reach the nav graph. Anything else (currently only
+     * `elmtrackr://projects`) is parked in [DeepLinkRouter] until the tab
+     * navigation graph exists to route it — the activity can receive an intent
+     * long before the shell has composed, or while the user is still on auth
+     * or onboarding.
+     */
     private fun handleDeepLink(uriString: String) {
+        if (PaidProjectsNavGuard.isProjectsDeepLink(uriString)) {
+            deepLinkRouter.submit(uriString)
+            return
+        }
         lifecycleScope.launch {
             authRepository.get().handleDeepLink(uriString)
         }

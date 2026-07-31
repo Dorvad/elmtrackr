@@ -221,7 +221,11 @@ class ScreenshotRegressionTest {
     @Composable
     private fun OnboardingTestColumn(step: Int, content: @Composable () -> Unit) {
         Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 24.dp).verticalScroll(rememberScrollState())) {
-            OnboardingProgress(step)
+            OnboardingProgress(
+                step = step,
+                totalSteps = 10,
+                titleRes = com.elmtrackr.app.R.string.onboarding_step_review,
+            )
             androidx.compose.foundation.layout.Spacer(Modifier.height(24.dp))
             content()
         }

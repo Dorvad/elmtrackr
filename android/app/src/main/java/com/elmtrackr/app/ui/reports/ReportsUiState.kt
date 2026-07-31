@@ -35,6 +35,20 @@ sealed interface ReportsUiState {
         val refundClaims: List<RefundClaim> = emptyList(),
         val taskBreakdown: List<TaskMonthlyBreakdown> = emptyList(),
         val zone: ZoneId = ZoneId.systemDefault(),
+        /**
+         * The project report, or null while Paid Projects is off — which leaves the
+         * hourly report exactly as it was.
+         *
+         * A separate field rather than folded into [report] or [paySummary]: project
+         * money sits on different accounting bases from hourly earnings and is never
+         * added to them.
+         */
+        val projectReport: com.elmtrackr.app.domain.projects.ProjectReport? = null,
+        val projectFilter: com.elmtrackr.app.domain.projects.ProjectReportFilter =
+            com.elmtrackr.app.domain.projects.ProjectReportFilter(),
+        val projectClients: List<String> = emptyList(),
+        val projectCurrencies: List<String> = emptyList(),
+        val availableProjects: List<com.elmtrackr.app.domain.model.Project> = emptyList(),
     ) : ReportsUiState
 
     data class Error(val message: String) : ReportsUiState

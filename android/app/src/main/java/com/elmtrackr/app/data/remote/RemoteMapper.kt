@@ -53,12 +53,23 @@ fun ShiftEntity.toRemoteUpdate(
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
 )
 
+/**
+ * @param preserveLocal the row being overwritten, when there is one.
+ *
+ * The Paid Projects fields — the project link, its name snapshot and the
+ * compensation source — have no columns in the remote shift schema, so a pull
+ * carries no value for them. Rebuilding the row without them would drop a shift's
+ * project and silently turn tracked project time back into paid hourly work on
+ * the next sync, which is why the local values are carried forward here rather
+ * than defaulted.
+ */
 fun RemoteShiftRow.toLocalEntity(
     existingLocalId: String? = null,
     compensationProfileLocalId: String? = compensationProfileId,
     premiumProfileLocalId: String? = premiumProfileId,
     taskLocalId: String? = taskId,
     syncStatus: SyncStatus = SyncStatus.SYNCED,
+    preserveLocal: ShiftEntity? = null,
 ): ShiftEntity {
     val created = isoToEpoch(createdAt)
     val updated = isoToEpoch(updatedAt)
@@ -80,6 +91,9 @@ fun RemoteShiftRow.toLocalEntity(
         taskNameSnapshot = taskNameSnapshot,
         taskIconSnapshot = taskIconSnapshot,
         taskHourlyRateSnapshot = taskHourlyRateSnapshot,
+        projectId = preserveLocal?.projectId,
+        projectNameSnapshot = preserveLocal?.projectNameSnapshot,
+        compensationSource = preserveLocal?.compensationSource,
         createdAt = created,
         updatedAt = updated,
         deletedAt = null,

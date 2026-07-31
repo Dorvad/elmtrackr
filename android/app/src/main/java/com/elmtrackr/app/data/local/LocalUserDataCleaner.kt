@@ -3,6 +3,9 @@ package com.elmtrackr.app.data.local
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.PremiumProfileDao
 import com.elmtrackr.app.data.local.dao.ProfileDao
+import com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao
+import com.elmtrackr.app.data.local.dao.ProjectDao
+import com.elmtrackr.app.data.local.dao.ProjectPaymentDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
@@ -24,6 +27,9 @@ class LocalUserDataCleaner @Inject constructor(
     private val compensationProfileDao: CompensationProfileDao,
     private val premiumProfileDao: PremiumProfileDao,
     private val taskDao: TaskDao,
+    private val projectDao: ProjectDao,
+    private val projectBillingRecordDao: ProjectBillingRecordDao,
+    private val projectPaymentDao: ProjectPaymentDao,
 ) {
     suspend fun clearUserData(userId: String) {
         // Receipt images are files, so they cannot participate in the transaction;
@@ -40,6 +46,12 @@ class LocalUserDataCleaner @Inject constructor(
             compensationProfileDao.deleteAllForUser(userId)
             premiumProfileDao.deleteAllForUser(userId)
             taskDao.deleteAllForUser(userId)
+            // Children before parents: payments, then billing records, then
+            // projects, so a failure can never leave money rows pointing at a
+            // project that is already gone.
+            projectPaymentDao.deleteAllForUser(userId)
+            projectBillingRecordDao.deleteAllForUser(userId)
+            projectDao.deleteAllForUser(userId)
             profileDao.deleteAllForUser(userId)
         }
     }

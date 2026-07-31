@@ -1,5 +1,6 @@
 package com.elmtrackr.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -29,6 +30,13 @@ data class UserSettingsEntity(
     val featuresInsights: Boolean,
     val featuresClockStyles: Boolean,
     val featuresOvertimeReminders: Boolean,
+    val projectsDefaultRegionCode: String? = null,
+    val projectsDefaultCurrencyCode: String? = null,
+    val projectsTaxLabel: String? = null,
+    @ColumnInfo(defaultValue = "0")
+    val projectsTaxRateBasisPoints: Int = 0,
+    @ColumnInfo(defaultValue = "0")
+    val projectsTaxInclusive: Boolean = false,
     val clockStyle: String,
     val createdAt: Long,
     val updatedAt: Long,

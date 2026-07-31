@@ -5,6 +5,7 @@
     <string name="reports_subtitle">סקירת הביצועים שלך</string>
     <string name="reports_tab_hours">שעות</string>
     <string name="reports_tab_refunds">החזרי נסיעות</string>
+    <string name="reports_tab_projects">פרויקטים</string>
     <string name="reports_empty_title">אין משמרות שהושלמו</string>
     <string name="reports_empty_subtitle">משלימים כמה משמרות — והדוח מופיע כאן.</string>
 
