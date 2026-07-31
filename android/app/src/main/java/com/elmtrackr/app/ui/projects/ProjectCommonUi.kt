@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +30,7 @@ import com.elmtrackr.app.domain.money.MoneyFormat
 import com.elmtrackr.app.domain.money.ProjectFee
 import com.elmtrackr.app.domain.projects.ProjectBillingStatus
 import com.elmtrackr.app.domain.text.BidiText
-import com.elmtrackr.app.ui.theme.CornerRadius
+import com.elmtrackr.app.ui.design.ElmCard
 import com.elmtrackr.app.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -109,8 +107,9 @@ fun StatusPill(
     Box(
         modifier = modifier
             .semantics(mergeDescendants = true) { contentDescription = spoken ?: text }
-            .background(accent.copy(alpha = 0.14f), RoundedCornerShape(CornerRadius.Small))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            // Fully-rounded pill, per the Aurora reference status chips.
+            .background(accent.copy(alpha = 0.14f), RoundedCornerShape(50))
+            .padding(horizontal = 10.dp, vertical = 3.dp),
     ) {
         Text(
             text = text,
@@ -258,13 +257,9 @@ fun ProjectSectionCard(
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = Spacing.xs, start = 2.dp),
+            modifier = Modifier.padding(bottom = Spacing.xs, start = 4.dp),
         )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(CornerRadius.Large),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        ) {
+        ElmCard {
             Column(Modifier.padding(Spacing.md)) { content() }
         }
     }

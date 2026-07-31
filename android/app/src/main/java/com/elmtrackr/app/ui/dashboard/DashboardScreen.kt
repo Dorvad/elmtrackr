@@ -415,7 +415,30 @@ private fun DashboardReady(
                 ?: state.settings?.displayCurrencyCode()
                 ?: "ILS"
 
-            if (activeShift == null && state.activeTasks.isNotEmpty()) {
+            // Hourly tasks and paid projects are separate features. The mode
+            // toggle decides which picker is on screen: task chips only while
+            // "Hourly work" is selected, project chips only while "Project time"
+            // is — never both at once.
+            val projectModeSelected = state.canSelectProjectTime &&
+                state.selectedCompensationSource.isProjectTime
+
+            if (activeShift == null && state.canSelectProjectTime) {
+                ProjectTimeSelector(
+                    options = state.projectOptions,
+                    selectedSource = state.selectedCompensationSource,
+                    selectedProjectId = state.selectedProjectId,
+                    note = state.projectClockInNote,
+                    onSelectSource = onSelectCompensationSource,
+                    onSelectProject = onSelectClockInProject,
+                    onNoteChange = onProjectNoteChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                        .auroraEnter(index = 1),
+                )
+            }
+
+            if (activeShift == null && state.activeTasks.isNotEmpty() && !projectModeSelected) {
                 com.elmtrackr.app.ui.tasks.TaskSelectorBar(
                     tasks = state.activeTasks,
                     selectedTaskId = state.selectedTaskId,
@@ -431,19 +454,6 @@ private fun DashboardReady(
                 )
             }
 
-            // Added alongside the existing hourly content, never replacing it, and
-            // only when Paid Projects is on.
-            state.projectSummary?.let { projectSummary ->
-                ProjectDashboardCard(
-                    summary = projectSummary,
-                    onOpenProjects = onViewProject,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp)
-                        .auroraEnter(index = 2),
-                )
-            }
-
             // Non-blocking: sits above the clock and is dismissed with a tap, so
             // it never stands between the user and their next punch.
             projectShiftSummary?.let { summary ->
@@ -451,22 +461,6 @@ private fun DashboardReady(
                     summary = summary,
                     onDismiss = onDismissProjectShiftSummary,
                     onViewProject = onViewProject,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp)
-                        .auroraEnter(index = 1),
-                )
-            }
-
-            if (activeShift == null && state.canSelectProjectTime) {
-                ProjectTimeSelector(
-                    options = state.projectOptions,
-                    selectedSource = state.selectedCompensationSource,
-                    selectedProjectId = state.selectedProjectId,
-                    note = state.projectClockInNote,
-                    onSelectSource = onSelectCompensationSource,
-                    onSelectProject = onSelectClockInProject,
-                    onNoteChange = onProjectNoteChange,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 12.dp)
@@ -536,6 +530,21 @@ private fun DashboardReady(
                 )
             }
 
+            // The paid-projects section sits directly under the clock, as in the
+            // Aurora reference. Added alongside the existing hourly content,
+            // never replacing it, and only when Paid Projects is on.
+            val projectCard: (@Composable () -> Unit)? = state.projectSummary?.let { projectSummary ->
+                @Composable {
+                    ProjectDashboardCard(
+                        summary = projectSummary,
+                        onOpenProjects = onViewProject,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .auroraEnter(index = 2),
+                    )
+                }
+            }
+
             val setupCard: (@Composable () -> Unit)? = setupChecklist?.let { checklist ->
                 @Composable {
                     SetupChecklistCard(
@@ -570,6 +579,7 @@ private fun DashboardReady(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         clockCard()
+                        projectCard?.invoke()
                         setupCard?.invoke()
                         MonthSummaryDistribution(
                             report = state.monthlyReport,
@@ -597,6 +607,8 @@ private fun DashboardReady(
                 }
             } else {
                 clockCard()
+
+                projectCard?.invoke()
 
                 setupCard?.invoke()
 

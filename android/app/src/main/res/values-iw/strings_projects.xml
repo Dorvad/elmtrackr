@@ -58,6 +58,7 @@
     <string name="projects_search_hint">חיפוש פרויקטים או לקוחות</string>
     <string name="projects_search_clear">ניקוי החיפוש</string>
     <string name="projects_create">פרויקט חדש</string>
+    <string name="projects_add_another">הוספת פרויקט</string>
     <string name="projects_no_matches_title">אין פרויקטים מתאימים</string>
     <string name="projects_no_matches_subtitle">נסו חיפוש אחר או סינון אחר לפי סטטוס.</string>
     <string name="projects_count">%1$d פרויקטים</string>

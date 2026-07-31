@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.WorkOutline
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +50,8 @@ import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.components.states.LoadingState
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.AuroraStateCrossfade
+import com.elmtrackr.app.ui.design.ElmChoiceChip
+import com.elmtrackr.app.ui.design.ElmDashedButton
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraSubScreenTransition
 import com.elmtrackr.app.ui.theme.Spacing
@@ -365,16 +366,16 @@ internal fun ProjectsList(
                     val count = state.counts[filter] ?: 0
                     // Hide empty status views, except the default and the one in use.
                     if (count > 0 || filter == ProjectStatusFilter.ALL || filter == state.filter) {
-                        FilterChip(
+                        ElmChoiceChip(
                             selected = state.filter == filter,
                             onClick = { onFilterChange(filter) },
-                            label = {
-                                Text(
-                                    text = "${stringResource(ProjectLabels.statusFilter(filter))} ($count)",
-                                    style = MaterialTheme.typography.labelMedium,
-                                )
-                            },
-                        )
+                        ) {
+                            Text(
+                                text = "${stringResource(ProjectLabels.statusFilter(filter))} ($count)",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
                     }
                 }
             }
@@ -401,8 +402,18 @@ internal fun ProjectsList(
                     subtitle = stringResource(R.string.projects_no_matches_subtitle),
                 )
             }
-            else -> items(state.visibleProjects, key = { it.project.id }) { summary ->
-                ProjectCard(summary = summary, onClick = { onOpen(summary.project.id) })
+            else -> {
+                items(state.visibleProjects, key = { it.project.id }) { summary ->
+                    ProjectCard(summary = summary, onClick = { onOpen(summary.project.id) })
+                }
+                // Quiet add affordance at the end of the list, per the reference
+                // frames — reachable without scrolling back up to the header CTA.
+                item {
+                    ElmDashedButton(
+                        label = stringResource(R.string.projects_add_another),
+                        onClick = onCreate,
+                    )
+                }
             }
         }
 
