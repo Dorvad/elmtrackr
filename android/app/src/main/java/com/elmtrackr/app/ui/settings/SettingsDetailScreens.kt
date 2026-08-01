@@ -98,6 +98,12 @@ internal fun SettingsHub(
     onEnablePaidProjects: () -> Unit = {},
     onDismissPaidProjectsDiscovery: () -> Unit = {},
 ) {
+    if (state.showPaidProjectsDiscovery) {
+        PaidProjectsUpdateWizard(
+            onEnable = onEnablePaidProjects,
+            onDismiss = onDismissPaidProjectsDiscovery,
+        )
+    }
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
@@ -112,14 +118,6 @@ internal fun SettingsHub(
                 email = state.profile?.email,
                 onClick = { onNavigate(SettingsDestination.PROFILE) },
             )
-        }
-        if (state.showPaidProjectsDiscovery) {
-            item {
-                PaidProjectsDiscoveryCard(
-                    onEnable = onEnablePaidProjects,
-                    onDismiss = onDismissPaidProjectsDiscovery,
-                )
-            }
         }
         item {
             SettingsGroupedSection(title = stringResource(R.string.settings_section_tracking_pay)) {
