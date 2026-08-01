@@ -13,12 +13,26 @@
     <string name="settings_paid_projects_desc">Track fixed-price projects, time spent, payments, and your effective hourly rate.</string>
     <string name="settings_feature_paid_projects_short">Paid Projects</string>
 
-    <!-- Dismissible discovery entry for existing users -->
-    <string name="projects_discovery_title">New: Paid Projects</string>
-    <string name="projects_discovery_body">Get paid a fixed price per project? Track the fee, your hours, payments received, and what is still outstanding.</string>
-    <string name="projects_discovery_action">Turn it on</string>
-    <string name="projects_discovery_dismiss">Not now</string>
-    <string name="projects_discovery_dismiss_a11y">Dismiss Paid Projects suggestion</string>
+    <!-- Update wizard shown once to existing users (replaces the old discovery card) -->
+    <string name="projects_wizard_title">ElmTrackr v1.2 - Paid Projects are here</string>
+    <string name="projects_wizard_page_projects_title">Track fixed-price work</string>
+    <string name="projects_wizard_page_projects_body">Create a project with a client, an agreed fee and optional tax. The fee, the tax and the client total always stay in step.</string>
+    <string name="projects_wizard_page_time_title">Clock in against a project</string>
+    <string name="projects_wizard_page_time_body">Track shifts as project time. Those hours count toward the project fee and stay out of your wages and overtime.</string>
+    <string name="projects_wizard_page_billing_title">Billing and payments</string>
+    <string name="projects_wizard_page_billing_body">Record what you billed and each payment received. The outstanding balance, overdue status and due-date reminders follow on their own.</string>
+    <string name="projects_wizard_page_insights_title">Know your real hourly rate</string>
+    <string name="projects_wizard_page_insights_body">Effective rate per project, hour budget usage, a projects report and CSV export — so you know what a fixed price really pays.</string>
+    <string name="projects_wizard_page_faces_title">Also in v1.2: new watch faces</string>
+    <string name="projects_wizard_page_faces_body">Metro, Vinyl and Luna join the dashboard clock. Pick a face any time in Settings → Appearance &amp; clock.</string>
+    <string name="projects_wizard_next">Next</string>
+    <string name="projects_wizard_back">Back</string>
+    <string name="projects_wizard_skip">Skip</string>
+    <string name="projects_wizard_activate">Turn on Paid Projects</string>
+    <string name="projects_wizard_not_now">Not now</string>
+    <string name="projects_wizard_footer">Optional. You can turn it on or off any time in Settings → Features.</string>
+    <string name="projects_wizard_close_a11y">Close the Paid Projects introduction</string>
+    <string name="projects_wizard_step_a11y">Step %1$d of %2$d</string>
 
     <!-- Onboarding: the question step -->
     <string name="onboarding_step_paid_projects">Projects</string>

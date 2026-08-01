@@ -87,6 +87,9 @@
     <string name="settings_face_blocks">בלוקים שעה־שעה</string>
     <string name="settings_face_orbit">לוויין במסלול</string>
     <string name="settings_face_tide">הגאות של היום שלך</string>
+    <string name="settings_face_metro">היום שלכם כנסיעה — תחנה לכל שעה</string>
+    <string name="settings_face_vinyl">תקליט שמסתובב בזמן העבודה</string>
+    <string name="settings_face_luna">ירח שמתמלא עד שעה שמינית</string>
     <string name="settings_face_sprout">צמח שגדל בכל שעה — פריחה מלאה בשעה השמינית</string>
 
     <!-- Hub summaries -->

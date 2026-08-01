@@ -13,12 +13,26 @@
     <string name="settings_paid_projects_desc">מעקב אחר פרויקטים במחיר קבוע, שעות עבודה, תשלומים והשכר האפקטיבי לשעה.</string>
     <string name="settings_feature_paid_projects_short">פרויקטים בתשלום</string>
 
-    <!-- Dismissible discovery entry for existing users -->
-    <string name="projects_discovery_title">חדש: פרויקטים בתשלום</string>
-    <string name="projects_discovery_body">מקבלים מחיר קבוע לפרויקט? עקבו אחרי התמורה, השעות, התשלומים שהתקבלו ומה שנותר לגבות.</string>
-    <string name="projects_discovery_action">הפעלה</string>
-    <string name="projects_discovery_dismiss">לא כרגע</string>
-    <string name="projects_discovery_dismiss_a11y">הסתרת ההצעה לפרויקטים בתשלום</string>
+    <!-- Update wizard shown once to existing users (replaces the old discovery card) -->
+    <string name="projects_wizard_title">ElmTrackr v1.2 - פרויקטים בתשלום כאן</string>
+    <string name="projects_wizard_page_projects_title">מעקב אחר עבודה במחיר קבוע</string>
+    <string name="projects_wizard_page_projects_body">צרו פרויקט עם לקוח, תמורה מוסכמת ומס אופציונלי. התמורה, המס והסה״כ ללקוח תמיד נשארים מתואמים.</string>
+    <string name="projects_wizard_page_time_title">רישום שעות לפרויקט</string>
+    <string name="projects_wizard_page_time_body">רשמו משמרות כשעות פרויקט. השעות נזקפות לתמורת הפרויקט ונשארות מחוץ לשכר ולשעות הנוספות.</string>
+    <string name="projects_wizard_page_billing_title">חיוב ותשלומים</string>
+    <string name="projects_wizard_page_billing_body">תעדו מה חויב וכל תשלום שהתקבל. היתרה לתשלום, מצב הפיגור ותזכורות מועד התשלום מתעדכנים מעצמם.</string>
+    <string name="projects_wizard_page_insights_title">השכר האמיתי לשעה</string>
+    <string name="projects_wizard_page_insights_body">שכר אפקטיבי לכל פרויקט, ניצול תקציב השעות, דוח פרויקטים וייצוא CSV — כדי לדעת כמה מחיר קבוע באמת משלם.</string>
+    <string name="projects_wizard_page_faces_title">חדש גם ב-v1.2: לוחות שעון</string>
+    <string name="projects_wizard_page_faces_body">מטרו, ויניל ולונה מצטרפים לשעון במסך הראשי. אפשר לבחור לוח בכל רגע בהגדרות ← מראה ושעון.</string>
+    <string name="projects_wizard_next">הבא</string>
+    <string name="projects_wizard_back">חזרה</string>
+    <string name="projects_wizard_skip">דילוג</string>
+    <string name="projects_wizard_activate">הפעלת פרויקטים בתשלום</string>
+    <string name="projects_wizard_not_now">לא כרגע</string>
+    <string name="projects_wizard_footer">אופציונלי. אפשר להפעיל או לכבות בכל רגע בהגדרות ← פיצ׳רים.</string>
+    <string name="projects_wizard_close_a11y">סגירת ההיכרות עם פרויקטים בתשלום</string>
+    <string name="projects_wizard_step_a11y">שלב %1$d מתוך %2$d</string>
 
     <!-- Onboarding: the question step -->
     <string name="onboarding_step_paid_projects">פרויקטים</string>

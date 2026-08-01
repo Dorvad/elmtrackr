@@ -88,6 +88,9 @@
     <string name="settings_face_orbit">Orbiting satellite</string>
     <string name="settings_face_tide">Rising tide of your day</string>
     <string name="settings_face_sprout">A plant that grows every hour — full bloom at eight</string>
+    <string name="settings_face_metro">Your day as a commute — one station per hour</string>
+    <string name="settings_face_vinyl">A record spinning while you work</string>
+    <string name="settings_face_luna">A moon that waxes to full at eight</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">No hourly rate</string>

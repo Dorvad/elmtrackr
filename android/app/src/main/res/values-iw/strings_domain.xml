@@ -58,6 +58,9 @@
     <string name="clock_style_blocks">בלוקים</string>
     <string name="clock_style_orbit">אורביט</string>
     <string name="clock_style_tide">גאות</string>
+    <string name="clock_style_metro">מטרו</string>
+    <string name="clock_style_vinyl">ויניל</string>
+    <string name="clock_style_luna">לונה</string>
     <string name="clock_style_sprout">נבט</string>
 
     <!-- Currency display names -->
