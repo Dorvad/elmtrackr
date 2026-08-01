@@ -8,14 +8,12 @@ import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.fake.FakeAppLockPreferencesStore
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
-import com.elmtrackr.app.fake.FakeFeatureDiscoveryPreferences
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeSyncRepository
 import com.elmtrackr.app.fake.FakeSyncTrigger
 import com.elmtrackr.app.fake.FakeThemePreferenceStore
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -26,8 +24,9 @@ import org.junit.Test
 import java.time.Instant
 
 /**
- * Turning Paid Projects on and off through Settings, and the discovery entry
- * that existing users see instead of being sent back through onboarding.
+ * Turning Paid Projects on and off through Settings. The one-time update
+ * wizard existing users see instead of onboarding lives on the dashboard —
+ * see PaidProjectsWizardTriggerTest.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class PaidProjectsSettingsTest {
@@ -39,8 +38,6 @@ class PaidProjectsSettingsTest {
     private val authRepo = FakeAuthRepository().apply {
         setProfile(Profile("u1", "test@example.com", null, Instant.EPOCH, Instant.EPOCH))
     }
-    private val discoveryPrefs = FakeFeatureDiscoveryPreferences()
-
     private fun buildVm() = SettingsViewModel(
         repo,
         authRepo,
@@ -49,7 +46,6 @@ class PaidProjectsSettingsTest {
         FakeSyncRepository(),
         FakeSyncTrigger(),
         FakeAppLockPreferencesStore(),
-        discoveryPrefs,
     )
 
     /** An existing user: onboarding done, hours and pay already configured. */
@@ -171,67 +167,4 @@ class PaidProjectsSettingsTest {
         assertTrue(saved.onboardingCompleted)
     }
 
-    // ── Discovery entry for existing users ────────────────────────────────────
-
-    @Test
-    fun `existing user with the feature off sees the discovery entry`() = runTest {
-        val vm = buildVm()
-        val states = mutableListOf<SettingsUiState>()
-        val job = launch { vm.uiState.collect { states.add(it) } }
-
-        repo.setSettings(existingUserSettings())
-        advanceUntilIdle()
-
-        val ready = states.filterIsInstance<SettingsUiState.Ready>().last()
-        assertTrue(ready.showPaidProjectsDiscovery)
-        job.cancel()
-    }
-
-    @Test
-    fun `enabling from the discovery entry sets the flag and hides the entry`() = runTest {
-        val vm = buildVm()
-        val states = mutableListOf<SettingsUiState>()
-        val job = launch { vm.uiState.collect { states.add(it) } }
-        repo.setSettings(existingUserSettings())
-        advanceUntilIdle()
-
-        vm.enablePaidProjectsFromDiscovery()
-        advanceUntilIdle()
-
-        assertTrue(repo.getSettings("u1")!!.featuresPaidProjects)
-        assertTrue(discoveryPrefs.paidProjectsDiscoveryDismissed)
-        assertFalse(states.filterIsInstance<SettingsUiState.Ready>().last().showPaidProjectsDiscovery)
-        job.cancel()
-    }
-
-    @Test
-    fun `dismissing the discovery entry does not enable the feature`() = runTest {
-        val vm = buildVm()
-        val states = mutableListOf<SettingsUiState>()
-        val job = launch { vm.uiState.collect { states.add(it) } }
-        repo.setSettings(existingUserSettings())
-        advanceUntilIdle()
-
-        vm.dismissPaidProjectsDiscovery()
-        advanceUntilIdle()
-
-        assertFalse(repo.getSettings("u1")!!.featuresPaidProjects)
-        assertTrue(discoveryPrefs.paidProjectsDiscoveryDismissed)
-        assertFalse(states.filterIsInstance<SettingsUiState.Ready>().last().showPaidProjectsDiscovery)
-        job.cancel()
-    }
-
-    @Test
-    fun `enabling from discovery changes nothing else`() = runTest {
-        val vm = buildVm()
-        val base = existingUserSettings()
-        repo.setSettings(base)
-        advanceUntilIdle()
-
-        vm.enablePaidProjectsFromDiscovery()
-        advanceUntilIdle()
-
-        val saved = repo.getSettings("u1")!!
-        assertEquals(base.copy(featuresPaidProjects = true, updatedAt = saved.updatedAt), saved)
-    }
 }

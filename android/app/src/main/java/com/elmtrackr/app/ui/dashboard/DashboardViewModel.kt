@@ -2,6 +2,7 @@ package com.elmtrackr.app.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.data.local.preferences.FeatureDiscoveryPreferences
 import com.elmtrackr.app.data.local.preferences.SetupChecklistPreferences
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.data.repository.PremiumProfilesRepository
@@ -16,6 +17,7 @@ import com.elmtrackr.app.domain.model.Project
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.projects.PaidProjectsDiscovery
 import com.elmtrackr.app.domain.projects.ProjectClockInOptions
 import com.elmtrackr.app.domain.projects.ProjectDashboardSummary
 import com.elmtrackr.app.domain.projects.ProjectDashboardSummaryBuilder
@@ -39,6 +41,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -67,6 +70,7 @@ class DashboardViewModel @Inject constructor(
     private val setupPreferences: SetupChecklistPreferences,
     private val widgetPinInspector: WidgetPinInspector,
     private val projectsRepository: ProjectsRepository,
+    private val featureDiscoveryPreferences: FeatureDiscoveryPreferences,
 ) : ViewModel() {
 
     private val _refreshNonce = MutableStateFlow(0)
@@ -179,6 +183,10 @@ class DashboardViewModel @Inject constructor(
             }
             .catch { emit(null) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private val paidProjectsWizardDismissed = featureDiscoveryPreferences.preferences
+        .map { it.paidProjectsDiscoveryDismissed }
+        .distinctUntilChanged()
 
     private data class RawData(
         val activeShift: Shift?,
@@ -346,6 +354,18 @@ class DashboardViewModel @Inject constructor(
                 else -> state
             }
         }
+        .combine(paidProjectsWizardDismissed) { state, dismissed ->
+            when (state) {
+                is DashboardUiState.Ready -> state.copy(
+                    showPaidProjectsWizard = PaidProjectsDiscovery.shouldShow(
+                        onboardingCompleted = state.settings.onboardingCompleted,
+                        paidProjectsEnabled = state.settings.featuresPaidProjects,
+                        dismissed = dismissed,
+                    ),
+                )
+                else -> state
+            }
+        }
         .catch { e ->
         emit(DashboardUiState.Error(e.message ?: "Unknown error"))
     }.stateIn(
@@ -452,6 +472,34 @@ class DashboardViewModel @Inject constructor(
 
     fun dismissFirstClockInCelebration() {
         _showFirstClockInCelebration.value = false
+    }
+
+    /**
+     * Retires the v1.2 update wizard for good without touching the feature
+     * flag — Paid Projects stays available from Settings → Features.
+     */
+    fun dismissPaidProjectsWizard() {
+        viewModelScope.launch {
+            featureDiscoveryPreferences.setPaidProjectsDiscoveryDismissed(true)
+        }
+    }
+
+    /**
+     * Turns Paid Projects on straight from the update wizard and stops the
+     * wizard coming back. Only this flag changes: every other setting, and all
+     * existing hours and pay data, is left exactly as it was.
+     */
+    fun enablePaidProjectsFromWizard() {
+        viewModelScope.launch {
+            val userId = authRepository.getCurrentProfile()?.id ?: return@launch
+            val existing = settingsRepository.getSettings(userId) ?: return@launch
+            if (!existing.featuresPaidProjects) {
+                settingsRepository.saveSettings(
+                    existing.copy(featuresPaidProjects = true, updatedAt = Instant.now()),
+                )
+            }
+            featureDiscoveryPreferences.setPaidProjectsDiscoveryDismissed(true)
+        }
     }
 
     fun clockOut(shiftId: String) {

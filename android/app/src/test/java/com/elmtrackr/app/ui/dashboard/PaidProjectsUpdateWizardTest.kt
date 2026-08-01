@@ -1,11 +1,13 @@
-package com.elmtrackr.app.ui.settings
+package com.elmtrackr.app.ui.dashboard
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.elmtrackr.app.ScreenshotTestApplication
+import com.elmtrackr.app.ui.design.LocalReduceMotion
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,12 +19,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The Paid Projects update wizard, as a user meets it.
+ * The v1.2 update wizard, as a user meets it on the main screen.
  *
- * This pop-up replaced the old discovery card, so what it must preserve is the
- * card's contract: the user leaves either by turning the feature on or by
- * skipping, never both, and each choice fires exactly one callback. The paging
- * itself is checked through the visible page titles, not internal state.
+ * The wizard opens on the watch-face showcase, walks the Paid Projects
+ * features, and the user leaves either by turning the feature on or by
+ * skipping, never both — each choice fires exactly one callback. Rendering
+ * runs with reduce-motion on, which freezes the looping feature demos on
+ * their end states and keeps these tests deterministic.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33], qualifiers = "w411dp-h891dp", application = ScreenshotTestApplication::class)
@@ -33,11 +36,11 @@ class PaidProjectsUpdateWizardTest {
 
     private val title = "ElmTrackr v1.2 - Paid Projects are here"
     private val pageTitles = listOf(
+        "Also in v1.2: new watch faces",
         "Track fixed-price work",
         "Clock in against a project",
         "Billing and payments",
         "Know your real hourly rate",
-        "Also in v1.2: new watch faces",
     )
 
     private var enabled = 0
@@ -45,11 +48,13 @@ class PaidProjectsUpdateWizardTest {
 
     private fun render() {
         composeRule.setContent {
-            ElmTrackrTheme {
-                PaidProjectsUpdateWizard(
-                    onEnable = { enabled++ },
-                    onDismiss = { dismissed++ },
-                )
+            CompositionLocalProvider(LocalReduceMotion provides true) {
+                ElmTrackrTheme {
+                    PaidProjectsUpdateWizard(
+                        onEnable = { enabled++ },
+                        onDismiss = { dismissed++ },
+                    )
+                }
             }
         }
     }
@@ -57,7 +62,7 @@ class PaidProjectsUpdateWizardTest {
     private fun next() = composeRule.onNodeWithText("Next").performClick()
 
     @Test
-    fun `opens on the release title and the first feature`() {
+    fun `opens on the release title and the watch-face showcase`() {
         render()
 
         composeRule.onNodeWithText(title).assertIsDisplayed()
@@ -65,7 +70,16 @@ class PaidProjectsUpdateWizardTest {
     }
 
     @Test
-    fun `next walks through every feature page`() {
+    fun `the showcase presents the three new watch faces first`() {
+        render()
+
+        listOf("Metro", "Vinyl", "Luna").forEach { face ->
+            composeRule.onNodeWithText(face).assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `next walks from the showcase through every feature page`() {
         render()
 
         pageTitles.forEachIndexed { index, pageTitle ->
@@ -75,7 +89,7 @@ class PaidProjectsUpdateWizardTest {
     }
 
     @Test
-    fun `back returns to the previous feature page`() {
+    fun `back returns to the previous page`() {
         render()
         next()
         composeRule.onNodeWithText(pageTitles[1]).assertIsDisplayed()
@@ -83,16 +97,6 @@ class PaidProjectsUpdateWizardTest {
         composeRule.onNodeWithText("Back").performClick()
 
         composeRule.onNodeWithText(pageTitles[0]).assertIsDisplayed()
-    }
-
-    @Test
-    fun `the showcase page presents the three new watch faces`() {
-        render()
-        repeat(pageTitles.lastIndex) { next() }
-
-        listOf("Metro", "Vinyl", "Luna").forEach { face ->
-            composeRule.onNodeWithText(face).assertIsDisplayed()
-        }
     }
 
     @Test

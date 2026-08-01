@@ -30,8 +30,6 @@ sealed interface SettingsUiState {
         val reduceMotionEnabled: Boolean = false,
         val compensationProfileCount: Int = 0,
         val defaultCompensationProfileName: String? = null,
-        /** One-time Paid Projects entry for users who never saw it in onboarding. */
-        val showPaidProjectsDiscovery: Boolean = false,
     ) : SettingsUiState
 
     data class Error(val message: String) : SettingsUiState

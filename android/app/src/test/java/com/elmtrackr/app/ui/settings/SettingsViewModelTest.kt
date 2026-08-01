@@ -12,7 +12,6 @@ import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.fake.FakeAppLockPreferencesStore
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
-import com.elmtrackr.app.fake.FakeFeatureDiscoveryPreferences
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeSyncRepository
@@ -45,7 +44,6 @@ class SettingsViewModelTest {
     private val syncRepo = FakeSyncRepository()
     private val syncTrigger = FakeSyncTrigger()
     private val appLockPrefs = FakeAppLockPreferencesStore()
-    private val discoveryPrefs = FakeFeatureDiscoveryPreferences()
 
     private fun buildVm() = SettingsViewModel(
         repo,
@@ -55,7 +53,6 @@ class SettingsViewModelTest {
         syncRepo,
         syncTrigger,
         appLockPrefs,
-        discoveryPrefs,
     )
 
     private fun defaultSettings() = UserSettings(
