@@ -103,6 +103,9 @@ internal fun clockStyleDisplayName(style: ClockStyle): String = stringResource(
         ClockStyle.ORBIT -> R.string.clock_style_orbit
         ClockStyle.TIDE -> R.string.clock_style_tide
         ClockStyle.SPROUT -> R.string.clock_style_sprout
+        ClockStyle.METRO -> R.string.clock_style_metro
+        ClockStyle.VINYL -> R.string.clock_style_vinyl
+        ClockStyle.LUNA -> R.string.clock_style_luna
     },
 )
 
@@ -383,10 +386,10 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
         label = "watch-pulse",
     )
     val animatedPulse = if (auroraMotionEnabled()) pulse else 1f
-    val darkFace = style in listOf(ClockStyle.BOLD, ClockStyle.NIGHT, ClockStyle.RETRO)
+    val darkFace = style in listOf(ClockStyle.BOLD, ClockStyle.NIGHT, ClockStyle.RETRO, ClockStyle.VINYL)
     val faceBackground = if (darkFace) Color(0xFF11162A) else MaterialTheme.colorScheme.surface
     val accent = when (style) {
-        ClockStyle.NIGHT, ClockStyle.TIDE -> Color(0xFF54D8E1)
+        ClockStyle.NIGHT, ClockStyle.TIDE, ClockStyle.VINYL -> Color(0xFF54D8E1)
         ClockStyle.RETRO -> Color(0xFFFFC857)
         ClockStyle.PRISM, ClockStyle.AURORA -> Color(0xFF9B7CFF)
         ClockStyle.SPROUT -> Color(0xFF2E9E6B)
@@ -512,6 +515,77 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
                     drawCircle(Color(0xFFB07CF8).copy(alpha = .45f + animatedPulse * .4f), 6.dp.toPx(), top)
                     drawCircle(Color(0xFFFFC857), 2.5.dp.toPx(), top)
                 }
+                ClockStyle.METRO -> {
+                    // A short stretch of line, three stations, and the train.
+                    val y = center.y + radius * .45f
+                    val line = Path().apply {
+                        moveTo(6.dp.toPx(), y + 8.dp.toPx())
+                        quadraticTo(center.x, y + 8.dp.toPx(), center.x + radius * .5f, y - 2.dp.toPx())
+                        quadraticTo(size.width - 24.dp.toPx(), y - 10.dp.toPx(), size.width - 8.dp.toPx(), y - 16.dp.toPx())
+                    }
+                    drawPath(line, accent.copy(alpha = .2f), style = Stroke(3.5f, cap = StrokeCap.Round))
+                    val stops = listOf(
+                        Offset(14.dp.toPx(), y + 8.dp.toPx()) to true,
+                        Offset(center.x, y + 4.dp.toPx()) to true,
+                        Offset(size.width - 14.dp.toPx(), y - 14.dp.toPx()) to false,
+                    )
+                    stops.forEach { (stop, passed) ->
+                        if (passed) drawCircle(accent, 3.5f, stop)
+                        else drawCircle(accent.copy(alpha = .35f), 3.5f, stop, style = Stroke(2f))
+                    }
+                    drawRoundRect(
+                        accent,
+                        Offset(center.x - 7.dp.toPx(), y - 1.dp.toPx()),
+                        Size(14.dp.toPx(), 7.dp.toPx()),
+                        androidx.compose.ui.geometry.CornerRadius(3.5.dp.toPx()),
+                    )
+                }
+                ClockStyle.VINYL -> {
+                    val discRadius = size.minDimension * .42f
+                    drawCircle(Color(0xFF211D3E), discRadius, center)
+                    repeat(4) { i ->
+                        drawCircle(
+                            Color.White.copy(alpha = .1f),
+                            discRadius * (.45f + i * .13f), center, style = Stroke(1.5f),
+                        )
+                    }
+                    drawCircle(accent.copy(alpha = .4f), discRadius * .71f, center, style = Stroke(1.5f))
+                    drawCircle(Color(0xFF5B4DF2), discRadius * .32f, center)
+                    drawCircle(Color(0xFF11162A), 2.5f, center)
+                    val pivot = Offset(size.width - 8.dp.toPx(), 6.dp.toPx())
+                    val needle = Offset(center.x + discRadius * .5f, center.y - discRadius * .55f)
+                    drawLine(Color.White.copy(alpha = .6f), pivot, needle, 2f, StrokeCap.Round)
+                    drawCircle(accent.copy(alpha = .3f + animatedPulse * .4f), 4f, needle)
+                }
+                ClockStyle.LUNA -> {
+                    val moonRadius = size.minDimension * .38f
+                    drawCircle(accent.copy(alpha = .12f + animatedPulse * .08f), moonRadius + 6.dp.toPx(), center)
+                    drawCircle(Color(0xFFF1F0FB), moonRadius, center)
+                    drawCircle(Color(0xFF181530).copy(alpha = .1f), moonRadius, center, style = Stroke(1.5f))
+                    // A waxing gibbous: right semicircle plus a bulging terminator.
+                    val lit = Path().apply {
+                        arcTo(
+                            androidx.compose.ui.geometry.Rect(
+                                center.x - moonRadius, center.y - moonRadius,
+                                center.x + moonRadius, center.y + moonRadius,
+                            ),
+                            -90f, 180f, false,
+                        )
+                        arcTo(
+                            androidx.compose.ui.geometry.Rect(
+                                center.x - moonRadius * .5f, center.y - moonRadius,
+                                center.x + moonRadius * .5f, center.y + moonRadius,
+                            ),
+                            90f, 180f, false,
+                        )
+                        close()
+                    }
+                    drawPath(lit, Color(0xFFC4B8FA))
+                    val star = Offset(center.x + moonRadius + 8.dp.toPx(), center.y - moonRadius)
+                    val arm = 3.dp.toPx() * (.6f + animatedPulse * .4f)
+                    drawLine(accent, star - Offset(arm, 0f), star + Offset(arm, 0f), 1.5f, StrokeCap.Round)
+                    drawLine(accent, star - Offset(0f, arm), star + Offset(0f, arm), 1.5f, StrokeCap.Round)
+                }
                 ClockStyle.TIDE -> {
                     val vesselRadius = size.minDimension * .42f
                     drawCircle(accent.copy(alpha = .35f), vesselRadius, center, style = Stroke(2f))
@@ -565,6 +639,9 @@ internal fun watchFaceDescription(style: ClockStyle): String = stringResource(
         ClockStyle.ORBIT -> R.string.settings_face_orbit
         ClockStyle.TIDE -> R.string.settings_face_tide
         ClockStyle.SPROUT -> R.string.settings_face_sprout
+        ClockStyle.METRO -> R.string.settings_face_metro
+        ClockStyle.VINYL -> R.string.settings_face_vinyl
+        ClockStyle.LUNA -> R.string.settings_face_luna
     },
 )
 

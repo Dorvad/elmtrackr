@@ -59,6 +59,9 @@
     <string name="clock_style_orbit">Orbit</string>
     <string name="clock_style_tide">Tide</string>
     <string name="clock_style_sprout">Sprout</string>
+    <string name="clock_style_metro">Metro</string>
+    <string name="clock_style_vinyl">Vinyl</string>
+    <string name="clock_style_luna">Luna</string>
 
     <!-- Currency display names -->
     <string name="currency_ils">Israeli New Shekel</string>

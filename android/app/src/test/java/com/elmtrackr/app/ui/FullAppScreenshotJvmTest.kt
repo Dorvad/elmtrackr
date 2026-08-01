@@ -151,6 +151,36 @@ class FullAppScreenshotJvmTest {
         )
     }
 
+    @Test fun dashboardMetro() = capture("32-dashboard-metro") {
+        // 5.5 hours logged: the train parked past the fifth station, three to go.
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.METRO),
+                todayCompletedMinutes = 330,
+            ),
+        )
+    }
+
+    @Test fun dashboardVinyl() = capture("33-dashboard-vinyl") {
+        // 5.5 hours logged: five hour-grooves lit, tonearm two-thirds inward.
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.VINYL),
+                todayCompletedMinutes = 330,
+            ),
+        )
+    }
+
+    @Test fun dashboardLuna() = capture("34-dashboard-luna") {
+        // 5.5 hours logged: a waxing gibbous, terminator past centre.
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.LUNA),
+                todayCompletedMinutes = 330,
+            ),
+        )
+    }
+
     @Test fun dashboardSkeleton() = capture("09-dashboard-loading") {
         DashboardSkeleton(Modifier.fillMaxSize().padding(16.dp))
     }

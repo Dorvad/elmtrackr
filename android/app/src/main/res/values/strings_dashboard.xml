@@ -59,6 +59,12 @@
     <string name="dashboard_clock_tide_rising">TIDE RISING</string>
     <string name="dashboard_clock_growing">GROWING</string>
     <string name="dashboard_clock_ready_to_grow">READY TO GROW</string>
+    <string name="dashboard_clock_in_transit">IN TRANSIT</string>
+    <string name="dashboard_clock_on_platform">ON THE PLATFORM</string>
+    <string name="dashboard_clock_now_playing">NOW PLAYING</string>
+    <string name="dashboard_clock_drop_needle">DROP THE NEEDLE</string>
+    <string name="dashboard_clock_waxing">WAXING</string>
+    <string name="dashboard_clock_new_moon">NEW MOON</string>
 
     <!-- Month summary -->
     <string name="dashboard_month_summary_title">%1$s Summary</string>

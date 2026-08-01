@@ -33,6 +33,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -115,6 +116,7 @@ import com.elmtrackr.app.ui.components.motion.ShiftElapsedDisplay
 import com.elmtrackr.app.ui.components.motion.activeShiftPulse
 import com.elmtrackr.app.ui.components.motion.FirstClockInCelebrationDialog
 import com.elmtrackr.app.ui.components.states.ErrorState
+import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.AuroraScreen
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
@@ -839,7 +841,10 @@ private fun DashboardClockSection(
                 SupportedClockStyle.BLOCKS,
                 SupportedClockStyle.ORBIT,
                 SupportedClockStyle.TIDE,
-                SupportedClockStyle.SPROUT -> ExpressiveClockCard(
+                SupportedClockStyle.SPROUT,
+                SupportedClockStyle.METRO,
+                SupportedClockStyle.VINYL,
+                SupportedClockStyle.LUNA -> ExpressiveClockCard(
                     style = renderStyle,
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
@@ -1160,14 +1165,36 @@ private fun ExpressiveClockCard(
         (daySeconds / (dailyOtMinutes * 60f)).coerceIn(0f, 1f)
     } else 0f
     val overtime = running && daySeconds > dailyOtMinutes * 60L
+    // The v1.2 faces (Metro, Vinyl, Luna) stay glanceable while clocked out,
+    // so they read whole-day progress rather than the running-gated value.
+    val dayProgress = if (dailyOtMinutes > 0) {
+        (daySeconds / (dailyOtMinutes * 60f)).coerceIn(0f, 1f)
+    } else 0f
+    val dayOvertime = dailyOtMinutes > 0 && daySeconds > dailyOtMinutes * 60L
+    // Two further hours fill the whole overtime extension, per the reference.
+    val overtimeExtension = if (dayOvertime) {
+        ((daySeconds - dailyOtMinutes * 60L) / 7200f).coerceIn(0f, 1f)
+    } else 0f
+    val vinylSpin = vinylSpinDegrees(active = style == SupportedClockStyle.VINYL && running)
+    // Needle-drop: the tonearm sweeps to position instead of teleporting when
+    // the day total jumps (clock-in after a break, edited start time).
+    val vinylProgress by animateFloatAsState(
+        targetValue = dayProgress,
+        animationSpec = tween(900, easing = AuroraEaseOut),
+        label = "vinyl-needle-drop",
+    )
     ExpressiveClockPulse(running = running) { pulse ->
     val background = when (style) {
         SupportedClockStyle.BOLD -> Color(0xff222038)
         SupportedClockStyle.NIGHT -> Color(0xff080b25)
         SupportedClockStyle.RETRO -> Color(0xff2b2418)
+        SupportedClockStyle.VINYL -> Color(0xff181530)
         else -> MaterialTheme.colorScheme.surface
     }
-    val dark = style in listOf(SupportedClockStyle.BOLD, SupportedClockStyle.NIGHT, SupportedClockStyle.RETRO)
+    val dark = style in listOf(
+        SupportedClockStyle.BOLD, SupportedClockStyle.NIGHT, SupportedClockStyle.RETRO,
+        SupportedClockStyle.VINYL,
+    )
     val foreground = if (dark) Color.White else MaterialTheme.colorScheme.onSurface
     val faceTrack = MaterialTheme.colorScheme.surfaceVariant
     val accent = when {
@@ -1175,6 +1202,7 @@ private fun ExpressiveClockCard(
         style == SupportedClockStyle.RETRO -> Color(0xffffc857)
         style == SupportedClockStyle.NIGHT -> AuroraAqua
         style == SupportedClockStyle.TIDE -> AuroraAqua
+        style == SupportedClockStyle.VINYL -> AuroraAqua
         style == SupportedClockStyle.SPROUT -> SproutLeafDeep
         else -> AuroraIndigo
     }
@@ -1200,6 +1228,9 @@ private fun ExpressiveClockCard(
                     SupportedClockStyle.ORBIT -> stringResource(if (running) R.string.dashboard_clock_in_orbit else R.string.dashboard_clock_ready_caps)
                     SupportedClockStyle.TIDE -> stringResource(if (running) R.string.dashboard_clock_tide_rising else R.string.dashboard_clock_ready_caps)
                     SupportedClockStyle.SPROUT -> stringResource(if (running) R.string.dashboard_clock_growing else R.string.dashboard_clock_ready_to_grow)
+                    SupportedClockStyle.METRO -> stringResource(if (running) R.string.dashboard_clock_in_transit else R.string.dashboard_clock_on_platform)
+                    SupportedClockStyle.VINYL -> stringResource(if (running) R.string.dashboard_clock_now_playing else R.string.dashboard_clock_drop_needle)
+                    SupportedClockStyle.LUNA -> stringResource(if (running) R.string.dashboard_clock_waxing else R.string.dashboard_clock_new_moon)
                     else -> ""
                 },
                 style = MaterialTheme.typography.labelSmall,
@@ -1436,6 +1467,28 @@ private fun ExpressiveClockCard(
                             running = running,
                             foreground = foreground,
                         )
+                        SupportedClockStyle.METRO -> drawMetroFace(
+                            progress = dayProgress,
+                            overtime = dayOvertime,
+                            overtimeProgress = overtimeExtension,
+                            pulse = pulse,
+                            running = running,
+                            foreground = foreground,
+                            surface = background,
+                        )
+                        SupportedClockStyle.VINYL -> drawVinylFace(
+                            progress = vinylProgress,
+                            spinDegrees = vinylSpin,
+                            pulse = pulse,
+                            running = running,
+                            overtime = dayOvertime,
+                        )
+                        SupportedClockStyle.LUNA -> drawLunaFace(
+                            progress = dayProgress,
+                            pulse = pulse,
+                            running = running,
+                            overtime = dayOvertime,
+                        )
                         else -> Unit
                     }
                 }
@@ -1656,6 +1709,24 @@ private fun DrawScope.drawSproutFace(
             drawCircle(SproutFirefly.copy(alpha = (1f - phase) * 0.5f), 1.8.dp.toPx(), Offset(fx, fy))
         }
     }
+}
+
+/**
+ * Continuous rotation for the Vinyl face — the record turns only while a shift
+ * runs and motion is allowed; with reduced motion the disc freezes in place
+ * while the tonearm keeps showing progress.
+ */
+@Composable
+private fun vinylSpinDegrees(active: Boolean): Float {
+    if (!auroraMotionEnabled() || !active) return 0f
+    val transition = rememberInfiniteTransition(label = "vinyl-spin")
+    val angle by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(5400, easing = LinearEasing), RepeatMode.Restart),
+        label = "vinyl-spin-angle",
+    )
+    return angle
 }
 
 @Composable

@@ -57,6 +57,12 @@
     <string name="dashboard_clock_time_flowing">הזמן זורם</string>
     <string name="dashboard_clock_in_orbit">במסלול</string>
     <string name="dashboard_clock_tide_rising">הגאות עולה</string>
+    <string name="dashboard_clock_in_transit">בנסיעה</string>
+    <string name="dashboard_clock_on_platform">על הרציף</string>
+    <string name="dashboard_clock_now_playing">מתנגן עכשיו</string>
+    <string name="dashboard_clock_drop_needle">להניח את המחט</string>
+    <string name="dashboard_clock_waxing">הירח מתמלא</string>
+    <string name="dashboard_clock_new_moon">מולד ירח</string>
     <string name="dashboard_clock_growing">בצמיחה</string>
     <string name="dashboard_clock_ready_to_grow">מוכנים לצמוח</string>
 

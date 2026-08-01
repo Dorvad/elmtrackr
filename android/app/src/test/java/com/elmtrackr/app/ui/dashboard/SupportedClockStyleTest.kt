@@ -31,4 +31,11 @@ class SupportedClockStyleTest {
             )
         }
     }
+
+    @Test
+    fun `the v1_2 faces parse from their wire values`() {
+        assertEquals(ClockStyle.METRO, ClockStyle.fromPersisted("metro"))
+        assertEquals(ClockStyle.VINYL, ClockStyle.fromPersisted("vinyl"))
+        assertEquals(ClockStyle.LUNA, ClockStyle.fromPersisted("luna"))
+    }
 }
