@@ -63,9 +63,11 @@ class DashboardProjectTimeViewModelTest {
     private val setupPrefs = FakeSetupChecklistPreferences()
     private val widgetPin = FakeWidgetPinInspector()
 
+    private val discoveryPrefs = com.elmtrackr.app.fake.FakeFeatureDiscoveryPreferences()
+
     private fun buildVm() = DashboardViewModel(
         shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, appPrefs,
-        premiumRepo, setupPrefs, widgetPin, projectsRepo,
+        premiumRepo, setupPrefs, widgetPin, projectsRepo, discoveryPrefs,
     )
 
     private fun settings(paidProjects: Boolean = true) = UserSettings(

@@ -95,15 +95,7 @@ internal fun SettingsHub(
     authState: AuthUiState?,
     onNavigate: (SettingsDestination) -> Unit,
     onSignOut: () -> Unit,
-    onEnablePaidProjects: () -> Unit = {},
-    onDismissPaidProjectsDiscovery: () -> Unit = {},
 ) {
-    if (state.showPaidProjectsDiscovery) {
-        PaidProjectsUpdateWizard(
-            onEnable = onEnablePaidProjects,
-            onDismiss = onDismissPaidProjectsDiscovery,
-        )
-    }
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()

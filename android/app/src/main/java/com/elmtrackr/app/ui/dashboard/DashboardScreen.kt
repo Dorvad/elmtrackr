@@ -233,6 +233,8 @@ fun DashboardScreen(
                             },
                             showFirstClockInCelebration = showCelebration,
                             onDismissFirstClockInCelebration = viewModel::dismissFirstClockInCelebration,
+                            onEnablePaidProjects = viewModel::enablePaidProjectsFromWizard,
+                            onDismissPaidProjectsWizard = viewModel::dismissPaidProjectsWizard,
                             setupChecklist = setupChecklist,
                             onSetupNavigate = { step ->
                                 viewModel.markSetupStepVisited(step)
@@ -276,6 +278,8 @@ private fun DashboardReady(
     onViewProject: () -> Unit = {},
     showFirstClockInCelebration: Boolean,
     onDismissFirstClockInCelebration: () -> Unit,
+    onEnablePaidProjects: () -> Unit = {},
+    onDismissPaidProjectsWizard: () -> Unit = {},
     setupChecklist: SetupChecklistUiState? = null,
     onSetupNavigate: (SetupStep) -> Unit = {},
     onRequestPinWidget: () -> Unit = {},
@@ -376,6 +380,15 @@ private fun DashboardReady(
 
     if (showFirstClockInCelebration) {
         FirstClockInCelebrationDialog(onDismiss = onDismissFirstClockInCelebration)
+    }
+
+    // The one-time v1.2 announcement for existing users pops over the main
+    // screen — the surface every user reaches — rather than hiding in Settings.
+    if (state.showPaidProjectsWizard) {
+        PaidProjectsUpdateWizard(
+            onEnable = onEnablePaidProjects,
+            onDismiss = onDismissPaidProjectsWizard,
+        )
     }
 
     // "Clock faces" is a feature toggle. When it is off, the home-screen clock

@@ -59,6 +59,11 @@ sealed interface DashboardUiState {
          * leaves the dashboard exactly as it was for an hourly-only user.
          */
         val projectSummary: com.elmtrackr.app.domain.projects.ProjectDashboardSummary? = null,
+        /**
+         * The one-time v1.2 update wizard for existing users: onboarding done,
+         * Paid Projects off, and the wizard not yet dismissed.
+         */
+        val showPaidProjectsWizard: Boolean = false,
     ) : DashboardUiState {
         /** The selector only appears when there is a project to pick. */
         val canSelectProjectTime: Boolean get() = projectOptions.isNotEmpty()

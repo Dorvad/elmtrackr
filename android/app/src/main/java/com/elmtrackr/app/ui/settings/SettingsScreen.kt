@@ -213,8 +213,6 @@ fun SettingsScreen(
                             onSyncNow = viewModel::syncNow,
                             onSetAppLockEnabled = viewModel::setAppLockEnabled,
                             onReduceMotionChange = viewModel::setReduceMotion,
-                            onEnablePaidProjects = viewModel::enablePaidProjectsFromDiscovery,
-                            onDismissPaidProjectsDiscovery = viewModel::dismissPaidProjectsDiscovery,
                         )
                         is SettingsUiState.Error -> ErrorState(
                             message = state.message,
@@ -247,8 +245,6 @@ private fun SettingsFormHost(
     onSyncNow: () -> Unit,
     onSetAppLockEnabled: (Boolean) -> Unit,
     onReduceMotionChange: (Boolean) -> Unit,
-    onEnablePaidProjects: () -> Unit = {},
-    onDismissPaidProjectsDiscovery: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val activity = context as FragmentActivity
@@ -374,8 +370,6 @@ private fun SettingsFormHost(
                 authState = authState,
                 onNavigate = onNavigate,
                 onSignOut = onSignOut,
-                onEnablePaidProjects = onEnablePaidProjects,
-                onDismissPaidProjectsDiscovery = onDismissPaidProjectsDiscovery,
             )
             SettingsDestination.PROFILE -> ProfileDetailScreen(
                 state = state,
