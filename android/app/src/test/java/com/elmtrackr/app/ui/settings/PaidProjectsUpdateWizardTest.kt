@@ -37,6 +37,7 @@ class PaidProjectsUpdateWizardTest {
         "Clock in against a project",
         "Billing and payments",
         "Know your real hourly rate",
+        "Also in v1.2: new watch faces",
     )
 
     private var enabled = 0
@@ -82,6 +83,16 @@ class PaidProjectsUpdateWizardTest {
         composeRule.onNodeWithText("Back").performClick()
 
         composeRule.onNodeWithText(pageTitles[0]).assertIsDisplayed()
+    }
+
+    @Test
+    fun `the showcase page presents the three new watch faces`() {
+        render()
+        repeat(pageTitles.lastIndex) { next() }
+
+        listOf("Metro", "Vinyl", "Luna").forEach { face ->
+            composeRule.onNodeWithText(face).assertIsDisplayed()
+        }
     }
 
     @Test

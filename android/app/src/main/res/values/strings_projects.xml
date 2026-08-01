@@ -23,6 +23,8 @@
     <string name="projects_wizard_page_billing_body">Record what you billed and each payment received. The outstanding balance, overdue status and due-date reminders follow on their own.</string>
     <string name="projects_wizard_page_insights_title">Know your real hourly rate</string>
     <string name="projects_wizard_page_insights_body">Effective rate per project, hour budget usage, a projects report and CSV export — so you know what a fixed price really pays.</string>
+    <string name="projects_wizard_page_faces_title">Also in v1.2: new watch faces</string>
+    <string name="projects_wizard_page_faces_body">Metro, Vinyl and Luna join the dashboard clock. Pick a face any time in Settings → Appearance &amp; clock.</string>
     <string name="projects_wizard_next">Next</string>
     <string name="projects_wizard_back">Back</string>
     <string name="projects_wizard_skip">Skip</string>

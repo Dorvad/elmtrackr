@@ -23,6 +23,8 @@
     <string name="projects_wizard_page_billing_body">תעדו מה חויב וכל תשלום שהתקבל. היתרה לתשלום, מצב הפיגור ותזכורות מועד התשלום מתעדכנים מעצמם.</string>
     <string name="projects_wizard_page_insights_title">השכר האמיתי לשעה</string>
     <string name="projects_wizard_page_insights_body">שכר אפקטיבי לכל פרויקט, ניצול תקציב השעות, דוח פרויקטים וייצוא CSV — כדי לדעת כמה מחיר קבוע באמת משלם.</string>
+    <string name="projects_wizard_page_faces_title">חדש גם ב-v1.2: לוחות שעון</string>
+    <string name="projects_wizard_page_faces_body">מטרו, ויניל ולונה מצטרפים לשעון במסך הראשי. אפשר לבחור לוח בכל רגע בהגדרות ← מראה ושעון.</string>
     <string name="projects_wizard_next">הבא</string>
     <string name="projects_wizard_back">חזרה</string>
     <string name="projects_wizard_skip">דילוג</string>

@@ -11,12 +11,14 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -48,8 +50,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius as GeometryCornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -67,6 +78,7 @@ import com.elmtrackr.app.ui.design.AuroraMotion
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
+import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraAquaDeep
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeachDeep
@@ -96,7 +108,7 @@ internal fun PaidProjectsUpdateWizard(
     // once, so a fresh process may start it from the first page again.
     var page by rememberSaveable { mutableIntStateOf(0) }
     var movingForward by rememberSaveable { mutableIntStateOf(1) }
-    val lastPage = wizardPages.size - 1
+    val lastPage = wizardPageCount - 1
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -147,11 +159,15 @@ internal fun PaidProjectsUpdateWizard(
                     },
                     label = "paid-projects-wizard-page",
                 ) { index ->
-                    WizardPageContent(wizardPages[index])
+                    if (index < wizardPages.size) {
+                        WizardPageContent(wizardPages[index])
+                    } else {
+                        WizardWatchFacesPage()
+                    }
                 }
 
                 Spacer(Modifier.height(Spacing.md))
-                WizardStepDots(current = page, total = wizardPages.size)
+                WizardStepDots(current = page, total = wizardPageCount)
                 Spacer(Modifier.height(Spacing.md))
 
                 Column(Modifier.padding(horizontal = Spacing.md)) {
@@ -363,6 +379,169 @@ private data class WizardPage(
     val tint: Color,
 )
 
+// ── Watch-face showcase ───────────────────────────────────────────────────────
+
+/**
+ * Release-notes page closing the wizard: the three watch faces that shipped
+ * alongside Paid Projects in v1.2. The tiles are static sketches of each
+ * face — the full animated versions live on the dashboard clock card and in
+ * Settings → Appearance & clock.
+ */
+@Composable
+private fun WizardWatchFacesPage() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg)
+            .heightIn(min = 176.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            stringResource(R.string.projects_wizard_page_faces_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.auroraEnter(index = 0),
+        )
+        Spacer(Modifier.height(Spacing.xs))
+        Text(
+            stringResource(R.string.projects_wizard_page_faces_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.auroraEnter(index = 1),
+        )
+        Spacer(Modifier.height(Spacing.md))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            WizardFaceTile(
+                name = R.string.clock_style_metro,
+                dark = false,
+                modifier = Modifier
+                    .weight(1f)
+                    .auroraEnter(index = 2),
+            ) { drawMetroThumbnail() }
+            WizardFaceTile(
+                name = R.string.clock_style_vinyl,
+                dark = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .auroraEnter(index = 3),
+            ) { drawVinylThumbnail() }
+            WizardFaceTile(
+                name = R.string.clock_style_luna,
+                dark = false,
+                modifier = Modifier
+                    .weight(1f)
+                    .auroraEnter(index = 4),
+            ) { drawLunaThumbnail() }
+        }
+    }
+}
+
+@Composable
+private fun WizardFaceTile(
+    @StringRes name: Int,
+    dark: Boolean,
+    modifier: Modifier = Modifier,
+    draw: DrawScope.() -> Unit,
+) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .background(
+                    if (dark) Color(0xFF11162A)
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    RoundedCornerShape(CornerRadius.Small),
+                ),
+        ) {
+            Canvas(
+                Modifier
+                    .fillMaxSize()
+                    .padding(6.dp),
+                onDraw = draw,
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            stringResource(name),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+private fun DrawScope.drawMetroThumbnail() {
+    val line = Path().apply {
+        moveTo(size.width * 0.06f, size.height * 0.78f)
+        quadraticTo(size.width * 0.40f, size.height * 0.82f, size.width * 0.56f, size.height * 0.58f)
+        quadraticTo(size.width * 0.74f, size.height * 0.34f, size.width * 0.92f, size.height * 0.26f)
+    }
+    drawPath(line, AuroraIndigo.copy(alpha = 0.2f), style = Stroke(3f, cap = StrokeCap.Round))
+    // Two stations behind the train, the double-ring terminus ahead of it.
+    drawCircle(AuroraIndigo, 3.5f, Offset(size.width * 0.25f, size.height * 0.78f))
+    drawCircle(AuroraIndigo, 3.5f, Offset(size.width * 0.43f, size.height * 0.71f))
+    drawCircle(
+        AuroraIndigo.copy(alpha = 0.35f), 3.5f,
+        Offset(size.width * 0.92f, size.height * 0.26f), style = Stroke(2f),
+    )
+    withTransform({
+        translate(size.width * 0.56f, size.height * 0.58f)
+        rotate(-30f, Offset.Zero)
+    }) {
+        drawRoundRect(
+            AuroraIndigo,
+            Offset(-7.dp.toPx(), -3.5.dp.toPx()),
+            Size(14.dp.toPx(), 7.dp.toPx()),
+            GeometryCornerRadius(3.5.dp.toPx()),
+        )
+    }
+}
+
+private fun DrawScope.drawVinylThumbnail() {
+    val disc = Offset(size.width / 2f, size.height / 2f)
+    val radius = size.minDimension * 0.42f
+    drawCircle(VinylThumbDisc, radius, disc)
+    repeat(3) { i ->
+        drawCircle(Color.White.copy(alpha = 0.1f), radius * (0.5f + i * 0.16f), disc, style = Stroke(1.5f))
+    }
+    drawCircle(AuroraAqua.copy(alpha = 0.4f), radius * 0.72f, disc, style = Stroke(1.5f))
+    drawCircle(AuroraIndigo, radius * 0.32f, disc)
+    drawCircle(Color(0xFF11162A), 2.5f, disc)
+    val pivot = Offset(size.width - 4.dp.toPx(), 4.dp.toPx())
+    val needle = Offset(disc.x + radius * 0.5f, disc.y - radius * 0.55f)
+    drawLine(Color.White.copy(alpha = 0.6f), pivot, needle, 2f, StrokeCap.Round)
+    drawCircle(AuroraAqua.copy(alpha = 0.7f), 3f, needle)
+}
+
+private fun DrawScope.drawLunaThumbnail() {
+    val moon = Offset(size.width / 2f, size.height / 2f)
+    val radius = size.minDimension * 0.36f
+    drawCircle(AuroraIndigo.copy(alpha = 0.15f), radius + 5.dp.toPx(), moon)
+    drawCircle(LunaThumbSurface, radius, moon)
+    drawCircle(LunaThumbEdge.copy(alpha = 0.1f), radius, moon, style = Stroke(1.5f))
+    // A waxing gibbous: the right semicircle closed by a bulging terminator.
+    val lit = Path().apply {
+        arcTo(Rect(moon.x - radius, moon.y - radius, moon.x + radius, moon.y + radius), -90f, 180f, false)
+        arcTo(Rect(moon.x - radius * 0.5f, moon.y - radius, moon.x + radius * 0.5f, moon.y + radius), 90f, 180f, false)
+        close()
+    }
+    drawPath(lit, LunaThumbLit)
+    val star = Offset(moon.x + radius + 6.dp.toPx(), moon.y - radius + 2.dp.toPx())
+    val arm = 2.5.dp.toPx()
+    drawLine(AuroraIndigo, star - Offset(arm, 0f), star + Offset(arm, 0f), 1.5f, StrokeCap.Round)
+    drawLine(AuroraIndigo, star - Offset(0f, arm), star + Offset(0f, arm), 1.5f, StrokeCap.Round)
+}
+
+private val VinylThumbDisc = Color(0xFF211D3E)
+private val LunaThumbSurface = Color(0xFFF1F0FB)
+private val LunaThumbEdge = Color(0xFF181530)
+private val LunaThumbLit = Color(0xFFC4B8FA)
+
 private val wizardPages = listOf(
     WizardPage(
         title = R.string.projects_wizard_page_projects_title,
@@ -389,3 +568,6 @@ private val wizardPages = listOf(
         tint = AuroraAquaDeep,
     ),
 )
+
+/** The feature pages plus the closing watch-face showcase. */
+private val wizardPageCount = wizardPages.size + 1
