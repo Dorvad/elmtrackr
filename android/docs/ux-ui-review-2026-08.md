@@ -179,8 +179,14 @@ current pass.
 3. **Add goldens where there are none.** Projects screens, the Reports refunds/projects tabs, the
    insight carousel, and dark variants of anything except Dashboard and Compensation. These are
    exactly the areas where a mechanical change would be invisible to CI.
-4. **Make the Paparazzi CI step blocking** once one run is confirmed green against unmodified goldens
-   on a GitHub runner.
+4. **Re-record the Paparazzi goldens on the CI image, then make the step blocking.** The committed
+   goldens are host-specific: running `verifyPaparazziDebug` against an *unmodified* checkout of
+   `Main` on a different Linux machine failed **all 31**, while the rendered pages were visually
+   correct. Paparazzi renders through layoutlib, and text rasterisation varies with the host JDK and
+   font stack — note the CI job pins JDK 17 (`.github/workflows/android.yml`) while a current
+   developer image is likely on 21, which alone can account for it. Until the images are produced by
+   the same environment that checks them, the step cannot be blocking — and re-recording on a
+   developer machine only moves the failure to everyone else.
 
 ### Medium
 
@@ -221,6 +227,12 @@ cd android
 `recordPaparazziDebug` rewrites all 31 images. After recording, `git status` must list only the
 subset a change was expected to touch — that check is the real review artefact. An unexpected file in
 the diff means a shared primitive moved when it should not have.
+
+**Before relying on any of that, read backlog item 4.** On a host other than the one that recorded
+them, every golden fails regardless of the change under test, so the suite currently proves nothing
+about a diff. The visual work in this pass was therefore verified through the Robolectric render
+tests, the semantics and contrast assertions, and reading the rendered failure images — not through
+golden equality.
 
 Not covered by any of the above: every `isTabletLayout()` branch (instrumented tests only, which CI
 does not run) and RTL beyond the three existing RTL goldens.
