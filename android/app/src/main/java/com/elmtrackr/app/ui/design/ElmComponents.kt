@@ -66,7 +66,8 @@ fun ElmSectionHeader(
         color         = auroraSecondaryText(),
         fontWeight    = FontWeight.Bold,
         letterSpacing = TextUnit(0.16f, TextUnitType.Em),
-        modifier      = modifier,
+        // Every section title in the app is a TalkBack heading from here.
+        modifier      = modifier.auroraHeading(),
     )
 }
 

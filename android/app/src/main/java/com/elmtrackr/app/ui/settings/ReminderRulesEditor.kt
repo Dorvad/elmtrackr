@@ -48,6 +48,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.notification.ReminderRule
 import com.elmtrackr.app.notification.ReminderRulesCodec
 import com.elmtrackr.app.notification.ReminderTriggerKind
@@ -174,7 +175,9 @@ private fun ReminderRuleRow(rule: ReminderRule, onClick: () -> Unit) {
             Icons.Filled.ChevronRight,
             contentDescription = stringResource(R.string.settings_notification_edit_title),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp),
+            // Every sibling navigation row in SettingsListUi mirrors; this one
+            // did not, so the arrow pointed the wrong way in Hebrew.
+            modifier = Modifier.size(20.dp).mirrorInRtl(),
         )
     }
 }

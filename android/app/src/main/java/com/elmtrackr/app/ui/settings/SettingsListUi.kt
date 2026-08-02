@@ -49,6 +49,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.design.auroraExpandable
 import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.ui.design.AuroraHaptics
@@ -310,6 +311,7 @@ internal fun SettingsCollapsibleCard(
         Column {
             Surface(
                 onClick = { onExpandedChange(!expanded) },
+                modifier = Modifier.auroraExpandable(expanded),
                 color = if (expanded) MaterialTheme.colorScheme.surface else auroraSurfaceSub(),
                 shape = RoundedCornerShape(
                     topStart = CornerRadius.Large,
