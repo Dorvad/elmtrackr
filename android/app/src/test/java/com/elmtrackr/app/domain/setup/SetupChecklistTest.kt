@@ -105,11 +105,31 @@ class SetupChecklistTest {
             hasCustomPremiumProfile = true,
             hasAnyTask = true,
             hasPinnedWidget = true,
+            // Engagement evidence: the user followed at least one checklist CTA
+            // (or onboarding recorded a visit on their behalf).
+            visitedStepKeys = setOf(SetupStep.COMPENSATION.key),
         )
         val state = SetupChecklist.build(done)!!
         assertTrue(state.allComplete)
         assertTrue(state.showCelebration)
 
         assertNull(SetupChecklist.build(done.copy(celebrated = true)))
+    }
+
+    @Test
+    fun `checklist that arrives already complete stays hidden for upgraders`() {
+        // An existing user whose data satisfies every signal, with no recorded
+        // interaction, must not get a surprise "You're all set!" dialog — or the
+        // finished card — on first launch after an upgrade.
+        val upgrader = inputs(
+            hasCompletedShift = true,
+            clockStyleCustomized = true,
+            compensationProfileCount = 2,
+            hasCustomPremiumProfile = true,
+            hasAnyTask = true,
+            hasPinnedWidget = true,
+            visitedStepKeys = emptySet(),
+        )
+        assertNull(SetupChecklist.build(upgrader))
     }
 }

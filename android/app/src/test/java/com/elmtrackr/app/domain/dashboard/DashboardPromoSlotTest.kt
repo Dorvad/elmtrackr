@@ -47,11 +47,11 @@ class DashboardPromoSlotTest {
         )
 
         assertEquals(DashboardPromo.REFUND_REMINDER, activeDashboardPromo(all))
-        assertEquals(4, resolveDashboardPromos(all).size)
+        assertEquals(3, resolveDashboardPromos(all).size)
     }
 
     @Test
-    fun `the ranking is refund, welcome, checklist, project summary`() {
+    fun `the ranking is refund, checklist, project summary`() {
         val all = inputs(
             unresolvedRefundCount = 1,
             isRefundWindow = true,
@@ -63,12 +63,26 @@ class DashboardPromoSlotTest {
         assertEquals(
             listOf(
                 DashboardPromo.REFUND_REMINDER,
-                DashboardPromo.FIRST_RUN_WELCOME,
                 DashboardPromo.SETUP_CHECKLIST,
                 DashboardPromo.PROJECT_SUMMARY,
             ),
             resolveDashboardPromos(all),
         )
+    }
+
+    /**
+     * Both surfaces ask for the same thing — the checklist's first step *is*
+     * "clock in once" — so a brand-new dashboard would otherwise carry the prompt
+     * twice. The checklist is the richer of the two, so the card yields.
+     */
+    @Test
+    fun `the welcome card yields to the checklist`() {
+        val withChecklist = inputs(hasNoShifts = true, setupChecklistAvailable = true)
+        assertEquals(DashboardPromo.SETUP_CHECKLIST, activeDashboardPromo(withChecklist))
+        assertFalse(resolveDashboardPromos(withChecklist).contains(DashboardPromo.FIRST_RUN_WELCOME))
+
+        val withoutChecklist = withChecklist.copy(setupChecklistAvailable = false)
+        assertEquals(DashboardPromo.FIRST_RUN_WELCOME, activeDashboardPromo(withoutChecklist))
     }
 
     @Test

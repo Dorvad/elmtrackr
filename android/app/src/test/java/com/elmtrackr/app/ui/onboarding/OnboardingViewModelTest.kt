@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -42,6 +43,8 @@ class OnboardingViewModelTest {
     private val compensationRepo = FakeCompensationProfilesRepository()
     private val onboardingPrefs = FakeOnboardingPreferences()
     private val appLockPrefs = FakeAppLockPreferencesStore()
+    private val discoveryPrefs = com.elmtrackr.app.fake.FakeFeatureDiscoveryPreferences()
+    private val checklistPrefs = com.elmtrackr.app.fake.FakeSetupChecklistPreferences()
 
     private fun buildVm() = OnboardingViewModel(
         settingsRepository = settingsRepo,
@@ -49,6 +52,8 @@ class OnboardingViewModelTest {
         appPreferences = onboardingPrefs,
         appLockPreferences = appLockPrefs,
         authRepository = authRepo,
+        featureDiscoveryPreferences = discoveryPrefs,
+        setupChecklistPreferences = checklistPrefs,
     )
 
     private fun validInput(
@@ -404,5 +409,67 @@ class OnboardingViewModelTest {
         val state = vm.uiState.value
         assertTrue(state is OnboardingUiState.ValidationError)
         assertNotNull((state as OnboardingUiState.ValidationError).errors["save"])
+    }
+
+    @Test
+    fun `daily OT above 24 hours → ValidationError`() {
+        val vm = buildVm()
+        vm.completeOnboarding(validInput(dailyOT = 25, weeklyOT = 100))
+
+        val state = vm.uiState.value
+        assertTrue(state is OnboardingUiState.ValidationError)
+        assertNotNull((state as OnboardingUiState.ValidationError).errors["dailyOT"])
+    }
+
+    @Test
+    fun `weekly OT above 168 hours → ValidationError`() {
+        val vm = buildVm()
+        vm.completeOnboarding(validInput(dailyOT = 8, weeklyOT = 169))
+
+        val state = vm.uiState.value
+        assertTrue(state is OnboardingUiState.ValidationError)
+        assertNotNull((state as OnboardingUiState.ValidationError).errors["weeklyOT"])
+    }
+
+    @Test
+    fun `replay can turn app lock off`() = runTest {
+        appLockPrefs.setAppLockEnabled(true)
+        val vm = buildVm()
+        vm.completeOnboarding(validInput().copy(preserveExisting = true, enableAppLock = false))
+        advanceUntilIdle()
+
+        assertFalse(appLockPrefs.preferences.first().appLockEnabled)
+    }
+
+    @Test
+    fun `completing onboarding satisfies paid projects discovery`() = runTest {
+        // The wizard just asked the Paid Projects question, so the dashboard
+        // discovery modal must never re-ask — whatever the answer was.
+        val vm = buildVm()
+        vm.completeOnboarding(validInput())
+        advanceUntilIdle()
+
+        assertTrue(discoveryPrefs.paidProjectsDiscoveryDismissed)
+    }
+
+    @Test
+    fun `hourly rate entered in onboarding pre-ticks the compensation checklist step`() = runTest {
+        val vm = buildVm()
+        vm.completeOnboarding(validInput(hourlyRate = 55.0))
+        advanceUntilIdle()
+
+        assertTrue(
+            com.elmtrackr.app.domain.setup.SetupStep.COMPENSATION.key in
+                checklistPrefs.current.setupChecklistVisitedSteps,
+        )
+    }
+
+    @Test
+    fun `skipping the rate leaves the compensation checklist step untouched`() = runTest {
+        val vm = buildVm()
+        vm.completeOnboarding(validInput(hourlyRate = null))
+        advanceUntilIdle()
+
+        assertTrue(checklistPrefs.current.setupChecklistVisitedSteps.isEmpty())
     }
 }

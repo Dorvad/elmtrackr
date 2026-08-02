@@ -53,6 +53,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -77,6 +78,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.elmtrackr.app.R
 import com.elmtrackr.app.language.AppLanguage
 import com.elmtrackr.app.ui.common.asString
@@ -147,17 +151,41 @@ fun OnboardingScreen(
     var initializedFromSettings by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val activity = context as FragmentActivity
-    val biometricAvailability = remember { BiometricCapability.check(context) }
+    // Nullable on purpose: production hosts the wizard in an AppCompatActivity,
+    // but a plain cast crashed at composition for every step in any other host
+    // (previews, tests) even though only the Security step needs it.
+    val activity = context as? FragmentActivity
+    // Re-checked on every resume: the user can leave for system settings,
+    // enroll a fingerprint, and come back mid-wizard.
+    var biometricAvailability by remember { mutableStateOf(BiometricCapability.check(context)) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                biometricAvailability = BiometricCapability.check(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     val appLockPromptTitle = stringResource(R.string.onboarding_biometric_prompt_title)
     val appLockPromptSubtitle = stringResource(R.string.onboarding_biometric_prompt_subtitle)
 
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(initialSettings?.id, initialProfile?.id, replay) {
+    val initialAppLock by viewModel.initialAppLockEnabled.collectAsState()
+    LaunchedEffect(initialSettings?.id, initialProfile?.id, initialAppLock, replay) {
         val settings = initialSettings ?: return@LaunchedEffect
         val profile = initialProfile ?: return@LaunchedEffect
-        if (!initializedFromSettings && step <= 3) {
+        // A replay waits for the app-lock preference too, so the Security toggle
+        // seeds with the truth instead of always-off.
+        if (replay && initialAppLock == null) return@LaunchedEffect
+        // On replay the wizard holds a spinner until this seed lands (see the
+        // gate below), so a fast tap-through can never outrun the settings
+        // emission and finish with wizard defaults written over real settings.
+        // On first run seeding stays opportunistic: new users usually have no
+        // settings row yet, and past the early steps their typed values win.
+        if (!initializedFromSettings && (replay || step <= 3)) {
             displayName = profile.fullName.orEmpty()
             hourlyRateText = settings.hourlyRate?.toString().orEmpty()
             currency = settings.currency
@@ -175,6 +203,7 @@ fun OnboardingScreen(
             projectTaxLabel = settings.projectsTaxLabel.orEmpty()
             projectTaxRateText = basisPointsToPercentText(settings.projectsTaxRateBasisPoints)
             projectTaxInclusive = settings.projectsTaxInclusive
+            enableAppLock = initialAppLock ?: false
             initializedFromSettings = true
         }
     }
@@ -201,6 +230,13 @@ fun OnboardingScreen(
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         if (state is OnboardingUiState.Saving || state is OnboardingUiState.Completed) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+            return@Surface
+        }
+        // Replay edits existing settings, so nothing renders until they have
+        // seeded the fields — settings always exist here (onboarding completed
+        // once), so this cannot hang; a new user is unaffected.
+        if (replay && !initializedFromSettings) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
             return@Surface
         }
@@ -246,8 +282,12 @@ fun OnboardingScreen(
                 ) { current ->
                     Column(Modifier.widthIn(max = 460.dp).fillMaxWidth()) {
                         when (current) {
-                            STEP_LANGUAGE -> LanguageStep(onNext = { step = STEP_WELCOME })
-                            STEP_WELCOME -> WelcomeStep(replay) { step = STEP_REGION }
+                            STEP_LANGUAGE -> LanguageStep(
+                                onNext = { step = nextOnboardingStep(STEP_LANGUAGE, paidProjects) },
+                            )
+                            STEP_WELCOME -> WelcomeStep(replay) {
+                                step = nextOnboardingStep(STEP_WELCOME, paidProjects)
+                            }
                             STEP_REGION -> RegionStep(
                                 regionCode = regionCode,
                                 currencyCode = currencyCode,
@@ -267,16 +307,18 @@ fun OnboardingScreen(
                                         weekendDays = preset.rules.weekendDays
                                     }
                                 },
-                                onBack = { step = STEP_WELCOME },
-                                onNext = { step = STEP_PROFILE },
+                                onBack = { step = previousOnboardingStep(STEP_REGION, paidProjects) },
+                                onNext = { step = nextOnboardingStep(STEP_REGION, paidProjects) },
                             )
                             STEP_PROFILE -> ProfileStep(
                                 name = displayName,
                                 email = initialProfile?.email.orEmpty(),
                                 onNameChange = { displayName = it },
                                 showError = !profileValid && displayName.isNotEmpty(),
-                                onBack = { step = STEP_REGION },
-                                onNext = { if (profileValid) step = STEP_PAY },
+                                onBack = { step = previousOnboardingStep(STEP_PROFILE, paidProjects) },
+                                onNext = {
+                                    if (profileValid) step = nextOnboardingStep(STEP_PROFILE, paidProjects)
+                                },
                             )
                             STEP_PAY -> PaySetupStep(
                                 hourlyRate = hourlyRateText,
@@ -284,8 +326,10 @@ fun OnboardingScreen(
                                 onHourlyRateChange = { hourlyRateText = it.decimalInput() },
                                 onCurrencyChange = { currency = it; currencyCode = it.name },
                                 valid = payValid,
-                                onBack = { step = STEP_PROFILE },
-                                onNext = { if (payValid) step = STEP_WORK_WEEK },
+                                onBack = { step = previousOnboardingStep(STEP_PAY, paidProjects) },
+                                onNext = {
+                                    if (payValid) step = nextOnboardingStep(STEP_PAY, paidProjects)
+                                },
                             )
                             STEP_WORK_WEEK -> WorkWeekStep(
                                 weekendDays = weekendDays,
@@ -297,14 +341,16 @@ fun OnboardingScreen(
                                 onWeeklyOtChange = { weeklyOtText = it.decimalInput() },
                                 onTimezoneChange = { timezone = it },
                                 valid = workWeekValid,
-                                onBack = { step = STEP_PAY },
-                                onNext = { if (workWeekValid) step = STEP_FEATURES },
+                                onBack = { step = previousOnboardingStep(STEP_WORK_WEEK, paidProjects) },
+                                onNext = {
+                                    if (workWeekValid) step = nextOnboardingStep(STEP_WORK_WEEK, paidProjects)
+                                },
                             )
                             STEP_FEATURES -> FeaturesStep(
                                 travelRefunds, insights,
                                 { travelRefunds = it }, { insights = it },
-                                onBack = { step = STEP_WORK_WEEK },
-                                onNext = { step = STEP_PAID_PROJECTS },
+                                onBack = { step = previousOnboardingStep(STEP_FEATURES, paidProjects) },
+                                onNext = { step = nextOnboardingStep(STEP_FEATURES, paidProjects) },
                             )
                             STEP_PAID_PROJECTS -> PaidProjectsStep(
                                 enabled = paidProjects,
@@ -312,7 +358,7 @@ fun OnboardingScreen(
                                     paidProjects = enable
                                     step = nextOnboardingStep(STEP_PAID_PROJECTS, enable)
                                 },
-                                onBack = { step = STEP_FEATURES },
+                                onBack = { step = previousOnboardingStep(STEP_PAID_PROJECTS, paidProjects) },
                             )
                             STEP_PROJECT_DEFAULTS -> ProjectDefaultsStep(
                                 regionCode = projectRegionCode ?: regionCode,
@@ -332,29 +378,35 @@ fun OnboardingScreen(
                                     projectTaxLabel = ""
                                     projectTaxRateText = ""
                                     projectTaxInclusive = false
-                                    step = STEP_SECURITY
+                                    step = nextOnboardingStep(STEP_PROJECT_DEFAULTS, paidProjects)
                                 },
-                                onBack = { step = STEP_PAID_PROJECTS },
-                                onNext = { if (projectTaxValid) step = STEP_SECURITY },
+                                onBack = { step = previousOnboardingStep(STEP_PROJECT_DEFAULTS, paidProjects) },
+                                onNext = {
+                                    if (projectTaxValid) {
+                                        step = nextOnboardingStep(STEP_PROJECT_DEFAULTS, paidProjects)
+                                    }
+                                },
                             )
                             STEP_SECURITY -> SecurityStep(
                                 appLockEnabled = enableAppLock,
                                 biometricAvailability = biometricAvailability,
                                 onAppLockChange = { enabled ->
-                                    if (!enabled) {
-                                        enableAppLock = false
-                                        return@SecurityStep
+                                    // Confirmed in both directions, mirroring the
+                                    // Settings security screen — a replay seeds the
+                                    // toggle on, and turning it off is as much a
+                                    // security decision as turning it on.
+                                    activity?.let { host ->
+                                        BiometricAuthPrompt.show(
+                                            activity = host,
+                                            title = appLockPromptTitle,
+                                            subtitle = appLockPromptSubtitle,
+                                            onSuccess = { enableAppLock = enabled },
+                                            onFailure = { },
+                                        )
                                     }
-                                    BiometricAuthPrompt.show(
-                                        activity = activity,
-                                        title = appLockPromptTitle,
-                                        subtitle = appLockPromptSubtitle,
-                                        onSuccess = { enableAppLock = true },
-                                        onFailure = { },
-                                    )
                                 },
                                 onBack = { step = previousOnboardingStep(STEP_SECURITY, paidProjects) },
-                                onNext = { step = STEP_REVIEW },
+                                onNext = { step = nextOnboardingStep(STEP_SECURITY, paidProjects) },
                             )
                             else -> ReviewStep(
                                 displayName = displayName.trim(),
@@ -366,7 +418,7 @@ fun OnboardingScreen(
                                     .count { it },
                                 paidProjectsEnabled = paidProjects,
                                 error = (state as? OnboardingUiState.ValidationError)?.errors?.values?.firstOrNull()?.asString(),
-                                onBack = { step = STEP_SECURITY },
+                                onBack = { step = previousOnboardingStep(STEP_REVIEW, paidProjects) },
                                 onFinish = {
                                     val validDailyOt = dailyOt ?: return@ReviewStep
                                     val validWeeklyOt = weeklyOt ?: return@ReviewStep
@@ -1291,7 +1343,7 @@ internal fun SecurityStep(
             onChange = { enabled ->
                 if (canEnable || !enabled) onAppLockChange(enabled)
             },
-            comingSoon = !canEnable && !appLockEnabled,
+            unavailable = !canEnable && !appLockEnabled,
         )
         Spacer(Modifier.height(8.dp))
         Text(
@@ -1324,14 +1376,14 @@ private fun StepHeader(title: String, subtitle: String) {
 }
 
 @Composable
-private fun FeatureCard(title: String, description: String, enabled: Boolean, onChange: (Boolean) -> Unit, comingSoon: Boolean = false) {
+private fun FeatureCard(title: String, description: String, enabled: Boolean, onChange: (Boolean) -> Unit, unavailable: Boolean = false) {
     Card(
-        onClick = { if (!comingSoon) onChange(!enabled) },
+        onClick = { if (!unavailable) onChange(!enabled) },
         modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
         shape = RoundedCornerShape(CornerRadius.Medium),
         colors = CardDefaults.cardColors(
             containerColor = when {
-                comingSoon -> MaterialTheme.colorScheme.surface
+                unavailable -> MaterialTheme.colorScheme.surface
                 enabled    -> MaterialTheme.colorScheme.primaryContainer
                 else       -> MaterialTheme.colorScheme.surface
             },
@@ -1339,15 +1391,15 @@ private fun FeatureCard(title: String, description: String, enabled: Boolean, on
     ) {
         Row(Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(44.dp).background(AuroraIndigo.copy(alpha = if (comingSoon) 0.05f else .11f), RoundedCornerShape(CornerRadius.Medium)),
+                Modifier.size(44.dp).background(AuroraIndigo.copy(alpha = if (unavailable) 0.05f else .11f), RoundedCornerShape(CornerRadius.Medium)),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Filled.Bolt, null, tint = AuroraIndigo.copy(alpha = if (comingSoon) 0.4f else 1f)) }
+            ) { Icon(Icons.Filled.Bolt, null, tint = AuroraIndigo.copy(alpha = if (unavailable) 0.4f else 1f)) }
             Spacer(Modifier.size(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Bold, color = if (comingSoon) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurface)
-                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (comingSoon) 0.5f else 1f))
+                Text(title, fontWeight = FontWeight.Bold, color = if (unavailable) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurface)
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (unavailable) 0.5f else 1f))
             }
-            Switch(enabled, onCheckedChange = onChange, enabled = !comingSoon)
+            Switch(enabled, onCheckedChange = onChange, enabled = !unavailable)
         }
     }
 }

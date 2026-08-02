@@ -49,7 +49,8 @@ data class DashboardPromoInputs(
  * 1. [DashboardPromo.REFUND_REMINDER] — only appears in a few days each month
  *    and expires on its own, so a later slot may never come round.
  * 2. [DashboardPromo.FIRST_RUN_WELCOME] — only meaningful before the first
- *    shift exists, which is a window of minutes for an engaged user.
+ *    shift exists, which is a window of minutes for an engaged user. Suppressed
+ *    entirely while the checklist is available, since they ask for the same tap.
  * 3. [DashboardPromo.SETUP_CHECKLIST] — persistent and dismissible; it can wait.
  * 4. [DashboardPromo.PROJECT_SUMMARY] — the shift it recaps is already saved and
  *    visible in the list, so this is the most redundant of the four.
@@ -67,7 +68,18 @@ fun resolveDashboardPromos(inputs: DashboardPromoInputs): List<DashboardPromo> {
         ) {
             add(DashboardPromo.REFUND_REMINDER)
         }
-        if (inputs.hasNoShifts) add(DashboardPromo.FIRST_RUN_WELCOME)
+        // The welcome card yields to the checklist rather than outranking it. Both
+        // carry the same "clock in once" call to action — the checklist's FIRST_SHIFT
+        // step is the same tap — so a brand-new dashboard showing the card would
+        // duplicate the prompt, and the checklist is the richer surface.
+        //
+        // Carried over from the first-run journey work, which expressed it as
+        // `setupChecklist == null` at the call site. Encoded here instead so the
+        // ranking stays in one tested place, and so the refund reminder keeps its
+        // position above both.
+        if (inputs.hasNoShifts && !inputs.setupChecklistAvailable) {
+            add(DashboardPromo.FIRST_RUN_WELCOME)
+        }
         if (inputs.setupChecklistAvailable) add(DashboardPromo.SETUP_CHECKLIST)
         if (inputs.projectSummaryAvailable) add(DashboardPromo.PROJECT_SUMMARY)
     }

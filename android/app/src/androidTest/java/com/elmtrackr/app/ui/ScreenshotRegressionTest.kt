@@ -39,6 +39,13 @@ import com.elmtrackr.app.ui.onboarding.ProfileStep
 import com.elmtrackr.app.ui.onboarding.ReviewStep
 import com.elmtrackr.app.ui.onboarding.WorkWeekStep
 import com.elmtrackr.app.ui.onboarding.WelcomeStep
+import com.elmtrackr.app.ui.onboarding.STEP_FEATURES
+import com.elmtrackr.app.ui.onboarding.STEP_PAY
+import com.elmtrackr.app.ui.onboarding.STEP_PROFILE
+import com.elmtrackr.app.ui.onboarding.STEP_REVIEW
+import com.elmtrackr.app.ui.onboarding.STEP_WELCOME
+import com.elmtrackr.app.ui.onboarding.STEP_WORK_WEEK
+import com.elmtrackr.app.ui.onboarding.onboardingProgressStep
 import com.elmtrackr.app.ui.dashboard.DashboardSkeleton
 import com.elmtrackr.app.ui.reports.HoursReport
 import com.elmtrackr.app.ui.reports.ReportsUiState
@@ -67,38 +74,38 @@ class ScreenshotRegressionTest {
 
     @Test
     fun onboardingWelcome() = verify("onboarding-welcome") {
-        OnboardingTestColumn(1) { WelcomeStep(replay = false, onNext = {}) }
+        OnboardingTestColumn(onboardingProgressStep(STEP_WELCOME, false)) { WelcomeStep(replay = false, onNext = {}) }
     }
 
     @Test
     fun onboardingFeatures() = verify("onboarding-features") {
-        OnboardingTestColumn(6) { FeaturesStep(false, true, {}, {}, {}, {}) }
+        OnboardingTestColumn(onboardingProgressStep(STEP_FEATURES, false)) { FeaturesStep(false, true, {}, {}, {}, {}) }
     }
 
     @Test
     fun onboardingProfile() = verify("onboarding-profile") {
-        OnboardingTestColumn(2) {
+        OnboardingTestColumn(onboardingProgressStep(STEP_PROFILE, false)) {
             ProfileStep("Dor", "dor@example.com", {}, false, {}, {})
         }
     }
 
     @Test
     fun onboardingPay() = verify("onboarding-pay") {
-        OnboardingTestColumn(3) {
+        OnboardingTestColumn(onboardingProgressStep(STEP_PAY, false)) {
             PaySetupStep("50", CurrencyCode.ILS, {}, {}, true, {}, {})
         }
     }
 
     @Test
     fun onboardingWorkWeek() = verify("onboarding-work-week") {
-        OnboardingTestColumn(4) {
+        OnboardingTestColumn(onboardingProgressStep(STEP_WORK_WEEK, false)) {
             WorkWeekStep(listOf(5, 6), "8", "40", "Asia/Jerusalem", {}, {}, {}, {}, true, {}, {})
         }
     }
 
     @Test
     fun onboardingReview() = verify("onboarding-review") {
-        OnboardingTestColumn(8) {
+        OnboardingTestColumn(onboardingProgressStep(STEP_REVIEW, false)) {
             ReviewStep("Dor", 50.0, CurrencyCode.ILS, "Israel", listOf(5, 6), 2, null, {}, {})
         }
     }

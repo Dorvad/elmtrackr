@@ -171,7 +171,10 @@ class MainActivity : AppCompatActivity() {
             val active = deps.shiftsRepository().observeActiveShift(userId).firstOrNull() != null
             if (!active) return@launch
             if (!NotificationPermissionCoordinator.shouldShowEducationalPrompt(this@MainActivity)) return@launch
-            NotificationPermissionCoordinator.markPromptShown(this@MainActivity)
+            // Deliberately NOT marked as shown: this path fires the system dialog
+            // with no rationale (there is nowhere to put one mid-launch), so the
+            // dashboard's educational prompt must stay available for the next
+            // in-app clock-in instead of being silently consumed here.
             requestNotificationPermission()
         }
     }

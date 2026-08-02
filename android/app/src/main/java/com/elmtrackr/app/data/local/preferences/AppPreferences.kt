@@ -218,4 +218,27 @@ class AppPreferencesRepository(private val context: Context) :
             it[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] = packNames
         }
     }
+
+    /**
+     * Clears the first-run nudge bookkeeping on sign-out so the next account on
+     * this device gets its own onboarding, checklist, celebrations and feature
+     * discovery instead of inheriting the previous user's. Deliberately keeps
+     * genuinely device-scoped state: theme, reduce motion, app lock, device id,
+     * legacy-adoption marker, and the once-per-install notification education.
+     */
+    suspend fun resetFirstRunNudges() {
+        context.appPreferencesDataStore.edit {
+            it.remove(AppPreferenceKeys.ONBOARDING_COMPLETED)
+            it.remove(AppPreferenceKeys.FIRST_CLOCK_IN_CELEBRATED)
+            it.remove(AppPreferenceKeys.FIRST_CLOCK_IN_CELEBRATION_PENDING)
+            it.remove(AppPreferenceKeys.SETUP_CHECKLIST_DISMISSED)
+            it.remove(AppPreferenceKeys.SETUP_CHECKLIST_VISITED_STEPS)
+            it.remove(AppPreferenceKeys.SETUP_CHECKLIST_CELEBRATED)
+            it.remove(AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED)
+            // Added when the two changes met: the refund reminder is a per-user
+            // nudge dismissal like the others above, so leaving it would silence a
+            // new account's reminder for whatever month the previous user dismissed.
+            it.remove(AppPreferenceKeys.REFUND_REMINDER_DISMISSED_MONTH)
+        }
+    }
 }

@@ -4,19 +4,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.R
 import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
+import com.elmtrackr.app.data.local.preferences.FeatureDiscoveryPreferences
 import com.elmtrackr.app.data.local.preferences.OnboardingPreferences
+import com.elmtrackr.app.data.local.preferences.SetupChecklistPreferences
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
+import com.elmtrackr.app.domain.setup.SetupStep
 import com.elmtrackr.app.security.AppLockController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,6 +39,8 @@ class OnboardingViewModel @Inject constructor(
     private val appPreferences: OnboardingPreferences,
     private val appLockPreferences: AppLockPreferencesStore,
     private val authRepository: AuthRepository,
+    private val featureDiscoveryPreferences: FeatureDiscoveryPreferences,
+    private val setupChecklistPreferences: SetupChecklistPreferences,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<OnboardingUiState>(OnboardingUiState.Welcome)
@@ -48,6 +55,14 @@ class OnboardingViewModel @Inject constructor(
     val initialProfile = authRepository.observeCurrentProfile()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /**
+     * Current app-lock state, so a replay seeds the Security toggle with the
+     * truth instead of always-off. Null until the preference has loaded.
+     */
+    val initialAppLockEnabled: StateFlow<Boolean?> = appLockPreferences.preferences
+        .map { it.appLockEnabled }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     fun completeOnboarding(input: OnboardingInput) {
         val errors = validate(input)
         if (errors.isNotEmpty()) {
@@ -56,9 +71,14 @@ class OnboardingViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _uiState.value = OnboardingUiState.Saving
+            val profile = authRepository.getCurrentProfile()
+            if (profile == null) {
+                _uiState.value = OnboardingUiState.ValidationError(
+                    mapOf("save" to UiText.Res(R.string.onboarding_sign_in_first)),
+                )
+                return@launch
+            }
             try {
-                val profile = authRepository.getCurrentProfile()
-                    ?: error("Sign in before completing onboarding")
                 val existing = settingsRepository.getSettings(profile.id)
                 val base = existing ?: settingsRepository.createDefaultSettings(profile.id)
                 val presetProfile = CompensationResolver.createFromPreset(
@@ -158,10 +178,26 @@ class OnboardingViewModel @Inject constructor(
                         profile.id,
                     )
                 }
-                if (input.enableAppLock) {
-                    appLockPreferences.setAppLockEnabled(true)
-                    AppLockController.configure(enabled = true, initiallyUnlocked = true)
-                    AppLockController.unlock()
+                // Applied in both directions so a replay can turn the lock off,
+                // not just on; skipped when unchanged so a plain first run never
+                // touches the lock preference.
+                val appLockCurrently = appLockPreferences.preferences.first().appLockEnabled
+                if (input.enableAppLock != appLockCurrently) {
+                    appLockPreferences.setAppLockEnabled(input.enableAppLock)
+                    AppLockController.configure(
+                        enabled = input.enableAppLock,
+                        initiallyUnlocked = true,
+                    )
+                    if (input.enableAppLock) AppLockController.unlock()
+                }
+                // The wizard's Paid Projects step just asked the question, so the
+                // dashboard discovery modal must not ask it again — whatever the
+                // answer was.
+                featureDiscoveryPreferences.setPaidProjectsDiscoveryDismissed(true)
+                // An hourly rate entered here configures the default compensation
+                // profile; the setup checklist should not ask for it a second time.
+                if (input.hourlyRate != null) {
+                    setupChecklistPreferences.markSetupStepVisited(SetupStep.COMPENSATION.key)
                 }
                 appPreferences.setOnboardingCompleted(true)
                 _uiState.value = OnboardingUiState.Completed
@@ -178,10 +214,12 @@ class OnboardingViewModel @Inject constructor(
         if (input.displayName.isBlank()) {
             errors["displayName"] = UiText.Res(R.string.onboarding_profile_name_error)
         }
-        if (input.dailyOvertimeHours <= 0) {
+        // Same bounds the screen enforces (daily ≤ 24 h, weekly ≤ 168 h) so the
+        // two layers cannot drift apart.
+        if (input.dailyOvertimeHours <= 0 || input.dailyOvertimeHours > 24) {
             errors["dailyOT"] = UiText.Res(R.string.onboarding_ot_error)
         }
-        if (input.weeklyOvertimeHours <= 0) {
+        if (input.weeklyOvertimeHours <= 0 || input.weeklyOvertimeHours > 168) {
             errors["weeklyOT"] = UiText.Res(R.string.onboarding_ot_error)
         } else if (input.weeklyOvertimeHours < input.dailyOvertimeHours) {
             errors["weeklyOT"] = UiText.Res(R.string.onboarding_ot_error)
