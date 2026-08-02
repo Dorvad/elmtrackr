@@ -47,6 +47,7 @@ import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.AuroraStateCrossfade
+import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.design.auroraSubScreenTransition
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.ui.theme.Spacing
@@ -100,6 +101,7 @@ fun SettingsScreen(
     onPendingLaunchConsumed: () -> Unit = {},
 ) {
     var destination by rememberSaveable { mutableStateOf(SettingsDestination.HUB) }
+    val motionEnabled = auroraMotionEnabled()
     var unsavedCount by remember { mutableStateOf(0) }
     var pendingDiscardTarget by remember { mutableStateOf<SettingsDestination?>(null) }
 
@@ -148,7 +150,7 @@ fun SettingsScreen(
     AnimatedContent(
         targetState = destination,
         transitionSpec = {
-            auroraSubScreenTransition(targetState.motionOrder() > initialState.motionOrder())
+            auroraSubScreenTransition(targetState.motionOrder() > initialState.motionOrder(), motionEnabled)
         },
         modifier = Modifier.fillMaxSize(),
         label = "settings-destination",
@@ -250,6 +252,12 @@ private fun SettingsFormHost(
     val context = LocalContext.current
     val activity = context as FragmentActivity
     val biometricAvailability = remember { BiometricCapability.check(context) }
+    // BiometricAuthPrompt.show takes plain Strings and is called from a
+    // non-composable lambda, so these have to be resolved up here.
+    val lockEnableTitle = stringResource(R.string.security_prompt_enable_title)
+    val lockDisableTitle = stringResource(R.string.security_prompt_disable_title)
+    val lockEnableSubtitle = stringResource(R.string.security_prompt_enable_subtitle)
+    val lockDisableSubtitle = stringResource(R.string.security_prompt_disable_subtitle)
     var displayName by rememberSaveable { mutableStateOf(state.profile?.fullName ?: "") }
     // rememberSaveable without settings keys: each destination gets its own
     // composition, so fields initialize on entry; keying on settings values
@@ -453,12 +461,8 @@ private fun SettingsFormHost(
                 onAppLockChange = { enabled ->
                     BiometricAuthPrompt.show(
                         activity = activity,
-                        title = if (enabled) "Enable app lock" else "Disable app lock",
-                        subtitle = if (enabled) {
-                            "Confirm to require biometric unlock when opening ElmTrackr"
-                        } else {
-                            "Confirm to turn off biometric app lock"
-                        },
+                        title = if (enabled) lockEnableTitle else lockDisableTitle,
+                        subtitle = if (enabled) lockEnableSubtitle else lockDisableSubtitle,
                         onSuccess = { onSetAppLockEnabled(enabled) },
                         onFailure = { },
                     )

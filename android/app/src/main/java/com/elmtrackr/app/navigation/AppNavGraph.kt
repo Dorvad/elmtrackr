@@ -1,6 +1,5 @@
 ﻿package com.elmtrackr.app.navigation
 
-import android.animation.ValueAnimator
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -18,6 +17,7 @@ import com.elmtrackr.app.ui.components.states.LoadingState
 import com.elmtrackr.app.ui.auth.AuthViewModel
 import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraMotion
+import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.onboarding.OnboardingScreen
 import com.elmtrackr.app.ui.shell.AppNavState
 import com.elmtrackr.app.ui.shell.AppShellViewModel
@@ -45,6 +45,9 @@ fun AppNavGraph() {
     val navState by shellViewModel.navState.collectAsState()
     val paidProjectsEnabled by shellViewModel.paidProjectsEnabled.collectAsState()
     val pendingDeepLink by shellViewModel.pendingDeepLink.collectAsState()
+    // Read once here: the transition factories below are plain functions that
+    // run outside composition, so they cannot see LocalReduceMotion themselves.
+    val motionEnabled = auroraMotionEnabled()
 
     LaunchedEffect(navState) {
         val route = when (navState) {
@@ -61,10 +64,10 @@ fun AppNavGraph() {
     NavHost(
         navController = navController,
         startDestination = AppRoute.LOADING,
-        enterTransition = { rootEnterTransition() },
-        exitTransition = { rootExitTransition() },
-        popEnterTransition = { rootPopEnterTransition() },
-        popExitTransition = { rootPopExitTransition() },
+        enterTransition = { rootEnterTransition(motionEnabled) },
+        exitTransition = { rootExitTransition(motionEnabled) },
+        popEnterTransition = { rootPopEnterTransition(motionEnabled) },
+        popExitTransition = { rootPopExitTransition(motionEnabled) },
     ) {
         composable(AppRoute.LOADING) { LoadingState() }
         composable(AppRoute.AUTH) {
@@ -84,30 +87,30 @@ fun AppNavGraph() {
     }
 }
 
-private fun rootEnterTransition() =
-    if (!ValueAnimator.areAnimatorsEnabled()) {
+private fun rootEnterTransition(motionEnabled: Boolean) =
+    if (!motionEnabled) {
         fadeIn(tween(0))
     } else {
         fadeIn(tween(AuroraMotion.ContentCrossfadeMillis, easing = AuroraEaseOut))
     }
 
-private fun rootExitTransition() =
-    if (!ValueAnimator.areAnimatorsEnabled()) {
+private fun rootExitTransition(motionEnabled: Boolean) =
+    if (!motionEnabled) {
         fadeOut(tween(0))
     } else {
         fadeOut(tween(AuroraMotion.ContentCrossfadeMillis))
     }
 
-private fun rootPopEnterTransition() =
-    if (!ValueAnimator.areAnimatorsEnabled()) {
+private fun rootPopEnterTransition(motionEnabled: Boolean) =
+    if (!motionEnabled) {
         fadeIn(tween(0))
     } else {
         slideInHorizontally(tween(250, easing = AuroraEaseOut)) { it / 5 } +
             fadeIn(tween(AuroraMotion.FadeMillis, easing = AuroraEaseOut))
     }
 
-private fun rootPopExitTransition() =
-    if (!ValueAnimator.areAnimatorsEnabled()) {
+private fun rootPopExitTransition(motionEnabled: Boolean) =
+    if (!motionEnabled) {
         fadeOut(tween(0))
     } else {
         slideOutHorizontally(tween(180, easing = AuroraEaseOut)) { -it / 5 } +

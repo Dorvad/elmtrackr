@@ -14,13 +14,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 /**
- * Returns an animated diagonal shimmer [Brush] for use in skeleton loading screens.
+ * Returns a diagonal shimmer [Brush] for skeleton loading screens.
  *
  * Usage:
  * ```
  * val shimmer = rememberShimmerBrush()
  * Box(Modifier.background(shimmer))
  * ```
+ *
+ * With reduce-motion on, the gradient is evaluated at its start offset and held
+ * there rather than the brush being skipped. This shimmer backs every skeleton
+ * in the app, so the loading state of every major screen used to keep animating
+ * regardless of the user's setting — and a skeleton that is invisible while
+ * reducing motion would be worse than one that simply sits still.
  */
 @Composable
 fun rememberShimmerBrush(): Brush {
@@ -33,16 +39,21 @@ fun rememberShimmerBrush(): Brush {
         baseColor,
     )
 
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim by transition.animateFloat(
-        initialValue = 0f,
-        targetValue  = 1600f,
-        animationSpec = infiniteRepeatable(
-            animation  = tween(durationMillis = 1100, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmer_translate",
-    )
+    val translateAnim = if (auroraMotionEnabled()) {
+        val transition = rememberInfiniteTransition(label = "shimmer")
+        val animated by transition.animateFloat(
+            initialValue = 0f,
+            targetValue  = 1600f,
+            animationSpec = infiniteRepeatable(
+                animation  = tween(durationMillis = 1100, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "shimmer_translate",
+        )
+        animated
+    } else {
+        0f
+    }
 
     return Brush.linearGradient(
         colors = shimmerColors,
@@ -50,9 +61,3 @@ fun rememberShimmerBrush(): Brush {
         end    = Offset(translateAnim, translateAnim),
     )
 }
-
-/** Convenience: a shimmer-filled rounded rectangle modifier. */
-@Composable
-fun shimmerBackground(
-    brush: Brush = rememberShimmerBrush(),
-): Brush = brush

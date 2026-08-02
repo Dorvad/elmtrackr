@@ -66,6 +66,7 @@ import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.AuroraMotion
 import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.auroraEnter
+import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.design.auroraSubScreenTransition
 
 private const val MIN_PASSWORD_LENGTH = 6
@@ -103,6 +104,7 @@ fun AuthScreen(
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val motionEnabled = auroraMotionEnabled()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -116,7 +118,7 @@ fun AuthScreen(
                     fadeIn(tween(AuroraMotion.ContentCrossfadeMillis, easing = AuroraEaseOut)) togetherWith
                         fadeOut(tween(AuroraMotion.ContentCrossfadeMillis))
                 } else {
-                    auroraSubScreenTransition(authMotionOrder(targetState) > authMotionOrder(initialState))
+                    auroraSubScreenTransition(authMotionOrder(targetState) > authMotionOrder(initialState), motionEnabled)
                 }
             },
             modifier = Modifier.fillMaxSize(),
@@ -271,6 +273,7 @@ internal fun SignedOutContent(
     // password across process death is the cheaper trade.
     var password       by remember { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    val motionEnabled = auroraMotionEnabled()
 
     BackHandler(enabled = mode != AuthMode.SIGN_IN) {
         mode = AuthMode.SIGN_IN
@@ -324,7 +327,7 @@ internal fun SignedOutContent(
             AnimatedContent(
                 targetState = mode,
                 transitionSpec = {
-                    auroraSubScreenTransition(authModeOrder(targetState) > authModeOrder(initialState))
+                    auroraSubScreenTransition(authModeOrder(targetState) > authModeOrder(initialState), motionEnabled)
                 },
                 label = "auth-mode",
             ) { currentMode ->

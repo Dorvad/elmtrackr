@@ -49,6 +49,7 @@ import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.AuroraStateCrossfade
+import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.design.auroraSubScreenTransition
 import com.elmtrackr.app.ui.design.ElmEmptyState
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
@@ -68,6 +69,7 @@ fun ShiftsScreen(
     onFormVisibilityChanged: (Boolean) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val motionEnabled = auroraMotionEnabled()
     val formTarget by viewModel.formTarget.collectAsState()
     val formErrors by viewModel.formErrors.collectAsState()
     val featuresTravelRefunds by viewModel.featuresTravelRefunds.collectAsState()
@@ -101,7 +103,7 @@ fun ShiftsScreen(
     Box(Modifier.fillMaxSize()) {
     AnimatedContent(
         targetState = formTarget,
-        transitionSpec = { auroraSubScreenTransition(targetState != null) },
+        transitionSpec = { auroraSubScreenTransition(targetState != null, motionEnabled) },
         modifier = Modifier.fillMaxSize(),
         label = "shifts-form",
     ) { navState ->

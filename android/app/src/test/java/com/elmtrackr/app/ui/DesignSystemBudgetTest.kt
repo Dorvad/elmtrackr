@@ -28,7 +28,7 @@ class DesignSystemBudgetTest {
     private val maxRawColor = 145
     private val maxRawTextField = 41
     private val maxRawCard = 39
-    private val maxUngatedAnimatorCheck = 4
+    private val maxUngatedAnimatorCheck = 0
 
     /**
      * Files whose numbers are drawing geometry, not layout spacing — clock-face
@@ -90,7 +90,7 @@ class DesignSystemBudgetTest {
     fun `reduce-motion gate is not bypassed`() {
         val offenders = appRoot.kotlinFiles()
             .filterNot { it.name == "AuroraReduceMotion.kt" }
-            .filter { it.readText().contains("areAnimatorsEnabled") }
+            .filter { file -> file.readText().lines().any { it.isCode() && it.contains("areAnimatorsEnabled") } }
             .map { it.name }
             .sorted()
 
@@ -119,6 +119,12 @@ class DesignSystemBudgetTest {
         path.contains("/ui/theme/") || path.contains("/ui/design/")
 
     private fun File.isDesignLayer(): Boolean = path.contains("/ui/design/")
+
+    /** Comment lines mentioning an API are documentation, not a call site. */
+    private fun String.isCode(): Boolean {
+        val t = trim()
+        return !t.startsWith("//") && !t.startsWith("*") && !t.startsWith("/*")
+    }
 
     /**
      * Unit tests run with the module directory as the working directory, but
