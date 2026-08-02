@@ -1,0 +1,147 @@
+package com.elmtrackr.app.ui
+
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Test
+import java.io.File
+
+/**
+ * A ratchet on design-system drift.
+ *
+ * The Aurora token and component layers are good; the problem was that nothing
+ * stopped screens from bypassing them, so raw `dp`, raw hex and raw Material
+ * components accumulated faster than they were cleaned up. Each budget below is
+ * recorded at the current count and may only ever go **down**: adding a new
+ * violation fails the build, and every commit that removes some lowers the
+ * number in the same change.
+ *
+ * This is a plain JUnit test rather than a detekt rule on purpose — it runs
+ * inside the `testDebugUnitTest` step CI already executes and needs no new
+ * dependency.
+ */
+class DesignSystemBudgetTest {
+
+    // ── Budgets ───────────────────────────────────────────────────────────────
+    // Lower these in the same commit that removes violations. Never raise them.
+
+    private val maxRawDp = 1126
+    private val maxRawColor = 145
+    private val maxRawTextField = 41
+    private val maxRawCard = 39
+    private val maxUngatedAnimatorCheck = 4
+
+    /**
+     * Files whose numbers are drawing geometry, not layout spacing — clock-face
+     * canvases, ride-provider illustrations and the update wizard's artwork.
+     * Forcing those onto a spacing scale would be worse than leaving them.
+     */
+    private val geometryExempt = setOf(
+        "ExpressiveClockFaces.kt",
+        "RideProviderGraphics.kt",
+        "PaidProjectsUpdateWizard.kt",
+    )
+
+    private val uiRoot: File by lazy { resolve("src/main/java/com/elmtrackr/app/ui") }
+    private val appRoot: File by lazy { resolve("src/main/java/com/elmtrackr/app") }
+
+    @Test
+    fun `raw dp literals stay within budget`() {
+        val count = uiRoot.kotlinFiles()
+            .filterNot { it.isTokenLayer() || it.name in geometryExempt }
+            .sumOf { file -> RAW_DP.findAll(file.readText()).count { it.value != "0.dp" } }
+
+        assertWithinBudget("raw dp literals", count, maxRawDp, "Spacing.sN / Layout.*")
+    }
+
+    @Test
+    fun `raw colour literals stay within budget`() {
+        val count = uiRoot.kotlinFiles()
+            .filterNot { it.path.contains("/ui/theme/") }
+            .sumOf { RAW_COLOR.findAll(it.readText()).count() }
+
+        assertWithinBudget("raw Color(0x…) literals", count, maxRawColor, "a token in ui/theme")
+    }
+
+    @Test
+    fun `raw Material text fields stay within budget`() {
+        val count = uiRoot.kotlinFiles()
+            .filterNot { it.isDesignLayer() }
+            .sumOf { RAW_TEXT_FIELD.findAll(it.readText()).count() }
+
+        assertWithinBudget("raw OutlinedTextField/TextField", count, maxRawTextField, "ElmTextField")
+    }
+
+    @Test
+    fun `raw Material cards stay within budget`() {
+        val count = uiRoot.kotlinFiles()
+            .filterNot { it.isDesignLayer() }
+            .sumOf { RAW_CARD.findAll(it.readText()).count() }
+
+        assertWithinBudget("raw Card/ElevatedCard/OutlinedCard", count, maxRawCard, "ElmCard")
+    }
+
+    /**
+     * `ValueAnimator.areAnimatorsEnabled()` on its own ignores the app's own
+     * "reduce motion" setting — it only sees the system animator scale. Every
+     * call site outside the gate is a place the user preference is silently
+     * dropped. Budget target: zero.
+     */
+    @Test
+    fun `reduce-motion gate is not bypassed`() {
+        val offenders = appRoot.kotlinFiles()
+            .filterNot { it.name == "AuroraReduceMotion.kt" }
+            .filter { it.readText().contains("areAnimatorsEnabled") }
+            .map { it.name }
+            .sorted()
+
+        assertWithinBudget(
+            "direct areAnimatorsEnabled checks (${offenders.joinToString()})",
+            offenders.size,
+            maxUngatedAnimatorCheck,
+            "auroraMotionEnabled()",
+        )
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private fun assertWithinBudget(what: String, count: Int, budget: Int, useInstead: String) {
+        assertTrue(
+            "$what: found $count, budget is $budget. Use $useInstead. " +
+                "If you removed some, lower the budget in this file to $count.",
+            count <= budget,
+        )
+    }
+
+    private fun File.kotlinFiles(): List<File> =
+        walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
+
+    private fun File.isTokenLayer(): Boolean =
+        path.contains("/ui/theme/") || path.contains("/ui/design/")
+
+    private fun File.isDesignLayer(): Boolean = path.contains("/ui/design/")
+
+    /**
+     * Unit tests run with the module directory as the working directory, but
+     * that is a Gradle default rather than a guarantee, so walk up until the
+     * source tree is found instead of assuming.
+     */
+    private fun resolve(relative: String): File {
+        var dir: File? = File(".").absoluteFile
+        repeat(4) {
+            val candidate = dir?.resolve(relative)
+            if (candidate?.isDirectory == true) return candidate
+            val nested = dir?.resolve("app")?.resolve(relative)
+            if (nested?.isDirectory == true) return nested
+            dir = dir?.parentFile
+        }
+        fail("Could not locate $relative from ${File(".").absolutePath}")
+        error("unreachable")
+    }
+
+    private companion object {
+        val RAW_DP = Regex("""\b\d+(\.\d+)?\.dp\b""")
+        val RAW_COLOR = Regex("""\bColor\(0x""")
+        val RAW_TEXT_FIELD = Regex("""(^|[^A-Za-z])(OutlinedTextField|TextField)\(""", RegexOption.MULTILINE)
+        val RAW_CARD = Regex("""(^|[^A-Za-z])(Card|ElevatedCard|OutlinedCard)\(""", RegexOption.MULTILINE)
+    }
+}
