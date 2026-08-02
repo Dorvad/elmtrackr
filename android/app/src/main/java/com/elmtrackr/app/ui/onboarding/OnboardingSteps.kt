@@ -1,5 +1,9 @@
 package com.elmtrackr.app.ui.onboarding
 
+import com.elmtrackr.app.domain.compensation.RegionPresets
+import com.elmtrackr.app.domain.model.CompensationRules
+import com.elmtrackr.app.domain.model.RegionCode
+
 /**
  * Step indices for the onboarding wizard, and the two pure functions that walk
  * between them.
@@ -10,6 +14,22 @@ package com.elmtrackr.app.ui.onboarding
  * the per-step lambdas and the back handler — means forward and backward
  * navigation cannot disagree about which steps exist.
  */
+/**
+ * The region the wizard opens on, and the source of every work-setup default.
+ *
+ * These lived apart: the region field defaulted to [RegionCode.IL] while the
+ * overtime thresholds and weekend days were separate hardcoded constants
+ * (8 h / 40 h / Fri-Sat), and the preset was applied only when the user actually
+ * tapped a region chip. Accepting the pre-selected region therefore produced
+ * thresholds that did not match it — and those feed the pay calculation.
+ *
+ * Keeping them in one place means the mismatch cannot come back silently.
+ */
+internal val ONBOARDING_DEFAULT_REGION = RegionCode.IL
+
+internal fun onboardingDefaultRules(): CompensationRules =
+    RegionPresets.forRegion(ONBOARDING_DEFAULT_REGION).rules
+
 internal const val STEP_LANGUAGE = 1
 internal const val STEP_WELCOME = 2
 internal const val STEP_REGION = 3
