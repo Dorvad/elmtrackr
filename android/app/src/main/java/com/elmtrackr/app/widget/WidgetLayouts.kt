@@ -204,7 +204,7 @@ internal fun WidgetLogoColumn(modifier: GlanceModifier = GlanceModifier) {
         ) {
             Image(
                 provider = ImageProvider(R.drawable.widget_logo_icon),
-                contentDescription = "ElmTrackr",
+                contentDescription = widgetContext().getString(R.string.a11y_app_logo),
                 modifier = GlanceModifier.size(20.dp),
             )
         }
@@ -518,7 +518,7 @@ internal fun ProgressWidgetContent(state: WidgetPreferences.DisplayState) {
             ) {
                 Image(
                     provider = ImageProvider(R.drawable.widget_logo_icon),
-                    contentDescription = "ElmTrackr",
+                    contentDescription = widgetContext().getString(R.string.a11y_app_logo),
                     modifier = GlanceModifier.size(18.dp),
                 )
             }

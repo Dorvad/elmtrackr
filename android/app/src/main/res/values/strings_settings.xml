@@ -342,4 +342,8 @@
     <string name="settings_discard_confirm">Discard</string>
     <string name="settings_discard_keep">Keep editing</string>
     <string name="settings_pay_default_job_note">These values apply to your default job (%1$s). Rates and hours for other jobs are edited in Compensation rules.</string>
+    <!-- Android share sheet for the local JSON backup -->
+    <string name="settings_backup_share_subject">ElmTrackr local backup</string>
+    <string name="settings_backup_share_chooser">Export local backup</string>
+    <string name="settings_sync_synced_with_warnings">Synced with warnings: %1$s</string>
 </resources>

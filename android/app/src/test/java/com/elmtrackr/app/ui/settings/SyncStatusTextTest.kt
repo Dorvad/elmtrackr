@@ -63,9 +63,25 @@ class SyncStatusTextTest {
     }
 
     @Test
-    fun `warning statuses pass through unchanged`() {
-        val warning = "Synced with warnings: tasks table missing"
-        assertEquals(UiText.Raw(warning), SyncStatusText.format(warning, now, zone, locale))
+    fun `warning statuses are localized`() {
+        assertEquals(
+            UiText.Res(R.string.settings_sync_synced_with_warnings, "tasks table missing"),
+            SyncStatusText.format("SyncedWarn: tasks table missing", now, zone, locale),
+        )
+    }
+
+    /**
+     * The status is persisted, so installs upgrading from a build that wrote the
+     * English sentence still have it in their settings row. It began with
+     * "Synced ", which meant it matched the timestamp prefix, failed to parse
+     * and rendered as raw English regardless of the app language.
+     */
+    @Test
+    fun `the legacy English warning status is still recognised`() {
+        assertEquals(
+            UiText.Res(R.string.settings_sync_synced_with_warnings, "tasks table missing"),
+            SyncStatusText.format("Synced with warnings: tasks table missing", now, zone, locale),
+        )
     }
 
     @Test

@@ -342,4 +342,8 @@
     <string name="settings_discard_confirm">ביטול השינויים</string>
     <string name="settings_discard_keep">המשך עריכה</string>
     <string name="settings_pay_default_job_note">הערכים כאן חלים על העבודה שמוגדרת כברירת מחדל (%1$s). תעריפים ושעות של עבודות אחרות נערכים במסך כללי השכר.</string>
+    <!-- Android share sheet for the local JSON backup -->
+    <string name="settings_backup_share_subject">גיבוי מקומי של ElmTrackr</string>
+    <string name="settings_backup_share_chooser">ייצוא גיבוי מקומי</string>
+    <string name="settings_sync_synced_with_warnings">סונכרן עם אזהרות: %1$s</string>
 </resources>

@@ -281,7 +281,11 @@ class SyncRepositoryImpl @Inject constructor(
                     SyncResult.Error(issues.errors.joinToString("; "))
                 }
                 warnings.isNotEmpty() -> {
-                    lastSyncStatus.value = "Synced with warnings: ${warnings.joinToString("; ")}"
+                    // A machine marker, not a sentence. The old value began
+                    // with "Synced ", so SyncStatusText matched it as a
+                    // timestamp, failed to parse and rendered the raw English.
+                    // Keep this in step with SyncStatusText's prefixes.
+                    lastSyncStatus.value = "SyncedWarn: ${warnings.joinToString("; ")}"
                     SyncResult.Success
                 }
                 else -> {
