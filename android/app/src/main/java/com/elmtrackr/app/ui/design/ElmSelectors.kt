@@ -76,7 +76,7 @@ fun ElmSegmentedPillRow(
                             onSelect(index)
                         },
                     )
-                    .defaultMinSize(minHeight = 40.dp)
+                    .defaultMinSize(minHeight = 48.dp)
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -130,7 +130,7 @@ fun ElmChoiceChip(
                     onClick()
                 },
             )
-            .defaultMinSize(minHeight = 40.dp)
+            .defaultMinSize(minHeight = 48.dp)
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content,

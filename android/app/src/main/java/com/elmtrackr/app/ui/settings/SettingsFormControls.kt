@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -36,6 +37,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
@@ -60,6 +62,7 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -722,7 +725,10 @@ internal fun WeekendDayChip(
                 },
             )
             .background(background, shape)
-            .clickable(onClick = onClick)
+            // Multi-select, so Checkbox rather than RadioButton; the minimum
+            // size keeps a text-sized chip reachable.
+            .toggleable(value = selected, role = Role.Checkbox, onValueChange = { onClick() })
+            .minimumInteractiveComponentSize()
             .padding(horizontal = 12.dp, vertical = 8.dp),
         style = MaterialTheme.typography.bodySmall,
         fontWeight = FontWeight.Bold,

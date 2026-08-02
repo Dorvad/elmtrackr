@@ -79,6 +79,7 @@ import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.ui.design.AuroraHaptics
+import com.elmtrackr.app.ui.design.auroraExpandable
 import com.elmtrackr.app.ui.design.ElmChoiceChip
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
@@ -981,15 +982,24 @@ private fun BreakStepper(minutes: Int, onChange: (Int) -> Unit) {
 @Composable
 private fun StepperButton(label: String, onClick: () -> Unit) {
     val shape = RoundedCornerShape(CornerRadius.Small)
+    // The click target is the 48dp outer box; the bordered 36dp square stays the
+    // visual. Growing the border instead would have changed the form's look to
+    // fix an accessibility problem, which is the wrong trade.
     Box(
         modifier = Modifier
-            .size(36.dp)
-            .clip(shape)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+            .size(48.dp)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(shape)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
     }
 }
 
@@ -1005,6 +1015,7 @@ private fun TravelRefundCard(expanded: Boolean, onToggle: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onToggle)
+                .auroraExpandable(expanded)
                 .padding(Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
