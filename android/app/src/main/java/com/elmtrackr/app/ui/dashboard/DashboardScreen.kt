@@ -101,6 +101,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.PayrollCalculator
+import com.elmtrackr.app.domain.dashboard.DashboardPromo
+import com.elmtrackr.app.domain.dashboard.DashboardPromoInputs
+import com.elmtrackr.app.domain.dashboard.activeDashboardPromo
+import androidx.compose.foundation.clickable
+import com.elmtrackr.app.ui.common.appLocale
+import com.elmtrackr.app.ui.design.ElmDistributionBar
+import com.elmtrackr.app.ui.design.ElmDistributionLegend
+import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.domain.HoursFormatter
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.model.CompensationSource
@@ -173,6 +181,7 @@ fun DashboardScreen(
     // Plain remember: restoring the overlay after a tab switch stranded users
     // inside task management when they came back to the dashboard.
     var showTasks by remember { mutableStateOf(false) }
+    val motionEnabled = auroraMotionEnabled()
 
     BackHandler(enabled = showTasks) { showTasks = false }
 
@@ -190,7 +199,7 @@ fun DashboardScreen(
     AnimatedContent(
         targetState = showTasks,
         transitionSpec = {
-            auroraSubScreenTransition(targetState)
+            auroraSubScreenTransition(targetState, motionEnabled)
         },
         modifier = Modifier.fillMaxSize(),
         label = "dashboard-tasks",
@@ -407,15 +416,28 @@ private fun DashboardReady(
     AuroraScreen {
             DashboardHeader(displayName = state.displayName)
 
-            if (state.recentShifts.isEmpty() && activeShift == null) {
+            // One nudge at a time. These four used to be gated independently,
+            // so in the worst case all of them stacked above the month summary
+            // in identical cards, competing with the clock. The ranking lives in
+            // DashboardPromoSlot with its own tests.
+            val today = LocalDate.now()
+            val promo = activeDashboardPromo(
+                DashboardPromoInputs(
+                    unresolvedRefundCount = state.unresolvedRefundCount,
+                    isRefundWindow = today.dayOfMonth >= today.lengthOfMonth() - 4,
+                    refundReminderDismissed = refundBannerDismissed,
+                    hasNoShifts = state.recentShifts.isEmpty() && activeShift == null,
+                    setupChecklistAvailable = setupChecklist != null,
+                    projectSummaryAvailable = projectShiftSummary != null,
+                    updateWizardVisible = state.showPaidProjectsWizard,
+                ),
+            )
+
+            if (promo == DashboardPromo.FIRST_RUN_WELCOME) {
                 FirstRunWelcomeCard(onClockIn = handleClockIn)
             }
 
-            val showRefundBanner = !refundBannerDismissed &&
-                state.unresolvedRefundCount > 0 &&
-                LocalDate.now().dayOfMonth >= LocalDate.now().lengthOfMonth() - 4
-
-            if (showRefundBanner) {
+            if (promo == DashboardPromo.REFUND_REMINDER) {
                 RefundReminderBanner(
                     count = state.unresolvedRefundCount,
                     onDismiss = { refundBannerDismissed = true },
@@ -472,7 +494,7 @@ private fun DashboardReady(
 
             // Non-blocking: sits above the clock and is dismissed with a tap, so
             // it never stands between the user and their next punch.
-            projectShiftSummary?.let { summary ->
+            projectShiftSummary?.takeIf { promo == DashboardPromo.PROJECT_SUMMARY }?.let { summary ->
                 ProjectShiftSummaryCard(
                     summary = summary,
                     onDismiss = onDismissProjectShiftSummary,
@@ -561,7 +583,9 @@ private fun DashboardReady(
                 }
             }
 
-            val setupCard: (@Composable () -> Unit)? = setupChecklist?.let { checklist ->
+            val setupCard: (@Composable () -> Unit)? = setupChecklist
+                ?.takeIf { promo == DashboardPromo.SETUP_CHECKLIST }
+                ?.let { checklist ->
                 @Composable {
                     SetupChecklistCard(
                         state = checklist,
@@ -597,23 +621,17 @@ private fun DashboardReady(
                         clockCard()
                         projectCard?.invoke()
                         setupCard?.invoke()
-                        MonthSummaryDistribution(
-                            report = state.monthlyReport,
-                            modifier = Modifier.auroraEnter(index = 2),
-                        )
                     }
                     Column(
                         modifier = Modifier.weight(0.58f),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        MonthSummaryStatsGrid(
+                        MonthSummaryCard(
                             report = state.monthlyReport,
-                            modifier = Modifier.auroraEnter(index = 2),
-                        )
-                        MonthSummaryGrossPay(
                             paySummary = state.paySummary,
                             currencyCode = currencyCode,
-                            modifier = Modifier.auroraEnter(index = 3),
+                            onOpenReport = onNavigateToReports,
+                            modifier = Modifier.auroraEnter(index = 2),
                         )
                         RecentShiftsSection(
                             recentShifts = state.recentShifts,
@@ -628,11 +646,12 @@ private fun DashboardReady(
 
                 setupCard?.invoke()
 
-                MonthSummarySection(
-                    report      = state.monthlyReport,
-                    paySummary  = state.paySummary,
+                MonthSummaryCard(
+                    report       = state.monthlyReport,
+                    paySummary   = state.paySummary,
                     currencyCode = currencyCode,
-                    modifier    = Modifier.auroraEnter(index = 2),
+                    onOpenReport = onNavigateToReports,
+                    modifier     = Modifier.auroraEnter(index = 2),
                 )
 
                 RecentShiftsSection(
@@ -1763,315 +1782,119 @@ private fun ExpressiveClockPulse(
 }
 
 @Composable
-private fun MonthSummarySection(
+private fun MonthSummaryCard(
     report: MonthlyReport?,
     paySummary: PayrollCalculator.MonthlyPaySummary?,
     currencyCode: String,
+    onOpenReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    val monthName = YearMonth.now().month.getDisplayName(TextStyle.FULL, appLocale())
+    val shiftCount = report?.shiftCount ?: 0
+    val openReportLabel = stringResource(R.string.dashboard_month_summary_open_report)
+
+    ElmCardPadded(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = openReportLabel, onClick = onOpenReport),
     ) {
-        MonthSummaryHeader(report)
-        MonthSummaryDistributionCard(report)
-        MonthSummaryStatsGrid(report)
-        MonthSummaryGrossPay(paySummary, currencyCode)
-    }
-}
-
-@Composable
-private fun MonthSummaryHeader(report: MonthlyReport?) {
-    val monthName = YearMonth.now().month.getDisplayName(TextStyle.FULL, Locale.getDefault())
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        ElmSectionHeader(title = stringResource(R.string.dashboard_month_summary_title, monthName), modifier = Modifier.weight(1f))
-        Text(
-            text = stringResource(
-                if (report?.shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other,
-                report?.shiftCount ?: 0,
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Medium,
-        )
-    }
-}
-
-@Composable
-private fun MonthSummaryDistribution(
-    report: MonthlyReport?,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        MonthSummaryHeader(report)
-        MonthSummaryDistributionCard(report)
-    }
-}
-
-@Composable
-private fun MonthSummaryDistributionCard(report: MonthlyReport?) {
-    val totalMinutes = report?.totalMinutes ?: 0
-    val regularMinutes = report?.regularMinutes ?: 0
-    val overtimeMinutes = report?.overtimeMinutes ?: 0
-    val weekendMinutes = report?.weekendMinutes ?: 0
-
-    ElmCardPadded(modifier = Modifier.auroraEnter(index = 1)) {
-            Text(
-                text = stringResource(R.string.dashboard_hours_distribution),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
-            )
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = HoursFormatter.decimal(totalMinutes),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.ExtraBold,
-                )
-                Text(
-                    text = stringResource(R.string.dashboard_hours_total_suffix),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 2.dp),
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            DistributionBar(regularMinutes, overtimeMinutes, weekendMinutes)
-            Spacer(Modifier.height(10.dp))
-            DistributionLegend(regularMinutes, overtimeMinutes, weekendMinutes)
-        }
-}
-
-@Composable
-private fun MonthSummaryStatsGrid(
-    report: MonthlyReport?,
-    modifier: Modifier = Modifier,
-) {
-    val totalMinutes = report?.totalMinutes ?: 0
-    val regularMinutes = report?.regularMinutes ?: 0
-    val overtimeMinutes = report?.overtimeMinutes ?: 0
-    val weekendMinutes = report?.weekendMinutes ?: 0
-    val isTablet = isTabletLayout()
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (isTablet) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_total),
-                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(totalMinutes)),
-                    variant = ElmStatVariant.PRIMARY,
-                    modifier = Modifier.weight(1f).auroraEnter(index = 1),
-                )
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_regular),
-                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(regularMinutes)),
-                    modifier = Modifier.weight(1f).auroraEnter(index = 2),
-                )
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_overtime),
-                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(overtimeMinutes)),
-                    variant = ElmStatVariant.OVERTIME,
-                    modifier = Modifier.weight(1f).auroraEnter(index = 3),
-                )
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_weekend),
-                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(weekendMinutes)),
-                    variant = ElmStatVariant.WEEKEND,
-                    modifier = Modifier.weight(1f).auroraEnter(index = 4),
-                )
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_total),
-                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(totalMinutes)),
-                    variant = ElmStatVariant.PRIMARY,
-                    modifier = Modifier.weight(1f).auroraEnter(index = 1),
-                )
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_regular),
-                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(regularMinutes)),
-                    modifier = Modifier.weight(1f).auroraEnter(index = 2),
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_overtime),
-                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(overtimeMinutes)),
-                    variant = ElmStatVariant.OVERTIME,
-                    modifier = Modifier.weight(1f).auroraEnter(index = 3),
-                )
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_weekend),
-                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(weekendMinutes)),
-                    variant = ElmStatVariant.WEEKEND,
-                    modifier = Modifier.weight(1f).auroraEnter(index = 4),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MonthSummaryGrossPay(
-    paySummary: PayrollCalculator.MonthlyPaySummary?,
-    currencyCode: String,
-    modifier: Modifier = Modifier,
-) {
-    paySummary?.takeIf { it.totalGross > 0.0 }?.let { pay ->
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .auroraEnter(index = 3)
-                .background(headerGradient, RoundedCornerShape(CornerRadius.Large))
-                .border(1.dp, AuroraWhite.copy(alpha = 0.28f), RoundedCornerShape(CornerRadius.Large))
-                .padding(16.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
+            ElmSectionHeader(
+                title = stringResource(R.string.dashboard_month_summary_title, monthName),
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = stringResource(
+                    if (shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other,
+                    shiftCount,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+
+        Spacer(Modifier.height(Layout.rowGap))
+
+        // Hours and pay on one line: the two numbers a user opens the app to
+        // check. Everything behind them lives one tap away in Reports.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Column(Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.dashboard_gross_pay_title),
+                    text = stringResource(
+                        R.string.dashboard_hours_value,
+                        HoursFormatter.decimal(report?.totalMinutes ?: 0),
+                    ),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                )
+                Text(
+                    text = stringResource(R.string.dashboard_stat_total),
                     style = MaterialTheme.typography.labelSmall,
-                    color = AuroraWhite.copy(alpha = 0.65f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold,
                 )
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.Bottom) {
+            }
+            if (paySummary != null && paySummary.totalGross > 0.0) {
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = MoneyFormatter.format(pay.totalGross, currencyCode),
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = AuroraWhite,
+                        text = MoneyFormatter.format(paySummary.totalGross, currencyCode),
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
                     )
                     Text(
-                        text = stringResource(R.string.dashboard_before_tax_suffix),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AuroraWhite.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(bottom = 4.dp),
-                    )
-                }
-                if (pay.overtimeGross > 0.0 || pay.specialGross > 0.0) {
-                    Spacer(Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        if (pay.regularGross > 0.0) {
-                            PaySummaryCell(stringResource(R.string.dashboard_stat_regular), pay.regularGross, currencyCode, Modifier.weight(1f))
-                        }
-                        if (pay.overtimeGross > 0.0) {
-                            PaySummaryCell(stringResource(R.string.dashboard_stat_overtime), pay.overtimeGross, currencyCode, Modifier.weight(1f))
-                        }
-                        if (pay.specialGross > 0.0) {
-                            PaySummaryCell(stringResource(R.string.dashboard_pay_holiday), pay.specialGross, currencyCode, Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PaySummaryCell(label: String, amount: Double, currencyCode: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .background(AuroraWhite.copy(alpha = 0.15f), RoundedCornerShape(CornerRadius.Medium))
-            .padding(10.dp),
-    ) {
-        Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = AuroraWhite.copy(alpha = 0.65f),
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = MoneyFormatter.format(amount, currencyCode),
-            style = MaterialTheme.typography.bodyMedium,
-            color = AuroraWhite,
-            fontWeight = FontWeight.Bold,
-        )
-    }
-}
-
-@Composable
-private fun DistributionBar(regularMinutes: Int, overtimeMinutes: Int, weekendMinutes: Int) {
-    val values = listOf(regularMinutes, overtimeMinutes, weekendMinutes)
-    val colors = listOf(AuroraIndigo, AuroraPeach, AuroraPlum)
-    val total = values.sum()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(12.dp)
-            .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
-        horizontalArrangement = Arrangement.spacedBy(1.dp),
-    ) {
-        if (total == 0) {
-            Spacer(Modifier.weight(1f).fillMaxHeight())
-        } else {
-            values.forEachIndexed { index, value ->
-                if (value > 0) {
-                    Box(
-                        Modifier
-                            .weight(value.toFloat())
-                            .fillMaxHeight()
-                            .background(colors[index]),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DistributionLegend(regularMinutes: Int, overtimeMinutes: Int, weekendMinutes: Int) {
-    val items = listOf(
-        Triple(stringResource(R.string.dashboard_stat_regular), regularMinutes, AuroraIndigo),
-        Triple(stringResource(R.string.dashboard_stat_overtime), overtimeMinutes, AuroraPeach),
-        Triple(stringResource(R.string.dashboard_stat_weekend), weekendMinutes, AuroraPlum),
-    )
-    Row(modifier = Modifier.fillMaxWidth()) {
-        items.forEach { (label, minutes, color) ->
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                Box(Modifier.size(7.dp).background(color, CircleShape))
-                Column {
-                    Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(minutes)),
+                        text = stringResource(R.string.dashboard_gross_before_tax),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold,
                     )
                 }
             }
         }
+
+        Spacer(Modifier.height(Layout.rowGap))
+
+        ElmDistributionBar(
+            regularMinutes = report?.regularMinutes ?: 0,
+            overtimeMinutes = report?.overtimeMinutes ?: 0,
+            weekendMinutes = report?.weekendMinutes ?: 0,
+        )
+
+        Spacer(Modifier.height(Layout.inlineGap))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ElmDistributionLegend(
+                regularMinutes = report?.regularMinutes ?: 0,
+                overtimeMinutes = report?.overtimeMinutes ?: 0,
+                weekendMinutes = report?.weekendMinutes ?: 0,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = openReportLabel,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
 }
+
+
 
 
 // â”€â”€ Recent shifts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2205,14 +2028,6 @@ private fun EditStartTimeDialog(
 }
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-private fun formatElapsedTime(seconds: Long): String {
-    val h = seconds / 3600
-    val m = (seconds % 3600) / 60
-    val s = seconds % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s)
-    else "%02d:%02d".format(m, s)
-}
 
 @Composable
 private fun formatInstantTime(instant: Instant): String =

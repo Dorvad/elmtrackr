@@ -123,4 +123,6 @@
     <string name="dashboard_setup_celebration_title">You\'re all set!</string>
     <string name="dashboard_setup_celebration_body">You\'ve explored the essentials. ElmTrackr now tracks and prices your shifts exactly the way you work.</string>
     <string name="dashboard_start_time_future_error">Start time can\'t be in the future.</string>
+    <string name="dashboard_month_summary_open_report">View full report</string>
+    <string name="dashboard_gross_before_tax">GROSS · BEFORE TAX</string>
 </resources>

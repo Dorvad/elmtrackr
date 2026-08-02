@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.layout.PhoneContentMaxWidth
 import com.elmtrackr.app.ui.layout.TabletContentPadding
@@ -118,6 +117,3 @@ fun AuroraListScreen(
     }
 }
 
-/** Content max width for the current form factor; [Dp.Unspecified] on tablet. */
-@Composable
-fun auroraContentMaxWidth(): Dp = if (isTabletLayout()) Dp.Unspecified else PhoneContentMaxWidth

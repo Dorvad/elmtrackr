@@ -123,4 +123,6 @@
     <string name="dashboard_setup_celebration_title">הכול מוכן!</string>
     <string name="dashboard_setup_celebration_body">הכרתם את היסודות. מעכשיו ElmTrackr עוקב ומחשב את המשמרות בדיוק לפי הדרך שבה אתם עובדים.</string>
     <string name="dashboard_start_time_future_error">שעת ההתחלה לא יכולה להיות בעתיד.</string>
+    <string name="dashboard_month_summary_open_report">לדוח המלא</string>
+    <string name="dashboard_gross_before_tax">ברוטו · לפני מס</string>
 </resources>
