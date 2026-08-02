@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.MotionPhotosOff
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.Button
@@ -149,6 +150,13 @@ internal fun SettingsHub(
                     onClick = { onNavigate(SettingsDestination.FEATURES) },
                     icon = Icons.Filled.Tune,
                     iconTint = AuroraAqua,
+                )
+                SettingsHubNavRow(
+                    title = stringResource(R.string.settings_wear_title),
+                    subtitle = stringResource(R.string.settings_wear_hub_subtitle),
+                    onClick = { onNavigate(SettingsDestination.WEAR) },
+                    icon = Icons.Filled.Watch,
+                    iconTint = AuroraPeachDeep,
                 )
                 SettingsHubNavRow(
                     title = stringResource(R.string.settings_security),

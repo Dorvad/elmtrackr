@@ -9,6 +9,7 @@ import com.elmtrackr.app.billing.FreeClockFacePackEntitlements
 import com.elmtrackr.app.data.local.preferences.FeatureDiscoveryPreferences
 import com.elmtrackr.app.data.local.preferences.OnboardingPreferences
 import com.elmtrackr.app.data.local.preferences.SetupChecklistPreferences
+import com.elmtrackr.app.data.local.preferences.WearSyncPreferences
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -50,4 +51,8 @@ abstract class PreferencesModule {
     abstract fun bindClockFacePackEntitlements(
         impl: FreeClockFacePackEntitlements,
     ): ClockFacePackEntitlements
+
+    @Binds
+    @Singleton
+    abstract fun bindWearSyncPreferences(impl: AppPreferencesRepository): WearSyncPreferences
 }

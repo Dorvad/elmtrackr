@@ -62,6 +62,7 @@ internal enum class SettingsDestination {
     FEATURES,
     HELP,
     SECURITY,
+    WEAR,
     COMPENSATION,
     PREMIUM,
     TASKS,
@@ -94,6 +95,7 @@ internal fun SettingsDestination.motionOrder(): Int = when (this) {
     SettingsDestination.TERMS -> 10
     SettingsDestination.SYNC_DETAILS -> 11
     SettingsDestination.SECURITY -> 12
+    SettingsDestination.WEAR -> 13
 }
 
 @Composable
@@ -478,6 +480,7 @@ private fun SettingsFormHost(
                     null
                 },
             )
+            SettingsDestination.WEAR -> WearSettingsScreen(onBack = onNavigateBack)
             SettingsDestination.SECURITY -> SecurityDetailScreen(
                 appLockEnabled = state.appLockEnabled,
                 biometricAvailability = biometricAvailability,

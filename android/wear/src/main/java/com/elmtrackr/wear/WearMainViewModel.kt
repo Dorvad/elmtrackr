@@ -111,6 +111,10 @@ class WearMainViewModel(
 
     private fun failureMessage(errorCode: String?): String = when (errorCode) {
         "phone_unreachable" -> app.getString(R.string.phone_unreachable)
+        // Named explicitly because this one is the user's own setting, not a
+        // fault: "Punch failed" would send them looking for a problem that is a
+        // toggle on the phone.
+        "sync_disabled" -> app.getString(R.string.wear_sync_disabled)
         else -> app.getString(R.string.punch_failed)
     }
 

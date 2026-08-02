@@ -10,6 +10,9 @@ import com.elmtrackr.wear.sync.PunchResult
 object WearActions {
 
     suspend fun clockIn(context: Context): PunchResult {
+        if (!WearSyncPublisher.isSyncEnabled(context)) {
+            return PunchResult(success = false, errorCode = "sync_disabled")
+        }
         if (AppLockActionGuard.blockIfLocked(context)) {
             return PunchResult(success = false, errorCode = "app_locked")
         }
@@ -27,6 +30,9 @@ object WearActions {
     }
 
     suspend fun clockOut(context: Context): PunchResult {
+        if (!WearSyncPublisher.isSyncEnabled(context)) {
+            return PunchResult(success = false, errorCode = "sync_disabled")
+        }
         if (AppLockActionGuard.blockIfLocked(context)) {
             return PunchResult(success = false, errorCode = "app_locked")
         }

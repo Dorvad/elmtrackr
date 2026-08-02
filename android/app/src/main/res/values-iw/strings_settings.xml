@@ -229,6 +229,31 @@
     <string name="settings_features_footer">עיצובי השעון עברו למראה ושעון. כיבוי פיצ׳ר מסתיר את הטאבים והכרטיסים שלו בכל האפליקציה.</string>
 
     <!-- Help & about -->
+    <string name="settings_wear_title">שעון Wear OS</string>
+    <string name="settings_wear_hub_subtitle">חיבור השעון וסנכרון משמרות</string>
+    <string name="settings_wear_section_watch">שעון</string>
+    <string name="settings_wear_section_sync">סנכרון</string>
+    <string name="settings_wear_checking">מחפש שעון מקושר…</string>
+    <string name="settings_wear_status_connected">השעון מחובר</string>
+    <string name="settings_wear_status_connected_no_app">השעון מחובר — האפליקציה לא מותקנת</string>
+    <string name="settings_wear_status_no_watch">אין שעון מחובר</string>
+    <string name="settings_wear_status_sync_off">סנכרון לשעון כבוי</string>
+    <string name="settings_wear_status_unavailable">תכונות Wear OS דורשות Google Play services, שאינו זמין בטלפון הזה.</string>
+    <string name="settings_wear_status_unavailable_short">Wear OS לא זמין</string>
+    <string name="settings_wear_watch_nearby">בקרבת מקום</string>
+    <string name="settings_wear_watch_remote">מחובר מרחוק</string>
+    <string name="settings_wear_app_installed">ElmTrackr מותקנת</string>
+    <string name="settings_wear_app_missing">ElmTrackr עדיין לא מותקנת בשעון. פתחו את חנות Play בשעון כדי להתקין אותה.</string>
+    <string name="settings_wear_pairing_hint">לא נמצא שעון. קשרו שעון לטלפון דרך אפליקציית Wear OS — ‏ElmTrackr תתחבר אליו אוטומטית.</string>
+    <string name="settings_wear_refresh">רענון</string>
+    <string name="settings_wear_sync_toggle">סנכרון משמרות לשעון</string>
+    <string name="settings_wear_sync_toggle_desc">שיקוף סטטוס המשמרת ושעות היום לשעון, ואפשרות להחתים כניסה ויציאה ממנו</string>
+    <string name="settings_wear_sync_now">סנכרון עכשיו</string>
+    <string name="settings_wear_sync_sent">נשלח לשעון בשעה %1$s</string>
+    <string name="settings_wear_disabled_hint">הסנכרון כבוי: השעון מציג מסך לא מחובר והחתמות ממנו לא נקלטות.</string>
+    <string name="settings_wear_graphic_connected">איור של שעון חכם, מחובר</string>
+    <string name="settings_wear_graphic_disconnected">איור של שעון חכם, לא מחובר</string>
+
     <string name="settings_section_about">אודות</string>
     <string name="settings_version">גרסה</string>
     <string name="settings_privacy_policy">מדיניות פרטיות</string>
