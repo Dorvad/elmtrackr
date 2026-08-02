@@ -69,10 +69,11 @@ class DashboardProjectSummaryViewModelTest {
     private val widgetPin = FakeWidgetPinInspector()
 
     private val discoveryPrefs = com.elmtrackr.app.fake.FakeFeatureDiscoveryPreferences()
+    private val reviewRecorder = com.elmtrackr.app.fake.FakeReviewPromptRecorder()
 
     private fun buildVm() = DashboardViewModel(
         shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, appPrefs,
-        premiumRepo, setupPrefs, widgetPin, projectsRepo, discoveryPrefs,
+        premiumRepo, setupPrefs, widgetPin, projectsRepo, discoveryPrefs, reviewRecorder,
     )
 
     private val today: LocalDate = LocalDate.now(java.time.ZoneOffset.UTC)

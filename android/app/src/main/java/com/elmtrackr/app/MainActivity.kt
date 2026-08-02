@@ -7,7 +7,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import android.content.res.Configuration
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
@@ -24,6 +26,8 @@ import com.elmtrackr.app.navigation.AppNavGraph
 import com.elmtrackr.app.navigation.DeepLinkRouter
 import com.elmtrackr.app.navigation.PaidProjectsNavGuard
 import com.elmtrackr.app.notification.NotificationPermissionCoordinator
+import com.elmtrackr.app.review.PlayReviewFlowLauncher
+import com.elmtrackr.app.review.ReviewPromptCoordinator
 import com.elmtrackr.app.security.AppLockController
 import com.elmtrackr.app.ui.security.AppLockGate
 import com.elmtrackr.app.ui.design.LocalReduceMotion
@@ -48,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var appPreferences: AppPreferencesRepository
     @Inject lateinit var syncTrigger: SyncTrigger
     @Inject lateinit var deepLinkRouter: DeepLinkRouter
+    @Inject lateinit var reviewPromptCoordinator: ReviewPromptCoordinator
 
     val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -65,6 +70,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         inAppUpdateManager = InAppUpdateManager(this) { prompt -> updatePrompt = prompt }
+        // Collected only while RESUMED: the Play review UI needs a visible
+        // activity, and a request earned while backgrounded is simply dropped
+        // (the coordinator's next milestone re-evaluates). Play itself decides
+        // whether any UI actually appears — the app carries on either way.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                reviewPromptCoordinator.reviewRequests.collect {
+                    PlayReviewFlowLauncher.launch(this@MainActivity)
+                }
+            }
+        }
         intent?.data?.toString()?.let { handleDeepLink(it) }
         setContent {
             val configuration = LocalConfiguration.current
@@ -120,6 +136,7 @@ class MainActivity : AppCompatActivity() {
         // 15-minute periodic worker. No-op when Supabase isn't configured, and
         // WorkManager's KEEP policy debounces repeated foreground transitions.
         syncTrigger.schedule()
+        reviewPromptCoordinator.noteAppForegrounded()
     }
 
     override fun onResume() {

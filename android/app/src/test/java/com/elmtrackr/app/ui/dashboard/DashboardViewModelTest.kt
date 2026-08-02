@@ -57,10 +57,11 @@ class DashboardViewModelTest {
     private val projectsRepo = com.elmtrackr.app.fake.FakeProjectsRepository()
 
     private val discoveryPrefs = com.elmtrackr.app.fake.FakeFeatureDiscoveryPreferences()
+    private val reviewRecorder = com.elmtrackr.app.fake.FakeReviewPromptRecorder()
 
     private fun buildVm() = DashboardViewModel(
         shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, appPrefs,
-        premiumRepo, setupPrefs, widgetPin, projectsRepo, discoveryPrefs,
+        premiumRepo, setupPrefs, widgetPin, projectsRepo, discoveryPrefs, reviewRecorder,
     )
 
     private fun defaultSettings() = UserSettings(
@@ -163,6 +164,23 @@ class DashboardViewModelTest {
         val ready = collected.filterIsInstance<DashboardUiState.Ready>().lastOrNull()
         assertNull(ready?.activeShift)
         job.cancel()
+    }
+
+    @Test
+    fun `clock in and clock out feed the review prompt recorder`() = runTest {
+        val vm = buildVm()
+        settingsRepo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        vm.clockIn()
+        advanceUntilIdle()
+        assertEquals(1, reviewRecorder.clockIns)
+
+        val shiftId = shiftsRepo.currentShifts.single { it.isActive }.id
+        vm.clockOut(shiftId)
+        advanceUntilIdle()
+        assertEquals(1, reviewRecorder.shiftsCompleted)
+        assertEquals(0, reviewRecorder.discouragingEvents)
     }
 
     // ---- editActiveShiftStartTime ----
@@ -395,7 +413,7 @@ class DashboardViewModelTest {
         val prefs = FakeAppPreferencesStore(firstClockInCelebrationPending = true)
         val vm = DashboardViewModel(
             shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, prefs,
-            premiumRepo, setupPrefs, widgetPin, projectsRepo, discoveryPrefs,
+            premiumRepo, setupPrefs, widgetPin, projectsRepo, discoveryPrefs, reviewRecorder,
         )
         settingsRepo.setSettings(defaultSettings())
         advanceUntilIdle()

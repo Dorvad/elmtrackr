@@ -221,6 +221,11 @@
     <string name="settings_terms_subtitle">Usage terms and conditions</string>
     <string name="settings_replay_onboarding">Replay onboarding</string>
     <string name="settings_replay_onboarding_subtitle">Review feature setup and choices</string>
+    <string name="settings_rate_app">Rate ElmTrackr</string>
+    <string name="settings_rate_app_subtitle">Leave a rating on Google Play</string>
+    <string name="settings_send_feedback">Send Feedback</string>
+    <string name="settings_send_feedback_subtitle">Email us ideas or problems</string>
+    <string name="settings_feedback_email_subject">ElmTrackr feedback</string>
     <string name="settings_support_email">Support: %1$s</string>
     <string name="settings_section_sync">SYNC</string>
     <string name="settings_sync_pending_failed">%1$s pending · %2$s failed</string>

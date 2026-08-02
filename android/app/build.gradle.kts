@@ -183,6 +183,8 @@ dependencies {
     implementation(libs.play.services.wearable)
     implementation(libs.play.app.update)
     implementation(libs.play.app.update.ktx)
+    // In-app review flow; Task results are awaited with kotlinx-coroutines-play-services.
+    implementation(libs.play.review)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)

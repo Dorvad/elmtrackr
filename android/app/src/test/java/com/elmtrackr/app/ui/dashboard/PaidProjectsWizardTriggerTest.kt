@@ -54,10 +54,11 @@ class PaidProjectsWizardTriggerTest {
     private val setupPrefs = FakeSetupChecklistPreferences()
     private val widgetPin = FakeWidgetPinInspector()
     private val discoveryPrefs = FakeFeatureDiscoveryPreferences()
+    private val reviewRecorder = com.elmtrackr.app.fake.FakeReviewPromptRecorder()
 
     private fun buildVm() = DashboardViewModel(
         shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, appPrefs,
-        premiumRepo, setupPrefs, widgetPin, projectsRepo, discoveryPrefs,
+        premiumRepo, setupPrefs, widgetPin, projectsRepo, discoveryPrefs, reviewRecorder,
     )
 
     /** An existing user: onboarding done, hours and pay already configured. */
