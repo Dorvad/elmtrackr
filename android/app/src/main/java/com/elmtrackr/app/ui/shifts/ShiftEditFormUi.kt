@@ -65,6 +65,7 @@ import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.R
+import com.elmtrackr.app.domain.HoursFormatter
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
@@ -687,7 +688,7 @@ private fun LivePayPreviewCard(
                 modifier = Modifier.padding(vertical = Spacing.sm),
             )
             previewPay.brackets.forEach { bracket ->
-                val hours = formatHoursDecimal(bracket.minutes)
+                val hours = HoursFormatter.decimal(bracket.minutes)
                 Text(
                     stringResource(R.string.shifts_pay_bracket_line, hours, bracket.label, MoneyFormatter.format(bracket.amount, currency)),
                     style = MaterialTheme.typography.bodySmall,
@@ -945,7 +946,7 @@ private fun WhenSummaryFooter(
             modifier = Modifier.size(14.dp),
         )
         val worked = workedMinutes?.let { ShiftDurationCalculator.formatMinutes(it) } ?: "-"
-        val paid = paidMinutes?.let { stringResource(R.string.shifts_hours_paid, formatHoursDecimal(it)) } ?: "-"
+        val paid = paidMinutes?.let { stringResource(R.string.shifts_hours_paid, HoursFormatter.decimal(it)) } ?: "-"
         Text(
             stringResource(R.string.shifts_when_summary, worked, breakMinutes, paid),
             style = MaterialTheme.typography.labelSmall,

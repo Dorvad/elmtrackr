@@ -81,6 +81,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.DailyInsight
 import com.elmtrackr.app.domain.InsightColor
+import com.elmtrackr.app.domain.HoursFormatter
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.OvernightShiftDetector
@@ -510,13 +511,13 @@ private fun PhoneHoursReportTop(
 
     Spacer(Modifier.height(14.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        ElmStatCard(stringResource(R.string.dashboard_stat_total), stringResource(R.string.reports_hours_value, formatHoursDecimal(report.totalMinutes)), Modifier.weight(1f), variant = ElmStatVariant.PRIMARY)
-        ElmStatCard(stringResource(R.string.dashboard_stat_regular), stringResource(R.string.reports_hours_value, formatHoursDecimal(report.regularMinutes)), Modifier.weight(1f))
+        ElmStatCard(stringResource(R.string.dashboard_stat_total), stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.totalMinutes)), Modifier.weight(1f), variant = ElmStatVariant.PRIMARY)
+        ElmStatCard(stringResource(R.string.dashboard_stat_regular), stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.regularMinutes)), Modifier.weight(1f))
     }
     Spacer(Modifier.height(10.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        ElmStatCard(stringResource(R.string.dashboard_stat_overtime), stringResource(R.string.reports_hours_value, formatHoursDecimal(report.overtimeMinutes)), Modifier.weight(1f), variant = ElmStatVariant.OVERTIME)
-        ElmStatCard(stringResource(R.string.dashboard_stat_weekend), stringResource(R.string.reports_hours_value, formatHoursDecimal(report.weekendMinutes)), Modifier.weight(1f), variant = ElmStatVariant.WEEKEND)
+        ElmStatCard(stringResource(R.string.dashboard_stat_overtime), stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.overtimeMinutes)), Modifier.weight(1f), variant = ElmStatVariant.OVERTIME)
+        ElmStatCard(stringResource(R.string.dashboard_stat_weekend), stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.weekendMinutes)), Modifier.weight(1f), variant = ElmStatVariant.WEEKEND)
     }
 }
 
@@ -551,27 +552,27 @@ private fun TabletHoursReportTop(
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         ElmStatCard(
             label = stringResource(R.string.dashboard_stat_total),
-            value = stringResource(R.string.reports_hours_value, formatHoursDecimal(report.totalMinutes)),
+            value = stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.totalMinutes)),
             sub = stringResource(R.string.reports_all_hours_month),
             variant = ElmStatVariant.PRIMARY,
             modifier = Modifier.weight(1f),
         )
         ElmStatCard(
             label = stringResource(R.string.dashboard_stat_regular),
-            value = stringResource(R.string.reports_hours_value, formatHoursDecimal(report.regularMinutes)),
+            value = stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.regularMinutes)),
             sub = totalPct?.let { stringResource(R.string.reports_pct_of_total, report.regularMinutes * 100 / it) },
             modifier = Modifier.weight(1f),
         )
         ElmStatCard(
             label = stringResource(R.string.dashboard_stat_overtime),
-            value = stringResource(R.string.reports_hours_value, formatHoursDecimal(report.overtimeMinutes)),
+            value = stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.overtimeMinutes)),
             sub = totalPct?.let { stringResource(R.string.reports_pct_of_total, report.overtimeMinutes * 100 / it) },
             variant = ElmStatVariant.OVERTIME,
             modifier = Modifier.weight(1f),
         )
         ElmStatCard(
             label = stringResource(R.string.dashboard_stat_weekend),
-            value = stringResource(R.string.reports_hours_value, formatHoursDecimal(report.weekendMinutes)),
+            value = stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.weekendMinutes)),
             sub = totalPct?.let { stringResource(R.string.reports_pct_of_total, report.weekendMinutes * 100 / it) },
             variant = ElmStatVariant.WEEKEND,
             modifier = Modifier.weight(1f),
@@ -755,12 +756,12 @@ internal fun HoursReport(
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    stringResource(R.string.reports_hours_this_month, formatHoursDecimal(report.totalMinutes)),
+                    stringResource(R.string.reports_hours_this_month, HoursFormatter.decimal(report.totalMinutes)),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    stringResource(R.string.reports_vs_prev, arrow, formatHoursDecimal(abs(delta)), prevMonthName),
+                    stringResource(R.string.reports_vs_prev, arrow, HoursFormatter.decimal(abs(delta)), prevMonthName),
                     color = deltaColor,
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.labelMedium,
@@ -789,12 +790,12 @@ internal fun HoursReport(
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    stringResource(R.string.reports_hours_this_month, formatHoursDecimal(report.totalMinutes)),
+                    stringResource(R.string.reports_hours_this_month, HoursFormatter.decimal(report.totalMinutes)),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    stringResource(R.string.reports_vs_prev, arrow, formatHoursDecimal(abs(delta)), prevMonthName),
+                    stringResource(R.string.reports_vs_prev, arrow, HoursFormatter.decimal(abs(delta)), prevMonthName),
                     color = deltaColor,
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.labelMedium,
@@ -1249,7 +1250,7 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: String) {
                 modifier = Modifier.weight(1f),
             )
             Text(
-                stringResource(R.string.reports_hours_value, formatHoursDecimal(task.totalMinutes)),
+                stringResource(R.string.reports_hours_value, HoursFormatter.decimal(task.totalMinutes)),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -1257,7 +1258,7 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: String) {
         Spacer(Modifier.height(6.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                stringResource(R.string.reports_task_shifts_avg, task.shiftCount, formatHoursDecimal(task.averageShiftMinutes)),
+                stringResource(R.string.reports_task_shifts_avg, task.shiftCount, HoursFormatter.decimal(task.averageShiftMinutes)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1272,7 +1273,7 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: String) {
         }
         if (task.overtimeMinutes > 0) {
             Text(
-                stringResource(R.string.reports_ot_hours, formatHoursDecimal(task.overtimeMinutes)),
+                stringResource(R.string.reports_ot_hours, HoursFormatter.decimal(task.overtimeMinutes)),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuroraPeachDeep,
                 modifier = Modifier.padding(top = 4.dp),
@@ -1348,7 +1349,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(
-                    if (week.totalMinutes > 0) stringResource(R.string.reports_hours_value, formatHoursDecimal(week.totalMinutes)) else "—",
+                    if (week.totalMinutes > 0) stringResource(R.string.reports_hours_value, HoursFormatter.decimal(week.totalMinutes)) else "—",
                     fontWeight = FontWeight.ExtraBold,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
@@ -1803,7 +1804,7 @@ private fun DistributionHeader(report: com.elmtrackr.app.domain.model.MonthlyRep
     Column(modifier) {
         SectionLabel(stringResource(R.string.reports_hours_distribution))
         Text(
-            stringResource(R.string.shifts_hours_value_spaced, formatHoursDecimal(report.totalMinutes)),
+            stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(report.totalMinutes)),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
             maxLines = 1,
@@ -1853,7 +1854,7 @@ private fun SegmentLegendRow(label: String, minutes: Int, color: Color, percent:
             Text("$percent%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(
-            stringResource(R.string.reports_hours_value, formatHoursDecimal(minutes)),
+            stringResource(R.string.reports_hours_value, HoursFormatter.decimal(minutes)),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -2006,4 +2007,3 @@ private fun refundStatus(action: RefundAction?): String = stringResource(
 
 private fun Month.displayName(locale: Locale): String =
     getDisplayName(JavaTextStyle.FULL_STANDALONE, locale).replaceFirstChar { it.uppercase(locale) }
-private fun formatHoursDecimal(minutes: Int): String = "%.1f".format(Locale.US, minutes / 60.0)

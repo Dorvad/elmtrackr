@@ -49,6 +49,7 @@ import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.domain.MonthlyReportBuilder
+import com.elmtrackr.app.domain.HoursFormatter
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
@@ -76,7 +77,6 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.util.Locale
 
 private val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
 private val weekdayShortFmt = DateTimeFormatter.ofPattern("EEE")
@@ -272,7 +272,7 @@ internal fun ShiftsHeroSummaryCard(
 private fun HeroHoursTracked(completedMinutes: Int, activeShift: Shift?) {
     if (activeShift == null) {
         Text(
-            stringResource(R.string.shifts_hours_value, formatHoursDecimal(completedMinutes)),
+            stringResource(R.string.shifts_hours_value, HoursFormatter.decimal(completedMinutes)),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
         )
@@ -287,7 +287,7 @@ private fun HeroHoursTracked(completedMinutes: Int, activeShift: Shift?) {
         }
     }
     Text(
-        stringResource(R.string.shifts_hours_value, formatHoursDecimal(completedMinutes + activeMinutes.toInt())),
+        stringResource(R.string.shifts_hours_value, HoursFormatter.decimal(completedMinutes + activeMinutes.toInt())),
         style = MaterialTheme.typography.headlineMedium,
         fontWeight = FontWeight.ExtraBold,
     )
@@ -419,7 +419,7 @@ internal fun ShiftsWeekSectionHeader(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
-                    stringResource(R.string.shifts_hours_value, formatHoursDecimal(section.totalMinutes)),
+                    stringResource(R.string.shifts_hours_value, HoursFormatter.decimal(section.totalMinutes)),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -509,7 +509,7 @@ internal fun ShiftRow(
                     .padding(horizontal = Spacing.sm),
             ) {
                 Text(
-                    stringResource(R.string.shifts_hours_value_spaced, formatHoursDecimal(rowDisplay.netMinutes)),
+                    stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(rowDisplay.netMinutes)),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -732,7 +732,6 @@ private fun ShiftTypeBadge(
     }
 }
 
-internal fun formatHoursDecimal(minutes: Int): String = "%.1f".format(Locale.US, minutes / 60.0)
 
 private fun formatLiveDuration(seconds: Long): String {
     val hours = seconds / 3600

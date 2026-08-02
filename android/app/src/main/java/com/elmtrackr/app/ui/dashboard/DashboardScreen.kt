@@ -101,6 +101,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.PayrollCalculator
+import com.elmtrackr.app.domain.HoursFormatter
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.CurrencyCode
@@ -1830,7 +1831,7 @@ private fun MonthSummaryDistributionCard(report: MonthlyReport?) {
             )
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = formatHoursDecimal(totalMinutes),
+                    text = HoursFormatter.decimal(totalMinutes),
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.ExtraBold,
@@ -1872,24 +1873,24 @@ private fun MonthSummaryStatsGrid(
             ) {
                 ElmStatCard(
                     label = stringResource(R.string.dashboard_stat_total),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(totalMinutes)),
+                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(totalMinutes)),
                     variant = ElmStatVariant.PRIMARY,
                     modifier = Modifier.weight(1f).auroraEnter(index = 1),
                 )
                 ElmStatCard(
                     label = stringResource(R.string.dashboard_stat_regular),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(regularMinutes)),
+                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(regularMinutes)),
                     modifier = Modifier.weight(1f).auroraEnter(index = 2),
                 )
                 ElmStatCard(
                     label = stringResource(R.string.dashboard_stat_overtime),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(overtimeMinutes)),
+                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(overtimeMinutes)),
                     variant = ElmStatVariant.OVERTIME,
                     modifier = Modifier.weight(1f).auroraEnter(index = 3),
                 )
                 ElmStatCard(
                     label = stringResource(R.string.dashboard_stat_weekend),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(weekendMinutes)),
+                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(weekendMinutes)),
                     variant = ElmStatVariant.WEEKEND,
                     modifier = Modifier.weight(1f).auroraEnter(index = 4),
                 )
@@ -1901,13 +1902,13 @@ private fun MonthSummaryStatsGrid(
             ) {
                 ElmStatCard(
                     label = stringResource(R.string.dashboard_stat_total),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(totalMinutes)),
+                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(totalMinutes)),
                     variant = ElmStatVariant.PRIMARY,
                     modifier = Modifier.weight(1f).auroraEnter(index = 1),
                 )
                 ElmStatCard(
                     label = stringResource(R.string.dashboard_stat_regular),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(regularMinutes)),
+                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(regularMinutes)),
                     modifier = Modifier.weight(1f).auroraEnter(index = 2),
                 )
             }
@@ -1917,13 +1918,13 @@ private fun MonthSummaryStatsGrid(
             ) {
                 ElmStatCard(
                     label = stringResource(R.string.dashboard_stat_overtime),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(overtimeMinutes)),
+                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(overtimeMinutes)),
                     variant = ElmStatVariant.OVERTIME,
                     modifier = Modifier.weight(1f).auroraEnter(index = 3),
                 )
                 ElmStatCard(
                     label = stringResource(R.string.dashboard_stat_weekend),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(weekendMinutes)),
+                    value = stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(weekendMinutes)),
                     variant = ElmStatVariant.WEEKEND,
                     modifier = Modifier.weight(1f).auroraEnter(index = 4),
                 )
@@ -2061,7 +2062,7 @@ private fun DistributionLegend(regularMinutes: Int, overtimeMinutes: Int, weeken
                 Column {
                     Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        stringResource(R.string.dashboard_hours_value, formatHoursDecimal(minutes)),
+                        stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(minutes)),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
@@ -2072,7 +2073,6 @@ private fun DistributionLegend(regularMinutes: Int, overtimeMinutes: Int, weeken
     }
 }
 
-private fun formatHoursDecimal(minutes: Int): String = "%.1f".format(minutes / 60.0)
 
 // â”€â”€ Recent shifts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
