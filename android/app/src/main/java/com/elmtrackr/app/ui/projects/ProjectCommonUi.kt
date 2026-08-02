@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.theme.auroraSemantics
 import com.elmtrackr.app.domain.model.ProjectWorkStatus
 import com.elmtrackr.app.domain.money.Money
 import com.elmtrackr.app.domain.money.MoneyFormat
@@ -135,7 +136,7 @@ fun WorkStatusPill(status: ProjectWorkStatus, modifier: Modifier = Modifier) {
 fun BillingStatusPill(status: ProjectBillingStatus, modifier: Modifier = Modifier) {
     val accent = when (status) {
         ProjectBillingStatus.OVERDUE -> MaterialTheme.colorScheme.error
-        ProjectBillingStatus.PAID -> ProjectPaidGreen
+        ProjectBillingStatus.PAID -> auroraSemantics.successInk
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     val label = billingStatusLabel(status)
@@ -282,4 +283,3 @@ fun ProjectNoteText(text: String, modifier: Modifier = Modifier) {
 fun SpacerMd() = Spacer(Modifier.height(Spacing.md))
 
 /** Settled-money green, matching the insights tint used in Settings. */
-internal val ProjectPaidGreen = Color(0xFF1E9E63)

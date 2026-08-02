@@ -73,6 +73,7 @@ import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeachDeep
+import com.elmtrackr.app.ui.theme.auroraSemantics
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
@@ -704,7 +705,7 @@ internal fun FeaturesDetailScreen(
                 checked = insights,
                 onCheckedChange = onInsightsChange,
                 icon = Icons.AutoMirrored.Filled.ShowChart,
-                iconTint = FeaturesInsightsGreen,
+                iconTint = auroraSemantics.successInk,
             )
             SettingsToggleRow(
                 title = stringResource(R.string.settings_overtime_reminders),
@@ -734,8 +735,6 @@ internal fun FeaturesDetailScreen(
         item { Spacer(Modifier.height(88.dp)) }
     }
 }
-
-private val FeaturesInsightsGreen = Color(0xFF1E9E63)
 
 @Composable
 internal fun HelpDetailScreen(

@@ -39,7 +39,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,6 +67,7 @@ import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeach
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
+import com.elmtrackr.app.ui.theme.auroraSemantics
 import com.elmtrackr.app.ui.theme.auroraOvertimeBackground
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import com.elmtrackr.app.ui.theme.auroraWeekendBackground
@@ -81,9 +81,22 @@ import java.time.format.TextStyle
 private val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
 private val weekdayShortFmt = DateTimeFormatter.ofPattern("EEE")
 
-private val ShiftActiveGreen = Color(0xFF22C55E)
-private val ShiftActiveGreenBg = Color(0xFFE8F8EF)
-private val ShiftActiveGreenBgDark = Color(0xFF1A3D2A)
+/**
+ * The active-shift row used its own green (#22C55E) while Reports used #10B981
+ * and Projects #1E9E63 — three unnamed greens for the same idea. All three now
+ * resolve to the success role.
+ *
+ * [activeShiftInk] rather than the raw fill for text: the fill is a mid-tone
+ * that does not hold up as body copy.
+ */
+@Composable
+private fun activeShiftFill(): Color = auroraSemantics.success
+
+@Composable
+private fun activeShiftInk(): Color = auroraSemantics.successInk
+
+@Composable
+private fun activeShiftBackground(): Color = auroraSemantics.successContainer
 
 @Composable
 internal fun ShiftsPageHeader(onAddShift: () -> Unit) {
@@ -599,11 +612,9 @@ private fun ActiveShiftRow(
 ) {
     val startText = shift.startTime.atZone(zone).format(timeFmt)
     val dayNumber = shift.startTime.atZone(zone).dayOfMonth.toString()
-    val bgColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        ShiftActiveGreenBgDark
-    } else {
-        ShiftActiveGreenBg
-    }
+    val bgColor = activeShiftBackground()
+    val activeFill = activeShiftFill()
+    val activeInk = activeShiftInk()
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -629,7 +640,7 @@ private fun ActiveShiftRow(
                 Modifier
                     .width(4.dp)
                     .fillMaxHeight()
-                    .background(ShiftActiveGreen),
+                    .background(activeFill),
             )
             Row(
                 modifier = Modifier
@@ -640,7 +651,7 @@ private fun ActiveShiftRow(
                 Column(
                     modifier = Modifier
                         .width(48.dp)
-                        .background(ShiftActiveGreen.copy(alpha = 0.14f), RoundedCornerShape(CornerRadius.Small))
+                        .background(activeFill.copy(alpha = 0.14f), RoundedCornerShape(CornerRadius.Small))
                         .padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -648,13 +659,13 @@ private fun ActiveShiftRow(
                         stringResource(R.string.shifts_badge_now),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = ShiftActiveGreen,
+                        color = activeInk,
                     )
                     Text(
                         dayNumber,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
-                        color = ShiftActiveGreen,
+                        color = activeInk,
                     )
                 }
                 Column(
@@ -666,7 +677,7 @@ private fun ActiveShiftRow(
                         Box(
                             Modifier
                                 .size(8.dp)
-                                .background(ShiftActiveGreen, CircleShape),
+                                .background(activeFill, CircleShape),
                         )
                         Text(
                             stringResource(R.string.shifts_on_shift),
@@ -676,8 +687,8 @@ private fun ActiveShiftRow(
                         )
                         ShiftTypeBadge(
                             label = stringResource(R.string.shifts_badge_live),
-                            background = ShiftActiveGreen.copy(alpha = 0.16f),
-                            color = ShiftActiveGreen,
+                            background = activeFill.copy(alpha = 0.16f),
+                            color = activeInk,
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
@@ -707,7 +718,7 @@ private fun ActiveDurationCompact(start: Instant) {
         formatLiveDuration(seconds),
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Bold,
-        color = ShiftActiveGreen,
+        color = activeShiftInk(),
     )
 }
 

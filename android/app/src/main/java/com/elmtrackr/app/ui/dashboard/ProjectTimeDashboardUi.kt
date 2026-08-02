@@ -47,9 +47,9 @@ import com.elmtrackr.app.ui.design.ElmChoiceChip
 import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
 import com.elmtrackr.app.ui.projects.formatted
 import com.elmtrackr.app.ui.projects.formattedMinutes
-import com.elmtrackr.app.ui.projects.ProjectPaidGreen
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
+import com.elmtrackr.app.ui.theme.auroraSemantics
 
 /**
  * Chooses whether the next clock-in is hourly work or project time.
@@ -328,7 +328,7 @@ fun ProjectShiftSummaryCard(
                     modifier = Modifier
                         .size(36.dp)
                         .background(
-                            ProjectPaidGreen.copy(alpha = 0.14f),
+                            auroraSemantics.success.copy(alpha = 0.14f),
                             RoundedCornerShape(CornerRadius.Small),
                         ),
                     contentAlignment = Alignment.Center,
@@ -336,7 +336,7 @@ fun ProjectShiftSummaryCard(
                     Icon(
                         imageVector = Icons.Filled.CheckCircle,
                         contentDescription = null,
-                        tint = ProjectPaidGreen,
+                        tint = auroraSemantics.successInk,
                         modifier = Modifier.size(20.dp),
                     )
                 }
