@@ -3,11 +3,14 @@ package com.elmtrackr.app.ui.theme
 import androidx.compose.ui.unit.dp
 
 /**
- * ElmTrackr corner radius tokens — three values for the whole app.
+ * ElmTrackr corner radius tokens.
  *
- *  Small  (12dp) — chips, badges, form fields, icon containers
+ *  Small  (12dp) — badges, form fields, icon containers, segmented tracks
  *  Medium (16dp) — list cards, shift rows, dialog panels
  *  Large  (24dp) — feature cards, clock card, bottom sheets
+ *
+ * The smaller values below are not variations on the scale; each names a
+ * specific control that was carrying the number inline.
  */
 object CornerRadius {
     val Small  = 12.dp
@@ -17,4 +20,8 @@ object CornerRadius {
     val Button = 18.dp
     /** Bottom-nav active icon pill */
     val NavPill = 13.dp
+    /** Choice chips, and Material's `shapes.small` so stock chips match them. */
+    val Chip = 10.dp
+    /** The lifted segment inside a segmented pill track. */
+    val SegmentPill = 9.dp
 }

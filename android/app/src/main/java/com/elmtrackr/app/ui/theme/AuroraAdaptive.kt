@@ -9,8 +9,16 @@ import androidx.compose.ui.graphics.luminance
  * Theme-aware Aurora tokens. Use these instead of hardcoded light-palette constants
  * so dark mode keeps readable contrast.
  */
+/**
+ * Whether the Aurora palette should use its dark arm.
+ *
+ * Reads the flag [ElmTrackrTheme] provides. The luminance reading is kept as a
+ * fallback rather than removed: Glance widgets and `@Preview`s compose outside
+ * the app theme, and requiring the local would silently force them light.
+ */
 @Composable
-fun isAuroraDarkTheme(): Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f
+fun isAuroraDarkTheme(): Boolean =
+    LocalAuroraDarkTheme.current ?: (MaterialTheme.colorScheme.background.luminance() < 0.5f)
 
 @Composable
 fun auroraSecondaryText(): Color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -51,4 +59,4 @@ fun auroraWeekendInk(): Color =
 
 @Composable
 fun auroraSyncedPillBackground(): Color =
-    if (isAuroraDarkTheme()) AuroraDarkSyncedBg else Color(0xFFE8E5FF)
+    if (isAuroraDarkTheme()) AuroraDarkSyncedBg else AuroraSyncedBg

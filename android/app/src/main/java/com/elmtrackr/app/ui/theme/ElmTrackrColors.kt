@@ -14,7 +14,8 @@ val ElmTrackrSurface = AuroraSurface
 val ElmTrackrBackground = AuroraLavender
 val ElmTrackrInk = AuroraNavy
 val ElmTrackrMutedInk = AuroraInk2
-val ElmTrackrHairline = Color(0x1A5B4DF2)
+/** Alias of [AuroraHair] — the same value was declared twice. */
+val ElmTrackrHairline = AuroraHair
 
 val ElmTrackrLightColorScheme: ColorScheme = lightColorScheme(
     primary = ElmTrackrPrimary,

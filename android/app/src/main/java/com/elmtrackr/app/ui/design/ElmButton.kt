@@ -14,7 +14,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
@@ -23,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
+import com.elmtrackr.app.ui.theme.Elevation
+import com.elmtrackr.app.ui.theme.auroraShadow
 
 private val auroraGradient = Brush.linearGradient(
     colorStops = arrayOf(
@@ -76,13 +77,7 @@ fun ElmGradientButton(
                 },
             )
             .auroraPressScale(interactionSource)
-            .shadow(
-                elevation = if (enabled) 10.dp else 0.dp,
-                shape = buttonShape,
-                clip = false,
-                ambientColor = AuroraIndigo.copy(alpha = 0.22f),
-                spotColor = AuroraIndigo.copy(alpha = 0.7f),
-            )
+            .auroraShadow(if (enabled) Elevation.Button else Elevation.None, buttonShape)
             .background(
                 brush  = if (enabled) auroraGradient else Brush.linearGradient(
                     listOf(AuroraIndigo.copy(alpha = 0.4f), AuroraAqua.copy(alpha = 0.4f))
