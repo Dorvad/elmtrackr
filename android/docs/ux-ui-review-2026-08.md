@@ -160,6 +160,11 @@ Worth recording so it is not "cleaned up" by a future pass:
 | Guard | `DesignSystemBudgetTest` ratchets five drift metrics; `.editorconfig` records existing conventions |
 | CI | `verifyPaparazziDebug` added — the 31 goldens were previously committed but never checked |
 | Motion | Every reduce-motion bypass closed, including the app background and all four skeletons |
+| Accessibility | 48dp touch targets on six controls; `stateDescription` on the four collapsible surfaces; `heading()` on every section title; roles added where selection was conveyed by colour alone |
+| Localisation | Five English-only surfaces moved to resources, including a sync status that parsed as a timestamp and rendered raw English |
+| Colour | Three greens unified on one success role with a fill/ink split; `InsightColor` moved into the theme with a dark arm |
+| Dashboard | One nudge at a time via a ranked slot; month summary collapsed to a single card linking to Reports; the duplicate distribution bar shared |
+| Onboarding | Work-setup defaults seeded from the pre-selected region's preset (was 8/40 against an IL preset of 8.6/42) |
 
 ---
 
@@ -187,6 +192,28 @@ current pass.
    developer image is likely on 21, which alone can account for it. Until the images are produced by
    the same environment that checks them, the step cannot be blocking — and re-recording on a
    developer machine only moves the failure to everyone else.
+
+### Planned in this pass but deliberately not done
+
+These were scoped, designed and then left. They are described here rather than
+half-implemented.
+
+- **Persist the refund-banner dismissal.** It is still `rememberSaveable`, so it returns next launch.
+  The fix is a preference keyed by `YearMonth`, so it re-arms next month instead of vanishing
+  permanently. Needs a preference key, store method, DI wiring and a test fake.
+- **`ReportsScreen(initialTab)`.** The refund banner's "Review refunds" action still lands on the
+  Hours tab. `ReportTab` is private and the screen takes no initial tab; both need changing, wired
+  through `MainScaffold`.
+- **`ClockInTargetBar`.** In hourly mode the time-source selector and the task bar still stack as two
+  control blocks above the clock. The intended fix wraps both existing composables — unchanged, so
+  `ProjectTimeRenderTest` keeps passing — inside one collapsed row.
+- **Compressing onboarding to three mandatory steps.** The pay-affecting default was the urgent part
+  and is fixed; the step count is not. Note the constraint found while planning it: three
+  `androidTest` files import the step composables, so they must be *demoted to an optional path*,
+  not deleted, or the androidTest source set stops compiling.
+- **Wave 4 in full** — `ElmTextField` and companions, a shared skeleton primitive, merging the two
+  empty-state families, and `ElmScreenHeader` standardising the four screen-title scales on
+  `headlineMedium`.
 
 ### Medium
 
