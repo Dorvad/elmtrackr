@@ -26,6 +26,7 @@ import com.elmtrackr.app.domain.setup.SetupChecklist
 import com.elmtrackr.app.domain.setup.SetupChecklistInputs
 import com.elmtrackr.app.domain.setup.SetupStep
 import com.elmtrackr.app.domain.RefundPolicy
+import com.elmtrackr.app.review.ReviewPromptRecorder
 import com.elmtrackr.app.widget.WidgetPinInspector
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.ReportsRepository
@@ -71,6 +72,7 @@ class DashboardViewModel @Inject constructor(
     private val widgetPinInspector: WidgetPinInspector,
     private val projectsRepository: ProjectsRepository,
     private val featureDiscoveryPreferences: FeatureDiscoveryPreferences,
+    private val reviewPromptRecorder: ReviewPromptRecorder,
 ) : ViewModel() {
 
     private val _refreshNonce = MutableStateFlow(0)
@@ -461,6 +463,7 @@ class DashboardViewModel @Inject constructor(
                 shiftsRepository.updateShift(shift.copy(notes = note))
             }
             _projectClockInNote.value = ""
+            reviewPromptRecorder.noteClockIn()
             selected?.let { tasksRepository.markTaskUsed(userId, it.id) }
             if (isFirstClockIn) {
                 appPreferences.setFirstClockInCelebrated(true)
@@ -520,6 +523,11 @@ class DashboardViewModel @Inject constructor(
             val clockedOut = runCatching {
                 shiftsRepository.clockOut(shiftId, compensationSnapshot = snapshot)
             }.getOrNull()
+            if (clockedOut != null) {
+                reviewPromptRecorder.noteShiftCompleted()
+            } else {
+                reviewPromptRecorder.noteDiscouragingEvent()
+            }
             if (clockedOut != null && clockedOut.isProjectTime) {
                 _projectShiftSummary.value = buildProjectShiftSummary(userId, clockedOut)
             }

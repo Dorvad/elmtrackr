@@ -176,6 +176,18 @@ fun ReportsScreen(
         }
     }
 
+    // Keyed on the month so each viewed report registers once per visit; the
+    // ViewModel filters out the current month and empty months.
+    LaunchedEffect(ready?.year, ready?.month, ready != null) {
+        val state = ready ?: return@LaunchedEffect
+        viewModel.onMonthlyReportViewed(
+            year = state.year,
+            month = state.month,
+            completedShiftCount = state.report.shiftCount,
+            zone = state.zone,
+        )
+    }
+
     val effectiveTab = when {
         activeTab == ReportTab.REFUNDS && !refundsEnabled -> ReportTab.HOURS
         // Paid Projects switched off: the tab disappears and Hours takes over,
@@ -265,6 +277,7 @@ fun ReportsScreen(
                                         viewModel.buildProjectCsv(projectReport),
                                         viewModel.projectCsvFilename(projectReport),
                                     )
+                                    viewModel.onReportExported()
                                 },
                             )
                         } ?: ReportsEmptyContent()
@@ -288,9 +301,11 @@ fun ReportsScreen(
                                         ),
                                         viewModel.csvFilename(state.year, state.month),
                                     )
+                                    viewModel.onReportExported()
                                 },
                                 onExportPdf = {
                                     ReportExporter.shareShiftPdf(context, state)
+                                    viewModel.onReportExported()
                                 },
                             )
                         }
@@ -1539,6 +1554,7 @@ private fun RefundReview(
                             RefundPdfRow(shift, claim, bitmap)
                         }
                         ReportExporter.shareRefundPdf(context, pdfRows, "all-months", allMonthsLabel, currency, state.zone)
+                        viewModel.onReportExported()
                     } finally { exportingAll = false }
                 }
             },
@@ -1589,6 +1605,7 @@ private fun RefundReview(
                             RefundPdfRow(shift, claim, bitmap)
                         }
                         ReportExporter.shareRefundPdf(context, pdfRows, month.year, month.monthValue, currency, state.zone)
+                        viewModel.onReportExported()
                     } finally { onDone() }
                 }
             },

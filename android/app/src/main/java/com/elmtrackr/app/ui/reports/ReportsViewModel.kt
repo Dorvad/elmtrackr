@@ -61,6 +61,7 @@ class ReportsViewModel @Inject constructor(
     private val premiumProfilesRepository: PremiumProfilesRepository,
     private val refundReceiptStorage: RefundReceiptStorage?,
     private val projectsRepository: com.elmtrackr.app.domain.repository.ProjectsRepository,
+    private val reviewPromptRecorder: com.elmtrackr.app.review.ReviewPromptRecorder,
     // Injected so tests can run the payroll transform on their own test dispatcher;
     // production keeps it off the main thread (see flowOn below).
     @ComputationDispatcher
@@ -348,7 +349,12 @@ class ReportsViewModel @Inject constructor(
                 }
             }
         }
-        .catch { e -> emit(ReportsUiState.Error(e.message ?: "Unknown error")) }
+        .catch { e ->
+            // A broken report screen is exactly the wrong moment to ask for a
+            // review; open the quiet period before surfacing the error.
+            reviewPromptRecorder.noteDiscouragingEvent()
+            emit(ReportsUiState.Error(e.message ?: "Unknown error"))
+        }
         // The transform above runs the full month's payroll: sumMonthlyPay, the daily
         // insights builder (which sums pay again) and the weekly breakdown, all of which
         // walk each shift minute by minute in the IL engine. Without flowOn that ran in
@@ -403,6 +409,22 @@ class ReportsViewModel @Inject constructor(
     /** Re-subscribes to report data after a flow error. */
     fun retry() {
         _refreshNonce.value++
+    }
+
+    /**
+     * Feeds the review-prompt milestone "viewed a completed monthly report".
+     * Only a fully past month with real shifts counts — the current month is
+     * still accruing and an empty month is not a report the user got value from.
+     */
+    fun onMonthlyReportViewed(year: Int, month: Int, completedShiftCount: Int, zone: ZoneId) {
+        if (completedShiftCount <= 0) return
+        if (YearMonth.of(year, month) >= YearMonth.now(zone)) return
+        reviewPromptRecorder.noteMonthlyReportViewed()
+    }
+
+    /** Feeds the review-prompt milestone "exported a report successfully". */
+    fun onReportExported() {
+        reviewPromptRecorder.noteReportExported()
     }
 
     fun buildCsvContent(

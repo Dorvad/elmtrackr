@@ -221,6 +221,11 @@
     <string name="settings_terms_subtitle">תנאים והגבלות</string>
     <string name="settings_replay_onboarding">הרצת ההגדרה הראשונית מחדש</string>
     <string name="settings_replay_onboarding_subtitle">מעבר חוזר על הפיצ׳רים והבחירות</string>
+    <string name="settings_rate_app">דירוג ElmTrackr</string>
+    <string name="settings_rate_app_subtitle">השאירו דירוג ב-Google Play</string>
+    <string name="settings_send_feedback">שליחת משוב</string>
+    <string name="settings_send_feedback_subtitle">כתבו לנו רעיונות או בעיות במייל</string>
+    <string name="settings_feedback_email_subject">משוב על ElmTrackr</string>
     <string name="settings_support_email">תמיכה: %1$s</string>
     <string name="settings_section_sync">סנכרון</string>
     <string name="settings_sync_pending_failed">%1$s ממתינים · %2$s נכשלו</string>

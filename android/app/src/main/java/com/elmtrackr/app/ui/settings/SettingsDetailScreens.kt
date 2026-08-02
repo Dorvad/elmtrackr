@@ -64,6 +64,7 @@ import com.elmtrackr.app.BuildConfig
 import com.elmtrackr.app.R
 import com.elmtrackr.app.monitoring.CrashReporting
 import com.elmtrackr.app.notification.ReminderRule
+import com.elmtrackr.app.update.openPlayStoreListing
 import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.ui.design.AuroraEaseOut
@@ -745,6 +746,9 @@ internal fun HelpDetailScreen(
     onOpenTerms: () -> Unit,
     onOpenSyncDetails: () -> Unit,
     onSyncNow: () -> Unit,
+    // Passed in (rather than composed here behind BuildConfig.DEBUG) so screens
+    // rendered outside Hilt — previews, screenshot tests — need no ViewModel.
+    reviewPromptDebugContent: (@Composable () -> Unit)? = null,
 ) {
     val context = LocalContext.current
     LazyColumn(
@@ -791,12 +795,32 @@ internal fun HelpDetailScreen(
                     onClick = onReplayOnboarding,
                 )
                 Spacer(Modifier.height(8.dp))
+                // Always available, unlike the in-app review prompt Play may or
+                // may not show: the user decides when to rate.
+                SettingsNavRow(
+                    title = stringResource(R.string.settings_rate_app),
+                    subtitle = stringResource(R.string.settings_rate_app_subtitle),
+                    onClick = { openPlayStoreListing(context) },
+                )
+                Spacer(Modifier.height(8.dp))
+                val feedbackSubject = stringResource(R.string.settings_feedback_email_subject)
+                SettingsNavRow(
+                    title = stringResource(R.string.settings_send_feedback),
+                    subtitle = stringResource(R.string.settings_send_feedback_subtitle),
+                    onClick = {
+                        openSendFeedbackEmail(context, LegalDocuments.CONTACT_EMAIL, feedbackSubject)
+                    },
+                )
+                Spacer(Modifier.height(8.dp))
                 Text(
                     stringResource(R.string.settings_support_email, LegalDocuments.CONTACT_EMAIL),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+        reviewPromptDebugContent?.let { debugContent ->
+            item { debugContent() }
         }
         if (authState != null) {
             item {
