@@ -60,6 +60,7 @@ import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
+import androidx.compose.ui.text.style.TextAlign
 import com.elmtrackr.app.ui.theme.Spacing
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 
@@ -498,12 +499,31 @@ internal fun SettingsInfoRow(label: String, value: String) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Shared by every settings screen showing a label/value pair.
+        //
+        // Row measures unweighted children in order, each with the width left over
+        // from the previous one, so a long label starves the value of space and
+        // SpaceBetween has no slack left to separate them with. Weighting the label
+        // reverses the order — the value is measured first and takes what it needs
+        // — and the start padding keeps a gap regardless. ProjectInfoRow and
+        // ReviewRow already do exactly this; these rows were the outliers.
+        //
+        // Not reproducible in the JVM test harness: Robolectric measures text at
+        // roughly 1dp per character and ignores fontScale, so no assertion here can
+        // reach the crowded state. Needs a device at a large display size.
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f, fill = false),
+        )
         Text(
             value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.End,
+            modifier = Modifier.padding(start = Spacing.s8),
         )
     }
 }

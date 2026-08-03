@@ -78,6 +78,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
@@ -759,16 +760,25 @@ internal fun HoursReport(
             Text(stringResource(R.string.reports_month_over_month), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                // Both sides are sentences carrying a localized month name and
+                // neither could shrink. Row measures unweighted children in order
+                // with the width left over, so the first starves the second; the
+                // weight makes the comparison measure first and keeps the header
+                // yielding. Not reproducible in the JVM harness — see the note on
+                // SettingsInfoRow.
                 Text(
                     stringResource(R.string.reports_hours_this_month, HoursFormatter.decimal(report.totalMinutes)),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 Text(
                     stringResource(R.string.reports_vs_prev, arrow, HoursFormatter.decimal(abs(delta)), prevMonthName),
                     color = deltaColor,
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.padding(start = Spacing.s8),
                 )
             }
         }
@@ -793,16 +803,25 @@ internal fun HoursReport(
             Text(stringResource(R.string.reports_month_over_month), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                // Both sides are sentences carrying a localized month name and
+                // neither could shrink. Row measures unweighted children in order
+                // with the width left over, so the first starves the second; the
+                // weight makes the comparison measure first and keeps the header
+                // yielding. Not reproducible in the JVM harness — see the note on
+                // SettingsInfoRow.
                 Text(
                     stringResource(R.string.reports_hours_this_month, HoursFormatter.decimal(report.totalMinutes)),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 Text(
                     stringResource(R.string.reports_vs_prev, arrow, HoursFormatter.decimal(abs(delta)), prevMonthName),
                     color = deltaColor,
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.padding(start = Spacing.s8),
                 )
             }
         }
@@ -1259,24 +1278,36 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: String) {
                 )
                 Spacer(Modifier.width(8.dp))
             }
+            // Task names are user-entered and unbounded, and this was the only
+            // title in this file without maxLines. Left to wrap, the hours value —
+            // centred against the row — floats to the middle of the wrapped block,
+            // which is the defect the dashboard's report link had. The start padding
+            // guarantees a gap the arrangement alone does not.
             Text(
                 "${task.icon.orEmpty()} ${task.name}",
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             Text(
                 stringResource(R.string.reports_hours_value, HoursFormatter.decimal(task.totalMinutes)),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                modifier = Modifier.padding(start = Spacing.s8),
             )
         }
         Spacer(Modifier.height(6.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            // weight(fill = false) so the shift-count line yields instead of
+            // starving the pay figure of width. Neither side could shrink before.
             Text(
                 stringResource(R.string.reports_task_shifts_avg, task.shiftCount, HoursFormatter.decimal(task.averageShiftMinutes)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f, fill = false),
             )
             task.totalPay?.let { pay ->
                 Text(
@@ -1284,6 +1315,8 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: String) {
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    modifier = Modifier.padding(start = Spacing.s8),
                 )
             }
         }
@@ -1963,8 +1996,21 @@ private fun SectionLabel(text: String) = Text(
 @Composable
 private fun ReportRow(label: String, value: String, valueColor: Color = AuroraIndigo) {
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodySmall)
-        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = valueColor)
+        // Same measurement order problem as SettingsInfoRow: the label yields so
+        // the value is measured first, and the padding keeps a gap regardless.
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = valueColor,
+            textAlign = TextAlign.End,
+            modifier = Modifier.padding(start = Spacing.s8),
+        )
     }
 }
 
