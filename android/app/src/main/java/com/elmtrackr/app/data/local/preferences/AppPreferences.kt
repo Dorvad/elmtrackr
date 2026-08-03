@@ -43,6 +43,16 @@ object AppPreferenceKeys {
     val SETUP_CHECKLIST_CELEBRATED = booleanPreferencesKey("setup_checklist_celebrated")
     val PAID_PROJECTS_DISCOVERY_DISMISSED =
         booleanPreferencesKey("paid_projects_discovery_dismissed")
+
+    /**
+     * Newest-first clock face names, newline-separated.
+     *
+     * A string rather than a string set because the order *is* the data — a set
+     * would return the four faces in arbitrary order and the row would reshuffle
+     * itself on every read. Newline as the separator because enum names cannot
+     * contain one, so the parse needs no escaping.
+     */
+    val RECENT_CLOCK_FACES = stringPreferencesKey("recent_clock_faces")
 }
 
 data class AppPreferenceValues(
@@ -59,6 +69,8 @@ data class AppPreferenceValues(
     val setupChecklistVisitedSteps: Set<String> = emptySet(),
     val setupChecklistCelebrated: Boolean = false,
     val paidProjectsDiscoveryDismissed: Boolean = false,
+    /** Raw face names, newest first. Resolved to the enum by the UI layer. */
+    val recentClockFaces: List<String> = emptyList(),
 )
 
 class AppPreferencesRepository(private val context: Context) :
@@ -66,7 +78,8 @@ class AppPreferencesRepository(private val context: Context) :
     AppLockPreferencesStore,
     OnboardingPreferences,
     SetupChecklistPreferences,
-    FeatureDiscoveryPreferences {
+    FeatureDiscoveryPreferences,
+    ClockFacePreferences {
 
     override val preferences: Flow<AppPreferenceValues> =
         context.appPreferencesDataStore.data.map { prefs ->
@@ -85,6 +98,12 @@ class AppPreferencesRepository(private val context: Context) :
                 setupChecklistCelebrated = prefs[AppPreferenceKeys.SETUP_CHECKLIST_CELEBRATED] ?: false,
                 paidProjectsDiscoveryDismissed =
                     prefs[AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED] ?: false,
+                recentClockFaces =
+                    prefs[AppPreferenceKeys.RECENT_CLOCK_FACES].orEmpty()
+                        .lineSequence()
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+                        .toList(),
             )
         }
 
@@ -147,6 +166,12 @@ class AppPreferencesRepository(private val context: Context) :
     override suspend fun setPaidProjectsDiscoveryDismissed(dismissed: Boolean) {
         context.appPreferencesDataStore.edit {
             it[AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED] = dismissed
+        }
+    }
+
+    override suspend fun setRecentClockFaces(styleNames: List<String>) {
+        context.appPreferencesDataStore.edit {
+            it[AppPreferenceKeys.RECENT_CLOCK_FACES] = styleNames.joinToString("\n")
         }
     }
 }

@@ -24,8 +24,8 @@ class DesignSystemBudgetTest {
     // ── Budgets ───────────────────────────────────────────────────────────────
     // Lower these in the same commit that removes violations. Never raise them.
 
-    private val maxRawDp = 1126
-    private val maxRawColor = 145
+    private val maxRawDp = 1092
+    private val maxRawColor = 115
     private val maxRawTextField = 41
     private val maxRawCard = 39
     private val maxUngatedAnimatorCheck = 0

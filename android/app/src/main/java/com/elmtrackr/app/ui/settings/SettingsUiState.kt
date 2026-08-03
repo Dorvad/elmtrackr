@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.settings
 
+import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.UserSettings
@@ -30,6 +31,8 @@ sealed interface SettingsUiState {
         val reduceMotionEnabled: Boolean = false,
         val compensationProfileCount: Int = 0,
         val defaultCompensationProfileName: String? = null,
+        /** Recently used clock faces, newest first. Device-local, may be empty. */
+        val recentClockFaces: List<ClockStyle> = emptyList(),
     ) : SettingsUiState
 
     data class Error(val message: String) : SettingsUiState

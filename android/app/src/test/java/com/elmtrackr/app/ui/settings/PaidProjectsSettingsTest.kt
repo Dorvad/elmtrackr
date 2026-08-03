@@ -46,6 +46,7 @@ class PaidProjectsSettingsTest {
         FakeSyncRepository(),
         FakeSyncTrigger(),
         FakeAppLockPreferencesStore(),
+        com.elmtrackr.app.fake.FakeClockFacePreferences(),
     )
 
     /** An existing user: onboarding done, hours and pay already configured. */

@@ -58,6 +58,7 @@ internal enum class SettingsDestination {
     PROFILE,
     PAY,
     APPEARANCE,
+    CLOCK_FACES,
     FEATURES,
     HELP,
     SECURITY,
@@ -72,6 +73,7 @@ internal fun SettingsDestination.backDestination(): SettingsDestination? = when 
     SettingsDestination.HUB -> null
     SettingsDestination.COMPENSATION, SettingsDestination.PREMIUM, SettingsDestination.TASKS -> SettingsDestination.PAY
     SettingsDestination.TERMS, SettingsDestination.SYNC_DETAILS -> SettingsDestination.HELP
+    SettingsDestination.CLOCK_FACES -> SettingsDestination.APPEARANCE
     else -> SettingsDestination.HUB
 }
 
@@ -84,11 +86,14 @@ internal fun SettingsDestination.motionOrder(): Int = when (this) {
     SettingsDestination.PREMIUM -> 4
     SettingsDestination.TASKS -> 5
     SettingsDestination.APPEARANCE -> 6
-    SettingsDestination.FEATURES -> 7
-    SettingsDestination.HELP -> 8
-    SettingsDestination.TERMS -> 9
-    SettingsDestination.SYNC_DETAILS -> 10
-    SettingsDestination.SECURITY -> 11
+    // Between appearance and features so the gallery slides in from the side the
+    // user came from, like every other second-level screen.
+    SettingsDestination.CLOCK_FACES -> 7
+    SettingsDestination.FEATURES -> 8
+    SettingsDestination.HELP -> 9
+    SettingsDestination.TERMS -> 10
+    SettingsDestination.SYNC_DETAILS -> 11
+    SettingsDestination.SECURITY -> 12
 }
 
 @Composable
@@ -418,6 +423,12 @@ private fun SettingsFormHost(
                 onReduceMotionChange = onReduceMotionChange,
                 onBack = onNavigateBack,
                 onTheme = onTheme,
+                onBrowseAllFaces = { onNavigate(SettingsDestination.CLOCK_FACES) },
+            )
+            SettingsDestination.CLOCK_FACES -> ClockFaceGalleryScreen(
+                selected = clockStyle,
+                onSelect = { clockStyle = it },
+                onBack = onNavigateBack,
             )
             SettingsDestination.FEATURES -> {
                 val reminderRulesViewModel: ReminderRulesViewModel = hiltViewModel()

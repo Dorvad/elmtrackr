@@ -570,6 +570,7 @@ internal fun AppearanceDetailScreen(
     onReduceMotionChange: (Boolean) -> Unit,
     onBack: () -> Unit,
     onTheme: (String) -> Unit,
+    onBrowseAllFaces: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -652,7 +653,12 @@ internal fun AppearanceDetailScreen(
                 }
             }
             item {
-                ClockStyleDropdown(selected = clockStyle, onSelect = onClockStyleChange)
+                ClockFaceQuickPicker(
+                    selected = clockStyle,
+                    recents = state.recentClockFaces,
+                    onSelect = onClockStyleChange,
+                    onBrowseAll = onBrowseAllFaces,
+                )
             }
         }
         item { Spacer(Modifier.height(88.dp)) }

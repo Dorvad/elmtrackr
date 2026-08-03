@@ -44,6 +44,7 @@ class SettingsViewModelTest {
     private val syncRepo = FakeSyncRepository()
     private val syncTrigger = FakeSyncTrigger()
     private val appLockPrefs = FakeAppLockPreferencesStore()
+    private val clockFacePrefs = com.elmtrackr.app.fake.FakeClockFacePreferences()
 
     private fun buildVm() = SettingsViewModel(
         repo,
@@ -53,6 +54,7 @@ class SettingsViewModelTest {
         syncRepo,
         syncTrigger,
         appLockPrefs,
+        clockFacePrefs,
     )
 
     private fun defaultSettings() = UserSettings(
@@ -370,5 +372,64 @@ class SettingsViewModelTest {
         vm.resetPassword()
         advanceUntilIdle()
         // early return — no exception expected
+    }
+
+    /**
+     * The appearance screen's four-face row is fed by this history, and the
+     * history is written on save rather than on tap: tapping a tile only previews
+     * a face, so recording there would fill the row with faces the user looked at
+     * and rejected, and reorder it under their finger mid-choice.
+     */
+    @Test
+    fun `saving records the chosen clock face as most recent`() = runTest {
+        val vm = buildVm()
+        repo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        vm.saveSettings("", 8.0, 40.0, null, "UTC", ClockStyle.VINYL, weekendDays = emptyList())
+        advanceUntilIdle()
+        vm.saveSettings("", 8.0, 40.0, null, "UTC", ClockStyle.LUNA, weekendDays = emptyList())
+        advanceUntilIdle()
+
+        assertEquals(listOf("LUNA", "VINYL"), clockFacePrefs.recentClockFaces)
+    }
+
+    /** Re-saving the same face must not stack duplicates in the history. */
+    @Test
+    fun `saving the same clock face twice records it once`() = runTest {
+        val vm = buildVm()
+        repo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        repeat(3) {
+            vm.saveSettings("", 8.0, 40.0, null, "UTC", ClockStyle.TIDE, weekendDays = emptyList())
+            advanceUntilIdle()
+        }
+
+        assertEquals(listOf("TIDE"), clockFacePrefs.recentClockFaces)
+    }
+
+    /**
+     * A face removed in a later version leaves a name behind in the stored
+     * history. It must vanish rather than resolve to Classic, which is what
+     * ClockStyle.fromPersisted would have done.
+     */
+    @Test
+    fun `unknown stored face names are dropped from the exposed history`() = runTest {
+        val prefs = com.elmtrackr.app.fake.FakeClockFacePreferences(
+            initial = listOf("LUNA", "FELLOWSHIP", "TIDE"),
+        )
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs, prefs,
+        )
+        val states = mutableListOf<SettingsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        repo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        val ready = states.filterIsInstance<SettingsUiState.Ready>().last()
+        assertEquals(listOf(ClockStyle.LUNA, ClockStyle.TIDE), ready.recentClockFaces)
+        job.cancel()
     }
 }
