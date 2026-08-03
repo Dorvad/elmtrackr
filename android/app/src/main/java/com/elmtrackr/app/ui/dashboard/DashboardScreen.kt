@@ -40,6 +40,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
@@ -106,7 +107,9 @@ import androidx.compose.foundation.clickable
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.design.ElmDistributionBar
 import com.elmtrackr.app.ui.design.ElmDistributionLegend
+import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.ui.theme.Layout
+import com.elmtrackr.app.ui.theme.Spacing
 import com.elmtrackr.app.domain.HoursFormatter
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.model.CompensationSource
@@ -1785,7 +1788,7 @@ private fun ExpressiveClockPulse(
 }
 
 @Composable
-private fun MonthSummaryCard(
+internal fun MonthSummaryCard(
     report: MonthlyReport?,
     paySummary: PayrollCalculator.MonthlyPaySummary?,
     currencyCode: String,
@@ -1881,22 +1884,43 @@ private fun MonthSummaryCard(
 
         Spacer(Modifier.height(Layout.inlineGap))
 
+        ElmDistributionLegend(
+            regularMinutes = report?.regularMinutes ?: 0,
+            overtimeMinutes = report?.overtimeMinutes ?: 0,
+            weekendMinutes = report?.weekendMinutes ?: 0,
+        )
+
+        Spacer(Modifier.height(Layout.rowGap))
+
+        // Its own row, below the legend.
+        //
+        // It used to sit beside the legend in a SpaceBetween row, which put it in
+        // the wrong place twice over: centred against a three-row legend it landed
+        // level with the middle row and read as part of "Overtime", and because
+        // every legend row is itself full-width SpaceBetween, the row's hours were
+        // pushed right up against it — "0.0hView full report" with no gap at all.
+        //
+        // This is the whole card's action (the card is clickable; the label is what
+        // TalkBack announces for it), so it belongs at the end of the card, not
+        // inside its contents. End-aligned with a chevron to match the right-hand
+        // column the header count, the pay figure and every legend row already form.
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ElmDistributionLegend(
-                regularMinutes = report?.regularMinutes ?: 0,
-                overtimeMinutes = report?.overtimeMinutes ?: 0,
-                weekendMinutes = report?.weekendMinutes ?: 0,
-                modifier = Modifier.weight(1f),
-            )
             Text(
                 text = openReportLabel,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.width(Spacing.s2))
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(Spacing.s18).mirrorInRtl(),
             )
         }
     }
