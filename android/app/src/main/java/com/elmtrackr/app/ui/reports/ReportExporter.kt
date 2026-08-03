@@ -11,6 +11,7 @@ import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.time.WorkTimezone
 import com.elmtrackr.app.domain.model.RefundClaim
+import com.elmtrackr.app.data.receipt.ReceiptBitmapDecoder
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.RefundDirection
@@ -27,24 +28,44 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 
+/**
+ * A refund row for the PDF. Deliberately carries no [Bitmap]: the previous
+ * shape meant "export all receipts" decoded every receipt across every month
+ * into a list before a single page was drawn, which is a certain
+ * OutOfMemoryError once a user has a year of history. Receipts are now loaded,
+ * drawn and released one at a time — see the `loadReceipt` parameter on
+ * [ReportExporter.shareRefundPdf].
+ */
 data class RefundPdfRow(
     val shift: Shift,
     val claim: RefundClaim,
-    val receipt: Bitmap? = null,
 )
 
 object ReportExporter {
-    fun shareCsv(context: Context, content: String, filename: String) {
+
+    /**
+     * A PDF page is 595 pt wide, so this is already well above print need. The
+     * point is having a bound at all: the previous decode had none.
+     */
+    private const val RECEIPT_MAX_DIMENSION_PX = 1600
+
+    /**
+     * `suspend` + IO because the file write and, for the PDF paths, the whole
+     * document layout used to run on the main thread — reached from a bare
+     * `onClick` or a `rememberCoroutineScope()` (which is Main). A month was
+     * survivable; a year of shifts was an ANR.
+     */
+    suspend fun shareCsv(context: Context, content: String, filename: String) = withContext(Dispatchers.IO) {
         // UTF-8 BOM: without it Excel decodes the file with the system ANSI
         // codepage and Hebrew notes/merchant names render as mojibake.
         val file = exportFile(context, filename).apply { writeText("\uFEFF" + content) }
         shareFile(context, file, "text/csv", context.withAppLocale().getString(R.string.export_share_csv))
     }
 
-    fun shareShiftPdf(
+    suspend fun shareShiftPdf(
         context: Context,
         state: ReportsUiState.Ready,
-    ) {
+    ) = withContext(Dispatchers.IO) {
         val res = context.withAppLocale()
         val locale = res.resources.configuration.locales[0]
         val filename = "elmtrackr-shifts-${state.year}-${state.month.toString().padStart(2, '0')}.pdf"
@@ -245,28 +266,51 @@ object ReportExporter {
         shareFile(context, file, "application/pdf", res.getString(R.string.export_share_pdf))
     }
 
-    suspend fun loadReceipt(url: String): Bitmap? = withContext(Dispatchers.IO) {
-        // Bounded timeouts: a stalled signed-URL endpoint must not hang the
-        // refund-PDF export coroutine indefinitely with no user feedback.
-        runCatching {
-            val connection = URL(url).openConnection() as java.net.HttpURLConnection
-            connection.connectTimeout = 10_000
-            connection.readTimeout = 15_000
-            try {
-                connection.inputStream.use(BitmapFactory::decodeStream)
-            } finally {
-                connection.disconnect()
-            }
-        }.getOrNull()
+    /**
+     * Downloads a receipt and decodes it at a bounded size.
+     *
+     * The download lands in a temp file first so the decode can do the
+     * two-pass `inJustDecodeBounds` measurement that [ReceiptBitmapDecoder]
+     * performs — `decodeStream` cannot be replayed, which is why the previous
+     * version had no size bound at all and inflated a 12 MP photo to ~48 MB.
+     * A PDF page is 595 pt wide, so [RECEIPT_MAX_DIMENSION_PX] is already
+     * generous for print.
+     */
+    suspend fun loadReceipt(context: Context, url: String): Bitmap? = withContext(Dispatchers.IO) {
+        val scratch = File(context.cacheDir, "receipt-scratch").apply { mkdirs() }
+            .resolve("receipt-${System.nanoTime()}.img")
+        try {
+            runCatching {
+                // Bounded timeouts: a stalled signed-URL endpoint must not hang
+                // the refund-PDF export coroutine indefinitely with no feedback.
+                val connection = URL(url).openConnection() as java.net.HttpURLConnection
+                connection.connectTimeout = 10_000
+                connection.readTimeout = 15_000
+                try {
+                    connection.inputStream.use { input ->
+                        scratch.outputStream().use(input::copyTo)
+                    }
+                } finally {
+                    connection.disconnect()
+                }
+                ReceiptBitmapDecoder.decodeDownscaled(
+                    scratch.absolutePath,
+                    maxDimensionPx = RECEIPT_MAX_DIMENSION_PX,
+                )
+            }.getOrNull()
+        } finally {
+            scratch.delete()
+        }
     }
 
-    fun shareRefundPdf(
+    suspend fun shareRefundPdf(
         context: Context,
         rows: List<RefundPdfRow>,
         year: Int,
         month: Int,
         currency: String,
         zone: ZoneId = ZoneId.systemDefault(),
+        loadReceipt: suspend (RefundPdfRow) -> Bitmap? = { null },
     ) {
         shareRefundPdf(
             context = context,
@@ -275,17 +319,19 @@ object ReportExporter {
             periodLabel = "$year-${month.toString().padStart(2, '0')}",
             currency = currency,
             zone = zone,
+            loadReceipt = loadReceipt,
         )
     }
 
-    fun shareRefundPdf(
+    suspend fun shareRefundPdf(
         context: Context,
         rows: List<RefundPdfRow>,
         filenameSuffix: String,
         periodLabel: String,
         currency: String,
         zone: ZoneId = ZoneId.systemDefault(),
-    ) {
+        loadReceipt: suspend (RefundPdfRow) -> Bitmap? = { null },
+    ) = withContext(Dispatchers.IO) {
         val res = context.withAppLocale()
         val locale = res.resources.configuration.locales[0]
         val filename = "elmtrackr-rides-$filenameSuffix.pdf"
@@ -347,26 +393,35 @@ object ReportExporter {
         canvas.drawText(res.getString(R.string.export_generated_by), margin, pageHeight - margin, muted)
         document.finishPage(page)
 
-        rows.filter { it.receipt != null }.forEachIndexed { index, row ->
-            pageNumber++
-            val receiptPage = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
-            val receiptCanvas = receiptPage.canvas
-            receiptCanvas.drawText(
-                res.getString(R.string.export_receipt_n, (index + 1).toString(), row.claim.provider.name, MoneyFormatter.format(row.claim.amount, currency)),
-                margin,
-                margin,
-                heading,
-            )
-            val bitmap = requireNotNull(row.receipt)
-            val maxWidth = (pageWidth - margin * 2).toInt()
-            val maxHeight = (pageHeight - margin * 2 - 24).toInt()
-            val scale = minOf(maxWidth.toFloat() / bitmap.width, maxHeight.toFloat() / bitmap.height, 1f)
-            val width = (bitmap.width * scale).toInt()
-            val height = (bitmap.height * scale).toInt()
-            val left = ((pageWidth - width) / 2f)
-            val top = margin + 24f
-            receiptCanvas.drawBitmap(bitmap, null, android.graphics.RectF(left, top, left + width, top + height), null)
-            document.finishPage(receiptPage)
+        // One receipt in memory at a time: load, draw, release. Materialising
+        // every bitmap up front was fine for one month and a guaranteed OOM for
+        // "all months" — 40 receipts at 12 MP is roughly 1.9 GB in ARGB_8888.
+        var receiptIndex = 0
+        rows.filter { it.claim.receiptPath != null }.forEach { row ->
+            val bitmap = loadReceipt(row) ?: return@forEach
+            try {
+                receiptIndex++
+                pageNumber++
+                val receiptPage = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
+                val receiptCanvas = receiptPage.canvas
+                receiptCanvas.drawText(
+                    res.getString(R.string.export_receipt_n, receiptIndex.toString(), row.claim.provider.name, MoneyFormatter.format(row.claim.amount, currency)),
+                    margin,
+                    margin,
+                    heading,
+                )
+                val maxWidth = (pageWidth - margin * 2).toInt()
+                val maxHeight = (pageHeight - margin * 2 - 24).toInt()
+                val scale = minOf(maxWidth.toFloat() / bitmap.width, maxHeight.toFloat() / bitmap.height, 1f)
+                val width = (bitmap.width * scale).toInt()
+                val height = (bitmap.height * scale).toInt()
+                val left = ((pageWidth - width) / 2f)
+                val top = margin + 24f
+                receiptCanvas.drawBitmap(bitmap, null, android.graphics.RectF(left, top, left + width, top + height), null)
+                document.finishPage(receiptPage)
+            } finally {
+                bitmap.recycle()
+            }
         }
 
         file.outputStream().use(document::writeTo)

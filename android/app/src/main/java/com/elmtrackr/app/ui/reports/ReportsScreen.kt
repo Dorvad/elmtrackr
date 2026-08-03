@@ -261,12 +261,14 @@ fun ReportsScreen(
                             com.elmtrackr.app.ui.projects.ProjectReportSection(
                                 report = projectReport,
                                 onExportCsv = {
-                                    ReportExporter.shareCsv(
-                                        context,
-                                        viewModel.buildProjectCsv(projectReport),
-                                        viewModel.projectCsvFilename(projectReport),
-                                    )
-                                    viewModel.onReportExported()
+                                    scope.launch {
+                                        ReportExporter.shareCsv(
+                                            context,
+                                            viewModel.buildProjectCsv(projectReport),
+                                            viewModel.projectCsvFilename(projectReport),
+                                        )
+                                        viewModel.onReportExported()
+                                    }
                                 },
                             )
                         } ?: ReportsEmptyContent()
@@ -280,21 +282,25 @@ fun ReportsScreen(
                                 onNextMonth = viewModel::nextMonth,
                                 canGoNext = canGoNext,
                                 onExportCsv = {
-                                    ReportExporter.shareCsv(
-                                        context,
-                                        viewModel.buildCsvContent(
-                                            state.rawShifts,
-                                            state.settings,
-                                            state.year,
-                                            state.month,
-                                        ),
-                                        viewModel.csvFilename(state.year, state.month),
-                                    )
-                                    viewModel.onReportExported()
+                                    scope.launch {
+                                        ReportExporter.shareCsv(
+                                            context,
+                                            viewModel.buildCsvContent(
+                                                state.rawShifts,
+                                                state.settings,
+                                                state.year,
+                                                state.month,
+                                            ),
+                                            viewModel.csvFilename(state.year, state.month),
+                                        )
+                                        viewModel.onReportExported()
+                                    }
                                 },
                                 onExportPdf = {
-                                    ReportExporter.shareShiftPdf(context, state)
-                                    viewModel.onReportExported()
+                                    scope.launch {
+                                        ReportExporter.shareShiftPdf(context, state)
+                                        viewModel.onReportExported()
+                                    }
                                 },
                             )
                         }
@@ -1560,11 +1566,19 @@ private fun RefundReview(
                 exportingAll = true
                 scope.launch {
                     try {
-                        val pdfRows = exportRows.map { (shift, claim) ->
-                            val bitmap = claim.receiptPath?.let { viewModel.receiptUrl(it) }?.let { ReportExporter.loadReceipt(it) }
-                            RefundPdfRow(shift, claim, bitmap)
+                        val pdfRows = exportRows.map { (shift, claim) -> RefundPdfRow(shift, claim) }
+                        ReportExporter.shareRefundPdf(
+                            context = context,
+                            rows = pdfRows,
+                            filenameSuffix = "all-months",
+                            periodLabel = allMonthsLabel,
+                            currency = currency,
+                            zone = state.zone,
+                        ) { row ->
+                            row.claim.receiptPath
+                                ?.let { viewModel.receiptUrl(it) }
+                                ?.let { ReportExporter.loadReceipt(context, it) }
                         }
-                        ReportExporter.shareRefundPdf(context, pdfRows, "all-months", allMonthsLabel, currency, state.zone)
                         viewModel.onReportExported()
                     } finally { exportingAll = false }
                 }
@@ -1611,11 +1625,19 @@ private fun RefundReview(
             onExport = { rows, onDone ->
                 scope.launch {
                     try {
-                        val pdfRows = rows.map { (shift, claim) ->
-                            val bitmap = claim.receiptPath?.let { viewModel.receiptUrl(it) }?.let { ReportExporter.loadReceipt(it) }
-                            RefundPdfRow(shift, claim, bitmap)
+                        val pdfRows = rows.map { (shift, claim) -> RefundPdfRow(shift, claim) }
+                        ReportExporter.shareRefundPdf(
+                            context = context,
+                            rows = pdfRows,
+                            year = month.year,
+                            month = month.monthValue,
+                            currency = currency,
+                            zone = state.zone,
+                        ) { row ->
+                            row.claim.receiptPath
+                                ?.let { viewModel.receiptUrl(it) }
+                                ?.let { ReportExporter.loadReceipt(context, it) }
                         }
-                        ReportExporter.shareRefundPdf(context, pdfRows, month.year, month.monthValue, currency, state.zone)
                         viewModel.onReportExported()
                     } finally { onDone() }
                 }
