@@ -346,4 +346,5 @@
     <string name="settings_backup_share_subject">ElmTrackr local backup</string>
     <string name="settings_backup_share_chooser">Export local backup</string>
     <string name="settings_sync_synced_with_warnings">Synced with warnings: %1$s</string>
+    <string name="settings_sync_synced_unsent">Synced. Changes not uploaded: %1$d</string>
 </resources>

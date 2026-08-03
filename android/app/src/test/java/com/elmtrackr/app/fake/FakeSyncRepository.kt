@@ -32,6 +32,9 @@ class FakeSyncRepository : SyncRepository {
 
     override suspend fun hasPendingWork(userId: String): Boolean = health.value.pendingCount > 0
 
+    override suspend fun hasRetryablePendingWork(userId: String): Boolean =
+        health.value.pendingCount > health.value.failedCount
+
     override suspend fun exportLocalBackup(userId: String): String = """{"userId":"$userId"}"""
 
     override suspend fun importLocalBackup(userId: String, json: String): BackupImportSummary =

@@ -45,10 +45,12 @@ import com.elmtrackr.app.data.remote.RemoteUserSettingsUpsert
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -572,6 +574,76 @@ class SyncRepositoryImplTest {
         val result = repository.syncAll("user-1")
 
         assertTrue(result is SyncResult.Error)
+    }
+
+    /**
+     * A row the server will never accept must not produce a clean "Synced <time>".
+     *
+     * Per-row push failures are recorded on the row rather than on the pipeline
+     * step, so they never reach `PipelineIssues` and the run still returns
+     * Success. That part is intentional — one bad row should not fail the whole
+     * sync — but the status line has to tell the truth, otherwise the user sees
+     * "synced" while nothing left the device.
+     */
+    @Test
+    fun `push failure the server will never accept is reported in the sync status`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = object : RemoteShiftDataSource by FakeRemoteShiftDataSource() {
+            override suspend fun insert(shift: RemoteShiftInsert): RemoteShiftRow =
+                throw IllegalStateException(
+                    "new row violates row-level security policy for table \"shifts\"",
+                )
+        }
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        dao.insertShift(shiftEntity(localId = "local-1", syncStatus = SyncStatus.PENDING_CREATE))
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        assertEquals(SyncStatus.FAILED, dao.getShiftById("local-1")!!.syncStatus)
+        val status = repository.observeLastSyncStatus().first()
+        assertEquals("SyncedUnsent: 1", status)
+    }
+
+    /**
+     * The loop guard. `hasPendingWork` stays true for a permanently failing row,
+     * and SyncWorker used it to decide whether to enqueue another immediate run —
+     * an unbounded chain, because each follow-up starts at runAttemptCount 0.
+     */
+    @Test
+    fun `hasRetryablePendingWork is false once every pending row has failed`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = object : RemoteShiftDataSource by FakeRemoteShiftDataSource() {
+            override suspend fun insert(shift: RemoteShiftInsert): RemoteShiftRow =
+                throw IllegalStateException(
+                    "new row violates row-level security policy for table \"shifts\"",
+                )
+        }
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        dao.insertShift(shiftEntity(localId = "local-1", syncStatus = SyncStatus.PENDING_CREATE))
+        assertTrue(repository.hasRetryablePendingWork("user-1"))
+
+        repository.syncAll("user-1")
+
+        // Still unsynced — the badge is right to keep showing it — but no longer
+        // worth an immediate retry. The 15-minute periodic sync picks it back up.
+        assertTrue(repository.hasPendingWork("user-1"))
+        assertFalse(repository.hasRetryablePendingWork("user-1"))
+    }
+
+    @Test
+    fun `hasRetryablePendingWork stays true when a fresh edit joins failed rows`() = runTest {
+        val dao = InMemoryShiftDao()
+        val repository = createRepository(shiftDao = dao)
+
+        dao.insertShift(shiftEntity(localId = "stuck", syncStatus = SyncStatus.FAILED))
+        assertFalse(repository.hasRetryablePendingWork("user-1"))
+
+        dao.insertShift(shiftEntity(localId = "fresh", syncStatus = SyncStatus.PENDING_CREATE))
+
+        assertTrue(repository.hasRetryablePendingWork("user-1"))
     }
 
     private fun createRepository(

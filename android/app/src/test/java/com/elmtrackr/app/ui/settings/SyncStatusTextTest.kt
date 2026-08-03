@@ -84,6 +84,27 @@ class SyncStatusTextTest {
         )
     }
 
+    /**
+     * A sync where the pull succeeded but every pending row was rejected used to
+     * report a plain "Synced <time>". The marker carries the count so the
+     * sentence itself can be translated.
+     */
+    @Test
+    fun `unsent-change count is localized`() {
+        assertEquals(
+            UiText.Res(R.string.settings_sync_synced_unsent, 3),
+            SyncStatusText.format("SyncedUnsent: 3", now, zone, locale),
+        )
+    }
+
+    @Test
+    fun `unsent marker without a count passes through unchanged`() {
+        assertEquals(
+            UiText.Raw("SyncedUnsent: many"),
+            SyncStatusText.format("SyncedUnsent: many", now, zone, locale),
+        )
+    }
+
     @Test
     fun `unparseable synced status passes through unchanged`() {
         assertEquals(UiText.Raw("Synced ???"), SyncStatusText.format("Synced ???", now, zone, locale))

@@ -33,6 +33,8 @@ import com.elmtrackr.app.data.remote.toLocalEntity
 import com.elmtrackr.app.data.remote.toRemoteInsert
 import com.elmtrackr.app.data.remote.toRemoteUpdate
 import com.elmtrackr.app.data.remote.toRemoteUpsert
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -174,7 +176,12 @@ class SyncRepositoryImpl @Inject constructor(
             )
         }
 
-    override suspend fun exportLocalBackup(userId: String): String =
+    // Both backup paths declare their own dispatcher rather than trusting the
+    // caller: the ViewModel invokes them from viewModelScope (Main.immediate),
+    // and only the *file* read was wrapped there. Serialising the entire user
+    // database into one pretty-printed string, and parsing it back, were both
+    // running on the UI thread.
+    override suspend fun exportLocalBackup(userId: String): String = withContext(Dispatchers.IO) {
         LocalBackupExporter.export(
             userId = userId,
             taskDao = taskDao,
@@ -189,8 +196,9 @@ class SyncRepositoryImpl @Inject constructor(
             projectPaymentDao = projectPaymentDao,
             appVersion = com.elmtrackr.app.BuildConfig.VERSION_NAME,
         )
+    }
 
-    override suspend fun importLocalBackup(userId: String, json: String): BackupImportSummary =
+    override suspend fun importLocalBackup(userId: String, json: String): BackupImportSummary = withContext(Dispatchers.IO) {
         LocalBackupImporter.import(
             rawJson = json,
             currentUserId = userId,
@@ -205,6 +213,43 @@ class SyncRepositoryImpl @Inject constructor(
             projectBillingRecordDao = projectBillingRecordDao,
             projectPaymentDao = projectPaymentDao,
         )
+    }
+
+    /**
+     * Reads the pending set once, reusing the same suspend getters the push
+     * phase uses.
+     */
+    private suspend fun pendingSnapshot(userId: String): PendingSyncSnapshot =
+        PendingSyncSnapshot(
+            shifts = shiftDao.getPendingSyncShifts(userId),
+            claims = refundClaimDao.getPendingSyncClaims(userId),
+            settings = settingsDao.getPendingSyncSettings(userId),
+            profiles = compensationProfileDao.getPendingSyncProfiles(userId),
+            premiumProfiles = premiumProfileDao.getPendingSyncProfiles(userId),
+            tasks = taskDao.getPendingSyncTasks(userId),
+            userProfiles = profileDao.getPendingSyncProfiles(userId),
+        )
+
+    /**
+     * Whether a follow-up sync could plausibly make progress.
+     *
+     * [hasPendingWork] counts `FAILED` too, which is correct for a "you have
+     * unsynced changes" badge and wrong as a trigger to sync again: a row that
+     * can never succeed — a duplicate refund claim, a server-side constraint,
+     * a missing table — kept `hasPendingWork` true forever, and SyncWorker
+     * responded by enqueueing another immediate run. That is an unbounded loop
+     * of network calls and Room writes, and MAX_RETRY_ATTEMPTS does not bound it
+     * because every follow-up is a fresh request with runAttemptCount == 0.
+     *
+     * Only rows that are pending for a reason other than a recorded failure
+     * justify an immediate retry. `FAILED` rows are picked up by the 15-minute
+     * periodic sync instead, which is the right cadence for something that needs
+     * a server-side or user-side change first.
+     */
+    override suspend fun hasRetryablePendingWork(userId: String): Boolean {
+        val snapshot = pendingSnapshot(userId)
+        return snapshot.pendingCount > snapshot.failedCount
+    }
 
     override suspend fun hasPendingWork(userId: String): Boolean =
         shiftDao.hasPendingSyncShifts(userId) ||
@@ -289,7 +334,16 @@ class SyncRepositoryImpl @Inject constructor(
                     SyncResult.Success
                 }
                 else -> {
-                    lastSyncStatus.value = "Synced ${Instant.now()}"
+                    // Per-row push failures are recorded on the row, not on the
+                    // step, so they never reach `issues` — which meant a sync
+                    // where every pending row failed still reported a clean
+                    // "Synced <time>". Check the rows themselves before saying so.
+                    val failed = pendingSnapshot(userId).failedCount
+                    lastSyncStatus.value = if (failed > 0) {
+                        "$UNSENT_STATUS_PREFIX $failed"
+                    } else {
+                        "Synced ${Instant.now()}"
+                    }
                     SyncResult.Success
                 }
             }
@@ -1137,6 +1191,14 @@ class SyncRepositoryImpl @Inject constructor(
                 "Apply supabase/migrations/20250628000000_tasks.sql, then sync again."
         const val AUTH_EXPIRED_STATUS =
             "Session expired — sign in again to resume syncing. Your data is safe on this device."
+
+        /**
+         * Machine marker followed by a count, not display text — do not
+         * translate. SyncStatusText turns it into a localized sentence; the
+         * count is passed rather than formatted here so Hebrew users do not get
+         * an English status line. Keep in step with SyncStatusText.UNSENT_PREFIX.
+         */
+        const val UNSENT_STATUS_PREFIX = "SyncedUnsent:"
         const val REMOTES_NOT_CONFIGURED =
             "Sync pipeline invoked without configured remote data sources; syncAll must gate on configuration first."
     }

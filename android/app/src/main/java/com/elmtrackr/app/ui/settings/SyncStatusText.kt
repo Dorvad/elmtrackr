@@ -29,6 +29,14 @@ object SyncStatusText {
         warningDetail(status)?.let {
             return UiText.Res(R.string.settings_sync_synced_with_warnings, it)
         }
+        // Carries a count rather than a sentence, so the whole message is
+        // translatable — unlike the warning detail, which is a free-form string
+        // written by the sync pipeline and can only be interpolated as-is.
+        if (status.startsWith(UNSENT_PREFIX)) {
+            val count = status.removePrefix(UNSENT_PREFIX).trim().toIntOrNull()
+                ?: return UiText.Raw(status)
+            return UiText.Res(R.string.settings_sync_synced_unsent, count)
+        }
         if (status.startsWith(SYNCED_PREFIX)) {
             val instant = runCatching { Instant.parse(status.removePrefix(SYNCED_PREFIX).trim()) }
                 .getOrNull() ?: return UiText.Raw(status)
@@ -81,4 +89,7 @@ object SyncStatusText {
      */
     private const val SYNCED_WARN_PREFIX = "SyncedWarn:"
     private const val LEGACY_SYNCED_WARN_PREFIX = "Synced with warnings:"
+
+    /** Kept in step with SyncRepositoryImpl.UNSENT_STATUS_PREFIX. */
+    private const val UNSENT_PREFIX = "SyncedUnsent:"
 }
