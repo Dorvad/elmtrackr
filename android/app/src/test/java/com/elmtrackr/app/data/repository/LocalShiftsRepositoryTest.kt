@@ -283,6 +283,32 @@ class LocalShiftsRepositoryTest {
             list.filter { it.userId == userId && it.projectId == projectId && it.deletedAt == null }
         }
 
+    /** Faithful rather than a stub, for the same reason as the other fakes. */
+        override suspend fun unlinkProject(userId: String, projectId: String, updatedAt: Long): Int {
+            val affected = shifts.value.filter {
+                it.userId == userId && it.projectId == projectId && it.deletedAt == null
+            }
+            shifts.value = shifts.value.map { shift ->
+                if (shift in affected) {
+                    shift.copy(
+                        projectId = null,
+                        projectNameSnapshot = null,
+                        compensationSource = "EMPLOYEE",
+                        compensationSnapshotJson = null,
+                        syncStatus = if (shift.syncStatus == SyncStatus.PENDING_CREATE) {
+                            SyncStatus.PENDING_CREATE
+                        } else {
+                            SyncStatus.PENDING_UPDATE
+                        },
+                        updatedAt = updatedAt,
+                    )
+                } else {
+                    shift
+                }
+            }
+            return affected.size
+        }
+
         private companion object {
             val pendingStatuses = setOf(
                 SyncStatus.PENDING_CREATE,

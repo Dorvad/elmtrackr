@@ -33,6 +33,8 @@ import com.elmtrackr.app.domain.projects.ProjectBillingCorrection
 import com.elmtrackr.app.domain.projects.ProjectBillingStatusResolver
 import com.elmtrackr.app.domain.projects.ProjectSummary
 import com.elmtrackr.app.domain.projects.ProjectWorkAction
+import com.elmtrackr.app.domain.HoursFormatter
+import com.elmtrackr.app.domain.model.ProjectWorkStatus
 import com.elmtrackr.app.domain.projects.ProjectWorkStatusActions
 import com.elmtrackr.app.domain.text.BidiText
 import androidx.compose.ui.graphics.StrokeCap
@@ -111,7 +113,39 @@ fun ProjectDetailScreen(
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text(stringResource(R.string.project_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.project_delete_confirm_text)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text(stringResource(R.string.project_delete_confirm_text))
+                    // Named, with counts, because the two outcomes are different in
+                    // kind: the hours change how they are paid, the billing history
+                    // goes away. A generic "this cannot be undone" would not let the
+                    // user weigh either.
+                    if (summary.time.shiftCount > 0) {
+                        Text(
+                            stringResource(
+                                R.string.project_delete_shifts_kept,
+                                summary.time.shiftCount,
+                                HoursFormatter.decimal(summary.time.trackedMinutes),
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    if (summary.hasBillingRecords || summary.hasPayments) {
+                        Text(
+                            stringResource(R.string.project_delete_billing_lost),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    if (summary.project.workStatus != ProjectWorkStatus.ARCHIVED) {
+                        Text(
+                            stringResource(R.string.project_delete_archive_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -396,32 +430,19 @@ fun ProjectDetailScreen(
         }
 
         item {
-            // Permanent deletion is only offered for an unused draft; anything
-            // with time, billing or payments is archived so reports keep it.
-            if (summary.canDeletePermanently) {
-                OutlinedButton(
-                    onClick = { confirmDelete = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        stringResource(R.string.project_delete),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            } else {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(CornerRadius.Medium),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-                ) {
-                    Text(
-                        text = stringResource(R.string.project_delete_blocked),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(Spacing.md),
-                    )
-                }
+            // Offered for every project. It used to be offered only for an untouched
+            // draft, and everything else showed a card explaining that it could be
+            // archived instead — which left a project used once permanently in the
+            // list. The safety moved to the confirmation, which now names the
+            // consequences instead of hiding the action.
+            OutlinedButton(
+                onClick = { confirmDelete = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    stringResource(R.string.project_delete),
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
         }
         item { Spacer(Modifier.height(96.dp)) }

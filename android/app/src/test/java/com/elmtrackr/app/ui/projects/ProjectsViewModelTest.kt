@@ -427,7 +427,7 @@ class ProjectsViewModelTest {
     }
 
     @Test
-    fun `a project with tracked time is not deleted`() = runTest {
+    fun `a project with tracked time can be deleted`() = runTest {
         settingsRepo.setSettings(settings())
         projectsRepo.setProjects(project("p1", status = ProjectWorkStatus.DRAFT))
         shiftsRepo.setShifts(
@@ -442,15 +442,18 @@ class ProjectsViewModelTest {
         val vm = buildVm()
 
         val summary = ready(vm).summary("p1")!!
-        assertFalse(summary.canDeletePermanently)
 
         vm.deleteProject(summary)
         advanceUntilIdle()
-        assertEquals(1, projectsRepo.currentProjects.size)
+
+        // Tracked time no longer blocks deletion. The hours survive as employee-paid
+        // work — asserted against the real cascade in LocalProjectsRepositoryDeleteTest,
+        // since the fake repository here does not model shifts.
+        assertTrue(projectsRepo.currentProjects.isEmpty())
     }
 
     @Test
-    fun `a billed project is not deleted even if the caller asks`() = runTest {
+    fun `a billed project can be deleted and reports its released shifts`() = runTest {
         settingsRepo.setSettings(settings())
         projectsRepo.setProjects(project("p1", status = ProjectWorkStatus.DRAFT))
         projectsRepo.setBillingRecords(
@@ -462,12 +465,18 @@ class ProjectsViewModelTest {
                 billedOn = LocalDate.of(2026, 7, 1),
             ),
         )
+        projectsRepo.releasedShiftsOnDelete = 2
         val vm = buildVm()
+        var released: Int? = null
 
-        vm.deleteProject(ready(vm).summary("p1")!!)
+        vm.deleteProject(ready(vm).summary("p1")!!) { released = it }
         advanceUntilIdle()
 
-        assertEquals(1, projectsRepo.currentProjects.size)
+        // A billing record used to make a project undeletable. It now goes with the
+        // project, and the caller learns how many shifts were handed back so the
+        // screen can say so.
+        assertTrue(projectsRepo.currentProjects.isEmpty())
+        assertEquals(2, released)
     }
 
     // ── Metrics in state ──────────────────────────────────────────────────────

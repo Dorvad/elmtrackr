@@ -208,7 +208,7 @@ fun ProjectsScreen(
                                         viewModel.applyWorkAction(summary.project, action)
                                     },
                                     onDelete = {
-                                        viewModel.deleteProject(summary) {
+                                        viewModel.deleteProject(summary) { _ ->
                                             selectedProjectId = null
                                             destination = ProjectsDestination.LIST
                                         }

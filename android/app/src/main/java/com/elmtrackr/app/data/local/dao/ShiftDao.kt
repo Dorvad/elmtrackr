@@ -187,4 +187,27 @@ interface ShiftDao {
             "AND deletedAt IS NULL ORDER BY startTime DESC"
     )
     fun observeShiftsForProject(userId: String, projectId: String): Flow<List<ShiftEntity>>
+
+    /**
+     * Recasts every shift linked to [projectId] as ordinary employee-paid work.
+     *
+     * Used when a project is deleted. The hours are the user's work record and must
+     * survive the project, but a shift left pointing at a deleted project would
+     * belong to nothing and be paid by nothing — the state
+     * [com.elmtrackr.app.domain.projects.ShiftCompensationReassignment] exists to
+     * prevent. Written as one statement rather than a read-modify-write loop so a
+     * project with a year of shifts cannot be half-converted.
+     *
+     * `compensationSnapshot` is cleared deliberately: a snapshot taken while the
+     * shift was project time describes rules that never applied to it, so pay is
+     * recalculated from current rules instead.
+     */
+    @Query(
+        "UPDATE shifts SET projectId = NULL, projectNameSnapshot = NULL, " +
+            "compensationSource = 'EMPLOYEE', compensationSnapshotJson = NULL, " +
+            "syncStatus = CASE WHEN syncStatus = 'PENDING_CREATE' THEN 'PENDING_CREATE' " +
+            "ELSE 'PENDING_UPDATE' END, updatedAt = :updatedAt " +
+            "WHERE userId = :userId AND projectId = :projectId AND deletedAt IS NULL"
+    )
+    suspend fun unlinkProject(userId: String, projectId: String, updatedAt: Long): Int
 }

@@ -32,7 +32,11 @@ interface ProjectsRepository {
      * Soft-deletes the project and cascades to its billing records and
      * payments, so no orphaned money rows are left behind.
      */
-    suspend fun deleteProject(userId: String, projectId: String)
+    /**
+     * Deletes a project permanently and returns the number of shifts released
+     * from it. Those shifts keep their hours and become employee-paid work.
+     */
+    suspend fun deleteProject(userId: String, projectId: String): Int
 
     // ── Billing records ───────────────────────────────────────────────────────
 

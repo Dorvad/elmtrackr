@@ -49,18 +49,6 @@ data class ProjectSummary(
     val currencyCode: String get() = project.currencyCode
     val fee: ProjectFee get() = project.fee
 
-    /**
-     * Permanent deletion is only offered for a project that has never been used:
-     * a draft with no time, no billing record and no payment. Anything else is
-     * archived instead, so historical reports keep their data.
-     */
-    val canDeletePermanently: Boolean
-        get() = project.workStatus == ProjectWorkStatus.DRAFT &&
-            !time.hasTime &&
-            time.shiftCount == 0 &&
-            !hasBillingRecords &&
-            !hasPayments
-
     /** True once a billing record exists, which freezes the billed snapshot. */
     val isBilled: Boolean get() = hasBillingRecords
 }

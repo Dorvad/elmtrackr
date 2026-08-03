@@ -3,6 +3,8 @@ package com.elmtrackr.app.data.repository
 import com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao
 import com.elmtrackr.app.data.local.dao.ProjectDao
 import com.elmtrackr.app.data.local.dao.ProjectPaymentDao
+import com.elmtrackr.app.data.local.dao.ShiftDao
+import com.elmtrackr.app.data.local.TransactionRunner
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.mapper.toDomain
 import com.elmtrackr.app.data.local.mapper.toEntity
@@ -36,6 +38,8 @@ class LocalProjectsRepository @Inject constructor(
     private val projectDao: ProjectDao,
     private val billingRecordDao: ProjectBillingRecordDao,
     private val paymentDao: ProjectPaymentDao,
+    private val shiftDao: ShiftDao,
+    private val transactionRunner: TransactionRunner,
     private val syncTrigger: SyncTrigger,
 ) : ProjectsRepository {
 
@@ -103,17 +107,42 @@ class LocalProjectsRepository @Inject constructor(
         syncTrigger.schedule()
     }
 
-    override suspend fun deleteProject(userId: String, projectId: String) {
-        val existing = projectDao.getById(userId, projectId) ?: return
-        val now = Instant.now().toEpochMilli()
-        val status = SyncStatus.PENDING_DELETE
-        // Cascade as soft deletes: the tables carry no SQL foreign keys, so
-        // leaving children behind would orphan billing and payment rows.
-        paymentDao.softDeleteForProject(existing.localId, now, status, now)
-        billingRecordDao.softDeleteForProject(existing.localId, now, status, now)
-        projectDao.softDelete(existing.localId, now, status, now)
-        syncTrigger.schedule()
-    }
+    /**
+     * Deletes a project and returns how many shifts were released from it.
+     *
+     * Any project can be deleted, including one with tracked time. Deletion used to
+     * be refused unless the project was an untouched draft, which meant a project
+     * used once — a typo, a job that fell through — could never be removed, only
+     * archived. That is not a defensible place to leave a user's own data.
+     *
+     * What survives and what does not:
+     *
+     * Shifts survive. They are the user's record of hours worked and have nothing
+     * to do with whether the client project still exists, so they are recast as
+     * ordinary employee-paid work rather than deleted. That does change their pay:
+     * project time earns no wage, employee time does, so the hours start counting
+     * towards wages and overtime and the caller must say so before asking.
+     *
+     * Billing records and payments do not survive. They describe what this client
+     * was asked to pay and what they paid; without the project they describe
+     * nothing.
+     *
+     * One transaction, because a half-deleted project is worse than either
+     * outcome: shifts released but the project still listed, or the reverse.
+     */
+    override suspend fun deleteProject(userId: String, projectId: String): Int =
+        transactionRunner.inTransaction {
+            val existing = projectDao.getById(userId, projectId) ?: return@inTransaction 0
+            val now = Instant.now().toEpochMilli()
+            val status = SyncStatus.PENDING_DELETE
+            val released = shiftDao.unlinkProject(userId, projectId, now)
+            // Cascade as soft deletes: the tables carry no SQL foreign keys, so
+            // leaving children behind would orphan billing and payment rows.
+            paymentDao.softDeleteForProject(existing.localId, now, status, now)
+            billingRecordDao.softDeleteForProject(existing.localId, now, status, now)
+            projectDao.softDelete(existing.localId, now, status, now)
+            released
+        }.also { syncTrigger.schedule() }
 
     // ── Billing records ───────────────────────────────────────────────────────
 
