@@ -28,6 +28,16 @@ object ElmTrackrWidgetUpdater {
     )
 
     suspend fun update(context: Context, contextData: WidgetContext) {
+        // Resolve the placed widgets first. The minute-by-minute refresh chain
+        // used to be scheduled purely on "a shift is running", so a user who had
+        // never placed a widget still paid for a worker, a database load and a
+        // state write every minute of every shift, repainting nothing.
+        val targets = glanceTargets(context)
+        if (targets.isEmpty()) {
+            WidgetTimerScheduler.cancel(context)
+            return
+        }
+
         val locale = context.withAppLocale().resources.configuration.locales[0] ?: java.util.Locale.getDefault()
         val state = WidgetStateMapper.map(contextData, locale)
         if (state.isActive) {
@@ -35,7 +45,7 @@ object ElmTrackrWidgetUpdater {
         } else {
             WidgetTimerScheduler.cancel(context)
         }
-        pushState(context, state)
+        pushState(context, state, targets)
     }
 
     suspend fun update(
@@ -58,15 +68,24 @@ object ElmTrackrWidgetUpdater {
         )
     }
 
-    private suspend fun pushState(context: Context, state: WidgetShiftState) {
+    /** Every placed instance of every widget type, paired with its type. */
+    private suspend fun glanceTargets(context: Context): List<Pair<GlanceAppWidget, GlanceId>> {
         val manager = GlanceAppWidgetManager(context)
-        for (widget in widgetTypes) {
-            for (glanceId in manager.getGlanceIds(widget.javaClass)) {
-                updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) {
-                    WidgetPreferences.writeFromShift(state)(it)
-                }
-                widget.update(context, glanceId)
+        return widgetTypes.flatMap { widget ->
+            manager.getGlanceIds(widget.javaClass).map { widget to it }
+        }
+    }
+
+    private suspend fun pushState(
+        context: Context,
+        state: WidgetShiftState,
+        targets: List<Pair<GlanceAppWidget, GlanceId>>,
+    ) {
+        for ((widget, glanceId) in targets) {
+            updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) {
+                WidgetPreferences.writeFromShift(state)(it)
             }
+            widget.update(context, glanceId)
         }
     }
 

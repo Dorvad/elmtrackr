@@ -1612,14 +1612,26 @@ private fun RefundReview(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     Spacer(Modifier.height(8.dp))
-    val months = reimbursableShifts.map { YearMonth.from(it.startTime.atZone(state.zone)) }.distinct().sortedDescending()
-    months.forEach { month ->
-        val monthShifts = reimbursableShifts.filter { YearMonth.from(it.startTime.atZone(state.zone)) == month }
-        val monthShiftIds = monthShifts.mapTo(mutableSetOf()) { it.id }
+    // One grouping pass instead of a nested scan, and remembered so it does not
+    // re-run on every recomposition of this screen. The previous form called
+    // atZone once per shift per month — O(months × shifts) ZonedDateTime
+    // allocations for a list that had not changed.
+    val shiftsByMonth = remember(reimbursableShifts, state.zone) {
+        reimbursableShifts
+            .groupBy { YearMonth.from(it.startTime.atZone(state.zone)) }
+            .toSortedMap(compareByDescending { it })
+    }
+    val claimsByMonth = remember(shiftsByMonth, claims) {
+        val monthOfShift = shiftsByMonth.entries
+            .flatMap { (month, shifts) -> shifts.map { it.id to month } }
+            .toMap()
+        claims.groupBy { monthOfShift[it.shiftId] }
+    }
+    shiftsByMonth.forEach { (month, monthShifts) ->
         RefundMonthCard(
             month = month,
             shifts = monthShifts,
-            claims = claims.filter { it.shiftId in monthShiftIds },
+            claims = claimsByMonth[month].orEmpty(),
             onViewReceipt = onViewReceipt,
             onNavigateToShift = onNavigateToShift,
             onExport = { rows, onDone ->

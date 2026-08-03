@@ -28,11 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -43,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.ui.components.motion.rememberElapsedUnits
 import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.R
@@ -71,7 +69,6 @@ import com.elmtrackr.app.ui.theme.auroraSemantics
 import com.elmtrackr.app.ui.theme.auroraOvertimeBackground
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import com.elmtrackr.app.ui.theme.auroraWeekendBackground
-import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.YearMonth
 import java.time.ZoneId
@@ -291,14 +288,9 @@ private fun HeroHoursTracked(completedMinutes: Int, activeShift: Shift?) {
         )
         return
     }
-    var activeMinutes by remember(activeShift.startTime) { mutableLongStateOf(0L) }
-    LaunchedEffect(activeShift.startTime) {
-        while (true) {
-            activeMinutes = ((Instant.now().toEpochMilli() - activeShift.startTime.toEpochMilli()) / 60_000)
-                .coerceAtLeast(0)
-            delay(1_000)
-        }
-    }
+    // Minute units: the text only shows whole minutes, so recomposing once a
+    // second was sixty times the work for one visible change.
+    val activeMinutes = rememberElapsedUnits(activeShift.startTime, unitMillis = 60_000L)
     Text(
         stringResource(R.string.shifts_hours_value, HoursFormatter.decimal(completedMinutes + activeMinutes.toInt())),
         style = MaterialTheme.typography.headlineMedium,
@@ -707,13 +699,7 @@ private fun ActiveShiftRow(
 
 @Composable
 private fun ActiveDurationCompact(start: Instant) {
-    var seconds by remember(start) { mutableLongStateOf(0L) }
-    LaunchedEffect(start) {
-        while (true) {
-            seconds = ((Instant.now().toEpochMilli() - start.toEpochMilli()) / 1000L).coerceAtLeast(0L)
-            delay(1_000)
-        }
-    }
+    val seconds = rememberElapsedUnits(start)
     Text(
         formatLiveDuration(seconds),
         style = MaterialTheme.typography.titleMedium,

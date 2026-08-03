@@ -37,6 +37,50 @@ import kotlin.math.sin
  * x positions stretch with the card width, everything else is in dp.
  */
 
+/**
+ * The Metro line's geometry, cached across frames.
+ *
+ * `Path` and `PathMeasure` wrap native objects, and none of this geometry
+ * depends on the animation — only on the face's size. Rebuilding it every frame
+ * meant two paths and two path measures constructed per frame for as long as a
+ * shift ran. The cache is a single entry because there is one clock card on
+ * screen; a size change (rotation, split screen) replaces it.
+ *
+ * Single-threaded by construction: only reached from a `DrawScope`, and Compose
+ * draws on one thread.
+ */
+private class MetroGeometry private constructor(val size: Size) {
+    // Kept alive alongside their measures: the paths are what the measures read.
+    private val line = Path()
+    private val extension = Path()
+
+    val lineMeasure: PathMeasure
+    val extensionMeasure: PathMeasure
+
+    init {
+        // The design reference's canvas is 312×176: x stretches with the card,
+        // y scales with its height. Same mapping as the face's local `at`.
+        fun at(x: Float, y: Float) = Offset(x / 312f * size.width, y / 176f * size.height)
+
+        line.moveTo(at(16f, 142f).x, at(16f, 142f).y)
+        line.cubicTo(at(92f, 142f).x, at(92f, 142f).y, at(110f, 122f).x, at(110f, 122f).y, at(166f, 122f).x, at(166f, 122f).y)
+        line.cubicTo(at(232f, 122f).x, at(232f, 122f).y, at(254f, 58f).x, at(254f, 58f).y, at(296f, 58f).x, at(296f, 58f).y)
+
+        extension.moveTo(at(296f, 58f).x, at(296f, 58f).y)
+        extension.cubicTo(at(308f, 50f).x, at(308f, 50f).y, at(310f, 34f).x, at(310f, 34f).y, at(300f, 22f).x, at(300f, 22f).y)
+
+        lineMeasure = PathMeasure().apply { setPath(line, false) }
+        extensionMeasure = PathMeasure().apply { setPath(extension, false) }
+    }
+
+    companion object {
+        private var cached: MetroGeometry? = null
+
+        fun forSize(size: Size): MetroGeometry =
+            cached?.takeIf { it.size == size } ?: MetroGeometry(size).also { cached = it }
+    }
+}
+
 // ── Metro ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -75,22 +119,18 @@ private fun DrawScope.drawMetroLine(
 ) {
     fun at(x: Float, y: Float) = Offset(x / 312f * size.width, y / 176f * size.height)
 
-    val line = Path().apply {
-        moveTo(at(16f, 142f).x, at(16f, 142f).y)
-        cubicTo(at(92f, 142f).x, at(92f, 142f).y, at(110f, 122f).x, at(110f, 122f).y, at(166f, 122f).x, at(166f, 122f).y)
-        cubicTo(at(232f, 122f).x, at(232f, 122f).y, at(254f, 58f).x, at(254f, 58f).y, at(296f, 58f).x, at(296f, 58f).y)
-    }
-    val extension = Path().apply {
-        moveTo(at(296f, 58f).x, at(296f, 58f).y)
-        cubicTo(at(308f, 50f).x, at(308f, 50f).y, at(310f, 34f).x, at(310f, 34f).y, at(300f, 22f).x, at(300f, 22f).y)
-    }
-    val lineMeasure = PathMeasure().apply { setPath(line, false) }
-    val extMeasure = PathMeasure().apply { setPath(extension, false) }
+    val geometry = MetroGeometry.forSize(size)
+    val lineMeasure = geometry.lineMeasure
+    val extMeasure = geometry.extensionMeasure
 
     val accent = if (overtime) AuroraPeachDeep else AuroraIndigo
     val lineWidth = 5.dp.toPx()
 
     fun strokeAlong(measure: PathMeasure, fraction: Float, color: Color, width: Float, dash: PathEffect? = null) {
+        // Not pooled: reusing one Path across the four calls in a frame assumes
+        // drawPath copies the path at record time. It does, but a wrong guess
+        // there is a visual defect, and the Paparazzi goldens that would catch it
+        // do not run on every machine. The measures were the expensive part.
         val segment = Path()
         measure.getSegment(0f, measure.length * fraction.coerceIn(0f, 1f), segment, true)
         drawPath(

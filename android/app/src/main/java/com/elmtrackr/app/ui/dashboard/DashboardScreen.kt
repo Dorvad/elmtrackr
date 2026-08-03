@@ -71,11 +71,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -121,6 +119,7 @@ import com.elmtrackr.app.ui.settings.SettingsLaunchRequest
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.elmtrackr.app.ui.components.motion.rememberElapsedUnits
 import com.elmtrackr.app.ui.components.motion.ShiftElapsedDisplay
 import com.elmtrackr.app.ui.components.motion.activeShiftPulse
 import com.elmtrackr.app.ui.components.motion.FirstClockInCelebrationDialog
@@ -148,7 +147,6 @@ import com.elmtrackr.app.ui.theme.AuroraPeach
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.AuroraWhite
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
-import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
@@ -818,15 +816,7 @@ private fun DashboardClockSection(
     onClockOut: () -> Unit,
     onEditStartTime: () -> Unit,
 ) {
-    var elapsedSeconds by remember(activeShift?.id) { mutableLongStateOf(0L) }
-    LaunchedEffect(activeShift?.id) {
-        val shift = activeShift ?: return@LaunchedEffect
-        while (true) {
-            elapsedSeconds = ((Instant.now().toEpochMilli() - shift.startTime.toEpochMilli()) / 1000L)
-                .coerceAtLeast(0L)
-            delay(1_000L)
-        }
-    }
+    val elapsedSeconds = rememberElapsedUnits(activeShift?.startTime)
 
     Box(modifier = Modifier.fillMaxWidth().auroraEnter(index = 1)) {
         AnimatedContent(
@@ -1288,9 +1278,9 @@ private fun ExpressiveClockCard(
                             repeat(28) { index ->
                                 val x = ((index * 73) % 101) / 100f * size.width
                                 val y = ((index * 47) % 97) / 100f * size.height
-                                drawCircle(Color.White.copy(alpha = if (index % 3 == 0) .25f + pulse * .65f else .3f), 1.2.dp.toPx() + index % 2, Offset(x, y))
+                                drawCircle(Color.White.copy(alpha = if (index % 3 == 0) .25f + pulse() * .65f else .3f), 1.2.dp.toPx() + index % 2, Offset(x, y))
                             }
-                            if (running) drawCircle(accent.copy(alpha = .08f + pulse * .08f), 72.dp.toPx(), center)
+                            if (running) drawCircle(accent.copy(alpha = .08f + pulse() * .08f), 72.dp.toPx(), center)
                         }
                         SupportedClockStyle.RETRO -> {
                             val gap = 13.dp.toPx()
@@ -1301,7 +1291,7 @@ private fun ExpressiveClockCard(
                             drawRoundRect(accent.copy(alpha = .12f), Offset(size.width * .08f, size.height * .18f), Size(size.width * .84f, size.height * .64f), GeometryCornerRadius(5.dp.toPx()), style = Stroke(2.dp.toPx()))
                         }
                         SupportedClockStyle.PULSE -> repeat(3) { index ->
-                            val phase = (pulse + index / 3f) % 1f
+                            val phase = (pulse() + index / 3f) % 1f
                             drawCircle(accent.copy(alpha = (1f - phase) * .32f), (32 + phase * 58).dp.toPx(), center, style = Stroke(2.dp.toPx()))
                         }
                         SupportedClockStyle.DIAL -> {
@@ -1320,7 +1310,7 @@ private fun ExpressiveClockCard(
                             val lit = (progress * count).toInt()
                             repeat(count) { index ->
                                 val x = (index + .5f) * size.width / count
-                                val color = if (index < lit) accent else foreground.copy(alpha = .16f + if (index == lit) pulse * .2f else 0f)
+                                val color = if (index < lit) accent else foreground.copy(alpha = .16f + if (index == lit) pulse() * .2f else 0f)
                                 drawLine(color, Offset(x, 10.dp.toPx()), Offset(x, size.height - 10.dp.toPx()), if (index == lit) 3.dp.toPx() else 1.5.dp.toPx(), StrokeCap.Round)
                             }
                         }
@@ -1336,9 +1326,9 @@ private fun ExpressiveClockCard(
                                 val fill = Path().apply { moveTo(center.x - half, fillY); lineTo(left.x, left.y); lineTo(right.x, right.y); lineTo(center.x + half, fillY); close() }
                                 drawPath(fill, Brush.verticalGradient(listOf(accent.copy(alpha = .2f), AuroraAqua.copy(alpha = .55f))))
                             }
-                            drawCircle(accent.copy(alpha = .55f + pulse * .45f), 4.dp.toPx(), top)
-                            drawCircle(AuroraPlum.copy(alpha = .55f + pulse * .45f), 4.dp.toPx(), left)
-                            drawCircle(AuroraAqua.copy(alpha = .55f + pulse * .45f), 4.dp.toPx(), right)
+                            drawCircle(accent.copy(alpha = .55f + pulse() * .45f), 4.dp.toPx(), top)
+                            drawCircle(AuroraPlum.copy(alpha = .55f + pulse() * .45f), 4.dp.toPx(), left)
+                            drawCircle(AuroraAqua.copy(alpha = .55f + pulse() * .45f), 4.dp.toPx(), right)
                         }
                         SupportedClockStyle.SAND -> {
                             val top = 10.dp.toPx()
@@ -1380,7 +1370,7 @@ private fun ExpressiveClockCard(
                                     drawPath(bottomSand, Brush.verticalGradient(listOf(accent.copy(alpha = 0.55f), accent)))
                                 }
                                 repeat(3) { index ->
-                                    val phase = (pulse + index / 3f) % 1f
+                                    val phase = (pulse() + index / 3f) % 1f
                                     drawCircle(
                                         accent.copy(alpha = 0.25f + phase * 0.45f),
                                         2.dp.toPx(),
@@ -1403,7 +1393,7 @@ private fun ExpressiveClockCard(
                                 val isCurrent = index == filled && running
                                 val color = when {
                                     isFilled -> accent
-                                    isCurrent -> accent.copy(alpha = 0.35f + pulse * 0.35f)
+                                    isCurrent -> accent.copy(alpha = 0.35f + pulse() * 0.35f)
                                     else -> foreground.copy(alpha = 0.12f)
                                 }
                                 val height = if (isCurrent) blockH * (0.5f + partial * 0.5f) else blockH
@@ -1441,7 +1431,7 @@ private fun ExpressiveClockCard(
                             val satX = center.x + kotlin.math.cos(angle).toFloat() * radius
                             val satY = center.y + kotlin.math.sin(angle).toFloat() * radius
                             if (running) {
-                                drawCircle(accent.copy(alpha = 0.12f + pulse * 0.12f), 16.dp.toPx(), Offset(satX, satY))
+                                drawCircle(accent.copy(alpha = 0.12f + pulse() * 0.12f), 16.dp.toPx(), Offset(satX, satY))
                             }
                             drawCircle(accent, 6.dp.toPx(), Offset(satX, satY))
                             drawCircle(Color.White, 2.dp.toPx(), Offset(satX, satY))
@@ -1455,7 +1445,7 @@ private fun ExpressiveClockCard(
                             // Idle keeps a calm pool at the bottom; while running the
                             // waterline climbs with day-goal progress.
                             val level = center.y + radius - (radius * 2f) * (.12f + progress * .76f)
-                            val wavePhase = pulse * 2f * Math.PI.toFloat()
+                            val wavePhase = pulse() * 2f * Math.PI.toFloat()
                             fun wave(phaseShift: Float, amplitude: Float): Path = Path().apply {
                                 moveTo(center.x - radius, level)
                                 var x = center.x - radius
@@ -1480,7 +1470,7 @@ private fun ExpressiveClockCard(
                                 )
                                 if (running) {
                                     repeat(3) { index ->
-                                        val phase = (pulse + index / 3f) % 1f
+                                        val phase = (pulse() + index / 3f) % 1f
                                         val rise = (center.y + radius - level).coerceAtLeast(1f)
                                         drawCircle(
                                             Color.White.copy(alpha = (1f - phase) * .45f),
@@ -1496,7 +1486,7 @@ private fun ExpressiveClockCard(
                         }
                         SupportedClockStyle.SPROUT -> drawSproutFace(
                             growthHours = (daySeconds / 3600f).coerceIn(0f, 8f),
-                            pulse = pulse,
+                            pulse = pulse(),
                             running = running,
                             foreground = foreground,
                         )
@@ -1504,7 +1494,7 @@ private fun ExpressiveClockCard(
                             progress = dayProgress,
                             overtime = dayOvertime,
                             overtimeProgress = overtimeExtension,
-                            pulse = pulse,
+                            pulse = pulse(),
                             running = running,
                             foreground = foreground,
                             surface = background,
@@ -1512,13 +1502,13 @@ private fun ExpressiveClockCard(
                         SupportedClockStyle.VINYL -> drawVinylFace(
                             progress = vinylProgress,
                             spinDegrees = vinylSpin,
-                            pulse = pulse,
+                            pulse = pulse(),
                             running = running,
                             overtime = dayOvertime,
                         )
                         SupportedClockStyle.LUNA -> drawLunaFace(
                             progress = dayProgress,
-                            pulse = pulse,
+                            pulse = pulse(),
                             running = running,
                             overtime = dayOvertime,
                         )
@@ -1762,13 +1752,26 @@ private fun vinylSpinDegrees(active: Boolean): Float {
     return angle
 }
 
+/**
+ * Supplies the clock faces' 1.8s animation phase.
+ *
+ * The value is handed over as a reader, not a `Float`, and every caller invokes
+ * it inside the `Canvas` draw lambda. That is the whole point: passing the
+ * `Float` meant this composable read the animation in its own scope and the
+ * animation invalidated `content` — which is the entire clock card, a 16-branch
+ * `when`, a dozen `stringResource` lookups, a 176dp `Canvas`, the elapsed
+ * display and a button. On a 120Hz panel that is a full recomposition 120 times
+ * a second for as long as a shift is running and the dashboard is on screen.
+ * Reading it during draw invalidates only the draw phase. Same pattern as
+ * `LiveClockTimer`, which reads its animated value inside `graphicsLayer`.
+ */
 @Composable
 private fun ExpressiveClockPulse(
     running: Boolean,
-    content: @Composable (pulse: Float) -> Unit,
+    content: @Composable (pulse: () -> Float) -> Unit,
 ) {
     if (!auroraMotionEnabled() || !running) {
-        content(0f)
+        content { 0f }
         return
     }
     val transition = rememberInfiniteTransition(label = "expressive-clock-pulse")
@@ -1778,7 +1781,7 @@ private fun ExpressiveClockPulse(
         animationSpec = infiniteRepeatable(tween(1800, easing = LinearEasing), RepeatMode.Restart),
         label = "clock-motion",
     )
-    content(pulse)
+    content { pulse }
 }
 
 @Composable
@@ -1789,7 +1792,12 @@ private fun MonthSummaryCard(
     onOpenReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val monthName = YearMonth.now().month.getDisplayName(TextStyle.FULL, appLocale())
+    // Two allocations and a locale lookup per recomposition otherwise, and this
+    // card sits next to the clock, which recomposes once a second.
+    val locale = appLocale()
+    val monthName = remember(locale) {
+        YearMonth.now().month.getDisplayName(TextStyle.FULL, locale)
+    }
     val shiftCount = report?.shiftCount ?: 0
     val openReportLabel = stringResource(R.string.dashboard_month_summary_open_report)
 
