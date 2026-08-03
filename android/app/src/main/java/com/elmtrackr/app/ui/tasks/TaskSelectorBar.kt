@@ -2,13 +2,14 @@ package com.elmtrackr.app.ui.tasks
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -32,8 +33,8 @@ import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.auroraRowClickable
 import com.elmtrackr.app.ui.theme.CornerRadius
+import com.elmtrackr.app.ui.theme.Spacing
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TaskSelectorBar(
     tasks: List<Task>,
@@ -91,11 +92,25 @@ fun TaskSelectorBar(
             }
         }
         Spacer(Modifier.height(8.dp))
-        FlowRow(
+        // One scrolling line rather than a wrapping grid.
+        //
+        // FlowRow grew a row per four-or-so tasks, and this sits directly under the
+        // clock on the dashboard — the most valuable space in the app. Ten tasks
+        // pushed the month summary and recent shifts off the first screen entirely.
+        // A single line costs a fixed ~48dp no matter how many tasks exist.
+        //
+        // LazyRow rather than Row+horizontalScroll: the chips carry a colour dot and
+        // an ellipsised label each, and a user with thirty tasks should not compose
+        // thirty of them to see four.
+        LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            // The chips are the row's only content and the row is edge to edge, so
+            // the first and last need their own inset to avoid touching the screen
+            // edge mid-scroll.
+            contentPadding = PaddingValues(horizontal = Spacing.s2),
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            displayTasks.forEach { task ->
+            items(displayTasks, key = { it.id }) { task ->
                 val isSuggested = showSuggestedNow && task.id == suggestedTaskId
                 FilterChip(
                     selected = task.id == selectedTaskId,
