@@ -656,6 +656,10 @@ internal fun AppearanceDetailScreen(
                 ClockFaceQuickPicker(
                     selected = clockStyle,
                     recents = state.recentClockFaces,
+                    availableFaces = ClockFacePacks.availableFaces(
+                        stored = state.storedClockFacePacks,
+                        selected = clockStyle,
+                    ),
                     onSelect = onClockStyleChange,
                     onBrowseAll = onBrowseAllFaces,
                 )

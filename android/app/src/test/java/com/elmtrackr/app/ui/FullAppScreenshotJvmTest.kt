@@ -453,7 +453,12 @@ class FullAppScreenshotJvmTest {
                 state, ClockStyle.MINIMAL, {}, true, {}, false, {}, {}, {}, {},
             )
             SettingsDestination.CLOCK_FACES -> ClockFaceGalleryScreen(
-                selected = ClockStyle.MINIMAL, onSelect = {}, onBack = {},
+                selected = ClockStyle.MINIMAL,
+                availablePacks = com.elmtrackr.app.ui.settings.ClockFaceGroup.entries.toSet(),
+                onSelect = {},
+                onInstallPack = {},
+                onRemovePack = {},
+                onBack = {},
             )
             SettingsDestination.FEATURES -> FeaturesDetailScreen(
                 true, {}, false, {}, true, {}, true, {},

@@ -52,10 +52,15 @@ import com.elmtrackr.app.ui.theme.Spacing
 internal fun ClockFaceQuickPicker(
     selected: ClockStyle,
     recents: List<ClockStyle>,
+    availableFaces: List<ClockStyle>,
     onSelect: (ClockStyle) -> Unit,
     onBrowseAll: () -> Unit,
 ) {
-    val picks = clockFaceQuickPicks(current = selected, recents = recents)
+    val picks = clockFaceQuickPicks(
+        current = selected,
+        recents = recents,
+        available = availableFaces,
+    )
     Column {
         Text(
             stringResource(R.string.settings_watch_face),
@@ -71,8 +76,11 @@ internal fun ClockFaceQuickPicker(
         ClockFaceGrid(faces = picks, selected = selected, onSelect = onSelect)
         Spacer(Modifier.height(Spacing.sm))
         ElmOutlinedButton(onClick = onBrowseAll) {
+            // Counts what the user has, not what exists. Offering "browse all 19"
+            // while only eight are available would be a promise the next screen
+            // breaks.
             Text(
-                stringResource(R.string.settings_browse_all_faces, ClockStyle.entries.size),
+                stringResource(R.string.settings_browse_all_faces, availableFaces.size),
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.size(Spacing.xs))

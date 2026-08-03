@@ -2,6 +2,7 @@ package com.elmtrackr.app.ui.settings
 
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.billing.FreeClockFacePackEntitlements
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.UserSettings
@@ -47,6 +48,7 @@ class PaidProjectsSettingsTest {
         FakeSyncTrigger(),
         FakeAppLockPreferencesStore(),
         com.elmtrackr.app.fake.FakeClockFacePreferences(),
+        FreeClockFacePackEntitlements(),
     )
 
     /** An existing user: onboarding done, hours and pay already configured. */

@@ -53,6 +53,16 @@ object AppPreferenceKeys {
      * contain one, so the parse needs no escaping.
      */
     val RECENT_CLOCK_FACES = stringPreferencesKey("recent_clock_faces")
+
+    /**
+     * Names of the face packs the user has added. A set, not an ordered string:
+     * unlike the history, nothing about presence depends on order.
+     *
+     * Absent is not the same as empty and both are fine — the bundled pack and the
+     * pack holding the selected face are added at read time, so a missing or lost
+     * value degrades to "just the defaults, plus whatever you have selected".
+     */
+    val INSTALLED_CLOCK_FACE_PACKS = stringSetPreferencesKey("installed_clock_face_packs")
 }
 
 data class AppPreferenceValues(
@@ -71,6 +81,8 @@ data class AppPreferenceValues(
     val paidProjectsDiscoveryDismissed: Boolean = false,
     /** Raw face names, newest first. Resolved to the enum by the UI layer. */
     val recentClockFaces: List<String> = emptyList(),
+    /** Raw pack names. Resolved, and widened to include the defaults, by the UI layer. */
+    val installedClockFacePacks: Set<String> = emptySet(),
 )
 
 class AppPreferencesRepository(private val context: Context) :
@@ -104,6 +116,8 @@ class AppPreferencesRepository(private val context: Context) :
                         .map { it.trim() }
                         .filter { it.isNotEmpty() }
                         .toList(),
+                installedClockFacePacks =
+                    prefs[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] ?: emptySet(),
             )
         }
 
@@ -172,6 +186,12 @@ class AppPreferencesRepository(private val context: Context) :
     override suspend fun setRecentClockFaces(styleNames: List<String>) {
         context.appPreferencesDataStore.edit {
             it[AppPreferenceKeys.RECENT_CLOCK_FACES] = styleNames.joinToString("\n")
+        }
+    }
+
+    override suspend fun setInstalledClockFacePacks(packNames: Set<String>) {
+        context.appPreferencesDataStore.edit {
+            it[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] = packNames
         }
     }
 }

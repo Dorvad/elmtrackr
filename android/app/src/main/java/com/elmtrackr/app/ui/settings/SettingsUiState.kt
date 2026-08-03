@@ -33,6 +33,12 @@ sealed interface SettingsUiState {
         val defaultCompensationProfileName: String? = null,
         /** Recently used clock faces, newest first. Device-local, may be empty. */
         val recentClockFaces: List<ClockStyle> = emptyList(),
+        /**
+         * Face packs as stored. Not the same as what is available: the bundled pack
+         * and the pack holding the selected face are added by
+         * [com.elmtrackr.app.ui.settings.ClockFacePacks].
+         */
+        val storedClockFacePacks: Set<ClockFaceGroup> = emptySet(),
     ) : SettingsUiState
 
     data class Error(val message: String) : SettingsUiState

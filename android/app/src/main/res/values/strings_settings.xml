@@ -73,6 +73,10 @@
     <string name="settings_watch_face_hint">Choose an animated face for the Dashboard clock.</string>
     <string name="settings_browse_all_faces">Browse all %1$d faces</string>
     <string name="settings_all_clock_faces">All clock faces</string>
+    <string name="settings_pack_add">Add</string>
+    <string name="settings_pack_remove">Remove</string>
+    <string name="settings_pack_in_use">In use</string>
+    <string name="settings_pack_not_added">%1$d faces — add the pack to use them</string>
     <string name="clock_group_essentials">Essentials</string>
     <string name="clock_group_essentials_desc">Read the time and get on with it</string>
     <string name="clock_group_progress">Progress</string>

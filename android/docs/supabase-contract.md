@@ -276,6 +276,22 @@ Android pushes provider with capitalized label (e.g. `Lime`) — pull accepts an
 
 All persisted styles render natively on the Android dashboard (`SupportedClockStyle.kt`); unknown values fall back to Classic.
 
+**Packs do not change this column.** The faces are grouped into packs the user adds
+or removes (`ClockFaceGroup`), and which packs a user has is **device-local**, not
+synced — removing a pack on a tablet must not remove it from the phone. Only the
+selected face syncs, and it is the column above.
+
+That split creates one case worth stating: a user can sync a `clock_style` from a
+pack this device does not have. It is handled by deriving availability as
+`stored packs + bundled + the pack holding the selected face`
+(`ClockFacePacks.available`), so the selected face is reachable by construction and
+there is no migration step to run. A server value from a pack the device has not
+added therefore renders normally and appears in the gallery as available.
+
+Adding a face means adding it to a `ClockFaceGroup`; `ClockFaceCatalogTest` fails if
+a face belongs to no group, because the gallery is the only place all faces are
+listed.
+
 ### RegionCode
 
 | Wire (case-insensitive) | Android |

@@ -15,4 +15,16 @@ interface ClockFacePreferences {
 
     /** Records [styleName] as the most recent face, bounded by the caller. */
     suspend fun setRecentClockFaces(styleNames: List<String>)
+
+    /**
+     * The face packs the user has added.
+     *
+     * Device-local like the history above, and for a stronger reason: which packs
+     * are present is what this device shows, and syncing it would mean a user
+     * removing a pack on a tablet silently removing it from their phone. The
+     * selected face itself does sync — it is in the Supabase contract — which is
+     * why the available set is derived from the stored set *plus* the selection
+     * rather than read straight from storage.
+     */
+    suspend fun setInstalledClockFacePacks(packNames: Set<String>)
 }
