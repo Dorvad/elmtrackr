@@ -577,6 +577,83 @@ class SyncRepositoryImplTest {
     }
 
     /**
+     * A second layer behind RLS. The remote queries do not filter by user, and
+     * SyncWorker resolves the current user from a stored preference while
+     * PostgREST resolves it from the session JWT — the two can disagree.
+     */
+    @Test
+    fun `a pulled row belonging to another user is not written locally`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = FakeRemoteShiftDataSource(
+            initial = listOf(
+                RemoteShiftRow(
+                    id = "remote-theirs",
+                    userId = "someone-else",
+                    startTime = "2024-06-01T08:00:00Z",
+                    endTime = "2024-06-01T16:00:00Z",
+                    breakMinutes = 0,
+                    createdAt = "2024-06-01T08:00:00Z",
+                    updatedAt = "2024-06-01T16:00:00Z",
+                ),
+                RemoteShiftRow(
+                    id = "remote-mine",
+                    userId = "user-1",
+                    startTime = "2024-06-02T08:00:00Z",
+                    endTime = "2024-06-02T16:00:00Z",
+                    breakMinutes = 0,
+                    createdAt = "2024-06-02T08:00:00Z",
+                    updatedAt = "2024-06-02T16:00:00Z",
+                ),
+            ),
+        )
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        assertEquals(1, dao.currentShifts.size)
+        assertEquals("remote-mine", dao.currentShifts.single().remoteId)
+    }
+
+    /**
+     * Two devices clocking in produce two open remote shifts. The local-active
+     * check used to read a snapshot taken before the pull, which is false for
+     * every row in the batch — so both were materialised and the user ended the
+     * pull with two running shifts.
+     */
+    @Test
+    fun `two open remote shifts in one page do not both become active locally`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = FakeRemoteShiftDataSource(
+            initial = listOf(
+                RemoteShiftRow(
+                    id = "remote-open-1",
+                    userId = "user-1",
+                    startTime = "2024-06-01T08:00:00Z",
+                    endTime = null,
+                    breakMinutes = 0,
+                    createdAt = "2024-06-01T08:00:00Z",
+                    updatedAt = "2024-06-01T08:00:00Z",
+                ),
+                RemoteShiftRow(
+                    id = "remote-open-2",
+                    userId = "user-1",
+                    startTime = "2024-06-02T09:00:00Z",
+                    endTime = null,
+                    breakMinutes = 0,
+                    createdAt = "2024-06-02T09:00:00Z",
+                    updatedAt = "2024-06-02T09:00:00Z",
+                ),
+            ),
+        )
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        repository.syncAll("user-1")
+
+        assertEquals(1, dao.currentShifts.count { it.endTime == null && it.deletedAt == null })
+    }
+
+    /**
      * A row the server will never accept must not produce a clean "Synced <time>".
      *
      * Per-row push failures are recorded on the row rather than on the pipeline
@@ -666,6 +743,7 @@ class SyncRepositoryImplTest {
         projectPaymentDao = com.elmtrackr.app.fake.FakeProjectPaymentDao(),
         taskDao = taskDao,
         profileDao = profileDao,
+        transactionRunner = com.elmtrackr.app.data.local.DirectTransactionRunner,
         syncCursorStore = syncCursorStore,
         remoteTasks = remoteTasks,
         remoteShifts = remoteShifts,

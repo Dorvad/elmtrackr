@@ -12,6 +12,8 @@ import com.elmtrackr.app.data.repository.LocalTasksRepository
 import com.elmtrackr.app.data.repository.SupabaseAuthRepository
 import com.elmtrackr.app.data.sync.SyncRepository
 import com.elmtrackr.app.data.sync.SyncRepositoryImpl
+import com.elmtrackr.app.data.local.RoomTransactionRunner
+import com.elmtrackr.app.data.local.TransactionRunner
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.PreferencesCurrentUserProvider
 import com.elmtrackr.app.domain.repository.AuthRepository
@@ -75,6 +77,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSyncRepository(impl: SyncRepositoryImpl): SyncRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTransactionRunner(impl: RoomTransactionRunner): TransactionRunner
 
     @Binds
     @Singleton

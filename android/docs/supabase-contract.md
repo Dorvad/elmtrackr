@@ -34,6 +34,34 @@ Everything added since is under [`supabase/migrations/`](../../supabase/migratio
 applied in filename order. This document is the authoritative column list for the
 base tables.
 
+### Not in the contract: Paid Projects
+
+Three Room tables have **no Supabase counterpart and no remote data source**:
+
+| Room entity | Table |
+|-------------|-------|
+| `ProjectEntity` | `projects` |
+| `ProjectBillingRecordEntity` | `project_billing_records` |
+| `ProjectPaymentEntity` | `project_payments` |
+
+They carry `remoteId` and `syncStatus` columns, and an index on
+`(userId, syncStatus)`, because they were modelled on the synced entities — not
+because anything syncs them. `SyncRepositoryImpl` deliberately excludes their
+pending rows from `hasPendingWork` so the app does not show a "changes waiting"
+badge the user can never clear.
+
+**What this means for the user.** Paid Projects data — including the record of
+money owed to them — does not survive a reinstall or a device change unless they
+export a local backup first (Settings → Backup, which does include these
+tables). Nothing in the UI says so.
+
+**To close it:** add migrations for the three tables with the same
+`auth.uid() = user_id` RLS policies as the rest, add remote data sources and
+mappers, add push/pull steps ordered after `tasks` (billing records reference
+projects), and remove the exclusion in `hasPendingWork`. Settings columns for
+Paid Projects defaults are also preserved local-only on pull
+(`preserveLocal` in `pullUserSettings`) and would need the same treatment.
+
 ---
 
 ## `user_settings`
@@ -168,6 +196,35 @@ Incremental pull uses `updated_at > lastPulledAt` per entity (see `SyncCursorSto
 Local `PENDING_*` rows always win over remote until pushed.
 
 `delete_own_account` removes tasks, shifts, refund claims, compensation profiles, user settings, profiles, and refund-receipt storage objects.
+
+### What the client assumes about RLS
+
+None of the `fetchUpdatedSince` queries filter by user. They rely entirely on the
+`*_select_own` policies to scope the result set, so a table added without an RLS
+policy leaks straight into every user's Room database.
+
+As a second layer, every pulled row is checked against the signed-in user before
+it is applied (`ownerOf` in `pullIncremental`) and skipped if it does not match.
+This is not redundant: `SyncWorker` resolves "who am I" from the
+`lastActiveUserId` preference while PostgREST resolves it from the session JWT,
+and the two can disagree. A non-zero count is reported to crash reporting — it
+means either RLS or the session is wrong, and neither should be discovered from a
+user's bug report.
+
+`profiles` is the one table whose owner column is `id`, not `user_id`
+(`profiles.id` *is* the auth uid).
+
+**Known gap, deliberately not closed.** PostgREST answers a `DELETE` with 204
+whether it removed a row or none, so a delete blocked by RLS is
+indistinguishable from a delete of a row that was already gone — and the push
+path marks both `SYNCED`. If a delete were ever blocked, the next pull would
+restore the row after the user had been told it was deleted. It is left alone
+because every table has a `*_delete_own` policy of `auth.uid() = user_id`, so
+this cannot happen for a user's own rows, while the benign already-deleted case
+(a retry after a lost response) is genuinely reachable — treating 0 affected rows
+as a failure would leave those rows permanently `FAILED` and permanently in the
+"unsynced changes" count. Closing it properly needs an existence probe after a
+0-row delete, not just the affected-row count.
 
 ---
 
