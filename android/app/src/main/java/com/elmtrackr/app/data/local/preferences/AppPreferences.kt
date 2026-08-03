@@ -2,9 +2,11 @@ package com.elmtrackr.app.data.local.preferences
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -12,8 +14,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
+/**
+ * These preferences are read during startup, so a corrupt file used to be an
+ * unrecoverable crash loop: the read threw, the throw reached the application
+ * scope's root `launch`, and the process died again on every relaunch. The
+ * corruption handler trades the stored values — theme, onboarding flag,
+ * dismissal state, all of them re-derivable or re-settable — for the app being
+ * able to start. None of this is user data; the shifts live in Room.
+ */
 val Context.appPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "app_preferences",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
 )
 
 object AppPreferenceKeys {

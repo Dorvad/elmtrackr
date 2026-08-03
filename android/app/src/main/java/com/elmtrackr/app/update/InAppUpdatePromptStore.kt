@@ -2,15 +2,20 @@ package com.elmtrackr.app.update
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.inAppUpdatePromptDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "in_app_update_prompt",
+    // Same reasoning as appPreferencesDataStore: none of this is user
+    // data, so a corrupt file should reset rather than crash the app.
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
 )
 
 /**

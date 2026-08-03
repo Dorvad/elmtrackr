@@ -41,6 +41,19 @@ object CrashReporting {
         }
     }
 
+    /**
+     * Reports a throwable that was handled rather than fatal.
+     *
+     * Used by the application scope's [kotlinx.coroutines.CoroutineExceptionHandler]:
+     * background work that fails should be visible without taking the process
+     * down. Safe to call when Sentry was never started — the SDK no-ops, and the
+     * `runCatching` guarantees a reporting failure cannot itself become the
+     * crash we were trying to avoid.
+     */
+    fun report(throwable: Throwable) {
+        runCatching { Sentry.captureException(throwable) }
+    }
+
     private fun start(context: Context) {
         SentryAndroid.init(context) { options ->
             options.dsn = BuildConfig.SENTRY_DSN
