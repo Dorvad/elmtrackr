@@ -11,30 +11,28 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import com.elmtrackr.app.ui.theme.AuroraIndigo
+import com.elmtrackr.app.ui.theme.AuroraShadow
+import com.elmtrackr.app.ui.theme.CornerRadius
+import com.elmtrackr.app.ui.theme.Elevation
+import com.elmtrackr.app.ui.theme.Layout
+import com.elmtrackr.app.ui.theme.auroraShadow
 
 @Composable
 fun ElmCard(
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 24.dp,
+    cornerRadius: Dp = CornerRadius.Large,
     containerColor: Color = MaterialTheme.colorScheme.surface,
+    elevation: AuroraShadow = Elevation.Card,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
     Card(
         modifier  = modifier
             .fillMaxWidth()
-            .shadow(
-                elevation    = 8.dp,
-                shape        = shape,
-                clip         = false,
-                ambientColor = AuroraIndigo.copy(alpha = 0.05f),
-                spotColor    = AuroraIndigo.copy(alpha = 0.34f),
-            )
+            .auroraShadow(elevation, shape)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
         shape     = shape,
         colors    = CardDefaults.cardColors(containerColor = containerColor),
@@ -46,14 +44,15 @@ fun ElmCard(
 @Composable
 fun ElmCardPadded(
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 24.dp,
+    cornerRadius: Dp = CornerRadius.Large,
+    elevation: AuroraShadow = Elevation.Card,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    ElmCard(modifier = modifier, cornerRadius = cornerRadius) {
+    ElmCard(modifier = modifier, cornerRadius = cornerRadius, elevation = elevation) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(Layout.cardPadding),
             content  = content,
         )
     }

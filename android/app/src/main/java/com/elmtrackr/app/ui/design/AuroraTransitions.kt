@@ -1,6 +1,5 @@
 package com.elmtrackr.app.ui.design
 
-import android.animation.ValueAnimator
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
@@ -12,10 +11,22 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalInspectionMode
 
-fun AnimatedContentTransitionScope<*>.auroraSubScreenTransition(forward: Boolean): ContentTransform {
-    if (!ValueAnimator.areAnimatorsEnabled()) {
+/**
+ * Slide-and-fade transition between a screen and its sub-screen.
+ *
+ * [motionEnabled] is a parameter rather than a `CompositionLocal` read because
+ * `transitionSpec` lambdas run outside composition. Pass `auroraMotionEnabled()`
+ * from the composable that owns the `AnimatedContent`; that is what honours the
+ * user's "reduce motion" setting. Reading `ValueAnimator.areAnimatorsEnabled()`
+ * here — as this used to — only sees the system animator scale and silently
+ * ignores the app's own preference.
+ */
+fun AnimatedContentTransitionScope<*>.auroraSubScreenTransition(
+    forward: Boolean,
+    motionEnabled: Boolean = true,
+): ContentTransform {
+    if (!motionEnabled) {
         return fadeIn(tween(0)) togetherWith fadeOut(tween(0))
     }
     return if (forward) {
@@ -38,7 +49,7 @@ fun <T> AuroraStateCrossfade(
     contentKey: (T) -> Any,
     content: @Composable (state: T) -> Unit,
 ) {
-    if (LocalInspectionMode.current || !ValueAnimator.areAnimatorsEnabled()) {
+    if (!auroraMotionEnabled()) {
         content(targetState)
         return
     }

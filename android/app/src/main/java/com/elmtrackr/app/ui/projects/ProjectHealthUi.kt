@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.projects.ProjectHealthFlag
 import com.elmtrackr.app.domain.projects.ProjectHealthIndicator
+import com.elmtrackr.app.ui.theme.auroraSemantics
 import kotlin.math.roundToInt
 
 /**
@@ -113,7 +114,7 @@ fun healthExplanation(flag: ProjectHealthFlag): String? = when (flag.indicator) 
 
 @Composable
 private fun healthColor(indicator: ProjectHealthIndicator): Color = when (indicator) {
-    ProjectHealthIndicator.ON_TRACK -> ProjectPaidGreen
+    ProjectHealthIndicator.ON_TRACK -> auroraSemantics.successInk
     ProjectHealthIndicator.NEAR_HOUR_BUDGET,
     ProjectHealthIndicator.PAYMENT_DUE_SOON,
     ProjectHealthIndicator.COMPLETED_NOT_BILLED -> MaterialTheme.colorScheme.tertiary

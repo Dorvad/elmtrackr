@@ -15,6 +15,7 @@ import com.elmtrackr.app.data.local.entity.TaskEntity
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import com.elmtrackr.app.data.local.dao.PremiumProfileDao
 import com.elmtrackr.app.data.local.entity.PremiumProfileEntity
+import com.elmtrackr.app.data.local.TransactionRunner
 import com.elmtrackr.app.data.remote.RemoteCompensationProfileDataSource
 import com.elmtrackr.app.data.remote.RemotePremiumProfileDataSource
 import com.elmtrackr.app.data.remote.toLocalEntity
@@ -33,6 +34,9 @@ import com.elmtrackr.app.data.remote.toLocalEntity
 import com.elmtrackr.app.data.remote.toRemoteInsert
 import com.elmtrackr.app.data.remote.toRemoteUpdate
 import com.elmtrackr.app.data.remote.toRemoteUpsert
+import com.elmtrackr.app.monitoring.CrashReporting
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,6 +61,7 @@ class SyncRepositoryImpl @Inject constructor(
     private val projectPaymentDao: com.elmtrackr.app.data.local.dao.ProjectPaymentDao,
     private val taskDao: TaskDao,
     private val profileDao: ProfileDao,
+    private val transactionRunner: TransactionRunner,
     private val syncCursorStore: SyncCursorStore,
     private val remoteTasks: RemoteTaskDataSource?,
     private val remoteShifts: RemoteShiftDataSource?,
@@ -85,6 +90,17 @@ class SyncRepositoryImpl @Inject constructor(
     // without serialization two runs can push the same PENDING_CREATE row twice.
     private val syncMutex = Mutex()
     private var tasksRemoteEnabled = true
+
+    /**
+     * Rows the server returned that belong to a different user, counted per run.
+     *
+     * Should always be zero. It is reported rather than only guarded against
+     * because a non-zero count means RLS is not doing its job or the app and the
+     * session disagree about who is signed in — neither is something to discover
+     * from a user's bug report. Guarded by [syncMutex] like the rest of the
+     * pipeline state.
+     */
+    private var foreignRowsThisRun = 0
 
     private data class PendingSyncSnapshot(
         val shifts: List<ShiftEntity>,
@@ -174,7 +190,12 @@ class SyncRepositoryImpl @Inject constructor(
             )
         }
 
-    override suspend fun exportLocalBackup(userId: String): String =
+    // Both backup paths declare their own dispatcher rather than trusting the
+    // caller: the ViewModel invokes them from viewModelScope (Main.immediate),
+    // and only the *file* read was wrapped there. Serialising the entire user
+    // database into one pretty-printed string, and parsing it back, were both
+    // running on the UI thread.
+    override suspend fun exportLocalBackup(userId: String): String = withContext(Dispatchers.IO) {
         LocalBackupExporter.export(
             userId = userId,
             taskDao = taskDao,
@@ -189,22 +210,73 @@ class SyncRepositoryImpl @Inject constructor(
             projectPaymentDao = projectPaymentDao,
             appVersion = com.elmtrackr.app.BuildConfig.VERSION_NAME,
         )
+    }
 
-    override suspend fun importLocalBackup(userId: String, json: String): BackupImportSummary =
-        LocalBackupImporter.import(
-            rawJson = json,
-            currentUserId = userId,
-            taskDao = taskDao,
-            shiftDao = shiftDao,
-            refundClaimDao = refundClaimDao,
-            settingsDao = settingsDao,
-            compensationProfileDao = compensationProfileDao,
-            premiumProfileDao = premiumProfileDao,
-            receiptDao = receiptDao,
-            projectDao = projectDao,
-            projectBillingRecordDao = projectBillingRecordDao,
-            projectPaymentDao = projectPaymentDao,
+    /**
+     * One transaction for the whole import.
+     *
+     * The importer writes eleven tables in sequence with cross-table references —
+     * shifts point at tasks and compensation profiles, billing records point at
+     * projects. Without a transaction, a failure part-way through (a malformed
+     * row late in the file, a constraint violation, the process being killed)
+     * left the database holding half a backup: shifts with dangling profile ids
+     * and a summary the user never saw. LocalUserDataCleaner and
+     * LegacyDataAdopter already work this way; this was the outlier.
+     */
+    override suspend fun importLocalBackup(userId: String, json: String): BackupImportSummary = withContext(Dispatchers.IO) {
+        transactionRunner.inTransaction {
+            LocalBackupImporter.import(
+                rawJson = json,
+                currentUserId = userId,
+                taskDao = taskDao,
+                shiftDao = shiftDao,
+                refundClaimDao = refundClaimDao,
+                settingsDao = settingsDao,
+                compensationProfileDao = compensationProfileDao,
+                premiumProfileDao = premiumProfileDao,
+                receiptDao = receiptDao,
+                projectDao = projectDao,
+                projectBillingRecordDao = projectBillingRecordDao,
+                projectPaymentDao = projectPaymentDao,
+            )
+        }
+    }
+
+    /**
+     * Reads the pending set once, reusing the same suspend getters the push
+     * phase uses.
+     */
+    private suspend fun pendingSnapshot(userId: String): PendingSyncSnapshot =
+        PendingSyncSnapshot(
+            shifts = shiftDao.getPendingSyncShifts(userId),
+            claims = refundClaimDao.getPendingSyncClaims(userId),
+            settings = settingsDao.getPendingSyncSettings(userId),
+            profiles = compensationProfileDao.getPendingSyncProfiles(userId),
+            premiumProfiles = premiumProfileDao.getPendingSyncProfiles(userId),
+            tasks = taskDao.getPendingSyncTasks(userId),
+            userProfiles = profileDao.getPendingSyncProfiles(userId),
         )
+
+    /**
+     * Whether a follow-up sync could plausibly make progress.
+     *
+     * [hasPendingWork] counts `FAILED` too, which is correct for a "you have
+     * unsynced changes" badge and wrong as a trigger to sync again: a row that
+     * can never succeed — a duplicate refund claim, a server-side constraint,
+     * a missing table — kept `hasPendingWork` true forever, and SyncWorker
+     * responded by enqueueing another immediate run. That is an unbounded loop
+     * of network calls and Room writes, and MAX_RETRY_ATTEMPTS does not bound it
+     * because every follow-up is a fresh request with runAttemptCount == 0.
+     *
+     * Only rows that are pending for a reason other than a recorded failure
+     * justify an immediate retry. `FAILED` rows are picked up by the 15-minute
+     * periodic sync instead, which is the right cadence for something that needs
+     * a server-side or user-side change first.
+     */
+    override suspend fun hasRetryablePendingWork(userId: String): Boolean {
+        val snapshot = pendingSnapshot(userId)
+        return snapshot.pendingCount > snapshot.failedCount
+    }
 
     override suspend fun hasPendingWork(userId: String): Boolean =
         shiftDao.hasPendingSyncShifts(userId) ||
@@ -252,6 +324,7 @@ class SyncRepositoryImpl @Inject constructor(
         return runCatching {
             val issues = PipelineIssues()
             val warnings = issues.warnings
+            foreignRowsThisRun = 0
 
             runSyncStep("reconcile", issues) { reconcileNeverSynced(userId) }
             runSyncStep("push tasks", issues) { pushTasks(userId, warnings) }
@@ -271,6 +344,8 @@ class SyncRepositoryImpl @Inject constructor(
             runSyncStep("pull shifts", issues) { pullShifts(userId) }
             runSyncStep("pull refund claims", issues) { pullRefundClaims(userId) }
 
+            reportForeignRows()
+
             when {
                 issues.authExpired -> {
                     lastSyncStatus.value = AUTH_EXPIRED_STATUS
@@ -281,11 +356,24 @@ class SyncRepositoryImpl @Inject constructor(
                     SyncResult.Error(issues.errors.joinToString("; "))
                 }
                 warnings.isNotEmpty() -> {
-                    lastSyncStatus.value = "Synced with warnings: ${warnings.joinToString("; ")}"
+                    // A machine marker, not a sentence. The old value began
+                    // with "Synced ", so SyncStatusText matched it as a
+                    // timestamp, failed to parse and rendered the raw English.
+                    // Keep this in step with SyncStatusText's prefixes.
+                    lastSyncStatus.value = "SyncedWarn: ${warnings.joinToString("; ")}"
                     SyncResult.Success
                 }
                 else -> {
-                    lastSyncStatus.value = "Synced ${Instant.now()}"
+                    // Per-row push failures are recorded on the row, not on the
+                    // step, so they never reach `issues` — which meant a sync
+                    // where every pending row failed still reported a clean
+                    // "Synced <time>". Check the rows themselves before saying so.
+                    val failed = pendingSnapshot(userId).failedCount
+                    lastSyncStatus.value = if (failed > 0) {
+                        "$UNSENT_STATUS_PREFIX $failed"
+                    } else {
+                        "Synced ${Instant.now()}"
+                    }
                     SyncResult.Success
                 }
             }
@@ -341,6 +429,23 @@ class SyncRepositoryImpl @Inject constructor(
         profileDao.markNeverSyncedPendingUpdate(userId)
     }
 
+    /**
+     * Surfaces an ownership mismatch to crash reporting without surfacing it to
+     * the user: nothing about it is actionable from the app, and the local data
+     * is intact because the rows were skipped. Deliberately not a warning on the
+     * sync status for that reason.
+     */
+    private fun reportForeignRows() {
+        val count = foreignRowsThisRun
+        if (count == 0) return
+        CrashReporting.report(
+            IllegalStateException(
+                "Sync pull received $count row(s) belonging to another user; " +
+                    "rows were skipped. Check RLS policies and the signed-in session.",
+            ),
+        )
+    }
+
     private data class PullOutcome(
         val seenRemoteIds: Set<String>,
         val isFullSync: Boolean,
@@ -360,6 +465,14 @@ class SyncRepositoryImpl @Inject constructor(
      * [applyRow] returns false when a row cannot be applied yet (e.g. its local
      * parent row is missing); the cursor is then held at that row's updated_at so a
      * later sync re-fetches it (the remote query uses gte).
+     *
+     * [ownerOf] is a second layer of defence behind RLS. None of the remote
+     * queries filter by user — they rely entirely on the policies to scope the
+     * result set — and [SyncWorker] resolves "who am I" from a stored preference
+     * while PostgREST resolves it from the session JWT, so the two can disagree
+     * (a sign-out that loses the preference write, an account switch mid-sync).
+     * A row that does not belong to [userId] is skipped rather than written into
+     * this user's Room database.
      */
     private suspend fun <Row> pullIncremental(
         userId: String,
@@ -367,6 +480,7 @@ class SyncRepositoryImpl @Inject constructor(
         fetchPage: suspend (sinceIso: String?) -> List<Row>,
         updatedAtIso: (Row) -> String,
         remoteIdOf: (Row) -> String,
+        ownerOf: (Row) -> String,
         applyRow: suspend (Row) -> Boolean,
     ): PullOutcome {
         val initialCursor = syncCursorStore.lastPulledAt(userId, entity)
@@ -393,6 +507,17 @@ class SyncRepositoryImpl @Inject constructor(
             for (row in batch) {
                 seenRemoteIds += remoteIdOf(row)
                 val rowEpoch = isoToEpoch(updatedAtIso(row))
+                // The cursor still advances past a foreign row and its id still
+                // counts as seen: holding the cursor would stall the pull on a row
+                // that will never be applicable, and excluding it from
+                // seenRemoteIds would let the tombstone pass delete a local row
+                // that happened to share the id. Keeping local data beats
+                // deleting it, here as elsewhere in this pipeline.
+                if (ownerOf(row) != userId) {
+                    foreignRowsThisRun++
+                    maxEpoch = maxOf(maxEpoch, rowEpoch)
+                    continue
+                }
                 if (!applyRow(row)) {
                     holdEpoch = minOf(holdEpoch ?: rowEpoch, rowEpoch)
                 }
@@ -487,6 +612,7 @@ class SyncRepositoryImpl @Inject constructor(
                 fetchPage = { since -> tasksRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
                 updatedAtIso = { it.updatedAt },
                 remoteIdOf = { it.id },
+                ownerOf = { it.userId },
             ) { remote ->
                 val existing = taskDao.getByRemoteId(remote.id)
                 when {
@@ -596,16 +722,15 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pullShifts(userId: String) {
-        val localActiveExists = shiftDao.getActiveShifts(userId).isNotEmpty()
-
         val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_SHIFTS,
             fetchPage = { since -> shiftsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
+            ownerOf = { it.userId },
         ) { remote ->
-            applyRemoteShift(userId, remote, localActiveExists)
+            applyRemoteShift(userId, remote)
         }
 
         if (outcome.safeToTombstone) {
@@ -620,7 +745,6 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun applyRemoteShift(
         userId: String,
         remote: RemoteShiftRow,
-        localActiveExists: Boolean,
     ): Boolean {
         val existing = shiftDao.getShiftByRemoteId(remote.id)
         if (existing != null) {
@@ -681,7 +805,13 @@ class SyncRepositoryImpl @Inject constructor(
 
         // Never materialize a second running shift; hold the cursor so this row is
         // pulled once the local active shift ends (or the remote one is clocked out).
-        if (remote.endTime == null && localActiveExists) return false
+        //
+        // Read here rather than once before the pull. A snapshot taken up front is
+        // false for every row in the batch, so two open remote shifts — two
+        // devices that both clocked in — were both materialised and the user ended
+        // up with two running shifts. Only reached for open-ended rows that matched
+        // nothing locally, so the extra query is rare.
+        if (remote.endTime == null && shiftDao.getActiveShifts(userId).isNotEmpty()) return false
         shiftDao.insertShift(
             remote.toLocalEntity(
                 compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
@@ -758,6 +888,7 @@ class SyncRepositoryImpl @Inject constructor(
             fetchPage = { since -> claimsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
+            ownerOf = { it.userId },
         ) { remote ->
             // Parent shift not pulled yet (e.g. the shifts step failed this run):
             // hold the cursor so the claim is re-fetched once the shift exists.
@@ -858,6 +989,7 @@ class SyncRepositoryImpl @Inject constructor(
             fetchPage = { since -> compensationRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
+            ownerOf = { it.userId },
         ) { remote ->
             val existing = compensationProfileDao.getByRemoteId(remote.id)
             when {
@@ -951,6 +1083,7 @@ class SyncRepositoryImpl @Inject constructor(
             fetchPage = { since -> premiumRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
+            ownerOf = { it.userId },
         ) { remote ->
             val existing = premiumProfileDao.getByRemoteId(remote.id)
             when {
@@ -1036,6 +1169,7 @@ class SyncRepositoryImpl @Inject constructor(
             fetchPage = { since -> settingsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
+            ownerOf = { it.userId },
         ) { remote ->
             val profileLocalId = idMapper.profileRemoteToLocal(remote.defaultCompensationProfileId)
             val existing = settingsDao.getSettingsByRemoteId(remote.id)
@@ -1104,6 +1238,8 @@ class SyncRepositoryImpl @Inject constructor(
             fetchPage = { since -> profilesRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
+            // profiles.id IS the auth uid — there is no separate user_id column.
+            ownerOf = { it.id },
         ) { remote ->
             val existing = profileDao.getProfile(userId)
             when {
@@ -1133,6 +1269,14 @@ class SyncRepositoryImpl @Inject constructor(
                 "Apply supabase/migrations/20250628000000_tasks.sql, then sync again."
         const val AUTH_EXPIRED_STATUS =
             "Session expired — sign in again to resume syncing. Your data is safe on this device."
+
+        /**
+         * Machine marker followed by a count, not display text — do not
+         * translate. SyncStatusText turns it into a localized sentence; the
+         * count is passed rather than formatted here so Hebrew users do not get
+         * an English status line. Keep in step with SyncStatusText.UNSENT_PREFIX.
+         */
+        const val UNSENT_STATUS_PREFIX = "SyncedUnsent:"
         const val REMOTES_NOT_CONFIGURED =
             "Sync pipeline invoked without configured remote data sources; syncAll must gate on configuration first."
     }

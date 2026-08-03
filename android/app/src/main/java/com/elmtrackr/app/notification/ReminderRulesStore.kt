@@ -2,9 +2,11 @@ package com.elmtrackr.app.notification
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -12,6 +14,9 @@ import kotlinx.coroutines.flow.map
 
 private val Context.reminderRulesDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "reminder_rules",
+    // Same reasoning as appPreferencesDataStore: none of this is user
+    // data, so a corrupt file should reset rather than crash the app.
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
 )
 
 /**

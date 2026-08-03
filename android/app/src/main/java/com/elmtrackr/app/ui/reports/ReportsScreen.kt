@@ -21,6 +21,9 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -73,6 +76,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -80,7 +84,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.DailyInsight
-import com.elmtrackr.app.domain.InsightColor
+import com.elmtrackr.app.domain.HoursFormatter
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.OvernightShiftDetector
@@ -102,6 +106,8 @@ import com.elmtrackr.app.ui.design.AuroraScreen
 import com.elmtrackr.app.ui.design.AuroraStateCrossfade
 import com.elmtrackr.app.ui.design.LocalReduceMotion
 import com.elmtrackr.app.ui.layout.isTabletLayout
+import com.elmtrackr.app.ui.design.ElmDistributionBar
+import com.elmtrackr.app.ui.design.ElmDistributionLegend
 import com.elmtrackr.app.ui.design.ElmEmptyState
 import com.elmtrackr.app.ui.design.ElmStatCard
 import com.elmtrackr.app.ui.design.ElmStatVariant
@@ -116,6 +122,11 @@ import com.elmtrackr.app.ui.theme.AuroraAquaDeep
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeach
 import com.elmtrackr.app.ui.theme.AuroraPlum
+import com.elmtrackr.app.ui.theme.AuroraSuccess
+import com.elmtrackr.app.ui.theme.AuroraSuccessDeep
+import com.elmtrackr.app.ui.theme.gradientBrush
+import com.elmtrackr.app.ui.theme.subTextColor
+import com.elmtrackr.app.ui.theme.auroraSemantics
 import com.elmtrackr.app.ui.theme.AuroraPeachDeep
 import com.elmtrackr.app.ui.theme.auroraOvertimeBackground
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
@@ -130,28 +141,6 @@ import java.util.Locale
 import kotlin.math.abs
 
 private enum class ReportTab { HOURS, REFUNDS, PROJECTS }
-
-// ── Insight color palette ─────────────────────────────────────────────────────
-
-private val InsightColor.gradientBrush: Brush
-    get() = when (this) {
-        InsightColor.INDIGO  -> Brush.linearGradient(listOf(Color(0xFF5B4DF2), Color(0xFF7C3AED)))
-        InsightColor.VIOLET  -> Brush.linearGradient(listOf(Color(0xFF7C3AED), Color(0xFF6D28D9)))
-        InsightColor.EMERALD -> Brush.linearGradient(listOf(Color(0xFF10B981), Color(0xFF0D9488)))
-        InsightColor.AMBER   -> Brush.linearGradient(listOf(Color(0xFFF59E0B), Color(0xFFEA580C)))
-        InsightColor.ROSE    -> Brush.linearGradient(listOf(Color(0xFFF43F5E), Color(0xFFDB2777)))
-        InsightColor.SKY     -> Brush.linearGradient(listOf(Color(0xFF0EA5E9), Color(0xFF2563EB)))
-    }
-
-private val InsightColor.subTextColor: Color
-    get() = when (this) {
-        InsightColor.INDIGO  -> Color(0xFFBFB8FF)
-        InsightColor.VIOLET  -> Color(0xFFD8B4FE)
-        InsightColor.EMERALD -> Color(0xFFA7F3D0)
-        InsightColor.AMBER   -> Color(0xFFFDE68A)
-        InsightColor.ROSE    -> Color(0xFFFDA4AF)
-        InsightColor.SKY     -> Color(0xFFBAE6FD)
-    }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -272,12 +261,14 @@ fun ReportsScreen(
                             com.elmtrackr.app.ui.projects.ProjectReportSection(
                                 report = projectReport,
                                 onExportCsv = {
-                                    ReportExporter.shareCsv(
-                                        context,
-                                        viewModel.buildProjectCsv(projectReport),
-                                        viewModel.projectCsvFilename(projectReport),
-                                    )
-                                    viewModel.onReportExported()
+                                    scope.launch {
+                                        ReportExporter.shareCsv(
+                                            context,
+                                            viewModel.buildProjectCsv(projectReport),
+                                            viewModel.projectCsvFilename(projectReport),
+                                        )
+                                        viewModel.onReportExported()
+                                    }
                                 },
                             )
                         } ?: ReportsEmptyContent()
@@ -291,21 +282,25 @@ fun ReportsScreen(
                                 onNextMonth = viewModel::nextMonth,
                                 canGoNext = canGoNext,
                                 onExportCsv = {
-                                    ReportExporter.shareCsv(
-                                        context,
-                                        viewModel.buildCsvContent(
-                                            state.rawShifts,
-                                            state.settings,
-                                            state.year,
-                                            state.month,
-                                        ),
-                                        viewModel.csvFilename(state.year, state.month),
-                                    )
-                                    viewModel.onReportExported()
+                                    scope.launch {
+                                        ReportExporter.shareCsv(
+                                            context,
+                                            viewModel.buildCsvContent(
+                                                state.rawShifts,
+                                                state.settings,
+                                                state.year,
+                                                state.month,
+                                            ),
+                                            viewModel.csvFilename(state.year, state.month),
+                                        )
+                                        viewModel.onReportExported()
+                                    }
                                 },
                                 onExportPdf = {
-                                    ReportExporter.shareShiftPdf(context, state)
-                                    viewModel.onReportExported()
+                                    scope.launch {
+                                        ReportExporter.shareShiftPdf(context, state)
+                                        viewModel.onReportExported()
+                                    }
                                 },
                             )
                         }
@@ -362,7 +357,17 @@ private fun TabButton(label: String, selected: Boolean, modifier: Modifier, onCl
         modifier = modifier
             .auroraPressScale(interactionSource)
             .background(backgroundBrush, RoundedCornerShape(CornerRadius.Medium))
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            // selectable rather than clickable so the tab announces its role and
+            // its selected state; heightIn brings a 10dp-padded pill up to the
+            // 48dp minimum target.
+            .selectable(
+                selected = selected,
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Tab,
+                onClick = onClick,
+            )
+            .heightIn(min = 48.dp)
             .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -503,20 +508,20 @@ private fun PhoneHoursReportTop(
             }
         }
         Spacer(Modifier.height(14.dp))
-        DistributionBar(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
+        ElmDistributionBar(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
         Spacer(Modifier.height(8.dp))
-        DistributionLegend(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
+        ElmDistributionLegend(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
     }
 
     Spacer(Modifier.height(14.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        ElmStatCard(stringResource(R.string.dashboard_stat_total), stringResource(R.string.reports_hours_value, formatHoursDecimal(report.totalMinutes)), Modifier.weight(1f), variant = ElmStatVariant.PRIMARY)
-        ElmStatCard(stringResource(R.string.dashboard_stat_regular), stringResource(R.string.reports_hours_value, formatHoursDecimal(report.regularMinutes)), Modifier.weight(1f))
+        ElmStatCard(stringResource(R.string.dashboard_stat_total), stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.totalMinutes)), Modifier.weight(1f), variant = ElmStatVariant.PRIMARY)
+        ElmStatCard(stringResource(R.string.dashboard_stat_regular), stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.regularMinutes)), Modifier.weight(1f))
     }
     Spacer(Modifier.height(10.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        ElmStatCard(stringResource(R.string.dashboard_stat_overtime), stringResource(R.string.reports_hours_value, formatHoursDecimal(report.overtimeMinutes)), Modifier.weight(1f), variant = ElmStatVariant.OVERTIME)
-        ElmStatCard(stringResource(R.string.dashboard_stat_weekend), stringResource(R.string.reports_hours_value, formatHoursDecimal(report.weekendMinutes)), Modifier.weight(1f), variant = ElmStatVariant.WEEKEND)
+        ElmStatCard(stringResource(R.string.dashboard_stat_overtime), stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.overtimeMinutes)), Modifier.weight(1f), variant = ElmStatVariant.OVERTIME)
+        ElmStatCard(stringResource(R.string.dashboard_stat_weekend), stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.weekendMinutes)), Modifier.weight(1f), variant = ElmStatVariant.WEEKEND)
     }
 }
 
@@ -551,27 +556,27 @@ private fun TabletHoursReportTop(
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         ElmStatCard(
             label = stringResource(R.string.dashboard_stat_total),
-            value = stringResource(R.string.reports_hours_value, formatHoursDecimal(report.totalMinutes)),
+            value = stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.totalMinutes)),
             sub = stringResource(R.string.reports_all_hours_month),
             variant = ElmStatVariant.PRIMARY,
             modifier = Modifier.weight(1f),
         )
         ElmStatCard(
             label = stringResource(R.string.dashboard_stat_regular),
-            value = stringResource(R.string.reports_hours_value, formatHoursDecimal(report.regularMinutes)),
+            value = stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.regularMinutes)),
             sub = totalPct?.let { stringResource(R.string.reports_pct_of_total, report.regularMinutes * 100 / it) },
             modifier = Modifier.weight(1f),
         )
         ElmStatCard(
             label = stringResource(R.string.dashboard_stat_overtime),
-            value = stringResource(R.string.reports_hours_value, formatHoursDecimal(report.overtimeMinutes)),
+            value = stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.overtimeMinutes)),
             sub = totalPct?.let { stringResource(R.string.reports_pct_of_total, report.overtimeMinutes * 100 / it) },
             variant = ElmStatVariant.OVERTIME,
             modifier = Modifier.weight(1f),
         )
         ElmStatCard(
             label = stringResource(R.string.dashboard_stat_weekend),
-            value = stringResource(R.string.reports_hours_value, formatHoursDecimal(report.weekendMinutes)),
+            value = stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.weekendMinutes)),
             sub = totalPct?.let { stringResource(R.string.reports_pct_of_total, report.weekendMinutes * 100 / it) },
             variant = ElmStatVariant.WEEKEND,
             modifier = Modifier.weight(1f),
@@ -629,9 +634,9 @@ private fun TabletHoursReportTop(
                 }
             }
             Spacer(Modifier.height(14.dp))
-            DistributionBar(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
+            ElmDistributionBar(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
             Spacer(Modifier.height(8.dp))
-            DistributionLegend(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
+            ElmDistributionLegend(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
         }
     }
 
@@ -653,7 +658,7 @@ private fun TabletHoursReportTop(
                     modifier = Modifier
                         .weight(1.6f)
                         .background(
-                            Brush.linearGradient(listOf(Color(0xFF10B981), Color(0xFF0D9488))),
+                            Brush.linearGradient(listOf(AuroraSuccess, AuroraSuccessDeep)),
                             RoundedCornerShape(CornerRadius.Large),
                         )
                         .padding(20.dp),
@@ -738,7 +743,7 @@ internal fun HoursReport(
     if (!isTablet && state.previousMonthMinutes > 0) {
         val delta = report.totalMinutes - state.previousMonthMinutes
         val deltaColor = when {
-            delta > 0 -> Color(0xFF10B981)
+            delta > 0 -> auroraSemantics.successInk
             delta < 0 -> Color(0xFFF43F5E)
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
@@ -755,12 +760,12 @@ internal fun HoursReport(
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    stringResource(R.string.reports_hours_this_month, formatHoursDecimal(report.totalMinutes)),
+                    stringResource(R.string.reports_hours_this_month, HoursFormatter.decimal(report.totalMinutes)),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    stringResource(R.string.reports_vs_prev, arrow, formatHoursDecimal(abs(delta)), prevMonthName),
+                    stringResource(R.string.reports_vs_prev, arrow, HoursFormatter.decimal(abs(delta)), prevMonthName),
                     color = deltaColor,
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.labelMedium,
@@ -772,7 +777,7 @@ internal fun HoursReport(
     if (isTablet && state.previousMonthMinutes > 0) {
         val delta = report.totalMinutes - state.previousMonthMinutes
         val deltaColor = when {
-            delta > 0 -> Color(0xFF10B981)
+            delta > 0 -> auroraSemantics.successInk
             delta < 0 -> Color(0xFFF43F5E)
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
@@ -789,12 +794,12 @@ internal fun HoursReport(
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    stringResource(R.string.reports_hours_this_month, formatHoursDecimal(report.totalMinutes)),
+                    stringResource(R.string.reports_hours_this_month, HoursFormatter.decimal(report.totalMinutes)),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    stringResource(R.string.reports_vs_prev, arrow, formatHoursDecimal(abs(delta)), prevMonthName),
+                    stringResource(R.string.reports_vs_prev, arrow, HoursFormatter.decimal(abs(delta)), prevMonthName),
                     color = deltaColor,
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.labelMedium,
@@ -897,8 +902,8 @@ internal fun HoursReport(
                 value = ShiftDurationCalculator.formatMinutes(insights.longestShiftMinutes),
                 sub = insights.longestShift?.startTime?.atZone(state.zone)
                     ?.format(DateTimeFormatter.ofPattern("MMM d", appLocale())),
-                accentColor = Color(0xFF10B981),
-                bgColor = Color(0xFF10B981).copy(alpha = 0.10f),
+                accentColor = auroraSemantics.successInk,
+                bgColor = auroraSemantics.success.copy(alpha = 0.10f),
                 modifier = Modifier.weight(1f),
             )
         }
@@ -1071,19 +1076,31 @@ private fun InsightOfTheDay(insights: List<DailyInsight>) {
                     insights.forEachIndexed { i, _ ->
                         val isActive = i == activeIdx
                         val dotWidth by animateFloatAsState(if (isActive) 20f else 6f, label = "dot-$i")
+                        // The 6dp dot is the visual; the tap target around it is
+                        // the 48dp minimum. Previously the dot itself was the
+                        // target, which is smaller than a fingertip.
                         Box(
-                            Modifier
-                                .padding(horizontal = 3.dp)
-                                .height(6.dp)
-                                .width(dotWidth.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(if (isActive) AuroraIndigo else MaterialTheme.colorScheme.outlineVariant)
-                                .clickable {
-                                    dotScope.launch {
-                                        scrollState.scrollTo((i * cardStridePx).toInt())
-                                    }
-                                },
-                        )
+                            modifier = Modifier
+                                .selectable(
+                                    selected = isActive,
+                                    role = Role.Tab,
+                                    onClick = {
+                                        dotScope.launch {
+                                            scrollState.scrollTo((i * cardStridePx).toInt())
+                                        }
+                                    },
+                                )
+                                .minimumInteractiveComponentSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(
+                                Modifier
+                                    .height(6.dp)
+                                    .width(dotWidth.dp)
+                                    .clip(RoundedCornerShape(50))
+                                    .background(if (isActive) AuroraIndigo else MaterialTheme.colorScheme.outlineVariant),
+                            )
+                        }
                     }
                 }
             }
@@ -1096,7 +1113,7 @@ private fun InsightCard(insight: DailyInsight, index: Int, total: Int, cardWidth
     Box(
         modifier = Modifier
             .width(cardWidth)
-            .background(insight.color.gradientBrush, RoundedCornerShape(CornerRadius.Large))
+            .background(insight.color.gradientBrush(), RoundedCornerShape(CornerRadius.Large))
             .padding(20.dp),
     ) {
         Column {
@@ -1136,9 +1153,9 @@ private fun InsightCard(insight: DailyInsight, index: Int, total: Int, cardWidth
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                buildBoldAnnotatedString(insight.text.asString(), insight.color.subTextColor),
+                buildBoldAnnotatedString(insight.text.asString(), insight.color.subTextColor()),
                 style = MaterialTheme.typography.bodySmall,
-                color = insight.color.subTextColor,
+                color = insight.color.subTextColor(),
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1249,7 +1266,7 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: String) {
                 modifier = Modifier.weight(1f),
             )
             Text(
-                stringResource(R.string.reports_hours_value, formatHoursDecimal(task.totalMinutes)),
+                stringResource(R.string.reports_hours_value, HoursFormatter.decimal(task.totalMinutes)),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -1257,7 +1274,7 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: String) {
         Spacer(Modifier.height(6.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                stringResource(R.string.reports_task_shifts_avg, task.shiftCount, formatHoursDecimal(task.averageShiftMinutes)),
+                stringResource(R.string.reports_task_shifts_avg, task.shiftCount, HoursFormatter.decimal(task.averageShiftMinutes)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1272,7 +1289,7 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: String) {
         }
         if (task.overtimeMinutes > 0) {
             Text(
-                stringResource(R.string.reports_ot_hours, formatHoursDecimal(task.overtimeMinutes)),
+                stringResource(R.string.reports_ot_hours, HoursFormatter.decimal(task.overtimeMinutes)),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuroraPeachDeep,
                 modifier = Modifier.padding(top = 4.dp),
@@ -1329,7 +1346,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (showDelta) {
                     val deltaColor = when {
-                        delta > 0 -> Color(0xFF10B981)
+                        delta > 0 -> auroraSemantics.successInk
                         delta < 0 -> Color(0xFFF43F5E)
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
@@ -1348,7 +1365,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(
-                    if (week.totalMinutes > 0) stringResource(R.string.reports_hours_value, formatHoursDecimal(week.totalMinutes)) else "—",
+                    if (week.totalMinutes > 0) stringResource(R.string.reports_hours_value, HoursFormatter.decimal(week.totalMinutes)) else "—",
                     fontWeight = FontWeight.ExtraBold,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
@@ -1549,11 +1566,19 @@ private fun RefundReview(
                 exportingAll = true
                 scope.launch {
                     try {
-                        val pdfRows = exportRows.map { (shift, claim) ->
-                            val bitmap = claim.receiptPath?.let { viewModel.receiptUrl(it) }?.let { ReportExporter.loadReceipt(it) }
-                            RefundPdfRow(shift, claim, bitmap)
+                        val pdfRows = exportRows.map { (shift, claim) -> RefundPdfRow(shift, claim) }
+                        ReportExporter.shareRefundPdf(
+                            context = context,
+                            rows = pdfRows,
+                            filenameSuffix = "all-months",
+                            periodLabel = allMonthsLabel,
+                            currency = currency,
+                            zone = state.zone,
+                        ) { row ->
+                            row.claim.receiptPath
+                                ?.let { viewModel.receiptUrl(it) }
+                                ?.let { ReportExporter.loadReceipt(context, it) }
                         }
-                        ReportExporter.shareRefundPdf(context, pdfRows, "all-months", allMonthsLabel, currency, state.zone)
                         viewModel.onReportExported()
                     } finally { exportingAll = false }
                 }
@@ -1587,24 +1612,44 @@ private fun RefundReview(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     Spacer(Modifier.height(8.dp))
-    val months = reimbursableShifts.map { YearMonth.from(it.startTime.atZone(state.zone)) }.distinct().sortedDescending()
-    months.forEach { month ->
-        val monthShifts = reimbursableShifts.filter { YearMonth.from(it.startTime.atZone(state.zone)) == month }
-        val monthShiftIds = monthShifts.mapTo(mutableSetOf()) { it.id }
+    // One grouping pass instead of a nested scan, and remembered so it does not
+    // re-run on every recomposition of this screen. The previous form called
+    // atZone once per shift per month — O(months × shifts) ZonedDateTime
+    // allocations for a list that had not changed.
+    val shiftsByMonth = remember(reimbursableShifts, state.zone) {
+        reimbursableShifts
+            .groupBy { YearMonth.from(it.startTime.atZone(state.zone)) }
+            .toSortedMap(compareByDescending { it })
+    }
+    val claimsByMonth = remember(shiftsByMonth, claims) {
+        val monthOfShift = shiftsByMonth.entries
+            .flatMap { (month, shifts) -> shifts.map { it.id to month } }
+            .toMap()
+        claims.groupBy { monthOfShift[it.shiftId] }
+    }
+    shiftsByMonth.forEach { (month, monthShifts) ->
         RefundMonthCard(
             month = month,
             shifts = monthShifts,
-            claims = claims.filter { it.shiftId in monthShiftIds },
+            claims = claimsByMonth[month].orEmpty(),
             onViewReceipt = onViewReceipt,
             onNavigateToShift = onNavigateToShift,
             onExport = { rows, onDone ->
                 scope.launch {
                     try {
-                        val pdfRows = rows.map { (shift, claim) ->
-                            val bitmap = claim.receiptPath?.let { viewModel.receiptUrl(it) }?.let { ReportExporter.loadReceipt(it) }
-                            RefundPdfRow(shift, claim, bitmap)
+                        val pdfRows = rows.map { (shift, claim) -> RefundPdfRow(shift, claim) }
+                        ReportExporter.shareRefundPdf(
+                            context = context,
+                            rows = pdfRows,
+                            year = month.year,
+                            month = month.monthValue,
+                            currency = currency,
+                            zone = state.zone,
+                        ) { row ->
+                            row.claim.receiptPath
+                                ?.let { viewModel.receiptUrl(it) }
+                                ?.let { ReportExporter.loadReceipt(context, it) }
                         }
-                        ReportExporter.shareRefundPdf(context, pdfRows, month.year, month.monthValue, currency, state.zone)
                         viewModel.onReportExported()
                     } finally { onDone() }
                 }
@@ -1803,7 +1848,7 @@ private fun DistributionHeader(report: com.elmtrackr.app.domain.model.MonthlyRep
     Column(modifier) {
         SectionLabel(stringResource(R.string.reports_hours_distribution))
         Text(
-            stringResource(R.string.shifts_hours_value_spaced, formatHoursDecimal(report.totalMinutes)),
+            stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(report.totalMinutes)),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
             maxLines = 1,
@@ -1818,59 +1863,6 @@ private fun DistributionHeader(report: com.elmtrackr.app.domain.model.MonthlyRep
 }
 
 @OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun DistributionLegend(regular: Int, overtime: Int, weekend: Int) {
-    val total = (regular + overtime + weekend).coerceAtLeast(1)
-    val items = listOf(
-        Triple(stringResource(R.string.dashboard_stat_regular), regular, AuroraIndigo),
-        Triple(stringResource(R.string.dashboard_stat_overtime), overtime, AuroraPeach),
-        Triple(stringResource(R.string.dashboard_stat_weekend), weekend, AuroraPlum),
-    )
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items.forEach { (label, minutes, color) ->
-            SegmentLegendRow(
-                label = label,
-                minutes = minutes,
-                color = color,
-                percent = ((minutes.toFloat() / total) * 100).toInt(),
-            )
-        }
-    }
-}
-
-@Composable
-private fun SegmentLegendRow(label: String, minutes: Int, color: Color, percent: Int) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(8.dp).background(color, RoundedCornerShape(50)))
-            Spacer(Modifier.width(8.dp))
-            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.width(6.dp))
-            Text("$percent%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Text(
-            stringResource(R.string.reports_hours_value, formatHoursDecimal(minutes)),
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
-}
-
-@Composable
-private fun DistributionBar(regular: Int, overtime: Int, weekend: Int) {
-    val total = (regular + overtime + weekend).coerceAtLeast(1)
-    Row(Modifier.fillMaxWidth().height(10.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        if (regular > 0) Box(Modifier.weight(regular.toFloat() / total).height(10.dp).background(AuroraIndigo, RoundedCornerShape(6.dp)))
-        if (overtime > 0) Box(Modifier.weight(overtime.toFloat() / total).height(10.dp).background(AuroraPeach, RoundedCornerShape(6.dp)))
-        if (weekend > 0) Box(Modifier.weight(weekend.toFloat() / total).height(10.dp).background(AuroraPlum, RoundedCornerShape(6.dp)))
-    }
-}
-
 @Composable
 private fun StatCard(label: String, value: String, color: Color, modifier: Modifier) {
     val shape = RoundedCornerShape(CornerRadius.Medium)
@@ -2006,4 +1998,3 @@ private fun refundStatus(action: RefundAction?): String = stringResource(
 
 private fun Month.displayName(locale: Locale): String =
     getDisplayName(JavaTextStyle.FULL_STANDALONE, locale).replaceFirstChar { it.uppercase(locale) }
-private fun formatHoursDecimal(minutes: Int): String = "%.1f".format(Locale.US, minutes / 60.0)

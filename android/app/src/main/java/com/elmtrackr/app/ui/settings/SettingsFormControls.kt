@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -36,6 +37,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
@@ -60,6 +62,7 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -297,78 +300,6 @@ internal fun CurrencyDropdown(selected: CurrencyCode, onSelect: (CurrencyCode) -
                     onClick = { onSelect(currency); expanded = false },
                 )
             }
-        }
-    }
-}
-
-@Composable
-internal fun ClockStyleDropdown(selected: ClockStyle, onSelect: (ClockStyle) -> Unit) {
-    Column {
-        Text(stringResource(R.string.settings_watch_face), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        Text(
-            stringResource(R.string.settings_watch_face_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(10.dp))
-        SUPPORTED_CLOCK_STYLES.chunked(2).forEach { styles ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                styles.forEach { style ->
-                    val isSelected = style == selected
-                    Box(modifier = Modifier.weight(1f)) {
-                        Card(
-                            onClick = { onSelect(style) },
-                            modifier = Modifier.fillMaxWidth().then(
-                                if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(CornerRadius.Medium))
-                                else Modifier,
-                            ),
-                            shape = RoundedCornerShape(CornerRadius.Medium),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceVariant,
-                            ),
-                        ) {
-                            Column(
-                                Modifier.fillMaxWidth().padding(10.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                            ) {
-                                WatchFacePreview(style, isSelected)
-                                Spacer(Modifier.height(6.dp))
-                                Text(
-                                    clockStyleDisplayName(style),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                Text(
-                                    watchFaceDescription(style),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                )
-                            }
-                        }
-                        if (isSelected) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(6.dp)
-                                    .size(18.dp)
-                                    .background(MaterialTheme.colorScheme.primary, CircleShape),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    Icons.Filled.Check,
-                                    contentDescription = stringResource(R.string.settings_selected),
-                                    tint = Color.White,
-                                    modifier = Modifier.size(12.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-                if (styles.size == 1) Spacer(Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(10.dp))
         }
     }
 }
@@ -722,7 +653,10 @@ internal fun WeekendDayChip(
                 },
             )
             .background(background, shape)
-            .clickable(onClick = onClick)
+            // Multi-select, so Checkbox rather than RadioButton; the minimum
+            // size keeps a text-sized chip reachable.
+            .toggleable(value = selected, role = Role.Checkbox, onValueChange = { onClick() })
+            .minimumInteractiveComponentSize()
             .padding(horizontal = 12.dp, vertical = 8.dp),
         style = MaterialTheme.typography.bodySmall,
         fontWeight = FontWeight.Bold,

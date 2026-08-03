@@ -84,6 +84,37 @@ jobs:
         working-directory: android
         run: ./gradlew testDebugUnitTest --no-daemon
 
+      # The 31 golden images under app/src/test/snapshots/images/ were committed
+      # but nothing checked them: `testDebugUnitTest` runs the Paparazzi test
+      # bodies without comparing their output. Any visual regression could land
+      # unnoticed.
+      #
+      # continue-on-error, and this is not provisional: the committed goldens
+      # were measured to be host-specific. Running verifyPaparazziDebug against
+      # an *unmodified* checkout of Main on a different Linux machine failed all
+      # 31 of them, while the rendered output was visually correct — Paparazzi
+      # goes through layoutlib, and text rasterisation differs by host JDK and
+      # font stack.
+      #
+      # So this step is only meaningful once the goldens are recorded on the
+      # same image CI runs. Do NOT make it blocking before then, and do not
+      # re-record on a developer machine to make it pass: that just moves the
+      # failure to everyone else. The uploaded diffs are still useful as an
+      # advisory signal in the meantime.
+      - name: Verify Paparazzi goldens
+        working-directory: android
+        continue-on-error: true
+        run: ./gradlew :app:verifyPaparazziDebug --no-daemon
+
+      - name: Upload Paparazzi diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paparazzi-failures
+          path: android/app/build/paparazzi/failures/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Run Android lint (debug)
         working-directory: android
         run: ./gradlew :app:lintDebug --no-daemon

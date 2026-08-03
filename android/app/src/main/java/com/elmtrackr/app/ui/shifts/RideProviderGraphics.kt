@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.RefundProvider
+import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -81,19 +82,32 @@ private fun RideProviderCard(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val transition = rememberInfiniteTransition(label = "ride-${provider.name}")
-    val travel by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(if (selected) 900 else 1500)),
-        label = "road",
-    )
-    val bob by transition.animateFloat(
-        initialValue = -1f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(if (selected) 850 else 1200), RepeatMode.Reverse),
-        label = "bob",
-    )
+    // Two infinite transitions that ran regardless of the reduce-motion setting.
+    // Held at rest they still read correctly: `travel` starts the road at its
+    // origin and `bob` sits the vehicle level rather than mid-bounce.
+    val motionEnabled = auroraMotionEnabled()
+    val travel: Float
+    val bob: Float
+    if (motionEnabled) {
+        val transition = rememberInfiniteTransition(label = "ride-${provider.name}")
+        val animatedTravel by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(if (selected) 900 else 1500)),
+            label = "road",
+        )
+        val animatedBob by transition.animateFloat(
+            initialValue = -1f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(if (selected) 850 else 1200), RepeatMode.Reverse),
+            label = "bob",
+        )
+        travel = animatedTravel
+        bob = animatedBob
+    } else {
+        travel = 0f
+        bob = 0f
+    }
     val palette = ridePalette(provider)
     val cardContentDescription = if (selected) {
         stringResource(R.string.shifts_ride_provider_a11y_selected, provider.label)

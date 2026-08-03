@@ -108,4 +108,31 @@ class RemoteMapperTest {
 
         assertNull(remote.toLocalEntity().refundAction)
     }
+
+    /**
+     * Every other fixture here uses `Z`, which is exactly why this gap survived:
+     * PostgREST serialises `timestamptz` with a numeric offset, and `ISO_INSTANT`
+     * before JDK 12 — the platform java.time on older devices, since this module
+     * has no core library desugaring — accepts only `Z`. The symptom would have
+     * been "sync fails on old phones only".
+     */
+    @Test
+    fun `timestamps parse with a numeric offset as PostgREST returns them`() {
+        val expected = 1_717_228_800_000L // 2024-06-01T08:00:00Z
+        assertEquals(expected, isoToEpoch("2024-06-01T08:00:00Z"))
+        assertEquals(expected, isoToEpoch("2024-06-01T08:00:00+00:00"))
+        assertEquals(expected, isoToEpoch("2024-06-01T11:00:00+03:00"))
+        assertEquals(expected, isoToEpoch("2024-06-01T08:00:00.000+00:00"))
+    }
+
+    /** A `timestamp without time zone` column arrives with no offset at all. */
+    @Test
+    fun `timestamps with no offset are read as UTC`() {
+        assertEquals(1_717_228_800_000L, isoToEpoch("2024-06-01T08:00:00"))
+    }
+
+    @Test(expected = java.time.format.DateTimeParseException::class)
+    fun `an unrecognised timestamp fails loudly rather than defaulting to the epoch`() {
+        isoToEpoch("last Tuesday")
+    }
 }

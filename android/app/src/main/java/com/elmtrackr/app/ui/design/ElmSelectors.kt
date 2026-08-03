@@ -17,14 +17,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.elmtrackr.app.ui.theme.AuroraIndigo
+import com.elmtrackr.app.ui.theme.CornerRadius
+import com.elmtrackr.app.ui.theme.Elevation
+import com.elmtrackr.app.ui.theme.auroraShadow
 
 /**
  * Pill-style segmented control from the Aurora reference: a tinted track with
@@ -45,7 +46,7 @@ fun ElmSegmentedPillRow(
     val haptic = LocalHapticFeedback.current
     Row(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(CornerRadius.Small))
             .padding(3.dp)
             .selectableGroup(),
         verticalAlignment = Alignment.CenterVertically,
@@ -53,20 +54,14 @@ fun ElmSegmentedPillRow(
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             val enabled = enabledOptions?.getOrNull(index) ?: true
-            val shape = RoundedCornerShape(9.dp)
+            val shape = RoundedCornerShape(CornerRadius.SegmentPill)
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .then(
                         if (selected) {
                             Modifier
-                                .shadow(
-                                    elevation = 2.dp,
-                                    shape = shape,
-                                    clip = false,
-                                    ambientColor = AuroraIndigo.copy(alpha = 0.10f),
-                                    spotColor = AuroraIndigo.copy(alpha = 0.35f),
-                                )
+                                .auroraShadow(Elevation.Selector, shape)
                                 .background(MaterialTheme.colorScheme.surface, shape)
                         } else {
                             Modifier
@@ -81,7 +76,7 @@ fun ElmSegmentedPillRow(
                             onSelect(index)
                         },
                     )
-                    .defaultMinSize(minHeight = 40.dp)
+                    .defaultMinSize(minHeight = 48.dp)
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -115,7 +110,7 @@ fun ElmChoiceChip(
     content: @Composable RowScope.() -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(CornerRadius.Chip)
     Row(
         modifier = modifier
             .background(
@@ -135,7 +130,7 @@ fun ElmChoiceChip(
                     onClick()
                 },
             )
-            .defaultMinSize(minHeight = 40.dp)
+            .defaultMinSize(minHeight = 48.dp)
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content,

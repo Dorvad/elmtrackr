@@ -24,11 +24,21 @@ class SyncScheduler(
 
     // APPEND_OR_REPLACE: called from inside the running worker, where KEEP would be
     // dropped because the current work is still active.
+    //
+    // The delay is the second half of the loop guard. SyncWorker only reaches here
+    // when retryable work remains, but "retryable" is a snapshot: a row that the
+    // server is currently rejecting with a transient error is retryable on every
+    // pass. Without a delay those passes ran back to back at network speed. A
+    // minute keeps a genuine follow-up (edits made while the sync was running)
+    // prompt while making a stuck chain cheap rather than a battery drain.
     fun scheduleFollowUp() {
-        enqueueOneTime(ExistingWorkPolicy.APPEND_OR_REPLACE)
+        enqueueOneTime(
+            ExistingWorkPolicy.APPEND_OR_REPLACE,
+            initialDelaySeconds = FOLLOW_UP_DELAY_SECONDS,
+        )
     }
 
-    private fun enqueueOneTime(policy: ExistingWorkPolicy) {
+    private fun enqueueOneTime(policy: ExistingWorkPolicy, initialDelaySeconds: Long = 0L) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
@@ -36,6 +46,11 @@ class SyncScheduler(
             .setConstraints(constraints)
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, RETRY_BACKOFF_SECONDS, TimeUnit.SECONDS)
             .addTag(WORK_TAG)
+            .apply {
+                if (initialDelaySeconds > 0L) {
+                    setInitialDelay(initialDelaySeconds, TimeUnit.SECONDS)
+                }
+            }
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             ONE_TIME_WORK_NAME,
@@ -67,5 +82,7 @@ class SyncScheduler(
         // 30s, 60s, 120s… caps retries well under SyncWorker.MAX_RETRY_ATTEMPTS
         // while staying gentle on the backend during outages.
         const val RETRY_BACKOFF_SECONDS = 30L
+
+        const val FOLLOW_UP_DELAY_SECONDS = 60L
     }
 }

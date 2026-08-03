@@ -3,6 +3,7 @@ package com.elmtrackr.app.di
 import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.local.preferences.AppPreferencesStore
+import com.elmtrackr.app.data.local.preferences.ClockFacePreferences
 import com.elmtrackr.app.data.local.preferences.FeatureDiscoveryPreferences
 import com.elmtrackr.app.data.local.preferences.OnboardingPreferences
 import com.elmtrackr.app.data.local.preferences.SetupChecklistPreferences
@@ -37,4 +38,8 @@ abstract class PreferencesModule {
     abstract fun bindFeatureDiscoveryPreferences(
         impl: AppPreferencesRepository,
     ): FeatureDiscoveryPreferences
+
+    @Binds
+    @Singleton
+    abstract fun bindClockFacePreferences(impl: AppPreferencesRepository): ClockFacePreferences
 }

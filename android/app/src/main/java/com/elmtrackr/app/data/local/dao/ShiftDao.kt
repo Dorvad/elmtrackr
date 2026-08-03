@@ -27,6 +27,16 @@ interface ShiftDao {
     )
     fun observeActiveShift(userId: String): Flow<ShiftEntity?>
 
+    /**
+     * Returns soft-deleted rows too, on purpose — do not add `deletedAt IS NULL`.
+     *
+     * Three callers need to see them: `SyncIdMapper` resolves a deleted row's
+     * remote id so the delete can be pushed, and `LocalBackupImporter` checks
+     * whether a localId is already taken (filtering deleted rows would make the
+     * insert collide on the primary key). Screen and notification paths must not
+     * see them, which is enforced one layer up: `LocalShiftsRepository` applies
+     * `takeIf { it.deletedAt == null }`.
+     */
     @Query("SELECT * FROM shifts WHERE localId = :localId")
     suspend fun getShiftById(localId: String): ShiftEntity?
 

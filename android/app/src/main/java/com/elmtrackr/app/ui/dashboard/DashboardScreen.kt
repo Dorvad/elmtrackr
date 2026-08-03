@@ -71,11 +71,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -101,6 +99,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.PayrollCalculator
+import com.elmtrackr.app.domain.dashboard.DashboardPromo
+import com.elmtrackr.app.domain.dashboard.DashboardPromoInputs
+import com.elmtrackr.app.domain.dashboard.activeDashboardPromo
+import androidx.compose.foundation.clickable
+import com.elmtrackr.app.ui.common.appLocale
+import com.elmtrackr.app.ui.design.ElmDistributionBar
+import com.elmtrackr.app.ui.design.ElmDistributionLegend
+import com.elmtrackr.app.ui.theme.Layout
+import com.elmtrackr.app.domain.HoursFormatter
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.CurrencyCode
@@ -112,6 +119,7 @@ import com.elmtrackr.app.ui.settings.SettingsLaunchRequest
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.elmtrackr.app.ui.components.motion.rememberElapsedUnits
 import com.elmtrackr.app.ui.components.motion.ShiftElapsedDisplay
 import com.elmtrackr.app.ui.components.motion.activeShiftPulse
 import com.elmtrackr.app.ui.components.motion.FirstClockInCelebrationDialog
@@ -139,7 +147,6 @@ import com.elmtrackr.app.ui.theme.AuroraPeach
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.AuroraWhite
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
-import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
@@ -172,6 +179,7 @@ fun DashboardScreen(
     // Plain remember: restoring the overlay after a tab switch stranded users
     // inside task management when they came back to the dashboard.
     var showTasks by remember { mutableStateOf(false) }
+    val motionEnabled = auroraMotionEnabled()
 
     BackHandler(enabled = showTasks) { showTasks = false }
 
@@ -189,7 +197,7 @@ fun DashboardScreen(
     AnimatedContent(
         targetState = showTasks,
         transitionSpec = {
-            auroraSubScreenTransition(targetState)
+            auroraSubScreenTransition(targetState, motionEnabled)
         },
         modifier = Modifier.fillMaxSize(),
         label = "dashboard-tasks",
@@ -406,15 +414,28 @@ private fun DashboardReady(
     AuroraScreen {
             DashboardHeader(displayName = state.displayName)
 
-            if (state.recentShifts.isEmpty() && activeShift == null) {
+            // One nudge at a time. These four used to be gated independently,
+            // so in the worst case all of them stacked above the month summary
+            // in identical cards, competing with the clock. The ranking lives in
+            // DashboardPromoSlot with its own tests.
+            val today = LocalDate.now()
+            val promo = activeDashboardPromo(
+                DashboardPromoInputs(
+                    unresolvedRefundCount = state.unresolvedRefundCount,
+                    isRefundWindow = today.dayOfMonth >= today.lengthOfMonth() - 4,
+                    refundReminderDismissed = refundBannerDismissed,
+                    hasNoShifts = state.recentShifts.isEmpty() && activeShift == null,
+                    setupChecklistAvailable = setupChecklist != null,
+                    projectSummaryAvailable = projectShiftSummary != null,
+                    updateWizardVisible = state.showPaidProjectsWizard,
+                ),
+            )
+
+            if (promo == DashboardPromo.FIRST_RUN_WELCOME) {
                 FirstRunWelcomeCard(onClockIn = handleClockIn)
             }
 
-            val showRefundBanner = !refundBannerDismissed &&
-                state.unresolvedRefundCount > 0 &&
-                LocalDate.now().dayOfMonth >= LocalDate.now().lengthOfMonth() - 4
-
-            if (showRefundBanner) {
+            if (promo == DashboardPromo.REFUND_REMINDER) {
                 RefundReminderBanner(
                     count = state.unresolvedRefundCount,
                     onDismiss = { refundBannerDismissed = true },
@@ -471,7 +492,7 @@ private fun DashboardReady(
 
             // Non-blocking: sits above the clock and is dismissed with a tap, so
             // it never stands between the user and their next punch.
-            projectShiftSummary?.let { summary ->
+            projectShiftSummary?.takeIf { promo == DashboardPromo.PROJECT_SUMMARY }?.let { summary ->
                 ProjectShiftSummaryCard(
                     summary = summary,
                     onDismiss = onDismissProjectShiftSummary,
@@ -560,7 +581,9 @@ private fun DashboardReady(
                 }
             }
 
-            val setupCard: (@Composable () -> Unit)? = setupChecklist?.let { checklist ->
+            val setupCard: (@Composable () -> Unit)? = setupChecklist
+                ?.takeIf { promo == DashboardPromo.SETUP_CHECKLIST }
+                ?.let { checklist ->
                 @Composable {
                     SetupChecklistCard(
                         state = checklist,
@@ -596,23 +619,17 @@ private fun DashboardReady(
                         clockCard()
                         projectCard?.invoke()
                         setupCard?.invoke()
-                        MonthSummaryDistribution(
-                            report = state.monthlyReport,
-                            modifier = Modifier.auroraEnter(index = 2),
-                        )
                     }
                     Column(
                         modifier = Modifier.weight(0.58f),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        MonthSummaryStatsGrid(
+                        MonthSummaryCard(
                             report = state.monthlyReport,
-                            modifier = Modifier.auroraEnter(index = 2),
-                        )
-                        MonthSummaryGrossPay(
                             paySummary = state.paySummary,
                             currencyCode = currencyCode,
-                            modifier = Modifier.auroraEnter(index = 3),
+                            onOpenReport = onNavigateToReports,
+                            modifier = Modifier.auroraEnter(index = 2),
                         )
                         RecentShiftsSection(
                             recentShifts = state.recentShifts,
@@ -627,11 +644,12 @@ private fun DashboardReady(
 
                 setupCard?.invoke()
 
-                MonthSummarySection(
-                    report      = state.monthlyReport,
-                    paySummary  = state.paySummary,
+                MonthSummaryCard(
+                    report       = state.monthlyReport,
+                    paySummary   = state.paySummary,
                     currencyCode = currencyCode,
-                    modifier    = Modifier.auroraEnter(index = 2),
+                    onOpenReport = onNavigateToReports,
+                    modifier     = Modifier.auroraEnter(index = 2),
                 )
 
                 RecentShiftsSection(
@@ -798,15 +816,7 @@ private fun DashboardClockSection(
     onClockOut: () -> Unit,
     onEditStartTime: () -> Unit,
 ) {
-    var elapsedSeconds by remember(activeShift?.id) { mutableLongStateOf(0L) }
-    LaunchedEffect(activeShift?.id) {
-        val shift = activeShift ?: return@LaunchedEffect
-        while (true) {
-            elapsedSeconds = ((Instant.now().toEpochMilli() - shift.startTime.toEpochMilli()) / 1000L)
-                .coerceAtLeast(0L)
-            delay(1_000L)
-        }
-    }
+    val elapsedSeconds = rememberElapsedUnits(activeShift?.startTime)
 
     Box(modifier = Modifier.fillMaxWidth().auroraEnter(index = 1)) {
         AnimatedContent(
@@ -1268,9 +1278,9 @@ private fun ExpressiveClockCard(
                             repeat(28) { index ->
                                 val x = ((index * 73) % 101) / 100f * size.width
                                 val y = ((index * 47) % 97) / 100f * size.height
-                                drawCircle(Color.White.copy(alpha = if (index % 3 == 0) .25f + pulse * .65f else .3f), 1.2.dp.toPx() + index % 2, Offset(x, y))
+                                drawCircle(Color.White.copy(alpha = if (index % 3 == 0) .25f + pulse() * .65f else .3f), 1.2.dp.toPx() + index % 2, Offset(x, y))
                             }
-                            if (running) drawCircle(accent.copy(alpha = .08f + pulse * .08f), 72.dp.toPx(), center)
+                            if (running) drawCircle(accent.copy(alpha = .08f + pulse() * .08f), 72.dp.toPx(), center)
                         }
                         SupportedClockStyle.RETRO -> {
                             val gap = 13.dp.toPx()
@@ -1281,7 +1291,7 @@ private fun ExpressiveClockCard(
                             drawRoundRect(accent.copy(alpha = .12f), Offset(size.width * .08f, size.height * .18f), Size(size.width * .84f, size.height * .64f), GeometryCornerRadius(5.dp.toPx()), style = Stroke(2.dp.toPx()))
                         }
                         SupportedClockStyle.PULSE -> repeat(3) { index ->
-                            val phase = (pulse + index / 3f) % 1f
+                            val phase = (pulse() + index / 3f) % 1f
                             drawCircle(accent.copy(alpha = (1f - phase) * .32f), (32 + phase * 58).dp.toPx(), center, style = Stroke(2.dp.toPx()))
                         }
                         SupportedClockStyle.DIAL -> {
@@ -1300,7 +1310,7 @@ private fun ExpressiveClockCard(
                             val lit = (progress * count).toInt()
                             repeat(count) { index ->
                                 val x = (index + .5f) * size.width / count
-                                val color = if (index < lit) accent else foreground.copy(alpha = .16f + if (index == lit) pulse * .2f else 0f)
+                                val color = if (index < lit) accent else foreground.copy(alpha = .16f + if (index == lit) pulse() * .2f else 0f)
                                 drawLine(color, Offset(x, 10.dp.toPx()), Offset(x, size.height - 10.dp.toPx()), if (index == lit) 3.dp.toPx() else 1.5.dp.toPx(), StrokeCap.Round)
                             }
                         }
@@ -1316,9 +1326,9 @@ private fun ExpressiveClockCard(
                                 val fill = Path().apply { moveTo(center.x - half, fillY); lineTo(left.x, left.y); lineTo(right.x, right.y); lineTo(center.x + half, fillY); close() }
                                 drawPath(fill, Brush.verticalGradient(listOf(accent.copy(alpha = .2f), AuroraAqua.copy(alpha = .55f))))
                             }
-                            drawCircle(accent.copy(alpha = .55f + pulse * .45f), 4.dp.toPx(), top)
-                            drawCircle(AuroraPlum.copy(alpha = .55f + pulse * .45f), 4.dp.toPx(), left)
-                            drawCircle(AuroraAqua.copy(alpha = .55f + pulse * .45f), 4.dp.toPx(), right)
+                            drawCircle(accent.copy(alpha = .55f + pulse() * .45f), 4.dp.toPx(), top)
+                            drawCircle(AuroraPlum.copy(alpha = .55f + pulse() * .45f), 4.dp.toPx(), left)
+                            drawCircle(AuroraAqua.copy(alpha = .55f + pulse() * .45f), 4.dp.toPx(), right)
                         }
                         SupportedClockStyle.SAND -> {
                             val top = 10.dp.toPx()
@@ -1360,7 +1370,7 @@ private fun ExpressiveClockCard(
                                     drawPath(bottomSand, Brush.verticalGradient(listOf(accent.copy(alpha = 0.55f), accent)))
                                 }
                                 repeat(3) { index ->
-                                    val phase = (pulse + index / 3f) % 1f
+                                    val phase = (pulse() + index / 3f) % 1f
                                     drawCircle(
                                         accent.copy(alpha = 0.25f + phase * 0.45f),
                                         2.dp.toPx(),
@@ -1383,7 +1393,7 @@ private fun ExpressiveClockCard(
                                 val isCurrent = index == filled && running
                                 val color = when {
                                     isFilled -> accent
-                                    isCurrent -> accent.copy(alpha = 0.35f + pulse * 0.35f)
+                                    isCurrent -> accent.copy(alpha = 0.35f + pulse() * 0.35f)
                                     else -> foreground.copy(alpha = 0.12f)
                                 }
                                 val height = if (isCurrent) blockH * (0.5f + partial * 0.5f) else blockH
@@ -1421,7 +1431,7 @@ private fun ExpressiveClockCard(
                             val satX = center.x + kotlin.math.cos(angle).toFloat() * radius
                             val satY = center.y + kotlin.math.sin(angle).toFloat() * radius
                             if (running) {
-                                drawCircle(accent.copy(alpha = 0.12f + pulse * 0.12f), 16.dp.toPx(), Offset(satX, satY))
+                                drawCircle(accent.copy(alpha = 0.12f + pulse() * 0.12f), 16.dp.toPx(), Offset(satX, satY))
                             }
                             drawCircle(accent, 6.dp.toPx(), Offset(satX, satY))
                             drawCircle(Color.White, 2.dp.toPx(), Offset(satX, satY))
@@ -1435,7 +1445,7 @@ private fun ExpressiveClockCard(
                             // Idle keeps a calm pool at the bottom; while running the
                             // waterline climbs with day-goal progress.
                             val level = center.y + radius - (radius * 2f) * (.12f + progress * .76f)
-                            val wavePhase = pulse * 2f * Math.PI.toFloat()
+                            val wavePhase = pulse() * 2f * Math.PI.toFloat()
                             fun wave(phaseShift: Float, amplitude: Float): Path = Path().apply {
                                 moveTo(center.x - radius, level)
                                 var x = center.x - radius
@@ -1460,7 +1470,7 @@ private fun ExpressiveClockCard(
                                 )
                                 if (running) {
                                     repeat(3) { index ->
-                                        val phase = (pulse + index / 3f) % 1f
+                                        val phase = (pulse() + index / 3f) % 1f
                                         val rise = (center.y + radius - level).coerceAtLeast(1f)
                                         drawCircle(
                                             Color.White.copy(alpha = (1f - phase) * .45f),
@@ -1476,7 +1486,7 @@ private fun ExpressiveClockCard(
                         }
                         SupportedClockStyle.SPROUT -> drawSproutFace(
                             growthHours = (daySeconds / 3600f).coerceIn(0f, 8f),
-                            pulse = pulse,
+                            pulse = pulse(),
                             running = running,
                             foreground = foreground,
                         )
@@ -1484,7 +1494,7 @@ private fun ExpressiveClockCard(
                             progress = dayProgress,
                             overtime = dayOvertime,
                             overtimeProgress = overtimeExtension,
-                            pulse = pulse,
+                            pulse = pulse(),
                             running = running,
                             foreground = foreground,
                             surface = background,
@@ -1492,13 +1502,13 @@ private fun ExpressiveClockCard(
                         SupportedClockStyle.VINYL -> drawVinylFace(
                             progress = vinylProgress,
                             spinDegrees = vinylSpin,
-                            pulse = pulse,
+                            pulse = pulse(),
                             running = running,
                             overtime = dayOvertime,
                         )
                         SupportedClockStyle.LUNA -> drawLunaFace(
                             progress = dayProgress,
-                            pulse = pulse,
+                            pulse = pulse(),
                             running = running,
                             overtime = dayOvertime,
                         )
@@ -1742,13 +1752,26 @@ private fun vinylSpinDegrees(active: Boolean): Float {
     return angle
 }
 
+/**
+ * Supplies the clock faces' 1.8s animation phase.
+ *
+ * The value is handed over as a reader, not a `Float`, and every caller invokes
+ * it inside the `Canvas` draw lambda. That is the whole point: passing the
+ * `Float` meant this composable read the animation in its own scope and the
+ * animation invalidated `content` — which is the entire clock card, a 16-branch
+ * `when`, a dozen `stringResource` lookups, a 176dp `Canvas`, the elapsed
+ * display and a button. On a 120Hz panel that is a full recomposition 120 times
+ * a second for as long as a shift is running and the dashboard is on screen.
+ * Reading it during draw invalidates only the draw phase. Same pattern as
+ * `LiveClockTimer`, which reads its animated value inside `graphicsLayer`.
+ */
 @Composable
 private fun ExpressiveClockPulse(
     running: Boolean,
-    content: @Composable (pulse: Float) -> Unit,
+    content: @Composable (pulse: () -> Float) -> Unit,
 ) {
     if (!auroraMotionEnabled() || !running) {
-        content(0f)
+        content { 0f }
         return
     }
     val transition = rememberInfiniteTransition(label = "expressive-clock-pulse")
@@ -1758,321 +1781,129 @@ private fun ExpressiveClockPulse(
         animationSpec = infiniteRepeatable(tween(1800, easing = LinearEasing), RepeatMode.Restart),
         label = "clock-motion",
     )
-    content(pulse)
+    content { pulse }
 }
 
 @Composable
-private fun MonthSummarySection(
+private fun MonthSummaryCard(
     report: MonthlyReport?,
     paySummary: PayrollCalculator.MonthlyPaySummary?,
     currencyCode: String,
+    onOpenReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        MonthSummaryHeader(report)
-        MonthSummaryDistributionCard(report)
-        MonthSummaryStatsGrid(report)
-        MonthSummaryGrossPay(paySummary, currencyCode)
+    // Two allocations and a locale lookup per recomposition otherwise, and this
+    // card sits next to the clock, which recomposes once a second.
+    val locale = appLocale()
+    val monthName = remember(locale) {
+        YearMonth.now().month.getDisplayName(TextStyle.FULL, locale)
     }
-}
+    val shiftCount = report?.shiftCount ?: 0
+    val openReportLabel = stringResource(R.string.dashboard_month_summary_open_report)
 
-@Composable
-private fun MonthSummaryHeader(report: MonthlyReport?) {
-    val monthName = YearMonth.now().month.getDisplayName(TextStyle.FULL, Locale.getDefault())
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+    ElmCardPadded(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = openReportLabel, onClick = onOpenReport),
     ) {
-        ElmSectionHeader(title = stringResource(R.string.dashboard_month_summary_title, monthName), modifier = Modifier.weight(1f))
-        Text(
-            text = stringResource(
-                if (report?.shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other,
-                report?.shiftCount ?: 0,
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Medium,
-        )
-    }
-}
-
-@Composable
-private fun MonthSummaryDistribution(
-    report: MonthlyReport?,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        MonthSummaryHeader(report)
-        MonthSummaryDistributionCard(report)
-    }
-}
-
-@Composable
-private fun MonthSummaryDistributionCard(report: MonthlyReport?) {
-    val totalMinutes = report?.totalMinutes ?: 0
-    val regularMinutes = report?.regularMinutes ?: 0
-    val overtimeMinutes = report?.overtimeMinutes ?: 0
-    val weekendMinutes = report?.weekendMinutes ?: 0
-
-    ElmCardPadded(modifier = Modifier.auroraEnter(index = 1)) {
-            Text(
-                text = stringResource(R.string.dashboard_hours_distribution),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
-            )
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = formatHoursDecimal(totalMinutes),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.ExtraBold,
-                )
-                Text(
-                    text = stringResource(R.string.dashboard_hours_total_suffix),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 2.dp),
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            DistributionBar(regularMinutes, overtimeMinutes, weekendMinutes)
-            Spacer(Modifier.height(10.dp))
-            DistributionLegend(regularMinutes, overtimeMinutes, weekendMinutes)
-        }
-}
-
-@Composable
-private fun MonthSummaryStatsGrid(
-    report: MonthlyReport?,
-    modifier: Modifier = Modifier,
-) {
-    val totalMinutes = report?.totalMinutes ?: 0
-    val regularMinutes = report?.regularMinutes ?: 0
-    val overtimeMinutes = report?.overtimeMinutes ?: 0
-    val weekendMinutes = report?.weekendMinutes ?: 0
-    val isTablet = isTabletLayout()
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (isTablet) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_total),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(totalMinutes)),
-                    variant = ElmStatVariant.PRIMARY,
-                    modifier = Modifier.weight(1f).auroraEnter(index = 1),
-                )
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_regular),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(regularMinutes)),
-                    modifier = Modifier.weight(1f).auroraEnter(index = 2),
-                )
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_overtime),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(overtimeMinutes)),
-                    variant = ElmStatVariant.OVERTIME,
-                    modifier = Modifier.weight(1f).auroraEnter(index = 3),
-                )
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_weekend),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(weekendMinutes)),
-                    variant = ElmStatVariant.WEEKEND,
-                    modifier = Modifier.weight(1f).auroraEnter(index = 4),
-                )
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_total),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(totalMinutes)),
-                    variant = ElmStatVariant.PRIMARY,
-                    modifier = Modifier.weight(1f).auroraEnter(index = 1),
-                )
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_regular),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(regularMinutes)),
-                    modifier = Modifier.weight(1f).auroraEnter(index = 2),
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_overtime),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(overtimeMinutes)),
-                    variant = ElmStatVariant.OVERTIME,
-                    modifier = Modifier.weight(1f).auroraEnter(index = 3),
-                )
-                ElmStatCard(
-                    label = stringResource(R.string.dashboard_stat_weekend),
-                    value = stringResource(R.string.dashboard_hours_value, formatHoursDecimal(weekendMinutes)),
-                    variant = ElmStatVariant.WEEKEND,
-                    modifier = Modifier.weight(1f).auroraEnter(index = 4),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MonthSummaryGrossPay(
-    paySummary: PayrollCalculator.MonthlyPaySummary?,
-    currencyCode: String,
-    modifier: Modifier = Modifier,
-) {
-    paySummary?.takeIf { it.totalGross > 0.0 }?.let { pay ->
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .auroraEnter(index = 3)
-                .background(headerGradient, RoundedCornerShape(CornerRadius.Large))
-                .border(1.dp, AuroraWhite.copy(alpha = 0.28f), RoundedCornerShape(CornerRadius.Large))
-                .padding(16.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
+            ElmSectionHeader(
+                title = stringResource(R.string.dashboard_month_summary_title, monthName),
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = stringResource(
+                    if (shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other,
+                    shiftCount,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+
+        Spacer(Modifier.height(Layout.rowGap))
+
+        // Hours and pay on one line: the two numbers a user opens the app to
+        // check. Everything behind them lives one tap away in Reports.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Column(Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.dashboard_gross_pay_title),
+                    text = stringResource(
+                        R.string.dashboard_hours_value,
+                        HoursFormatter.decimal(report?.totalMinutes ?: 0),
+                    ),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                )
+                Text(
+                    text = stringResource(R.string.dashboard_stat_total),
                     style = MaterialTheme.typography.labelSmall,
-                    color = AuroraWhite.copy(alpha = 0.65f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold,
                 )
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.Bottom) {
+            }
+            if (paySummary != null && paySummary.totalGross > 0.0) {
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = MoneyFormatter.format(pay.totalGross, currencyCode),
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = AuroraWhite,
+                        text = MoneyFormatter.format(paySummary.totalGross, currencyCode),
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
                     )
                     Text(
-                        text = stringResource(R.string.dashboard_before_tax_suffix),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AuroraWhite.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(bottom = 4.dp),
-                    )
-                }
-                if (pay.overtimeGross > 0.0 || pay.specialGross > 0.0) {
-                    Spacer(Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        if (pay.regularGross > 0.0) {
-                            PaySummaryCell(stringResource(R.string.dashboard_stat_regular), pay.regularGross, currencyCode, Modifier.weight(1f))
-                        }
-                        if (pay.overtimeGross > 0.0) {
-                            PaySummaryCell(stringResource(R.string.dashboard_stat_overtime), pay.overtimeGross, currencyCode, Modifier.weight(1f))
-                        }
-                        if (pay.specialGross > 0.0) {
-                            PaySummaryCell(stringResource(R.string.dashboard_pay_holiday), pay.specialGross, currencyCode, Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PaySummaryCell(label: String, amount: Double, currencyCode: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .background(AuroraWhite.copy(alpha = 0.15f), RoundedCornerShape(CornerRadius.Medium))
-            .padding(10.dp),
-    ) {
-        Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = AuroraWhite.copy(alpha = 0.65f),
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = MoneyFormatter.format(amount, currencyCode),
-            style = MaterialTheme.typography.bodyMedium,
-            color = AuroraWhite,
-            fontWeight = FontWeight.Bold,
-        )
-    }
-}
-
-@Composable
-private fun DistributionBar(regularMinutes: Int, overtimeMinutes: Int, weekendMinutes: Int) {
-    val values = listOf(regularMinutes, overtimeMinutes, weekendMinutes)
-    val colors = listOf(AuroraIndigo, AuroraPeach, AuroraPlum)
-    val total = values.sum()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(12.dp)
-            .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
-        horizontalArrangement = Arrangement.spacedBy(1.dp),
-    ) {
-        if (total == 0) {
-            Spacer(Modifier.weight(1f).fillMaxHeight())
-        } else {
-            values.forEachIndexed { index, value ->
-                if (value > 0) {
-                    Box(
-                        Modifier
-                            .weight(value.toFloat())
-                            .fillMaxHeight()
-                            .background(colors[index]),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DistributionLegend(regularMinutes: Int, overtimeMinutes: Int, weekendMinutes: Int) {
-    val items = listOf(
-        Triple(stringResource(R.string.dashboard_stat_regular), regularMinutes, AuroraIndigo),
-        Triple(stringResource(R.string.dashboard_stat_overtime), overtimeMinutes, AuroraPeach),
-        Triple(stringResource(R.string.dashboard_stat_weekend), weekendMinutes, AuroraPlum),
-    )
-    Row(modifier = Modifier.fillMaxWidth()) {
-        items.forEach { (label, minutes, color) ->
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                Box(Modifier.size(7.dp).background(color, CircleShape))
-                Column {
-                    Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        stringResource(R.string.dashboard_hours_value, formatHoursDecimal(minutes)),
+                        text = stringResource(R.string.dashboard_gross_before_tax),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold,
                     )
                 }
             }
         }
+
+        Spacer(Modifier.height(Layout.rowGap))
+
+        ElmDistributionBar(
+            regularMinutes = report?.regularMinutes ?: 0,
+            overtimeMinutes = report?.overtimeMinutes ?: 0,
+            weekendMinutes = report?.weekendMinutes ?: 0,
+        )
+
+        Spacer(Modifier.height(Layout.inlineGap))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ElmDistributionLegend(
+                regularMinutes = report?.regularMinutes ?: 0,
+                overtimeMinutes = report?.overtimeMinutes ?: 0,
+                weekendMinutes = report?.weekendMinutes ?: 0,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = openReportLabel,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
 }
 
-private fun formatHoursDecimal(minutes: Int): String = "%.1f".format(minutes / 60.0)
+
+
 
 // â”€â”€ Recent shifts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -2205,14 +2036,6 @@ private fun EditStartTimeDialog(
 }
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-private fun formatElapsedTime(seconds: Long): String {
-    val h = seconds / 3600
-    val m = (seconds % 3600) / 60
-    val s = seconds % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s)
-    else "%02d:%02d".format(m, s)
-}
 
 @Composable
 private fun formatInstantTime(instant: Instant): String =

@@ -71,6 +71,18 @@
     <string name="settings_currency">מטבע</string>
     <string name="settings_watch_face">עיצוב השעון</string>
     <string name="settings_watch_face_hint">בחירת עיצוב מונפש לשעון במסך הבית.</string>
+    <string name="settings_browse_all_faces">לעיין בכל %1$d העיצובים</string>
+    <string name="settings_all_clock_faces">כל עיצובי השעון</string>
+    <string name="clock_group_essentials">בסיסיים</string>
+    <string name="clock_group_essentials_desc">לראות את השעה ולהמשיך הלאה</string>
+    <string name="clock_group_progress">התקדמות</string>
+    <string name="clock_group_progress_desc">איפה אתם ביום העבודה</string>
+    <string name="clock_group_atmosphere">אווירה</string>
+    <string name="clock_group_atmosphere_desc">צבע, זוהר וטקסטורה</string>
+    <string name="clock_group_nature">טבע</string>
+    <string name="clock_group_nature_desc">יום שגדל, זורם או מתמלא</string>
+    <string name="clock_group_journeys">מסעות</string>
+    <string name="clock_group_journeys_desc">יום עם יעד</string>
     <string name="settings_selected">נבחר</string>
     <string name="settings_face_classic">טבעת התקדמות</string>
     <string name="settings_face_minimal">תצוגה נקייה</string>
@@ -342,4 +354,9 @@
     <string name="settings_discard_confirm">ביטול השינויים</string>
     <string name="settings_discard_keep">המשך עריכה</string>
     <string name="settings_pay_default_job_note">הערכים כאן חלים על העבודה שמוגדרת כברירת מחדל (%1$s). תעריפים ושעות של עבודות אחרות נערכים במסך כללי השכר.</string>
+    <!-- Android share sheet for the local JSON backup -->
+    <string name="settings_backup_share_subject">גיבוי מקומי של ElmTrackr</string>
+    <string name="settings_backup_share_chooser">ייצוא גיבוי מקומי</string>
+    <string name="settings_sync_synced_with_warnings">סונכרן עם אזהרות: %1$s</string>
+    <string name="settings_sync_synced_unsent">סונכרן. שינויים שלא הועלו: %1$d</string>
 </resources>

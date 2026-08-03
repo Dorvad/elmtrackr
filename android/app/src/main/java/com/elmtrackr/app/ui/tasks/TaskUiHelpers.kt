@@ -4,11 +4,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.tasks.TaskSorting
@@ -45,21 +51,57 @@ fun sortedTasksForDisplay(tasks: List<Task>, suggestedTaskId: String? = null): L
     return listOf(suggested) + sorted.filter { it.id != suggested.id }
 }
 
+/**
+ * A colour swatch for the task editor.
+ *
+ * When [onClick] is given the swatch becomes a radio-style option: the 28dp
+ * circle stays the visual while the touch target grows to the 48dp minimum, and
+ * the selection is announced rather than being conveyed by a white ring alone.
+ */
 @Composable
-fun TaskColorDot(color: Color, selected: Boolean, modifier: Modifier = Modifier) {
+fun TaskColorDot(
+    color: Color,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    val swatch = Modifier
+        .size(28.dp)
+        .clip(CircleShape)
+        .background(color)
+        .then(
+            if (selected) {
+                Modifier.border(2.dp, Color.White.copy(alpha = 0.9f), CircleShape)
+            } else {
+                Modifier
+            },
+        )
+
+    if (onClick == null) {
+        Box(modifier = modifier.then(swatch))
+        return
+    }
+
     Box(
         modifier = modifier
-            .size(28.dp)
-            .clip(CircleShape)
-            .background(color)
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
+            .minimumInteractiveComponentSize()
             .then(
-                if (selected) {
-                    Modifier.border(2.dp, Color.White.copy(alpha = 0.9f), CircleShape)
+                if (contentDescription != null) {
+                    Modifier.semantics { this.contentDescription = contentDescription }
                 } else {
                     Modifier
                 },
             ),
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(swatch)
+    }
 }
 
 @Composable

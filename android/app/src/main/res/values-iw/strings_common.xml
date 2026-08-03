@@ -10,4 +10,10 @@
     <string name="celebration_tracking_title">המעקב התחיל!</string>
     <string name="celebration_tracking_body">השעות, הערכת השכר והשעות הנוספות מתעדכנות עכשיו במסך הבית. אפשר להמשיך במשמרת — או לצאת כשמסיימים.</string>
     <string name="celebration_got_it">הבנתי</string>
+    <string name="a11y_app_logo">‏הלוגו של ElmTrackr</string>
+    <!-- Announced by TalkBack for collapsible cards and rows -->
+    <string name="a11y_expanded">מורחב</string>
+    <string name="a11y_collapsed">מכווץ</string>
+    <string name="a11y_expand">הרחבה</string>
+    <string name="a11y_collapse">כיווץ</string>
 </resources>

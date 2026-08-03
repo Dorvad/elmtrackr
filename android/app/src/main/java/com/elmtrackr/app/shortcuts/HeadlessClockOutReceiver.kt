@@ -1,4 +1,4 @@
-﻿package com.elmtrackr.app.shortcuts
+package com.elmtrackr.app.shortcuts
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -14,8 +14,25 @@ class HeadlessClockOutReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                val result = ClockOutActions.clockOutActiveShift(context.applicationContext)
-                ClockOutActions.showShortcutFeedback(context.applicationContext, result)
+                // runCatching, matching ClockOutReceiver, BootCompletedReceiver
+                // and WidgetDateChangeReceiver. This receiver was the outlier: a
+                // bare try/finally with no catch and no CoroutineExceptionHandler
+                // on its scope, so anything thrown here reached the default
+                // handler and killed the process. SupervisorJob does not help —
+                // it stops sibling cancellation, not an uncaught throw from a
+                // root launch.
+                //
+                // Reachable: clockOut does `?: error("Shift not found")` when the
+                // shift disappears between the read and the write, which a
+                // concurrent pull tombstone pass can cause.
+                val result = runCatching {
+                    ClockOutActions.clockOutActiveShift(context.applicationContext)
+                }.getOrNull()
+                if (result != null) {
+                    runCatching {
+                        ClockOutActions.showShortcutFeedback(context.applicationContext, result)
+                    }
+                }
             } finally {
                 pendingResult.finish()
             }

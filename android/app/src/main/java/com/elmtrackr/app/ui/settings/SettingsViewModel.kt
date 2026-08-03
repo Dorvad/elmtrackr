@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.R
 import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
+import com.elmtrackr.app.data.local.preferences.ClockFacePreferences
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.AuthResult
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -53,6 +55,7 @@ class SettingsViewModel @Inject constructor(
     private val syncRepository: SyncRepository,
     private val syncTrigger: SyncTrigger,
     private val appPreferences: AppLockPreferencesStore,
+    private val clockFacePreferences: ClockFacePreferences,
 ) : ViewModel() {
 
     private val _isSaving = MutableStateFlow(false)
@@ -82,6 +85,7 @@ class SettingsViewModel @Inject constructor(
         val accountActionFeedback: UiText?,
         val appLockEnabled: Boolean,
         val reduceMotionEnabled: Boolean,
+        val recentClockFaces: List<ClockStyle>,
     )
 
     private val syncHealthFlow = authRepository.observeCurrentProfile().flatMapLatest { profile ->
@@ -109,7 +113,17 @@ class SettingsViewModel @Inject constructor(
             combine(
                 authRepository.observeCurrentProfile(),
                 themeStore.observeTheme(),
-                appPreferences.preferences,
+                // Each value read from the interface that owns it. Both flows are
+                // the same DataStore in production, so the copy is a no-op there;
+                // it matters because reading the face history off the app-lock
+                // store made the two halves of the feature — the write through
+                // ClockFacePreferences and the read — silently independent.
+                combine(
+                    appPreferences.preferences,
+                    clockFacePreferences.preferences,
+                ) { prefs, facePrefs ->
+                    prefs.copy(recentClockFaces = facePrefs.recentClockFaces)
+                },
             ) { profile, theme, prefs ->
                 Triple(profile, theme, prefs)
             },
@@ -126,6 +140,7 @@ class SettingsViewModel @Inject constructor(
                 theme = profileMeta.second,
                 appLockEnabled = profileMeta.third.appLockEnabled,
                 reduceMotionEnabled = profileMeta.third.reduceMotionEnabled,
+                recentClockFaces = resolveClockFaceRecents(profileMeta.third.recentClockFaces),
                 isSaving = syncMeta.first,
                 isSyncing = syncMeta.second,
                 syncHealth = syncMeta.third,
@@ -167,6 +182,7 @@ class SettingsViewModel @Inject constructor(
             account.accountFeedback,
             syncExtras.appLockEnabled,
             syncExtras.reduceMotionEnabled,
+            syncExtras.recentClockFaces,
         )
     }
 
@@ -175,6 +191,7 @@ class SettingsViewModel @Inject constructor(
         val theme: String,
         val appLockEnabled: Boolean,
         val reduceMotionEnabled: Boolean,
+        val recentClockFaces: List<ClockStyle>,
         val isSaving: Boolean,
         val isSyncing: Boolean,
         val syncHealth: SyncHealth?,
@@ -201,6 +218,7 @@ class SettingsViewModel @Inject constructor(
             accountActionFeedback = extras.accountActionFeedback,
             appLockEnabled = extras.appLockEnabled,
             reduceMotionEnabled = extras.reduceMotionEnabled,
+            recentClockFaces = extras.recentClockFaces,
             compensationProfileCount = core.compensationProfiles.size,
             defaultCompensationProfileName = core.compensationProfiles
                 .let { list -> list.firstOrNull { it.isDefault } ?: list.firstOrNull() }
@@ -314,8 +332,28 @@ class SettingsViewModel @Inject constructor(
                     existingProfile.id,
                 )
             }
+            recordClockFaceUse(clockStyle)
             _isSaving.value = false
             _saveFeedback.value = SettingsSaveFeedback(UiText.Res(R.string.settings_feedback_saved))
+        }
+    }
+
+    /**
+     * Records the face in the recently-used list, on save rather than on tap.
+     *
+     * Tapping a tile in the appearance screen only previews it — the value is not
+     * committed until Save, and the screen counts it as an unsaved change.
+     * Recording on tap would fill the history with faces the user looked at and
+     * rejected, which is the opposite of useful, and would reorder the row under
+     * the user's finger while they were still choosing.
+     */
+    private suspend fun recordClockFaceUse(style: ClockStyle) {
+        val current = resolveClockFaceRecents(
+            clockFacePreferences.preferences.first().recentClockFaces,
+        )
+        val updated = updatedClockFaceRecents(current, style)
+        if (updated != current) {
+            clockFacePreferences.setRecentClockFaces(updated.map { it.name })
         }
     }
 

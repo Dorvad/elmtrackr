@@ -31,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -43,6 +42,8 @@ import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeachDeep
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.AuroraWhite
+import com.elmtrackr.app.ui.theme.Elevation
+import com.elmtrackr.app.ui.theme.auroraShadow
 import com.elmtrackr.app.ui.theme.auroraOvertimeBackground
 import com.elmtrackr.app.ui.theme.auroraOvertimeInk
 import com.elmtrackr.app.ui.theme.auroraSecondaryText
@@ -65,7 +66,8 @@ fun ElmSectionHeader(
         color         = auroraSecondaryText(),
         fontWeight    = FontWeight.Bold,
         letterSpacing = TextUnit(0.16f, TextUnitType.Em),
-        modifier      = modifier,
+        // Every section title in the app is a TalkBack heading from here.
+        modifier      = modifier.auroraHeading(),
     )
 }
 
@@ -102,12 +104,9 @@ fun ElmStatCard(
         ElmStatVariant.WEEKEND -> auroraWeekendInk()
     }
     val surfaceModifier = modifier
-        .shadow(
-            elevation = 8.dp,
-            shape = shape,
-            clip = false,
-            ambientColor = AuroraIndigo.copy(alpha = 0.05f),
-            spotColor = AuroraIndigo.copy(alpha = if (variant == ElmStatVariant.PRIMARY) 0.55f else 0.34f),
+        .auroraShadow(
+            if (variant == ElmStatVariant.PRIMARY) Elevation.CardAccent else Elevation.Card,
+            shape,
         )
         .then(
             if (variant == ElmStatVariant.PRIMARY) Modifier.background(gradient, shape)

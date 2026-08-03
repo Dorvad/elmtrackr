@@ -35,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.design.auroraExpandable
 import com.elmtrackr.app.domain.projects.ProjectSummary
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.CornerRadius
@@ -173,7 +174,9 @@ fun ProjectCard(
 
             TextButton(
                 onClick = { expanded = !expanded },
-                modifier = Modifier.align(Alignment.Start),
+                // The chevron is decorative to TalkBack, so without this the
+                // card gave no indication of whether it was open.
+                modifier = Modifier.align(Alignment.Start).auroraExpandable(expanded),
             ) {
                 Text(
                     text = stringResource(

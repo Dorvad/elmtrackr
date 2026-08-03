@@ -377,13 +377,16 @@ private fun TaskEditorCard(
         Spacer(Modifier.height(12.dp))
         Text(stringResource(R.string.tasks_color_label), style = MaterialTheme.typography.labelMedium)
         Spacer(Modifier.height(6.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // No extra arrangement spacing: each swatch now reserves a 48dp touch
+        // target around its 28dp circle, which supplies the gap on its own.
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
             TASK_COLOR_OPTIONS.forEach { hex ->
                 val swatch = parseTaskColor(hex) ?: Color.Gray
                 TaskColorDot(
                     color = swatch,
                     selected = color == hex,
-                    modifier = Modifier.clickable { color = hex },
+                    contentDescription = stringResource(R.string.tasks_color_label),
+                    onClick = { color = hex },
                 )
             }
         }

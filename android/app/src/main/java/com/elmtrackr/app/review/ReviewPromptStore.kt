@@ -2,10 +2,12 @@ package com.elmtrackr.app.review
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
@@ -51,6 +53,9 @@ data class StoredReviewPromptState(
 
 private val Context.reviewPromptDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "review_prompt",
+    // Same reasoning as appPreferencesDataStore: none of this is user
+    // data, so a corrupt file should reset rather than crash the app.
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
 )
 
 @Singleton

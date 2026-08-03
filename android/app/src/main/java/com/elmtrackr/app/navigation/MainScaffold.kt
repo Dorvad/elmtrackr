@@ -1,6 +1,5 @@
 package com.elmtrackr.app.navigation
 
-import android.animation.ValueAnimator
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.fadeIn
@@ -87,6 +86,7 @@ import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.AuroraMeshBackground
 import com.elmtrackr.app.ui.design.AuroraMotion
+import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.design.auroraPressScale
 import com.elmtrackr.app.ui.layout.PhoneContentMaxWidth
 import com.elmtrackr.app.ui.layout.isTabletLayout
@@ -123,6 +123,9 @@ fun MainScaffold(
     val authState         by authViewModel.uiState.collectAsState()
     var hideNavChrome     by rememberSaveable { mutableStateOf(false) }
     val isTablet          = isTabletLayout()
+    // Read once: the transition factories are plain functions running outside
+    // composition and cannot observe LocalReduceMotion for themselves.
+    val motionEnabled     = auroraMotionEnabled()
 
     val navigateToTab: (String) -> Unit = { route ->
         navController.navigate(route) {
@@ -201,19 +204,19 @@ fun MainScaffold(
                     .fillMaxHeight(),
                 enterTransition = {
                     val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
-                    navEnterTransition(forward)
+                    navEnterTransition(forward, motionEnabled)
                 },
                 exitTransition = {
                     val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
-                    navExitTransition(forward)
+                    navExitTransition(forward, motionEnabled)
                 },
                 popEnterTransition = {
                     val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
-                    navEnterTransition(forward)
+                    navEnterTransition(forward, motionEnabled)
                 },
                 popExitTransition = {
                     val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
-                    navExitTransition(forward)
+                    navExitTransition(forward, motionEnabled)
                 },
             ) {
                 mainNavGraph(
@@ -255,19 +258,19 @@ fun MainScaffold(
             modifier         = Modifier.padding(innerPadding),
             enterTransition = {
                 val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
-                navEnterTransition(forward)
+                navEnterTransition(forward, motionEnabled)
             },
             exitTransition = {
                 val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
-                navExitTransition(forward)
+                navExitTransition(forward, motionEnabled)
             },
             popEnterTransition = {
                 val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
-                navEnterTransition(forward)
+                navEnterTransition(forward, motionEnabled)
             },
             popExitTransition = {
                 val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
-                navExitTransition(forward)
+                navExitTransition(forward, motionEnabled)
             },
         ) {
             mainNavGraph(
@@ -515,8 +518,8 @@ internal fun ElmBottomNav(
   }
 }
 
-private fun navEnterTransition(forward: Boolean) =
-    if (!ValueAnimator.areAnimatorsEnabled()) {
+private fun navEnterTransition(forward: Boolean, motionEnabled: Boolean) =
+    if (!motionEnabled) {
         fadeIn(tween(0))
     } else {
         slideInHorizontally(tween(250, easing = AuroraEaseOut)) { width ->
@@ -524,8 +527,8 @@ private fun navEnterTransition(forward: Boolean) =
         } + fadeIn(tween(AuroraMotion.FadeMillis, easing = AuroraEaseOut))
     }
 
-private fun navExitTransition(forward: Boolean) =
-    if (!ValueAnimator.areAnimatorsEnabled()) {
+private fun navExitTransition(forward: Boolean, motionEnabled: Boolean) =
+    if (!motionEnabled) {
         fadeOut(tween(0))
     } else {
         slideOutHorizontally(tween(180, easing = AuroraEaseOut)) { width ->

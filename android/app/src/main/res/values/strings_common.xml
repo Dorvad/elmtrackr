@@ -10,4 +10,10 @@
     <string name="celebration_tracking_title">You\'re tracking!</string>
     <string name="celebration_tracking_body">Your hours, pay estimate, and overtime are live on the home screen. Keep the shift running — or clock out when you\'re done.</string>
     <string name="celebration_got_it">Got it</string>
+    <string name="a11y_app_logo">ElmTrackr logo</string>
+    <!-- Announced by TalkBack for collapsible cards and rows -->
+    <string name="a11y_expanded">Expanded</string>
+    <string name="a11y_collapsed">Collapsed</string>
+    <string name="a11y_expand">Expand</string>
+    <string name="a11y_collapse">Collapse</string>
 </resources>

@@ -63,9 +63,46 @@ class SyncStatusTextTest {
     }
 
     @Test
-    fun `warning statuses pass through unchanged`() {
-        val warning = "Synced with warnings: tasks table missing"
-        assertEquals(UiText.Raw(warning), SyncStatusText.format(warning, now, zone, locale))
+    fun `warning statuses are localized`() {
+        assertEquals(
+            UiText.Res(R.string.settings_sync_synced_with_warnings, "tasks table missing"),
+            SyncStatusText.format("SyncedWarn: tasks table missing", now, zone, locale),
+        )
+    }
+
+    /**
+     * The status is persisted, so installs upgrading from a build that wrote the
+     * English sentence still have it in their settings row. It began with
+     * "Synced ", which meant it matched the timestamp prefix, failed to parse
+     * and rendered as raw English regardless of the app language.
+     */
+    @Test
+    fun `the legacy English warning status is still recognised`() {
+        assertEquals(
+            UiText.Res(R.string.settings_sync_synced_with_warnings, "tasks table missing"),
+            SyncStatusText.format("Synced with warnings: tasks table missing", now, zone, locale),
+        )
+    }
+
+    /**
+     * A sync where the pull succeeded but every pending row was rejected used to
+     * report a plain "Synced <time>". The marker carries the count so the
+     * sentence itself can be translated.
+     */
+    @Test
+    fun `unsent-change count is localized`() {
+        assertEquals(
+            UiText.Res(R.string.settings_sync_synced_unsent, 3),
+            SyncStatusText.format("SyncedUnsent: 3", now, zone, locale),
+        )
+    }
+
+    @Test
+    fun `unsent marker without a count passes through unchanged`() {
+        assertEquals(
+            UiText.Raw("SyncedUnsent: many"),
+            SyncStatusText.format("SyncedUnsent: many", now, zone, locale),
+        )
     }
 
     @Test

@@ -66,6 +66,7 @@ import com.elmtrackr.app.ui.settings.LegalDocuments
 import com.elmtrackr.app.ui.settings.PayDetailScreen
 import com.elmtrackr.app.ui.settings.ProfileDetailScreen
 import com.elmtrackr.app.ui.settings.SecurityDetailScreen
+import com.elmtrackr.app.ui.settings.ClockFaceGalleryScreen
 import com.elmtrackr.app.ui.settings.SettingsDestination
 import com.elmtrackr.app.ui.settings.SettingsHub
 import com.elmtrackr.app.ui.settings.SettingsUiState
@@ -449,7 +450,10 @@ class FullAppScreenshotJvmTest {
                 "Asia/Jerusalem", {}, {}, {}, {}, {},
             )
             SettingsDestination.APPEARANCE -> AppearanceDetailScreen(
-                state, ClockStyle.MINIMAL, {}, true, {}, false, {}, {}, {},
+                state, ClockStyle.MINIMAL, {}, true, {}, false, {}, {}, {}, {},
+            )
+            SettingsDestination.CLOCK_FACES -> ClockFaceGalleryScreen(
+                selected = ClockStyle.MINIMAL, onSelect = {}, onBack = {},
             )
             SettingsDestination.FEATURES -> FeaturesDetailScreen(
                 true, {}, false, {}, true, {}, true, {},

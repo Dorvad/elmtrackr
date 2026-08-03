@@ -53,6 +53,7 @@ import com.elmtrackr.app.ui.design.AuroraStateCrossfade
 import com.elmtrackr.app.ui.design.ElmChoiceChip
 import com.elmtrackr.app.ui.design.ElmDashedButton
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.design.auroraSubScreenTransition
 import com.elmtrackr.app.ui.theme.Spacing
 
@@ -75,6 +76,7 @@ fun ProjectsScreen(
     onFormVisibilityChanged: (Boolean) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
+    val motionEnabled = auroraMotionEnabled()
 
     var destination by rememberSaveable { mutableStateOf(ProjectsDestination.LIST) }
     var selectedProjectId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -140,7 +142,7 @@ fun ProjectsScreen(
                 is ProjectsUiState.Ready -> AnimatedContent(
                     targetState = destination,
                     transitionSpec = {
-                        auroraSubScreenTransition(targetState.ordinal > initialState.ordinal)
+                        auroraSubScreenTransition(targetState.ordinal > initialState.ordinal, motionEnabled)
                     },
                     label = "projects-destination",
                 ) { dest ->

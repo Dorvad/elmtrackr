@@ -1,6 +1,5 @@
 ﻿package com.elmtrackr.app.ui.components.states
 
-import android.animation.ValueAnimator
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -38,15 +36,18 @@ import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraMotion
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraEnter
+import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.theme.Spacing
 
 @Composable
 private fun rememberStateEntranceScale(): Float {
     var visible by remember { mutableStateOf(false) }
-    val motionEnabled = !LocalInspectionMode.current && ValueAnimator.areAnimatorsEnabled()
-    LaunchedEffect(Unit) {
-        if (motionEnabled) visible = true else visible = true
-    }
+    // Was a local re-implementation that checked the system animator scale but
+    // not LocalReduceMotion, so these states animated even with the app's own
+    // setting on. The branch below also used to assign the same value either
+    // way, which made the guard look load-bearing when it was not.
+    val motionEnabled = auroraMotionEnabled()
+    LaunchedEffect(Unit) { visible = true }
     if (!motionEnabled) return 1f
     val scale by animateFloatAsState(
         targetValue = if (visible) 1f else 0.88f,

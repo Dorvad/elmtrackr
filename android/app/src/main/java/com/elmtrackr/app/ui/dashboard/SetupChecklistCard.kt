@@ -67,6 +67,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.design.auroraExpandActionLabel
+import com.elmtrackr.app.ui.design.auroraExpandable
 import com.elmtrackr.app.domain.setup.SetupStep
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.AuroraSoftEase
@@ -283,8 +285,10 @@ private fun SetupStepRow(
                 interactionSource = interactionSource,
                 indication = null,
                 enabled = !isComplete,
+                onClickLabel = auroraExpandActionLabel(isExpanded),
                 onClick = onToggle,
-            ),
+            )
+            .auroraExpandable(isExpanded),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

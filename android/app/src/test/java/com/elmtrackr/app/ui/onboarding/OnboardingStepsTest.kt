@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.onboarding
 
 import org.junit.Assert.assertEquals
+import com.elmtrackr.app.domain.compensation.RegionPresets
 import org.junit.Test
 
 class OnboardingStepsTest {
@@ -151,5 +152,41 @@ class OnboardingStepsTest {
         listOf("18", "17.5", "0.5", "100").forEach { input ->
             assertEquals(input, basisPointsToPercentText(percentTextToBasisPoints(input)))
         }
+    }
+
+    // ── Region defaults ───────────────────────────────────────────────────────
+
+    /**
+     * The wizard opens with a region already selected. Every work-setup default
+     * has to come from that region's preset, or a user who simply accepts the
+     * pre-selected region gets thresholds that contradict it.
+     *
+     * This used to be wrong: the region defaulted to IL while the thresholds
+     * were hardcoded to 8 h / 40 h, and the preset was applied only when a
+     * region chip was actually tapped. Israel's statutory standard is 8.6 h
+     * daily / 42 h weekly, so the mismatch fed a wrong overtime split into the
+     * pay estimate for anyone who did not re-pick their own country.
+     */
+    @Test
+    fun `the default work rules come from the default region's preset`() {
+        val expected = RegionPresets.forRegion(ONBOARDING_DEFAULT_REGION).rules
+
+        assertEquals(expected, onboardingDefaultRules())
+    }
+
+    @Test
+    fun `the default region's thresholds are not the generic 8 and 40`() {
+        val rules = onboardingDefaultRules()
+
+        assertEquals(516, rules.dailyStandardMinutes)
+        assertEquals(2520, rules.weeklyStandardMinutes)
+    }
+
+    @Test
+    fun `the default weekend comes from the preset`() {
+        assertEquals(
+            RegionPresets.forRegion(ONBOARDING_DEFAULT_REGION).rules.weekendDays,
+            onboardingDefaultRules().weekendDays,
+        )
     }
 }

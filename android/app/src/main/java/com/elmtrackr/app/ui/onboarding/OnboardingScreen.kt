@@ -113,14 +113,25 @@ fun OnboardingScreen(
     val initialSettings by viewModel.initialSettings.collectAsState()
     val initialProfile by viewModel.initialProfile.collectAsState()
     var step by rememberSaveable { mutableIntStateOf(1) }
-    var regionCode by rememberSaveable { mutableStateOf(RegionCode.IL) }
+    var regionCode by rememberSaveable { mutableStateOf(ONBOARDING_DEFAULT_REGION) }
     var currencyCode by rememberSaveable { mutableStateOf("ILS") }
     var displayName by rememberSaveable { mutableStateOf("") }
     var hourlyRateText by rememberSaveable { mutableStateOf("") }
     var currency by rememberSaveable { mutableStateOf(CurrencyCode.ILS) }
-    var dailyOtText by rememberSaveable { mutableStateOf("8") }
-    var weeklyOtText by rememberSaveable { mutableStateOf("40") }
-    var weekendDays by rememberSaveable { mutableStateOf(listOf(5, 6)) }
+    // Seeded from the preset for the pre-selected region rather than from
+    // constants. These used to default to 8 / 40 / Fri-Sat while regionCode
+    // defaulted to IL, whose preset is 8.6 h / 42 h — and the preset was applied
+    // only inside onSelectRegion. A user who accepted the region already chosen
+    // for them silently got the wrong overtime thresholds, which feed straight
+    // into pay.
+    val defaultPresetRules = remember { onboardingDefaultRules() }
+    var dailyOtText by rememberSaveable {
+        mutableStateOf(minutesToHoursText(defaultPresetRules.dailyStandardMinutes))
+    }
+    var weeklyOtText by rememberSaveable {
+        mutableStateOf(minutesToHoursText(defaultPresetRules.weeklyStandardMinutes))
+    }
+    var weekendDays by rememberSaveable { mutableStateOf(defaultPresetRules.weekendDays) }
     var timezone by rememberSaveable { mutableStateOf(TimeZone.getDefault().id) }
     var travelRefunds by rememberSaveable { mutableStateOf(false) }
     var insights by rememberSaveable { mutableStateOf(true) }

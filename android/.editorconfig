@@ -1,0 +1,30 @@
+# Records the conventions this codebase already follows, so IDE formatting stops
+# fighting existing files. This is descriptive, not a new style: nothing here
+# reformats anything on its own.
+#
+# Deliberately no ktlint rules. A default ktlint run over this module would
+# reflow several hundred long lines in the large screen files, destroying
+# `git blame` and every review boundary for no design benefit.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+indent_style = space
+indent_size = 4
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+ij_kotlin_name_count_to_use_star_import = 2147483647
+ij_kotlin_name_count_to_use_star_import_for_members = 2147483647
+
+[*.{xml,yml,yaml,json}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

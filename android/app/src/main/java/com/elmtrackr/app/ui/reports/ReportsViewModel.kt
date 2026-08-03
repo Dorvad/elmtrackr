@@ -7,6 +7,7 @@ import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.DailyInsightsBuilder
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.data.repository.PremiumProfilesRepository
+import com.elmtrackr.app.domain.HoursFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.MonthlyReportBuilder
@@ -447,10 +448,10 @@ class ReportsViewModel @Inject constructor(
                 formatDatetime(shift.startTime, zone),
                 formatDatetime(shift.endTime, zone),
                 shift.breakMinutes.toString(),
-                formatHoursDecimal(breakdown.totalMinutes),
-                formatHoursDecimal(breakdown.regularMinutes),
-                formatHoursDecimal(breakdown.overtimeMinutes),
-                formatHoursDecimal(breakdown.weekendMinutes),
+                HoursFormatter.csv(breakdown.totalMinutes),
+                HoursFormatter.csv(breakdown.regularMinutes),
+                HoursFormatter.csv(breakdown.overtimeMinutes),
+                HoursFormatter.csv(breakdown.weekendMinutes),
                 if (OvernightShiftDetector.isOvernight(shift, zone)) "Yes" else "No",
                 csvEscape(shift.notes ?: ""),
             ).joinToString(",")
@@ -463,10 +464,10 @@ class ReportsViewModel @Inject constructor(
         val report = MonthlyReportBuilder.buildMonthlyReport(year, month, completed, reportSettings)
         lines += listOf(
             "TOTAL - $year-${month.toString().padStart(2, '0')}", "", "", "",
-            formatHoursDecimal(report.totalMinutes),
-            formatHoursDecimal(report.regularMinutes),
-            formatHoursDecimal(report.overtimeMinutes),
-            formatHoursDecimal(report.weekendMinutes),
+            HoursFormatter.csv(report.totalMinutes),
+            HoursFormatter.csv(report.regularMinutes),
+            HoursFormatter.csv(report.overtimeMinutes),
+            HoursFormatter.csv(report.weekendMinutes),
             "", "${completed.size} shifts",
         ).joinToString(",")
         return lines.joinToString("\n")
@@ -477,7 +478,6 @@ class ReportsViewModel @Inject constructor(
         ?.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
         .orEmpty()
 
-    private fun formatHoursDecimal(minutes: Int): String = "%.2f".format(java.util.Locale.US, minutes / 60.0)
 
     suspend fun receiptUrl(path: String): String? = refundReceiptStorage
         ?.let { storage -> runCatching { storage.createSignedUrl(path) }.getOrNull() }

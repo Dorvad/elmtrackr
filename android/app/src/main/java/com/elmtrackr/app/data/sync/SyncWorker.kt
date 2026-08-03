@@ -21,7 +21,15 @@ class SyncWorker @AssistedInject constructor(
         val userId = currentUserProvider.currentUserId() ?: return Result.success()
         return when (syncRepository.syncAll(userId)) {
             is SyncResult.Success -> {
-                if (syncRepository.hasPendingWork(userId)) {
+                // hasRetryablePendingWork, not hasPendingWork: rows already marked
+                // FAILED stay pending forever when the server rejects them for a
+                // reason no retry can change (a duplicate refund claim, a
+                // constraint violation). Asking the broader question here made the
+                // worker enqueue an immediate follow-up on every run, and because
+                // each follow-up is a fresh request its runAttemptCount restarts at
+                // zero, so MAX_RETRY_ATTEMPTS never bounded the chain. FAILED rows
+                // are retried by the 15-minute periodic sync instead.
+                if (syncRepository.hasRetryablePendingWork(userId)) {
                     syncScheduler.scheduleFollowUp()
                 }
                 Result.success()

@@ -3,8 +3,9 @@ package com.elmtrackr.app.ui.refunds
 import androidx.activity.compose.BackHandler
 import android.Manifest
 import android.annotation.SuppressLint
+import android.os.Handler
+import android.os.Looper
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.ImageCapture
@@ -30,6 +31,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.elmtrackr.app.data.receipt.ReceiptBitmapDecoder
+import java.util.concurrent.Executors
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
@@ -70,6 +73,12 @@ import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import kotlinx.coroutines.delay
 import java.io.File
 
+/**
+ * The captured thumbnail is shown in a small confirmation preview, so it never
+ * needs the sensor's full resolution — the saved file keeps that.
+ */
+private const val THUMBNAIL_MAX_DIMENSION_PX = 512
+
 @SuppressLint("MissingPermission")
 @Composable
 fun CameraScreen(
@@ -90,6 +99,13 @@ fun CameraScreen(
     }
     var showFlash by remember { mutableStateOf(false) }
     var capturedThumbnail by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    // Single-threaded: captures are serialised anyway, and one thread keeps the
+    // decode off both the UI thread and CameraX's own callback thread.
+    val captureExecutor = remember { Executors.newSingleThreadExecutor() }
+    DisposableEffect(captureExecutor) {
+        onDispose { captureExecutor.shutdown() }
+    }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -128,10 +144,18 @@ fun CameraScreen(
 
     LaunchedEffect(capturedThumbnail) {
         val bitmap = capturedThumbnail ?: return@LaunchedEffect
-        delay(if (motionEnabled) 420L else 0L)
-        onPhotoCaptured(outputFile.absolutePath)
-        bitmap.recycle()
-        capturedThumbnail = null
+        try {
+            delay(if (motionEnabled) 420L else 0L)
+            onPhotoCaptured(outputFile.absolutePath)
+        } finally {
+            // Clear the state first, then recycle. The other order left a window
+            // in which a draw pass could still reach the Image() below and hit
+            // "Canvas: trying to use a recycled bitmap". The finally block also
+            // means leaving composition during the delay releases the bitmap
+            // instead of leaking it.
+            capturedThumbnail = null
+            bitmap.recycle()
+        }
     }
 
     BackHandler(onBack = onClose)
@@ -221,12 +245,26 @@ fun CameraScreen(
                 val options = ImageCapture.OutputFileOptions.Builder(outputFile).build()
                 cameraController.takePicture(
                     options,
-                    ContextCompat.getMainExecutor(context),
+                    // A background executor, not the main one: decoding the
+                    // captured JPEG is the work below, and on a high-megapixel
+                    // sensor that is hundreds of milliseconds even when it fits
+                    // in memory.
+                    captureExecutor,
                     object : ImageCapture.OnImageSavedCallback {
                         override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                            capturedThumbnail = runCatching {
-                                BitmapFactory.decodeFile(outputFile.absolutePath)
+                            // Bounded decode. An unbounded decodeFile here was an
+                            // OutOfMemoryError waiting for a 50 MP camera — and
+                            // because runCatching swallows OOM, the symptom was a
+                            // silently missing thumbnail rather than a crash
+                            // report. ReceiptBitmapDecoder already existed for
+                            // exactly this; the OCR paths used it, this one did not.
+                            val decoded = runCatching {
+                                ReceiptBitmapDecoder.decodeDownscaled(
+                                    outputFile.absolutePath,
+                                    maxDimensionPx = THUMBNAIL_MAX_DIMENSION_PX,
+                                )
                             }.getOrNull()
+                            mainHandler.post { capturedThumbnail = decoded }
                         }
 
                         override fun onError(exception: ImageCaptureException) {

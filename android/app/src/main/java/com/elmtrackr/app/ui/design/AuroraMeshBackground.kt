@@ -63,16 +63,25 @@ fun AuroraMeshBackground(
     val phase = remember { hourToPhase(LocalTime.now().hour) }
     val dark = isAuroraDarkTheme()
     val (c0, c1, c2) = remember(phase, dark) { phaseColors(phase, dark) }
-    val transition = rememberInfiniteTransition(label = "aurora-mesh")
-    val drift by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 14_000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "aurora-drift",
-    )
+    // Held at the midpoint rather than an extreme when motion is reduced: drift
+    // is a symmetric ±offset, so 0.5f is the composition the blobs spend most of
+    // their time near. This is the app background — it was the single largest
+    // animation still running with the reduce-motion setting on.
+    val drift = if (auroraMotionEnabled()) {
+        val transition = rememberInfiniteTransition(label = "aurora-mesh")
+        val animated by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 14_000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "aurora-drift",
+        )
+        animated
+    } else {
+        0.5f
+    }
 
     Canvas(modifier = modifier) {
         val w = size.width
