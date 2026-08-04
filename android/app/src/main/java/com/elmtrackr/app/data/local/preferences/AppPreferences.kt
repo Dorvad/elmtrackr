@@ -45,6 +45,20 @@ object AppPreferenceKeys {
         booleanPreferencesKey("paid_projects_discovery_dismissed")
 
     /**
+     * The month whose refund reminder the user dismissed, as `YYYY-MM`.
+     *
+     * A month rather than a boolean because the reminder is recurring: unresolved
+     * refund claims are settled per month, so a flag would silence the nudge for
+     * every future month as well. Storing which month was dismissed lets the
+     * reminder re-arm on its own when the next one comes round.
+     *
+     * A string rather than an int pair because that is what [java.time.YearMonth]
+     * parses and prints, so no format lives in two places.
+     */
+    val REFUND_REMINDER_DISMISSED_MONTH =
+        stringPreferencesKey("refund_reminder_dismissed_month")
+
+    /**
      * Newest-first clock face names, newline-separated.
      *
      * A string rather than a string set because the order *is* the data — a set
@@ -79,6 +93,8 @@ data class AppPreferenceValues(
     val setupChecklistVisitedSteps: Set<String> = emptySet(),
     val setupChecklistCelebrated: Boolean = false,
     val paidProjectsDiscoveryDismissed: Boolean = false,
+    /** Raw `YYYY-MM`, or null if the reminder was never dismissed. Parsed by the domain layer. */
+    val refundReminderDismissedMonth: String? = null,
     /** Raw face names, newest first. Resolved to the enum by the UI layer. */
     val recentClockFaces: List<String> = emptyList(),
     /** Raw pack names. Resolved, and widened to include the defaults, by the UI layer. */
@@ -110,6 +126,8 @@ class AppPreferencesRepository(private val context: Context) :
                 setupChecklistCelebrated = prefs[AppPreferenceKeys.SETUP_CHECKLIST_CELEBRATED] ?: false,
                 paidProjectsDiscoveryDismissed =
                     prefs[AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED] ?: false,
+                refundReminderDismissedMonth =
+                    prefs[AppPreferenceKeys.REFUND_REMINDER_DISMISSED_MONTH],
                 recentClockFaces =
                     prefs[AppPreferenceKeys.RECENT_CLOCK_FACES].orEmpty()
                         .lineSequence()
@@ -180,6 +198,12 @@ class AppPreferencesRepository(private val context: Context) :
     override suspend fun setPaidProjectsDiscoveryDismissed(dismissed: Boolean) {
         context.appPreferencesDataStore.edit {
             it[AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED] = dismissed
+        }
+    }
+
+    override suspend fun setRefundReminderDismissedMonth(month: String) {
+        context.appPreferencesDataStore.edit {
+            it[AppPreferenceKeys.REFUND_REMINDER_DISMISSED_MONTH] = month
         }
     }
 

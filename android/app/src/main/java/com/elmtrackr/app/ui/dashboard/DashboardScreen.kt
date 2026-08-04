@@ -246,6 +246,7 @@ fun DashboardScreen(
                             onDismissFirstClockInCelebration = viewModel::dismissFirstClockInCelebration,
                             onEnablePaidProjects = viewModel::enablePaidProjectsFromWizard,
                             onDismissPaidProjectsWizard = viewModel::dismissPaidProjectsWizard,
+                            onDismissRefundReminder = viewModel::dismissRefundReminder,
                             setupChecklist = setupChecklist,
                             onSetupNavigate = { step ->
                                 viewModel.markSetupStepVisited(step)
@@ -291,6 +292,7 @@ private fun DashboardReady(
     onDismissFirstClockInCelebration: () -> Unit,
     onEnablePaidProjects: () -> Unit = {},
     onDismissPaidProjectsWizard: () -> Unit = {},
+    onDismissRefundReminder: () -> Unit = {},
     setupChecklist: SetupChecklistUiState? = null,
     onSetupNavigate: (SetupStep) -> Unit = {},
     onRequestPinWidget: () -> Unit = {},
@@ -331,7 +333,6 @@ private fun DashboardReady(
 
     val handleClockIn = { requestNotificationsThenClockIn() }
     var showEditDialog by rememberSaveable { mutableStateOf(false) }
-    var refundBannerDismissed by rememberSaveable { mutableStateOf(false) }
 
     if (showNotificationRationale && activity is MainActivity) {
         AlertDialog(
@@ -426,7 +427,10 @@ private fun DashboardReady(
                 DashboardPromoInputs(
                     unresolvedRefundCount = state.unresolvedRefundCount,
                     isRefundWindow = today.dayOfMonth >= today.lengthOfMonth() - 4,
-                    refundReminderDismissed = refundBannerDismissed,
+                    // Persisted per month by the ViewModel, not held here: as
+                    // rememberSaveable this returned on the next launch, so
+                    // "not now" lasted until the user left the screen.
+                    refundReminderDismissed = state.refundReminderDismissed,
                     hasNoShifts = state.recentShifts.isEmpty() && activeShift == null,
                     setupChecklistAvailable = setupChecklist != null,
                     projectSummaryAvailable = projectShiftSummary != null,
@@ -441,7 +445,7 @@ private fun DashboardReady(
             if (promo == DashboardPromo.REFUND_REMINDER) {
                 RefundReminderBanner(
                     count = state.unresolvedRefundCount,
-                    onDismiss = { refundBannerDismissed = true },
+                    onDismiss = onDismissRefundReminder,
                     onReviewRefunds = onNavigateToReports,
                     modifier = Modifier
                         .fillMaxWidth()

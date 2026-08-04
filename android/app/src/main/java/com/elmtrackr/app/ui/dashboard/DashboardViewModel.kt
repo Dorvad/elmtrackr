@@ -10,6 +10,7 @@ import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.employeePaidOnly
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
+import com.elmtrackr.app.domain.dashboard.isRefundReminderDismissed
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.MonthlyReport
@@ -190,6 +191,10 @@ class DashboardViewModel @Inject constructor(
         .map { it.paidProjectsDiscoveryDismissed }
         .distinctUntilChanged()
 
+    private val refundReminderDismissedMonth = featureDiscoveryPreferences.preferences
+        .map { it.refundReminderDismissedMonth }
+        .distinctUntilChanged()
+
     private data class RawData(
         val activeShift: Shift?,
         val report: MonthlyReport?,
@@ -368,6 +373,20 @@ class DashboardViewModel @Inject constructor(
                 else -> state
             }
         }
+        // Compared in the work zone, like the refund count itself: a user whose
+        // work month has already turned over should see the next month's reminder,
+        // not the previous one's dismissal.
+        .combine(refundReminderDismissedMonth) { state, dismissedMonth ->
+            when (state) {
+                is DashboardUiState.Ready -> state.copy(
+                    refundReminderDismissed = isRefundReminderDismissed(
+                        storedMonth = dismissedMonth,
+                        month = YearMonth.now(WorkTimezone.zoneFor(state.settings)),
+                    ),
+                )
+                else -> state
+            }
+        }
         .catch { e ->
         emit(DashboardUiState.Error(e.message ?: "Unknown error"))
     }.stateIn(
@@ -502,6 +521,24 @@ class DashboardViewModel @Inject constructor(
                 )
             }
             featureDiscoveryPreferences.setPaidProjectsDiscoveryDismissed(true)
+        }
+    }
+
+    /**
+     * Silences the refund reminder for the current work month only. Next month's
+     * unresolved claims raise it again without the user having to re-enable
+     * anything — the alternative, a permanent dismissal, quietly turns a recurring
+     * reminder into a one-off.
+     */
+    fun dismissRefundReminder() {
+        viewModelScope.launch {
+            val zone = authRepository.getCurrentProfile()?.id
+                ?.let { settingsRepository.getSettings(it) }
+                ?.let { WorkTimezone.zoneFor(it) }
+                ?: ZoneId.systemDefault()
+            featureDiscoveryPreferences.setRefundReminderDismissedMonth(
+                YearMonth.now(zone).toString(),
+            )
         }
     }
 

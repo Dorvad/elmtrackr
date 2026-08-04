@@ -1,9 +1,11 @@
 package com.elmtrackr.app.domain.dashboard
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.YearMonth
 
 class DashboardPromoSlotTest {
 
@@ -121,5 +123,54 @@ class DashboardPromoSlotTest {
     fun `the welcome card disappears once a shift exists`() {
         assertEquals(DashboardPromo.FIRST_RUN_WELCOME, activeDashboardPromo(inputs(hasNoShifts = true)))
         assertNull(activeDashboardPromo(inputs(hasNoShifts = false)))
+    }
+
+    // ── Refund reminder dismissal ────────────────────────────────────────────
+
+    private val august = YearMonth.of(2026, 8)
+
+    @Test
+    fun `a reminder never dismissed is not dismissed`() {
+        assertFalse(isRefundReminderDismissed(null, august))
+        assertFalse(isRefundReminderDismissed("", august))
+        assertFalse(isRefundReminderDismissed("   ", august))
+    }
+
+    @Test
+    fun `dismissing this month silences this month`() {
+        assertTrue(isRefundReminderDismissed("2026-08", august))
+    }
+
+    /**
+     * The point of storing a month rather than a flag: the reminder is recurring,
+     * so last month's "not now" must not answer for this month's claims.
+     */
+    @Test
+    fun `a dismissal does not carry into the next month`() {
+        assertFalse(isRefundReminderDismissed("2026-07", august))
+        assertFalse(isRefundReminderDismissed("2025-08", august))
+    }
+
+    /** A future value can only come from a clock change; it still is not this month. */
+    @Test
+    fun `a dismissal from a later month does not silence this one`() {
+        assertFalse(isRefundReminderDismissed("2026-09", august))
+    }
+
+    /**
+     * This runs on the dashboard's hot path, so an unreadable stored value has to
+     * degrade to "show the nudge" rather than take the main screen down.
+     */
+    @Test
+    fun `an unparseable stored value is treated as not dismissed`() {
+        listOf("2026-13", "August", "2026", "2026-08-04").forEach { stored ->
+            assertFalse(stored, isRefundReminderDismissed(stored, august))
+        }
+    }
+
+    /** What YearMonth prints is what the comparison reads; no second format. */
+    @Test
+    fun `the stored form round-trips through YearMonth`() {
+        assertTrue(isRefundReminderDismissed(august.toString(), august))
     }
 }

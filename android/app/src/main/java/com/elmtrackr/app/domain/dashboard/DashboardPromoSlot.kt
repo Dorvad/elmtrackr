@@ -1,5 +1,7 @@
 package com.elmtrackr.app.domain.dashboard
 
+import java.time.YearMonth
+
 /**
  * Which nudge, if any, the dashboard shows.
  *
@@ -74,3 +76,23 @@ fun resolveDashboardPromos(inputs: DashboardPromoInputs): List<DashboardPromo> {
 /** The nudge to render, or null when the dashboard should show none. */
 fun activeDashboardPromo(inputs: DashboardPromoInputs): DashboardPromo? =
     resolveDashboardPromos(inputs).firstOrNull()
+
+/**
+ * Whether the refund reminder counts as dismissed for [month].
+ *
+ * The dismissal is stored as the month it was made in, not as a flag. Refund
+ * claims are settled per month, so "not now" means "not for this month" — a flag
+ * would silence every future month too, which is what the previous in-memory
+ * version effectively did each time the process survived.
+ *
+ * Parsing is tolerant for the same reason the clock-face history is: the stored
+ * value is a device-local hint, and a value written by another version, or left
+ * behind by a corrupted store, must degrade to "not dismissed" rather than throw
+ * on the dashboard's hot path. Showing the nudge once too often is recoverable;
+ * crashing the main screen is not.
+ */
+fun isRefundReminderDismissed(storedMonth: String?, month: YearMonth): Boolean {
+    val stored = storedMonth?.trim().orEmpty()
+    if (stored.isEmpty()) return false
+    return runCatching { YearMonth.parse(stored) }.getOrNull() == month
+}
