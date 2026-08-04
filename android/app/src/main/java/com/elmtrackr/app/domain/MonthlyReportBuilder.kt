@@ -1,6 +1,8 @@
 package com.elmtrackr.app.domain
 
+import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.compensation.RegionPresets
+import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.ShiftBreakdown
@@ -19,19 +21,35 @@ object MonthlyReportBuilder {
     /**
      * Build a [ShiftBreakdown] for a single completed shift.
      * Uses daily overtime threshold only (weekly threshold is applied at the monthly level).
+     *
+     * Thresholds and weekend days are resolved through [CompensationResolver], the same
+     * way every pay figure resolves them. Reading `settings.dailyOvertimeThresholdMinutes`
+     * directly — as this did — put the report on a different threshold from the money:
+     * the field defaults to 480 while the Israeli preset's daily standard is 516, so an
+     * IL user on preset defaults saw overtime *hours* counted from 8:00 in the report
+     * card, the CSV and the PDF while pay treated the same minutes as regular until 8:36.
+     *
+     * With no [profiles] the resolver falls back to `legacySettingsToResolved`, which
+     * copies those very settings fields, so a user who has never created a second job
+     * gets exactly the previous numbers.
      */
-    fun buildShiftBreakdown(shift: Shift, settings: UserSettings): ShiftBreakdown {
+    fun buildShiftBreakdown(
+        shift: Shift,
+        settings: UserSettings,
+        profiles: List<CompensationProfile> = emptyList(),
+    ): ShiftBreakdown {
         val net = ShiftDurationCalculator.netMinutes(shift) ?: 0
-        val zone = WorkTimezone.zoneFor(settings)
+        val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+        val zone = WorkTimezone.zoneFor(resolved, settings)
         val rawSegments = OvernightShiftDetector.splitShiftByDay(shift, zone)
         val segments = if (shift.forceRegularRate) {
             rawSegments
         } else {
-            WeekendRules.annotateWeekendSegments(rawSegments, settings.weekendDays)
+            WeekendRules.annotateWeekendSegments(rawSegments, resolved.rules.weekendDays)
         }
         val weekendMins = WeekendRules.totalWeekendMinutes(segments)
         val weekdayMins = maxOf(0, net - weekendMins)
-        val otMins = maxOf(0, weekdayMins - settings.dailyOvertimeThresholdMinutes)
+        val otMins = maxOf(0, weekdayMins - resolved.rules.dailyStandardMinutes)
         val regularMins = maxOf(0, weekdayMins - otMins)
 
         return ShiftBreakdown(
@@ -63,6 +81,7 @@ object MonthlyReportBuilder {
         month: Int,
         shifts: List<Shift>,
         settings: UserSettings,
+        profiles: List<CompensationProfile> = emptyList(),
         weekStartDay: Int = defaultWeekStartDay(settings),
     ): MonthlyReport {
         // Employee-paid only: this report's regular/overtime/weekend split is a
@@ -74,8 +93,13 @@ object MonthlyReportBuilder {
         // week, shifting weekly-overtime minutes between weeks.
         val zone = WorkTimezone.zoneFor(settings)
         val payWeeks = completed.groupBy { PayWeekMinutes.weekStart(it, zone, weekStartDay) }
-        val breakdownMap = completed.associateWith { buildShiftBreakdown(it, settings) }
+        val breakdownMap = completed.associateWith { buildShiftBreakdown(it, settings, profiles) }
         val breakdownList = completed.map { breakdownMap.getValue(it) }
+        // Resolved once per shift and reused: the resolver walks the profile list and
+        // this is inside a per-week fold.
+        val rulesMap = completed.associateWith {
+            CompensationResolver.resolveShiftCompensation(it, settings, profiles).rules
+        }
 
         val totalMinutes = breakdownList.sumOf { it.totalMinutes }
         val weekendMinutes = breakdownList.sumOf { it.weekendMinutes }
@@ -88,10 +112,18 @@ object MonthlyReportBuilder {
             }
             val totalWeekdayMins = weekdayMinsPerShift.sum()
 
-            val dailyOt = weekdayMinsPerShift.sumOf { m ->
-                maxOf(0, m - settings.dailyOvertimeThresholdMinutes)
-            }
-            val weeklyOt = maxOf(0, totalWeekdayMins - settings.weeklyOvertimeThresholdMinutes)
+            val dailyOt = weekShifts.zip(weekdayMinsPerShift) { s, m ->
+                maxOf(0, m - (rulesMap[s]?.dailyStandardMinutes ?: settings.dailyOvertimeThresholdMinutes))
+            }.sum()
+            // A weekly threshold belongs to the week, not to one shift, so it is taken
+            // from the week's earliest shift. Shifts in one week normally share a
+            // profile; where they do not, the pay path evaluates each shift against its
+            // own weekly standard and this aggregate cannot reproduce both at once.
+            val weeklyStandard = weekShifts
+                .minByOrNull { it.startTime }
+                ?.let { rulesMap[it]?.weeklyStandardMinutes }
+                ?: settings.weeklyOvertimeThresholdMinutes
+            val weeklyOt = maxOf(0, totalWeekdayMins - weeklyStandard)
 
             // Take whichever threshold produces more overtime (they overlap, not additive)
             maxOf(dailyOt, weeklyOt)

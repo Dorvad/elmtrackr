@@ -386,6 +386,61 @@ class PayrollCalculatorTest {
         assertEquals(180, PayrollCalculator.payableNetMinutes(short, minimum))
     }
 
+    /**
+     * The composed case neither of the tests above covers, and the one that was
+     * broken: rounding runs first and can reach zero, and the minimum guard used to
+     * exclude zero. A seven-minute call-out paid nothing on rules that promise two
+     * hours.
+     */
+    @Test
+    fun `rounding to zero does not cancel the minimum shift guarantee`() {
+        val rules = CompensationRules(
+            rounding = RoundingRules(enabled = true, incrementMinutes = 15, direction = "nearest"),
+            minimumShiftMinutes = 120,
+        )
+        // 7 minutes: (7 + 7) / 15 = 0 at a 15-minute nearest increment.
+        val short = shift("2024-01-08T09:00:00Z", "2024-01-08T09:07:00Z")
+
+        assertEquals(120, PayrollCalculator.payableNetMinutes(short, rules))
+    }
+
+    /** "Down" reaches zero for anything under one increment, so it needs the same floor. */
+    @Test
+    fun `rounding down below one increment still gets the minimum`() {
+        val rules = CompensationRules(
+            rounding = RoundingRules(enabled = true, incrementMinutes = 30, direction = "down"),
+            minimumShiftMinutes = 60,
+        )
+        val short = shift("2024-01-08T09:00:00Z", "2024-01-08T09:20:00Z")
+
+        assertEquals(60, PayrollCalculator.payableNetMinutes(short, rules))
+    }
+
+    /**
+     * The other half of the guard. A minimum is a floor on time actually worked, so a
+     * shift with none of it must stay at zero — otherwise a break longer than the
+     * shift would mint payable minutes out of nothing.
+     */
+    @Test
+    fun `a shift with no worked minutes is not lifted to the minimum`() {
+        val rules = CompensationRules(minimumShiftMinutes = 120)
+        val allBreak = shift("2024-01-08T09:00:00Z", "2024-01-08T09:30:00Z", break_ = 30)
+
+        assertEquals(0, PayrollCalculator.payableNetMinutes(allBreak, rules))
+    }
+
+    /** Rounding away from zero is unaffected: the minimum only ever raises. */
+    @Test
+    fun `the minimum does not lower a shift that rounds above it`() {
+        val rules = CompensationRules(
+            rounding = RoundingRules(enabled = true, incrementMinutes = 15, direction = "up"),
+            minimumShiftMinutes = 60,
+        )
+        val s = shift("2024-01-08T09:00:00Z", "2024-01-08T11:53:00Z") // 173 → 180
+
+        assertEquals(180, PayrollCalculator.payableNetMinutes(s, rules))
+    }
+
     @Test
     fun `percentage deductions reduce net gross`() {
         val rules = RegionPresets.forRegion(RegionCode.US).rules.copy(

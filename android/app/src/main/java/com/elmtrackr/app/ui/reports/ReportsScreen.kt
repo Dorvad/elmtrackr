@@ -303,6 +303,7 @@ fun ReportsScreen(
                                             viewModel.buildCsvContent(
                                                 state.rawShifts,
                                                 state.settings,
+                                                state.profiles,
                                                 state.year,
                                                 state.month,
                                             ),
@@ -1485,7 +1486,7 @@ private fun ShiftReportRow(
     premiumProfiles: List<PremiumProfile> = emptyList(),
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
-    val breakdown = MonthlyReportBuilder.buildShiftBreakdown(shift, settings)
+    val breakdown = MonthlyReportBuilder.buildShiftBreakdown(shift, settings, profiles)
     val date = shift.startTime.atZone(zone).toLocalDate()
     val weekend = CompensationResolver.isWeekendShift(shift, settings, profiles)
     val overnight = OvernightShiftDetector.isOvernight(shift, zone)

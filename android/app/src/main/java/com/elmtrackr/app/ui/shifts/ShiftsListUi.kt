@@ -195,7 +195,7 @@ internal fun ShiftsHeroSummaryCard(
     val summary = remember(completed, settings, month, profiles, premiumProfiles) {
         val completedMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
         val report = settings?.let {
-            MonthlyReportBuilder.buildMonthlyReport(month.year, month.monthValue, completed, it)
+            MonthlyReportBuilder.buildMonthlyReport(month.year, month.monthValue, completed, it, profiles)
         }
         val regularMin = report?.regularMinutes ?: 0
         val overtimeMin = report?.overtimeMinutes ?: 0

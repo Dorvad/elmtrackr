@@ -1,5 +1,8 @@
 package com.elmtrackr.app.domain
 
+import com.elmtrackr.app.domain.compensation.RegionPresets
+import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import org.junit.Assert.assertEquals
@@ -323,5 +326,105 @@ class MonthlyReportBuilderTest {
 
         assertEquals(2880, report.totalMinutes)
         assertEquals(0, report.overtimeMinutes)
+    }
+
+    // ── Thresholds agree with the pay path ───────────────────────────────────
+
+    /**
+     * An Israeli profile on preset rules, with the stale legacy field still holding
+     * 480. This is the shape every IL user on defaults has: `UserSettings`
+     * initialises `dailyOvertimeThresholdMinutes` to 480 while the IL preset's daily
+     * standard is 516.
+     */
+    private val ilProfile = CompensationProfile(
+        id = "p-il",
+        userId = "u1",
+        name = "Main job",
+        regionCode = RegionCode.IL,
+        currencyCode = "ILS",
+        timezone = "Asia/Jerusalem",
+        baseHourlyRate = 60.0,
+        rules = RegionPresets.forRegion(RegionCode.IL).rules,
+        stackingPolicy = RegionPresets.forRegion(RegionCode.IL).stackingPolicy,
+        isDefault = true,
+    )
+
+    private val ilSettings = settings.copy(
+        timezone = "Asia/Jerusalem",
+        regionCode = RegionCode.IL,
+        defaultCompensationProfileId = "p-il",
+        // Deliberately left stale, which is the whole point.
+        dailyOvertimeThresholdMinutes = 480,
+        weeklyOvertimeThresholdMinutes = 2400,
+    )
+
+    /**
+     * The defect this closes. The report counted overtime hours from 8:00 while pay
+     * treated the same minutes as regular until 8:36, so the report card, the CSV and
+     * the PDF disagreed with the money beside them for every IL user on defaults.
+     *
+     * 540 worked minutes: 60 over the stale 480, 24 over the profile's real 516.
+     */
+    @Test
+    fun `report overtime uses the profile threshold, not the stale settings field`() {
+        // Sunday 14 Jan, 09:00-18:00 Jerusalem — a weekday under IL weekend rules.
+        val nineHours = shift("s1", "2024-01-14T07:00:00Z", "2024-01-14T16:00:00Z")
+
+        val bd = MonthlyReportBuilder.buildShiftBreakdown(nineHours, ilSettings, listOf(ilProfile))
+
+        assertEquals(540, bd.totalMinutes)
+        assertEquals(24, bd.overtimeMinutes)
+        assertEquals(516, bd.regularMinutes)
+    }
+
+    /**
+     * The invariant the review asked for: report overtime minutes and payroll
+     * overtime brackets must describe the same minutes. Asserted against the pay
+     * path's own output rather than a hardcoded number, so the two cannot drift
+     * apart again without this failing.
+     */
+    @Test
+    fun `report overtime minutes match the payroll overtime brackets`() {
+        val nineHours = shift("s1", "2024-01-14T07:00:00Z", "2024-01-14T16:00:00Z")
+        val shifts = listOf(nineHours)
+
+        val report = MonthlyReportBuilder.buildMonthlyReport(
+            2024, 1, shifts, ilSettings, listOf(ilProfile),
+        )
+        val pay = PayrollCalculator.calculateShiftPayInContext(
+            nineHours, shifts, ilSettings, listOf(ilProfile),
+        )
+        val paidOvertimeMinutes = pay!!.brackets.filter { it.rate > 1.0 }.sumOf { it.minutes }
+
+        assertEquals(paidOvertimeMinutes, report.overtimeMinutes)
+    }
+
+    /** With no profiles the resolver mirrors the settings fields, so nothing moves. */
+    @Test
+    fun `an unprofiled user keeps the settings thresholds`() {
+        val nineHours = shift("s1", "2024-01-08T09:00:00Z", "2024-01-08T18:00:00Z")
+
+        val bd = MonthlyReportBuilder.buildShiftBreakdown(nineHours, settings)
+
+        assertEquals(540, bd.totalMinutes)
+        assertEquals(60, bd.overtimeMinutes)
+    }
+
+    /** The weekly threshold moved with the daily one; 2400 vs the IL preset's 2520. */
+    @Test
+    fun `weekly report overtime uses the profile weekly standard`() {
+        // Five 8h40 weekdays from Sunday 14 Jan: 2600 minutes, no single day over 516.
+        val shifts = (0..4).map { i ->
+            val day = 14 + i
+            shift("s$i", "2024-01-${day}T07:00:00Z", "2024-01-${day}T15:40:00Z")
+        }
+
+        val report = MonthlyReportBuilder.buildMonthlyReport(
+            2024, 1, shifts, ilSettings, listOf(ilProfile),
+        )
+
+        assertEquals(2600, report.totalMinutes)
+        // 2600 - 2520, not 2600 - 2400.
+        assertEquals(80, report.overtimeMinutes)
     }
 }

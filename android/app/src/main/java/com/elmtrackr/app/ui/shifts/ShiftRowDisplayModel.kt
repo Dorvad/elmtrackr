@@ -41,7 +41,7 @@ internal fun buildShiftRowDisplay(
     // because PayrollCalculator refuses project shifts.
     val weekend = shift.isEmployeePaid &&
         settings?.let { CompensationResolver.isWeekendShift(shift, it, profiles) } == true
-    val breakdown = settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it) }
+    val breakdown = settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it, profiles) }
     val hasOt = shift.isEmployeePaid &&
         (breakdown?.overtimeMinutes ?: 0) > 0 && !shift.isSpecialDay && !weekend
     val pay = settings?.let {

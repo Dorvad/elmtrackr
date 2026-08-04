@@ -227,13 +227,12 @@ class DashboardViewModel @Inject constructor(
                                     today.monthValue,
                                     zone,
                                 ).map { monthShifts ->
-                                val report = MonthlyReportBuilder.buildMonthlyReport(
-                                    year = today.year,
-                                    month = today.monthValue,
-                                    shifts = monthShifts,
-                                    settings = settings,
-                                )
-                                RawData(activeShift, report, settings, monthShifts, emptyList(), emptyList(), emptyList())
+                                // The report is built further down, once the profile list
+                                // has arrived. Building it here resolved overtime
+                                // thresholds against the legacy settings fields because
+                                // profiles are combined in a later stage — the report's
+                                // hours then disagreed with the pay figure beside them.
+                                RawData(activeShift, null, settings, monthShifts, emptyList(), emptyList(), emptyList())
                             }
                         }
                     },
@@ -268,9 +267,19 @@ class DashboardViewModel @Inject constructor(
                             raw.profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
                     }
                     ?.let { PayrollCalculator.sumMonthlyPay(completedMonthShifts, it, raw.profiles, raw.premiumProfiles) }
+                // Built here, beside the pay summary, so both read the same profiles and
+                // the card's hours and money cannot describe different thresholds.
+                val monthToday = LocalDate.now(workZone)
+                val monthlyReport = MonthlyReportBuilder.buildMonthlyReport(
+                    year = monthToday.year,
+                    month = monthToday.monthValue,
+                    shifts = raw.monthShifts,
+                    settings = raw.settings,
+                    profiles = raw.profiles,
+                )
                 DashboardUiState.Ready(
                     activeShift = raw.activeShift,
-                    monthlyReport = raw.report,
+                    monthlyReport = monthlyReport,
                     settings = raw.settings,
                     profiles = raw.profiles,
                     activeTasks = raw.activeTasks,

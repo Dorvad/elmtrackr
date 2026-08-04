@@ -422,6 +422,8 @@ object PayrollCalculator {
         if (!rules.paidBreaks && autoBreak > 0 && shift.breakMinutes == 0 && net > autoBreak) {
             net -= autoBreak
         }
+        // Held before rounding, for the minimum-shift guard below.
+        val workedNet = net
         val rounding = rules.rounding
         if (rounding.enabled && rounding.incrementMinutes > 0 && net > 0) {
             val inc = rounding.incrementMinutes
@@ -432,7 +434,16 @@ object PayrollCalculator {
             }
         }
         val minimum = rules.minimumShiftMinutes ?: 0
-        if (minimum > 0 && net in 1 until minimum) net = minimum
+        // Judged against the *worked* net, not the rounded one. Rounding can take a
+        // short shift to zero — 7 minutes at a 15-minute "nearest" increment, or any
+        // sub-increment shift rounded "down" — and the previous guard was
+        // `net in 1 until minimum`, which excluded zero and so skipped the floor
+        // entirely. The shift then paid nothing, which is the opposite of what a
+        // minimum-shift rule exists to do.
+        //
+        // `workedNet > 0` is what keeps a genuinely empty shift at zero: a shift whose
+        // break consumes all of its gross time has no worked minutes to guarantee.
+        if (minimum > 0 && workedNet > 0 && net < minimum) net = minimum
         return net
     }
 

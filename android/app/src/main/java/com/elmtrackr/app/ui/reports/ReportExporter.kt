@@ -187,7 +187,7 @@ object ReportExporter {
 
         state.rawShifts.sortedByDescending { it.startTime }.forEach { shift ->
             ensureSpace(38f)
-            val breakdown = state.settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it) }
+            val breakdown = state.settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it, state.profiles) }
             // Gate on either rate source, matching ReportsViewModel and
             // WeeklyBreakdownBuilder. Checking only the legacy settings rate printed "-"
             // in every Gross cell for users who configure rates on compensation profiles,

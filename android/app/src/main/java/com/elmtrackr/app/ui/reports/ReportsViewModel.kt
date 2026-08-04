@@ -16,6 +16,7 @@ import com.elmtrackr.app.domain.WeeklyBreakdownBuilder
 import com.elmtrackr.app.domain.ReportInsightsBuilder
 import com.elmtrackr.app.domain.TaskMonthlyReportBuilder
 import com.elmtrackr.app.domain.time.WorkTimezone
+import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.TaskMonthlyBreakdown
 import com.elmtrackr.app.domain.model.Shift
@@ -291,6 +292,7 @@ class ReportsViewModel @Inject constructor(
                                     month = month,
                                     shifts = inputs.shifts,
                                     settings = settings,
+                                    profiles = profiles,
                                 )
                                 val paySummary = settings.takeIf {
                                     (it.hourlyRate ?: 0.0) > 0.0 ||
@@ -431,12 +433,16 @@ class ReportsViewModel @Inject constructor(
     fun buildCsvContent(
         shifts: List<Shift>,
         settings: UserSettings?,
+        // Passed in rather than read from a field: the CSV's hour columns have to
+        // resolve overtime thresholds through the same profiles the on-screen report
+        // used, or the export disagrees with the screen it was exported from.
+        profiles: List<CompensationProfile> = emptyList(),
         year: Int = selectedYearMonth.value.first,
         month: Int = selectedYearMonth.value.second,
     ): String {
         val reportSettings = settings ?: UserSettings(id = "export", userId = "export")
         val completed = shifts.filter { it.isCompleted }.sortedByDescending { it.startTime }
-        val breakdowns = completed.map { MonthlyReportBuilder.buildShiftBreakdown(it, reportSettings) }
+        val breakdowns = completed.map { MonthlyReportBuilder.buildShiftBreakdown(it, reportSettings, profiles) }
         val lines = mutableListOf(
             "Date,Start Time,End Time,Break (min),Total Hours,Regular Hours,Overtime Hours,Weekend Hours,Overnight,Notes",
         )
@@ -461,7 +467,7 @@ class ReportsViewModel @Inject constructor(
         // applies max(daily, weekly) overtime per week. Summing the per-shift
         // rows counts daily overtime only, so a month whose overtime was
         // weekly-threshold-driven exported 0.00 while the screen showed hours.
-        val report = MonthlyReportBuilder.buildMonthlyReport(year, month, completed, reportSettings)
+        val report = MonthlyReportBuilder.buildMonthlyReport(year, month, completed, reportSettings, profiles)
         lines += listOf(
             "TOTAL - $year-${month.toString().padStart(2, '0')}", "", "", "",
             HoursFormatter.csv(report.totalMinutes),
