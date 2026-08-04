@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.design.auroraExpandable
 import java.time.ZoneId
 import java.time.format.TextStyle
 import java.util.Locale
@@ -64,6 +65,12 @@ fun IanaTimezonePicker(
       trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
       modifier = Modifier
         .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true)
+        // This picker stays hand-rolled rather than moving to ElmDropdownField:
+        // it is an editable combobox with its own query state, and typing filters
+        // the list. It still needs the open/closed state the shared field adds,
+        // and more so here — whether the field is showing the search query or the
+        // current zone depends entirely on it.
+        .auroraExpandable(expanded)
         .fillMaxWidth(),
     )
     ExposedDropdownMenu(

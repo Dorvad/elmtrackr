@@ -54,6 +54,23 @@ fun ShiftElapsedDisplay(
     }
 }
 
+/**
+ * The elapsed time on a running shift, ticking once a second.
+ *
+ * ## Deliberately not a live region
+ *
+ * A `liveRegion` is the obvious-looking accessibility fix here and it is the
+ * wrong one. It exists to announce changes the user did not cause, and this value
+ * changes every second for the whole length of a shift: TalkBack would interrupt
+ * itself once a second, indefinitely, and make the dashboard unusable — including
+ * for the parts of it that have nothing to do with the timer. `Polite` does not
+ * help, because there is always another change queued behind the one being read.
+ *
+ * The value is not hidden from a screen reader either: it is ordinary text, so it
+ * is read on focus, which is when a user actually asked for it. Anyone tempted to
+ * add `liveRegion` here should reach for a summary announcement on clock-out
+ * instead — a change the user did cause, once.
+ */
 @Composable
 fun LiveClockTimer(
     elapsed: Duration,
