@@ -65,6 +65,7 @@ import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.durationText
 import com.elmtrackr.app.domain.HoursFormatter
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
@@ -167,7 +168,12 @@ internal fun ShiftEditFormContent(
     val zone = settings?.let { com.elmtrackr.app.domain.time.WorkTimezone.zoneFor(it) }
         ?: ZoneId.systemDefault()
     val startZdt = Instant.ofEpochMilli(startMillis).atZone(zone)
-    val currency = settings?.currency ?: CurrencyCode.ILS
+    // Resolved from displayCurrencyCode(), the rule Dashboard, Reports and the PDF
+    // exporter all use, rather than reading settings.currency directly. The currency
+    // is stored twice — an enum and a string — and these screens were the ones still
+    // trusting the enum, so a code the enum cannot represent showed the shift screens
+    // one currency and every other surface another.
+    val currency = CurrencyCode.from(settings?.displayCurrencyCode())
     val haptic = LocalHapticFeedback.current
 
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
@@ -946,7 +952,7 @@ private fun WhenSummaryFooter(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(14.dp),
         )
-        val worked = workedMinutes?.let { ShiftDurationCalculator.formatMinutes(it) } ?: "-"
+        val worked = workedMinutes?.let { durationText(it) } ?: "-"
         val paid = paidMinutes?.let { stringResource(R.string.shifts_hours_paid, HoursFormatter.decimal(it)) } ?: "-"
         Text(
             stringResource(R.string.shifts_when_summary, worked, breakMinutes, paid),

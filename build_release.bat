@@ -32,7 +32,7 @@ call gradlew.bat clean assembleRelease >> %LOG% 2>&1
 echo Exit code: %ERRORLEVEL% >> %LOG%
 
 if exist "app\build\outputs\apk\release\app-release.apk" (
-    echo BUILD SUCCESS - signed APK produced >> %LOG%
+    echo BUILD SUCCESS - APK produced, signed with the key in local.properties >> %LOG%
     echo BUILD SUCCESS
     echo APK: %CD%\app\build\outputs\apk\release\app-release.apk
 ) else if exist "app\build\outputs\apk\release\app-release-unsigned.apk" (

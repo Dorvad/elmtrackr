@@ -35,7 +35,15 @@ object ShiftDurationCalculator {
         return maxOf(0, (millis / 60_000L).toInt())
     }
 
-    /** Format minutes as "Xh Ym" (e.g. "8h 30m", "45m", "0m"). */
+    /**
+     * Unlocalised "Xh Ym".
+     *
+     * Every display surface now goes through
+     * [com.elmtrackr.app.ui.common.DurationText], which reads the units from
+     * resources. This remains only for [ReportInsightsBuilder], which composes whole
+     * English sentences in the domain layer — including hand-rolled plurals — and so
+     * needs a `UiText` model rather than a better formatter. Do not add callers.
+     */
     fun formatMinutes(minutes: Int): String {
         if (minutes <= 0) return "0m"
         val h = minutes / 60
@@ -47,21 +55,4 @@ object ShiftDurationCalculator {
         }
     }
 
-    /**
-     * Validate a shift time range.
-     * Returns a human-readable error string, or null if the times are valid.
-     */
-    fun validateShiftTimes(
-        startTime: Instant,
-        endTime: Instant?,
-        breakMinutes: Int,
-    ): String? {
-        if (breakMinutes < 0) return "Break minutes cannot be negative."
-        if (endTime != null) {
-            if (!endTime.isAfter(startTime)) return "End time must be after start time."
-            val gross = ((endTime.toEpochMilli() - startTime.toEpochMilli()) / 60_000L).toInt()
-            if (breakMinutes >= gross) return "Break time cannot be equal to or longer than the shift duration."
-        }
-        return null
-    }
 }

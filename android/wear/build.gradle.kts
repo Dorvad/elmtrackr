@@ -31,6 +31,16 @@ android {
     val releaseKeystoreFile =
         rootProject.file(localProps.getProperty("KEYSTORE_PATH") ?: "keystore/elmtrackr-release.jks")
 
+    // Same rule as the phone module: a distributable release needs a real key, a
+    // verification build has to ask for the debug fallback. The watch APK ships in
+    // the same release as the phone one, so a silent debug-signed wear artifact is
+    // the same defect.
+    val releaseArtifactRequested = gradle.startParameter.taskNames.any {
+        Regex("(assemble|bundle|package|install)Release", RegexOption.IGNORE_CASE).containsMatchIn(it)
+    }
+    val allowDebugSignedRelease =
+        (project.findProperty("allowDebugSignedRelease") as String?)?.toBoolean() == true
+
     signingConfigs {
         create("release") {
             storeFile = releaseKeystoreFile
@@ -48,14 +58,22 @@ android {
             // keystore is absent so release builds stay verifiable locally and on
             // CI. Debug-signed builds are rejected by Play, so this cannot ship by
             // accident.
-            signingConfig = if (releaseKeystoreFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                logger.warn(
-                    "WARNING: release keystore not found at $releaseKeystoreFile - " +
-                        "signing the wear release build with the DEBUG key. Do not distribute this build.",
+            signingConfig = when {
+                releaseKeystoreFile.exists() -> signingConfigs.getByName("release")
+                !releaseArtifactRequested -> signingConfigs.getByName("debug")
+                allowDebugSignedRelease -> {
+                    logger.warn(
+                        "Release keystore not found at $releaseKeystoreFile — signing the wear " +
+                            "release build with the DEBUG key because " +
+                            "-PallowDebugSignedRelease=true was passed. Verification only.",
+                    )
+                    signingConfigs.getByName("debug")
+                }
+                else -> throw GradleException(
+                    "Release keystore not found at $releaseKeystoreFile — cannot sign the wear " +
+                        "release build. See the phone module's message for the properties to set, " +
+                        "or pass -PallowDebugSignedRelease=true for a verification build.",
                 )
-                signingConfigs.getByName("debug")
             }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

@@ -193,7 +193,6 @@
     <string name="project_delete_confirm_text">בטיוטה הזו אין שעות, דרישות חיוב או תשלומים, ולכן אפשר למחוק אותה לגמרי. לא ניתן לשחזר.</string>
     <string name="project_delete_confirm">מחיקה</string>
     <string name="project_delete_keep">השארה</string>
-    <string name="project_delete_blocked">לפרויקט הזה יש שעות, דרישות חיוב או תשלומים. העבירו אותו לארכיון — פרויקטים בארכיון נשארים בדוחות.</string>
 
     <!-- Form errors -->
     <string name="project_error_required">שדה חובה</string>
@@ -381,6 +380,7 @@
     <string name="project_report_billed">חויב</string>
     <string name="project_report_paid">שולם</string>
     <string name="project_report_outstanding">יתרה לתשלום</string>
+    <string name="project_report_effective_rate_all_time">שכר אפקטיבי לשעה (מאז ומתמיד)</string>
     <string name="project_report_value_per_hour">שווי פרויקט לשעה</string>
     <string name="project_report_efficiency_note">שווי פרויקט לשעה הוא השכר המוסכם לפני מס חלקי השעות שעבדתם. הוצאות אינן נרשמות, ולכן זה אינו רווח נקי.</string>
     <string name="project_report_currency_note">הסכומים מקובצים לפי מטבע. ElmTrackr אינו מבצע המרות מטבע.</string>
@@ -426,4 +426,7 @@
 
     <!-- Prompt 8: lock-screen redaction. Named the project, never the amount. -->
     <string name="project_reminder_public_text">תשלום שממתין לגבייה</string>
+    <string name="project_delete_shifts_kept">%1$d משמרות (%2$s שע׳) שומרות על השעות והופכות לעבודה בשכר רגיל.</string>
+    <string name="project_delete_billing_lost">רשומות החיוב והתשלומים של הפרויקט יימחקו.</string>
+    <string name="project_delete_archive_hint">כדי לשמור את הפרויקט בדוחות בלי למחוק אותו, אפשר להעביר אותו לארכיון.</string>
 </resources>

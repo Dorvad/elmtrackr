@@ -76,10 +76,14 @@ class FakeProjectsRepository : ProjectsRepository {
         }
     }
 
-    override suspend fun deleteProject(userId: String, projectId: String) {
+    /** Released-shift count is fixed here; the real cascade is covered by the repository test. */
+    var releasedShiftsOnDelete: Int = 0
+
+    override suspend fun deleteProject(userId: String, projectId: String): Int {
         payments.value = payments.value.filterNot { it.projectId == projectId }
         billingRecords.value = billingRecords.value.filterNot { it.projectId == projectId }
         projects.value = projects.value.filterNot { it.id == projectId }
+        return releasedShiftsOnDelete
     }
 
     override fun observeBillingRecords(projectId: String): Flow<List<ProjectBillingRecord>> =

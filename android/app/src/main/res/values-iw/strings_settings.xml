@@ -73,6 +73,10 @@
     <string name="settings_watch_face_hint">בחירת עיצוב מונפש לשעון במסך הבית.</string>
     <string name="settings_browse_all_faces">לעיין בכל %1$d העיצובים</string>
     <string name="settings_all_clock_faces">כל עיצובי השעון</string>
+    <string name="settings_pack_add">הוספה</string>
+    <string name="settings_pack_remove">הסרה</string>
+    <string name="settings_pack_in_use">בשימוש</string>
+    <string name="settings_pack_not_added">%1$d עיצובים — יש להוסיף את החבילה כדי להשתמש בהם</string>
     <string name="clock_group_essentials">בסיסיים</string>
     <string name="clock_group_essentials_desc">לראות את השעה ולהמשיך הלאה</string>
     <string name="clock_group_progress">התקדמות</string>

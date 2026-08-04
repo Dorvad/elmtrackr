@@ -193,7 +193,6 @@
     <string name="project_delete_confirm_text">This draft has no tracked time, billing requests or payments, so it can be removed for good. This cannot be undone.</string>
     <string name="project_delete_confirm">Delete</string>
     <string name="project_delete_keep">Keep</string>
-    <string name="project_delete_blocked">This project has tracked time, billing requests or payments. Archive it instead — archived projects stay in your reports.</string>
 
     <!-- Form errors -->
     <string name="project_error_required">Required</string>
@@ -381,6 +380,9 @@
     <string name="project_report_billed">Billed</string>
     <string name="project_report_paid">Paid</string>
     <string name="project_report_outstanding">Outstanding balance</string>
+    <!-- The fee covers the whole engagement, so its hours must too; the label says
+         so rather than letting a monthly report imply the rate is monthly. -->
+    <string name="project_report_effective_rate_all_time">Effective hourly rate (all-time)</string>
     <string name="project_report_value_per_hour">Project value per hour</string>
     <string name="project_report_efficiency_note">Project value per hour is the agreed fee before tax divided by hours worked. Expenses are not tracked, so this is not net profit.</string>
     <string name="project_report_currency_note">Amounts are grouped by currency. ElmTrackr does not convert between currencies.</string>
@@ -434,4 +436,7 @@
 
     <!-- Prompt 8: lock-screen redaction. Named the project, never the amount. -->
     <string name="project_reminder_public_text">Payment due</string>
+    <string name="project_delete_shifts_kept">%1$d shifts (%2$s h) keep their hours and become regular paid work.</string>
+    <string name="project_delete_billing_lost">Billing records and payments for this project are deleted.</string>
+    <string name="project_delete_archive_hint">To keep the project in reports without deleting it, archive it instead.</string>
 </resources>

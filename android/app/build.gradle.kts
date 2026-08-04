@@ -48,6 +48,27 @@ android {
     val releaseKeystoreFile =
         rootProject.file(localProps.getProperty("KEYSTORE_PATH") ?: "keystore/elmtrackr-release.jks")
 
+    /**
+     * Whether this invocation asks for a release artifact someone could install, as
+     * opposed to a release-configured *check* like `lintVitalRelease`.
+     *
+     * The distinction is the whole point. A missing keystore used to fall back to the
+     * debug key for every release build, with a warning nobody reads in CI output,
+     * and `build_release.bat` then printed "signed APK produced". Play rejecting a
+     * debug-signed upload is a control on the Play path only — it does nothing about a
+     * file handed to a tester or sideloaded, which is exactly what a local release
+     * build is for.
+     *
+     * Verification builds still need the fallback: `bundleRelease` is how R8 and
+     * `lintVitalRelease` get exercised, and CI generates a throwaway keystore of its
+     * own. So the fallback stays available, but it has to be asked for.
+     */
+    val releaseArtifactRequested = gradle.startParameter.taskNames.any {
+        Regex("(assemble|bundle|package|install)Release", RegexOption.IGNORE_CASE).containsMatchIn(it)
+    }
+    val allowDebugSignedRelease =
+        (project.findProperty("allowDebugSignedRelease") as String?)?.toBoolean() == true
+
     signingConfigs {
         create("release") {
             storeFile = releaseKeystoreFile
@@ -61,17 +82,32 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            // Without the upload keystore, fall back to debug signing so R8/release
-            // builds stay verifiable locally and on CI. Debug-signed release builds
-            // are rejected by Play, so this cannot ship by accident.
-            signingConfig = if (releaseKeystoreFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                logger.warn(
-                    "WARNING: release keystore not found at $releaseKeystoreFile - " +
-                        "signing the release build with the DEBUG key. Do not distribute this build.",
+            signingConfig = when {
+                releaseKeystoreFile.exists() -> signingConfigs.getByName("release")
+
+                // Configuring the release build type happens for every invocation,
+                // including `assembleDebug`, so this branch must not fail those. It
+                // also covers release-configured checks, which produce nothing
+                // installable.
+                !releaseArtifactRequested -> signingConfigs.getByName("debug")
+
+                allowDebugSignedRelease -> {
+                    logger.warn(
+                        "Release keystore not found at $releaseKeystoreFile — signing with the " +
+                            "DEBUG key because -PallowDebugSignedRelease=true was passed. " +
+                            "This artifact is for verification only. Do not distribute it.",
+                    )
+                    signingConfigs.getByName("debug")
+                }
+
+                else -> throw GradleException(
+                    "Release keystore not found at $releaseKeystoreFile.\n" +
+                        "Set KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD in " +
+                        "local.properties to sign for real.\n" +
+                        "To build an unsigned-for-distribution artifact anyway — R8 or lint " +
+                        "verification only, never for a tester — pass " +
+                        "-PallowDebugSignedRelease=true and read the warning it prints.",
                 )
-                signingConfigs.getByName("debug")
             }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

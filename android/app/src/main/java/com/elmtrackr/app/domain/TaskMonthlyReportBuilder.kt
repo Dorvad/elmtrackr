@@ -27,7 +27,7 @@ object TaskMonthlyReportBuilder {
         val breakdownCache = mutableMapOf<String, ShiftBreakdown>()
         fun breakdownFor(shift: Shift): ShiftBreakdown =
             breakdownCache.getOrPut(shift.id) {
-                MonthlyReportBuilder.buildShiftBreakdown(shift, settings)
+                MonthlyReportBuilder.buildShiftBreakdown(shift, settings, profiles)
             }
 
         val grouped = completed.groupBy { shift ->

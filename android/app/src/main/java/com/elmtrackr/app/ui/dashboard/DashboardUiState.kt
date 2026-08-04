@@ -34,6 +34,11 @@ sealed interface DashboardUiState {
         val recentShifts: List<Shift> = emptyList(),
         val displayName: String? = null,
         val unresolvedRefundCount: Int = 0,
+        /**
+         * Whether the end-of-month refund reminder was dismissed *for the current
+         * month*. Persisted, so it survives a relaunch, and re-arms next month.
+         */
+        val refundReminderDismissed: Boolean = false,
         val todayCompletedMinutes: Int = 0,
         val paySummary: PayrollCalculator.MonthlyPaySummary? = null,
         /**

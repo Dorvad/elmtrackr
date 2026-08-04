@@ -355,6 +355,311 @@ class PayrollCalculatorTest {
         assertEquals(1.5, otBracket.rate, 0.001)
     }
 
+    // ── Pay weeks across a month boundary ────────────────────────────────────
+
+    /**
+     * A pay week straddling the 1st.
+     *
+     * January 2024 ends on a Wednesday, so the pay week Sun 28 Jan – Sat 3 Feb spans
+     * both months. Four 8-hour days in January put 1,920 minutes into that week
+     * before February starts; a 10-hour shift on 1 February brings the week to 2,520
+     * against the US federal weekly standard of 2,400.
+     *
+     * Every caller used to pass one month, so the February shift began the week with
+     * `priorWeekMinutes = 0` and saw 600 minutes against a 2,400 threshold — no
+     * overtime at all. The correct answer is 120 minutes of it at 1.5×.
+     */
+    private fun januaryTail() = listOf(
+        shift("2024-01-28T09:00:00Z", "2024-01-28T17:00:00Z", id = "jan-28"),
+        shift("2024-01-29T09:00:00Z", "2024-01-29T17:00:00Z", id = "jan-29"),
+        shift("2024-01-30T09:00:00Z", "2024-01-30T17:00:00Z", id = "jan-30"),
+        shift("2024-01-31T09:00:00Z", "2024-01-31T17:00:00Z", id = "jan-31"),
+    )
+
+    private fun februaryFirst() =
+        shift("2024-02-01T09:00:00Z", "2024-02-01T19:00:00Z", id = "feb-01")
+
+    @Test
+    fun `a pay week straddling the first counts the previous month's minutes`() {
+        val p = profile(RegionCode.US, rate = 60.0)
+        val feb = februaryFirst()
+
+        val withContext = PayrollCalculator.calculateShiftPayInContext(
+            feb, januaryTail() + feb, settingsWithProfile(p), listOf(p),
+        )!!
+
+        val overtimeMinutes = withContext.brackets.filter { it.rate > 1.0 }.sumOf { it.minutes }
+        assertEquals(120, overtimeMinutes)
+        assertNear(660.0, withContext.totalGross)
+    }
+
+    /** The same shift judged on the month alone — the behaviour that was wrong. */
+    @Test
+    fun `the same shift with only its own month sees no weekly overtime`() {
+        val p = profile(RegionCode.US, rate = 60.0)
+        val feb = februaryFirst()
+
+        val monthOnly = PayrollCalculator.calculateShiftPayInContext(
+            feb, listOf(feb), settingsWithProfile(p), listOf(p),
+        )!!
+
+        assertEquals(0, monthOnly.brackets.filter { it.rate > 1.0 }.sumOf { it.minutes })
+        assertNear(600.0, monthOnly.totalGross)
+    }
+
+    /**
+     * The monthly summary reports February only, but has to reach the same answer for
+     * the shift it does report. Nothing from January may appear in the total.
+     */
+    @Test
+    fun `sumMonthlyPay reports one month but accumulates the whole pay week`() {
+        val p = profile(RegionCode.US, rate = 60.0)
+        val feb = februaryFirst()
+
+        val summary = PayrollCalculator.sumMonthlyPay(
+            shifts = listOf(feb),
+            settings = settingsWithProfile(p),
+            profiles = listOf(p),
+            contextShifts = januaryTail() + feb,
+        )
+
+        assertNear(660.0, summary.totalGross)
+        assertNear(180.0, summary.overtimeGross)
+    }
+
+    /** Context defaults to the reported list, so an unwired caller is unchanged. */
+    @Test
+    fun `sumMonthlyPay without context falls back to the reported month`() {
+        val p = profile(RegionCode.US, rate = 60.0)
+        val feb = februaryFirst()
+
+        val summary = PayrollCalculator.sumMonthlyPay(
+            shifts = listOf(feb),
+            settings = settingsWithProfile(p),
+            profiles = listOf(p),
+        )
+
+        assertNear(600.0, summary.totalGross)
+    }
+
+    /**
+     * The report's hours must move with the money. Its weekly allowance is filled by
+     * the prior week's minutes too, but its overtime figure stays bounded by the
+     * minutes it actually reports — January's overtime belongs to January's report.
+     */
+    @Test
+    fun `the report counts prior-week minutes toward the weekly threshold`() {
+        val p = profile(RegionCode.US, rate = 60.0)
+        val feb = februaryFirst()
+        val settings = settingsWithProfile(p)
+
+        val withContext = MonthlyReportBuilder.buildMonthlyReport(
+            2024, 2, listOf(feb), settings, listOf(p),
+            contextShifts = januaryTail() + feb,
+        )
+        val monthOnly = MonthlyReportBuilder.buildMonthlyReport(
+            2024, 2, listOf(feb), settings, listOf(p),
+        )
+
+        assertEquals(600, withContext.totalMinutes)
+        assertEquals(120, withContext.overtimeMinutes)
+        assertEquals(0, monthOnly.overtimeMinutes)
+    }
+
+    /**
+     * Found while wiring the pay-week context. The US federal preset is weekly-only —
+     * `dailyOvertimeTiers` is empty — but the report counted every minute past its
+     * 480-minute daily *standard* as overtime, so a single 10-hour day showed 120
+     * overtime minutes that no pay figure ever paid.
+     */
+    @Test
+    fun `the report counts no daily overtime for a weekly-only profile`() {
+        val p = profile(RegionCode.US, rate = 60.0)
+        val tenHourDay = shift("2024-02-05T09:00:00Z", "2024-02-05T19:00:00Z", id = "mon")
+        val settings = settingsWithProfile(p)
+
+        val report = MonthlyReportBuilder.buildMonthlyReport(
+            2024, 2, listOf(tenHourDay), settings, listOf(p),
+        )
+        val pay = PayrollCalculator.calculateShiftPayInContext(
+            tenHourDay, listOf(tenHourDay), settings, listOf(p),
+        )!!
+
+        assertEquals(0, report.overtimeMinutes)
+        assertEquals(0, pay.brackets.filter { it.rate > 1.0 }.sumOf { it.minutes })
+        assertEquals(600, report.regularMinutes)
+    }
+
+    /** A profile that does have a daily ladder still reports daily overtime. */
+    @Test
+    fun `a profile with daily tiers still reports daily overtime`() {
+        val p = profile(RegionCode.US_CA, rate = 60.0)
+        val tenHourDay = shift("2024-02-05T09:00:00Z", "2024-02-05T19:00:00Z", id = "mon")
+
+        val report = MonthlyReportBuilder.buildMonthlyReport(
+            2024, 2, listOf(tenHourDay), settingsWithProfile(p), listOf(p),
+        )
+
+        assertEquals(120, report.overtimeMinutes)
+    }
+
+    /** Report hours and paid overtime agree on the straddling week. */
+    @Test
+    fun `report and payroll agree across the month boundary`() {
+        val p = profile(RegionCode.US, rate = 60.0)
+        val feb = februaryFirst()
+        val settings = settingsWithProfile(p)
+        val context = januaryTail() + feb
+
+        val report = MonthlyReportBuilder.buildMonthlyReport(
+            2024, 2, listOf(feb), settings, listOf(p), contextShifts = context,
+        )
+        val pay = PayrollCalculator.calculateShiftPayInContext(feb, context, settings, listOf(p))!!
+
+        assertEquals(
+            pay.brackets.filter { it.rate > 1.0 }.sumOf { it.minutes },
+            report.overtimeMinutes,
+        )
+    }
+
+    // ── Midnight-crossing weekend classification (generic engine) ────────────
+
+    /**
+     * Saturday is the only weekend day, so a shift crossing into or out of it is
+     * genuinely half weekend. The US federal preset disables weekend premium, so the
+     * flag is turned on here with a rate to measure.
+     */
+    private val saturdayOnlyRules = RegionPresets.forRegion(RegionCode.US).rules.copy(
+        weekendEnabled = true,
+        weekendMultiplier = 1.5,
+        weekendDays = listOf(6),
+    )
+
+    private fun saturdayOnlyProfile() =
+        profile(RegionCode.US, rate = 60.0, rules = saturdayOnlyRules)
+
+    /**
+     * The defect: weekend status was decided once from the shift's start date, so
+     * every minute of a Friday-night shift was paid at the weekday rate no matter how
+     * far into Saturday it ran. 2024-01-05 is a Friday.
+     *
+     * 60 minutes on Friday, 420 on Saturday: 60 × 1.0 + 420 × 1.5 = 690, where the
+     * whole shift used to pay 480.
+     */
+    @Test
+    fun `a shift running from Friday into Saturday pays the weekend rate for Saturday`() {
+        val p = saturdayOnlyProfile()
+        val s = shift("2024-01-05T23:00:00Z", "2024-01-06T07:00:00Z")
+
+        val pay = PayrollCalculator.calculateShiftPayInContext(s, listOf(s), settingsWithProfile(p), listOf(p))!!
+
+        assertNear(690.0, pay.totalGross)
+        assertNear(630.0, pay.weekendGross)
+        assertNear(60.0, pay.regularGross)
+    }
+
+    /**
+     * The mirror image, and the more expensive half of the bug: starting on Saturday
+     * used to pay the *whole* shift at the weekend rate, including the seven hours
+     * that fell on Sunday.
+     */
+    @Test
+    fun `a shift running from Saturday into Sunday pays the weekend rate only for Saturday`() {
+        val p = saturdayOnlyProfile()
+        val s = shift("2024-01-06T23:00:00Z", "2024-01-07T07:00:00Z")
+
+        val pay = PayrollCalculator.calculateShiftPayInContext(s, listOf(s), settingsWithProfile(p), listOf(p))!!
+
+        assertNear(510.0, pay.totalGross)
+        assertNear(90.0, pay.weekendGross)
+        assertNear(420.0, pay.regularGross)
+    }
+
+    /**
+     * The invariant that made this worth fixing rather than documenting: the report's
+     * weekend *hours* and the payroll's weekend *money* have to describe the same
+     * minutes. Asserted against the report builder's own output.
+     */
+    @Test
+    fun `payroll weekend minutes match the report weekend minutes across midnight`() {
+        val p = saturdayOnlyProfile()
+        listOf(
+            shift("2024-01-05T23:00:00Z", "2024-01-06T07:00:00Z", id = "fri-sat"),
+            shift("2024-01-06T23:00:00Z", "2024-01-07T07:00:00Z", id = "sat-sun"),
+        ).forEach { s ->
+            val settings = settingsWithProfile(p)
+            val breakdown = MonthlyReportBuilder.buildShiftBreakdown(s, settings, listOf(p))
+            val pay = PayrollCalculator.calculateShiftPayInContext(s, listOf(s), settings, listOf(p))!!
+            val paidWeekendMinutes = pay.brackets
+                .filter { it.label.contains("Weekend", ignoreCase = true) }
+                .sumOf { it.minutes }
+
+            assertEquals(s.id, breakdown.weekendMinutes, paidWeekendMinutes)
+        }
+    }
+
+    /** A shift wholly inside one day keeps its previous single-ladder treatment. */
+    @Test
+    fun `a shift entirely on Saturday is still all weekend`() {
+        val p = saturdayOnlyProfile()
+        val s = shift("2024-01-06T09:00:00Z", "2024-01-06T17:00:00Z")
+
+        val pay = PayrollCalculator.calculateShiftPayInContext(s, listOf(s), settingsWithProfile(p), listOf(p))!!
+
+        assertNear(720.0, pay.totalGross)
+        assertNear(720.0, pay.weekendGross)
+        assertTrue(pay.isSpecial)
+    }
+
+    @Test
+    fun `a shift entirely on a weekday is unaffected`() {
+        val p = saturdayOnlyProfile()
+        val s = shift("2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z")
+
+        val pay = PayrollCalculator.calculateShiftPayInContext(s, listOf(s), settingsWithProfile(p), listOf(p))!!
+
+        assertNear(480.0, pay.totalGross)
+        assertNear(0.0, pay.weekendGross)
+    }
+
+    /**
+     * A holiday is declared on the shift, not derived from the calendar, so it stays
+     * all-or-nothing rather than being split per day.
+     */
+    @Test
+    fun `a special-day shift crossing midnight is not split`() {
+        val p = saturdayOnlyProfile()
+        val s = shift("2024-01-05T23:00:00Z", "2024-01-06T07:00:00Z", special = true)
+
+        val pay = PayrollCalculator.calculateShiftPayInContext(s, listOf(s), settingsWithProfile(p), listOf(p))!!
+
+        assertNear(0.0, pay.weekendGross)
+        assertTrue(pay.holidayGross > 0.0)
+    }
+
+    /** forceRegularRate overrides the calendar on both sides of midnight. */
+    @Test
+    fun `a force-regular shift crossing midnight pays no weekend premium`() {
+        val p = saturdayOnlyProfile()
+        val s = shift("2024-01-05T23:00:00Z", "2024-01-06T07:00:00Z").copy(forceRegularRate = true)
+
+        val pay = PayrollCalculator.calculateShiftPayInContext(s, listOf(s), settingsWithProfile(p), listOf(p))!!
+
+        assertNear(480.0, pay.totalGross)
+        assertNear(0.0, pay.weekendGross)
+    }
+
+    /** No minute may be lost or paid twice when the ladder is split in two. */
+    @Test
+    fun `a split shift pays for exactly its payable minutes`() {
+        val p = saturdayOnlyProfile()
+        val s = shift("2024-01-05T23:00:00Z", "2024-01-06T07:00:00Z", break_ = 30)
+
+        val pay = PayrollCalculator.calculateShiftPayInContext(s, listOf(s), settingsWithProfile(p), listOf(p))!!
+
+        assertEquals(450, pay.brackets.sumOf { it.minutes })
+    }
+
     // ── Payable time rules (breaks, rounding, minimum shift) ─────────────────
 
     @Test
@@ -384,6 +689,61 @@ class PayrollCalculatorTest {
         val minimum = CompensationRules(minimumShiftMinutes = 180)
         val short = shift("2024-01-08T09:00:00Z", "2024-01-08T10:00:00Z")
         assertEquals(180, PayrollCalculator.payableNetMinutes(short, minimum))
+    }
+
+    /**
+     * The composed case neither of the tests above covers, and the one that was
+     * broken: rounding runs first and can reach zero, and the minimum guard used to
+     * exclude zero. A seven-minute call-out paid nothing on rules that promise two
+     * hours.
+     */
+    @Test
+    fun `rounding to zero does not cancel the minimum shift guarantee`() {
+        val rules = CompensationRules(
+            rounding = RoundingRules(enabled = true, incrementMinutes = 15, direction = "nearest"),
+            minimumShiftMinutes = 120,
+        )
+        // 7 minutes: (7 + 7) / 15 = 0 at a 15-minute nearest increment.
+        val short = shift("2024-01-08T09:00:00Z", "2024-01-08T09:07:00Z")
+
+        assertEquals(120, PayrollCalculator.payableNetMinutes(short, rules))
+    }
+
+    /** "Down" reaches zero for anything under one increment, so it needs the same floor. */
+    @Test
+    fun `rounding down below one increment still gets the minimum`() {
+        val rules = CompensationRules(
+            rounding = RoundingRules(enabled = true, incrementMinutes = 30, direction = "down"),
+            minimumShiftMinutes = 60,
+        )
+        val short = shift("2024-01-08T09:00:00Z", "2024-01-08T09:20:00Z")
+
+        assertEquals(60, PayrollCalculator.payableNetMinutes(short, rules))
+    }
+
+    /**
+     * The other half of the guard. A minimum is a floor on time actually worked, so a
+     * shift with none of it must stay at zero — otherwise a break longer than the
+     * shift would mint payable minutes out of nothing.
+     */
+    @Test
+    fun `a shift with no worked minutes is not lifted to the minimum`() {
+        val rules = CompensationRules(minimumShiftMinutes = 120)
+        val allBreak = shift("2024-01-08T09:00:00Z", "2024-01-08T09:30:00Z", break_ = 30)
+
+        assertEquals(0, PayrollCalculator.payableNetMinutes(allBreak, rules))
+    }
+
+    /** Rounding away from zero is unaffected: the minimum only ever raises. */
+    @Test
+    fun `the minimum does not lower a shift that rounds above it`() {
+        val rules = CompensationRules(
+            rounding = RoundingRules(enabled = true, incrementMinutes = 15, direction = "up"),
+            minimumShiftMinutes = 60,
+        )
+        val s = shift("2024-01-08T09:00:00Z", "2024-01-08T11:53:00Z") // 173 → 180
+
+        assertEquals(180, PayrollCalculator.payableNetMinutes(s, rules))
     }
 
     @Test
@@ -748,5 +1108,101 @@ class PayrollCalculatorTest {
         )
         // Night premium never exceeds night minutes × delta (240 × 0.25 × 1.0/min).
         assertTrue(bd.nightGross <= 60.0 + 0.01)
+    }
+
+    // ── Night premium on the Israeli engine (regression) ─────────────────────
+
+    /**
+     * The Israeli engine returned `nightGross = 0.0` unconditionally, so a user on
+     * the IL region could configure a night premium in Compensation rules and see no
+     * effect anywhere and no warning — the night rules were honoured only by the
+     * generic engine. Same shift, same rules; only the region differs.
+     */
+    @Test
+    fun `the israeli engine pays the night uplift on night minutes`() {
+        val ilRules = RegionPresets.forRegion(RegionCode.IL).rules.copy(
+            nightEnabled = true,
+            nightStartTime = "22:00",
+            nightEndTime = "06:00",
+            nightMultiplier = 1.25,
+            nightApplyTo = "minutes_inside_window",
+        )
+        val p = profile(RegionCode.IL, rules = ilRules)
+        // 18:00 → 02:00 UTC: 480 net minutes, 240 inside the 22:00–06:00 window.
+        val s = shift("2024-01-08T18:00:00Z", "2024-01-09T02:00:00Z")
+
+        val bd = PayrollCalculator.calculateShiftPay(s, settingsWithProfile(p), listOf(p))!!
+
+        assertTrue(
+            "night uplift did not reach the IL engine (nightGross=${bd.nightGross})",
+            bd.nightGross > 0.0,
+        )
+
+        // Derived, not copied from the generic engine: IL's daily standard is 420
+        // minutes, so this shift is 420 regular + 60 daily overtime at 1.25, and
+        // half the shift (240 of 480 minutes) is inside the night window.
+        //
+        // The regular segment carries the whole uplift — 420 min × 60/h × 0.5 ×
+        // (1.25 − 1.00) = 52.50. The overtime segment gets none: IL stacks
+        // highest-only, and its 1.25 overtime rate already equals the 1.25 night
+        // rate, so there is nothing to add. That is why this is not a flat 25% on
+        // all 240 night minutes.
+        assertNear(52.50, bd.nightGross)
+        assertNear(547.50, bd.totalGross)
+        assertEquals(1.125, bd.brackets.first().rate, 0.001)
+    }
+
+    /** With the premium switched off the IL engine must be unchanged. */
+    @Test
+    fun `the israeli engine pays no night uplift when the rule is off`() {
+        val p = profile(RegionCode.IL)
+        val s = shift("2024-01-08T18:00:00Z", "2024-01-09T02:00:00Z")
+
+        val bd = PayrollCalculator.calculateShiftPay(s, settingsWithProfile(p), listOf(p))!!
+
+        assertNear(0.0, bd.nightGross)
+    }
+
+    /**
+     * The night uplift is carried inside each bracket's blended rate, so the
+     * category buckets plus the night total must still reconstruct the gross — the
+     * property that keeps every bucket non-negative.
+     */
+    @Test
+    fun `israeli buckets plus night reconstruct the gross`() {
+        val ilRules = RegionPresets.forRegion(RegionCode.IL).rules.copy(
+            nightEnabled = true,
+            nightStartTime = "22:00",
+            nightEndTime = "06:00",
+            nightMultiplier = 1.5,
+            nightApplyTo = "minutes_inside_window",
+        )
+        val p = profile(RegionCode.IL, rules = ilRules)
+        val s = shift("2024-01-08T18:00:00Z", "2024-01-09T04:00:00Z")
+
+        val bd = PayrollCalculator.calculateShiftPay(s, settingsWithProfile(p), listOf(p))!!
+
+        assertNear(
+            bd.totalGross,
+            bd.regularGross + bd.overtimeGross + bd.weekendGross + bd.holidayGross + bd.nightGross,
+        )
+        listOf(bd.regularGross, bd.overtimeGross, bd.weekendGross, bd.holidayGross, bd.nightGross)
+            .forEach { assertTrue("a bucket went negative: $it", it >= -0.001) }
+    }
+
+    /**
+     * forceRegularRate means "pay this at the regular rate regardless". The IL
+     * engine's own copy of the breakdown loop omitted it from the manual-holiday
+     * check, so the flag was honoured on one path and ignored on the other.
+     */
+    @Test
+    fun `force regular rate suppresses the manual holiday flag on the israeli engine`() {
+        val p = profile(RegionCode.IL)
+        val s = shift("2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z")
+            .copy(isSpecialDay = true, forceRegularRate = true)
+
+        val bd = PayrollCalculator.calculateShiftPay(s, settingsWithProfile(p), listOf(p))!!
+
+        assertEquals(false, bd.isSpecial)
     }
 }

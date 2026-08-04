@@ -44,6 +44,7 @@ class ClockFacePickerRenderTest {
                 ClockFaceQuickPicker(
                     selected = ClockStyle.CLASSIC,
                     recents = emptyList(),
+                    availableFaces = ClockStyle.entries,
                     onSelect = {},
                     onBrowseAll = {},
                 )
@@ -66,6 +67,7 @@ class ClockFacePickerRenderTest {
                 ClockFaceQuickPicker(
                     selected = ClockStyle.MINIMAL,
                     recents = emptyList(),
+                    availableFaces = ClockStyle.entries,
                     onSelect = {},
                     onBrowseAll = {},
                 )
@@ -87,6 +89,7 @@ class ClockFacePickerRenderTest {
                 ClockFaceQuickPicker(
                     selected = ClockStyle.VINYL,
                     recents = listOf(ClockStyle.SPROUT, ClockStyle.METRO),
+                    availableFaces = ClockStyle.entries,
                     onSelect = { chosen = it },
                     onBrowseAll = {},
                 )
@@ -115,7 +118,10 @@ class ClockFacePickerRenderTest {
             ElmTrackrTheme(darkTheme = false) {
                 ClockFaceGalleryScreen(
                     selected = ClockStyle.CLASSIC,
+                    availablePacks = ClockFaceGroup.entries.toSet(),
                     onSelect = { chosen = it },
+                    onInstallPack = {},
+                    onRemovePack = {},
                     onBack = { wentBack = true },
                 )
             }

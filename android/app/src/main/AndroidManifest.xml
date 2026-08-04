@@ -10,6 +10,13 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <!-- Restores the ongoing active-shift notification after a reboot. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!--
+      For the at-threshold overtime alert only. SCHEDULE_EXACT_ALARM rather than
+      USE_EXACT_ALARM: the latter is granted automatically but Play restricts it to
+      alarm-clock and calendar apps. This one is user-grantable and revocable, so the
+      scheduler degrades to an inexact Doze-exempt alarm when it is not held.
+    -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <uses-feature
         android:name="android.hardware.camera.any"
@@ -93,6 +100,14 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com.elmtrackr.app.ACTION_CLOCK_OUT" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".notification.OvertimeThresholdAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.elmtrackr.app.ACTION_OVERTIME_THRESHOLD" />
             </intent-filter>
         </receiver>
 

@@ -12,11 +12,21 @@ import com.elmtrackr.app.domain.model.ClockStyle
  *
  * Grouped by what the face *is*, not when it shipped. A user who liked Sand is
  * far more likely to want Tide than Retro.
+ *
+ * A group is also the unit a user adds or removes: only [ESSENTIALS] is bundled,
+ * the rest are packs. See [ClockFacePacks] for what "installed" actually buys.
  */
-enum class ClockFaceGroup(val faces: List<ClockStyle>) {
-    /** The defaults. Read the number, get on with the day. */
+enum class ClockFaceGroup(val faces: List<ClockStyle>, val isBundled: Boolean = false) {
+    /**
+     * The defaults. Read the number, get on with the day.
+     *
+     * Bundled and not removable: the appearance screen must always have four faces
+     * to offer and the dashboard must always have something to draw, so there has
+     * to be a floor that cannot be taken away.
+     */
     ESSENTIALS(
         listOf(ClockStyle.CLASSIC, ClockStyle.MINIMAL, ClockStyle.FOCUS, ClockStyle.BOLD),
+        isBundled = true,
     ),
 
     /** Faces whose whole job is showing how far through the day you are. */
@@ -49,6 +59,79 @@ enum class ClockFaceGroup(val faces: List<ClockStyle>) {
          * one short group is honest about there being nineteen faces.
          */
         const val GROUP_SIZE = 4
+
+        /** Always present, never removable. */
+        val bundled: List<ClockFaceGroup> get() = entries.filter { it.isBundled }
+
+        /** Everything the user can add or remove. */
+        val packs: List<ClockFaceGroup> get() = entries.filter { !it.isBundled }
+
+        /** The group [face] belongs to. Every face belongs to exactly one. */
+        fun of(face: ClockStyle): ClockFaceGroup =
+            entries.first { face in it.faces }
+    }
+}
+
+/**
+ * Which face packs a user has, and what that does and does not mean.
+ *
+ * **It does not save disk space.** Every face is Kotlin drawing code compiled into
+ * the APK, so installing or removing a pack changes zero bytes on the device. What
+ * it does is keep the gallery to what the user asked for, and put a single
+ * decision point in front of adding a pack — which is the seam a purchase flow
+ * plugs into later. Real download-on-demand would need the faces moved into a
+ * Play Feature Delivery module; that is a build-level change, not this one.
+ */
+object ClockFacePacks {
+
+    /**
+     * The packs actually available to the user right now.
+     *
+     * [stored] is what they have installed. The bundled groups are always added,
+     * and so is the group holding [selected] — a stored selection must never
+     * become unreachable, whether because this feature arrived after the user had
+     * already picked a face from a pack, or because a stored set was lost. Derived
+     * rather than migrated for that reason: there is no seeding step to forget to
+     * run, and no state where the app cannot draw the user's own clock.
+     */
+    fun available(
+        stored: Set<ClockFaceGroup>,
+        selected: ClockStyle,
+    ): Set<ClockFaceGroup> = stored + ClockFaceGroup.bundled + ClockFaceGroup.of(selected)
+
+    /** Every face the user can choose from, in gallery order. */
+    fun availableFaces(
+        stored: Set<ClockFaceGroup>,
+        selected: ClockStyle,
+    ): List<ClockStyle> {
+        val groups = available(stored, selected)
+        return ClockFaceGroup.entries.filter { it in groups }.flatMap { it.faces }
+    }
+
+    /**
+     * Whether [pack] can be removed, and the reason it cannot.
+     *
+     * A bundled pack is never removable. Neither is the one holding the selected
+     * face — removing it would leave the dashboard drawing a face the user no
+     * longer has. The caller switches the selection first; see
+     * [fallbackAfterRemoving].
+     */
+    fun canRemove(pack: ClockFaceGroup, selected: ClockStyle): Boolean =
+        !pack.isBundled && ClockFaceGroup.of(selected) != pack
+
+    /**
+     * The face to switch to when [pack] is removed while its face is selected.
+     *
+     * Always a bundled face, because a bundled pack is the only thing guaranteed
+     * to still be there afterwards.
+     */
+    fun fallbackAfterRemoving(pack: ClockFaceGroup, selected: ClockStyle): ClockStyle? =
+        if (ClockFaceGroup.of(selected) == pack) ClockFaceGroup.ESSENTIALS.faces.first() else null
+
+    /** Parses stored pack names, dropping any that no longer exist. */
+    fun resolve(rawNames: Collection<String>): Set<ClockFaceGroup> {
+        val byName = ClockFaceGroup.entries.associateBy { it.name }
+        return rawNames.mapNotNullTo(mutableSetOf()) { byName[it.trim().uppercase()] }
     }
 }
 
@@ -71,13 +154,18 @@ const val CLOCK_FACE_QUICK_PICK_COUNT = ClockFaceGroup.GROUP_SIZE
 fun clockFaceQuickPicks(
     current: ClockStyle,
     recents: List<ClockStyle>,
+    available: List<ClockStyle> = ClockStyle.entries,
     count: Int = CLOCK_FACE_QUICK_PICK_COUNT,
 ): List<ClockStyle> {
+    val offerable = available.toSet()
     val picks = LinkedHashSet<ClockStyle>()
+    // The selected face leads unconditionally, even in the impossible case that it
+    // is not in [available] — showing the user something other than what is set
+    // would be a worse failure than showing one unavailable tile.
     picks += current
-    picks += recents
-    picks += ClockFaceGroup.ESSENTIALS.faces
-    picks += ClockStyle.entries
+    picks += recents.filter { it in offerable }
+    picks += ClockFaceGroup.ESSENTIALS.faces.filter { it in offerable }
+    picks += available
     return picks.take(count)
 }
 

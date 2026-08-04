@@ -60,6 +60,16 @@ class ProjectsViewModel @Inject constructor(
     private val filter = MutableStateFlow(ProjectStatusFilter.ALL)
     private val isSaving = MutableStateFlow(false)
 
+    /**
+     * Bumped by [retry] to rebuild the whole chain.
+     *
+     * `catch` terminates the flow it catches, so an error here was permanent: the
+     * screen rendered an error state with a "Try again" button wired to `{}`, and the
+     * only way out was killing the app. Restarting from a nonce is the pattern
+     * `ShiftsViewModel` already uses, and it is what makes that button mean something.
+     */
+    private val refreshNonce = MutableStateFlow(0)
+
     /** Repository data, before search and filtering are applied. */
     private sealed interface ProjectsData {
         data object Loading : ProjectsData
@@ -67,8 +77,8 @@ class ProjectsViewModel @Inject constructor(
         data class Ready(val summaries: List<ProjectSummary>, val settings: UserSettings) : ProjectsData
     }
 
-    private val projectsData: Flow<ProjectsData> = currentUserProvider.userId
-        .filterNotNull()
+    private val projectsData: Flow<ProjectsData> = refreshNonce
+        .flatMapLatest { currentUserProvider.userId.filterNotNull() }
         .flatMapLatest { userId ->
             combine(
                 settingsRepository.observeSettings(userId),
@@ -140,6 +150,14 @@ class ProjectsViewModel @Inject constructor(
     fun paymentsFor(projectId: String): Flow<List<com.elmtrackr.app.domain.model.ProjectPayment>> =
         projectsRepository.observePayments(projectId)
 
+    /**
+     * Rebuilds the data chain after an error.
+     *
+     * Every sibling screen has this; Projects was the one that rendered a retry
+     * affordance with nothing behind it.
+     */
+    fun retry() { refreshNonce.value++ }
+
     fun onQueryChange(value: String) { query.value = value }
 
     fun onFilterChange(value: ProjectStatusFilter) { filter.value = value }
@@ -180,16 +198,19 @@ class ProjectsViewModel @Inject constructor(
     }
 
     /**
-     * Permanent deletion, only for a project that has never been used. The guard
-     * is re-checked here rather than trusted from the UI, so a stale screen
-     * cannot delete a project that has since been billed or tracked against.
+     * Permanent deletion, for any project.
+     *
+     * No eligibility guard. Deletion used to require an untouched draft, so a
+     * project used once could never be removed — only archived — and the archive is
+     * not a substitute for deleting your own data. The tracked hours survive as
+     * employee-paid work; the billing records and payments do not. The screen states
+     * both before asking, which is where the safety now lives.
      */
-    fun deleteProject(summary: ProjectSummary, onDeleted: () -> Unit = {}) {
+    fun deleteProject(summary: ProjectSummary, onDeleted: (releasedShifts: Int) -> Unit = {}) {
         viewModelScope.launch {
-            if (!summary.canDeletePermanently) return@launch
             val userId = currentUserProvider.currentUserId() ?: return@launch
-            projectsRepository.deleteProject(userId, summary.project.id)
-            onDeleted()
+            val released = projectsRepository.deleteProject(userId, summary.project.id)
+            onDeleted(released)
         }
     }
 

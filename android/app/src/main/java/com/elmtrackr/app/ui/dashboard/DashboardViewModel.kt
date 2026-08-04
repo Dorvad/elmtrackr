@@ -10,6 +10,7 @@ import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.employeePaidOnly
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.compensation.ShiftCompensationHelper
+import com.elmtrackr.app.domain.dashboard.isRefundReminderDismissed
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.MonthlyReport
@@ -190,15 +191,26 @@ class DashboardViewModel @Inject constructor(
         .map { it.paidProjectsDiscoveryDismissed }
         .distinctUntilChanged()
 
+    private val refundReminderDismissedMonth = featureDiscoveryPreferences.preferences
+        .map { it.refundReminderDismissedMonth }
+        .distinctUntilChanged()
+
     private data class RawData(
         val activeShift: Shift?,
         val report: MonthlyReport?,
         val settings: UserSettings?,
+        /** The reported month, and only it. */
         val monthShifts: List<Shift>,
         val recentShifts: List<Shift>,
         val profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
         val activeTasks: List<Task>,
         val premiumProfiles: List<com.elmtrackr.app.domain.model.PremiumProfile> = emptyList(),
+        /**
+         * The month plus the tail of the pay week containing the 1st. Used only to
+         * accumulate prior minutes toward the weekly overtime threshold — never
+         * reported, counted or displayed.
+         */
+        val payContextShifts: List<Shift> = emptyList(),
     )
 
     val uiState: StateFlow<DashboardUiState> = _refreshNonce
@@ -216,19 +228,34 @@ class DashboardViewModel @Inject constructor(
                         } else {
                             val zone = WorkTimezone.zoneFor(settings)
                             val today = LocalDate.now(zone)
-                            shiftsRepository.observeShiftsByMonthInZone(
+                            // The month plus the tail of the pay week containing the
+                            // 1st. One query, a handful of extra rows, and the weekly
+                            // overtime allowance no longer restarts at zero mid-week.
+                            // RawData.monthShifts is filtered back to the month below.
+                            shiftsRepository.observeShiftsForPayContext(
                                     profile.id,
                                     today.year,
                                     today.monthValue,
                                     zone,
-                                ).map { monthShifts ->
-                                val report = MonthlyReportBuilder.buildMonthlyReport(
-                                    year = today.year,
-                                    month = today.monthValue,
-                                    shifts = monthShifts,
+                                    MonthlyReportBuilder.defaultWeekStartDay(settings),
+                                ).map { contextShifts ->
+                                // The report is built further down, once the profile list
+                                // has arrived. Building it here resolved overtime
+                                // thresholds against the legacy settings fields because
+                                // profiles are combined in a later stage — the report's
+                                // hours then disagreed with the pay figure beside them.
+                                RawData(
+                                    activeShift = activeShift,
+                                    report = null,
                                     settings = settings,
+                                    monthShifts = MonthlyReportBuilder.filterByMonth(
+                                        contextShifts, today.year, today.monthValue, settings,
+                                    ),
+                                    recentShifts = emptyList(),
+                                    profiles = emptyList(),
+                                    activeTasks = emptyList(),
+                                    payContextShifts = contextShifts,
                                 )
-                                RawData(activeShift, report, settings, monthShifts, emptyList(), emptyList(), emptyList())
                             }
                         }
                     },
@@ -262,10 +289,27 @@ class DashboardViewModel @Inject constructor(
                         (settings.hourlyRate ?: 0.0) > 0.0 ||
                             raw.profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
                     }
-                    ?.let { PayrollCalculator.sumMonthlyPay(completedMonthShifts, it, raw.profiles, raw.premiumProfiles) }
+                    ?.let {
+                        PayrollCalculator.sumMonthlyPay(
+                            completedMonthShifts, it, raw.profiles, raw.premiumProfiles,
+                            contextShifts = raw.payContextShifts,
+                        )
+                    }
+                // Built here, beside the pay summary, so both read the same profiles and
+                // the same pay-week context; the card's hours and money cannot describe
+                // different thresholds.
+                val monthToday = LocalDate.now(workZone)
+                val monthlyReport = MonthlyReportBuilder.buildMonthlyReport(
+                    year = monthToday.year,
+                    month = monthToday.monthValue,
+                    shifts = raw.monthShifts,
+                    settings = raw.settings,
+                    profiles = raw.profiles,
+                    contextShifts = raw.payContextShifts,
+                )
                 DashboardUiState.Ready(
                     activeShift = raw.activeShift,
-                    monthlyReport = raw.report,
+                    monthlyReport = monthlyReport,
                     settings = raw.settings,
                     profiles = raw.profiles,
                     activeTasks = raw.activeTasks,
@@ -363,6 +407,20 @@ class DashboardViewModel @Inject constructor(
                         onboardingCompleted = state.settings.onboardingCompleted,
                         paidProjectsEnabled = state.settings.featuresPaidProjects,
                         dismissed = dismissed,
+                    ),
+                )
+                else -> state
+            }
+        }
+        // Compared in the work zone, like the refund count itself: a user whose
+        // work month has already turned over should see the next month's reminder,
+        // not the previous one's dismissal.
+        .combine(refundReminderDismissedMonth) { state, dismissedMonth ->
+            when (state) {
+                is DashboardUiState.Ready -> state.copy(
+                    refundReminderDismissed = isRefundReminderDismissed(
+                        storedMonth = dismissedMonth,
+                        month = YearMonth.now(WorkTimezone.zoneFor(state.settings)),
                     ),
                 )
                 else -> state
@@ -502,6 +560,24 @@ class DashboardViewModel @Inject constructor(
                 )
             }
             featureDiscoveryPreferences.setPaidProjectsDiscoveryDismissed(true)
+        }
+    }
+
+    /**
+     * Silences the refund reminder for the current work month only. Next month's
+     * unresolved claims raise it again without the user having to re-enable
+     * anything — the alternative, a permanent dismissal, quietly turns a recurring
+     * reminder into a one-off.
+     */
+    fun dismissRefundReminder() {
+        viewModelScope.launch {
+            val zone = authRepository.getCurrentProfile()?.id
+                ?.let { settingsRepository.getSettings(it) }
+                ?.let { WorkTimezone.zoneFor(it) }
+                ?: ZoneId.systemDefault()
+            featureDiscoveryPreferences.setRefundReminderDismissedMonth(
+                YearMonth.now(zone).toString(),
+            )
         }
     }
 

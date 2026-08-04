@@ -20,16 +20,12 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -65,6 +61,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalContext
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.AuroraListScreen
+import com.elmtrackr.app.ui.design.ElmDropdownField
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.theme.Spacing
@@ -283,42 +280,26 @@ private fun PremiumProfileEditor(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
-        ExposedDropdownMenuBox(
-            expanded = typeExpanded,
-            onExpandedChange = { typeExpanded = it },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            OutlinedTextField(
-                value = PremiumTypeLabels.title(editor.premiumType),
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(stringResource(R.string.settings_premium_type)) },
-                supportingText = { Text(PremiumTypeLabels.description(editor.premiumType)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
-                modifier = Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                    .fillMaxWidth(),
-            )
-            ExposedDropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
-                PremiumType.selectable.forEach { type ->
-                    DropdownMenuItem(
-                        text = {
-                            Column {
-                                Text(PremiumTypeLabels.title(type), fontWeight = FontWeight.Medium)
-                                Text(
-                                    PremiumTypeLabels.description(type),
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                        },
-                        onClick = {
-                            onPremiumTypeChange(type)
-                            typeExpanded = false
-                        },
+        // The one picker whose rows need two lines: a premium type is not
+        // self-explanatory from its name, so the description sits under it in the
+        // list and under the field once chosen.
+        ElmDropdownField(
+            label = stringResource(R.string.settings_premium_type),
+            selected = editor.premiumType,
+            options = PremiumType.selectable,
+            onSelect = onPremiumTypeChange,
+            displayName = { PremiumTypeLabels.title(it) },
+            supportingText = PremiumTypeLabels.description(editor.premiumType),
+            itemContent = { type ->
+                Column {
+                    Text(PremiumTypeLabels.title(type), fontWeight = FontWeight.Medium)
+                    Text(
+                        PremiumTypeLabels.description(type),
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
-            }
-        }
+            },
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.settings_cancel)) }
             ElmGradientButton(

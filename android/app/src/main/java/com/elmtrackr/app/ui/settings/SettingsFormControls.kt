@@ -31,15 +31,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,6 +66,7 @@ import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.language.AppLanguage
+import com.elmtrackr.app.ui.design.ElmDropdownField
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.CornerRadius
@@ -261,47 +258,27 @@ internal fun LanguageSegmentedControl() {
 
 @Composable
 internal fun ThemeDropdown(selected: String, onSelect: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
+    // Options carry (stored value, display name); the stored value is what the
+    // preference holds, so the lookup falls back to it rather than showing blank.
     val options = themeOptions()
-    val label = options.firstOrNull { it.first == selected }?.second ?: selected
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        OutlinedTextField(
-            value = label,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(stringResource(R.string.settings_theme)) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { (value, display) ->
-                DropdownMenuItem(text = { Text(display) }, onClick = { onSelect(value); expanded = false })
-            }
-        }
-    }
+    ElmDropdownField(
+        label = stringResource(R.string.settings_theme),
+        selected = selected,
+        options = options.map { it.first },
+        onSelect = onSelect,
+        displayName = { value -> options.firstOrNull { it.first == value }?.second ?: value },
+    )
 }
 
 @Composable
 internal fun CurrencyDropdown(selected: CurrencyCode, onSelect: (CurrencyCode) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        OutlinedTextField(
-            value = "${selected.symbol}  ${selected.name} - ${currencyDisplayName(selected)}",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(stringResource(R.string.settings_currency)) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            CurrencyCode.entries.forEach { currency ->
-                DropdownMenuItem(
-                    text = { Text("${currency.symbol}  ${currency.name} - ${currencyDisplayName(currency)}") },
-                    onClick = { onSelect(currency); expanded = false },
-                )
-            }
-        }
-    }
+    ElmDropdownField(
+        label = stringResource(R.string.settings_currency),
+        selected = selected,
+        options = CurrencyCode.entries,
+        onSelect = onSelect,
+        displayName = { "${it.symbol}  ${it.name} - ${currencyDisplayName(it)}" },
+    )
 }
 
 @Composable

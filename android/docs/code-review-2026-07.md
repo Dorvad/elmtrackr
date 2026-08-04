@@ -436,3 +436,57 @@ these gaps map directly to the findings above:
    unification and notification re-post (§4.3).
 4. **Hygiene (P3):** §2.9 and §4.4 items — dead Wear fields, formatter
    unification, signing fail-fast, build scripts, README refresh, contrast test.
+
+---
+
+## 7. Status — section 2 closed, August 2026
+
+Every §2 finding was re-verified against source before being worked; none was
+taken on trust from this document. Where a fixture exposed a further divergence,
+that is recorded rather than folded in silently.
+
+### Closed
+
+| Finding | How |
+|---|---|
+| §2.1 project effective rate | Divides by all-time tracked minutes, matching the fee's scope. Labelled "(all-time)" on the report row and in the CSV. `RevenueEfficiency.valuePerHour` had the same shape and takes the same denominator. |
+| §2.2 CSV rows vs TOTAL basis | `ProjectInsights` carries period billed / received / outstanding beside the all-time set, built by `ProjectPeriodTotalsBuilder` over the report's own dates. Every money and hours column in the CSV names its basis; a test asserts none ships bare. |
+| §2.3 rounding past the minimum | The minimum-shift floor is judged against the pre-rounding net, so a 7-minute shift at a 15-minute increment no longer rounds to zero and pays nothing. A shift with no worked minutes still pays nothing. |
+| §2.4 report vs pay thresholds | `MonthlyReportBuilder` resolves thresholds and weekend days through `CompensationResolver`, as `WeeklyBreakdownBuilder` already did. With no profiles the resolver mirrors the same settings fields, so an unprofiled user is unaffected. |
+| §2.5 generic weekend from start date | Weekend minutes are counted per local day. A mixed shift runs the ordinary ladder over its weekday minutes and a flat weekend tier over the rest; a shift wholly on one side of midnight keeps its previous path. Holidays stay all-or-nothing — they are declared on the shift, not derived from the calendar. |
+| §2.6 residues | `LocalReportsRepository` now observes both profile tables and passes them to both builders. The three currency call sites went through `displayCurrencyCode()` earlier; `nightGross` was implemented on the Israeli engine in the same pass. |
+| §2.7 weekly OT truncated at the month boundary | Reported figures and pay-week context are separate inputs. The dashboard queries the month plus the tail of the week containing the 1st in one query; Reports reuses the previous month it already loads. Only the month is reported. |
+
+### Found while closing the above
+
+Neither was in this document. Both are the same class of defect — the report and
+the pay path answering the same question differently — and both were caught by a
+new test failing, not by reading.
+
+- **The report counted daily overtime for profiles with no daily ladder.** The US
+  federal preset is weekly-only by design (`dailyOvertimeTiers` is empty), but the
+  report counted every minute past its 480-minute daily *standard* as overtime. A
+  single 10-hour day showed 120 overtime minutes that no pay figure paid. Now
+  gated on the same two conditions `priorStraightTimeMinutesBefore` already used.
+- **`buildShiftBreakdown` ignored `weekendEnabled`.** A profile that pays no
+  weekend premium still had its Saturday and Sunday minutes classed as weekend,
+  and weekend minutes are excluded from the base overtime is measured from — so
+  the report understated overtime for hours the payroll had counted.
+
+### Still open
+
+Sections 3 and 4 are untouched: the Projects retry dead end (§3.1), form discard
+guards (§3.2), the English biometric prompt (§3.3), timezone residues (§3.4),
+duration localisation (§3.5), no foreground service (§4.1), Doze-deferred
+threshold alerts (§4.2), the notification re-post on permission grant (§4.3), and
+the §4.4 list — of which the debug-key signing fallback and the interceptable
+`elmtrackr://auth/*` deep link are the two worth doing first.
+
+§2.8 (overdue measured against period end rather than today) and §2.9 are also
+open; §2.9's `breakRatio` item is worth splitting — the O(shifts² × minutes) hot
+loop matters more than the classification edge case.
+
+Verification for this pass: `:app:testDebugUnitTest`, `:app:lintDebug` and
+`:app:bundleRelease :app:lintVitalRelease` all green. `verifyPaparazziDebug` was
+not run — all 31 goldens fail on this host at an untouched baseline, for the
+reasons in `ux-ui-review-2026-08.md` backlog item 4.

@@ -8,7 +8,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.LayoutDirection
 import com.elmtrackr.app.ScreenshotTestApplication
 import com.elmtrackr.app.domain.model.PaymentMethod
@@ -363,5 +365,103 @@ class ProjectBillingRenderTest {
             "Payment history has to stay as it is",
             substring = true,
         ).assertIsDisplayed()
+    }
+
+    // ── Discard guard ─────────────────────────────────────────────────────────
+
+    /**
+     * These forms had no dirty tracking, no BackHandler and no discard dialog, so a
+     * filled-in payment amount was lost to one back tap. The shift form and every
+     * Settings detail screen already guarded this.
+     */
+    @Test
+    fun `leaving the payment form with a typed amount asks before discarding`() {
+        var closed = false
+        render {
+            ProjectPaymentFormScreen(
+                initialInput = ProjectPaymentFormInput.forRecord(record(), emptyList(), today),
+                billingRecord = record(),
+                existingPayments = emptyList(),
+                rejection = null,
+                onSave = {},
+                onBack = { closed = true },
+            )
+        }
+
+        composeRule.onNodeWithText("Amount received").performTextInput("1200")
+        composeRule.onNodeWithContentDescription("Back").performClick()
+
+        composeRule.onNodeWithText("Discard changes?").assertIsDisplayed()
+        assertEquals(false, closed)
+    }
+
+    /** Confirming discards; the caller's close runs exactly once. */
+    @Test
+    fun `confirming the discard closes the payment form`() {
+        var closed = 0
+        render {
+            ProjectPaymentFormScreen(
+                initialInput = ProjectPaymentFormInput.forRecord(record(), emptyList(), today),
+                billingRecord = record(),
+                existingPayments = emptyList(),
+                rejection = null,
+                onSave = {},
+                onBack = { closed++ },
+            )
+        }
+        composeRule.onNodeWithText("Amount received").performTextInput("1200")
+        composeRule.onNodeWithContentDescription("Back").performClick()
+
+        composeRule.onNodeWithText("Discard").performClick()
+
+        assertEquals(1, closed)
+    }
+
+    /** Keeping the edits leaves the form open with the amount still typed. */
+    @Test
+    fun `keeping the edits returns to the payment form`() {
+        var closed = false
+        render {
+            ProjectPaymentFormScreen(
+                initialInput = ProjectPaymentFormInput.forRecord(record(), emptyList(), today),
+                billingRecord = record(),
+                existingPayments = emptyList(),
+                rejection = null,
+                onSave = {},
+                onBack = { closed = true },
+            )
+        }
+        composeRule.onNodeWithText("Amount received").performTextInput("1200")
+        composeRule.onNodeWithContentDescription("Back").performClick()
+
+        composeRule.onNodeWithText("Keep editing").performClick()
+
+        assertEquals(false, closed)
+        // The dialog is gone and the form did not close. Deliberately not asserting
+        // the typed "1200" is still there: the field lives in a LazyColumn item that
+        // is out of composition while the dialog is up, so it is absent from the
+        // semantics tree even though rememberSaveable still holds the value. Claiming
+        // otherwise would be asserting something this harness cannot see.
+        composeRule.onNodeWithText("Discard changes?").assertDoesNotExist()
+    }
+
+    /** An untouched form must not nag on the way out. */
+    @Test
+    fun `leaving an untouched payment form closes immediately`() {
+        var closed = false
+        render {
+            ProjectPaymentFormScreen(
+                initialInput = ProjectPaymentFormInput.forRecord(record(), emptyList(), today),
+                billingRecord = record(),
+                existingPayments = emptyList(),
+                rejection = null,
+                onSave = {},
+                onBack = { closed = true },
+            )
+        }
+
+        composeRule.onNodeWithContentDescription("Back").performClick()
+
+        assertEquals(true, closed)
     }
 }

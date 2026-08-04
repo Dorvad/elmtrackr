@@ -79,43 +79,99 @@ object PayrollCalculator {
         )
         if (segments.isEmpty()) return null
 
+        return israeliBreakdown(
+            segments = segments,
+            shift = shift,
+            resolved = resolved,
+            zone = zone,
+            hourlyRate = hourlyRate,
+            premiumProfiles = premiumProfiles,
+        )
+    }
+
+    /**
+     * Turns Israeli-engine segments into a pay breakdown.
+     *
+     * Shared because this loop existed twice — here and in
+     * [IsraeliCompensationEngine.calculateIsraeliShiftPay] — and the two copies had
+     * already drifted apart in two ways. Both hardcoded `nightGross = 0.0`, so a
+     * user on the Israeli region could configure a night premium and see no effect
+     * anywhere and no warning; the night rules were honoured only by the generic
+     * engine. And only one copy excluded `forceRegularRate` from the manual-holiday
+     * check, so "pay this shift at the regular rate" was respected on one path and
+     * ignored on the other.
+     *
+     * The night uplift is applied exactly as [calculateGenericShiftPay] applies it:
+     * each segment's own minutes carry the uplift in proportion to how much of the
+     * shift falls inside the night window, blended into the rate so the bracket
+     * total stays exact and every category bucket stays non-negative.
+     */
+    private fun israeliBreakdown(
+        segments: List<IsraeliCompensationEngine.ClassifiedPaySegment>,
+        shift: Shift,
+        resolved: ResolvedCompensation,
+        zone: java.time.ZoneId,
+        hourlyRate: Double,
+        premiumProfiles: List<PremiumProfile>,
+    ): ShiftPayBreakdown {
         val ratePerMinute = hourlyRate / 60.0
         var regularGross = 0.0
         var overtimeGross = 0.0
         var weekendGross = 0.0
         var holidayGross = 0.0
+        var nightGross = 0.0
+
+        val shiftPremiumType = if (shift.forceRegularRate) {
+            null
+        } else {
+            shift.premiumProfileId?.let { id ->
+                premiumProfiles.firstOrNull { it.id == id || it.remoteId == id }?.premiumType
+            }
+        }
 
         val brackets = segments.map { segment ->
-            val amount = segment.minutes * ratePerMinute * segment.multiplier
+            val (nightStackedRate, nightFraction) = applyNightPremium(
+                segment.multiplier,
+                resolved,
+                shift,
+                zone,
+                shiftPremiumType,
+            )
+            val blendedRate = segment.multiplier + nightFraction * (nightStackedRate - segment.multiplier)
+            val amount = segment.minutes * ratePerMinute * blendedRate
+            val nightPremium =
+                segment.minutes * ratePerMinute * nightFraction * (nightStackedRate - segment.multiplier)
             when {
-                segment.label.contains("Premium", ignoreCase = true) -> holidayGross += amount
+                segment.label.contains("Premium", ignoreCase = true) -> holidayGross += amount - nightPremium
                 segment.isWeeklyRest && segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
-                    weekendGross += amount
+                    weekendGross += amount - nightPremium
                 segment.isWeeklyRest && segment.bucket != IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
-                    overtimeGross += amount
-                segment.isWeeklyOvertime -> overtimeGross += amount
-                segment.isDailyOvertime -> overtimeGross += amount
-                segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR -> regularGross += amount
-                else -> overtimeGross += amount
+                    overtimeGross += amount - nightPremium
+                segment.isWeeklyOvertime -> overtimeGross += amount - nightPremium
+                segment.isDailyOvertime -> overtimeGross += amount - nightPremium
+                segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
+                    regularGross += amount - nightPremium
+                else -> overtimeGross += amount - nightPremium
             }
-            PayBracket(segment.label, segment.minutes, segment.multiplier, amount)
+            nightGross += nightPremium
+            PayBracket(segment.label, segment.minutes, blendedRate, amount)
         }
 
         val isSpecial = segments.any { it.isWeeklyRest } ||
             (shift.isSpecialDay && !shift.forceRegularRate && resolved.rules.holidayManualSpecialDayEnabled)
 
-        val ilTotalGross = brackets.sumOf { it.amount }
-        val ilDeductions = deductionsFor(ilTotalGross, resolved.rules)
+        val totalGross = brackets.sumOf { it.amount }
+        val deductions = deductionsFor(totalGross, resolved.rules)
         return ShiftPayBreakdown(
             brackets = brackets,
-            totalGross = ilTotalGross,
+            totalGross = totalGross,
             regularGross = regularGross,
             overtimeGross = overtimeGross,
             weekendGross = weekendGross,
             holidayGross = holidayGross,
-            nightGross = 0.0,
-            deductionsGross = ilDeductions,
-            netGross = maxOf(0.0, ilTotalGross - ilDeductions),
+            nightGross = nightGross,
+            deductionsGross = deductions,
+            netGross = maxOf(0.0, totalGross - deductions),
             isSpecial = isSpecial,
             profileId = resolved.profileId,
             profileName = resolved.profileName,
@@ -123,6 +179,17 @@ object PayrollCalculator {
             disclaimer = COMPENSATION_ESTIMATE_NOTE,
         )
     }
+
+    /** Shared with [IsraeliCompensationEngine], which classifies its own segments. */
+    internal fun israeliBreakdownOf(
+        segments: List<IsraeliCompensationEngine.ClassifiedPaySegment>,
+        shift: Shift,
+        resolved: ResolvedCompensation,
+        zone: java.time.ZoneId,
+        hourlyRate: Double,
+        premiumProfiles: List<PremiumProfile>,
+    ): ShiftPayBreakdown =
+        israeliBreakdown(segments, shift, resolved, zone, hourlyRate, premiumProfiles)
 
     private fun calculateGenericShiftPay(
         shift: Shift,
@@ -153,20 +220,50 @@ object PayrollCalculator {
             (resolved.rules.holidayEnabled &&
                 resolved.rules.holidayManualSpecialDayEnabled &&
                 shift.isSpecialDay && !shift.forceRegularRate)
+        // Weekend minutes are counted per local day, the way the report counts them.
+        // Deciding the whole shift from its start date paid a Friday 23:00 → Saturday
+        // 07:00 shift entirely at the weekday rate and a Saturday 23:00 → Sunday 07:00
+        // shift entirely at the weekend rate, while the report split both
+        // proportionally — so the report's weekend hours and the payroll's weekend
+        // money described different halves of the same shift.
+        val weekendMinutes = genericWeekendMinutes(shift, resolved, zone, net, isHoliday)
         val isSpecial = isHoliday || startOnWeekend
 
-        val tiers = buildTiers(
-            resolved = resolved,
-            isSpecial = isSpecial,
-            isHoliday = isHoliday,
-            startOnWeekend = startOnWeekend,
-            net = net,
-            priorWeekMinutes = priorWeekMinutes,
-            shiftPremium = shiftPremium,
-            shift = shift,
-            zone = zone,
-            isSeventhConsecutiveWorkday = isSeventhConsecutiveWorkday,
-        )
+        // A shift that sits entirely on one side of the boundary keeps its existing
+        // path exactly; only a genuinely mixed shift is split, which is the case that
+        // was wrong. Holidays stay all-or-nothing: a holiday is a property of the
+        // shift, declared by the user, not of each local day it touches.
+        val tiers = if (weekendMinutes in 1 until net && !isHoliday) {
+            val weekdayMinutes = net - weekendMinutes
+            // The weekday portion runs the ordinary ladder over its own minutes only —
+            // "overtime is computed from the weekday-only portion" is the report's
+            // stated invariant, and this is what makes the two agree.
+            buildTiers(
+                resolved = resolved,
+                isSpecial = false,
+                isHoliday = false,
+                startOnWeekend = false,
+                net = weekdayMinutes,
+                priorWeekMinutes = priorWeekMinutes,
+                shiftPremium = null,
+                shift = shift,
+                zone = zone,
+                isSeventhConsecutiveWorkday = isSeventhConsecutiveWorkday,
+            ).capTo(weekdayMinutes) + weekendTier(resolved, weekendMinutes)
+        } else {
+            buildTiers(
+                resolved = resolved,
+                isSpecial = isSpecial,
+                isHoliday = isHoliday,
+                startOnWeekend = startOnWeekend,
+                net = net,
+                priorWeekMinutes = priorWeekMinutes,
+                shiftPremium = shiftPremium,
+                shift = shift,
+                zone = zone,
+                isSeventhConsecutiveWorkday = isSeventhConsecutiveWorkday,
+            )
+        }
         val brackets = mutableListOf<PayBracket>()
         var remaining = net
         var regularGross = 0.0
@@ -355,6 +452,8 @@ object PayrollCalculator {
         if (!rules.paidBreaks && autoBreak > 0 && shift.breakMinutes == 0 && net > autoBreak) {
             net -= autoBreak
         }
+        // Held before rounding, for the minimum-shift guard below.
+        val workedNet = net
         val rounding = rules.rounding
         if (rounding.enabled && rounding.incrementMinutes > 0 && net > 0) {
             val inc = rounding.incrementMinutes
@@ -365,19 +464,38 @@ object PayrollCalculator {
             }
         }
         val minimum = rules.minimumShiftMinutes ?: 0
-        if (minimum > 0 && net in 1 until minimum) net = minimum
+        // Judged against the *worked* net, not the rounded one. Rounding can take a
+        // short shift to zero — 7 minutes at a 15-minute "nearest" increment, or any
+        // sub-increment shift rounded "down" — and the previous guard was
+        // `net in 1 until minimum`, which excluded zero and so skipped the floor
+        // entirely. The shift then paid nothing, which is the opposite of what a
+        // minimum-shift rule exists to do.
+        //
+        // `workedNet > 0` is what keeps a genuinely empty shift at zero: a shift whose
+        // break consumes all of its gross time has no worked minutes to guarantee.
+        if (minimum > 0 && workedNet > 0 && net < minimum) net = minimum
         return net
     }
 
+    /**
+     * @param contextShifts a window wide enough to cover the pay weeks the reported
+     *   [shifts] belong to — normally the month plus the tail of the week containing
+     *   the 1st. Only [shifts] are summed; [contextShifts] supply the prior-minutes
+     *   accumulation that decides weekly overtime. Defaulting to [shifts] is what the
+     *   code did implicitly, and is why a pay week straddling the 1st began with no
+     *   prior minutes and under-counted overtime in the first partial week.
+     */
     fun sumMonthlyPay(
         shifts: List<Shift>,
         settings: UserSettings,
         profiles: List<CompensationProfile> = emptyList(),
         premiumProfiles: List<PremiumProfile> = emptyList(),
+        contextShifts: List<Shift> = shifts,
     ): MonthlyPaySummary {
         // Employee-only from here down: project shifts contribute no gross, and
         // must not appear in the week accumulation that drives overtime either.
         @Suppress("NAME_SHADOWING") val shifts = shifts.employeePaidOnly()
+        val context = contextShifts.employeePaidOnly().ifEmpty { shifts }
         var totalGross = 0.0
         var regularGross = 0.0
         var overtimeGross = 0.0
@@ -398,10 +516,10 @@ object PayrollCalculator {
             val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
             val bd = if (resolved.regionCode == RegionCode.IL) {
                 IsraeliCompensationEngine.calculateIsraeliShiftPay(
-                    shift, shifts, settings, profiles, premiumProfiles,
+                    shift, context, settings, profiles, premiumProfiles,
                 )
             } else {
-                calculateShiftPayInContext(shift, shifts, settings, profiles, premiumProfiles)
+                calculateShiftPayInContext(shift, context, settings, profiles, premiumProfiles)
             } ?: return@forEachWithPriorWeekMinutes
             totalGross += bd.totalGross
             regularGross += bd.regularGross
@@ -431,6 +549,71 @@ object PayrollCalculator {
     }
 
     private const val PERIOD_DEDUCTION_FALLBACK_KEY = "__legacy_settings__"
+
+    /**
+     * How many of a shift's payable minutes fall on a weekend day, counted per local
+     * day rather than decided by the start date.
+     *
+     * Proportioned onto the payable net rather than taken from the segments directly:
+     * [OvernightShiftDetector.splitShiftByDay] divides net wall-clock minutes across
+     * days, while `net` here has already had breaks, rounding and the minimum-shift
+     * floor applied. Scaling keeps `weekday + weekend == net` exactly, so no minute is
+     * lost or paid twice.
+     *
+     * Returns 0 for a holiday or a force-regular shift: both are shift-level
+     * declarations that override the calendar.
+     */
+    private fun genericWeekendMinutes(
+        shift: Shift,
+        resolved: ResolvedCompensation,
+        zone: java.time.ZoneId,
+        net: Int,
+        isHoliday: Boolean,
+    ): Int {
+        if (!resolved.rules.weekendEnabled || isHoliday || shift.forceRegularRate) return 0
+        val segments = WeekendRules.annotateWeekendSegments(
+            OvernightShiftDetector.splitShiftByDay(shift, zone),
+            resolved.rules.weekendDays,
+        )
+        val total = segments.sumOf { it.minutes }
+        if (total <= 0) return 0
+        val weekend = WeekendRules.totalWeekendMinutes(segments)
+        return when {
+            weekend <= 0 -> 0
+            weekend >= total -> net
+            else -> (net.toLong() * weekend / total).toInt().coerceIn(0, net)
+        }
+    }
+
+    /**
+     * Closes an open tier ladder at [limit] minutes.
+     *
+     * The last tier of a ladder carries [Int.MAX_VALUE] so it absorbs everything left.
+     * Appending a second ladder behind one of those would leave it nothing, so the
+     * weekday ladder is bounded to its own minutes before the weekend tier follows it.
+     */
+    private fun List<Tier>.capTo(limit: Int): List<Tier> {
+        val out = mutableListOf<Tier>()
+        var remaining = limit
+        for (tier in this) {
+            if (remaining <= 0) break
+            val cap = if (tier.capMinutes == Int.MAX_VALUE) remaining else minOf(tier.capMinutes, remaining)
+            out += tier.copy(capMinutes = cap)
+            remaining -= cap
+        }
+        return out
+    }
+
+    /** The weekend portion of a mixed shift: one flat tier, labelled so it lands in `weekendGross`. */
+    private fun weekendTier(resolved: ResolvedCompensation, minutes: Int): List<Tier> {
+        val multiplier = resolved.rules.weekendMultiplier
+        val label = if (multiplier > 1.0) {
+            "${(multiplier * 100).toInt()}% — Weekend"
+        } else {
+            "100% — Regular"
+        }
+        return listOf(Tier(label, minutes, multiplier))
+    }
 
     private fun buildTiers(
         resolved: ResolvedCompensation,

@@ -54,6 +54,21 @@ object OvertimeReminderScheduler {
     ) {
         val delay = OvertimeReminderPolicy.delayMinutesForRule(rule, thresholdMinutes, shift.startTime, now, zone)
         if (delay < 0) return
+
+        // The at-threshold alert — AFTER_OVERTIME with no repeat interval — goes to
+        // AlarmManager instead, because Doze can defer WorkManager by hours and this
+        // is the notification the feature exists for. Only when the alarm is actually
+        // set do we skip the work item; otherwise both paths would fire, or neither.
+        if (rule.kind == ReminderTriggerKind.AFTER_OVERTIME && rule.offsetMinutes <= 0) {
+            val scheduled = OvertimeThresholdAlarm.schedule(
+                context = context,
+                shiftStart = shift.startTime,
+                thresholdMinutes = thresholdMinutes,
+                now = now,
+            )
+            if (scheduled) return
+        }
+
         WorkManager.getInstance(context).enqueueUniqueWork(
             RULE_WORK_PREFIX + rule.id,
             ExistingWorkPolicy.REPLACE,
@@ -73,5 +88,9 @@ object OvertimeReminderScheduler {
         val workManager = WorkManager.getInstance(context)
         workManager.cancelAllWorkByTag(RULE_TAG)
         LEGACY_WORK_NAMES.forEach(workManager::cancelUniqueWork)
+        // The alarm is not WorkManager's to cancel. Missing this would leave a
+        // pending alert after clock-out — the receiver would find no active shift and
+        // stay quiet, but relying on that is relying on a second bug not to bite.
+        OvertimeThresholdAlarm.cancel(context)
     }
 }

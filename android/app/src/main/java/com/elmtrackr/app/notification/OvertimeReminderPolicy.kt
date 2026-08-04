@@ -12,7 +12,9 @@ import java.time.Instant
 object OvertimeReminderPolicy {
     const val PRE_WARNING_MINUTES = 30L
     const val HOURLY_INTERVAL_MINUTES = 60L
-    const val FALLBACK_THRESHOLD_MINUTES = 480L
+    /** Aliased, not redeclared: see [com.elmtrackr.wear.sync.WearShiftSnapshot]. */
+    const val FALLBACK_THRESHOLD_MINUTES =
+        com.elmtrackr.wear.sync.WearShiftSnapshot.DEFAULT_DAILY_GOAL_MINUTES.toLong()
 
     /** Sentinel returned by [delayMinutesForRule] when the rule should not be scheduled. */
     const val SKIP = -1L

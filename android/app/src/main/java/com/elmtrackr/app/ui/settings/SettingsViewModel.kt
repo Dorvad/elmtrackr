@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.R
 import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
+import com.elmtrackr.app.billing.ClockFacePackEntitlements
 import com.elmtrackr.app.data.local.preferences.ClockFacePreferences
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
@@ -56,6 +57,7 @@ class SettingsViewModel @Inject constructor(
     private val syncTrigger: SyncTrigger,
     private val appPreferences: AppLockPreferencesStore,
     private val clockFacePreferences: ClockFacePreferences,
+    private val clockFacePackEntitlements: ClockFacePackEntitlements,
 ) : ViewModel() {
 
     private val _isSaving = MutableStateFlow(false)
@@ -86,6 +88,7 @@ class SettingsViewModel @Inject constructor(
         val appLockEnabled: Boolean,
         val reduceMotionEnabled: Boolean,
         val recentClockFaces: List<ClockStyle>,
+        val storedClockFacePacks: Set<ClockFaceGroup>,
     )
 
     private val syncHealthFlow = authRepository.observeCurrentProfile().flatMapLatest { profile ->
@@ -122,7 +125,10 @@ class SettingsViewModel @Inject constructor(
                     appPreferences.preferences,
                     clockFacePreferences.preferences,
                 ) { prefs, facePrefs ->
-                    prefs.copy(recentClockFaces = facePrefs.recentClockFaces)
+                    prefs.copy(
+                        recentClockFaces = facePrefs.recentClockFaces,
+                        installedClockFacePacks = facePrefs.installedClockFacePacks,
+                    )
                 },
             ) { profile, theme, prefs ->
                 Triple(profile, theme, prefs)
@@ -141,6 +147,7 @@ class SettingsViewModel @Inject constructor(
                 appLockEnabled = profileMeta.third.appLockEnabled,
                 reduceMotionEnabled = profileMeta.third.reduceMotionEnabled,
                 recentClockFaces = resolveClockFaceRecents(profileMeta.third.recentClockFaces),
+                storedClockFacePacks = ClockFacePacks.resolve(profileMeta.third.installedClockFacePacks),
                 isSaving = syncMeta.first,
                 isSyncing = syncMeta.second,
                 syncHealth = syncMeta.third,
@@ -183,6 +190,7 @@ class SettingsViewModel @Inject constructor(
             syncExtras.appLockEnabled,
             syncExtras.reduceMotionEnabled,
             syncExtras.recentClockFaces,
+            syncExtras.storedClockFacePacks,
         )
     }
 
@@ -192,6 +200,7 @@ class SettingsViewModel @Inject constructor(
         val appLockEnabled: Boolean,
         val reduceMotionEnabled: Boolean,
         val recentClockFaces: List<ClockStyle>,
+        val storedClockFacePacks: Set<ClockFaceGroup>,
         val isSaving: Boolean,
         val isSyncing: Boolean,
         val syncHealth: SyncHealth?,
@@ -219,6 +228,7 @@ class SettingsViewModel @Inject constructor(
             appLockEnabled = extras.appLockEnabled,
             reduceMotionEnabled = extras.reduceMotionEnabled,
             recentClockFaces = extras.recentClockFaces,
+            storedClockFacePacks = extras.storedClockFacePacks,
             compensationProfileCount = core.compensationProfiles.size,
             defaultCompensationProfileName = core.compensationProfiles
                 .let { list -> list.firstOrNull { it.isDefault } ?: list.firstOrNull() }
@@ -354,6 +364,48 @@ class SettingsViewModel @Inject constructor(
         val updated = updatedClockFaceRecents(current, style)
         if (updated != current) {
             clockFacePreferences.setRecentClockFaces(updated.map { it.name })
+        }
+    }
+
+    /**
+     * Adds a face pack, if the user is entitled to it.
+     *
+     * The entitlement check is here rather than in the screen so a future paid pack
+     * cannot be added by a caller that forgot to ask. Today
+     * [com.elmtrackr.app.billing.FreeClockFacePackEntitlements] says yes to
+     * everything, so this is a no-op gate — which is the point of adding it before
+     * there is any billing rather than after.
+     */
+    fun installClockFacePack(pack: ClockFaceGroup) {
+        viewModelScope.launch {
+            if (!clockFacePackEntitlements.isEntitled(pack)) return@launch
+            val stored = ClockFacePacks.resolve(
+                clockFacePreferences.preferences.first().installedClockFacePacks,
+            )
+            clockFacePreferences.setInstalledClockFacePacks((stored + pack).map { it.name }.toSet())
+        }
+    }
+
+    /**
+     * Removes a face pack.
+     *
+     * [onSelectionReset] fires when the removed pack held the selected face, so the
+     * screen can move its unsaved selection to the fallback. Without it the pack
+     * would disappear while the appearance screen still showed a face from it, and
+     * the next save would store a face the user no longer has.
+     */
+    fun removeClockFacePack(
+        pack: ClockFaceGroup,
+        selected: ClockStyle,
+        onSelectionReset: (ClockStyle) -> Unit = {},
+    ) {
+        if (pack.isBundled) return
+        viewModelScope.launch {
+            val stored = ClockFacePacks.resolve(
+                clockFacePreferences.preferences.first().installedClockFacePacks,
+            )
+            clockFacePreferences.setInstalledClockFacePacks((stored - pack).map { it.name }.toSet())
+            ClockFacePacks.fallbackAfterRemoving(pack, selected)?.let(onSelectionReset)
         }
     }
 

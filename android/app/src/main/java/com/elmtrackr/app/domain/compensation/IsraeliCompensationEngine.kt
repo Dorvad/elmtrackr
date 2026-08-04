@@ -142,46 +142,16 @@ object IsraeliCompensationEngine {
         )
         if (segments.isEmpty()) return null
 
-        val ratePerMinute = hourlyRate / 60.0
-        var regularGross = 0.0
-        var overtimeGross = 0.0
-        var weekendGross = 0.0
-        var holidayGross = 0.0
-
-        val brackets = segments.map { segment ->
-            val amount = segment.minutes * ratePerMinute * segment.multiplier
-            when {
-                segment.label.contains("Premium", ignoreCase = true) -> holidayGross += amount
-                segment.isWeeklyRest && segment.bucket == OvertimeBucket.REGULAR -> weekendGross += amount
-                segment.isWeeklyRest && segment.bucket != OvertimeBucket.REGULAR -> overtimeGross += amount
-                segment.isWeeklyOvertime -> overtimeGross += amount
-                segment.isDailyOvertime -> overtimeGross += amount
-                segment.bucket == OvertimeBucket.REGULAR -> regularGross += amount
-                else -> overtimeGross += amount
-            }
-            PayBracket(segment.label, segment.minutes, segment.multiplier, amount)
-        }
-
-        val isSpecial = segments.any { it.isWeeklyRest } ||
-            (shift.isSpecialDay && resolved.rules.holidayManualSpecialDayEnabled)
-
-        val totalGross = brackets.sumOf { it.amount }
-        val deductionsGross = PayrollCalculator.deductionsFor(totalGross, resolved.rules)
-        return ShiftPayBreakdown(
-            brackets = brackets,
-            totalGross = totalGross,
-            regularGross = regularGross,
-            overtimeGross = overtimeGross,
-            weekendGross = weekendGross,
-            holidayGross = holidayGross,
-            nightGross = 0.0,
-            deductionsGross = deductionsGross,
-            netGross = maxOf(0.0, totalGross - deductionsGross),
-            isSpecial = isSpecial,
-            profileId = resolved.profileId,
-            profileName = resolved.profileName,
-            currencyCode = resolved.currencyCode,
-            disclaimer = COMPENSATION_ESTIMATE_NOTE,
+        // One shared builder with PayrollCalculator rather than a second copy of the
+        // same loop. The two copies had drifted: both hardcoded nightGross to zero,
+        // and only one honoured forceRegularRate in the manual-holiday check.
+        return PayrollCalculator.israeliBreakdownOf(
+            segments = segments,
+            shift = shift,
+            resolved = resolved,
+            zone = zone,
+            hourlyRate = hourlyRate,
+            premiumProfiles = premiumProfiles,
         )
     }
 

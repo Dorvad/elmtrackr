@@ -16,6 +16,7 @@ import com.elmtrackr.app.domain.WeeklyBreakdownBuilder
 import com.elmtrackr.app.domain.ReportInsightsBuilder
 import com.elmtrackr.app.domain.TaskMonthlyReportBuilder
 import com.elmtrackr.app.domain.time.WorkTimezone
+import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.TaskMonthlyBreakdown
 import com.elmtrackr.app.domain.model.Shift
@@ -113,12 +114,18 @@ class ReportsViewModel @Inject constructor(
                             projectsRepository.observeAllBillingRecords(userId),
                             projectsRepository.observeAllPayments(userId),
                             shiftsRepository.observeShiftsByMonthInZone(userId, year, month, zone),
-                        ) { projects, records, payments, monthShifts ->
+                            // All shifts, for the effective-rate denominator only. The
+                            // fee is for the whole engagement, so its hours have to be
+                            // too; dividing the full fee by one month's minutes
+                            // overstated the rate by however many months the project ran.
+                            shiftsRepository.observeShifts(userId),
+                        ) { projects, records, payments, monthShifts, allShifts ->
                             buildProjectBundle(
                                 projects = projects,
                                 records = records,
                                 payments = payments,
                                 monthShifts = monthShifts,
+                                allShifts = allShifts,
                                 filter = filter.copy(
                                     from = filter.from ?: LocalDate.of(year, month, 1),
                                     to = filter.to
@@ -145,6 +152,7 @@ class ReportsViewModel @Inject constructor(
         records: List<com.elmtrackr.app.domain.model.ProjectBillingRecord>,
         payments: List<com.elmtrackr.app.domain.model.ProjectPayment>,
         monthShifts: List<Shift>,
+        allShifts: List<Shift>,
         filter: com.elmtrackr.app.domain.projects.ProjectReportFilter,
         zone: ZoneId,
     ): ProjectReportBundle {
@@ -159,6 +167,10 @@ class ReportsViewModel @Inject constructor(
             .distinct()
             .size
 
+        val allTimeMinutesByProject = com.elmtrackr.app.domain.projects.ProjectMetrics
+            .timeSummaries(allShifts.filter { it.isProjectTime && it.isCompleted })
+            .mapValues { it.value.trackedMinutes }
+
         val summaries = projects.map { project ->
             com.elmtrackr.app.domain.projects.ProjectMetrics.summarize(
                 project = project,
@@ -170,6 +182,7 @@ class ReportsViewModel @Inject constructor(
                     trackedMinutes = minutesByProject[project.id] ?: 0,
                     shiftCount = projectShifts.count { it.projectId == project.id },
                 ),
+                allTimeMinutes = allTimeMinutesByProject[project.id] ?: 0,
             )
         }
 
@@ -286,17 +299,29 @@ class ReportsViewModel @Inject constructor(
                             inputs.settings == null -> ReportsUiState.Loading
                             else -> {
                                 val settings = inputs.settings
+                                val prevCompleted = inputs.previousShifts.filter { it.isCompleted }
+                                // The previous month is already loaded here for the
+                                // week-over-week delta, so pay-week context across the
+                                // 1st costs nothing extra. Only the month is reported;
+                                // these fill the weekly overtime allowance.
+                                val payContext = completedShifts + prevCompleted
                                 val safeReport = inputs.report ?: MonthlyReportBuilder.buildMonthlyReport(
                                     year = year,
                                     month = month,
                                     shifts = inputs.shifts,
                                     settings = settings,
+                                    profiles = profiles,
+                                    contextShifts = payContext,
                                 )
                                 val paySummary = settings.takeIf {
                                     (it.hourlyRate ?: 0.0) > 0.0 ||
                                         profiles.any { p -> (p.baseHourlyRate ?: 0.0) > 0.0 }
-                                }?.let { PayrollCalculator.sumMonthlyPay(completedShifts, it, profiles, premiumProfiles) }
-                                val prevCompleted = inputs.previousShifts.filter { it.isCompleted }
+                                }?.let {
+                                    PayrollCalculator.sumMonthlyPay(
+                                        completedShifts, it, profiles, premiumProfiles,
+                                        contextShifts = payContext,
+                                    )
+                                }
                                 val insights = settings.takeIf { it.featuresInsights }
                                     ?.let { ReportInsightsBuilder.build(completedShifts, it, profiles, premiumProfiles) }
                                 val dailyInsights = settings.takeIf { it.featuresInsights }
@@ -431,12 +456,16 @@ class ReportsViewModel @Inject constructor(
     fun buildCsvContent(
         shifts: List<Shift>,
         settings: UserSettings?,
+        // Passed in rather than read from a field: the CSV's hour columns have to
+        // resolve overtime thresholds through the same profiles the on-screen report
+        // used, or the export disagrees with the screen it was exported from.
+        profiles: List<CompensationProfile> = emptyList(),
         year: Int = selectedYearMonth.value.first,
         month: Int = selectedYearMonth.value.second,
     ): String {
         val reportSettings = settings ?: UserSettings(id = "export", userId = "export")
         val completed = shifts.filter { it.isCompleted }.sortedByDescending { it.startTime }
-        val breakdowns = completed.map { MonthlyReportBuilder.buildShiftBreakdown(it, reportSettings) }
+        val breakdowns = completed.map { MonthlyReportBuilder.buildShiftBreakdown(it, reportSettings, profiles) }
         val lines = mutableListOf(
             "Date,Start Time,End Time,Break (min),Total Hours,Regular Hours,Overtime Hours,Weekend Hours,Overnight,Notes",
         )
@@ -461,7 +490,7 @@ class ReportsViewModel @Inject constructor(
         // applies max(daily, weekly) overtime per week. Summing the per-shift
         // rows counts daily overtime only, so a month whose overtime was
         // weekly-threshold-driven exported 0.00 while the screen showed hours.
-        val report = MonthlyReportBuilder.buildMonthlyReport(year, month, completed, reportSettings)
+        val report = MonthlyReportBuilder.buildMonthlyReport(year, month, completed, reportSettings, profiles)
         lines += listOf(
             "TOTAL - $year-${month.toString().padStart(2, '0')}", "", "", "",
             HoursFormatter.csv(report.totalMinutes),

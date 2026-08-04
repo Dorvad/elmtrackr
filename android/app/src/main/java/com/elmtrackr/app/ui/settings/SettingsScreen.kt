@@ -221,6 +221,8 @@ fun SettingsScreen(
                             onSyncNow = viewModel::syncNow,
                             onSetAppLockEnabled = viewModel::setAppLockEnabled,
                             onReduceMotionChange = viewModel::setReduceMotion,
+                            onInstallClockFacePack = viewModel::installClockFacePack,
+                            onRemoveClockFacePack = viewModel::removeClockFacePack,
                         )
                         is SettingsUiState.Error -> ErrorState(
                             message = state.message,
@@ -253,6 +255,8 @@ private fun SettingsFormHost(
     onSyncNow: () -> Unit,
     onSetAppLockEnabled: (Boolean) -> Unit,
     onReduceMotionChange: (Boolean) -> Unit,
+    onInstallClockFacePack: (ClockFaceGroup) -> Unit,
+    onRemoveClockFacePack: (ClockFaceGroup, ClockStyle, (ClockStyle) -> Unit) -> Unit,
 ) {
     val context = LocalContext.current
     val activity = context as FragmentActivity
@@ -427,7 +431,16 @@ private fun SettingsFormHost(
             )
             SettingsDestination.CLOCK_FACES -> ClockFaceGalleryScreen(
                 selected = clockStyle,
+                availablePacks = ClockFacePacks.available(
+                    stored = state.storedClockFacePacks,
+                    selected = clockStyle,
+                ),
                 onSelect = { clockStyle = it },
+                onInstallPack = onInstallClockFacePack,
+                // The callback moves the unsaved selection off a face that is going
+                // away. Without it the pack would vanish while this screen still
+                // showed one of its faces as selected.
+                onRemovePack = { pack -> onRemoveClockFacePack(pack, clockStyle) { clockStyle = it } },
                 onBack = onNavigateBack,
             )
             SettingsDestination.FEATURES -> {
@@ -521,6 +534,8 @@ private fun SettingsScreenPreview() {
             onSyncNow = {},
             onSetAppLockEnabled = {},
             onReduceMotionChange = {},
+            onInstallClockFacePack = {},
+            onRemoveClockFacePack = { _, _, _ -> },
         )
     }
 }

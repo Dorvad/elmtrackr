@@ -123,4 +123,78 @@ class CompensationResolverTest {
             CompensationResolver.isWeekendShift(saturday, settings, listOf(profile(rules))),
         )
     }
+
+    // ── Mirroring a profile back into legacy settings ─────────────────────────
+
+    /**
+     * The compensation profile is the authority on pay, so a profile with no base
+     * rate must leave settings with no rate.
+     *
+     * `UserSettings.apply` merges with `?:`, which cannot distinguish "not
+     * specified" from "explicitly none". Clearing the profile's rate therefore used
+     * to leave the old number in `settings.hourlyRate`, where it went on seeding the
+     * Settings→Pay field and the four gates that decide whether to show pay at all —
+     * so the user saw a rate they had just removed.
+     */
+    @Test
+    fun `clearing the profile base rate clears the legacy settings rate`() {
+        val settings = com.elmtrackr.app.domain.model.UserSettings(
+            id = "s1",
+            userId = "u1",
+            hourlyRate = 50.0,
+        )
+        val cleared = profile(CompensationRules()).copy(baseHourlyRate = null)
+
+        val result = settings.apply(CompensationResolver.profileToLegacySettingsUpdates(cleared))
+
+        assertEquals(null, result.hourlyRate)
+    }
+
+    @Test
+    fun `mirroring a profile with a rate still writes that rate`() {
+        val settings = com.elmtrackr.app.domain.model.UserSettings(
+            id = "s1",
+            userId = "u1",
+            hourlyRate = 50.0,
+        )
+        val withRate = profile(CompensationRules()).copy(baseHourlyRate = 72.5)
+
+        val result = settings.apply(CompensationResolver.profileToLegacySettingsUpdates(withRate))
+
+        assertEquals(72.5, result.hourlyRate)
+    }
+
+    /**
+     * Every other caller of Updates relies on `?:` meaning "leave alone". Onboarding
+     * and the settings save both pass partial updates, so an omitted rate must not
+     * start wiping the stored one.
+     */
+    @Test
+    fun `an update that omits the rate leaves it alone`() {
+        val settings = com.elmtrackr.app.domain.model.UserSettings(
+            id = "s1",
+            userId = "u1",
+            hourlyRate = 50.0,
+        )
+
+        val result = settings.apply(
+            com.elmtrackr.app.domain.model.UserSettings.Updates(timezone = "Asia/Jerusalem"),
+        )
+
+        assertEquals(50.0, result.hourlyRate)
+        assertEquals("Asia/Jerusalem", result.timezone)
+    }
+
+    /** The currency enum must stay in step with the string it mirrors. */
+    @Test
+    fun `mirroring a profile updates both currency representations`() {
+        val settings = com.elmtrackr.app.domain.model.UserSettings(id = "s1", userId = "u1")
+        val usd = profile(CompensationRules()).copy(currencyCode = "USD")
+
+        val result = settings.apply(CompensationResolver.profileToLegacySettingsUpdates(usd))
+
+        assertEquals("USD", result.currencyCode)
+        assertEquals(com.elmtrackr.app.domain.model.CurrencyCode.USD, result.currency)
+        assertEquals("USD", result.displayCurrencyCode())
+    }
 }

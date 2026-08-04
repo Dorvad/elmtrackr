@@ -124,6 +124,32 @@ class FakeShiftDao : ShiftDao {
     override fun observeShiftsForProject(userId: String, projectId: String): Flow<List<ShiftEntity>> =
         _flow.map { it.filter { e -> e.userId == userId && e.projectId == projectId && e.deletedAt == null } }
 
+    /**
+     * Faithful, not a stub: the repository test asserts that deleting a project
+     * releases its shifts, which a no-op fake would let pass.
+     */
+    override suspend fun unlinkProject(userId: String, projectId: String, updatedAt: Long): Int {
+        val affected = store.values.filter {
+            it.userId == userId && it.projectId == projectId && it.deletedAt == null
+        }
+        affected.forEach { shift ->
+            store[shift.localId] = shift.copy(
+                projectId = null,
+                projectNameSnapshot = null,
+                compensationSource = "EMPLOYEE",
+                compensationSnapshotJson = null,
+                syncStatus = if (shift.syncStatus == SyncStatus.PENDING_CREATE) {
+                    SyncStatus.PENDING_CREATE
+                } else {
+                    SyncStatus.PENDING_UPDATE
+                },
+                updatedAt = updatedAt,
+            )
+        }
+        _flow.value = store.values.toList()
+        return affected.size
+    }
+
     override fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<ShiftEntity>> =
         _flow.map {
             it.filter { e -> e.userId == userId && e.endTime != null && e.deletedAt == null }

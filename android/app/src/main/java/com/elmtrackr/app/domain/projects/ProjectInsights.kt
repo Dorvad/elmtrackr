@@ -37,8 +37,16 @@ data class ProjectInsights(
     val minutesOverBudget: Int?,
 
     // ── Rate ──────────────────────────────────────────────────────────────────
-    /** Base fee ÷ tracked hours. Null until hours exist. */
+    /**
+     * Base fee ÷ **all-time** tracked hours. Null until hours exist.
+     *
+     * All-time because the fee is: see [ProjectSummary.effectiveHourlyRate]. In a
+     * period report this figure is deliberately not period-scoped, and
+     * [allTimeMinutes] is carried alongside so a column header can say so.
+     */
     val effectiveHourlyRate: Money?,
+    /** The denominator behind [effectiveHourlyRate]. */
+    val allTimeMinutes: Int,
     val targetHourlyRate: Money?,
     /**
      * Effective minus target: positive is ahead, negative behind. Null unless
@@ -46,11 +54,30 @@ data class ProjectInsights(
      */
     val rateDifferenceFromTarget: Money?,
 
-    // ── Money in ──────────────────────────────────────────────────────────────
+    // ── Money in, all-time ────────────────────────────────────────────────────
+    /**
+     * The project's standing, over its whole life. Not period-scoped, which is what
+     * the project screens want and what [ProjectBillingStatus] is derived from.
+     *
+     * A report that also shows period figures must keep the two sets in separate,
+     * labelled columns: mixing them is how a project billed in June came to show its
+     * amount on its own row and zero in a July TOTAL.
+     */
     val billedTotal: Money?,
     val paidTotal: Money,
     val outstandingTotal: Money,
     val billingStatus: ProjectBillingStatus,
+
+    // ── Money in, this period ─────────────────────────────────────────────────
+    /**
+     * The same three figures restricted to the reported period, on the same basis as
+     * [ProjectReport.totals] — so the rows and the TOTAL row add up.
+     *
+     * Null outside a period report, where the question does not apply.
+     */
+    val periodBilled: Money? = null,
+    val periodReceived: Money? = null,
+    val periodOutstanding: Money? = null,
 
     // ── Dates ─────────────────────────────────────────────────────────────────
     /** Negative once the deadline has passed. Null with no deadline. */
@@ -83,7 +110,16 @@ object ProjectInsightsBuilder {
      * calendar-based; comparing instants would shift a deadline by a day
      * depending on where the user is.
      */
-    fun build(summary: ProjectSummary, today: LocalDate): ProjectInsights {
+    /**
+     * @param periodTotals this project's own figures for the reported period, from
+     *   [ProjectPeriodTotalsBuilder]. Null on the project screens, which report the
+     *   whole project and have no period.
+     */
+    fun build(
+        summary: ProjectSummary,
+        today: LocalDate,
+        periodTotals: ProjectPeriodTotals? = null,
+    ): ProjectInsights {
         val project = summary.project
         val fee = project.fee
         val budget = project.hourBudgetMinutes?.takeIf { it > 0 }
@@ -103,6 +139,7 @@ object ProjectInsightsBuilder {
             budgetUsage = budget?.let { summary.time.trackedMinutes.toFloat() / it.toFloat() },
             minutesOverBudget = budget?.let { (summary.time.trackedMinutes - it).coerceAtLeast(0) },
             effectiveHourlyRate = effective,
+            allTimeMinutes = summary.allTimeMinutes,
             targetHourlyRate = target,
             rateDifferenceFromTarget = difference(effective, target),
             billedTotal = summary.billing.billedTotal,
@@ -114,11 +151,18 @@ object ProjectInsightsBuilder {
             daysOverdue = summary.billing.daysOverdue,
             workStatus = project.workStatus,
             isArchived = project.isArchived,
+            periodBilled = periodTotals?.billed?.get(project.currencyCode),
+            periodReceived = periodTotals?.received?.get(project.currencyCode),
+            periodOutstanding = periodTotals?.outstanding?.get(project.currencyCode),
         )
     }
 
-    fun buildAll(summaries: List<ProjectSummary>, today: LocalDate): List<ProjectInsights> =
-        summaries.map { build(it, today) }
+    fun buildAll(
+        summaries: List<ProjectSummary>,
+        today: LocalDate,
+        periodTotalsByProject: Map<String, ProjectPeriodTotals> = emptyMap(),
+    ): List<ProjectInsights> =
+        summaries.map { build(it, today, periodTotalsByProject[it.project.id]) }
 
     /**
      * Effective minus target, or null when they cannot be compared.

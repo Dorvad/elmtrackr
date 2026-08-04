@@ -234,54 +234,10 @@ class ProjectListAndStatusTest {
         billedOn = today,
     )
 
-    @Test
-    fun `an unused draft can be deleted permanently`() {
-        val result = summary(project("p1", status = ProjectWorkStatus.DRAFT))
-        assertTrue(result.canDeletePermanently)
-    }
 
-    @Test
-    fun `a draft with tracked time must be archived`() {
-        val result = summary(
-            project("p1", status = ProjectWorkStatus.DRAFT),
-            shifts = listOf(shift("s1", "p1", 2)),
-        )
-        assertFalse(result.canDeletePermanently)
-    }
 
-    @Test
-    fun `a draft with a billing record must be archived`() {
-        val result = summary(project("p1", status = ProjectWorkStatus.DRAFT), records = listOf(record()))
-        assertFalse(result.canDeletePermanently)
-    }
 
-    @Test
-    fun `a draft with a payment must be archived`() {
-        val payment = ProjectPayment(
-            id = "pay-1",
-            userId = "u1",
-            projectId = "p1",
-            billingRecordId = "bill-1",
-            paidOn = today,
-            amount = Money.of("100", "ILS"),
-        )
-        val result = summary(
-            project("p1", status = ProjectWorkStatus.DRAFT),
-            records = listOf(record()),
-            payments = listOf(payment),
-        )
-        assertFalse(result.canDeletePermanently)
-    }
 
-    @Test
-    fun `a non-draft project is never deleted permanently`() {
-        ProjectWorkStatus.entries.filter { it != ProjectWorkStatus.DRAFT }.forEach { status ->
-            assertFalse(
-                "status $status must not be permanently deletable",
-                summary(project("p1", status = status)).canDeletePermanently,
-            )
-        }
-    }
 
     // ── Work-status actions ───────────────────────────────────────────────────
 

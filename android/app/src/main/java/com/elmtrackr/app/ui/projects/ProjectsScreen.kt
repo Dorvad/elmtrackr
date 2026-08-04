@@ -138,7 +138,10 @@ fun ProjectsScreen(
                     title = stringResource(R.string.projects_title),
                     subtitle = stringResource(R.string.settings_paid_projects_desc),
                 )
-                is ProjectsUiState.Error -> ErrorState(message = current.message, onRetry = {})
+                is ProjectsUiState.Error -> ErrorState(
+                    message = current.message,
+                    onRetry = viewModel::retry,
+                )
                 is ProjectsUiState.Ready -> AnimatedContent(
                     targetState = destination,
                     transitionSpec = {
@@ -208,7 +211,7 @@ fun ProjectsScreen(
                                         viewModel.applyWorkAction(summary.project, action)
                                     },
                                     onDelete = {
-                                        viewModel.deleteProject(summary) {
+                                        viewModel.deleteProject(summary) { _ ->
                                             selectedProjectId = null
                                             destination = ProjectsDestination.LIST
                                         }

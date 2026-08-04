@@ -95,33 +95,7 @@ class ShiftDurationCalculatorTest {
 
     // ── Validation ────────────────────────────────────────────────────────────
 
-    @Test
-    fun `validateShiftTimes - valid range returns null`() {
-        val start = Instant.parse("2024-01-08T09:00:00Z")
-        val end   = Instant.parse("2024-01-08T17:00:00Z")
-        assertNull(ShiftDurationCalculator.validateShiftTimes(start, end, 30))
-    }
 
-    @Test
-    fun `validateShiftTimes - end before start returns error`() {
-        val start = Instant.parse("2024-01-08T17:00:00Z")
-        val end   = Instant.parse("2024-01-08T09:00:00Z")
-        val result = ShiftDurationCalculator.validateShiftTimes(start, end, 0)
-        assertEquals("End time must be after start time.", result)
-    }
 
-    @Test
-    fun `validateShiftTimes - break equals gross returns error`() {
-        val start = Instant.parse("2024-01-08T09:00:00Z")
-        val end   = Instant.parse("2024-01-08T09:30:00Z") // 30 min gross
-        val result = ShiftDurationCalculator.validateShiftTimes(start, end, 30)
-        assertEquals("Break time cannot be equal to or longer than the shift duration.", result)
-    }
 
-    @Test
-    fun `validateShiftTimes - negative break returns error`() {
-        val start = Instant.parse("2024-01-08T09:00:00Z")
-        val result = ShiftDurationCalculator.validateShiftTimes(start, null, -1)
-        assertEquals("Break minutes cannot be negative.", result)
-    }
 }

@@ -45,6 +45,20 @@ object AppPreferenceKeys {
         booleanPreferencesKey("paid_projects_discovery_dismissed")
 
     /**
+     * The month whose refund reminder the user dismissed, as `YYYY-MM`.
+     *
+     * A month rather than a boolean because the reminder is recurring: unresolved
+     * refund claims are settled per month, so a flag would silence the nudge for
+     * every future month as well. Storing which month was dismissed lets the
+     * reminder re-arm on its own when the next one comes round.
+     *
+     * A string rather than an int pair because that is what [java.time.YearMonth]
+     * parses and prints, so no format lives in two places.
+     */
+    val REFUND_REMINDER_DISMISSED_MONTH =
+        stringPreferencesKey("refund_reminder_dismissed_month")
+
+    /**
      * Newest-first clock face names, newline-separated.
      *
      * A string rather than a string set because the order *is* the data — a set
@@ -53,6 +67,16 @@ object AppPreferenceKeys {
      * contain one, so the parse needs no escaping.
      */
     val RECENT_CLOCK_FACES = stringPreferencesKey("recent_clock_faces")
+
+    /**
+     * Names of the face packs the user has added. A set, not an ordered string:
+     * unlike the history, nothing about presence depends on order.
+     *
+     * Absent is not the same as empty and both are fine — the bundled pack and the
+     * pack holding the selected face are added at read time, so a missing or lost
+     * value degrades to "just the defaults, plus whatever you have selected".
+     */
+    val INSTALLED_CLOCK_FACE_PACKS = stringSetPreferencesKey("installed_clock_face_packs")
 }
 
 data class AppPreferenceValues(
@@ -69,8 +93,12 @@ data class AppPreferenceValues(
     val setupChecklistVisitedSteps: Set<String> = emptySet(),
     val setupChecklistCelebrated: Boolean = false,
     val paidProjectsDiscoveryDismissed: Boolean = false,
+    /** Raw `YYYY-MM`, or null if the reminder was never dismissed. Parsed by the domain layer. */
+    val refundReminderDismissedMonth: String? = null,
     /** Raw face names, newest first. Resolved to the enum by the UI layer. */
     val recentClockFaces: List<String> = emptyList(),
+    /** Raw pack names. Resolved, and widened to include the defaults, by the UI layer. */
+    val installedClockFacePacks: Set<String> = emptySet(),
 )
 
 class AppPreferencesRepository(private val context: Context) :
@@ -98,12 +126,16 @@ class AppPreferencesRepository(private val context: Context) :
                 setupChecklistCelebrated = prefs[AppPreferenceKeys.SETUP_CHECKLIST_CELEBRATED] ?: false,
                 paidProjectsDiscoveryDismissed =
                     prefs[AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED] ?: false,
+                refundReminderDismissedMonth =
+                    prefs[AppPreferenceKeys.REFUND_REMINDER_DISMISSED_MONTH],
                 recentClockFaces =
                     prefs[AppPreferenceKeys.RECENT_CLOCK_FACES].orEmpty()
                         .lineSequence()
                         .map { it.trim() }
                         .filter { it.isNotEmpty() }
                         .toList(),
+                installedClockFacePacks =
+                    prefs[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] ?: emptySet(),
             )
         }
 
@@ -169,9 +201,21 @@ class AppPreferencesRepository(private val context: Context) :
         }
     }
 
+    override suspend fun setRefundReminderDismissedMonth(month: String) {
+        context.appPreferencesDataStore.edit {
+            it[AppPreferenceKeys.REFUND_REMINDER_DISMISSED_MONTH] = month
+        }
+    }
+
     override suspend fun setRecentClockFaces(styleNames: List<String>) {
         context.appPreferencesDataStore.edit {
             it[AppPreferenceKeys.RECENT_CLOCK_FACES] = styleNames.joinToString("\n")
+        }
+    }
+
+    override suspend fun setInstalledClockFacePacks(packNames: Set<String>) {
+        context.appPreferencesDataStore.edit {
+            it[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] = packNames
         }
     }
 }

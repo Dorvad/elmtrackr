@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.theme.auroraSemantics
+import com.elmtrackr.app.ui.theme.auroraStatusPillInk
 import com.elmtrackr.app.domain.model.ProjectWorkStatus
 import com.elmtrackr.app.domain.money.Money
 import com.elmtrackr.app.domain.money.MoneyFormat
@@ -105,6 +106,11 @@ fun StatusPill(
     modifier: Modifier = Modifier,
     spoken: String? = null,
 ) {
+    // The label takes an ink, not the accent. The container is a 14% tint of the
+    // accent, so using the accent for both measured the text against a wash of
+    // itself — 1.83:1 for the Active pill's aqua, 2.59:1 for Paused, 3.56:1 for
+    // Completed. The tint keeps the accent; only the text moves.
+    val ink = auroraStatusPillInk(accent)
     Box(
         modifier = modifier
             .semantics(mergeDescendants = true) { contentDescription = spoken ?: text }
@@ -116,7 +122,7 @@ fun StatusPill(
             text = text,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = accent,
+            color = ink,
         )
     }
 }

@@ -25,6 +25,7 @@ import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.navigation.AppNavGraph
 import com.elmtrackr.app.navigation.DeepLinkRouter
 import com.elmtrackr.app.navigation.PaidProjectsNavGuard
+import com.elmtrackr.app.notification.ActiveShiftRestorer
 import com.elmtrackr.app.notification.NotificationPermissionCoordinator
 import com.elmtrackr.app.review.PlayReviewFlowLauncher
 import com.elmtrackr.app.review.ReviewPromptCoordinator
@@ -57,6 +58,15 @@ class MainActivity : AppCompatActivity() {
     val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
+        // A grant is the moment the ongoing notification becomes postable, and
+        // nothing else was posting it: the callback only resumed whatever the caller
+        // had parked here, so a user who clocked in from the widget and then granted
+        // the permission in-app still had no notification and no Clock Out action
+        // until the next observeActiveShift emission — which for an idle running
+        // shift may not come for hours.
+        if (granted) {
+            lifecycleScope.launch { ActiveShiftRestorer.restore(this@MainActivity) }
+        }
         onNotificationPermissionResult?.invoke(granted)
         onNotificationPermissionResult = null
     }

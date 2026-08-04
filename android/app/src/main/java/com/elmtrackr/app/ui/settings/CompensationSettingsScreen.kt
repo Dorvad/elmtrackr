@@ -20,15 +20,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -52,6 +48,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.durationText
 import com.elmtrackr.app.domain.compensation.StackingPolicyLabels
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.CompensationRules
@@ -63,6 +60,7 @@ import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraListScreen
 import com.elmtrackr.app.ui.design.ElmCardPadded
+import com.elmtrackr.app.ui.design.ElmDropdownField
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.theme.Spacing
@@ -598,25 +596,13 @@ private fun StringDropdown(
     options: List<Pair<String, String>>,
     onSelect: (String) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        OutlinedTextField(
-            value = options.firstOrNull { it.first == selected }?.second ?: selected,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { (value, display) ->
-                DropdownMenuItem(
-                    text = { Text(display) },
-                    onClick = { onSelect(value); expanded = false },
-                )
-            }
-        }
-    }
+    ElmDropdownField(
+        label = label,
+        selected = selected,
+        options = options.map { it.first },
+        onSelect = onSelect,
+        displayName = { value -> options.firstOrNull { it.first == value }?.second ?: value },
+    )
 }
 
 @Composable
@@ -683,14 +669,14 @@ private fun overtimeLadderSummary(rules: CompensationRules): String? {
     rules.dailyOvertimeTiers.sortedBy { it.afterMinutes }.forEach {
         parts += stringResource(
             R.string.settings_ladder_daily,
-            ShiftDurationCalculator.formatMinutes(it.afterMinutes),
+            durationText(it.afterMinutes),
             (it.multiplier * 100).toInt(),
         )
     }
     rules.weeklyOvertimeTiers.sortedBy { it.afterMinutes }.forEach {
         parts += stringResource(
             R.string.settings_ladder_weekly,
-            ShiftDurationCalculator.formatMinutes(it.afterMinutes),
+            durationText(it.afterMinutes),
             (it.multiplier * 100).toInt(),
         )
     }

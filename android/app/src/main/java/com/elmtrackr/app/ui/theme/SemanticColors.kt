@@ -79,6 +79,26 @@ val AuroraPlumDeep = Color(0xFF6D28D9)
 /** Names the light half of the synced-pill pair, which was an unnamed literal. */
 val AuroraSyncedBg = Color(0xFFE8E5FF)
 
+// ── Status-pill inks ──────────────────────────────────────────────────────────
+/**
+ * Text colours for a status pill, whose container is a 14% tint of its own accent.
+ *
+ * That container is the reason these exist. A pill drawn from one colour — accent
+ * as tint *and* as text — measures the accent against a 14% wash of itself, which
+ * is a much narrower gap than the accent against the surface. Measured on white:
+ * Aqua reached 1.83:1, Peach 2.59:1 and Plum 3.56:1, so four of the five work
+ * statuses were below AA on the label that carries the meaning.
+ *
+ * Most pills reuse an ink the palette already had ([AuroraInfoInk],
+ * [AuroraWarningInk], [AuroraPlumDeep], [AuroraIndigoDeep], and the dark
+ * overtime/success/ink2 values). Only these three had no existing token that
+ * cleared 4.5:1 on their own tint. Every pair is asserted in
+ * `StatusPillContrastTest`.
+ */
+val AuroraSuccessInkStrong = Color(0xFF086543)
+val AuroraDarkIndigoInk = Color(0xFF9E96F8)
+val AuroraDarkPlumInk = Color(0xFFC4A8FF)
+
 val AuroraSemanticLight = AuroraSemanticColors(
     success = AuroraSuccess,
     successInk = AuroraSuccessInk,

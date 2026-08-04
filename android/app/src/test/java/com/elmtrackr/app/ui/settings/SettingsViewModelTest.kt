@@ -4,6 +4,7 @@ import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.billing.FreeClockFacePackEntitlements
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.model.CompensationProfile
@@ -55,6 +56,7 @@ class SettingsViewModelTest {
         syncTrigger,
         appLockPrefs,
         clockFacePrefs,
+        FreeClockFacePackEntitlements(),
     )
 
     private fun defaultSettings() = UserSettings(
@@ -421,6 +423,7 @@ class SettingsViewModelTest {
         )
         val vm = SettingsViewModel(
             repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs, prefs,
+            FreeClockFacePackEntitlements(),
         )
         val states = mutableListOf<SettingsUiState>()
         val job = launch { vm.uiState.collect { states.add(it) } }
@@ -430,6 +433,110 @@ class SettingsViewModelTest {
 
         val ready = states.filterIsInstance<SettingsUiState.Ready>().last()
         assertEquals(listOf(ClockStyle.LUNA, ClockStyle.TIDE), ready.recentClockFaces)
+        job.cancel()
+    }
+
+    // ── Clock face packs ──────────────────────────────────────────────────────
+
+    @Test
+    fun `installing a pack records it`() = runTest {
+        val vm = buildVm()
+
+        vm.installClockFacePack(ClockFaceGroup.NATURE)
+        advanceUntilIdle()
+
+        assertEquals(setOf("NATURE"), clockFacePrefs.installedClockFacePacks)
+    }
+
+    /**
+     * The entitlement check lives in the ViewModel so a future paid pack cannot be
+     * added by a screen that forgot to ask. This is the test that would fail if
+     * someone later moved the check into the UI.
+     */
+    @Test
+    fun `a pack the user is not entitled to is not installed`() = runTest {
+        val entitlements = object : com.elmtrackr.app.billing.ClockFacePackEntitlements {
+            override suspend fun isEntitled(pack: ClockFaceGroup) = false
+            override suspend fun anyPackRequiresPurchase() = true
+        }
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
+            clockFacePrefs, entitlements,
+        )
+
+        vm.installClockFacePack(ClockFaceGroup.NATURE)
+        advanceUntilIdle()
+
+        assertEquals(emptySet<String>(), clockFacePrefs.installedClockFacePacks)
+    }
+
+    @Test
+    fun `removing a pack drops it and leaves the others`() = runTest {
+        val prefs = com.elmtrackr.app.fake.FakeClockFacePreferences(
+            initialPacks = setOf("NATURE", "JOURNEYS"),
+        )
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
+            prefs, FreeClockFacePackEntitlements(),
+        )
+
+        vm.removeClockFacePack(ClockFaceGroup.NATURE, selected = ClockStyle.CLASSIC)
+        advanceUntilIdle()
+
+        assertEquals(setOf("JOURNEYS"), prefs.installedClockFacePacks)
+    }
+
+    /**
+     * Removing the pack that holds the selected face has to move the selection, or
+     * the next save would store a face the user no longer has.
+     */
+    @Test
+    fun `removing the pack holding the selected face resets the selection`() = runTest {
+        val prefs = com.elmtrackr.app.fake.FakeClockFacePreferences(initialPacks = setOf("JOURNEYS"))
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
+            prefs, FreeClockFacePackEntitlements(),
+        )
+        var resetTo: ClockStyle? = null
+
+        vm.removeClockFacePack(ClockFaceGroup.JOURNEYS, selected = ClockStyle.VINYL) { resetTo = it }
+        advanceUntilIdle()
+
+        assertEquals(ClockStyle.CLASSIC, resetTo)
+        assertEquals(emptySet<String>(), prefs.installedClockFacePacks)
+    }
+
+    @Test
+    fun `the bundled pack cannot be removed`() = runTest {
+        val prefs = com.elmtrackr.app.fake.FakeClockFacePreferences(initialPacks = setOf("NATURE"))
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
+            prefs, FreeClockFacePackEntitlements(),
+        )
+
+        vm.removeClockFacePack(ClockFaceGroup.ESSENTIALS, selected = ClockStyle.CLASSIC)
+        advanceUntilIdle()
+
+        assertEquals(setOf("NATURE"), prefs.installedClockFacePacks)
+    }
+
+    @Test
+    fun `stored packs reach the state`() = runTest {
+        val prefs = com.elmtrackr.app.fake.FakeClockFacePreferences(initialPacks = setOf("NATURE"))
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
+            prefs, FreeClockFacePackEntitlements(),
+        )
+        val states = mutableListOf<SettingsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        repo.setSettings(defaultSettings())
+        advanceUntilIdle()
+
+        assertEquals(
+            setOf(ClockFaceGroup.NATURE),
+            states.filterIsInstance<SettingsUiState.Ready>().last().storedClockFacePacks,
+        )
         job.cancel()
     }
 }

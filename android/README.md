@@ -619,15 +619,38 @@ status bar and notification shade.
 |---|---|
 | Channel | `active_shift` (importance: LOW — no sound or heads-up) |
 | Title | "Clocked in" |
-| Content | "Since HH:mm" (start time, not live-ticking — saves battery) |
-| Style | Ongoing (cannot be swiped away while clocked in) |
+| Content | "Since HH:mm" plus a count-up chronometer (`setUsesChronometer(true)`) rendered by SystemUI |
+| Style | Ongoing (`setOngoing(true)`) — **user-dismissible on Android 14+** |
 | Tap | Opens the app to the Dashboard |
 | Action button | "Clock Out" — clocks out without opening the app |
 
 The notification is managed by `ActiveShiftNotificationManager` and driven by
-`ElmTrackrApp.startActiveShiftObserver()`, which collects the Room
-`observeActiveShift` flow for the lifetime of the app process. It fires on clock-in
-and cancels itself automatically on clock-out.
+`ActiveShiftSideEffectsCoordinator.startNotificationObserver()`, which collects the
+Room `observeActiveShift` flow for the lifetime of the app process. It fires on
+clock-in and cancels itself automatically on clock-out.
+
+**Two known gaps, neither fixed.** There is no foreground service anywhere in the
+app (no `startForeground` call), so a running shift is a Room row plus this
+notification:
+
+- On Android 14+ an ongoing notification can be swiped away. Dismissing it leaves
+  the shift running with no visible affordance and no Clock Out action until the
+  app or a widget is opened. The row and the elapsed time are safe — everything
+  derives from the stored `startTime` — but the user has no way to see or end the
+  shift from outside the app.
+- The observer above lives in the app process. An OEM task-killer takes it with the
+  process, and nothing re-posts the notification until something calls
+  `ActiveShiftRestorer.restore()`: boot (`BootCompletedReceiver`), a date/time
+  change (`WidgetDateChangeReceiver`), or a notification-permission grant
+  (`MainActivity`). Opening the app also re-establishes the observer.
+
+Promoting the shift to a foreground service is the fix. It was scoped and
+deliberately not done: from Android 12 the background-start restrictions apply to
+exactly the punch paths that need it most (widget, Wear, shortcut), so which
+exemption covers a widget tap has to be confirmed against current platform docs and
+on hardware before the service is wired in. Shipping it unverified risks turning a
+widget punch into a `ForegroundServiceStartNotAllowedException`, which is worse than
+the gap it closes.
 
 ### Clock-out from notification
 
