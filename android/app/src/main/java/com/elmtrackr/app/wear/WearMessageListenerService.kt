@@ -25,15 +25,40 @@ class WearMessageListenerService : WearableListenerService() {
         }
     }
 
+    /**
+     * Whether [nodeId] is a device currently paired with this one.
+     *
+     * This service is exported — it has to be, for Play Services to deliver to it —
+     * and PUNCH_IN/PUNCH_OUT write shift rows. The sender was never checked: the only
+     * use of `sourceNodeId` was addressing the reply. Play Services normally restricts
+     * message delivery to same-signature apps, but nothing here depended on that
+     * deliberately, and "normally" is not a control.
+     *
+     * A node lookup is the check the Wearable API actually supports; there is no
+     * caller UID to verify for a message that arrived over the data layer. A node that
+     * is not in the connected set cannot have been paired through the companion
+     * relationship, so its punch is refused.
+     *
+     * Fails closed on a lookup error. A punch is not urgent enough to accept from an
+     * unverifiable source, and the watch surfaces the failure.
+     */
+    private suspend fun isConnectedNode(nodeId: String): Boolean = runCatching {
+        Wearable.getNodeClient(applicationContext).connectedNodes.await().any { it.id == nodeId }
+    }.getOrDefault(false)
+
     private fun handlePunch(
         messageEvent: MessageEvent,
         action: suspend (Context) -> PunchResult,
     ) {
         scope.launch {
-            val result = runCatching {
-                action(applicationContext)
-            }.getOrElse {
-                PunchResult(success = false, errorCode = "internal_error")
+            val result = if (!isConnectedNode(messageEvent.sourceNodeId)) {
+                PunchResult(success = false, errorCode = "unknown_sender")
+            } else {
+                runCatching {
+                    action(applicationContext)
+                }.getOrElse {
+                    PunchResult(success = false, errorCode = "internal_error")
+                }
             }
             runCatching {
                 Wearable.getMessageClient(this@WearMessageListenerService)

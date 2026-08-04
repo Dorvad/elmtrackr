@@ -60,6 +60,16 @@ class ProjectsViewModel @Inject constructor(
     private val filter = MutableStateFlow(ProjectStatusFilter.ALL)
     private val isSaving = MutableStateFlow(false)
 
+    /**
+     * Bumped by [retry] to rebuild the whole chain.
+     *
+     * `catch` terminates the flow it catches, so an error here was permanent: the
+     * screen rendered an error state with a "Try again" button wired to `{}`, and the
+     * only way out was killing the app. Restarting from a nonce is the pattern
+     * `ShiftsViewModel` already uses, and it is what makes that button mean something.
+     */
+    private val refreshNonce = MutableStateFlow(0)
+
     /** Repository data, before search and filtering are applied. */
     private sealed interface ProjectsData {
         data object Loading : ProjectsData
@@ -67,8 +77,8 @@ class ProjectsViewModel @Inject constructor(
         data class Ready(val summaries: List<ProjectSummary>, val settings: UserSettings) : ProjectsData
     }
 
-    private val projectsData: Flow<ProjectsData> = currentUserProvider.userId
-        .filterNotNull()
+    private val projectsData: Flow<ProjectsData> = refreshNonce
+        .flatMapLatest { currentUserProvider.userId.filterNotNull() }
         .flatMapLatest { userId ->
             combine(
                 settingsRepository.observeSettings(userId),
@@ -139,6 +149,14 @@ class ProjectsViewModel @Inject constructor(
     /** Payments for one project, for the detail screen. */
     fun paymentsFor(projectId: String): Flow<List<com.elmtrackr.app.domain.model.ProjectPayment>> =
         projectsRepository.observePayments(projectId)
+
+    /**
+     * Rebuilds the data chain after an error.
+     *
+     * Every sibling screen has this; Projects was the one that rendered a retry
+     * affordance with nothing behind it.
+     */
+    fun retry() { refreshNonce.value++ }
 
     fun onQueryChange(value: String) { query.value = value }
 
