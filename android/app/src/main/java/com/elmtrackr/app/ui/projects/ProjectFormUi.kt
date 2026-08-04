@@ -108,6 +108,13 @@ fun ProjectFormScreen(
     )
     val validation = remember(input) { ProjectFormValidator.validate(input) }
 
+    // One comparison against the untouched input is the whole dirty check — the form
+    // already rebuilds `input` from its fields on every recomposition.
+    val requestClose = rememberProjectDiscardGuard(
+        isDirty = input != initialInput,
+        onConfirmClose = onBack,
+    )
+
     @Composable
     fun errorFor(field: ProjectFormField): String? =
         validation[field]?.takeIf { showErrors }?.let { stringResource(ProjectLabels.formError(it)) }
@@ -132,7 +139,7 @@ fun ProjectFormScreen(
                 title = stringResource(
                     if (existing == null) R.string.project_form_new_title else R.string.project_form_edit_title,
                 ),
-                onBack = onBack,
+                onBack = requestClose,
             )
         }
 

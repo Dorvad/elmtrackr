@@ -87,6 +87,11 @@ fun ProjectBillingFormScreen(
         notes = notes,
     )
 
+    val requestClose = rememberProjectDiscardGuard(
+        isDirty = input != initialInput,
+        onConfirmClose = onBack,
+    )
+
     if (showCurrencyPicker) {
         CurrencyPickerDialog(
             selected = currencyCode,
@@ -105,7 +110,7 @@ fun ProjectBillingFormScreen(
     item {
         SettingsDetailHeader(
             title = stringResource(R.string.project_billing_form_title),
-            onBack = onBack,
+            onBack = requestClose,
         )
     }
     item {
@@ -221,6 +226,21 @@ fun ProjectPaymentFormScreen(
     var reference by rememberSaveable(key) { mutableStateOf(initialInput.externalReference) }
     var notes by rememberSaveable(key) { mutableStateOf(initialInput.notes) }
 
+    // Hoisted out of the save handler so the discard guard compares the same object
+    // the button would submit; two constructions could disagree about dirtiness.
+    val input = initialInput.copy(
+        amount = amount,
+        paidOn = LocalDate.ofEpochDay(paidOnEpoch),
+        method = PaymentMethod.fromPersisted(methodName),
+        externalReference = reference,
+        notes = notes,
+    )
+
+    val requestClose = rememberProjectDiscardGuard(
+        isDirty = input != initialInput,
+        onConfirmClose = onBack,
+    )
+
     val remaining = remember(billingRecord, existingPayments, initialInput.paymentId) {
         ProjectPaymentValidator.remainingPayable(
             billingRecord,
@@ -235,7 +255,7 @@ fun ProjectPaymentFormScreen(
     item {
         SettingsDetailHeader(
             title = stringResource(R.string.project_payment_form_title),
-            onBack = onBack,
+            onBack = requestClose,
         )
     }
     item {
@@ -288,17 +308,7 @@ fun ProjectPaymentFormScreen(
 
         Spacer(Modifier.height(Spacing.md))
         Button(
-            onClick = {
-                onSave(
-                    initialInput.copy(
-                        amount = amount,
-                        paidOn = LocalDate.ofEpochDay(paidOnEpoch),
-                        method = PaymentMethod.fromPersisted(methodName),
-                        externalReference = reference,
-                        notes = notes,
-                    ),
-                )
-            },
+            onClick = { onSave(input) },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(stringResource(R.string.project_payment_save))
