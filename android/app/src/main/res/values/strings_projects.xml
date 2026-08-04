@@ -380,6 +380,9 @@
     <string name="project_report_billed">Billed</string>
     <string name="project_report_paid">Paid</string>
     <string name="project_report_outstanding">Outstanding balance</string>
+    <!-- The fee covers the whole engagement, so its hours must too; the label says
+         so rather than letting a monthly report imply the rate is monthly. -->
+    <string name="project_report_effective_rate_all_time">Effective hourly rate (all-time)</string>
     <string name="project_report_value_per_hour">Project value per hour</string>
     <string name="project_report_efficiency_note">Project value per hour is the agreed fee before tax divided by hours worked. Expenses are not tracked, so this is not net profit.</string>
     <string name="project_report_currency_note">Amounts are grouped by currency. ElmTrackr does not convert between currencies.</string>

@@ -31,20 +31,34 @@ object ProjectReportCsv {
      */
     const val UTF8_BOM = "\uFEFF"
 
+    /**
+     * Every column that carries money or hours names its accounting basis.
+     *
+     * The report used to have plain "Billed" / "Paid" / "Outstanding" columns filled
+     * from all-time billing, above a TOTAL row filled from period-filtered billing.
+     * A project billed in June and viewed in July showed its amount on its own row
+     * and zero in TOTAL, and nobody reconciling the export against a ledger could
+     * make it add up. The period columns are the ones the TOTAL row sums; the
+     * all-time columns are the project's standing and are labelled as such.
+     */
     private val HEADERS = listOf(
         "Project",
         "Client",
         "Work status",
         "Billing status",
         "Currency",
-        "Tracked hours",
+        "Tracked hours (period)",
         "Base fee",
         "Tax",
         "Client total",
-        "Billed",
-        "Paid",
-        "Outstanding",
-        "Effective hourly rate",
+        "Billed (period)",
+        "Paid (period)",
+        "Outstanding (period)",
+        "Billed (all-time)",
+        "Paid (all-time)",
+        "Outstanding (all-time)",
+        "Tracked hours (all-time)",
+        "Effective hourly rate (all-time)",
         "Target hourly rate",
         "Hour budget",
         "Hours over budget",
@@ -68,9 +82,13 @@ object ProjectReportCsv {
                 amount(p.baseFee),
                 amount(p.tax),
                 amount(p.clientTotal),
+                p.periodBilled?.let { amount(it) }.orEmpty(),
+                p.periodReceived?.let { amount(it) }.orEmpty(),
+                p.periodOutstanding?.let { amount(it) }.orEmpty(),
                 p.billedTotal?.let { amount(it) }.orEmpty(),
                 amount(p.paidTotal),
                 amount(p.outstandingTotal),
+                hours(p.allTimeMinutes),
                 // Blank rather than 0 when there is no rate: a project with no
                 // hours has no rate, and 0 would read as "earned nothing".
                 p.effectiveHourlyRate?.let { amount(it) }.orEmpty(),
@@ -100,6 +118,12 @@ object ProjectReportCsv {
                     amount(report.totals.billed[currency]),
                     amount(report.totals.received[currency]),
                     amount(report.totals.outstanding[currency]),
+                    // All-time columns are summed across the group, so the TOTAL row
+                    // stays on the same basis as the column above it in both blocks.
+                    amount(Money.sum(group.mapNotNull { it.billedTotal }, currency)),
+                    amount(Money.sum(group.map { it.paidTotal }, currency)),
+                    amount(Money.sum(group.map { it.outstandingTotal }, currency)),
+                    hours(group.sumOf { it.allTimeMinutes }),
                     report.efficiency
                         .firstOrNull { it.currencyCode == currency }
                         ?.valuePerHour

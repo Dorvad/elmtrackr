@@ -33,14 +33,26 @@ data class ProjectSummary(
     val time: ProjectTimeSummary,
     val billing: ProjectBillingState,
     /**
-     * Fee before tax divided by hours tracked. Null when no time is tracked —
-     * never zero and never infinity.
+     * Fee before tax divided by **all** hours tracked against the project. Null
+     * when no time is tracked — never zero and never infinity.
+     *
+     * The denominator is all-time on purpose, because the numerator is: the fee is
+     * for the whole engagement. Dividing the full contracted fee by one month's
+     * minutes — which the monthly report used to do — overstates the rate by roughly
+     * the number of months the project ran, and that figure reached the report card
+     * and the CSV's "Effective hourly rate" column.
      *
      * Based on the *pre-tax* fee: tax collected on the client's behalf is not
      * the user's earnings. It is still gross of income tax and expenses, which
      * is why the UI labels the base "your fee before tax" and never "you keep".
      */
     val effectiveHourlyRate: Money?,
+    /**
+     * Minutes the [effectiveHourlyRate] was divided by — all time tracked against
+     * this project, regardless of the period being reported. Carried so a report can
+     * label the rate honestly instead of implying it belongs to the period.
+     */
+    val allTimeMinutes: Int,
     /** Tracked minutes over the hour budget, or null when no budget is set. */
     val budgetUtilization: Float?,
     val hasBillingRecords: Boolean,
@@ -100,6 +112,14 @@ object ProjectMetrics {
         return trackedMinutes.toFloat() / budget.toFloat()
     }
 
+    /**
+     * @param timeSummary time in the scope being reported — the whole project on the
+     *   project screens, one month in the monthly report.
+     * @param allTimeMinutes every minute tracked against the project. Only the
+     *   effective rate uses it, because only the rate has an all-time numerator.
+     *   Defaults to [timeSummary]'s minutes, which is correct wherever the scope
+     *   already is the whole project.
+     */
     fun summarize(
         project: Project,
         shifts: List<Shift>,
@@ -107,6 +127,7 @@ object ProjectMetrics {
         payments: List<ProjectPayment>,
         today: LocalDate,
         timeSummary: ProjectTimeSummary = timeSummary(shifts, project.id),
+        allTimeMinutes: Int = timeSummary.trackedMinutes,
     ): ProjectSummary {
         val ownRecords = billingRecords.filter { it.projectId == project.id }
         val ownPayments = payments.filter { it.projectId == project.id }
@@ -119,7 +140,8 @@ object ProjectMetrics {
                 payments = ownPayments,
                 today = today,
             ),
-            effectiveHourlyRate = effectiveHourlyRate(project.fee, timeSummary.trackedMinutes),
+            effectiveHourlyRate = effectiveHourlyRate(project.fee, allTimeMinutes),
+            allTimeMinutes = allTimeMinutes,
             budgetUtilization = budgetUtilization(timeSummary.trackedMinutes, project.hourBudgetMinutes),
             hasBillingRecords = ownRecords.isNotEmpty(),
             hasPayments = ownPayments.isNotEmpty(),

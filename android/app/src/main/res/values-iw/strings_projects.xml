@@ -380,6 +380,7 @@
     <string name="project_report_billed">חויב</string>
     <string name="project_report_paid">שולם</string>
     <string name="project_report_outstanding">יתרה לתשלום</string>
+    <string name="project_report_effective_rate_all_time">שכר אפקטיבי לשעה (מאז ומתמיד)</string>
     <string name="project_report_value_per_hour">שווי פרויקט לשעה</string>
     <string name="project_report_efficiency_note">שווי פרויקט לשעה הוא השכר המוסכם לפני מס חלקי השעות שעבדתם. הוצאות אינן נרשמות, ולכן זה אינו רווח נקי.</string>
     <string name="project_report_currency_note">הסכומים מקובצים לפי מטבע. ElmTrackr אינו מבצע המרות מטבע.</string>

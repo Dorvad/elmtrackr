@@ -109,11 +109,30 @@ class ProjectReportCsvTest {
 
         listOf(
             "Project", "Client", "Work status", "Billing status", "Currency",
-            "Tracked hours", "Base fee", "Tax", "Client total", "Paid",
-            "Outstanding", "Effective hourly rate",
+            "Tracked hours (period)", "Base fee", "Tax", "Client total",
+            "Billed (period)", "Paid (period)", "Outstanding (period)",
+            "Billed (all-time)", "Paid (all-time)", "Outstanding (all-time)",
+            "Tracked hours (all-time)", "Effective hourly rate (all-time)",
         ).forEach { column ->
             assertTrue(column, header.contains("\"$column\""))
         }
+    }
+
+    /**
+     * Every money or hours column states its basis. Rows used to carry all-time
+     * billing under a bare "Billed" header, above a period-filtered TOTAL row, and
+     * nobody reconciling the file against a ledger could tell which was which.
+     */
+    @Test
+    fun `no money or hours column is left without a stated basis`() {
+        val header = csv(report(listOf(project()))).lineSequence().first()
+            .split(",")
+            .map { it.trim('"') }
+
+        listOf("Tracked hours", "Billed", "Paid", "Outstanding", "Effective hourly rate")
+            .forEach { bare ->
+                assertFalse(bare, header.contains(bare))
+            }
     }
 
     @Test

@@ -151,13 +151,19 @@ fun ProjectReportSection(
                 )
                 insights.effectiveHourlyRate?.let { rate ->
                     ProjectInfoRow(
-                        label = stringResource(R.string.project_detail_effective_rate),
+                        // Labelled all-time here, unlike the project screens: this row
+                        // sits in a monthly report next to period figures, and the rate
+                        // is the one number on it that is not period-scoped.
+                        label = stringResource(R.string.project_report_effective_rate_all_time),
                         value = rate.formatted(),
                     )
                 }
                 ProjectInfoRow(
                     label = stringResource(R.string.project_report_outstanding),
-                    value = insights.outstandingTotal.formatted(),
+                    // The period balance, matching the report's own totals block.
+                    // Showing the all-time balance here put a figure on the row that
+                    // the TOTAL row below it did not include.
+                    value = (insights.periodOutstanding ?: insights.outstandingTotal).formatted(),
                     valueColor = if (insights.daysOverdue != null) {
                         MaterialTheme.colorScheme.error
                     } else {

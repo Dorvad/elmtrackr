@@ -20,8 +20,9 @@ data class RevenueEfficiency(
     val currencyCode: String,
     /** Agreed fees before tax for the projects in scope. */
     val baseRevenue: Money,
+    /** All-time minutes behind [valuePerHour], not the reported period's. */
     val trackedMinutes: Int,
-    /** Base revenue ÷ hours. Null when no hours were tracked against it. */
+    /** Base revenue ÷ all-time hours. Null when no hours were tracked against it. */
     val valuePerHour: Money?,
 )
 
@@ -89,11 +90,28 @@ object ProjectReportBuilder {
 
         val selected = ProjectReportFilterEngine.apply(summaries, filter)
         val selectedIds = selected.map { it.project.id }.toSet()
-        val insights = ProjectInsightsBuilder.buildAll(selected, today)
 
         val scopedMinutes = projectMinutes.filterKeys { it in selectedIds }
         val scopedRecords = billingRecords.filter { it.projectId in selectedIds }
         val scopedPayments = payments.filter { it.projectId in selectedIds }
+
+        // Each project's own period figures, on the same basis as the report-wide
+        // totals below — same builder, same dates, one project's records at a time.
+        // Without these the rows carried all-time billing while the TOTAL row was
+        // period-filtered, so a project billed in June and viewed in July showed its
+        // amount on its row and zero in TOTAL.
+        val periodTotalsByProject = selected.associate { summary ->
+            val id = summary.project.id
+            id to ProjectPeriodTotalsBuilder.build(
+                projects = listOf(summary.project),
+                billingRecords = scopedRecords.filter { it.projectId == id },
+                payments = scopedPayments.filter { it.projectId == id },
+                projectMinutesByProject = scopedMinutes.filterKeys { it == id },
+                from = from,
+                to = to,
+            )
+        }
+        val insights = ProjectInsightsBuilder.buildAll(selected, today, periodTotalsByProject)
 
         val totals = ProjectPeriodTotalsBuilder.build(
             projects = selected.map { it.project },
@@ -116,7 +134,7 @@ object ProjectReportBuilder {
             averageMinutesPerProject = if (selected.isEmpty()) 0 else trackedMinutes / selected.size,
             minutesOverBudget = insights.sumOf { it.minutesOverBudget ?: 0 },
             totals = totals,
-            efficiency = efficiencyByCurrency(insights, scopedMinutes),
+            efficiency = efficiencyByCurrency(insights),
         )
     }
 
@@ -125,16 +143,20 @@ object ProjectReportBuilder {
      *
      * Grouped rather than summed: dividing a mixed-currency revenue by a shared
      * hour count would produce a number in no currency at all.
+     *
+     * Hours are all-time, matching the revenue. [ProjectInsights.baseFee] is the whole
+     * contracted fee, so dividing it by one period's minutes reported a value per hour
+     * several times the real one — the same error as the per-project effective rate,
+     * one level up.
      */
     internal fun efficiencyByCurrency(
         insights: List<ProjectInsights>,
-        projectMinutes: Map<String, Int>,
     ): List<RevenueEfficiency> = insights
         .groupBy { it.currencyCode }
         .toSortedMap()
         .map { (currency, group) ->
             val revenue = Money.sum(group.map { it.baseFee }, currency)
-            val minutes = group.sumOf { projectMinutes[it.projectId] ?: 0 }
+            val minutes = group.sumOf { it.allTimeMinutes }
             RevenueEfficiency(
                 currencyCode = currency,
                 baseRevenue = revenue,

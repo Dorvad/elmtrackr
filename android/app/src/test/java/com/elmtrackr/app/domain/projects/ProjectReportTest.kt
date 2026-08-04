@@ -98,6 +98,7 @@ class ProjectReportTest {
         records: List<ProjectBillingRecord> = emptyList(),
         payments: List<ProjectPayment> = emptyList(),
         minutes: Map<String, Int> = emptyMap(),
+        allTimeMinutes: Map<String, Int> = minutes,
     ) = projects.map { p ->
         ProjectMetrics.summarize(
             project = p,
@@ -106,6 +107,7 @@ class ProjectReportTest {
             payments = payments,
             today = today,
             timeSummary = ProjectTimeSummary(minutes[p.id] ?: 0, if (minutes[p.id] != null) 1 else 0),
+            allTimeMinutes = allTimeMinutes[p.id] ?: 0,
         )
     }
 
@@ -116,8 +118,9 @@ class ProjectReportTest {
         minutes: Map<String, Int> = emptyMap(),
         filter: ProjectReportFilter = ProjectReportFilter(from = julyStart, to = julyEnd),
         activeDays: Int = 0,
+        allTimeMinutes: Map<String, Int> = minutes,
     ) = ProjectReportBuilder.build(
-        summaries = summaries(projects, records, payments, minutes),
+        summaries = summaries(projects, records, payments, minutes, allTimeMinutes),
         billingRecords = records,
         payments = payments,
         filter = filter,
@@ -498,5 +501,110 @@ class ProjectReportTest {
         )
 
         assertEquals(listOf("p1"), result.needingAttention().map { it.projectId })
+    }
+
+    // ── One figure, one period ────────────────────────────────────────────────
+
+    /**
+     * The defect: the effective rate divided the **whole** contracted fee by **one
+     * month's** minutes, so a project worked evenly across three months reported
+     * roughly three times its real rate — on the report card and in the CSV's
+     * "Effective hourly rate" column.
+     *
+     * 10,000 base over 600 all-time minutes is 1,000/hour. Over the 200 minutes that
+     * fell inside July it would read 3,000/hour.
+     */
+    @Test
+    fun `the effective rate divides the fee by all-time hours, not the period's`() {
+        val result = report(
+            projects = listOf(project("p1")),
+            minutes = mapOf("p1" to 200),
+            allTimeMinutes = mapOf("p1" to 600),
+        )
+
+        val row = result.projects.single()
+        assertEquals(200, row.trackedMinutes)
+        assertEquals(600, row.allTimeMinutes)
+        assertEquals(Money.of("1000.00", "USD"), row.effectiveHourlyRate)
+    }
+
+    /** Revenue efficiency has the same shape one level up, and the same fix. */
+    @Test
+    fun `revenue efficiency divides revenue by all-time hours`() {
+        val result = report(
+            projects = listOf(project("p1")),
+            minutes = mapOf("p1" to 200),
+            allTimeMinutes = mapOf("p1" to 600),
+        )
+
+        val efficiency = result.efficiency.single()
+        assertEquals(600, efficiency.trackedMinutes)
+        assertEquals(Money.of("1000.00", "USD"), efficiency.valuePerHour)
+    }
+
+    /**
+     * The reconciliation defect: per-project columns came from all-time billing while
+     * the TOTAL row was period-filtered. A project billed in June and viewed in July
+     * showed its amount on its own row and zero in TOTAL.
+     */
+    @Test
+    fun `a row billed outside the period reports zero for the period and its balance for all time`() {
+        val juneRecord = record("r1", "p1", billedOn = LocalDate.of(2026, 6, 5))
+
+        val result = report(projects = listOf(project("p1")), records = listOf(juneRecord))
+
+        val row = result.projects.single()
+        assertEquals(Money.zero("USD"), row.periodBilled)
+        // The bill still exists, and the all-time column still says so.
+        assertEquals(Money.of("11800.00", "USD"), row.billedTotal)
+    }
+
+    /**
+     * The invariant worth keeping: for every currency, the period columns on the rows
+     * must sum to the period TOTAL. Asserted over a mix of in-period and out-of-period
+     * billing so it would catch either basis drifting.
+     */
+    @Test
+    fun `period columns on the rows sum to the period totals`() {
+        val juneRecord = record("r1", "p1", billedOn = LocalDate.of(2026, 6, 5))
+        val julyRecord = record("r2", "p2", entered = "5000", billedOn = julyStart.plusDays(3))
+        val julyPayment = payment("pay1", "p2", "r2", "1000")
+
+        val result = report(
+            projects = listOf(project("p1"), project("p2", entered = "5000")),
+            records = listOf(juneRecord, julyRecord),
+            payments = listOf(julyPayment),
+        )
+
+        result.currencies.forEach { currency ->
+            val rows = result.projects.filter { it.currencyCode == currency }
+            assertEquals(
+                "billed in $currency",
+                result.totals.billed[currency],
+                Money.sum(rows.mapNotNull { it.periodBilled }, currency),
+            )
+            assertEquals(
+                "received in $currency",
+                result.totals.received[currency],
+                Money.sum(rows.mapNotNull { it.periodReceived }, currency),
+            )
+            assertEquals(
+                "outstanding in $currency",
+                result.totals.outstanding[currency],
+                Money.sum(rows.mapNotNull { it.periodOutstanding }, currency),
+            )
+        }
+    }
+
+    /** The project screens have no period, so they see no period figures. */
+    @Test
+    fun `insights built without a period carry no period figures`() {
+        val summary = summaries(listOf(project("p1")), minutes = mapOf("p1" to 600)).single()
+
+        val insights = ProjectInsightsBuilder.build(summary, today)
+
+        assertNull(insights.periodBilled)
+        assertNull(insights.periodReceived)
+        assertNull(insights.periodOutstanding)
     }
 }

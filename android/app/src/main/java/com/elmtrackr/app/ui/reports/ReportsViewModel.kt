@@ -114,12 +114,18 @@ class ReportsViewModel @Inject constructor(
                             projectsRepository.observeAllBillingRecords(userId),
                             projectsRepository.observeAllPayments(userId),
                             shiftsRepository.observeShiftsByMonthInZone(userId, year, month, zone),
-                        ) { projects, records, payments, monthShifts ->
+                            // All shifts, for the effective-rate denominator only. The
+                            // fee is for the whole engagement, so its hours have to be
+                            // too; dividing the full fee by one month's minutes
+                            // overstated the rate by however many months the project ran.
+                            shiftsRepository.observeShifts(userId),
+                        ) { projects, records, payments, monthShifts, allShifts ->
                             buildProjectBundle(
                                 projects = projects,
                                 records = records,
                                 payments = payments,
                                 monthShifts = monthShifts,
+                                allShifts = allShifts,
                                 filter = filter.copy(
                                     from = filter.from ?: LocalDate.of(year, month, 1),
                                     to = filter.to
@@ -146,6 +152,7 @@ class ReportsViewModel @Inject constructor(
         records: List<com.elmtrackr.app.domain.model.ProjectBillingRecord>,
         payments: List<com.elmtrackr.app.domain.model.ProjectPayment>,
         monthShifts: List<Shift>,
+        allShifts: List<Shift>,
         filter: com.elmtrackr.app.domain.projects.ProjectReportFilter,
         zone: ZoneId,
     ): ProjectReportBundle {
@@ -160,6 +167,10 @@ class ReportsViewModel @Inject constructor(
             .distinct()
             .size
 
+        val allTimeMinutesByProject = com.elmtrackr.app.domain.projects.ProjectMetrics
+            .timeSummaries(allShifts.filter { it.isProjectTime && it.isCompleted })
+            .mapValues { it.value.trackedMinutes }
+
         val summaries = projects.map { project ->
             com.elmtrackr.app.domain.projects.ProjectMetrics.summarize(
                 project = project,
@@ -171,6 +182,7 @@ class ReportsViewModel @Inject constructor(
                     trackedMinutes = minutesByProject[project.id] ?: 0,
                     shiftCount = projectShifts.count { it.projectId == project.id },
                 ),
+                allTimeMinutes = allTimeMinutesByProject[project.id] ?: 0,
             )
         }
 
