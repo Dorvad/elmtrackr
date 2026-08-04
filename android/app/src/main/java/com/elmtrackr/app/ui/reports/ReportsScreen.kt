@@ -141,7 +141,8 @@ import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
 import kotlin.math.abs
 
-private enum class ReportTab { HOURS, REFUNDS, PROJECTS }
+/** Internal rather than private so [ReportsLaunchRequest] can map onto it. */
+internal enum class ReportTab { HOURS, REFUNDS, PROJECTS }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -149,6 +150,8 @@ private enum class ReportTab { HOURS, REFUNDS, PROJECTS }
 fun ReportsScreen(
     viewModel: ReportsViewModel = hiltViewModel(),
     onNavigateToShift: (String) -> Unit = {},
+    pendingLaunch: ReportsLaunchRequest? = null,
+    onPendingLaunchConsumed: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -164,6 +167,17 @@ fun ReportsScreen(
         if (!refundsEnabled && activeTab == ReportTab.REFUNDS) {
             activeTab = ReportTab.HOURS
         }
+    }
+
+    // Consumed once and cleared, so returning to this tab later restores the
+    // user's own last selection rather than replaying the request. The tab is set
+    // without checking whether it is available: [effectiveTab] already falls back
+    // to Hours, and the flag it depends on has usually not loaded yet at this
+    // point — refusing here would drop a valid request on a cold start.
+    LaunchedEffect(pendingLaunch) {
+        val launch = pendingLaunch ?: return@LaunchedEffect
+        activeTab = launch.toTab()
+        onPendingLaunchConsumed()
     }
 
     // Keyed on the month so each viewed report registers once per visit; the

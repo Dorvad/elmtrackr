@@ -71,6 +71,7 @@ import com.elmtrackr.app.ui.auth.AuthUiState
 import com.elmtrackr.app.ui.auth.AuthViewModel
 import com.elmtrackr.app.ui.dashboard.DashboardScreen
 import com.elmtrackr.app.ui.reports.ReportsScreen
+import com.elmtrackr.app.ui.reports.ReportsLaunchRequest
 import com.elmtrackr.app.ui.settings.SettingsLaunchRequest
 import com.elmtrackr.app.ui.settings.SettingsScreen
 import com.elmtrackr.app.ui.shifts.ShiftsScreen
@@ -112,6 +113,9 @@ fun MainScaffold(
     var replayOnboarding by rememberSaveable { mutableStateOf(false) }
     var pendingShiftEditId by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingSettingsLaunch by rememberSaveable { mutableStateOf<String?>(null) }
+    // Held as the enum name, like the settings request: rememberSaveable puts this
+    // through the saved-instance bundle, which takes a String but not an enum.
+    var pendingReportsLaunch by rememberSaveable { mutableStateOf<String?>(null) }
     if (replayOnboarding) {
         BackHandler { replayOnboarding = false }
         OnboardingScreen(replay = true, onCompleted = { replayOnboarding = false })
@@ -234,6 +238,12 @@ fun MainScaffold(
                         pendingSettingsLaunch = request.name
                         navigateToTab(BottomNavItem.SETTINGS.route)
                     },
+                    pendingReportsLaunch = pendingReportsLaunch,
+                    onPendingReportsLaunchConsumed = { pendingReportsLaunch = null },
+                    onOpenReportsTab = { request ->
+                        pendingReportsLaunch = request.name
+                        navigateToTab(BottomNavItem.REPORTS.route)
+                    },
                 )
             }
         }
@@ -288,6 +298,12 @@ fun MainScaffold(
                     pendingSettingsLaunch = request.name
                     navigateToTab(BottomNavItem.SETTINGS.route)
                 },
+                pendingReportsLaunch = pendingReportsLaunch,
+                onPendingReportsLaunchConsumed = { pendingReportsLaunch = null },
+                onOpenReportsTab = { request ->
+                    pendingReportsLaunch = request.name
+                    navigateToTab(BottomNavItem.REPORTS.route)
+                },
             )
         }
     }
@@ -305,6 +321,9 @@ private fun NavGraphBuilder.mainNavGraph(
     pendingSettingsLaunch: String?,
     onPendingSettingsLaunchConsumed: () -> Unit,
     onOpenSettings: (SettingsLaunchRequest) -> Unit,
+    pendingReportsLaunch: String?,
+    onPendingReportsLaunchConsumed: () -> Unit,
+    onOpenReportsTab: (ReportsLaunchRequest) -> Unit,
 ) {
     composable(BottomNavItem.DASHBOARD.route) {
         DashboardScreen(
@@ -315,6 +334,10 @@ private fun NavGraphBuilder.mainNavGraph(
                     restoreState = true
                 }
             },
+            // The reminder counts unresolved claims, so it lands where they are.
+            // Sending it to Hours left the user to find the tab themselves, which
+            // is the work the nudge existed to save them.
+            onReviewRefunds = { onOpenReportsTab(ReportsLaunchRequest.REFUNDS) },
             onNavigateToSettings = onOpenSettings,
             onNavigateToProjects = {
                 navController.navigate(BottomNavItem.PROJECTS.route) {
@@ -342,6 +365,10 @@ private fun NavGraphBuilder.mainNavGraph(
                     restoreState = true
                 }
             },
+            pendingLaunch = pendingReportsLaunch?.let { name ->
+                ReportsLaunchRequest.entries.firstOrNull { it.name == name }
+            },
+            onPendingLaunchConsumed = onPendingReportsLaunchConsumed,
         )
     }
     // Registered unconditionally, and gated by PaidProjectsNavGuard rather

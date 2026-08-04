@@ -172,6 +172,10 @@ private val headerGradient = Brush.linearGradient(
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
     onNavigateToReports: () -> Unit = {},
+    // Separate from onNavigateToReports because the two land in different places:
+    // the month summary opens the hours report, the refund reminder opens the tab
+    // holding the claims it is counting.
+    onReviewRefunds: () -> Unit = onNavigateToReports,
     onNavigateToSettings: (SettingsLaunchRequest) -> Unit = {},
     onNavigateToProjects: () -> Unit = {},
 ) {
@@ -231,6 +235,7 @@ fun DashboardScreen(
                             onClockOut = viewModel::clockOut,
                             onEditStartTime = viewModel::editActiveShiftStartTime,
                             onNavigateToReports = onNavigateToReports,
+                            onReviewRefunds = onReviewRefunds,
                             onSelectTask = viewModel::selectTask,
                             onManageTasks = { showTasks = true },
                             onSelectCompensationSource = viewModel::selectCompensationSource,
@@ -280,6 +285,7 @@ private fun DashboardReady(
     onClockOut: (String) -> Unit,
     onEditStartTime: (shiftId: String, newStartTime: Instant) -> Unit,
     onNavigateToReports: () -> Unit,
+    onReviewRefunds: () -> Unit = onNavigateToReports,
     onSelectTask: (String) -> Unit,
     onManageTasks: () -> Unit,
     onSelectCompensationSource: (CompensationSource) -> Unit = {},
@@ -446,7 +452,7 @@ private fun DashboardReady(
                 RefundReminderBanner(
                     count = state.unresolvedRefundCount,
                     onDismiss = onDismissRefundReminder,
-                    onReviewRefunds = onNavigateToReports,
+                    onReviewRefunds = onReviewRefunds,
                     modifier = Modifier
                         .fillMaxWidth()
                         .auroraEnter(index = 1),
