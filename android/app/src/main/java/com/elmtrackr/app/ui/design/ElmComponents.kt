@@ -39,7 +39,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
-import com.elmtrackr.app.ui.theme.AuroraPeachDeep
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.AuroraWhite
 import com.elmtrackr.app.ui.theme.Elevation
@@ -100,7 +99,12 @@ fun ElmStatCard(
     val statColor = when (variant) {
         ElmStatVariant.DEFAULT -> MaterialTheme.colorScheme.onSurface
         ElmStatVariant.PRIMARY -> AuroraWhite
-        ElmStatVariant.OVERTIME -> AuroraPeachDeep
+        // The ink, not AuroraPeachDeep. The deep peach is the *graphic* accent —
+        // clock rings, progress arcs — and measures 2.69:1 on the overtime
+        // container, so the number a user actually reads was the one part of this
+        // card below AA. The label beside it was already using the ink; the value
+        // was the larger, more important text and was the one still on the accent.
+        ElmStatVariant.OVERTIME -> auroraOvertimeInk()
         ElmStatVariant.WEEKEND -> auroraWeekendInk()
     }
     val surfaceModifier = modifier

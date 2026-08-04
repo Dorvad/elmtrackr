@@ -85,6 +85,36 @@ class DarkThemeContrastTest {
     }
 
     /**
+     * The overtime stat value is the number a user reads off the card, and it was
+     * drawn in AuroraPeachDeep — the graphic accent used for clock rings and
+     * progress arcs — while the smaller label beside it already used the ink. The
+     * larger, more important text was the one below AA.
+     */
+    @Test
+    fun `the overtime ink is readable on the overtime container`() {
+        assertContrast("light overtime ink on its container", AuroraOvertimeInk, AuroraOvertimeBg, 4.5)
+        assertContrast(
+            "dark overtime ink on its container",
+            AuroraDarkOvertimeInk, AuroraDarkOvertimeBg, 4.5,
+        )
+    }
+
+    /**
+     * The reason the accent cannot be used for the value. If this starts passing,
+     * AuroraPeachDeep has been darkened into something safe for text and the split
+     * can be revisited.
+     */
+    @Test
+    fun `the peach accent is not safe as overtime text`() {
+        val ratio = contrastRatio(AuroraPeachDeep, AuroraOvertimeBg)
+        assertTrue(
+            "AuroraPeachDeep on the overtime container measured ${"%.2f".format(ratio)}:1 — " +
+                "if this now passes 4.5:1, revisit the accent/ink split",
+            ratio < 4.5,
+        )
+    }
+
+    /**
      * The reason the fill/ink split exists. If this ever starts passing, the
      * fill has been changed into something safe for text and the split can be
      * revisited — but until then, using `success` as a text colour is a bug.

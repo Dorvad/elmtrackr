@@ -128,8 +128,8 @@ import com.elmtrackr.app.ui.theme.AuroraSuccessDeep
 import com.elmtrackr.app.ui.theme.gradientBrush
 import com.elmtrackr.app.ui.theme.subTextColor
 import com.elmtrackr.app.ui.theme.auroraSemantics
-import com.elmtrackr.app.ui.theme.AuroraPeachDeep
 import com.elmtrackr.app.ui.theme.auroraOvertimeBackground
+import com.elmtrackr.app.ui.theme.auroraOvertimeInk
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import com.elmtrackr.app.ui.theme.auroraWeekendBackground
 import com.elmtrackr.app.ui.tasks.parseTaskColor
@@ -606,7 +606,10 @@ private fun TabletHoursReportTop(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PayCell(stringResource(R.string.dashboard_stat_regular), pay.regularGross, currency, AuroraIndigo,
                         MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
-                    PayCell(stringResource(R.string.dashboard_stat_overtime), pay.overtimeGross, currency, AuroraPeachDeep,
+                    // auroraOvertimeInk(), not the accent: this is a money figure on
+                    // the overtime container, the same text-on-tint pair as the
+                    // dashboard's overtime stat.
+                    PayCell(stringResource(R.string.dashboard_stat_overtime), pay.overtimeGross, currency, auroraOvertimeInk(),
                         auroraOvertimeBackground(), Modifier.weight(1f))
                     PayCell(stringResource(R.string.dashboard_pay_holiday), pay.specialGross, currency, AuroraPlum,
                         auroraWeekendBackground(), Modifier.weight(1f))
@@ -845,7 +848,7 @@ internal fun HoursReport(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 PayCell(stringResource(R.string.dashboard_stat_regular), pay.regularGross, currency, AuroraIndigo,
                     MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
-                PayCell(stringResource(R.string.dashboard_stat_overtime), pay.overtimeGross, currency, AuroraPeachDeep,
+                PayCell(stringResource(R.string.dashboard_stat_overtime), pay.overtimeGross, currency, auroraOvertimeInk(),
                     auroraOvertimeBackground(), Modifier.weight(1f))
                 PayCell(stringResource(R.string.dashboard_pay_holiday), pay.specialGross, currency, AuroraPlum,
                     auroraWeekendBackground(), Modifier.weight(1f))
@@ -911,7 +914,9 @@ internal fun HoursReport(
                 label = stringResource(R.string.reports_overtime_shifts),
                 value = insights.overtimeShiftCount.toString(),
                 sub = stringResource(if (insights.overtimeShiftCount == 1) R.string.reports_shift_one else R.string.reports_shift_other),
-                accentColor = AuroraPeachDeep,
+                // accentColor is this card's value text as well as its border, so it
+                // takes the ink; the border reads fine at either.
+                accentColor = auroraOvertimeInk(),
                 bgColor = auroraOvertimeBackground(),
                 modifier = Modifier.weight(1f),
             )
@@ -1324,7 +1329,7 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: String) {
             Text(
                 stringResource(R.string.reports_ot_hours, HoursFormatter.decimal(task.overtimeMinutes)),
                 style = MaterialTheme.typography.labelSmall,
-                color = AuroraPeachDeep,
+                color = auroraOvertimeInk(),
                 modifier = Modifier.padding(top = 4.dp),
             )
         }

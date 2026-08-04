@@ -22,7 +22,21 @@ val AuroraAquaDeep    = Color(0xFF0E9CA8)
 val AuroraPeach       = Color(0xFFFF9E7D)  // overtime indicator
 val AuroraPeachDeep   = Color(0xFFEF6F45)
 val AuroraOvertimeBg  = Color(0xFFFFF0E9)
-val AuroraOvertimeInk = Color(0xFFC75A30)
+/**
+ * Overtime text on [AuroraOvertimeBg].
+ *
+ * Was 0xFFC75A30, which measures 3.83:1 on that container — below AA, and it was
+ * already in use for the overtime stat *label*, so the fill/ink split was only
+ * half working here. Darkened to the same value as [AuroraWarningInk], which the
+ * semantic layer had already picked for this exact job: 5.23:1 on the container,
+ * 5.81:1 on white. Overtime and warning are the same peach family; two different
+ * inks for them was the drift the token layer exists to stop.
+ *
+ * The dark arm ([AuroraDarkOvertimeInk]) was already fine at 8.26:1 and is
+ * unchanged. [AuroraPeachDeep] stays the graphic accent — 2.69:1 here — and must
+ * not be used for text.
+ */
+val AuroraOvertimeInk = Color(0xFFA8481F)
 val AuroraWeekendBg   = Color(0xFFF2EDFE)
 
 // Fixed
