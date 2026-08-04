@@ -17,7 +17,7 @@ import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.TaskMonthlyBreakdown
-import com.elmtrackr.app.domain.ShiftDurationCalculator
+import com.elmtrackr.app.ui.common.DurationText
 import com.elmtrackr.app.language.withAppLocale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -121,12 +121,12 @@ object ReportExporter {
         canvas.drawRoundRect(margin, y, pageWidth - margin, y + 84f, 18f, 18f, fill)
         y += 20f
         canvas.drawText(res.getString(R.string.reports_hours_distribution), margin + 16f, y, heading)
-        canvas.drawText(ShiftDurationCalculator.formatMinutes(state.report.totalMinutes), pageWidth - margin - 16f, y, heading.apply { textAlign = Paint.Align.RIGHT })
+        canvas.drawText(DurationText.format(res, state.report.totalMinutes), pageWidth - margin - 16f, y, heading.apply { textAlign = Paint.Align.RIGHT })
         heading.textAlign = Paint.Align.LEFT
         y += 18f
-        drawMetric(canvas, res.getString(R.string.dashboard_stat_regular), ShiftDurationCalculator.formatMinutes(state.report.regularMinutes), margin + 16f, y, body, muted)
-        drawMetric(canvas, res.getString(R.string.dashboard_stat_overtime), ShiftDurationCalculator.formatMinutes(state.report.overtimeMinutes), margin + 155f, y, body, muted)
-        drawMetric(canvas, res.getString(R.string.dashboard_stat_weekend), ShiftDurationCalculator.formatMinutes(state.report.weekendMinutes), margin + 294f, y, body, muted)
+        drawMetric(canvas, res.getString(R.string.dashboard_stat_regular), DurationText.format(res, state.report.regularMinutes), margin + 16f, y, body, muted)
+        drawMetric(canvas, res.getString(R.string.dashboard_stat_overtime), DurationText.format(res, state.report.overtimeMinutes), margin + 155f, y, body, muted)
+        drawMetric(canvas, res.getString(R.string.dashboard_stat_weekend), DurationText.format(res, state.report.weekendMinutes), margin + 294f, y, body, muted)
         state.paySummary?.let { pay ->
             drawMetric(canvas, res.getString(R.string.export_gross_pay), MoneyFormatter.format(pay.totalGross, currency), pageWidth - margin - 116f, y, body, muted)
         }
@@ -155,7 +155,7 @@ object ReportExporter {
                 y += 12f
                 canvas.drawText("${res.getString(R.string.reports_week_label, week.label.filter { it.isDigit() })} (${res.getString(R.string.reports_week_days, week.dayRange)})", margin, y, body)
                 canvas.drawText(
-                    ShiftDurationCalculator.formatMinutes(week.totalMinutes),
+                    DurationText.format(res, week.totalMinutes),
                     pageWidth - margin,
                     y,
                     body.apply { textAlign = Paint.Align.RIGHT },
@@ -171,7 +171,7 @@ object ReportExporter {
             canvas.drawText(res.getString(R.string.export_thresholds), margin, y, heading)
             y += 14f
             canvas.drawText(
-                "${res.getString(R.string.reports_daily_ot_after)} ${ShiftDurationCalculator.formatMinutes(settings.dailyOvertimeThresholdMinutes)}   ${res.getString(R.string.reports_weekly_ot_after)} ${ShiftDurationCalculator.formatMinutes(settings.weeklyOvertimeThresholdMinutes)}",
+                "${res.getString(R.string.reports_daily_ot_after)} ${DurationText.format(res, settings.dailyOvertimeThresholdMinutes)}   ${res.getString(R.string.reports_weekly_ot_after)} ${DurationText.format(res, settings.weeklyOvertimeThresholdMinutes)}",
                 margin,
                 y,
                 muted,
@@ -214,7 +214,7 @@ object ReportExporter {
             }.joinToString(" / ")
             canvas.drawText(dateFormat.format(shift.startTime), margin, y, body)
             canvas.drawText(timeText, margin + 94f, y, body)
-            canvas.drawText(breakdown?.totalMinutes?.let(ShiftDurationCalculator::formatMinutes) ?: "-", margin + 230f, y, body)
+            canvas.drawText(breakdown?.totalMinutes?.let { DurationText.format(res, it) } ?: "-", margin + 230f, y, body)
             canvas.drawText(tags.ifBlank { "-" }, margin + 300f, y, muted)
             canvas.drawText(
                 pay?.let { MoneyFormatter.format(it.totalGross, currency) } ?: "-",
@@ -532,9 +532,9 @@ object ReportExporter {
         canvas.drawText(taskLabel, x, y, body.apply { isFakeBoldText = true })
         body.isFakeBoldText = false
         canvas.drawText("${task.shiftCount}", x + 210f, y, body)
-        canvas.drawText(ShiftDurationCalculator.formatMinutes(task.totalMinutes), x + 280f, y, body)
+        canvas.drawText(DurationText.format(res, task.totalMinutes), x + 280f, y, body)
         canvas.drawText(
-            if (task.overtimeMinutes > 0) ShiftDurationCalculator.formatMinutes(task.overtimeMinutes) else "-",
+            if (task.overtimeMinutes > 0) DurationText.format(res, task.overtimeMinutes) else "-",
             x + 350f,
             y,
             muted,
@@ -547,7 +547,7 @@ object ReportExporter {
         )
         body.textAlign = Paint.Align.LEFT
         canvas.drawText(
-            res.getString(R.string.export_avg, ShiftDurationCalculator.formatMinutes(task.averageShiftMinutes)),
+            res.getString(R.string.export_avg, DurationText.format(res, task.averageShiftMinutes)),
             x + 210f,
             y + 10f,
             muted,

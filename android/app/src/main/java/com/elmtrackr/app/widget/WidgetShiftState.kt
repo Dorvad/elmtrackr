@@ -32,7 +32,9 @@ data class WidgetShiftState(
     val isSignedIn: Boolean = true,
 ) {
     companion object {
-        const val DEFAULT_DAILY_GOAL_MINUTES = 480
+        /** Aliased, not redeclared: see [com.elmtrackr.wear.sync.WearShiftSnapshot]. */
+        const val DEFAULT_DAILY_GOAL_MINUTES =
+            com.elmtrackr.wear.sync.WearShiftSnapshot.DEFAULT_DAILY_GOAL_MINUTES
     }
 }
 
@@ -51,7 +53,4 @@ object WidgetTimeFormat {
         val minutes = totalMinutes.coerceAtLeast(0)
         return String.format(java.util.Locale.US, "%d:%02d", minutes / 60, minutes % 60)
     }
-
-    fun minutesToShort(totalMinutes: Int): String =
-        ShiftDurationCalculator.formatMinutes(totalMinutes)
 }

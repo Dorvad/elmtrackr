@@ -34,6 +34,7 @@ import androidx.glance.unit.ColorProvider
 import android.content.Context
 import com.elmtrackr.app.MainActivity
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.DurationText
 import com.elmtrackr.app.language.withAppLocale
 
 private val Indigo = Color(0xFF5B4DF2)
@@ -118,7 +119,7 @@ internal fun widgetSecondaryBottom(state: WidgetPreferences.DisplayState): Strin
             lastPunchShortLabel(context, state.lastPunchEndEpochMillis)
         state.lastPunchLabel.isNotBlank() ->
             state.lastPunchLabel.removePrefix("Last out \u2022 ").removePrefix("Since ")
-        state.todayMinutes > 0 -> context.getString(R.string.widget_today_short, state.todayShort)
+        state.todayMinutes > 0 -> context.getString(R.string.widget_today_short, DurationText.format(context, state.todayMinutes))
         else -> context.getString(R.string.widget_tap_to_start)
     }
 }
@@ -156,7 +157,7 @@ internal fun widgetProgressSubLabel(state: WidgetPreferences.DisplayState): Stri
         context.getString(
             R.string.widget_progress_idle,
             state.progressPercent, state.goalHoursLabel,
-            WidgetTimeFormat.minutesToShort(state.progressRemainderMinutes),
+            DurationText.format(context, state.progressRemainderMinutes),
         )
     }
 }
@@ -165,8 +166,12 @@ internal fun widgetProgressSubLabel(state: WidgetPreferences.DisplayState): Stri
 internal fun widgetTallSubLabel(state: WidgetPreferences.DisplayState): String {
     val context = widgetContext()
     return when {
-        state.isActive -> context.getString(R.string.widget_active_sub, state.startTimeLabel, state.todayShort)
-        state.todayMinutes > 0 -> context.getString(R.string.widget_today_logged, state.todayShort)
+        state.isActive -> context.getString(
+            R.string.widget_active_sub,
+            state.startTimeLabel,
+            DurationText.format(context, state.todayMinutes),
+        )
+        state.todayMinutes > 0 -> context.getString(R.string.widget_today_logged, DurationText.format(context, state.todayMinutes))
         else -> context.getString(R.string.widget_no_time_today)
     }
 }

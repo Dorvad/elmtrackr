@@ -109,6 +109,7 @@ object ProjectReportBuilder {
                 projectMinutesByProject = scopedMinutes.filterKeys { it == id },
                 from = from,
                 to = to,
+                today = today,
             )
         }
         val insights = ProjectInsightsBuilder.buildAll(selected, today, periodTotalsByProject)

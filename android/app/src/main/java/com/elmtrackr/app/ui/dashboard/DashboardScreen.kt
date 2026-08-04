@@ -52,6 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.elmtrackr.app.MainActivity
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.durationText
 import com.elmtrackr.app.notification.NotificationPermissionCoordinator
 import com.elmtrackr.app.ui.common.AppTimePickerDialog
 import com.elmtrackr.app.ui.common.LocalWorkZone
@@ -428,7 +429,10 @@ private fun DashboardReady(
             // so in the worst case all of them stacked above the month summary
             // in identical cards, competing with the clock. The ranking lives in
             // DashboardPromoSlot with its own tests.
-            val today = LocalDate.now()
+            // The work zone, read once. Two separate device-zone reads on a screen
+            // that already provides LocalWorkZone could straddle midnight between
+            // them, and could disagree with the refund count beside it.
+            val today = LocalDate.now(workZone)
             val promo = activeDashboardPromo(
                 DashboardPromoInputs(
                     unresolvedRefundCount = state.unresolvedRefundCount,
@@ -1980,7 +1984,7 @@ private fun RecentShiftRow(
     val startText    = shift.startTime.atZone(zone).format(timeFormatter)
     val endText      = shift.endTime?.atZone(zone)?.format(timeFormatter) ?: "-"
     val durationText = ShiftDurationCalculator.netMinutes(shift)
-        ?.let { ShiftDurationCalculator.formatMinutes(it) } ?: "-"
+        ?.let { durationText(it) } ?: "-"
 
     val stripeColor = if (shift.isSpecialDay) AuroraPlum else AuroraIndigo.copy(alpha = 0.35f)
     Column(modifier = modifier.fillMaxWidth()) {

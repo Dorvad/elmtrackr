@@ -31,7 +31,9 @@ internal fun buildShiftRowDisplay(
     profiles: List<CompensationProfile>,
     allShiftsForPay: List<Shift>,
     premiumProfiles: List<PremiumProfile> = emptyList(),
-    zone: ZoneId = ZoneId.systemDefault(),
+    // No default: a row rendered in the device zone instead of the work zone shows a
+    // shift on the wrong date near midnight. Every caller already passes one.
+    zone: ZoneId,
     locale: Locale = Locale.getDefault(),
 ): ShiftRowDisplayModel {
     val rowWeekdayFmt = DateTimeFormatter.ofPattern("EEE", locale)
@@ -88,7 +90,9 @@ internal fun buildShiftsLazyListItems(
     settings: UserSettings?,
     profiles: List<CompensationProfile>,
     premiumProfiles: List<PremiumProfile> = emptyList(),
-    zone: ZoneId = ZoneId.systemDefault(),
+    // No default: a row rendered in the device zone instead of the work zone shows a
+    // shift on the wrong date near midnight. Every caller already passes one.
+    zone: ZoneId,
     locale: Locale = Locale.getDefault(),
 ): List<ShiftsLazyListItem> {
     val sections = ShiftWeekGrouper.groupByWeek(

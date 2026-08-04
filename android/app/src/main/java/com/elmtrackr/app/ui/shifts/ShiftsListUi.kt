@@ -122,6 +122,12 @@ internal fun ShiftsMonthPicker(
     month: YearMonth,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    /**
+     * Latest navigable month. Defaults to the device zone for the one caller that has
+     * no settings yet — the loading skeleton, where the chevron is not interactive
+     * anyway.
+     */
+    currentMonthCap: YearMonth = YearMonth.now(),
 ) {
     Row(
         modifier = Modifier
@@ -130,7 +136,13 @@ internal fun ShiftsMonthPicker(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MonthNavRow(month = month, onPrevious = onPrevious, onNext = onNext, spread = false)
+        MonthNavRow(
+            month = month,
+            onPrevious = onPrevious,
+            onNext = onNext,
+            spread = false,
+            currentMonthCap = currentMonthCap,
+        )
     }
 }
 
@@ -140,8 +152,13 @@ private fun MonthNavRow(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     spread: Boolean,
+    currentMonthCap: YearMonth,
 ) {
-    val canGoNext = month < YearMonth.now()
+    // The cap comes from the caller so the chevron's enabled state agrees with the
+    // ViewModel, which gates nextMonth() on the *work* zone. Reading the device clock
+    // here meant that near a month boundary across zones the arrow looked available
+    // and did nothing, or looked disabled while navigation would have worked.
+    val canGoNext = month < currentMonthCap
     Row(
         modifier = if (spread) Modifier.fillMaxWidth() else Modifier,
         horizontalArrangement = if (spread) Arrangement.SpaceBetween else Arrangement.Center,
@@ -192,6 +209,12 @@ internal fun ShiftsHeroSummaryCard(
     onNextMonth: (() -> Unit)? = null,
 ) {
     val completed = remember(shifts) { shifts.filter { it.isCompleted } }
+    val currentMonthCap = remember(settings) {
+        YearMonth.now(
+            settings?.let { com.elmtrackr.app.domain.time.WorkTimezone.zoneFor(it) }
+                ?: java.time.ZoneId.systemDefault(),
+        )
+    }
     val summary = remember(completed, settings, month, profiles, premiumProfiles) {
         val completedMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
         val report = settings?.let {
@@ -228,7 +251,13 @@ internal fun ShiftsHeroSummaryCard(
     ) {
         Column(Modifier.padding(Spacing.lg)) {
             if (onPreviousMonth != null && onNextMonth != null) {
-                MonthNavRow(month = month, onPrevious = onPreviousMonth, onNext = onNextMonth, spread = true)
+                MonthNavRow(
+                    month = month,
+                    onPrevious = onPreviousMonth,
+                    onNext = onNextMonth,
+                    spread = true,
+                    currentMonthCap = currentMonthCap,
+                )
                 Spacer(Modifier.height(Spacing.md))
             }
             Row(

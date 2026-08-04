@@ -65,6 +65,7 @@ object ProjectDashboardSummaryBuilder {
             payments = payments,
             from = monthStart,
             to = monthEnd,
+            today = today,
         )
 
         return ProjectDashboardSummary(

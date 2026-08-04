@@ -55,9 +55,6 @@ object WidgetPreferences {
         val todayHms: String
             get() = WidgetTimeFormat.minutesToHm(todayMinutes)
 
-        val todayShort: String
-            get() = WidgetTimeFormat.minutesToShort(todayMinutes)
-
         val goalHoursLabel: String
             get() = "${dailyGoalMinutes / 60}h"
 

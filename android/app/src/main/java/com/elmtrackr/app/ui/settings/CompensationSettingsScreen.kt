@@ -48,6 +48,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.durationText
 import com.elmtrackr.app.domain.compensation.StackingPolicyLabels
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.CompensationRules
@@ -668,14 +669,14 @@ private fun overtimeLadderSummary(rules: CompensationRules): String? {
     rules.dailyOvertimeTiers.sortedBy { it.afterMinutes }.forEach {
         parts += stringResource(
             R.string.settings_ladder_daily,
-            ShiftDurationCalculator.formatMinutes(it.afterMinutes),
+            durationText(it.afterMinutes),
             (it.multiplier * 100).toInt(),
         )
     }
     rules.weeklyOvertimeTiers.sortedBy { it.afterMinutes }.forEach {
         parts += stringResource(
             R.string.settings_ladder_weekly,
-            ShiftDurationCalculator.formatMinutes(it.afterMinutes),
+            durationText(it.afterMinutes),
             (it.multiplier * 100).toInt(),
         )
     }

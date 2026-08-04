@@ -44,6 +44,17 @@ class DarkThemeContrastTest {
         assertContrast("outline variant", DarkColorScheme.outlineVariant, DarkColorScheme.background, 2.0)
     }
 
+    /**
+     * The mirror of the dark assertion above, which was the only one that existed.
+     * `outline` measured 2.43:1 on the light background — below the 3:1 non-text floor
+     * the dark scheme was already being held to.
+     */
+    @Test
+    fun `light theme outlines remain visible`() {
+        assertContrast("outline", LightColorScheme.outline, LightColorScheme.background, 3.0)
+        assertContrast("outline variant", LightColorScheme.outlineVariant, LightColorScheme.background, 1.5)
+    }
+
     @Test
     fun `semantic inks are readable on their own surfaces`() {
         assertContrast(

@@ -6,7 +6,16 @@ import androidx.compose.ui.graphics.Color
 val AuroraLavender    = Color(0xFFECEEFA)  // bg - app background
 val AuroraNavy        = Color(0xFF181530)  // ink - primary text
 val AuroraInk2        = Color(0xFF615C8A)  // ink2 - secondary text
-val AuroraFaint       = Color(0xFFA7A2C8)  // faint - placeholder / hint text
+/**
+ * The light scheme's `outline`.
+ *
+ * Was 0xFFA7A2C8, which measures 2.43:1 on white — below the 3:1 WCAG floor for
+ * non-text UI, the same floor `DarkThemeContrastTest` had been asserting for the dark
+ * scheme only. Darkened to 3.48:1. The comment used to call this "placeholder / hint
+ * text" as well, but the outline role is its only remaining use, so nothing else
+ * moves with it.
+ */
+val AuroraFaint       = Color(0xFF8A84B4)
 val AuroraHair        = Color(0x1A5B4DF2)  // hair - dividers (~10 % indigo)
 val AuroraSurface     = Color(0xFFFFFFFF)  // surface - card background
 val AuroraSurfaceSub  = Color(0xFFF6F6FD)  // surfaceSub - tinted inner surfaces

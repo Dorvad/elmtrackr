@@ -36,6 +36,7 @@ import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.ui.res.stringResource
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.durationText
 import com.elmtrackr.app.ui.design.mirrorInRtl
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -708,7 +709,7 @@ private fun TabletHoursReportTop(
                 icon = "⏱",
                 label = stringResource(R.string.reports_avg_shift_length),
                 value = if (insights.averageShiftMinutes > 0) {
-                    ShiftDurationCalculator.formatMinutes(insights.averageShiftMinutes)
+                    durationText(insights.averageShiftMinutes)
                 } else "—",
                 sub = stringResource(R.string.reports_per_shift),
                 accentColor = AuroraIndigo,
@@ -914,7 +915,7 @@ internal fun HoursReport(
                 icon = "⏱",
                 label = stringResource(R.string.reports_avg_shift_length),
                 value = if (insights.averageShiftMinutes > 0) {
-                    ShiftDurationCalculator.formatMinutes(insights.averageShiftMinutes)
+                    durationText(insights.averageShiftMinutes)
                 } else "—",
                 sub = stringResource(R.string.reports_per_shift),
                 accentColor = AuroraIndigo,
@@ -938,7 +939,7 @@ internal fun HoursReport(
             InsightStatCard(
                 icon = "📏",
                 label = stringResource(R.string.reports_longest_shift),
-                value = ShiftDurationCalculator.formatMinutes(insights.longestShiftMinutes),
+                value = durationText(insights.longestShiftMinutes),
                 sub = insights.longestShift?.startTime?.atZone(state.zone)
                     ?.format(DateTimeFormatter.ofPattern("MMM d", appLocale())),
                 accentColor = auroraSemantics.successInk,
@@ -1409,7 +1410,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                         else -> "—"
                     }
                     Text(
-                        "$arrow ${ShiftDurationCalculator.formatMinutes(abs(delta))}",
+                        "$arrow ${durationText(abs(delta))}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = deltaColor,
@@ -1453,7 +1454,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                     Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(AuroraPeach))
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        stringResource(R.string.reports_ot_suffix, ShiftDurationCalculator.formatMinutes(week.overtimeMinutes)),
+                        stringResource(R.string.reports_ot_suffix, durationText(week.overtimeMinutes)),
                         style = MaterialTheme.typography.labelSmall,
                         color = AuroraPeach,
                         fontWeight = FontWeight.SemiBold,
@@ -1555,10 +1556,10 @@ private fun ShiftReportRow(
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(ShiftDurationCalculator.formatMinutes(breakdown.totalMinutes), fontWeight = FontWeight.Bold)
+                    Text(durationText(breakdown.totalMinutes), fontWeight = FontWeight.Bold)
                     if (otMins > 0 && !shift.isSpecialDay && !weekend) {
                         Text(
-                            stringResource(R.string.reports_plus_ot, ShiftDurationCalculator.formatMinutes(otMins)),
+                            stringResource(R.string.reports_plus_ot, durationText(otMins)),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuroraPeach,
                         )
@@ -1841,8 +1842,8 @@ private fun RefundMonthCard(
 
 @Composable
 private fun OtThresholdFootnote(settings: UserSettings) {
-    val daily = ShiftDurationCalculator.formatMinutes(settings.dailyOvertimeThresholdMinutes)
-    val weekly = ShiftDurationCalculator.formatMinutes(settings.weeklyOvertimeThresholdMinutes)
+    val daily = durationText(settings.dailyOvertimeThresholdMinutes)
+    val weekly = durationText(settings.weeklyOvertimeThresholdMinutes)
     ReportCard {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth < 340.dp) {

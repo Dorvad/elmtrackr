@@ -101,6 +101,12 @@ object ProjectPeriodTotalsBuilder {
         activeDays: Int = 0,
         from: LocalDate,
         to: LocalDate,
+        /**
+         * The user's today, in the work timezone. Only [overdue] uses it, and only to
+         * avoid calling a future due date overdue in the current period. Defaults to
+         * [to] so an existing caller keeps the previous end-of-period behaviour.
+         */
+        today: LocalDate = to,
     ): ProjectPeriodTotals {
         val activeRecords = billingRecords.filter { it.isActive }
         val recordsById = activeRecords.associateBy { it.id }
@@ -149,7 +155,14 @@ object ProjectPeriodTotalsBuilder {
             overdue = MoneyByCurrency.from(
                 outstandingByRecord
                     .filter { (record, balance) ->
-                        balance.isPositive && record.dueOn?.isBefore(to) == true
+                        // Measured against today, not the period end. Viewing the
+                        // current month on the 5th, `to` is the 31st, so an invoice due
+                        // on the 25th counted as overdue — while the project's own
+                        // badge correctly said BILLED, because that uses today. Past
+                        // months keep end-of-period semantics because today is later
+                        // than `to` for them.
+                        val asAt = minOf(today, to)
+                        balance.isPositive && record.dueOn?.isBefore(asAt) == true
                     }
                     .values,
             ),
