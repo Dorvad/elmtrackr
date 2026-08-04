@@ -173,6 +173,9 @@ object CompensationResolver {
     fun profileToLegacySettingsUpdates(profile: CompensationProfile): UserSettings.Updates =
         UserSettings.Updates(
             hourlyRate = profile.baseHourlyRate,
+            // The profile is the authority on pay, so a profile with no rate means
+            // settings has no rate — not "keep whatever was there".
+            clearHourlyRate = profile.baseHourlyRate == null,
             timezone = profile.timezone,
             regionCode = profile.regionCode,
             currencyCode = profile.currencyCode,

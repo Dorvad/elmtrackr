@@ -79,43 +79,99 @@ object PayrollCalculator {
         )
         if (segments.isEmpty()) return null
 
+        return israeliBreakdown(
+            segments = segments,
+            shift = shift,
+            resolved = resolved,
+            zone = zone,
+            hourlyRate = hourlyRate,
+            premiumProfiles = premiumProfiles,
+        )
+    }
+
+    /**
+     * Turns Israeli-engine segments into a pay breakdown.
+     *
+     * Shared because this loop existed twice — here and in
+     * [IsraeliCompensationEngine.calculateIsraeliShiftPay] — and the two copies had
+     * already drifted apart in two ways. Both hardcoded `nightGross = 0.0`, so a
+     * user on the Israeli region could configure a night premium and see no effect
+     * anywhere and no warning; the night rules were honoured only by the generic
+     * engine. And only one copy excluded `forceRegularRate` from the manual-holiday
+     * check, so "pay this shift at the regular rate" was respected on one path and
+     * ignored on the other.
+     *
+     * The night uplift is applied exactly as [calculateGenericShiftPay] applies it:
+     * each segment's own minutes carry the uplift in proportion to how much of the
+     * shift falls inside the night window, blended into the rate so the bracket
+     * total stays exact and every category bucket stays non-negative.
+     */
+    private fun israeliBreakdown(
+        segments: List<IsraeliCompensationEngine.ClassifiedPaySegment>,
+        shift: Shift,
+        resolved: ResolvedCompensation,
+        zone: java.time.ZoneId,
+        hourlyRate: Double,
+        premiumProfiles: List<PremiumProfile>,
+    ): ShiftPayBreakdown {
         val ratePerMinute = hourlyRate / 60.0
         var regularGross = 0.0
         var overtimeGross = 0.0
         var weekendGross = 0.0
         var holidayGross = 0.0
+        var nightGross = 0.0
+
+        val shiftPremiumType = if (shift.forceRegularRate) {
+            null
+        } else {
+            shift.premiumProfileId?.let { id ->
+                premiumProfiles.firstOrNull { it.id == id || it.remoteId == id }?.premiumType
+            }
+        }
 
         val brackets = segments.map { segment ->
-            val amount = segment.minutes * ratePerMinute * segment.multiplier
+            val (nightStackedRate, nightFraction) = applyNightPremium(
+                segment.multiplier,
+                resolved,
+                shift,
+                zone,
+                shiftPremiumType,
+            )
+            val blendedRate = segment.multiplier + nightFraction * (nightStackedRate - segment.multiplier)
+            val amount = segment.minutes * ratePerMinute * blendedRate
+            val nightPremium =
+                segment.minutes * ratePerMinute * nightFraction * (nightStackedRate - segment.multiplier)
             when {
-                segment.label.contains("Premium", ignoreCase = true) -> holidayGross += amount
+                segment.label.contains("Premium", ignoreCase = true) -> holidayGross += amount - nightPremium
                 segment.isWeeklyRest && segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
-                    weekendGross += amount
+                    weekendGross += amount - nightPremium
                 segment.isWeeklyRest && segment.bucket != IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
-                    overtimeGross += amount
-                segment.isWeeklyOvertime -> overtimeGross += amount
-                segment.isDailyOvertime -> overtimeGross += amount
-                segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR -> regularGross += amount
-                else -> overtimeGross += amount
+                    overtimeGross += amount - nightPremium
+                segment.isWeeklyOvertime -> overtimeGross += amount - nightPremium
+                segment.isDailyOvertime -> overtimeGross += amount - nightPremium
+                segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
+                    regularGross += amount - nightPremium
+                else -> overtimeGross += amount - nightPremium
             }
-            PayBracket(segment.label, segment.minutes, segment.multiplier, amount)
+            nightGross += nightPremium
+            PayBracket(segment.label, segment.minutes, blendedRate, amount)
         }
 
         val isSpecial = segments.any { it.isWeeklyRest } ||
             (shift.isSpecialDay && !shift.forceRegularRate && resolved.rules.holidayManualSpecialDayEnabled)
 
-        val ilTotalGross = brackets.sumOf { it.amount }
-        val ilDeductions = deductionsFor(ilTotalGross, resolved.rules)
+        val totalGross = brackets.sumOf { it.amount }
+        val deductions = deductionsFor(totalGross, resolved.rules)
         return ShiftPayBreakdown(
             brackets = brackets,
-            totalGross = ilTotalGross,
+            totalGross = totalGross,
             regularGross = regularGross,
             overtimeGross = overtimeGross,
             weekendGross = weekendGross,
             holidayGross = holidayGross,
-            nightGross = 0.0,
-            deductionsGross = ilDeductions,
-            netGross = maxOf(0.0, ilTotalGross - ilDeductions),
+            nightGross = nightGross,
+            deductionsGross = deductions,
+            netGross = maxOf(0.0, totalGross - deductions),
             isSpecial = isSpecial,
             profileId = resolved.profileId,
             profileName = resolved.profileName,
@@ -123,6 +179,17 @@ object PayrollCalculator {
             disclaimer = COMPENSATION_ESTIMATE_NOTE,
         )
     }
+
+    /** Shared with [IsraeliCompensationEngine], which classifies its own segments. */
+    internal fun israeliBreakdownOf(
+        segments: List<IsraeliCompensationEngine.ClassifiedPaySegment>,
+        shift: Shift,
+        resolved: ResolvedCompensation,
+        zone: java.time.ZoneId,
+        hourlyRate: Double,
+        premiumProfiles: List<PremiumProfile>,
+    ): ShiftPayBreakdown =
+        israeliBreakdown(segments, shift, resolved, zone, hourlyRate, premiumProfiles)
 
     private fun calculateGenericShiftPay(
         shift: Shift,

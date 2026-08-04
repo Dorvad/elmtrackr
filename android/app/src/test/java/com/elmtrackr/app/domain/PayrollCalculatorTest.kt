@@ -749,4 +749,100 @@ class PayrollCalculatorTest {
         // Night premium never exceeds night minutes × delta (240 × 0.25 × 1.0/min).
         assertTrue(bd.nightGross <= 60.0 + 0.01)
     }
+
+    // ── Night premium on the Israeli engine (regression) ─────────────────────
+
+    /**
+     * The Israeli engine returned `nightGross = 0.0` unconditionally, so a user on
+     * the IL region could configure a night premium in Compensation rules and see no
+     * effect anywhere and no warning — the night rules were honoured only by the
+     * generic engine. Same shift, same rules; only the region differs.
+     */
+    @Test
+    fun `the israeli engine pays the night uplift on night minutes`() {
+        val ilRules = RegionPresets.forRegion(RegionCode.IL).rules.copy(
+            nightEnabled = true,
+            nightStartTime = "22:00",
+            nightEndTime = "06:00",
+            nightMultiplier = 1.25,
+            nightApplyTo = "minutes_inside_window",
+        )
+        val p = profile(RegionCode.IL, rules = ilRules)
+        // 18:00 → 02:00 UTC: 480 net minutes, 240 inside the 22:00–06:00 window.
+        val s = shift("2024-01-08T18:00:00Z", "2024-01-09T02:00:00Z")
+
+        val bd = PayrollCalculator.calculateShiftPay(s, settingsWithProfile(p), listOf(p))!!
+
+        assertTrue(
+            "night uplift did not reach the IL engine (nightGross=${bd.nightGross})",
+            bd.nightGross > 0.0,
+        )
+
+        // Derived, not copied from the generic engine: IL's daily standard is 420
+        // minutes, so this shift is 420 regular + 60 daily overtime at 1.25, and
+        // half the shift (240 of 480 minutes) is inside the night window.
+        //
+        // The regular segment carries the whole uplift — 420 min × 60/h × 0.5 ×
+        // (1.25 − 1.00) = 52.50. The overtime segment gets none: IL stacks
+        // highest-only, and its 1.25 overtime rate already equals the 1.25 night
+        // rate, so there is nothing to add. That is why this is not a flat 25% on
+        // all 240 night minutes.
+        assertNear(52.50, bd.nightGross)
+        assertNear(547.50, bd.totalGross)
+        assertEquals(1.125, bd.brackets.first().rate, 0.001)
+    }
+
+    /** With the premium switched off the IL engine must be unchanged. */
+    @Test
+    fun `the israeli engine pays no night uplift when the rule is off`() {
+        val p = profile(RegionCode.IL)
+        val s = shift("2024-01-08T18:00:00Z", "2024-01-09T02:00:00Z")
+
+        val bd = PayrollCalculator.calculateShiftPay(s, settingsWithProfile(p), listOf(p))!!
+
+        assertNear(0.0, bd.nightGross)
+    }
+
+    /**
+     * The night uplift is carried inside each bracket's blended rate, so the
+     * category buckets plus the night total must still reconstruct the gross — the
+     * property that keeps every bucket non-negative.
+     */
+    @Test
+    fun `israeli buckets plus night reconstruct the gross`() {
+        val ilRules = RegionPresets.forRegion(RegionCode.IL).rules.copy(
+            nightEnabled = true,
+            nightStartTime = "22:00",
+            nightEndTime = "06:00",
+            nightMultiplier = 1.5,
+            nightApplyTo = "minutes_inside_window",
+        )
+        val p = profile(RegionCode.IL, rules = ilRules)
+        val s = shift("2024-01-08T18:00:00Z", "2024-01-09T04:00:00Z")
+
+        val bd = PayrollCalculator.calculateShiftPay(s, settingsWithProfile(p), listOf(p))!!
+
+        assertNear(
+            bd.totalGross,
+            bd.regularGross + bd.overtimeGross + bd.weekendGross + bd.holidayGross + bd.nightGross,
+        )
+        listOf(bd.regularGross, bd.overtimeGross, bd.weekendGross, bd.holidayGross, bd.nightGross)
+            .forEach { assertTrue("a bucket went negative: $it", it >= -0.001) }
+    }
+
+    /**
+     * forceRegularRate means "pay this at the regular rate regardless". The IL
+     * engine's own copy of the breakdown loop omitted it from the manual-holiday
+     * check, so the flag was honoured on one path and ignored on the other.
+     */
+    @Test
+    fun `force regular rate suppresses the manual holiday flag on the israeli engine`() {
+        val p = profile(RegionCode.IL)
+        val s = shift("2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z")
+            .copy(isSpecialDay = true, forceRegularRate = true)
+
+        val bd = PayrollCalculator.calculateShiftPay(s, settingsWithProfile(p), listOf(p))!!
+
+        assertEquals(false, bd.isSpecial)
+    }
 }

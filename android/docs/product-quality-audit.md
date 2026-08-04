@@ -93,3 +93,61 @@ Double clock-in across surfaces is mutex-safe with a single repository; sync tri
 2. **Trust (P1):** preserve settings on onboarding replay; delete-confirmations for premium profiles and refund claims; discard-changes guard + stop reinitializing fields on background emissions; filter soft-deleted shifts in `getShiftById`; decide the paid-projects flag (recommend: remove the flag, keep tasks as an opt-in-by-use feature).
 3. **Coherence (P2):** work-timezone in Reports initial month and the start-time dialog + future-time validation; punch parity (`ensureMigrated` + celebration flag from all surfaces); disclose "applies to default job only" on Settings→Pay or fold it into Compensation rules; unify save semantics per screen.
 4. **Polish (P3):** dead-code removal, feedback unification, stale-surface guards.
+
+---
+
+## Status — verified against code, August 2026
+
+Every finding re-checked against the source rather than assumed from the fix waves.
+Where a change since July altered a finding's meaning, that is stated rather than
+quietly dropped.
+
+### Closed
+
+| Item | How |
+|---|---|
+| P0-1 | `premiumProfiles` threaded through `PayrollCalculator`; **both** engines return the premium's own multiplier early, so `isSpecialDay = premiumProfileId != null` no longer prices a premium shift at the holiday rate. That assignment still exists but is now a UI coupling, not a money bug. |
+| P0-2 | `profileToLegacySettingsUpdates` writes the `currency` enum alongside `currencyCode`, closing the root cause. Dashboard, Reports and the PDF share one precedence via `displayCurrencyCode()`; the last four screens reading the raw enum now go through it too. |
+| P0-3 | The edit preview uses `calculateShiftPayInContext` with the real month context. |
+| P0-5 | Dashboard reads the whole-day total, matching widget and Wear. |
+| P1-1 | `preserveExisting` guards `clockStyle` and `featuresClockStyles` on replay. |
+| P1-3 | Both deletes confirm. |
+| P1-4 | Field state is `rememberSaveable` without settings keys, so a sync pull no longer resets fields mid-typing; back navigation checks `unsavedCount`. |
+| P1-5 | Guarded at the repository layer (`LocalShiftsRepository` applies `takeIf { it.deletedAt == null }`); the DAO deliberately still returns deleted rows for the three callers that need them, and says so. |
+| P2-2 | Widget and Wear both route through `ClockInActions.clockInHeadless`, which calls `ensureMigrated`. |
+| P2-3 | Reports seeds from the device zone then corrects to the work zone once settings load, guarded so it cannot fight user navigation. Future start times are rejected by the dialog. |
+| P2-5 | `showTasks` is plain `remember`. |
+| P3 | First-clock-in celebration reaches headless punches via a pending flag; dead code (`ClockStyleStep`, `updateFeatureFlag`) removed; Premium Profiles uses the shared settings chrome. |
+
+### Fixed in this pass
+
+- **P0-4 — night premium ignored on the Israeli engine.** `nightGross` was hardcoded
+  to `0.0`, so an IL-region user could configure a night premium and see no effect
+  anywhere and no warning. The deductions half had been fixed earlier; this was the
+  other half. Found on the way: the breakdown loop existed **twice**, and the copies
+  had drifted — only one honoured `forceRegularRate` in the manual-holiday check.
+  Both now call one shared builder.
+- **P2-1b — stale hourly rate.** `UserSettings.apply` merges with `?:`, which cannot
+  distinguish "not specified" from "explicitly none", so clearing a profile's base
+  rate left the old number in `settings.hourlyRate` — still seeding the Settings→Pay
+  field and the four gates that decide whether to show pay. `Updates` now carries an
+  explicit `clearHourlyRate`, set only by the profile-mirror path so every other
+  caller keeps the "leave alone" semantics.
+
+### Superseded by changes since July
+
+- **P1-2** recommended removing `featuresPaidProjects` as a dead flag. Paid Projects
+  then shipped as a real feature; the flag is live and gates it.
+- **P3's** "widget self-corrects only while the 10s worker runs" — that worker no
+  longer exists, replaced by a minute-aligned chain (`WidgetTimerScheduler`).
+
+### Open, and deliberately so
+
+- **P2-1a** — Settings→Pay still edits the default profile only. The disclosure the
+  audit asked for is in place (`settings_overtime_thresholds_hint`); folding the two
+  editors into one is an architectural change, not a fix.
+- **P2-2's second half** — live clock-in still books to the default profile; the
+  per-shift picker exists only in the edit form. A feature, not a defect.
+- **P2-4** — mixed save semantics on Appearance (some switches instant, clock style
+  behind the save bar). A design decision that needs one answer applied across the
+  screen.

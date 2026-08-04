@@ -214,7 +214,7 @@ internal fun ShiftsHeroSummaryCard(
         )
     }
 
-    val currency = settings?.currency ?: CurrencyCode.ILS
+    val currency = CurrencyCode.from(settings?.displayCurrencyCode())
     val shape = RoundedCornerShape(CornerRadius.Large)
     val categoryTotal = (summary.regularMin + summary.overtimeMin + summary.weekendMin).coerceAtLeast(1)
 
@@ -403,7 +403,7 @@ internal fun ShiftsWeekSectionHeader(
     section: ShiftWeekSection,
     settings: UserSettings?,
 ) {
-    val currency = settings?.currency ?: CurrencyCode.ILS
+    val currency = CurrencyCode.from(settings?.displayCurrencyCode())
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = auroraSurfaceSub(),
@@ -578,7 +578,7 @@ internal fun ShiftRow(
             Column(horizontalAlignment = Alignment.End) {
                 rowDisplay.payGross?.let {
                     Text(
-                        MoneyFormatter.format(it, settings?.currency ?: CurrencyCode.ILS),
+                        MoneyFormatter.format(it, CurrencyCode.from(settings?.displayCurrencyCode())),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,

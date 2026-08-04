@@ -167,7 +167,12 @@ internal fun ShiftEditFormContent(
     val zone = settings?.let { com.elmtrackr.app.domain.time.WorkTimezone.zoneFor(it) }
         ?: ZoneId.systemDefault()
     val startZdt = Instant.ofEpochMilli(startMillis).atZone(zone)
-    val currency = settings?.currency ?: CurrencyCode.ILS
+    // Resolved from displayCurrencyCode(), the rule Dashboard, Reports and the PDF
+    // exporter all use, rather than reading settings.currency directly. The currency
+    // is stored twice — an enum and a string — and these screens were the ones still
+    // trusting the enum, so a code the enum cannot represent showed the shift screens
+    // one currency and every other surface another.
+    val currency = CurrencyCode.from(settings?.displayCurrencyCode())
     val haptic = LocalHapticFeedback.current
 
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }

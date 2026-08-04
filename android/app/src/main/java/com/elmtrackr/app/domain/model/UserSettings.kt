@@ -72,6 +72,18 @@ data class UserSettings(
 
     data class Updates(
         val hourlyRate: Double? = null,
+        /**
+         * Set when the caller means "there is no rate", as opposed to "leave the
+         * rate alone".
+         *
+         * Every field here uses `?:` in [apply], which cannot tell those two apart.
+         * That was fine until the compensation profile became the authority on pay:
+         * clearing the profile's base rate mirrored a null back into settings, `?:`
+         * kept the old number, and the stale rate went on seeding the Settings→Pay
+         * field and the four "does this user have a rate" gates that decide whether
+         * to show pay at all.
+         */
+        val clearHourlyRate: Boolean = false,
         val timezone: String? = null,
         val regionCode: RegionCode? = null,
         val currencyCode: String? = null,
@@ -83,7 +95,7 @@ data class UserSettings(
     )
 
     fun apply(updates: Updates): UserSettings = copy(
-        hourlyRate = updates.hourlyRate ?: hourlyRate,
+        hourlyRate = if (updates.clearHourlyRate) updates.hourlyRate else updates.hourlyRate ?: hourlyRate,
         timezone = updates.timezone ?: timezone,
         regionCode = updates.regionCode ?: regionCode,
         currencyCode = updates.currencyCode ?: currencyCode,
