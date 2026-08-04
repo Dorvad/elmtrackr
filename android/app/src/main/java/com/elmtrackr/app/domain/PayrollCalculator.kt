@@ -220,20 +220,50 @@ object PayrollCalculator {
             (resolved.rules.holidayEnabled &&
                 resolved.rules.holidayManualSpecialDayEnabled &&
                 shift.isSpecialDay && !shift.forceRegularRate)
+        // Weekend minutes are counted per local day, the way the report counts them.
+        // Deciding the whole shift from its start date paid a Friday 23:00 → Saturday
+        // 07:00 shift entirely at the weekday rate and a Saturday 23:00 → Sunday 07:00
+        // shift entirely at the weekend rate, while the report split both
+        // proportionally — so the report's weekend hours and the payroll's weekend
+        // money described different halves of the same shift.
+        val weekendMinutes = genericWeekendMinutes(shift, resolved, zone, net, isHoliday)
         val isSpecial = isHoliday || startOnWeekend
 
-        val tiers = buildTiers(
-            resolved = resolved,
-            isSpecial = isSpecial,
-            isHoliday = isHoliday,
-            startOnWeekend = startOnWeekend,
-            net = net,
-            priorWeekMinutes = priorWeekMinutes,
-            shiftPremium = shiftPremium,
-            shift = shift,
-            zone = zone,
-            isSeventhConsecutiveWorkday = isSeventhConsecutiveWorkday,
-        )
+        // A shift that sits entirely on one side of the boundary keeps its existing
+        // path exactly; only a genuinely mixed shift is split, which is the case that
+        // was wrong. Holidays stay all-or-nothing: a holiday is a property of the
+        // shift, declared by the user, not of each local day it touches.
+        val tiers = if (weekendMinutes in 1 until net && !isHoliday) {
+            val weekdayMinutes = net - weekendMinutes
+            // The weekday portion runs the ordinary ladder over its own minutes only —
+            // "overtime is computed from the weekday-only portion" is the report's
+            // stated invariant, and this is what makes the two agree.
+            buildTiers(
+                resolved = resolved,
+                isSpecial = false,
+                isHoliday = false,
+                startOnWeekend = false,
+                net = weekdayMinutes,
+                priorWeekMinutes = priorWeekMinutes,
+                shiftPremium = null,
+                shift = shift,
+                zone = zone,
+                isSeventhConsecutiveWorkday = isSeventhConsecutiveWorkday,
+            ).capTo(weekdayMinutes) + weekendTier(resolved, weekendMinutes)
+        } else {
+            buildTiers(
+                resolved = resolved,
+                isSpecial = isSpecial,
+                isHoliday = isHoliday,
+                startOnWeekend = startOnWeekend,
+                net = net,
+                priorWeekMinutes = priorWeekMinutes,
+                shiftPremium = shiftPremium,
+                shift = shift,
+                zone = zone,
+                isSeventhConsecutiveWorkday = isSeventhConsecutiveWorkday,
+            )
+        }
         val brackets = mutableListOf<PayBracket>()
         var remaining = net
         var regularGross = 0.0
@@ -447,15 +477,25 @@ object PayrollCalculator {
         return net
     }
 
+    /**
+     * @param contextShifts a window wide enough to cover the pay weeks the reported
+     *   [shifts] belong to — normally the month plus the tail of the week containing
+     *   the 1st. Only [shifts] are summed; [contextShifts] supply the prior-minutes
+     *   accumulation that decides weekly overtime. Defaulting to [shifts] is what the
+     *   code did implicitly, and is why a pay week straddling the 1st began with no
+     *   prior minutes and under-counted overtime in the first partial week.
+     */
     fun sumMonthlyPay(
         shifts: List<Shift>,
         settings: UserSettings,
         profiles: List<CompensationProfile> = emptyList(),
         premiumProfiles: List<PremiumProfile> = emptyList(),
+        contextShifts: List<Shift> = shifts,
     ): MonthlyPaySummary {
         // Employee-only from here down: project shifts contribute no gross, and
         // must not appear in the week accumulation that drives overtime either.
         @Suppress("NAME_SHADOWING") val shifts = shifts.employeePaidOnly()
+        val context = contextShifts.employeePaidOnly().ifEmpty { shifts }
         var totalGross = 0.0
         var regularGross = 0.0
         var overtimeGross = 0.0
@@ -476,10 +516,10 @@ object PayrollCalculator {
             val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
             val bd = if (resolved.regionCode == RegionCode.IL) {
                 IsraeliCompensationEngine.calculateIsraeliShiftPay(
-                    shift, shifts, settings, profiles, premiumProfiles,
+                    shift, context, settings, profiles, premiumProfiles,
                 )
             } else {
-                calculateShiftPayInContext(shift, shifts, settings, profiles, premiumProfiles)
+                calculateShiftPayInContext(shift, context, settings, profiles, premiumProfiles)
             } ?: return@forEachWithPriorWeekMinutes
             totalGross += bd.totalGross
             regularGross += bd.regularGross
@@ -509,6 +549,71 @@ object PayrollCalculator {
     }
 
     private const val PERIOD_DEDUCTION_FALLBACK_KEY = "__legacy_settings__"
+
+    /**
+     * How many of a shift's payable minutes fall on a weekend day, counted per local
+     * day rather than decided by the start date.
+     *
+     * Proportioned onto the payable net rather than taken from the segments directly:
+     * [OvernightShiftDetector.splitShiftByDay] divides net wall-clock minutes across
+     * days, while `net` here has already had breaks, rounding and the minimum-shift
+     * floor applied. Scaling keeps `weekday + weekend == net` exactly, so no minute is
+     * lost or paid twice.
+     *
+     * Returns 0 for a holiday or a force-regular shift: both are shift-level
+     * declarations that override the calendar.
+     */
+    private fun genericWeekendMinutes(
+        shift: Shift,
+        resolved: ResolvedCompensation,
+        zone: java.time.ZoneId,
+        net: Int,
+        isHoliday: Boolean,
+    ): Int {
+        if (!resolved.rules.weekendEnabled || isHoliday || shift.forceRegularRate) return 0
+        val segments = WeekendRules.annotateWeekendSegments(
+            OvernightShiftDetector.splitShiftByDay(shift, zone),
+            resolved.rules.weekendDays,
+        )
+        val total = segments.sumOf { it.minutes }
+        if (total <= 0) return 0
+        val weekend = WeekendRules.totalWeekendMinutes(segments)
+        return when {
+            weekend <= 0 -> 0
+            weekend >= total -> net
+            else -> (net.toLong() * weekend / total).toInt().coerceIn(0, net)
+        }
+    }
+
+    /**
+     * Closes an open tier ladder at [limit] minutes.
+     *
+     * The last tier of a ladder carries [Int.MAX_VALUE] so it absorbs everything left.
+     * Appending a second ladder behind one of those would leave it nothing, so the
+     * weekday ladder is bounded to its own minutes before the weekend tier follows it.
+     */
+    private fun List<Tier>.capTo(limit: Int): List<Tier> {
+        val out = mutableListOf<Tier>()
+        var remaining = limit
+        for (tier in this) {
+            if (remaining <= 0) break
+            val cap = if (tier.capMinutes == Int.MAX_VALUE) remaining else minOf(tier.capMinutes, remaining)
+            out += tier.copy(capMinutes = cap)
+            remaining -= cap
+        }
+        return out
+    }
+
+    /** The weekend portion of a mixed shift: one flat tier, labelled so it lands in `weekendGross`. */
+    private fun weekendTier(resolved: ResolvedCompensation, minutes: Int): List<Tier> {
+        val multiplier = resolved.rules.weekendMultiplier
+        val label = if (multiplier > 1.0) {
+            "${(multiplier * 100).toInt()}% — Weekend"
+        } else {
+            "100% — Regular"
+        }
+        return listOf(Tier(label, minutes, multiplier))
+    }
 
     private fun buildTiers(
         resolved: ResolvedCompensation,

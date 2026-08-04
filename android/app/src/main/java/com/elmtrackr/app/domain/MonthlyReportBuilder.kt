@@ -42,7 +42,12 @@ object MonthlyReportBuilder {
         val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
         val zone = WorkTimezone.zoneFor(resolved, settings)
         val rawSegments = OvernightShiftDetector.splitShiftByDay(shift, zone)
-        val segments = if (shift.forceRegularRate) {
+        // `weekendEnabled` is honoured here as it is on the pay path. Without it, a
+        // profile that pays no weekend premium — the US federal preset, for one — still
+        // had its Saturday and Sunday minutes classed as weekend in the report. Those
+        // minutes are then excluded from the weekday base that overtime is measured
+        // from, so the report understated overtime for hours the payroll had counted.
+        val segments = if (shift.forceRegularRate || !resolved.rules.weekendEnabled) {
             rawSegments
         } else {
             WeekendRules.annotateWeekendSegments(rawSegments, resolved.rules.weekendDays)
@@ -83,11 +88,19 @@ object MonthlyReportBuilder {
         settings: UserSettings,
         profiles: List<CompensationProfile> = emptyList(),
         weekStartDay: Int = defaultWeekStartDay(settings),
+        contextShifts: List<Shift> = shifts,
     ): MonthlyReport {
         // Employee-paid only: this report's regular/overtime/weekend split is a
         // pay classification, and project time is paid by the project fee. Project
         // hours are still visible on the project and in the shift list.
         val completed = shifts.employeePaidOnly().filter { it.isCompleted }
+        // Shifts outside the reported month that share a pay week with one inside it.
+        // Their minutes count toward the weekly threshold but are never reported here,
+        // which is what keeps the report's overtime hours agreeing with the paid
+        // overtime for a week straddling the 1st.
+        val reportedIds = completed.mapTo(mutableSetOf()) { it.id }
+        val priorWeekContext = contextShifts.employeePaidOnly()
+            .filter { it.isCompleted && it.id !in reportedIds }
         // Group in the work timezone — grouping in UTC while the per-shift
         // breakdowns use the work zone bucketed evening shifts into the wrong
         // week, shifting weekly-overtime minutes between weeks.
@@ -112,8 +125,19 @@ object MonthlyReportBuilder {
             }
             val totalWeekdayMins = weekdayMinsPerShift.sum()
 
+            // Daily overtime is counted only where the profile actually has a daily
+            // ladder to pay it from. The US federal preset is weekly-only —
+            // `dailyOvertimeTiers` is empty by design — so counting minutes past its
+            // 480-minute daily *standard* invented overtime hours that no pay figure
+            // ever paid. `priorStraightTimeMinutesBefore` already gates on exactly this
+            // pair of conditions; the report did not.
             val dailyOt = weekShifts.zip(weekdayMinsPerShift) { s, m ->
-                maxOf(0, m - (rulesMap[s]?.dailyStandardMinutes ?: settings.dailyOvertimeThresholdMinutes))
+                val rules = rulesMap[s]
+                if (rules != null && (!rules.overtimeEnabled || rules.dailyOvertimeTiers.isEmpty())) {
+                    0
+                } else {
+                    maxOf(0, m - (rules?.dailyStandardMinutes ?: settings.dailyOvertimeThresholdMinutes))
+                }
             }.sum()
             // A weekly threshold belongs to the week, not to one shift, so it is taken
             // from the week's earliest shift. Shifts in one week normally share a
@@ -123,7 +147,30 @@ object MonthlyReportBuilder {
                 .minByOrNull { it.startTime }
                 ?.let { rulesMap[it]?.weeklyStandardMinutes }
                 ?: settings.weeklyOvertimeThresholdMinutes
-            val weeklyOt = maxOf(0, totalWeekdayMins - weeklyStandard)
+            // Weekday minutes worked earlier in this same pay week but outside the
+            // reported month. They fill the weekly allowance without being reported,
+            // so a week straddling the 1st reaches its threshold at the right point
+            // instead of restarting from zero.
+            val weekStart = weekShifts.first().let { PayWeekMinutes.weekStart(it, zone, weekStartDay) }
+            val priorWeekdayMins = priorWeekContext
+                .filter { PayWeekMinutes.weekStart(it, zone, weekStartDay) == weekStart }
+                .sumOf { s ->
+                    val bd = buildShiftBreakdown(s, settings, profiles)
+                    maxOf(0, bd.totalMinutes - bd.weekendMinutes)
+                }
+            // Clamped to this week's own reported minutes: the prior month's hours can
+            // consume the allowance, but its overtime belongs to its own report.
+            val weeklyOvertimeApplies = weekShifts
+                .minByOrNull { it.startTime }
+                ?.let { rulesMap[it] }
+                ?.let { it.overtimeEnabled && it.weeklyOvertimeTiers.isNotEmpty() }
+                ?: true
+            val weeklyOt = if (weeklyOvertimeApplies) {
+                (totalWeekdayMins + priorWeekdayMins - weeklyStandard)
+                    .coerceIn(0, totalWeekdayMins)
+            } else {
+                0
+            }
 
             // Take whichever threshold produces more overtime (they overlap, not additive)
             maxOf(dailyOt, weeklyOt)

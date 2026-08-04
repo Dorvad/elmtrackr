@@ -54,6 +54,21 @@ interface ShiftsRepository {
 
     fun observeShiftsByMonthInZone(userId: String, year: Int, month: Int, zone: ZoneId): Flow<List<Shift>>
 
+    /**
+     * The month, plus the leading tail of the pay week that contains the 1st.
+     *
+     * For pay-week context: weekly overtime accumulates over a week, and a week
+     * straddling the 1st needs the minutes worked on its far side. Callers filter to
+     * the month before reporting anything.
+     */
+    fun observeShiftsForPayContext(
+        userId: String,
+        year: Int,
+        month: Int,
+        zone: ZoneId,
+        weekStartDay: Int,
+    ): Flow<List<Shift>>
+
     fun observeShiftsForDay(userId: String, zone: ZoneId, date: LocalDate): Flow<List<Shift>>
 
     fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<Shift>>

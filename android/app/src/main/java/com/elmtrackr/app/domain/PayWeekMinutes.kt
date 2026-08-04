@@ -18,10 +18,13 @@ object PayWeekMinutes {
         DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY,
     )
 
+    /** First day of the pay week containing [date], anchored to [weekStartDay] (0=Sun … 6=Sat). */
+    fun weekStartOf(date: LocalDate, weekStartDay: Int): LocalDate =
+        date.with(TemporalAdjusters.previousOrSame(JS_DAYS[weekStartDay.coerceIn(0, 6)]))
+
     /** First day of the pay week containing [shift], anchored to [weekStartDay] (0=Sun … 6=Sat). */
     fun weekStart(shift: Shift, zone: ZoneId, weekStartDay: Int): LocalDate =
-        shift.startTime.atZone(zone).toLocalDate()
-            .with(TemporalAdjusters.previousOrSame(JS_DAYS[weekStartDay.coerceIn(0, 6)]))
+        weekStartOf(shift.startTime.atZone(zone).toLocalDate(), weekStartDay)
 
     fun isoWeekStart(shift: Shift, zone: ZoneId): LocalDate = weekStart(shift, zone, 1)
 

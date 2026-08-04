@@ -48,6 +48,34 @@ object WorkTimezone {
         return from to to
     }
 
+    /**
+     * [monthRangeEpochMillis] widened backwards to the start of the pay week that
+     * contains the 1st.
+     *
+     * A pay week straddling the 1st used to start with no prior minutes at all,
+     * because every caller passed exactly one month: shifts early in the month never
+     * saw hours already worked in the same week of the previous month, so weekly
+     * overtime was systematically under-counted in the first partial week of every
+     * month. Worst under weekly-threshold regimes — Israel's 42 hours, US federal,
+     * which has no daily threshold at all.
+     *
+     * The extra rows are for *context* only. What gets reported is still filtered to
+     * the month.
+     */
+    fun payContextRangeEpochMillis(
+        year: Int,
+        month: Int,
+        zone: ZoneId,
+        weekStartDay: Int,
+    ): Pair<Long, Long> {
+        val (_, to) = monthRangeEpochMillis(year, month, zone)
+        val weekStart = com.elmtrackr.app.domain.PayWeekMinutes.weekStartOf(
+            YearMonth.of(year, month).atDay(1),
+            weekStartDay,
+        )
+        return weekStart.atStartOfDay(zone).toInstant().toEpochMilli() to to
+    }
+
     fun dayRangeEpochMillis(date: LocalDate, zone: ZoneId): Pair<Long, Long> {
         val from = date.atStartOfDay(zone).toInstant().toEpochMilli()
         val to = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()

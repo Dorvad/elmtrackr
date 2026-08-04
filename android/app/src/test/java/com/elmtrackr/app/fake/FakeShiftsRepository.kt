@@ -102,6 +102,20 @@ class FakeShiftsRepository : ShiftsRepository {
         zone: ZoneId,
     ): Flow<List<Shift>> = observeShiftsByMonth(userId, year, month)
 
+    /**
+     * Returns everything, like the other month queries here. The fake holds one flat
+     * list and does no date filtering, so a wider window is trivially a superset —
+     * production narrows to the pay-week range and the ViewModel filters back to the
+     * month, which is asserted in [com.elmtrackr.app.data.repository.LocalShiftsRepositoryTest].
+     */
+    override fun observeShiftsForPayContext(
+        userId: String,
+        year: Int,
+        month: Int,
+        zone: ZoneId,
+        weekStartDay: Int,
+    ): Flow<List<Shift>> = _shifts
+
     override fun observeShiftsForDay(userId: String, zone: ZoneId, date: LocalDate): Flow<List<Shift>> =
         _shifts
 

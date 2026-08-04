@@ -174,6 +174,19 @@ class LocalShiftsRepository @Inject constructor(
         }
     }
 
+    override fun observeShiftsForPayContext(
+        userId: String,
+        year: Int,
+        month: Int,
+        zone: ZoneId,
+        weekStartDay: Int,
+    ): Flow<List<Shift>> {
+        val (from, to) = WorkTimezone.payContextRangeEpochMillis(year, month, zone, weekStartDay)
+        return shiftDao.observeShiftsByDateRange(userId, from, to).map { entities ->
+            entities.mapToDomain { it.toDomain() }
+        }
+    }
+
     override fun observeShiftsForDay(
         userId: String,
         zone: ZoneId,

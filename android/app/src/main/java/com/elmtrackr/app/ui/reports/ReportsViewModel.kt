@@ -287,18 +287,29 @@ class ReportsViewModel @Inject constructor(
                             inputs.settings == null -> ReportsUiState.Loading
                             else -> {
                                 val settings = inputs.settings
+                                val prevCompleted = inputs.previousShifts.filter { it.isCompleted }
+                                // The previous month is already loaded here for the
+                                // week-over-week delta, so pay-week context across the
+                                // 1st costs nothing extra. Only the month is reported;
+                                // these fill the weekly overtime allowance.
+                                val payContext = completedShifts + prevCompleted
                                 val safeReport = inputs.report ?: MonthlyReportBuilder.buildMonthlyReport(
                                     year = year,
                                     month = month,
                                     shifts = inputs.shifts,
                                     settings = settings,
                                     profiles = profiles,
+                                    contextShifts = payContext,
                                 )
                                 val paySummary = settings.takeIf {
                                     (it.hourlyRate ?: 0.0) > 0.0 ||
                                         profiles.any { p -> (p.baseHourlyRate ?: 0.0) > 0.0 }
-                                }?.let { PayrollCalculator.sumMonthlyPay(completedShifts, it, profiles, premiumProfiles) }
-                                val prevCompleted = inputs.previousShifts.filter { it.isCompleted }
+                                }?.let {
+                                    PayrollCalculator.sumMonthlyPay(
+                                        completedShifts, it, profiles, premiumProfiles,
+                                        contextShifts = payContext,
+                                    )
+                                }
                                 val insights = settings.takeIf { it.featuresInsights }
                                     ?.let { ReportInsightsBuilder.build(completedShifts, it, profiles, premiumProfiles) }
                                 val dailyInsights = settings.takeIf { it.featuresInsights }
