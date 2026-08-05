@@ -228,6 +228,32 @@
     <string name="settings_reminder_schedule_footer">Reminders fire only while you\'re clocked in. They\'re saved on this device.</string>
     <string name="settings_features_footer">Clock faces moved to Appearance. Turning a feature off hides its tabs and cards across the app.</string>
 
+    <!-- Wear OS -->
+    <string name="settings_wear_title">Wear OS watch</string>
+    <string name="settings_wear_hub_subtitle">Watch connection and shift sync</string>
+    <string name="settings_wear_section_watch">WATCH</string>
+    <string name="settings_wear_section_sync">SYNC</string>
+    <string name="settings_wear_checking">Checking for a paired watch…</string>
+    <string name="settings_wear_status_connected">Watch connected</string>
+    <string name="settings_wear_status_connected_no_app">Watch connected — app not installed</string>
+    <string name="settings_wear_status_no_watch">No watch connected</string>
+    <string name="settings_wear_status_sync_off">Watch sync is off</string>
+    <string name="settings_wear_status_unavailable">Wear OS features need Google Play services, which is not available on this phone.</string>
+    <string name="settings_wear_status_unavailable_short">Wear OS unavailable</string>
+    <string name="settings_wear_watch_nearby">Nearby</string>
+    <string name="settings_wear_watch_remote">Connected remotely</string>
+    <string name="settings_wear_app_installed">ElmTrackr installed</string>
+    <string name="settings_wear_app_missing">ElmTrackr is not on this watch yet. Open the Play Store on the watch to install it.</string>
+    <string name="settings_wear_pairing_hint">No watch found. Pair one with this phone using the Wear OS app — ElmTrackr connects to it automatically.</string>
+    <string name="settings_wear_refresh">Refresh</string>
+    <string name="settings_wear_sync_toggle">Sync shifts to watch</string>
+    <string name="settings_wear_sync_toggle_desc">Mirror your shift status and today\'s hours to the watch, and allow clocking in and out from it</string>
+    <string name="settings_wear_sync_now">Sync now</string>
+    <string name="settings_wear_sync_sent">Sent to watch at %1$s</string>
+    <string name="settings_wear_disabled_hint">Sync is off: the watch shows a signed-out screen and punches from it are ignored.</string>
+    <string name="settings_wear_graphic_connected">Illustration of a smartwatch, connected</string>
+    <string name="settings_wear_graphic_disconnected">Illustration of a smartwatch, not connected</string>
+
     <!-- Help & about -->
     <string name="settings_section_about">ABOUT</string>
     <string name="settings_version">Version</string>

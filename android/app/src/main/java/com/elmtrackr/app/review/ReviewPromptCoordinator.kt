@@ -14,12 +14,6 @@ import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Read-only view of the current eligibility decision, for the debug inspector. */
-data class ReviewPromptInspection(
-    val inputs: ReviewPromptInputs,
-    val verdict: ReviewPromptVerdict,
-)
-
 /**
  * Glue between feature code, [ReviewPromptPolicy] and the Play review UI.
  *
@@ -78,12 +72,6 @@ class ReviewPromptCoordinator @Inject constructor(
 
     override fun noteDiscouragingEvent() {
         scope.launch { store.recordDiscouragingEvent(System.currentTimeMillis()) }
-    }
-
-    /** Evaluates eligibility without recording anything — safe for debug tooling. */
-    suspend fun inspectEligibility(): ReviewPromptInspection {
-        val inputs = buildInputs()
-        return ReviewPromptInspection(inputs, ReviewPromptPolicy.evaluate(inputs))
     }
 
     private suspend fun maybeRequestReview() {

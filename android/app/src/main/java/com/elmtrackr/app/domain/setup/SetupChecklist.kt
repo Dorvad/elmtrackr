@@ -59,6 +59,13 @@ object SetupChecklist {
 
         if (allComplete && inputs.celebrated) return null
 
+        // A checklist that arrives already finished — an upgrading user whose
+        // existing data satisfies every signal — has nothing to teach and no
+        // celebration is owed for work never framed as a checklist. Visited
+        // steps are the engagement evidence (onboarding and the CTAs record
+        // them); without any, stay hidden instead of popping "You're all set!".
+        if (allComplete && inputs.visitedStepKeys.isEmpty()) return null
+
         return SetupChecklistState(
             steps = steps,
             completedCount = completed,

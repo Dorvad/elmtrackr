@@ -44,6 +44,8 @@ object AppPreferenceKeys {
     val PAID_PROJECTS_DISCOVERY_DISMISSED =
         booleanPreferencesKey("paid_projects_discovery_dismissed")
 
+    val WEAR_SYNC_ENABLED = booleanPreferencesKey("wear_sync_enabled")
+
     /**
      * The month whose refund reminder the user dismissed, as `YYYY-MM`.
      *
@@ -99,6 +101,8 @@ data class AppPreferenceValues(
     val recentClockFaces: List<String> = emptyList(),
     /** Raw pack names. Resolved, and widened to include the defaults, by the UI layer. */
     val installedClockFacePacks: Set<String> = emptySet(),
+    /** On by default: pairing a watch should work without a settings visit. */
+    val wearSyncEnabled: Boolean = true,
 )
 
 class AppPreferencesRepository(private val context: Context) :
@@ -107,7 +111,8 @@ class AppPreferencesRepository(private val context: Context) :
     OnboardingPreferences,
     SetupChecklistPreferences,
     FeatureDiscoveryPreferences,
-    ClockFacePreferences {
+    ClockFacePreferences,
+    WearSyncPreferences {
 
     override val preferences: Flow<AppPreferenceValues> =
         context.appPreferencesDataStore.data.map { prefs ->
@@ -126,6 +131,7 @@ class AppPreferencesRepository(private val context: Context) :
                 setupChecklistCelebrated = prefs[AppPreferenceKeys.SETUP_CHECKLIST_CELEBRATED] ?: false,
                 paidProjectsDiscoveryDismissed =
                     prefs[AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED] ?: false,
+                wearSyncEnabled = prefs[AppPreferenceKeys.WEAR_SYNC_ENABLED] ?: true,
                 refundReminderDismissedMonth =
                     prefs[AppPreferenceKeys.REFUND_REMINDER_DISMISSED_MONTH],
                 recentClockFaces =
@@ -201,6 +207,10 @@ class AppPreferencesRepository(private val context: Context) :
         }
     }
 
+    override suspend fun setWearSyncEnabled(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[AppPreferenceKeys.WEAR_SYNC_ENABLED] = enabled }
+    }
+
     override suspend fun setRefundReminderDismissedMonth(month: String) {
         context.appPreferencesDataStore.edit {
             it[AppPreferenceKeys.REFUND_REMINDER_DISMISSED_MONTH] = month
@@ -216,6 +226,29 @@ class AppPreferencesRepository(private val context: Context) :
     override suspend fun setInstalledClockFacePacks(packNames: Set<String>) {
         context.appPreferencesDataStore.edit {
             it[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] = packNames
+        }
+    }
+
+    /**
+     * Clears the first-run nudge bookkeeping on sign-out so the next account on
+     * this device gets its own onboarding, checklist, celebrations and feature
+     * discovery instead of inheriting the previous user's. Deliberately keeps
+     * genuinely device-scoped state: theme, reduce motion, app lock, device id,
+     * legacy-adoption marker, and the once-per-install notification education.
+     */
+    suspend fun resetFirstRunNudges() {
+        context.appPreferencesDataStore.edit {
+            it.remove(AppPreferenceKeys.ONBOARDING_COMPLETED)
+            it.remove(AppPreferenceKeys.FIRST_CLOCK_IN_CELEBRATED)
+            it.remove(AppPreferenceKeys.FIRST_CLOCK_IN_CELEBRATION_PENDING)
+            it.remove(AppPreferenceKeys.SETUP_CHECKLIST_DISMISSED)
+            it.remove(AppPreferenceKeys.SETUP_CHECKLIST_VISITED_STEPS)
+            it.remove(AppPreferenceKeys.SETUP_CHECKLIST_CELEBRATED)
+            it.remove(AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED)
+            // Added when the two changes met: the refund reminder is a per-user
+            // nudge dismissal like the others above, so leaving it would silence a
+            // new account's reminder for whatever month the previous user dismissed.
+            it.remove(AppPreferenceKeys.REFUND_REMINDER_DISMISSED_MONTH)
         }
     }
 }

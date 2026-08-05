@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Advertises the watch app to the paired phone via the CapabilityClient, so
+    the phone's Settings → Wear OS screen can tell "watch connected" apart from
+    "watch connected AND ElmTrackr installed on it". The name must match
+    WearSyncPublisher.WATCH_APP_CAPABILITY on the phone side.
+-->
+<resources>
+    <string-array name="android_wear_capabilities" translatable="false">
+        <item>elmtrackr_wear_app</item>
+    </string-array>
+</resources>

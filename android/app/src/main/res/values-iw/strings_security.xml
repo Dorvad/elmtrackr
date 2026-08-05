@@ -10,6 +10,7 @@
     <!-- Security settings detail -->
     <string name="security_section_app_lock">נעילת אפליקציה</string>
     <string name="security_encryption_note">המידע המקומי מוצפן במכשיר (SQLCipher). פעולות מהווידג׳טים ומההתראות חסומות כשהאפליקציה נעולה.</string>
+    <string name="security_app_lock_suspended">נעילת האפליקציה מושהית כי במכשיר הזה אין נעילת מסך. אחרי הגדרת טביעת אצבע, זיהוי פנים או קוד בהגדרות המכשיר היא תחזור לעבוד מעצמה.</string>
     <!-- Biometric confirmation shown before the app lock is switched on or off -->
     <string name="security_prompt_enable_title">הפעלת נעילת אפליקציה</string>
     <string name="security_prompt_disable_title">ביטול נעילת אפליקציה</string>

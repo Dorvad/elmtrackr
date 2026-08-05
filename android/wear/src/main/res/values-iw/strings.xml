@@ -20,6 +20,7 @@
     <string name="confirmed_out">יצאת מהמשמרת</string>
     <string name="phone_unreachable">אין חיבור לטלפון</string>
     <string name="punch_failed">ההחתמה נכשלה</string>
+    <string name="wear_sync_disabled">השעון כובה בהגדרות בטלפון</string>
     <string name="wear_refresh">רענון</string>
     <string name="wear_today">היום %1$s</string>
     <string name="wear_percent_of_day">%1$d%% מהיום</string>

@@ -184,6 +184,10 @@ class SupabaseAuthRepository @Inject constructor(
         _passwordRecoveryRequired.value = false
         authSessionCoordinator.resetSession()
         appPrefs.setLastActiveUserId(null)
+        // The next account on this device starts its first-run journey fresh;
+        // without this the new user inherits the previous user's checklist,
+        // celebrations, and the device-level onboarding flag.
+        appPrefs.resetFirstRunNudges()
     }
 
     override suspend fun deleteAccount(): AuthResult {

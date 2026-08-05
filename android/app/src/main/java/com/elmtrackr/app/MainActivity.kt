@@ -30,6 +30,7 @@ import com.elmtrackr.app.notification.NotificationPermissionCoordinator
 import com.elmtrackr.app.review.PlayReviewFlowLauncher
 import com.elmtrackr.app.review.ReviewPromptCoordinator
 import com.elmtrackr.app.security.AppLockController
+import com.elmtrackr.app.security.BiometricCapability
 import com.elmtrackr.app.ui.security.AppLockGate
 import com.elmtrackr.app.ui.design.LocalReduceMotion
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
@@ -151,6 +152,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Re-read on every resume rather than once at startup: the user can enrol
+        // or remove a device credential in Settings while this activity is
+        // stopped, and both directions have to take effect on return.
+        AppLockController.setEnforceable(BiometricCapability.canEnforceAppLock(this))
         AppEntryPoints.background(this).dynamicShortcutsRefresher().refresh()
         requestNotificationPermissionForActiveShift()
     }
@@ -171,7 +176,10 @@ class MainActivity : AppCompatActivity() {
             val active = deps.shiftsRepository().observeActiveShift(userId).firstOrNull() != null
             if (!active) return@launch
             if (!NotificationPermissionCoordinator.shouldShowEducationalPrompt(this@MainActivity)) return@launch
-            NotificationPermissionCoordinator.markPromptShown(this@MainActivity)
+            // Deliberately NOT marked as shown: this path fires the system dialog
+            // with no rationale (there is nowhere to put one mid-launch), so the
+            // dashboard's educational prompt must stay available for the next
+            // in-app clock-in instead of being silently consumed here.
             requestNotificationPermission()
         }
     }
