@@ -16,7 +16,7 @@
     <string name="auth_forgot_password">שכחת סיסמה?</string>
     <string name="auth_have_account_sign_in">כבר יש לך חשבון? מתחברים</string>
     <string name="auth_back_to_sign_in">חזרה להתחברות</string>
-    <string name="auth_sign_out">התנתקות</string>
+    <string name="auth_loading_workspace">טוען את סביבת העבודה שלך…</string>
 
     <!-- Password recovery -->
     <string name="auth_choose_new_password">בחירת סיסמה חדשה</string>

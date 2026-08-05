@@ -2,6 +2,7 @@
 
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.core.tween
@@ -15,6 +16,7 @@ import androidx.compose.runtime.setValue
 import com.elmtrackr.app.ui.auth.AuthScreen
 import com.elmtrackr.app.ui.components.states.LoadingState
 import com.elmtrackr.app.ui.auth.AuthViewModel
+import com.elmtrackr.app.ui.design.AuroraEaseInOut
 import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.AuroraMotion
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
@@ -70,7 +72,13 @@ fun AppNavGraph() {
         popExitTransition = { rootPopExitTransition(motionEnabled) },
     ) {
         composable(AppRoute.LOADING) { LoadingState() }
-        composable(AppRoute.AUTH) {
+        composable(
+            route = AppRoute.AUTH,
+            // The post-login loader's exit segment, played the moment the app is
+            // ready instead of waiting for the loop: the mark fades and settles
+            // to 93% while the workspace comes in.
+            exitTransition = { authExitTransition(motionEnabled) },
+        ) {
             AuthScreen(viewModel = authViewModel)
         }
         composable(AppRoute.ONBOARDING) {
@@ -86,6 +94,17 @@ fun AppNavGraph() {
         }
     }
 }
+
+private fun authExitTransition(motionEnabled: Boolean) =
+    if (!motionEnabled) {
+        fadeOut(tween(0))
+    } else {
+        fadeOut(tween(AuroraMotion.LoaderExitMillis, easing = AuroraEaseInOut)) +
+            scaleOut(
+                targetScale = 0.93f,
+                animationSpec = tween(AuroraMotion.LoaderExitMillis, easing = AuroraEaseInOut),
+            )
+    }
 
 private fun rootEnterTransition(motionEnabled: Boolean) =
     if (!motionEnabled) {

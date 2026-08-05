@@ -72,6 +72,7 @@ import com.elmtrackr.app.ui.settings.FeaturesDetailScreen
 import com.elmtrackr.app.ui.settings.HelpDetailScreen
 import com.elmtrackr.app.ui.settings.LegalDocumentScreen
 import com.elmtrackr.app.ui.settings.LegalDocuments
+import com.elmtrackr.app.ui.auth.SignedInContent
 import com.elmtrackr.app.ui.settings.PayDetailScreen
 import com.elmtrackr.app.ui.settings.PremiumProfilesContent
 import com.elmtrackr.app.ui.settings.PremiumProfilesUiState
@@ -345,6 +346,16 @@ class FullAppScreenshotJvmTest {
             onArchive = {},
             onDismissMessage = {},
         )
+    }
+
+    // Reduce-motion is on in captures, so this renders the loader's static
+    // full-mark frame — the reduce-motion behavior the spec asks for.
+    @Test fun authLoading() = capture("38-auth-loading") {
+        SignedInContent()
+    }
+
+    @Test fun authLoadingDark() = capture("39-auth-loading-dark", darkTheme = true) {
+        SignedInContent()
     }
 
     @Test fun settingsPremiumProfiles() = capture("35-settings-premium-profiles") {

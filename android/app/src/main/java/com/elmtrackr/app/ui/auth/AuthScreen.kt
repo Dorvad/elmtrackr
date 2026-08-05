@@ -8,6 +8,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,7 +32,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -50,6 +50,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -68,6 +70,7 @@ import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.design.auroraSubScreenTransition
+import com.elmtrackr.app.ui.design.StrikeLoader
 
 private const val MIN_PASSWORD_LENGTH = 6
 
@@ -129,11 +132,7 @@ fun AuthScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
                 is AuthUiState.NotConfigured -> NotConfiguredContent()
-                is AuthUiState.SignedIn -> SignedInContent(
-                    profile = s.profile,
-                    isLoading = s.isLoading,
-                    onSignOut = viewModel::signOut,
-                )
+                is AuthUiState.SignedIn -> SignedInContent()
                 is AuthUiState.SignedOut -> SignedOutContent(
                     isLoading = s.isLoading,
                     errorMessage = s.errorMessage,
@@ -213,45 +212,23 @@ private fun NotConfiguredContent() {
 
 // ── Signed in ─────────────────────────────────────────────────────────────────
 
+/**
+ * Post-login interstitial while the workspace loads: the "Strike & settle"
+ * branded loader, nothing else. No user actions live here — sign-out stays
+ * reachable from Settings. The mark is decorative, so the loading state is
+ * spoken through a content description instead. Internal so JVM screenshot
+ * tests can render it directly.
+ */
 @Composable
-private fun SignedInContent(
-    profile: com.elmtrackr.app.domain.model.Profile,
-    isLoading: Boolean,
-    onSignOut: () -> Unit,
-) {
-    Box(Modifier.fillMaxSize(), Alignment.Center) {
-        Column(
-            modifier            = Modifier
-                .widthIn(max = 480.dp)
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            AuroraBoltLogo()
-            Spacer(Modifier.height(20.dp))
-            Text(
-                text       = profile.fullName ?: profile.email,
-                style      = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-            if (profile.fullName != null) {
-                Text(
-                    text  = profile.email,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.height(32.dp))
-            OutlinedButton(
-                onClick  = onSignOut,
-                enabled  = !isLoading,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (isLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                else Text(stringResource(R.string.auth_sign_out))
-            }
-        }
+internal fun SignedInContent() {
+    val loadingLabel = stringResource(R.string.auth_loading_workspace)
+    BoxWithConstraints(Modifier.fillMaxSize(), Alignment.Center) {
+        val markSize = (maxWidth * 0.4f).coerceAtMost(200.dp)
+        StrikeLoader(
+            Modifier
+                .size(markSize)
+                .semantics { contentDescription = loadingLabel },
+        )
     }
 }
 

@@ -22,6 +22,8 @@ import kotlinx.coroutines.delay
 
 val AuroraEaseOut = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
 val AuroraSoftEase = CubicBezierEasing(0.2f, 0.7f, 0.3f, 1f)
+/** CSS `ease-in-out` — used by the post-login loader's exit segment. */
+val AuroraEaseInOut = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
 
 object AuroraMotion {
     const val PressMillis = 150
@@ -31,6 +33,8 @@ object AuroraMotion {
     const val ContentCrossfadeMillis = 200
     const val SubScreenEnterMillis = 280
     const val SubScreenExitMillis = 200
+    /** The loader's exit: alpha 1 → 0 and scale 1 → 0.93 on navigate-away. */
+    const val LoaderExitMillis = 340
 }
 
 @Composable

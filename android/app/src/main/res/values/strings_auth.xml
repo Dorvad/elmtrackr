@@ -16,7 +16,7 @@
     <string name="auth_forgot_password">Forgot password?</string>
     <string name="auth_have_account_sign_in">Already have an account? Sign in</string>
     <string name="auth_back_to_sign_in">Back to sign in</string>
-    <string name="auth_sign_out">Sign out</string>
+    <string name="auth_loading_workspace">Loading your workspace…</string>
 
     <!-- Password recovery -->
     <string name="auth_choose_new_password">Choose a new password</string>
