@@ -281,26 +281,31 @@
     <string name="settings_sync_now">סנכרון עכשיו</string>
 
     <!-- Sync details -->
-    <string name="settings_sync_details_intro">מה שמור במכשיר, מה מחכה להעלאה ומה נכשל.</string>
-    <string name="settings_section_last_successful_sync">סנכרון מוצלח אחרון</string>
+    <string name="settings_sync_details_tagline">מה שמור כאן ומה כבר הועלה</string>
     <string name="settings_not_synced_yet">עוד לא סונכרן במכשיר הזה</string>
-    <string name="settings_when">מתי</string>
-    <string name="settings_latest_run">ריצה אחרונה</string>
-    <string name="settings_section_pending_by_type">ממתינים לפי סוג</string>
-    <string name="settings_all_local_changes_synced">כל השינויים המקומיים מסונכרנים.</string>
-    <string name="settings_section_failed_rows">שורות שנכשלו</string>
-    <string name="settings_section_actions">פעולות</string>
-    <string name="settings_retry_all">ניסיון חוזר לכולם</string>
+    <plurals name="settings_sync_hero_waiting">
+        <item quantity="one">שינוי אחד ממתין</item>
+        <item quantity="two">%1$d שינויים ממתינים</item>
+        <item quantity="other">%1$d שינויים ממתינים</item>
+    </plurals>
+    <string name="settings_sync_hero_all_synced">הכול מסונכרן</string>
+    <string name="settings_sync_last_synced">סונכרן לאחרונה %1$s</string>
+    <plurals name="settings_sync_rows_attention">
+        <item quantity="one">שורה אחת דורשת טיפול</item>
+        <item quantity="two">%1$d שורות דורשות טיפול</item>
+        <item quantity="other">%1$d שורות דורשות טיפול</item>
+    </plurals>
+    <string name="settings_section_on_device">במכשיר הזה</string>
+    <string name="settings_section_backup">גיבוי</string>
+    <string name="settings_retry">ניסיון חוזר</string>
     <string name="settings_preparing_backup">מכין גיבוי…</string>
-    <string name="settings_export_local_backup">ייצוא גיבוי מקומי</string>
-    <string name="settings_export_backup_hint">קובץ JSON עם המשימות, המשמרות, הבקשות, ההגדרות ופרופילי השכר המקומיים — לצורכי תמיכה.</string>
+    <string name="settings_export_backup">ייצוא גיבוי</string>
     <string name="settings_importing">מייבא…</string>
-    <string name="settings_import_local_backup">ייבוא גיבוי מקומי</string>
-    <string name="settings_import_backup_hint">שחזור מקובץ גיבוי שיוצא בעבר. פריטים קיימים לא נדרסים אף פעם.</string>
-    <string name="settings_synced_on_device">%1$s מסונכרנים במכשיר</string>
+    <string name="settings_import_backup">ייבוא גיבוי</string>
+    <string name="settings_backup_hint">קובץ JSON פשוט עם כל מה שבמכשיר הזה. ייבוא אף פעם לא דורס פריטים קיימים.</string>
+    <string name="settings_synced_on_device">%1$s מסונכרנים</string>
     <string name="settings_up_to_date">מעודכן</string>
     <string name="settings_count_pending">%1$s ממתינים</string>
-    <string name="settings_failed_row_meta">%1$s · %2$s</string>
 
     <!-- Save/account feedback -->
     <string name="settings_feedback_saved">ההגדרות נשמרו</string>
@@ -355,21 +360,21 @@
     <string name="settings_expand">הרחבת %1$s</string>
 
     <!-- Premium profiles -->
-    <string name="settings_premium_profiles_intro">יצירת תוספות שכר לשימוש חוזר — לחגים, שבת ומשמרות מיוחדות.</string>
-    <string name="settings_add_premium_profile">הוספת פרופיל תוספת</string>
+    <string name="settings_premium_profiles_tagline">תעריפים לשימוש חוזר למשמרות מיוחדות</string>
+    <string name="settings_new">חדש</string>
     <string name="settings_your_profiles">הפרופילים שלך</string>
     <string name="settings_new_profile">פרופיל חדש</string>
     <string name="settings_edit_profile">עריכת פרופיל</string>
-    <string name="settings_multiplier_summary">%1$s%% · %2$s</string>
     <string name="settings_default">ברירת מחדל</string>
     <string name="settings_delete_profile">מחיקת פרופיל</string>
+    <string name="settings_remove_this_rate">הסרת התעריף הזה</string>
     <string name="settings_delete_comp_profile_title">למחוק את ״%1$s״?</string>
     <string name="settings_delete_comp_profile_body">משמרות שכבר נרשמו שומרות על השכר שחושב עבורן. הפרופיל יוסר גם מהמכשירים המסונכרנים שלך. אי אפשר לבטל את הפעולה.</string>
     <string name="settings_delete">מחיקה</string>
-    <string name="settings_edit">עריכה</string>
     <string name="settings_profile_name">שם הפרופיל</string>
     <string name="settings_multiplier">מכפיל</string>
     <string name="settings_multiplier_hint" formatted="false">‏1.5 = שכר של 150%</string>
+    <string name="settings_multiplier_equals">‏= שכר של %1$d%%</string>
     <string name="settings_premium_type">סוג תוספת</string>
     <string name="settings_save_profile">שמירת פרופיל</string>
     <!-- Crash reporting -->

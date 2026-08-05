@@ -282,26 +282,29 @@
     <string name="settings_sync_now">Sync now</string>
 
     <!-- Sync details -->
-    <string name="settings_sync_details_intro">See what is stored on this device, what is waiting to upload, and what failed.</string>
-    <string name="settings_section_last_successful_sync">LAST SUCCESSFUL SYNC</string>
+    <string name="settings_sync_details_tagline">What\'s stored here, what\'s uploaded</string>
     <string name="settings_not_synced_yet">Not synced on this device yet</string>
-    <string name="settings_when">When</string>
-    <string name="settings_latest_run">Latest run</string>
-    <string name="settings_section_pending_by_type">PENDING BY TYPE</string>
-    <string name="settings_all_local_changes_synced">All local changes are synced.</string>
-    <string name="settings_section_failed_rows">FAILED ROWS</string>
-    <string name="settings_section_actions">ACTIONS</string>
-    <string name="settings_retry_all">Retry all</string>
+    <plurals name="settings_sync_hero_waiting">
+        <item quantity="one">1 change waiting</item>
+        <item quantity="other">%1$d changes waiting</item>
+    </plurals>
+    <string name="settings_sync_hero_all_synced">Everything is synced</string>
+    <string name="settings_sync_last_synced">Last synced %1$s</string>
+    <plurals name="settings_sync_rows_attention">
+        <item quantity="one">1 row needs attention</item>
+        <item quantity="other">%1$d rows need attention</item>
+    </plurals>
+    <string name="settings_section_on_device">On this device</string>
+    <string name="settings_section_backup">Backup</string>
+    <string name="settings_retry">Retry</string>
     <string name="settings_preparing_backup">Preparing backup…</string>
-    <string name="settings_export_local_backup">Export local backup</string>
-    <string name="settings_export_backup_hint">JSON snapshot of local tasks, shifts, claims, settings, and pay profiles for support.</string>
+    <string name="settings_export_backup">Export backup</string>
     <string name="settings_importing">Importing…</string>
-    <string name="settings_import_local_backup">Import local backup</string>
-    <string name="settings_import_backup_hint">Restore a previously exported backup file. Existing items are never overwritten.</string>
-    <string name="settings_synced_on_device">%1$s synced on device</string>
+    <string name="settings_import_backup">Import backup</string>
+    <string name="settings_backup_hint">A plain JSON file with everything on this device. Imports never overwrite existing items.</string>
+    <string name="settings_synced_on_device">%1$s synced</string>
     <string name="settings_up_to_date">Up to date</string>
     <string name="settings_count_pending">%1$s pending</string>
-    <string name="settings_failed_row_meta">%1$s · %2$s</string>
 
     <!-- Save/account feedback -->
     <string name="settings_feedback_saved">Settings saved</string>
@@ -356,21 +359,21 @@
     <string name="settings_expand">Expand %1$s</string>
 
     <!-- Premium profiles -->
-    <string name="settings_premium_profiles_intro">Create reusable premium rates for holidays, Shabbat, and special shifts.</string>
-    <string name="settings_add_premium_profile">Add premium profile</string>
+    <string name="settings_premium_profiles_tagline">Reusable rates for special shifts</string>
+    <string name="settings_new">New</string>
     <string name="settings_your_profiles">Your profiles</string>
     <string name="settings_new_profile">New profile</string>
     <string name="settings_edit_profile">Edit profile</string>
-    <string name="settings_multiplier_summary">%1$s%% · %2$s</string>
     <string name="settings_default">Default</string>
     <string name="settings_delete_profile">Delete profile</string>
+    <string name="settings_remove_this_rate">Remove this rate</string>
     <string name="settings_delete_comp_profile_title">Delete “%1$s”?</string>
     <string name="settings_delete_comp_profile_body">Shifts you\'ve already logged keep the pay that was calculated for them. The profile is removed from your synced devices too. This cannot be undone.</string>
     <string name="settings_delete">Delete</string>
-    <string name="settings_edit">Edit</string>
     <string name="settings_profile_name">Profile name</string>
     <string name="settings_multiplier">Multiplier</string>
     <string name="settings_multiplier_hint" formatted="false">1.5 = 150% pay</string>
+    <string name="settings_multiplier_equals">= %1$d%% pay</string>
     <string name="settings_premium_type">Premium type</string>
     <string name="settings_save_profile">Save profile</string>
     <!-- Crash reporting -->
