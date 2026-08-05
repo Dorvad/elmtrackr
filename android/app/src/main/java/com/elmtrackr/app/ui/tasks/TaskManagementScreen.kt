@@ -2,7 +2,7 @@
 
 package com.elmtrackr.app.ui.tasks
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,58 +14,77 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
-import com.elmtrackr.app.ui.common.resolve
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.Task
-import com.elmtrackr.app.domain.tasks.TaskDefaultRulesBuilder
+import com.elmtrackr.app.domain.tasks.TaskDefaultRule
+import com.elmtrackr.app.ui.common.appLocale
+import com.elmtrackr.app.ui.common.resolve
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.AuroraListScreen
+import com.elmtrackr.app.ui.design.AuroraScreenHeader
+import com.elmtrackr.app.ui.design.ElmCard
 import com.elmtrackr.app.ui.design.ElmCardPadded
+import com.elmtrackr.app.ui.design.ElmDashedButton
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.design.ElmIconTile
+import com.elmtrackr.app.ui.design.ElmIconTileSize
+import com.elmtrackr.app.ui.design.ElmSectionHeader
+import com.elmtrackr.app.ui.design.auroraRowClickable
+import com.elmtrackr.app.ui.design.mirrorInRtl
+import com.elmtrackr.app.ui.projects.StatusPill
+import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.CornerRadius
+import com.elmtrackr.app.ui.theme.Layout
+import com.elmtrackr.app.ui.theme.Spacing
+import com.elmtrackr.app.ui.theme.auroraSemantics
+import com.elmtrackr.app.ui.theme.auroraSurfaceSub
+import java.time.DayOfWeek
+import java.time.format.TextStyle
+import java.util.Locale
 
 import androidx.compose.ui.unit.dp
 
@@ -120,7 +139,6 @@ fun TaskManagementScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun TaskManagementContent(
     state: TaskManagementUiState.Ready,
@@ -131,8 +149,9 @@ internal fun TaskManagementContent(
     onDelete: (String) -> Unit = {},
     onDismissMessage: () -> Unit,
 ) {
-    var editingId by remember { mutableStateOf<String?>(null) }
-    var showForm by remember { mutableStateOf(false) }
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var showForm by rememberSaveable { mutableStateOf(false) }
+    var archivedExpanded by rememberSaveable { mutableStateOf(false) }
     var deleteCandidate by remember { mutableStateOf<Task?>(null) }
     val haptic = LocalHapticFeedback.current
 
@@ -160,22 +179,51 @@ internal fun TaskManagementContent(
         )
     }
 
+    if (showForm || editingId != null) {
+        TaskEditorSheet(
+            task = state.tasks.firstOrNull { it.id == editingId },
+            existingNames = state.tasks
+                .filter { !it.isArchived && it.id != editingId }
+                .map { it.name },
+            onDismiss = { showForm = false; editingId = null },
+            onSave = { name, icon, color, rate ->
+                onSave(editingId, name, icon, color, rate)
+                showForm = false
+                editingId = null
+            },
+            onArchive = editingId?.let { id ->
+                {
+                    AuroraHaptics.destructive(haptic)
+                    onArchive(id)
+                    editingId = null
+                }
+            },
+        )
+    }
+
+    val activeTasks = state.tasks.filter { !it.isArchived }
+    val archivedTasks = state.tasks.filter { it.isArchived }
+
     LazyColumn(
-        modifier = Modifier.fillMaxSize().widthIn(max = 448.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .widthIn(max = 448.dp)
+            .padding(horizontal = Spacing.screenH),
+        verticalArrangement = Arrangement.spacedBy(Layout.cardGap),
     ) {
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.tasks_back))
-                }
-                Text(stringResource(R.string.tasks_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
-            Text(
-                stringResource(R.string.tasks_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp),
+            AuroraScreenHeader(
+                title = stringResource(R.string.tasks_title),
+                subtitle = stringResource(R.string.tasks_subtitle),
+                onBack = onBack,
+                backContentDescription = stringResource(R.string.tasks_back),
+                action = {
+                    ElmGradientButton(onClick = { showForm = true }, compact = true) {
+                        Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(Spacing.s16))
+                        Spacer(Modifier.size(Spacing.s4))
+                        Text(stringResource(R.string.tasks_add), fontWeight = FontWeight.SemiBold)
+                    }
+                },
             )
         }
 
@@ -185,36 +233,9 @@ internal fun TaskManagementContent(
             }
         }
 
-        if (showForm || editingId != null) {
+        if (activeTasks.isEmpty()) {
             item {
-                TaskEditorCard(
-                    task = state.tasks.firstOrNull { it.id == editingId },
-                    existingNames = state.tasks
-                        .filter { !it.isArchived && it.id != editingId }
-                        .map { it.name },
-                    onCancel = { showForm = false; editingId = null },
-                    onSave = { name, icon, color, rate ->
-                        onSave(editingId, name, icon, color, rate)
-                        showForm = false
-                        editingId = null
-                    },
-                )
-            }
-        } else {
-            item {
-                OutlinedButton(
-                    onClick = { showForm = true },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = null)
-                    Text(stringResource(R.string.tasks_add_task), modifier = Modifier.padding(start = 8.dp))
-                }
-            }
-        }
-
-        if (state.tasks.isEmpty() && !showForm) {
-            item {
-                ElmCardPadded(Modifier.padding(horizontal = 16.dp)) {
+                ElmCardPadded {
                     Text(
                         stringResource(R.string.tasks_empty_hint),
                         style = MaterialTheme.typography.bodyMedium,
@@ -222,80 +243,147 @@ internal fun TaskManagementContent(
                     )
                 }
             }
+        } else {
+            item {
+                ElmSectionHeader(
+                    stringResource(R.string.tasks_your_tasks),
+                    modifier = Modifier.padding(top = Spacing.s4),
+                )
+            }
+            item {
+                ElmCard {
+                    activeTasks.forEachIndexed { index, task ->
+                        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        TaskRow(task = task, onClick = { editingId = task.id })
+                    }
+                }
+            }
         }
 
-        items(state.tasks.filter { !it.isArchived }, key = { it.id }) { task ->
-            TaskRow(
-                task = task,
-                onEdit = { editingId = task.id; showForm = false },
-                onArchive = {
-                    AuroraHaptics.destructive(haptic)
-                    onArchive(task.id)
-                },
-                modifier = Modifier.animateItem(),
+        item {
+            ElmDashedButton(
+                label = stringResource(R.string.tasks_new_task),
+                onClick = { showForm = true },
             )
         }
 
-        if (state.tasks.any { it.isArchived }) {
+        if (archivedTasks.isNotEmpty()) {
             item {
-                Text(
-                    stringResource(R.string.tasks_archived_header),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            items(state.tasks.filter { it.isArchived }, key = { "arch-${it.id}" }) { task ->
-                TaskRow(
-                    task = task,
-                    archived = true,
-                    onEdit = {},
-                    onArchive = {},
-                    onDelete = { deleteCandidate = task },
-                    onRestore = { onRestore(task.id) },
+                ArchivedTasksCard(
+                    tasks = archivedTasks,
+                    expanded = archivedExpanded,
+                    onExpandedChange = { archivedExpanded = it },
+                    onRestore = onRestore,
+                    onDelete = { deleteCandidate = it },
                 )
             }
         }
+
+        item { Spacer(Modifier.height(Spacing.s24)) }
     }
 }
 
 @Composable
 private fun TaskRow(
     task: Task,
-    archived: Boolean = false,
-    onEdit: () -> Unit,
-    onArchive: () -> Unit,
-    onDelete: (() -> Unit)? = null,
-    onRestore: (() -> Unit)? = null,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ElmCardPadded(modifier.padding(horizontal = 16.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(task.icon, style = MaterialTheme.typography.headlineSmall)
-            TaskColorDot(
-                color = task.resolveColor(),
-                selected = false,
-                modifier = Modifier.padding(start = 8.dp),
+    // One action per row: tapping opens the editor, where archive also lives.
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .auroraRowClickable(onClick = onClick)
+            .padding(horizontal = Spacing.s16, vertical = Spacing.s12)
+            .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // The task's colour tints its emoji tile — one identity token per row.
+        ElmIconTile(background = task.resolveColor().copy(alpha = 0.14f)) {
+            Text(task.icon, style = MaterialTheme.typography.titleLarge)
+        }
+        Text(
+            task.name,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = Spacing.s12),
+        )
+        Text(
+            stringResource(R.string.tasks_rate_per_hour, formatTaskRate(task.hourlyRate)),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Icon(
+            Icons.Filled.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.outline,
+            modifier = Modifier
+                .padding(start = Spacing.s6)
+                .size(Spacing.s18)
+                .mirrorInRtl(),
+        )
+    }
+}
+
+@Composable
+private fun ArchivedTasksCard(
+    tasks: List<Task>,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onRestore: (String) -> Unit,
+    onDelete: (Task) -> Unit,
+) {
+    // Collapsed by default so Restore/Delete aren't ambient on the page.
+    ElmCard {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .auroraRowClickable(onClick = { onExpandedChange(!expanded) })
+                .padding(horizontal = Spacing.s16, vertical = Spacing.s14),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.s8),
+        ) {
+            Text(
+                stringResource(R.string.tasks_archived_header),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(task.name, fontWeight = FontWeight.Bold)
-                Text(
-                    stringResource(R.string.tasks_rate_per_hour, formatTaskRate(task.hourlyRate)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (!archived) {
-                TextButton(onClick = onEdit) { Text(stringResource(R.string.tasks_edit)) }
-                TextButton(onClick = onArchive) { Text(stringResource(R.string.tasks_archive)) }
-            } else {
-                // Restore comes first: archiving is a single unconfirmed tap, so it
-                // needs a way back that is at least as reachable as deletion.
-                onRestore?.let {
-                    TextButton(onClick = it) { Text(stringResource(R.string.tasks_restore)) }
-                }
-                onDelete?.let {
-                    TextButton(onClick = it) {
+            StatusPill(text = tasks.size.toString(), accent = AuroraIndigo)
+            Spacer(Modifier.weight(1f))
+            Icon(
+                imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+            )
+        }
+        if (expanded) {
+            tasks.forEach { task ->
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.s16, vertical = Spacing.s8),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ElmIconTile(background = task.resolveColor().copy(alpha = 0.14f)) {
+                        Text(task.icon, style = MaterialTheme.typography.titleLarge)
+                    }
+                    Text(
+                        task.name,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = Spacing.s12),
+                    )
+                    // Restore comes first: archiving is a single unconfirmed tap, so it
+                    // needs a way back that is at least as reachable as deletion.
+                    TextButton(onClick = { onRestore(task.id) }) {
+                        Text(stringResource(R.string.tasks_restore))
+                    }
+                    TextButton(onClick = { onDelete(task) }) {
                         Text(stringResource(R.string.tasks_delete), color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -305,39 +393,76 @@ private fun TaskRow(
 }
 
 @Composable
-private fun DefaultRulesCard(rules: List<com.elmtrackr.app.domain.tasks.TaskDefaultRule>) {
-    ElmCardPadded(Modifier.padding(horizontal = 16.dp)) {
-        Text(stringResource(R.string.tasks_schedule_defaults), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            stringResource(R.string.tasks_schedule_defaults_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(8.dp))
-        rules.take(6).forEach { rule ->
-            Text(
-                TaskDefaultRulesBuilder.formatRule(rule),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(vertical = 2.dp),
-            )
+private fun DefaultRulesCard(rules: List<TaskDefaultRule>) {
+    val locale = appLocale()
+    ElmCardPadded {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ElmIconTile(
+                background = auroraSemantics.infoContainer,
+                size = ElmIconTileSize.Small,
+            ) { Text("✨", style = MaterialTheme.typography.titleMedium) }
+            Column(Modifier.padding(start = Spacing.s10)) {
+                Text(
+                    stringResource(R.string.tasks_schedule_defaults),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    stringResource(R.string.tasks_schedule_defaults_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
-        if (rules.size > 6) {
-            Text(
-                stringResource(R.string.tasks_more_rules, rules.size - 6),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Spacer(Modifier.height(Spacing.s12))
+        // Day-chips instead of raw text lines: one chip per day/task pair.
+        val chips = rules.distinctBy { it.dayOfWeek to it.taskId }
+        val shown = chips.take(MAX_RULE_CHIPS)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.s6),
+            verticalArrangement = Arrangement.spacedBy(Spacing.s6),
+        ) {
+            shown.forEach { rule ->
+                Row(
+                    modifier = Modifier
+                        .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Chip))
+                        .padding(horizontal = Spacing.s10, vertical = Spacing.s6),
+                ) {
+                    Text(
+                        ruleDayName(rule, locale),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        " · ${rule.taskName}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (chips.size > shown.size) {
+                Text(
+                    stringResource(R.string.tasks_more_rules, chips.size - shown.size),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = auroraSemantics.infoInk,
+                    modifier = Modifier
+                        .background(auroraSemantics.infoContainer, RoundedCornerShape(CornerRadius.Chip))
+                        .padding(horizontal = Spacing.s10, vertical = Spacing.s6),
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun TaskEditorCard(
+private fun TaskEditorSheet(
     task: Task?,
     existingNames: List<String>,
-    onCancel: () -> Unit,
+    onDismiss: () -> Unit,
     onSave: (name: String, icon: String, color: String?, rate: Double) -> Unit,
+    onArchive: (() -> Unit)?,
 ) {
     var name by remember(task?.id) { mutableStateOf(task?.name.orEmpty()) }
     var icon by remember(task?.id) { mutableStateOf(task?.icon ?: TASK_EMOJI_OPTIONS.first()) }
@@ -347,65 +472,71 @@ private fun TaskEditorCard(
     val errorNameRequired = stringResource(R.string.tasks_error_name_required)
     val errorNameExists = stringResource(R.string.tasks_error_name_exists)
     val errorRateInvalid = stringResource(R.string.tasks_error_rate_invalid)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ElmCardPadded(Modifier.padding(horizontal = 16.dp)) {
-        Text(
-            if (task == null) stringResource(R.string.tasks_new_task) else stringResource(R.string.tasks_edit_task),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it; error = null },
-            label = { Text(stringResource(R.string.tasks_name_label)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(12.dp))
-        Text(stringResource(R.string.tasks_icon_label), style = MaterialTheme.typography.labelMedium)
-        Spacer(Modifier.height(6.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TASK_EMOJI_OPTIONS.forEach { emoji ->
-                FilterChip(
-                    selected = icon == emoji,
-                    onClick = { icon = emoji },
-                    label = { Text(emoji) },
-                )
+    // Editor opens in context on the tapped row instead of reflowing the list.
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.screenH)
+                .padding(bottom = Spacing.s32),
+        ) {
+            Text(
+                if (task == null) stringResource(R.string.tasks_new_task) else stringResource(R.string.tasks_edit_task),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(Spacing.s12))
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it; error = null },
+                label = { Text(stringResource(R.string.tasks_name_label)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(Spacing.s12))
+            Text(stringResource(R.string.tasks_icon_label), style = MaterialTheme.typography.labelMedium)
+            Spacer(Modifier.height(Spacing.s6))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.s8)) {
+                TASK_EMOJI_OPTIONS.forEach { emoji ->
+                    FilterChip(
+                        selected = icon == emoji,
+                        onClick = { icon = emoji },
+                        label = { Text(emoji) },
+                    )
+                }
             }
-        }
-        Spacer(Modifier.height(12.dp))
-        Text(stringResource(R.string.tasks_color_label), style = MaterialTheme.typography.labelMedium)
-        Spacer(Modifier.height(6.dp))
-        // No extra arrangement spacing: each swatch now reserves a 48dp touch
-        // target around its 28dp circle, which supplies the gap on its own.
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-            TASK_COLOR_OPTIONS.forEach { hex ->
-                val swatch = parseTaskColor(hex) ?: Color.Gray
-                TaskColorDot(
-                    color = swatch,
-                    selected = color == hex,
-                    contentDescription = stringResource(R.string.tasks_color_label),
-                    onClick = { color = hex },
-                )
+            Spacer(Modifier.height(Spacing.s12))
+            Text(stringResource(R.string.tasks_color_label), style = MaterialTheme.typography.labelMedium)
+            Spacer(Modifier.height(Spacing.s6))
+            // No extra arrangement spacing: each swatch now reserves a 48dp touch
+            // target around its 28dp circle, which supplies the gap on its own.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                TASK_COLOR_OPTIONS.forEach { hex ->
+                    val swatch = parseTaskColor(hex) ?: Color.Gray
+                    TaskColorDot(
+                        color = swatch,
+                        selected = color == hex,
+                        contentDescription = stringResource(R.string.tasks_color_label),
+                        onClick = { color = hex },
+                    )
+                }
             }
-        }
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(
-            value = rateText,
-            onValueChange = { rateText = it.filter { ch -> ch.isDigit() || ch == '.' }; error = null },
-            label = { Text(stringResource(R.string.tasks_hourly_rate_label)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        error?.let {
-            Spacer(Modifier.height(4.dp))
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
-        }
-        Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.tasks_cancel)) }
+            Spacer(Modifier.height(Spacing.s12))
+            OutlinedTextField(
+                value = rateText,
+                onValueChange = { rateText = it.filter { ch -> ch.isDigit() || ch == '.' }; error = null },
+                label = { Text(stringResource(R.string.tasks_hourly_rate_label)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            error?.let {
+                Spacer(Modifier.height(Spacing.s4))
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+            }
+            Spacer(Modifier.height(Spacing.s16))
             ElmGradientButton(
                 onClick = {
                     val trimmed = name.trim()
@@ -418,11 +549,27 @@ private fun TaskEditorCard(
                         else -> onSave(trimmed, icon, color, rate)
                     }
                 },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.tasks_save), fontWeight = FontWeight.SemiBold) }
+            // The reversible path: archiving lives in the editor, not on the row.
+            onArchive?.let {
+                TextButton(onClick = it, modifier = Modifier.fillMaxWidth().padding(top = Spacing.s4)) {
+                    Text(
+                        stringResource(R.string.tasks_archive_task),
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
         }
     }
 }
+
+private const val MAX_RULE_CHIPS = 5
+
+private fun ruleDayName(rule: TaskDefaultRule, locale: Locale): String =
+    DayOfWeek.of(if (rule.dayOfWeek == 0) 7 else rule.dayOfWeek)
+        .getDisplayName(TextStyle.SHORT, locale)
 
 private fun formatTaskRate(rate: Double): String =
     if (rate % 1.0 == 0.0) rate.toInt().toString() else "%.2f".format(rate)

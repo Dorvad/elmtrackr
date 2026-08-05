@@ -2,21 +2,21 @@
 <resources>
     <!-- TaskManagementScreen -->
     <string name="tasks_title">Tasks</string>
-    <string name="tasks_subtitle">Optional labels with their own hourly rates for punch-in.</string>
+    <string name="tasks_subtitle">Punch-in labels with their own rates</string>
     <string name="tasks_back">Back</string>
     <string name="tasks_delete_title">Delete \"%1$s\"?</string>
     <string name="tasks_delete_message">This removes the task everywhere. Shifts that used it keep their recorded name and rate. This can\'t be undone.</string>
     <string name="tasks_delete">Delete</string>
     <string name="tasks_cancel">Cancel</string>
-    <string name="tasks_add_task">Add task</string>
+    <string name="tasks_add">Add</string>
+    <string name="tasks_your_tasks">Your tasks</string>
     <string name="tasks_empty_hint">No tasks yet. Add one to tag shifts with different hourly rates.</string>
     <string name="tasks_archived_header">Archived</string>
     <string name="tasks_rate_per_hour">%1$s/hr</string>
-    <string name="tasks_edit">Edit</string>
-    <string name="tasks_archive">Archive</string>
+    <string name="tasks_archive_task">Archive this task</string>
     <string name="tasks_restore">Restore</string>
     <string name="tasks_schedule_defaults">Schedule defaults</string>
-    <string name="tasks_schedule_defaults_hint">Learned from your shift history — used for Suggested now.</string>
+    <string name="tasks_schedule_defaults_hint">Learned from your history · powers “Suggested now”</string>
     <string name="tasks_more_rules">+%1$d more</string>
     <string name="tasks_new_task">New task</string>
     <string name="tasks_edit_task">Edit task</string>

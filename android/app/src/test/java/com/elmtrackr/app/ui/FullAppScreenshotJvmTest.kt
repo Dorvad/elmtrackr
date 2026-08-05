@@ -38,6 +38,8 @@ import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.RefundProvider
 import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
+import com.elmtrackr.app.domain.model.PremiumProfile
+import com.elmtrackr.app.domain.model.PremiumType
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.notification.ReminderRulesCodec
@@ -71,6 +73,8 @@ import com.elmtrackr.app.ui.settings.HelpDetailScreen
 import com.elmtrackr.app.ui.settings.LegalDocumentScreen
 import com.elmtrackr.app.ui.settings.LegalDocuments
 import com.elmtrackr.app.ui.settings.PayDetailScreen
+import com.elmtrackr.app.ui.settings.PremiumProfilesContent
+import com.elmtrackr.app.ui.settings.PremiumProfilesUiState
 import com.elmtrackr.app.ui.settings.ProfileDetailScreen
 import com.elmtrackr.app.ui.settings.SecurityDetailScreen
 import com.elmtrackr.app.ui.settings.ClockFaceGalleryScreen
@@ -343,6 +347,34 @@ class FullAppScreenshotJvmTest {
         )
     }
 
+    @Test fun settingsPremiumProfiles() = capture("35-settings-premium-profiles") {
+        PremiumProfilesContent(
+            state = PremiumProfilesUiState.Ready(profiles = samplePremiumProfiles(), editor = null),
+            onCreate = {},
+            onEdit = {},
+            onDelete = {},
+            onDismissEditor = {},
+            onSave = {},
+            onNameChange = {},
+            onMultiplierChange = {},
+            onPremiumTypeChange = {},
+        )
+    }
+
+    @Test fun settingsPremiumProfilesDark() = capture("36-settings-premium-profiles-dark", darkTheme = true) {
+        PremiumProfilesContent(
+            state = PremiumProfilesUiState.Ready(profiles = samplePremiumProfiles(), editor = null),
+            onCreate = {},
+            onEdit = {},
+            onDelete = {},
+            onDismissEditor = {},
+            onSave = {},
+            onNameChange = {},
+            onMultiplierChange = {},
+            onPremiumTypeChange = {},
+        )
+    }
+
     @Test fun settingsTerms() = capture("24-settings-terms") {
         LegalDocumentScreen("Terms of Service", LegalDocuments.termsOfService, LegalDocuments.LAST_UPDATED, {})
     }
@@ -362,6 +394,18 @@ class FullAppScreenshotJvmTest {
     @Test fun settingsHubRtl() = capture("29-settings-hub-rtl") {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             SettingsHubScreen(SettingsDestination.HUB)
+        }
+    }
+
+    @Test fun settingsTasksRtl() = capture("37-settings-tasks-rtl") {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            TaskManagementContent(
+                state = TaskManagementUiState.Ready(sampleTasks(), emptyList()),
+                onBack = {},
+                onSave = { _, _, _, _, _ -> },
+                onArchive = {},
+                onDismissMessage = {},
+            )
         }
     }
 
@@ -504,5 +548,11 @@ class FullAppScreenshotJvmTest {
     private fun sampleTasks() = listOf(
         Task("t1", "user", "Delivery", "🚚", "#5B4DF2", 55.0, false, Instant.EPOCH, Instant.EPOCH),
         Task("t2", "user", "Support", "🎧", "#16C8D6", 48.0, false, Instant.EPOCH, Instant.EPOCH),
+    )
+
+    private fun samplePremiumProfiles() = listOf(
+        PremiumProfile("p1", "user", "Holiday", 1.5, PremiumType.ADDITIVE),
+        PremiumProfile("p2", "user", "Shabbat", 1.5, PremiumType.HIGHEST_ONLY, isDefault = true),
+        PremiumProfile("p3", "user", "Night shift", 1.25, PremiumType.ADDITIVE),
     )
 }

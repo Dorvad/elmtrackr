@@ -25,6 +25,7 @@ fun ElmCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = CornerRadius.Large,
     containerColor: Color = MaterialTheme.colorScheme.surface,
+    borderColor: Color = MaterialTheme.colorScheme.outlineVariant,
     elevation: AuroraShadow = Elevation.Card,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -33,7 +34,7 @@ fun ElmCard(
         modifier  = modifier
             .fillMaxWidth()
             .auroraShadow(elevation, shape)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
+            .border(1.dp, borderColor, shape),
         shape     = shape,
         colors    = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
