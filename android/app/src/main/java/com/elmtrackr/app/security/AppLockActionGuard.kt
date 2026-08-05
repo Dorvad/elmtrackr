@@ -30,6 +30,11 @@ object AppLockActionGuard {
     }
 
     private suspend fun resolveShouldBlock(context: Context): Boolean {
+        // Headless callers can run without the activity ever resuming, so they
+        // establish this themselves rather than inheriting a stale value. A lock
+        // the device cannot satisfy must not brick the widget and the watch
+        // either — there would be no way to authenticate past it.
+        AppLockController.setEnforceable(BiometricCapability.canEnforceAppLock(context))
         if (!AppLockController.isConfigured()) {
             val resolved = runCatching {
                 AppEntryPoints.background(context.applicationContext)

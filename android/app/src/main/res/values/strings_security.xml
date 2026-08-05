@@ -10,6 +10,7 @@
     <!-- Security settings detail -->
     <string name="security_section_app_lock">APP LOCK</string>
     <string name="security_encryption_note">Local data is encrypted at rest with SQLCipher. Widget and notification actions are blocked while the app is locked.</string>
+    <string name="security_app_lock_suspended">App lock is paused because this device has no screen lock. Set a fingerprint, face unlock, or PIN in system settings and it will start working again on its own.</string>
     <!-- Biometric confirmation shown before the app lock is switched on or off -->
     <string name="security_prompt_enable_title">Enable app lock</string>
     <string name="security_prompt_disable_title">Disable app lock</string>

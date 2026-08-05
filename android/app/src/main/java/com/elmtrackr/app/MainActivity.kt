@@ -30,6 +30,7 @@ import com.elmtrackr.app.notification.NotificationPermissionCoordinator
 import com.elmtrackr.app.review.PlayReviewFlowLauncher
 import com.elmtrackr.app.review.ReviewPromptCoordinator
 import com.elmtrackr.app.security.AppLockController
+import com.elmtrackr.app.security.BiometricCapability
 import com.elmtrackr.app.ui.security.AppLockGate
 import com.elmtrackr.app.ui.design.LocalReduceMotion
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
@@ -151,6 +152,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Re-read on every resume rather than once at startup: the user can enrol
+        // or remove a device credential in Settings while this activity is
+        // stopped, and both directions have to take effect on return.
+        AppLockController.setEnforceable(BiometricCapability.canEnforceAppLock(this))
         AppEntryPoints.background(this).dynamicShortcutsRefresher().refresh()
         requestNotificationPermissionForActiveShift()
     }

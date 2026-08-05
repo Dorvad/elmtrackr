@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.security.BiometricAvailability
+import com.elmtrackr.app.security.BiometricCapability
 import com.elmtrackr.app.ui.theme.Spacing
 
 @Composable
@@ -49,6 +50,16 @@ internal fun SecurityDetailScreen(
                     },
                     enabled = canEnable || appLockEnabled,
                 )
+                // The switch reads "on" while the lock is not being enforced, so
+                // say why rather than leave the user believing they are covered.
+                if (appLockEnabled && !BiometricCapability.canEnforceAppLock(biometricAvailability)) {
+                    Spacer(Modifier.height(Spacing.s8))
+                    Text(
+                        text = stringResource(R.string.security_app_lock_suspended),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = stringResource(R.string.security_encryption_note),
