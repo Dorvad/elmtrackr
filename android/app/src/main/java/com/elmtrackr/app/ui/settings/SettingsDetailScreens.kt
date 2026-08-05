@@ -763,9 +763,6 @@ internal fun HelpDetailScreen(
     onOpenTerms: () -> Unit,
     onOpenSyncDetails: () -> Unit,
     onSyncNow: () -> Unit,
-    // Passed in (rather than composed here behind BuildConfig.DEBUG) so screens
-    // rendered outside Hilt — previews, screenshot tests — need no ViewModel.
-    reviewPromptDebugContent: (@Composable () -> Unit)? = null,
 ) {
     val context = LocalContext.current
     LazyColumn(
@@ -835,9 +832,6 @@ internal fun HelpDetailScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-        reviewPromptDebugContent?.let { debugContent ->
-            item { debugContent() }
         }
         if (authState != null) {
             item {

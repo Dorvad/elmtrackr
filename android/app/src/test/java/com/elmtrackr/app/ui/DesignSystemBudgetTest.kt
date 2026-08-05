@@ -24,21 +24,32 @@ class DesignSystemBudgetTest {
     // ── Budgets ───────────────────────────────────────────────────────────────
     // Lower these in the same commit that removes violations. Never raise them.
 
-    private val maxRawDp = 1092
-    private val maxRawColor = 115
+    private val maxRawDp = 1088
+    // Dropped from 115 when the illustration files came out of this count. What
+    // remains is genuine theme drift on real screens, which is what the ratchet
+    // is for; the brand and dial pigments it used to carry could never go down.
+    private val maxRawColor = 55
     private val maxRawTextField = 41
     private val maxRawCard = 39
     private val maxUngatedAnimatorCheck = 0
 
     /**
-     * Files whose numbers are drawing geometry, not layout spacing — clock-face
-     * canvases, ride-provider illustrations and the update wizard's artwork.
-     * Forcing those onto a spacing scale would be worse than leaving them.
+     * Files that are drawings rather than screens — clock-face canvases, the
+     * ride-provider marks, the update wizard's artwork and the Wear settings
+     * watch. Their numbers are illustration geometry and their hex values are
+     * pigment: a dial is dark whatever the theme does, and a provider's mark is
+     * its brand colour. Forcing either onto the token scale would be worse than
+     * leaving them, so both the dp and the colour budgets skip these files.
+     *
+     * Keep this list to files that are *only* drawing. A screen that happens to
+     * contain a canvas belongs in the budget — split the canvas out instead, or
+     * real layout drift hides behind the exemption.
      */
-    private val geometryExempt = setOf(
+    private val illustrationExempt = setOf(
         "ExpressiveClockFaces.kt",
         "RideProviderGraphics.kt",
         "PaidProjectsUpdateWizard.kt",
+        "WearWatchGraphic.kt",
     )
 
     private val uiRoot: File by lazy { resolve("src/main/java/com/elmtrackr/app/ui") }
@@ -47,7 +58,7 @@ class DesignSystemBudgetTest {
     @Test
     fun `raw dp literals stay within budget`() {
         val count = uiRoot.kotlinFiles()
-            .filterNot { it.isTokenLayer() || it.name in geometryExempt }
+            .filterNot { it.isTokenLayer() || it.name in illustrationExempt }
             .sumOf { file -> RAW_DP.findAll(file.readText()).count { it.value != "0.dp" } }
 
         assertWithinBudget("raw dp literals", count, maxRawDp, "Spacing.sN / Layout.*")
@@ -56,7 +67,7 @@ class DesignSystemBudgetTest {
     @Test
     fun `raw colour literals stay within budget`() {
         val count = uiRoot.kotlinFiles()
-            .filterNot { it.path.contains("/ui/theme/") }
+            .filterNot { it.path.contains("/ui/theme/") || it.name in illustrationExempt }
             .sumOf { RAW_COLOR.findAll(it.readText()).count() }
 
         assertWithinBudget("raw Color(0x…) literals", count, maxRawColor, "a token in ui/theme")

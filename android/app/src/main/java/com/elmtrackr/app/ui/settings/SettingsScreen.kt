@@ -33,7 +33,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.elmtrackr.app.BuildConfig
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
@@ -472,13 +471,6 @@ private fun SettingsFormHost(
                 onOpenTerms = { onNavigate(SettingsDestination.TERMS) },
                 onOpenSyncDetails = { onNavigate(SettingsDestination.SYNC_DETAILS) },
                 onSyncNow = onSyncNow,
-                // Developer-only eligibility inspector; read-only against
-                // review-prompt state, absent from release builds.
-                reviewPromptDebugContent = if (BuildConfig.DEBUG) {
-                    { ReviewPromptDebugCard() }
-                } else {
-                    null
-                },
             )
             SettingsDestination.WEAR -> WearSettingsScreen(onBack = onNavigateBack)
             SettingsDestination.SECURITY -> SecurityDetailScreen(

@@ -128,18 +128,6 @@ class ReviewPromptCoordinatorTest {
     }
 
     @Test
-    fun `inspectEligibility never mutates state`() = runTest {
-        val store = eligibleStore()
-        val before = store.state
-        val coordinator = ReviewPromptCoordinator(store, shiftsRepo, userProvider, appPrefs, this)
-
-        val inspection = coordinator.inspectEligibility()
-
-        assertEquals(true, inspection.verdict.eligible)
-        assertEquals(before, store.state)
-    }
-
-    @Test
     fun `discouraging events and clock-ins are recorded for the quiet periods`() = runTest {
         val store = eligibleStore()
         val coordinator = ReviewPromptCoordinator(store, shiftsRepo, userProvider, appPrefs, this)
