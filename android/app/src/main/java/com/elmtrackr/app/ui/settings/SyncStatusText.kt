@@ -11,8 +11,13 @@ import java.util.Locale
 /**
  * Turns the machine-oriented sync status stored by the sync repository
  * (e.g. "Synced 2026-07-02T08:15:30.123Z") into text meant for people,
- * as a [UiText] that localizes at render time. Unrecognised statuses pass
- * through unchanged as [UiText.Raw].
+ * as a [UiText] that localizes at render time.
+ *
+ * Nothing the pipeline wrote is ever shown verbatim. Its failure and warning
+ * details are step labels and PostgREST bodies — "push refund claims: PGRST205
+ * Could not find the table…" — which are untranslated, unactionable, and
+ * occasionally name a column or a constraint. The status line says what
+ * happened; the detail belongs in diagnostics.
  */
 object SyncStatusText {
 
@@ -24,28 +29,35 @@ object SyncStatusText {
     ): UiText? {
         if (status.isNullOrBlank()) return null
         // Checked before SYNCED_PREFIX: the legacy warning status also began
-        // with "Synced ", so it matched here, failed to parse as an Instant and
-        // fell through to UiText.Raw — showing English to Hebrew users.
-        warningDetail(status)?.let {
-            return UiText.Res(R.string.settings_sync_synced_with_warnings, it)
+        // with "Synced ", so it matched there instead and failed to parse as an
+        // Instant.
+        if (warningDetail(status) != null) {
+            return UiText.Res(R.string.settings_sync_synced_some_skipped)
         }
         // Carries a count rather than a sentence, so the whole message is
-        // translatable — unlike the warning detail, which is a free-form string
-        // written by the sync pipeline and can only be interpolated as-is.
+        // translatable — which is why this one keeps its detail and the warning
+        // and failure statuses, which carry free-form English, do not.
         if (status.startsWith(UNSENT_PREFIX)) {
             val count = status.removePrefix(UNSENT_PREFIX).trim().toIntOrNull()
-                ?: return UiText.Raw(status)
+                ?: return UiText.Res(R.string.sync_failed_retrying)
             return UiText.Res(R.string.settings_sync_synced_unsent, count)
         }
         if (status.startsWith(SYNCED_PREFIX)) {
             val instant = runCatching { Instant.parse(status.removePrefix(SYNCED_PREFIX).trim()) }
-                .getOrNull() ?: return UiText.Raw(status)
+                .getOrNull() ?: return UiText.Res(R.string.sync_failed_retrying)
             return relativeTime(instant, now, zone, locale)
         }
         if (status.startsWith(FAILED_PREFIX)) {
-            return UiText.Res(R.string.sync_failed_with, status.removePrefix(FAILED_PREFIX).trim())
+            return UiText.Res(R.string.sync_failed_retrying)
         }
-        return UiText.Raw(status)
+        // Not a failure: there is no cloud to sync with, and saying "we'll try
+        // again" about a sync that will never run is worse than saying nothing.
+        if (status == NOT_CONFIGURED) {
+            return UiText.Res(R.string.sync_not_configured)
+        }
+        // A status this function does not recognise is still a string the
+        // pipeline wrote, not a sentence for a user to read.
+        return UiText.Res(R.string.sync_failed_retrying)
     }
 
     private fun relativeTime(instant: Instant, now: Instant, zone: ZoneId, locale: Locale): UiText {
@@ -81,6 +93,9 @@ object SyncStatusText {
 
     private const val SYNCED_PREFIX = "Synced "
     private const val FAILED_PREFIX = "Failed:"
+
+    /** Kept in step with SyncRepositoryImpl's NotConfigured status. */
+    private const val NOT_CONFIGURED = "Not configured"
 
     /**
      * Machine marker, not display text — do not translate. [SYNCED_PREFIX] and

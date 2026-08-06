@@ -345,6 +345,9 @@
     <string name="sync_failed_with">הסנכרון נכשל — %1$s</string>
     <string name="sync_finished">הסנכרון הסתיים</string>
     <string name="sync_failed">הסנכרון נכשל</string>
+    <string name="sync_not_configured">סנכרון לענן אינו מוגדר. הנתונים שלך שמורים במכשיר הזה.</string>
+    <string name="sync_failed_retrying">הסנכרון לא הושלם. ננסה שוב באופן אוטומטי.</string>
+    <string name="settings_sync_synced_some_skipped">הסנכרון הושלם, אך חלק מהפריטים דולגו.</string>
     <string name="sync_session_expired">החיבור לחשבון פג. צריך להתחבר שוב כדי להמשיך לסנכרן.</string>
     <string name="sync_backup_ready">הגיבוי מוכן לשיתוף</string>
     <string name="sync_export_failed">ייצוא הגיבוי לא הצליח</string>

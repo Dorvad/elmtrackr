@@ -5,6 +5,12 @@
     <string name="common_try_again">ניסיון נוסף</string>
     <string name="error_network">לא הצלחנו להגיע לשרת. כדאי לבדוק את החיבור ולנסות שוב.</string>
     <string name="error_generic">לא הצלחנו לטעון את הנתונים. כדאי לנסות שוב.</string>
+    <string name="error_offline">נראה שאין חיבור לאינטרנט. הפעולה תושלם ברגע שהחיבור יחזור.</string>
+    <string name="error_session_expired">תוקף החיבור פג. יש להתחבר שוב כדי להמשיך.</string>
+    <string name="error_server">השרת לא הצליח להשלים את הפעולה. נסו שוב בעוד רגע.</string>
+    <string name="error_storage_full">אין מספיק מקום פנוי במכשיר כדי לשמור את זה.</string>
+    <string name="error_permission">לאפליקציה אין הרשאה לבצע את הפעולה הזו.</string>
+    <string name="error_receipt_upload">לא הצלחנו להעלות את צילום הקבלה. הוא שמור במכשיר ואנחנו ננסה שוב.</string>
 
     <!-- First clock-in celebration -->
     <string name="celebration_tracking_title">המעקב התחיל!</string>

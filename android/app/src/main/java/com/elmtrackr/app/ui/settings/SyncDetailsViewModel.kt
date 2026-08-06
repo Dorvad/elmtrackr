@@ -2,6 +2,8 @@ package com.elmtrackr.app.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.monitoring.CrashReporting
+import com.elmtrackr.app.ui.common.UserFacingError
 import com.elmtrackr.app.R
 import com.elmtrackr.app.data.sync.BackupImportException
 import com.elmtrackr.app.data.sync.SyncDetails
@@ -75,13 +77,17 @@ class SyncDetailsViewModel @Inject constructor(
             _isSyncing.value = true
             _message.value = null
             val result = runCatching { syncRepository.syncAll(userId) }.getOrElse { error ->
-                _message.value = error.message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.sync_failed)
+                _message.value = UserFacingError.message(error, R.string.sync_failed)
                 _isSyncing.value = false
                 return@launch
             }
             when (result) {
-                is com.elmtrackr.app.data.sync.SyncResult.Error ->
-                    _message.value = UiText.Raw(result.message)
+                is com.elmtrackr.app.data.sync.SyncResult.Error -> {
+                    // result.message is the pipeline's step labels and PostgREST
+                    // bodies joined together — diagnostics, not a sentence.
+                    CrashReporting.report(IllegalStateException("Sync failed: ${result.message}"))
+                    _message.value = UiText.Res(R.string.sync_failed_retrying)
+                }
                 com.elmtrackr.app.data.sync.SyncResult.AuthExpired ->
                     _message.value = UiText.Res(R.string.sync_session_expired)
                 else -> {
@@ -104,7 +110,7 @@ class SyncDetailsViewModel @Inject constructor(
                     _message.value = UiText.Res(R.string.sync_backup_ready)
                 }
                 .onFailure { error ->
-                    _message.value = error.message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.sync_export_failed)
+                    _message.value = UserFacingError.message(error, R.string.sync_export_failed)
                 }
             _isExporting.value = false
         }
@@ -136,7 +142,7 @@ class SyncDetailsViewModel @Inject constructor(
                     if (summary.importedTotal > 0) syncTrigger.schedule()
                 }
                 .onFailure { error ->
-                    _message.value = error.message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.sync_import_failed)
+                    _message.value = UserFacingError.message(error, R.string.sync_import_failed)
                 }
             _isImporting.value = false
         }

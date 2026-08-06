@@ -2,6 +2,7 @@ package com.elmtrackr.app.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.ui.common.UserFacingError
 import com.elmtrackr.app.R
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
@@ -79,7 +80,7 @@ class CompensationSettingsViewModel @Inject constructor(
                 }
             }
         }.catch { e ->
-            emit(CompensationSettingsUiState.Error(e.message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.error_generic)))
+            emit(CompensationSettingsUiState.Error(UserFacingError.message(e, R.string.error_generic)))
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

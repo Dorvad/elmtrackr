@@ -54,10 +54,15 @@ class SyncStatusTextTest {
         )
     }
 
+    /**
+     * The detail is deliberately dropped. "push shifts: timeout" is a step label
+     * and a transport error — untranslated, unactionable, and sometimes naming a
+     * column or constraint. It belongs in diagnostics, not on the status line.
+     */
     @Test
-    fun `failure statuses read as sync failed`() {
+    fun `failure statuses read as sync failed, without the pipeline's detail`() {
         assertEquals(
-            UiText.Res(R.string.sync_failed_with, "push shifts: timeout"),
+            UiText.Res(R.string.sync_failed_retrying),
             SyncStatusText.format("Failed: push shifts: timeout", now, zone, locale),
         )
     }
@@ -65,7 +70,7 @@ class SyncStatusTextTest {
     @Test
     fun `warning statuses are localized`() {
         assertEquals(
-            UiText.Res(R.string.settings_sync_synced_with_warnings, "tasks table missing"),
+            UiText.Res(R.string.settings_sync_synced_some_skipped),
             SyncStatusText.format("SyncedWarn: tasks table missing", now, zone, locale),
         )
     }
@@ -73,13 +78,12 @@ class SyncStatusTextTest {
     /**
      * The status is persisted, so installs upgrading from a build that wrote the
      * English sentence still have it in their settings row. It began with
-     * "Synced ", which meant it matched the timestamp prefix, failed to parse
-     * and rendered as raw English regardless of the app language.
+     * "Synced ", which meant it matched the timestamp prefix and failed to parse.
      */
     @Test
     fun `the legacy English warning status is still recognised`() {
         assertEquals(
-            UiText.Res(R.string.settings_sync_synced_with_warnings, "tasks table missing"),
+            UiText.Res(R.string.settings_sync_synced_some_skipped),
             SyncStatusText.format("Synced with warnings: tasks table missing", now, zone, locale),
         )
     }
@@ -98,20 +102,30 @@ class SyncStatusTextTest {
     }
 
     @Test
-    fun `unsent marker without a count passes through unchanged`() {
+    fun `an unsent marker without a count falls back to localized text`() {
         assertEquals(
-            UiText.Raw("SyncedUnsent: many"),
+            UiText.Res(R.string.sync_failed_retrying),
             SyncStatusText.format("SyncedUnsent: many", now, zone, locale),
         )
     }
 
     @Test
-    fun `unparseable synced status passes through unchanged`() {
-        assertEquals(UiText.Raw("Synced ???"), SyncStatusText.format("Synced ???", now, zone, locale))
+    fun `an unparseable synced status falls back to localized text`() {
+        assertEquals(
+            UiText.Res(R.string.sync_failed_retrying),
+            SyncStatusText.format("Synced ???", now, zone, locale),
+        )
     }
 
+    /**
+     * Not a failure — there is no cloud to sync with. Telling the user "we'll try
+     * again" about a sync that will never run is worse than saying nothing.
+     */
     @Test
-    fun `not configured passes through unchanged`() {
-        assertEquals(UiText.Raw("Not configured"), SyncStatusText.format("Not configured", now, zone, locale))
+    fun `not configured reads as local-only, not as a failure`() {
+        assertEquals(
+            UiText.Res(R.string.sync_not_configured),
+            SyncStatusText.format("Not configured", now, zone, locale),
+        )
     }
 }
