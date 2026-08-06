@@ -74,4 +74,15 @@ object Layout {
 
     /** Trailing spacer that keeps the last item clear of the bottom nav bar. */
     val bottomNavInset = Spacing.s96
+
+    /**
+     * The smallest a tappable thing is allowed to be.
+     *
+     * 48dp is Android's accessibility minimum, and it is about the person, not
+     * the design: it is roughly the area a fingertip actually covers, so a
+     * smaller target is one that people with less steady hands will keep
+     * missing. Apply it with `Modifier.sizeIn`/`heightIn` rather than by growing
+     * the icon — the target can extend past the paint.
+     */
+    val minTouchTarget = 48.dp
 }
