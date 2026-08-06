@@ -82,7 +82,15 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                 if (INSTANCE != null || preWarmStarted) return
                 preWarmStarted = true
                 Thread(
-                    { getInstance(context) },
+                    {
+                        // Only an optimisation, so a failure here is left for the
+                        // first real caller to hit. That is not a way of ignoring
+                        // it: INSTANCE is still null, so the next getInstance
+                        // retries and throws on a thread whose stack says which
+                        // screen wanted the database — far more useful in a crash
+                        // report than a thread called "elmtrackr-db-prewarm".
+                        runCatching { getInstance(context) }
+                    },
                     "elmtrackr-db-prewarm",
                 ).start()
             }
