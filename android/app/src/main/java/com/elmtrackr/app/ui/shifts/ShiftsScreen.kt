@@ -57,6 +57,8 @@ import com.elmtrackr.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.LocalTime
+import androidx.compose.runtime.CompositionLocalProvider
+import com.elmtrackr.app.ui.common.LocalWorkZone
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.YearMonth
@@ -447,6 +449,10 @@ private fun ShiftFormContent(
         )
     }
 
+    // Provided for the whole form so the nested travel-refund dialog resolves its
+    // ride date in the same zone the shift's own fields use. It reaches that
+    // dialog through several composables that have no reason to carry a ZoneId.
+    CompositionLocalProvider(LocalWorkZone provides zone) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         ShiftEditFormContent(
             navState = navState,
@@ -496,13 +502,18 @@ private fun ShiftFormContent(
             initialShift = initialShift,
         )
     }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DatePickerWrapper(currentMillis: Long, onConfirm: (Long) -> Unit, onDismiss: () -> Unit) {
+    // The work zone, not the device's. Deciding which calendar day a stored
+    // instant falls on is exactly where the two differ: a shift at 23:30 work
+    // time is already tomorrow in a zone an hour ahead, so the picker opened on
+    // the wrong day and confirming it moved the shift a day.
     val initUtcMidnight = Instant.ofEpochMilli(currentMillis)
-        .atZone(ZoneId.systemDefault()).toLocalDate()
+        .atZone(LocalWorkZone.current).toLocalDate()
         .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val state = rememberDatePickerState(initialSelectedDateMillis = initUtcMidnight)
     DatePickerDialog(

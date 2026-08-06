@@ -90,6 +90,7 @@ import java.io.File
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.LocalTime
+import com.elmtrackr.app.ui.common.LocalWorkZone
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -400,7 +401,10 @@ private fun RefundClaimEntry(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            claim.rideAt.atZone(ZoneId.systemDefault()).let { zdt ->
+            // The work zone, not the device's: a ride at 23:30 work time reads
+            // as the next day in a zone an hour ahead, so a traveller's claim
+            // list disagreed with the shift it belongs to.
+            claim.rideAt.atZone(LocalWorkZone.current).let { zdt ->
                 stringResource(
                     R.string.refunds_date_at_time,
                     zdt.format(refundDateFmt()),
@@ -482,7 +486,11 @@ fun RefundClaimFormDialog(
     onDismiss: () -> Unit,
     onSave: () -> Unit,
 ) {
-    val zone = ZoneId.systemDefault()
+    // Provided by the shift form that hosts this dialog. Saving in the device
+    // zone stored the ride against the wrong day near midnight, and did it
+    // silently — the date shown afterwards was wrong in the same direction, so
+    // nothing looked out of place.
+    val zone = LocalWorkZone.current
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
     var showTimePicker by rememberSaveable { mutableStateOf(false) }
 
@@ -759,8 +767,10 @@ private fun RefundDateTimeRow(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DatePickerWrapper(currentMillis: Long, onConfirm: (Long) -> Unit, onDismiss: () -> Unit) {
+    // See the note on `zone` above — the picker has to open on the same day the
+    // rest of the form is working in.
     val initUtcMidnight = Instant.ofEpochMilli(currentMillis)
-        .atZone(ZoneId.systemDefault()).toLocalDate()
+        .atZone(LocalWorkZone.current).toLocalDate()
         .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val state = rememberDatePickerState(initialSelectedDateMillis = initUtcMidnight)
     DatePickerDialog(
