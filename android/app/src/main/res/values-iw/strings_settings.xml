@@ -302,7 +302,8 @@
     <string name="settings_export_backup">ייצוא גיבוי</string>
     <string name="settings_importing">מייבא…</string>
     <string name="settings_import_backup">ייבוא גיבוי</string>
-    <string name="settings_backup_hint">קובץ JSON פשוט עם כל מה שבמכשיר הזה. ייבוא אף פעם לא דורס פריטים קיימים.</string>
+    <string name="settings_backup_hint">קובץ JSON עם המשמרות, החזרי הנסיעות, הגדרות השכר, הפרויקטים והחיובים שלך. צילומי קבלות אינם נכללים. ייבוא אף פעם לא דורס פריטים קיימים.</string>
+    <string name="settings_backup_privacy_warning">הקובץ אינו מוצפן. כל מי שפותח אותו יכול לקרוא את השעות, השכר ופרטי הלקוחות שלך, לכן שמרו אותו במקום פרטי.</string>
     <string name="settings_synced_on_device">%1$s מסונכרנים</string>
     <string name="settings_up_to_date">מעודכן</string>
     <string name="settings_count_pending">%1$s ממתינים</string>

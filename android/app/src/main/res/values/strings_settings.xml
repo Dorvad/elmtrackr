@@ -301,7 +301,8 @@
     <string name="settings_export_backup">Export backup</string>
     <string name="settings_importing">Importing…</string>
     <string name="settings_import_backup">Import backup</string>
-    <string name="settings_backup_hint">A plain JSON file with everything on this device. Imports never overwrite existing items.</string>
+    <string name="settings_backup_hint">A JSON file with your shifts, travel refunds, pay settings, projects and billing. Receipt photos are not included. Imports never overwrite existing items.</string>
+    <string name="settings_backup_privacy_warning">The file is not encrypted. Anyone who opens it can read your hours, pay and client details, so keep it somewhere private.</string>
     <string name="settings_synced_on_device">%1$s synced</string>
     <string name="settings_up_to_date">Up to date</string>
     <string name="settings_count_pending">%1$s pending</string>
