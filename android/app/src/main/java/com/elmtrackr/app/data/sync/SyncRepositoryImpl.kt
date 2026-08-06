@@ -449,7 +449,7 @@ class SyncRepositoryImpl @Inject constructor(
     private data class PullOutcome(
         val seenRemoteIds: Set<String>,
         val isFullSync: Boolean,
-        /** False when pagination bailed out early, so [seenRemoteIds] is incomplete. */
+        /** False when the page budget ran out, so [seenRemoteIds] is incomplete. */
         val drainedFully: Boolean = true,
     ) {
         val pulledAnyRows: Boolean get() = seenRemoteIds.isNotEmpty()
@@ -466,6 +466,20 @@ class SyncRepositoryImpl @Inject constructor(
      * parent row is missing); the cursor is then held at that row's updated_at so a
      * later sync re-fetches it (the remote query uses gte).
      *
+     * **Paging.** The cursor is a timestamp, and timestamps are not unique — a bulk
+     * write, an import, a restore, or simply a busy second can leave many rows
+     * sharing one `updated_at`. A cursor alone cannot say "I have applied 200 of
+     * the 500 rows stamped with this millisecond", so a tie block larger than one
+     * page used to be undrainable: `gte` re-fetched the same first page forever.
+     * The old code detected that (the cursor stopped advancing) and gave up, which
+     * is where large syncs silently skipped rows.
+     *
+     * [offsetWithinCursor] closes it. Combined with the total `(updated_at, id)`
+     * ordering the data sources now request, it walks a tie block page by page and
+     * resets as soon as the timestamp moves on. Rows are re-applied rather than
+     * skipped if a run stops half way, which is safe because every [applyRow] is
+     * idempotent.
+     *
      * [ownerOf] is a second layer of defence behind RLS. None of the remote
      * queries filter by user — they rely entirely on the policies to scope the
      * result set — and [SyncWorker] resolves "who am I" from a stored preference
@@ -477,7 +491,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun <Row> pullIncremental(
         userId: String,
         entity: String,
-        fetchPage: suspend (sinceIso: String?) -> List<Row>,
+        fetchPage: suspend (sinceIso: String?, offsetWithinCursor: Int) -> List<Row>,
         updatedAtIso: (Row) -> String,
         remoteIdOf: (Row) -> String,
         ownerOf: (Row) -> String,
@@ -486,12 +500,14 @@ class SyncRepositoryImpl @Inject constructor(
         val initialCursor = syncCursorStore.lastPulledAt(userId, entity)
         val isFullSync = initialCursor == null
         var cursor = initialCursor
+        var offsetWithinCursor = 0
         var holdEpoch: Long? = null
         var drainedFully = true
         val seenRemoteIds = mutableSetOf<String>()
+        var pagesFetched = 0
 
         while (true) {
-            val batch = fetchPage(syncCursorStore.sinceIso(cursor))
+            val batch = fetchPage(syncCursorStore.sinceIso(cursor), offsetWithinCursor)
             if (batch.isEmpty()) {
                 // Avoid repeating full-sync tombstone passes when the server returns no rows
                 // (e.g. auth/RLS not ready yet). Epoch 0 makes the next pull incremental.
@@ -527,11 +543,23 @@ class SyncRepositoryImpl @Inject constructor(
             cursor = maxEpoch
             syncCursorStore.setLastPulledAt(userId, entity, holdEpoch?.coerceAtMost(cursor) ?: cursor)
             if (batch.size < PULL_PAGE_SIZE) break
-            // A full page whose newest row does not advance the cursor means every
-            // remaining fetch would return the same page (updated_at uses gte) — bail
-            // out instead of looping forever. The server view is incomplete at
-            // this point, so downstream tombstoning must be skipped.
-            if (cursor == previousCursor) {
+
+            offsetWithinCursor = if (cursor == previousCursor) {
+                // Every row in the page carried the cursor's timestamp, so the next
+                // fetch would hand back this same page. Step over what was applied.
+                offsetWithinCursor + batch.size
+            } else {
+                // The cursor moved. The next fetch starts again at the new
+                // timestamp, so skip only the rows of it already applied here.
+                batch.count { isoToEpoch(updatedAtIso(it)) == cursor }
+            }
+
+            pagesFetched++
+            if (pagesFetched >= MAX_PULL_PAGES) {
+                // Rows written faster than they can be drained, or a server that
+                // keeps returning full pages. Stop rather than sync forever; the
+                // stored cursor means the next run resumes where this one stopped.
+                // The server view is incomplete, so tombstoning must be skipped.
                 drainedFully = false
                 break
             }
@@ -579,8 +607,23 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushTaskUpdate(task: TaskEntity, syncedAt: Long) {
         val remoteId = task.remoteId ?: error("Missing remoteId for task ${task.localId}")
-        tasksRemote.update(remoteId, task.toRemoteUpdate())
+        if (tasksRemote.update(remoteId, task.toRemoteUpdate()) == null) {
+            adoptNewerRemoteTask(task, remoteId, syncedAt)
+            return
+        }
         markTaskSynced(task, remoteId, syncedAt)
+    }
+
+    /**
+     * Resolves a rejected push: the server holds an edit newer than this one.
+     *
+     * See [adoptNewerRemoteShift] for why the remote copy wins and why the row is
+     * left pending when it cannot be fetched.
+     */
+    private suspend fun adoptNewerRemoteTask(task: TaskEntity, remoteId: String, syncedAt: Long) {
+        val remote = tasksRemote.findById(remoteId) ?: return
+        taskDao.upsert(remote.toLocalEntity(existingLocalId = task.localId))
+        taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
     // A row edited while its push was in flight must stay pending — flipping it
@@ -592,8 +635,22 @@ class SyncRepositoryImpl @Inject constructor(
         if (updated == 0) taskDao.attachRemoteId(task.localId, remoteId, syncedAt)
     }
 
+    /**
+     * Publishes the delete as a tombstone rather than removing the row.
+     *
+     * A DELETE is invisible to every incremental pull: the other devices ask for
+     * rows changed since their cursor, and a row that no longer exists is not a
+     * change. Writing `deleted_at` makes the delete an ordinary update that
+     * propagates like any edit — which is the whole reason a delete on one device
+     * used to leave the row sitting on the other.
+     */
     private suspend fun pushTaskDelete(task: TaskEntity, syncedAt: Long) {
-        task.remoteId?.let { tasksRemote.delete(it) }
+        val remoteId = task.remoteId
+        if (remoteId != null && tasksRemote.update(remoteId, task.toRemoteUpdate()) == null) {
+            // See pushShiftDelete: a rejected tombstone must not be recorded as sent.
+            adoptNewerRemoteTask(task, remoteId, syncedAt)
+            return
+        }
         taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, task.remoteId, syncedAt, null)
     }
 
@@ -609,13 +666,16 @@ class SyncRepositoryImpl @Inject constructor(
             val outcome = pullIncremental(
                 userId = userId,
                 entity = ENTITY_TASKS,
-                fetchPage = { since -> tasksRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+                fetchPage = { since, offset -> tasksRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
                 updatedAtIso = { it.updatedAt },
                 remoteIdOf = { it.id },
                 ownerOf = { it.userId },
             ) { remote ->
                 val existing = taskDao.getByRemoteId(remote.id)
                 when {
+                    // Nothing to delete, and materialising a hidden row would put a
+                    // permanent invisible record into every reinstall.
+                    existing == null && remote.deletedAt != null -> Unit
                     existing == null -> taskDao.upsert(remote.toLocalEntity())
                     existing.syncStatus != SyncStatus.SYNCED -> Unit
                     isoToEpoch(remote.updatedAt) > existing.updatedAt ->
@@ -690,7 +750,7 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushShiftUpdate(shift: ShiftEntity, syncedAt: Long) {
         val remoteId = shift.remoteId ?: error("Missing remoteId for shift ${shift.localId}")
-        shiftsRemote.update(
+        val applied = shiftsRemote.update(
             remoteId,
             shift.toRemoteUpdate(
                 compensationProfileRemoteId = idMapper.profileLocalToRemote(shift.compensationProfileId),
@@ -698,7 +758,43 @@ class SyncRepositoryImpl @Inject constructor(
                 taskRemoteId = idMapper.taskLocalToRemote(shift.taskId),
             ),
         )
+        if (applied == null) {
+            adoptNewerRemoteShift(shift, remoteId, syncedAt)
+            return
+        }
         markShiftSynced(shift, remoteId, syncedAt)
+    }
+
+    /**
+     * Resolves a rejected push: the server holds an edit made after this one.
+     *
+     * This is the case the guard exists for. A device that spent a week offline
+     * still has the shift as it was a week ago; pushing it unconditionally
+     * reinstated that week-old state over whatever the user has done since on
+     * their other device, and nothing anywhere recorded that it had happened.
+     *
+     * The newer edit wins, which is the same rule the pull side already applies,
+     * so both directions agree and the devices converge. Taking the remote row
+     * here rather than waiting for the pull matters: the remote row's `updated_at`
+     * can be older than this entity's pull cursor, in which case no later pull
+     * would ever fetch it and the two copies would stay different indefinitely.
+     *
+     * A row that cannot be fetched back is left pending rather than marked synced,
+     * so the next run tries again instead of declaring a push that never landed.
+     */
+    private suspend fun adoptNewerRemoteShift(shift: ShiftEntity, remoteId: String, syncedAt: Long) {
+        val remote = shiftsRemote.findById(remoteId) ?: return
+        shiftDao.upsertShift(
+            remote.toLocalEntity(
+                existingLocalId = shift.localId,
+                compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
+                premiumProfileLocalId = idMapper.premiumProfileRemoteToLocal(remote.premiumProfileId),
+                taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
+                syncStatus = SyncStatus.SYNCED,
+                preserveLocal = shift,
+            ),
+        )
+        shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
     // A shift edited while its push was in flight (clock-out, note change, …)
@@ -710,8 +806,26 @@ class SyncRepositoryImpl @Inject constructor(
         if (updated == 0) shiftDao.attachRemoteId(shift.localId, remoteId, syncedAt)
     }
 
+    /** Tombstone, not DELETE — see [pushTaskDelete]. */
     private suspend fun pushShiftDelete(shift: ShiftEntity, syncedAt: Long) {
-        shift.remoteId?.let { shiftsRemote.delete(it) }
+        val remoteId = shift.remoteId
+        if (remoteId != null) {
+            val applied = shiftsRemote.update(
+                remoteId,
+                shift.toRemoteUpdate(
+                    compensationProfileRemoteId = idMapper.profileLocalToRemote(shift.compensationProfileId),
+                    premiumProfileRemoteId = idMapper.premiumProfileLocalToRemote(shift.premiumProfileId),
+                    taskRemoteId = idMapper.taskLocalToRemote(shift.taskId),
+                ),
+            )
+            // A delete is an edit, and it loses to a newer one like any other.
+            // Marking the row synced anyway would leave it deleted here and alive
+            // everywhere else, with no later pull guaranteed to notice.
+            if (applied == null) {
+                adoptNewerRemoteShift(shift, remoteId, syncedAt)
+                return
+            }
+        }
         shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, shift.remoteId, syncedAt, null)
     }
 
@@ -725,7 +839,7 @@ class SyncRepositoryImpl @Inject constructor(
         val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_SHIFTS,
-            fetchPage = { since -> shiftsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            fetchPage = { since, offset -> shiftsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
             ownerOf = { it.userId },
@@ -739,6 +853,45 @@ class SyncRepositoryImpl @Inject constructor(
                 .filter { it.remoteId != null && it.syncStatus == SyncStatus.SYNCED }
                 .filter { it.remoteId !in outcome.seenRemoteIds }
                 .forEach { shiftDao.softDeleteShift(it.localId, now, SyncStatus.SYNCED, now) }
+        }
+
+        enforceSingleRunningShift(userId)
+    }
+
+    /**
+     * Applies the one-running-shift rule to whatever the pull left behind.
+     *
+     * Run here, once, rather than while applying each row: a device that clocked
+     * in locally and a device that clocked in remotely produce a duplicate that
+     * only exists once *both* rows are in the database, and mid-pull there is no
+     * way to tell a second running shift from the first row of a batch that will
+     * shortly supersede it.
+     *
+     * The losing rows are soft-deleted as local edits (PENDING_UPDATE), not as
+     * already-synced ones, so the next push publishes the tombstone and the other
+     * device drops its copy too. Resolving on one device only would leave the
+     * duplicate running everywhere else.
+     */
+    private suspend fun enforceSingleRunningShift(userId: String) {
+        val resolution = RunningShiftResolver.resolve(shiftDao.getActiveShifts(userId)) ?: return
+        if (!resolution.hasDuplicates) return
+
+        val now = Instant.now().toEpochMilli()
+        val winner = resolution.winner
+        val storedWinner = shiftDao.getShiftById(winner.localId)
+        if (storedWinner != null && storedWinner != winner) {
+            // Only when merging actually carried something across, so a resolution
+            // that changes nothing does not create a write the other devices must
+            // then pull back.
+            shiftDao.upsertShift(
+                winner.copy(
+                    updatedAt = now,
+                    syncStatus = SyncStatus.PENDING_UPDATE,
+                ),
+            )
+        }
+        resolution.duplicates.forEach { duplicate ->
+            shiftDao.softDeleteShift(duplicate.localId, now, SyncStatus.PENDING_UPDATE, now)
         }
     }
 
@@ -790,28 +943,37 @@ class SyncRepositoryImpl @Inject constructor(
                     )
                 }
                 SyncStatus.PENDING_CREATE, SyncStatus.FAILED -> {
-                    shiftDao.updateSyncState(
-                        existingByStartTime.localId,
-                        SyncStatus.SYNCED,
-                        remote.id,
-                        isoToEpoch(remote.updatedAt),
-                        null,
-                    )
+                    // Adopting a tombstone's id would mark this unsent shift as
+                    // synced to a row the server considers deleted, and the shift
+                    // the user just recorded would quietly never be published. The
+                    // start time is free again — the unique index ignores
+                    // tombstones — so let the create push on its own.
+                    if (remote.deletedAt == null) {
+                        shiftDao.updateSyncState(
+                            existingByStartTime.localId,
+                            SyncStatus.SYNCED,
+                            remote.id,
+                            isoToEpoch(remote.updatedAt),
+                            null,
+                        )
+                    }
                 }
                 else -> Unit
             }
             return true
         }
 
-        // Never materialize a second running shift; hold the cursor so this row is
-        // pulled once the local active shift ends (or the remote one is clocked out).
-        //
-        // Read here rather than once before the pull. A snapshot taken up front is
-        // false for every row in the batch, so two open remote shifts — two
-        // devices that both clocked in — were both materialised and the user ended
-        // up with two running shifts. Only reached for open-ended rows that matched
-        // nothing locally, so the extra query is rare.
-        if (remote.endTime == null && shiftDao.getActiveShifts(userId).isNotEmpty()) return false
+        // A tombstone for a shift this device has never held. There is nothing to
+        // delete, and inserting the row only to hide it would put a permanent
+        // invisible record in every reinstall.
+        if (remote.deletedAt != null) return true
+
+        // A second open shift is materialised rather than refused. Refusing it held
+        // the pull cursor on a row that would never become applicable, which
+        // stalled the whole shifts pull — nothing newer than the duplicate arrived
+        // until the user happened to clock out — and left the duplicate running on
+        // the other device regardless. enforceSingleRunningShift collapses them
+        // once the pull is complete, on every device, to the same winner.
         shiftDao.insertShift(
             remote.toLocalEntity(
                 compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
@@ -860,8 +1022,27 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushRefundClaimUpdate(claim: RefundClaimEntity, syncedAt: Long) {
         val remoteId = claim.remoteId ?: error("Missing remoteId for claim ${claim.localId}")
-        claimsRemote.update(remoteId, claim.toRemoteUpdate())
+        if (claimsRemote.update(remoteId, claim.toRemoteUpdate()) == null) {
+            adoptNewerRemoteClaim(claim, remoteId, syncedAt)
+            return
+        }
         markRefundClaimSynced(claim, remoteId, syncedAt)
+    }
+
+    /** See [adoptNewerRemoteShift]. */
+    private suspend fun adoptNewerRemoteClaim(
+        claim: RefundClaimEntity,
+        remoteId: String,
+        syncedAt: Long,
+    ) {
+        val remote = claimsRemote.findById(remoteId) ?: return
+        refundClaimDao.upsertClaim(
+            remote.toLocalEntity(
+                shiftLocalId = claim.shiftLocalId,
+                existingLocalId = claim.localId,
+            ),
+        )
+        refundClaimDao.updateSyncState(claim.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
     // See markShiftSynced: a mid-push edit must keep the row pending.
@@ -870,8 +1051,13 @@ class SyncRepositoryImpl @Inject constructor(
         if (updated == 0) refundClaimDao.attachRemoteId(claim.localId, remoteId, syncedAt)
     }
 
+    /** Tombstone, not DELETE — see [pushTaskDelete]. */
     private suspend fun pushRefundClaimDelete(claim: RefundClaimEntity, syncedAt: Long) {
-        claim.remoteId?.let { claimsRemote.delete(it) }
+        val remoteId = claim.remoteId
+        if (remoteId != null && claimsRemote.update(remoteId, claim.toRemoteUpdate()) == null) {
+            adoptNewerRemoteClaim(claim, remoteId, syncedAt)
+            return
+        }
         refundClaimDao.updateSyncState(claim.localId, SyncStatus.SYNCED, claim.remoteId, syncedAt, null)
     }
 
@@ -885,7 +1071,7 @@ class SyncRepositoryImpl @Inject constructor(
         val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_REFUND_CLAIMS,
-            fetchPage = { since -> claimsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            fetchPage = { since, offset -> claimsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
             ownerOf = { it.userId },
@@ -896,6 +1082,7 @@ class SyncRepositoryImpl @Inject constructor(
                 ?: return@pullIncremental false
             val existing = refundClaimDao.getClaimByRemoteId(remote.id)
             when {
+                existing == null && remote.deletedAt != null -> Unit
                 existing == null ->
                     refundClaimDao.insertClaim(remote.toLocalEntity(shiftLocalId = shiftLocalId))
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
@@ -953,8 +1140,24 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushCompensationProfileUpdate(profile: CompensationProfileEntity, syncedAt: Long) {
         val remoteId = profile.remoteId ?: error("Missing remoteId for profile ${profile.localId}")
-        compensationRemote.update(remoteId, profile.toRemoteUpdate())
+        if (compensationRemote.update(remoteId, profile.toRemoteUpdate()) == null) {
+            adoptNewerRemoteCompensationProfile(profile, remoteId, syncedAt)
+            return
+        }
         markCompensationProfileSynced(profile, remoteId, syncedAt)
+    }
+
+    /** See [adoptNewerRemoteShift]. */
+    private suspend fun adoptNewerRemoteCompensationProfile(
+        profile: CompensationProfileEntity,
+        remoteId: String,
+        syncedAt: Long,
+    ) {
+        val remote = compensationRemote.findById(remoteId) ?: return
+        compensationProfileDao.upsert(remote.toLocalEntity(existingLocalId = profile.localId))
+        compensationProfileDao.updateSyncState(
+            profile.localId, SyncStatus.SYNCED, remoteId, syncedAt, null,
+        )
     }
 
     // See markShiftSynced: a mid-push edit must keep the row pending.
@@ -969,8 +1172,13 @@ class SyncRepositoryImpl @Inject constructor(
         if (updated == 0) compensationProfileDao.attachRemoteId(profile.localId, remoteId, syncedAt)
     }
 
+    /** Tombstone, not DELETE — see [pushTaskDelete]. */
     private suspend fun pushCompensationProfileDelete(profile: CompensationProfileEntity, syncedAt: Long) {
-        profile.remoteId?.let { compensationRemote.delete(it) }
+        val remoteId = profile.remoteId
+        if (remoteId != null && compensationRemote.update(remoteId, profile.toRemoteUpdate()) == null) {
+            adoptNewerRemoteCompensationProfile(profile, remoteId, syncedAt)
+            return
+        }
         compensationProfileDao.updateSyncState(
             profile.localId, SyncStatus.SYNCED, profile.remoteId, syncedAt, null,
         )
@@ -986,13 +1194,14 @@ class SyncRepositoryImpl @Inject constructor(
         val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_COMPENSATION_PROFILES,
-            fetchPage = { since -> compensationRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            fetchPage = { since, offset -> compensationRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
             ownerOf = { it.userId },
         ) { remote ->
             val existing = compensationProfileDao.getByRemoteId(remote.id)
             when {
+                existing == null && remote.deletedAt != null -> Unit
                 existing == null -> compensationProfileDao.insert(remote.toLocalEntity())
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
                 isoToEpoch(remote.updatedAt) > existing.updatedAt ->
@@ -1047,8 +1256,22 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushPremiumProfileUpdate(profile: PremiumProfileEntity, syncedAt: Long) {
         val remoteId = profile.remoteId ?: error("Missing remoteId for premium profile ${profile.localId}")
-        premiumRemote.update(remoteId, profile.toRemoteUpdate())
+        if (premiumRemote.update(remoteId, profile.toRemoteUpdate()) == null) {
+            adoptNewerRemotePremiumProfile(profile, remoteId, syncedAt)
+            return
+        }
         markPremiumProfileSynced(profile, remoteId, syncedAt)
+    }
+
+    /** See [adoptNewerRemoteShift]. */
+    private suspend fun adoptNewerRemotePremiumProfile(
+        profile: PremiumProfileEntity,
+        remoteId: String,
+        syncedAt: Long,
+    ) {
+        val remote = premiumRemote.findById(remoteId) ?: return
+        premiumProfileDao.upsert(remote.toLocalEntity(existingLocalId = profile.localId))
+        premiumProfileDao.updateSyncState(profile.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
     // See markShiftSynced: a mid-push edit must keep the row pending.
@@ -1063,8 +1286,13 @@ class SyncRepositoryImpl @Inject constructor(
         if (updated == 0) premiumProfileDao.attachRemoteId(profile.localId, remoteId, syncedAt)
     }
 
+    /** Tombstone, not DELETE — see [pushTaskDelete]. */
     private suspend fun pushPremiumProfileDelete(profile: PremiumProfileEntity, syncedAt: Long) {
-        profile.remoteId?.let { premiumRemote.delete(it) }
+        val remoteId = profile.remoteId
+        if (remoteId != null && premiumRemote.update(remoteId, profile.toRemoteUpdate()) == null) {
+            adoptNewerRemotePremiumProfile(profile, remoteId, syncedAt)
+            return
+        }
         premiumProfileDao.updateSyncState(
             profile.localId, SyncStatus.SYNCED, profile.remoteId, syncedAt, null,
         )
@@ -1080,13 +1308,14 @@ class SyncRepositoryImpl @Inject constructor(
         val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_PREMIUM_PROFILES,
-            fetchPage = { since -> premiumRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            fetchPage = { since, offset -> premiumRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
             ownerOf = { it.userId },
         ) { remote ->
             val existing = premiumProfileDao.getByRemoteId(remote.id)
             when {
+                existing == null && remote.deletedAt != null -> Unit
                 existing == null -> premiumProfileDao.insert(remote.toLocalEntity())
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
                 isoToEpoch(remote.updatedAt) > existing.updatedAt ->
@@ -1166,7 +1395,7 @@ class SyncRepositoryImpl @Inject constructor(
         pullIncremental(
             userId = userId,
             entity = ENTITY_USER_SETTINGS,
-            fetchPage = { since -> settingsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            fetchPage = { since, _ -> settingsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
             ownerOf = { it.userId },
@@ -1235,7 +1464,7 @@ class SyncRepositoryImpl @Inject constructor(
         pullIncremental(
             userId = userId,
             entity = ENTITY_PROFILES,
-            fetchPage = { since -> profilesRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
+            fetchPage = { since, _ -> profilesRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE) },
             updatedAtIso = { it.updatedAt },
             remoteIdOf = { it.id },
             // profiles.id IS the auth uid — there is no separate user_id column.
@@ -1257,6 +1486,13 @@ class SyncRepositoryImpl @Inject constructor(
 
     private companion object {
         const val PULL_PAGE_SIZE = 200
+
+        /**
+         * Upper bound on pages per entity per run: 200k rows, far beyond any real
+         * history. Only reachable if rows are written as fast as they are drained,
+         * and it bounds a loop that would otherwise be unbounded.
+         */
+        const val MAX_PULL_PAGES = 1_000
         const val ENTITY_TASKS = "tasks"
         const val ENTITY_SHIFTS = "shifts"
         const val ENTITY_REFUND_CLAIMS = "refund_claims"

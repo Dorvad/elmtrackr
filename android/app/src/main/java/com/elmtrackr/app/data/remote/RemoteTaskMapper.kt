@@ -13,6 +13,7 @@ fun TaskEntity.toRemoteInsert(): RemoteTaskInsert = RemoteTaskInsert(
     hourlyRate = hourlyRate,
     isArchived = isArchived,
     lastUsedAt = lastUsedAt?.let(::epochToIso),
+    clientUpdatedAt = epochToIso(updatedAt),
 )
 
 fun TaskEntity.toRemoteUpdate(): RemoteTaskUpdate = RemoteTaskUpdate(
@@ -22,6 +23,8 @@ fun TaskEntity.toRemoteUpdate(): RemoteTaskUpdate = RemoteTaskUpdate(
     hourlyRate = hourlyRate,
     isArchived = isArchived,
     lastUsedAt = lastUsedAt?.let(::epochToIso),
+    deletedAt = deletedAt?.let(::epochToIso),
+    clientUpdatedAt = epochToIso(updatedAt),
 )
 
 fun RemoteTaskRow.toLocalEntity(
@@ -42,12 +45,13 @@ fun RemoteTaskRow.toLocalEntity(
         lastUsedAt = lastUsedAt?.let(::isoToEpoch),
         createdAt = created,
         updatedAt = updated,
-        // Archived is not deleted. Deriving deletedAt from is_archived turned every
-        // archive into a deletion on the next pull: the row disappeared from the
-        // Archived list (which filters deletedAt IS NULL) and, with no unarchive
-        // path, was unrecoverable. The remote row carries no deletion timestamp, so
-        // a pulled task is by definition not deleted.
-        deletedAt = null,
+        // Archived is not deleted, and the two now have separate columns.
+        // Deriving deletedAt from is_archived once turned every archive into a
+        // deletion on the next pull: the row vanished from the Archived list
+        // (which filters deletedAt IS NULL) and, with no unarchive path, was
+        // unrecoverable. deleted_at is the real deletion signal, so it is the
+        // only thing read here.
+        deletedAt = deletedAt?.let(::isoToEpoch),
         syncStatus = syncStatus,
         lastSyncError = null,
         lastSyncedAt = updated,

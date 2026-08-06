@@ -347,13 +347,22 @@ class SyncRepositoryImplTest {
         val result = repository.syncAll("user-1")
 
         assertTrue(result is SyncResult.Success)
-        assertEquals(0, remote.updates.size)
-        assertNull(remote.findById("remote-1"))
+        // Published as a tombstone, not as a plain edit: the row must keep
+        // existing remotely so other devices see the deletion, and it must not be
+        // resurrected by pushing the shift's fields without deleted_at.
+        assertEquals(1, remote.updates.size)
+        assertNotNull(remote.updates.single().second.deletedAt)
+        assertNotNull(remote.findById("remote-1")!!.deletedAt)
         assertEquals(SyncStatus.SYNCED, dao.getShiftById("local-1")!!.syncStatus)
     }
 
+    /**
+     * The pull used to refuse a second open shift and hold its cursor there, which
+     * stalled every later shift behind it. It now materialises the row and lets the
+     * resolver collapse the pair, so the pull always makes progress.
+     */
     @Test
-    fun `remote active shift held while local active exists is pulled after local clock-out`() = runTest {
+    fun `a second open shift from the cloud no longer stalls the shifts pull`() = runTest {
         val dao = InMemoryShiftDao()
         val remote = FakeRemoteShiftDataSource(
             initial = listOf(
@@ -366,10 +375,20 @@ class SyncRepositoryImplTest {
                     createdAt = "2024-06-02T08:00:00Z",
                     updatedAt = "2024-06-02T08:00:00Z",
                 ),
+                RemoteShiftRow(
+                    id = "remote-later",
+                    userId = "user-1",
+                    startTime = "2024-06-03T08:00:00Z",
+                    endTime = "2024-06-03T16:00:00Z",
+                    breakMinutes = 0,
+                    createdAt = "2024-06-03T08:00:00Z",
+                    updatedAt = "2024-06-03T16:00:00Z",
+                ),
             ),
         )
         val repository = createRepository(shiftDao = dao, remoteShifts = remote)
 
+        // Already on the clock here, since a start time earlier than either remote row.
         dao.insertShift(
             shiftEntity(
                 localId = "local-active",
@@ -380,13 +399,15 @@ class SyncRepositoryImplTest {
         )
 
         repository.syncAll("user-1")
-        assertEquals(null, dao.getShiftByRemoteId("remote-active"))
 
-        // Clock out locally; the held cursor must re-fetch the remote active shift.
-        dao.updateShift(dao.getShiftById("local-active")!!.copy(endTime = 1_716_030_000_000L))
-        repository.syncAll("user-1")
+        // The completed shift that sorted *after* the duplicate still arrived —
+        // that is the row the old cursor-holding behaviour lost.
+        assertNotNull(dao.getShiftByRemoteId("remote-later"))
 
-        assertNotNull(dao.getShiftByRemoteId("remote-active"))
+        // And exactly one shift is still running.
+        val active = dao.getActiveShifts("user-1")
+        assertEquals(1, active.size)
+        assertEquals("local-active", active.single().localId)
     }
 
     @Test
@@ -394,7 +415,10 @@ class SyncRepositoryImplTest {
         val dao = InMemoryShiftDao()
         val base = FakeRemoteShiftDataSource()
         val remote = object : RemoteShiftDataSource by base {
-            override suspend fun update(remoteId: String, shift: RemoteShiftUpdate) {
+            override suspend fun update(
+                remoteId: String,
+                shift: RemoteShiftUpdate,
+            ): RemoteShiftRow? {
                 // Simulate the user editing the shift while the push request is
                 // still on the wire: the row gains a newer updatedAt and goes
                 // back to PENDING_UPDATE before the push result is recorded.
@@ -406,7 +430,7 @@ class SyncRepositoryImplTest {
                         syncStatus = SyncStatus.PENDING_UPDATE,
                     ),
                 )
-                base.update(remoteId, shift)
+                return base.update(remoteId, shift)
             }
         }
         val repository = createRepository(shiftDao = dao, remoteShifts = remote)
@@ -552,8 +576,11 @@ class SyncRepositoryImplTest {
     fun `sync reports auth expired when the remote rejects the session`() = runTest {
         val dao = InMemoryShiftDao()
         val remote = object : RemoteShiftDataSource by FakeRemoteShiftDataSource() {
-            override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteShiftRow> =
-                throw RuntimeException("JWT expired")
+            override suspend fun fetchUpdatedSince(
+                sinceIso: String?,
+                limit: Int,
+                offset: Int,
+            ): List<RemoteShiftRow> = throw RuntimeException("JWT expired")
         }
         val repository = createRepository(shiftDao = dao, remoteShifts = remote)
 
@@ -566,8 +593,11 @@ class SyncRepositoryImplTest {
     fun `sync reports plain error for non-auth failures`() = runTest {
         val dao = InMemoryShiftDao()
         val remote = object : RemoteShiftDataSource by FakeRemoteShiftDataSource() {
-            override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteShiftRow> =
-                throw RuntimeException("connection reset")
+            override suspend fun fetchUpdatedSince(
+                sinceIso: String?,
+                limit: Int,
+                offset: Int,
+            ): List<RemoteShiftRow> = throw RuntimeException("connection reset")
         }
         val repository = createRepository(shiftDao = dao, remoteShifts = remote)
 
@@ -723,6 +753,204 @@ class SyncRepositoryImplTest {
         assertTrue(repository.hasRetryablePendingWork("user-1"))
     }
 
+    // ── Two devices, one cloud ──────────────────────────────────────────────
+    //
+    // Each "device" is its own Room database and its own pull cursor, talking to a
+    // shared FakeRemoteShiftDataSource. That separation is the whole point: every
+    // bug in this section is a bug about what device B sees after device A acts,
+    // and a single-repository test cannot express it.
+
+    private class Device(
+        val dao: InMemoryShiftDao,
+        val repository: SyncRepositoryImpl,
+    ) {
+        suspend fun sync() = repository.syncAll(USER)
+
+        val liveShifts: List<ShiftEntity> get() = dao.currentShifts
+    }
+
+    private fun device(remote: RemoteShiftDataSource): Device {
+        val dao = InMemoryShiftDao()
+        return Device(
+            dao = dao,
+            repository = createRepository(
+                shiftDao = dao,
+                remoteShifts = remote,
+                syncCursorStore = InMemorySyncCursorStore(),
+            ),
+        )
+    }
+
+    private fun seededShiftRow(
+        id: String = "remote-1",
+        startTime: String = "2024-06-01T08:00:00Z",
+        endTime: String? = "2024-06-01T16:00:00Z",
+        updatedAt: String = "2024-06-01T16:00:00Z",
+    ) = RemoteShiftRow(
+        id = id,
+        userId = USER,
+        startTime = startTime,
+        endTime = endTime,
+        breakMinutes = 0,
+        createdAt = startTime,
+        updatedAt = updatedAt,
+        clientUpdatedAt = updatedAt,
+    )
+
+    /**
+     * The reported bug: delete a shift on the phone, and it stays on the tablet.
+     *
+     * The tablet syncs incrementally here — it has already pulled the shift once,
+     * so its cursor sits past the row. That is the case a DELETE cannot reach, and
+     * why the delete has to be published as a tombstone.
+     */
+    @Test
+    fun `deleting a shift on one device removes it from the other device`() = runTest {
+        val cloud = FakeRemoteShiftDataSource(initial = listOf(seededShiftRow()))
+        val phone = device(cloud)
+        val tablet = device(cloud)
+
+        phone.sync()
+        tablet.sync()
+        assertEquals(1, phone.liveShifts.size)
+        assertEquals(1, tablet.liveShifts.size)
+
+        // Deleted "now", which is what the delete path stamps and what makes this
+        // edit newer than the copy the cloud holds.
+        val onPhone = phone.liveShifts.single()
+        val deletedAt = 1_717_300_000_000L
+        phone.dao.softDeleteShift(onPhone.localId, deletedAt, SyncStatus.PENDING_UPDATE, deletedAt)
+        phone.sync()
+
+        tablet.sync()
+
+        assertTrue("tablet still shows the deleted shift", tablet.liveShifts.isEmpty())
+    }
+
+    /**
+     * The reported bug: an older offline edit silently overwrites a newer one.
+     *
+     * The phone here has been offline since before the tablet's edit, so its copy
+     * of the shift is stale. Pushing it unconditionally is what used to reinstate
+     * the old notes over the newer ones, on every device, with nothing recorded.
+     */
+    @Test
+    fun `an older offline edit does not overwrite a newer edit from another device`() = runTest {
+        val cloud = FakeRemoteShiftDataSource(initial = listOf(seededShiftRow()))
+        val phone = device(cloud)
+        val tablet = device(cloud)
+
+        phone.sync()
+        tablet.sync()
+
+        // The tablet edits second by the clock, and syncs first.
+        val onTablet = tablet.liveShifts.single()
+        tablet.dao.upsertShift(
+            onTablet.copy(
+                notes = "newer, from the tablet",
+                updatedAt = 2_000_000_000_000L,
+                syncStatus = SyncStatus.PENDING_UPDATE,
+            ),
+        )
+        tablet.sync()
+
+        // The phone's edit was made earlier but reaches the server later.
+        val onPhone = phone.liveShifts.single()
+        phone.dao.upsertShift(
+            onPhone.copy(
+                notes = "older, from the phone",
+                updatedAt = 1_000_000_000_000L,
+                syncStatus = SyncStatus.PENDING_UPDATE,
+            ),
+        )
+        phone.sync()
+
+        assertEquals(1, cloud.rejectedUpdates.size)
+        assertEquals("newer, from the tablet", cloud.rowsNow().single().notes)
+        // The phone does not keep an edit the cloud refused: it takes the newer
+        // copy, so both devices agree without waiting for a later pull that the
+        // cursor might never make.
+        assertEquals("newer, from the tablet", phone.liveShifts.single().notes)
+        assertEquals(SyncStatus.SYNCED, phone.liveShifts.single().syncStatus)
+    }
+
+    /**
+     * The reported bug: clocking in on two devices leaves two running shifts.
+     *
+     * Both clock-ins are genuine rows that sync, so every device ends up holding
+     * both. They converge on the earlier start — the time the user actually began
+     * working — and the later one is tombstoned so it disappears everywhere.
+     */
+    @Test
+    fun `clocking in on two devices converges on a single running shift`() = runTest {
+        val cloud = FakeRemoteShiftDataSource()
+        val phone = device(cloud)
+        val tablet = device(cloud)
+
+        phone.dao.insertShift(
+            shiftEntity(
+                localId = "phone-clock-in",
+                syncStatus = SyncStatus.PENDING_CREATE,
+                startTime = CLOCK_IN_0900,
+                endTime = null,
+            ),
+        )
+        tablet.dao.insertShift(
+            shiftEntity(
+                localId = "tablet-clock-in",
+                syncStatus = SyncStatus.PENDING_CREATE,
+                startTime = CLOCK_IN_0905,
+                endTime = null,
+            ),
+        )
+
+        // Both push, then both pull what the other pushed, then the tombstone the
+        // resolution produced travels back. Three rounds is settling time, not a
+        // requirement — the assertions are about where they land, not when.
+        repeat(3) {
+            phone.sync()
+            tablet.sync()
+        }
+
+        val phoneActive = phone.dao.getActiveShifts(USER)
+        val tabletActive = tablet.dao.getActiveShifts(USER)
+        assertEquals("phone should have one running shift", 1, phoneActive.size)
+        assertEquals("tablet should have one running shift", 1, tabletActive.size)
+        assertEquals(CLOCK_IN_0900, phoneActive.single().startTime)
+        assertEquals(CLOCK_IN_0900, tabletActive.single().startTime)
+    }
+
+    /**
+     * The reported bug: rare large syncs skip information.
+     *
+     * A restore, an import, or simply a busy second leaves many rows sharing one
+     * `updated_at`. The cursor is that timestamp, so it cannot advance through the
+     * block, and the pull used to notice it was stuck and give up — losing every
+     * row past the first page.
+     */
+    @Test
+    fun `a block of rows sharing one timestamp is drained past the page size`() = runTest {
+        val sameInstant = "2024-06-01T12:00:00Z"
+        val rows = (0 until 250).map { index ->
+            seededShiftRow(
+                // Ids are zero-padded so the fake's (updated_at, id) order matches
+                // the numeric order the assertions below reason about.
+                id = "remote-%03d".format(index),
+                startTime = java.time.Instant.parse("2024-06-01T00:00:00Z")
+                    .plusSeconds(index * 3600L).toString(),
+                endTime = null,
+                updatedAt = sameInstant,
+            ).copy(endTime = java.time.Instant.parse("2024-06-01T00:00:00Z")
+                .plusSeconds(index * 3600L + 1800).toString())
+        }
+        val cloud = FakeRemoteShiftDataSource(initial = rows)
+        val onlyDevice = device(cloud)
+
+        onlyDevice.sync()
+
+        assertEquals(250, onlyDevice.liveShifts.size)
+    }
+
     private fun createRepository(
         shiftDao: ShiftDao = InMemoryShiftDao(),
         remoteShifts: RemoteShiftDataSource = FakeRemoteShiftDataSource(),
@@ -753,6 +981,14 @@ class SyncRepositoryImplTest {
         remotePremiumProfiles = EmptyRemotePremiumProfileDataSource(),
         remoteProfiles = remoteProfiles,
     )
+
+    private companion object {
+        const val USER = "user-1"
+
+        /** 2024-06-01T09:00:00Z and five minutes later, as epoch millis. */
+        const val CLOCK_IN_0900 = 1_717_232_400_000L
+        const val CLOCK_IN_0905 = 1_717_232_700_000L
+    }
 
     private fun shiftEntity(
         localId: String,
@@ -836,23 +1072,64 @@ class SyncRepositoryImplTest {
         }
     }
 
+    /**
+     * An in-memory stand-in for the shifts table that keeps the behaviour the sync
+     * engine actually depends on: a total `(updated_at, id)` order, `range`-style
+     * paging, tombstones instead of removal, and the `client_updated_at` guard that
+     * makes a stale write match no row.
+     *
+     * Faking those away would make the two-device tests below prove nothing — the
+     * bugs they cover are all in how the client reacts to what the server does.
+     */
     private class FakeRemoteShiftDataSource(
         initial: List<RemoteShiftRow> = emptyList(),
     ) : RemoteShiftDataSource {
         private val rows = initial.toMutableList()
         val inserts = mutableListOf<RemoteShiftInsert>()
         val updates = mutableListOf<Pair<String, RemoteShiftUpdate>>()
+        /** Writes the guard turned away, for tests that assert a conflict happened. */
+        val rejectedUpdates = mutableListOf<Pair<String, RemoteShiftUpdate>>()
         private var nextId = 1
+        private var serverTick = 0
 
-        fun findById(id: String): RemoteShiftRow? = rows.firstOrNull { it.id == id }
+        /**
+         * Stands in for the trigger that stamps updated_at server-side. Always
+         * ahead of the seeded 2024 rows and strictly increasing, so a write is
+         * guaranteed to land past another device's pull cursor — which is exactly
+         * what makes a tombstone reach that device.
+         */
+        private fun instant(iso: String): java.time.Instant = java.time.Instant.parse(iso)
 
-        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteShiftRow> =
-            rows.filter { sinceIso == null || it.updatedAt >= sinceIso }.take(limit)
+        private fun nextServerTime(): String =
+            java.time.Instant.parse("2025-01-01T00:00:00Z").plusSeconds((++serverTick).toLong()).toString()
+
+        fun rowsNow(): List<RemoteShiftRow> = rows.toList()
+
+        fun seed(row: RemoteShiftRow) {
+            rows += row
+        }
+
+        override suspend fun fetchUpdatedSince(
+            sinceIso: String?,
+            limit: Int,
+            offset: Int,
+        ): List<RemoteShiftRow> =
+            rows.asSequence()
+                .filter { sinceIso == null || instant(it.updatedAt) >= instant(sinceIso) }
+                .sortedWith(compareBy({ instant(it.updatedAt) }, { it.id }))
+                .drop(offset)
+                .take(limit)
+                .toList()
+
+        override suspend fun findById(remoteId: String): RemoteShiftRow? =
+            rows.firstOrNull { it.id == remoteId }
 
         override suspend fun findByUserAndStartTime(
             userId: String,
             startTimeIso: String,
-        ): RemoteShiftRow? = rows.firstOrNull { it.userId == userId && it.startTime == startTimeIso }
+        ): RemoteShiftRow? = rows.firstOrNull {
+            it.userId == userId && it.startTime == startTimeIso && it.deletedAt == null
+        }
 
         override suspend fun insert(shift: RemoteShiftInsert): RemoteShiftRow {
             inserts += shift
@@ -873,18 +1150,46 @@ class SyncRepositoryImplTest {
                 taskHourlyRateSnapshot = shift.taskHourlyRateSnapshot,
                 createdAt = shift.startTime,
                 updatedAt = shift.startTime,
+                clientUpdatedAt = shift.clientUpdatedAt,
             )
             nextId++
             rows += row
             return row
         }
 
-        override suspend fun update(remoteId: String, shift: RemoteShiftUpdate) {
+        override suspend fun update(remoteId: String, shift: RemoteShiftUpdate): RemoteShiftRow? {
             updates += remoteId to shift
-        }
-
-        override suspend fun delete(remoteId: String) {
-            rows.removeAll { it.id == remoteId }
+            val index = rows.indexOfFirst { it.id == remoteId }
+            if (index < 0) return null
+            val stored = rows[index]
+            // `client_updated_at <= :incoming` — the stale-write guard. Compared as
+            // instants because Postgres compares timestamps, and the two orders
+            // disagree: Instant.toString() drops trailing zeros, so "…:00.500Z"
+            // sorts before "…:00Z" as text while being the later moment.
+            val storedClientTime = stored.clientUpdatedAt?.let(::instant)
+            if (storedClientTime != null && storedClientTime > instant(shift.clientUpdatedAt)) {
+                rejectedUpdates += remoteId to shift
+                return null
+            }
+            val updated = stored.copy(
+                startTime = shift.startTime,
+                endTime = shift.endTime,
+                breakMinutes = shift.breakMinutes,
+                notes = shift.notes,
+                isSpecialDay = shift.isSpecialDay,
+                refundAction = shift.refundAction,
+                compensationProfileId = shift.compensationProfileId,
+                compensationSnapshotJson = shift.compensationSnapshotJson,
+                taskId = shift.taskId,
+                taskNameSnapshot = shift.taskNameSnapshot,
+                taskIconSnapshot = shift.taskIconSnapshot,
+                taskHourlyRateSnapshot = shift.taskHourlyRateSnapshot,
+                deletedAt = shift.deletedAt,
+                clientUpdatedAt = shift.clientUpdatedAt,
+                updatedAt = nextServerTime(),
+            )
+            rows[index] = updated
+            return updated
         }
     }
 
@@ -1020,22 +1325,45 @@ class SyncRepositoryImplTest {
     }
 
     private class EmptyRemoteTaskDataSource : RemoteTaskDataSource {
-        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteTaskRow> =
-            emptyList()
+        override suspend fun fetchUpdatedSince(
+            sinceIso: String?,
+            limit: Int,
+            offset: Int,
+        ): List<RemoteTaskRow> = emptyList()
+        override suspend fun findById(remoteId: String): RemoteTaskRow? = null
         override suspend fun insert(task: RemoteTaskInsert): RemoteTaskRow = error("not used")
-        override suspend fun update(remoteId: String, task: RemoteTaskUpdate) = Unit
-        override suspend fun delete(remoteId: String) = Unit
+        override suspend fun update(remoteId: String, task: RemoteTaskUpdate): RemoteTaskRow? = null
     }
 
     private class RecordingRemoteTaskDataSource : RemoteTaskDataSource {
+        /** Ids published as tombstones — a delete is an update carrying deleted_at. */
         val deletes = mutableListOf<String>()
 
-        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteTaskRow> =
-            emptyList()
+        override suspend fun fetchUpdatedSince(
+            sinceIso: String?,
+            limit: Int,
+            offset: Int,
+        ): List<RemoteTaskRow> = emptyList()
+        override suspend fun findById(remoteId: String): RemoteTaskRow? = null
         override suspend fun insert(task: RemoteTaskInsert): RemoteTaskRow = error("not used")
-        override suspend fun update(remoteId: String, task: RemoteTaskUpdate) = Unit
-        override suspend fun delete(remoteId: String) {
-            deletes += remoteId
+        override suspend fun update(remoteId: String, task: RemoteTaskUpdate): RemoteTaskRow? {
+            if (task.deletedAt != null) deletes += remoteId
+            // A row means the write landed. Returning null would mean the guard
+            // turned it away, which is a different thing entirely.
+            return RemoteTaskRow(
+                id = remoteId,
+                userId = "user-1",
+                name = task.name,
+                icon = task.icon,
+                color = task.color,
+                hourlyRate = task.hourlyRate,
+                isArchived = task.isArchived,
+                lastUsedAt = task.lastUsedAt,
+                createdAt = task.clientUpdatedAt,
+                updatedAt = task.clientUpdatedAt,
+                deletedAt = task.deletedAt,
+                clientUpdatedAt = task.clientUpdatedAt,
+            )
         }
     }
 
@@ -1135,23 +1463,35 @@ class SyncRepositoryImplTest {
             "Could not find the table 'public.tasks' in the schema cache (PGRST205)",
         )
 
-        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteTaskRow> =
-            throw missingTableError
+        override suspend fun fetchUpdatedSince(
+            sinceIso: String?,
+            limit: Int,
+            offset: Int,
+        ): List<RemoteTaskRow> = throw missingTableError
+
+        override suspend fun findById(remoteId: String): RemoteTaskRow? = throw missingTableError
 
         override suspend fun insert(task: RemoteTaskInsert): RemoteTaskRow = throw missingTableError
 
-        override suspend fun update(remoteId: String, task: RemoteTaskUpdate) = throw missingTableError
-
-        override suspend fun delete(remoteId: String) = throw missingTableError
+        override suspend fun update(
+            remoteId: String,
+            task: RemoteTaskUpdate,
+        ): RemoteTaskRow? = throw missingTableError
     }
 
     private class EmptyRemoteRefundClaimDataSource : RemoteRefundClaimDataSource {
-        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteRefundClaimRow> =
-            emptyList()
+        override suspend fun fetchUpdatedSince(
+            sinceIso: String?,
+            limit: Int,
+            offset: Int,
+        ): List<RemoteRefundClaimRow> = emptyList()
+        override suspend fun findById(remoteId: String): RemoteRefundClaimRow? = null
         override suspend fun insert(claim: RemoteRefundClaimInsert): RemoteRefundClaimRow =
             error("not used")
-        override suspend fun update(remoteId: String, claim: RemoteRefundClaimUpdate) = Unit
-        override suspend fun delete(remoteId: String) = Unit
+        override suspend fun update(
+            remoteId: String,
+            claim: RemoteRefundClaimUpdate,
+        ): RemoteRefundClaimRow? = null
     }
 
     private class EmptyRemoteUserSettingsDataSource : RemoteUserSettingsDataSource {
@@ -1163,21 +1503,33 @@ class SyncRepositoryImplTest {
     }
 
     private class EmptyRemoteCompensationProfileDataSource : RemoteCompensationProfileDataSource {
-        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemoteCompensationProfileRow> =
-            emptyList()
+        override suspend fun fetchUpdatedSince(
+            sinceIso: String?,
+            limit: Int,
+            offset: Int,
+        ): List<RemoteCompensationProfileRow> = emptyList()
+        override suspend fun findById(remoteId: String): RemoteCompensationProfileRow? = null
         override suspend fun insert(profile: RemoteCompensationProfileInsert): RemoteCompensationProfileRow =
             error("not used")
-        override suspend fun update(remoteId: String, profile: RemoteCompensationProfileUpdate) = Unit
-        override suspend fun delete(remoteId: String) = Unit
+        override suspend fun update(
+            remoteId: String,
+            profile: RemoteCompensationProfileUpdate,
+        ): RemoteCompensationProfileRow? = null
     }
 
     private class EmptyRemotePremiumProfileDataSource : RemotePremiumProfileDataSource {
-        override suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemotePremiumProfileRow> =
-            emptyList()
+        override suspend fun fetchUpdatedSince(
+            sinceIso: String?,
+            limit: Int,
+            offset: Int,
+        ): List<RemotePremiumProfileRow> = emptyList()
+        override suspend fun findById(remoteId: String): RemotePremiumProfileRow? = null
         override suspend fun insert(profile: RemotePremiumProfileInsert): RemotePremiumProfileRow =
             error("not used")
-        override suspend fun update(remoteId: String, profile: RemotePremiumProfileUpdate) = Unit
-        override suspend fun delete(remoteId: String) = Unit
+        override suspend fun update(
+            remoteId: String,
+            profile: RemotePremiumProfileUpdate,
+        ): RemotePremiumProfileRow? = null
     }
 
     private class InMemoryShiftDao : ShiftDao {

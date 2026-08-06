@@ -25,6 +25,7 @@ fun CompensationProfileEntity.toRemoteInsert(): RemoteCompensationProfileInsert 
         effectiveUntil = effectiveUntil?.let(::epochToIso),
         isDefault = isDefault,
         isArchived = isArchived,
+        clientUpdatedAt = epochToIso(updatedAt),
     )
 
 fun CompensationProfileEntity.toRemoteUpdate(): RemoteCompensationProfileUpdate =
@@ -40,6 +41,8 @@ fun CompensationProfileEntity.toRemoteUpdate(): RemoteCompensationProfileUpdate 
         effectiveUntil = effectiveUntil?.let(::epochToIso),
         isDefault = isDefault,
         isArchived = isArchived,
+        deletedAt = deletedAt?.let(::epochToIso),
+        clientUpdatedAt = epochToIso(updatedAt),
     )
 
 fun RemoteCompensationProfileRow.toLocalEntity(
@@ -65,7 +68,9 @@ fun RemoteCompensationProfileRow.toLocalEntity(
         isArchived = isArchived,
         createdAt = created,
         updatedAt = updated,
-        deletedAt = if (isArchived) updated else null,
+        // An explicit tombstone wins; the archived fallback is kept so profiles
+        // archived before deleted_at existed keep behaving exactly as they did.
+        deletedAt = deletedAt?.let(::isoToEpoch) ?: if (isArchived) updated else null,
         syncStatus = syncStatus,
         lastSyncError = null,
         lastSyncedAt = updated,

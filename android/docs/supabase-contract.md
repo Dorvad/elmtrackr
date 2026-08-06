@@ -191,11 +191,64 @@ Push and pull phases run in order:
 
 Pull runs profiles before compensation profiles and user settings so the display name is available early.
 
-Incremental pull uses `updated_at > lastPulledAt` per entity (see `SyncCursorStore`). Remote rows missing locally are treated as deletes until server-side `deleted_at` tombstones land.
+Incremental pull uses `updated_at >= lastPulledAt` per entity (see `SyncCursorStore`).
 
 Local `PENDING_*` rows always win over remote until pushed.
 
 `delete_own_account` removes tasks, shifts, refund claims, compensation profiles, user settings, profiles, and refund-receipt storage objects.
+
+### `deleted_at` and `client_updated_at`
+
+`shifts`, `refund_claims`, `compensation_profiles`, `premium_profiles` and
+`tasks` each carry two sync columns, added by
+`20260806000000_sync_tombstones_and_row_versions.sql`.
+
+| Column | Type | Meaning |
+|--------|------|---------|
+| `deleted_at` | timestamptz, null | Set = the row is a tombstone |
+| `client_updated_at` | timestamptz, not null | When the *device* last edited the row |
+
+**Deletes are tombstones, never `DELETE`.** A removed row is invisible to an
+incremental pull — the other devices ask for rows changed since their cursor, and
+a row that no longer exists is not a change — so a real delete only ever reached
+devices doing a full pull. Writing `deleted_at` makes a delete an ordinary update
+that propagates like any edit. Pulled tombstones soft-delete the local row;
+tombstones for rows a device has never held are ignored rather than materialised.
+
+**`client_updated_at` is the edit-version guard.** Every update is filtered
+`client_updated_at <= <the value being written>` and asks for the row back, so a
+write carrying an older edit than the stored one matches nothing and returns no
+row. The client reads that as a conflict and adopts the remote copy instead of
+overwriting it — the newer edit wins, which is the same rule the pull side
+applies, so the two directions agree. Both `RemoteXUpdate.clientUpdatedAt` and
+the local entity's `updatedAt` are the same value; nothing else has to be stored.
+
+A rejected write is never recorded as sent. That includes tombstones: a delete is
+an edit and loses to a newer one like any other.
+
+**Uniqueness ignores tombstones.** `shifts_user_id_start_time_live_uidx` is
+partial (`where deleted_at is null`), so a start time frees up again once its
+shift is deleted.
+
+**One running shift.** Enforced client-side by `RunningShiftResolver`, not by a
+database constraint — a unique index would make the second device's clock-in fail
+its push permanently, which loses more than the duplicate costs. The rule (keep
+the earliest open shift, tombstone the rest, merge across any detail the winner
+lacks) is a pure function of the rows, so every device reaches the same answer
+independently and they converge.
+
+### Pull paging
+
+Pages are ordered by `(updated_at, id)` and fetched with `range`, and
+`pullIncremental` tracks an offset within the current cursor timestamp.
+
+Both parts are load-bearing. Ordering by `updated_at` alone is not a total order,
+and Postgres may return tied rows differently on each request, so paging through
+it silently skips rows. And because the cursor *is* a timestamp, it cannot
+advance through a block of rows that share one — a restore or an import easily
+produces more than one page of those — which used to make the pull detect it was
+stuck and give up, losing everything past the first page. The offset walks the
+block; it resets as soon as the timestamp moves on.
 
 ### What the client assumes about RLS
 

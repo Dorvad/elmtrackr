@@ -24,6 +24,14 @@ data class RemoteShiftRow(
     @SerialName("task_hourly_rate_snapshot") val taskHourlyRateSnapshot: Double? = null,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String,
+    /** Set when the row is a tombstone; the shift was deleted on some device. */
+    @SerialName("deleted_at") val deletedAt: String? = null,
+    /**
+     * When the *device* last edited this row, as opposed to when the row reached
+     * the server. Nullable only so decoding survives a database that has not yet
+     * had `20260806000000_sync_tombstones_and_row_versions.sql` applied.
+     */
+    @SerialName("client_updated_at") val clientUpdatedAt: String? = null,
 )
 
 @Serializable
@@ -43,6 +51,7 @@ data class RemoteShiftInsert(
     @SerialName("task_name_snapshot") val taskNameSnapshot: String? = null,
     @SerialName("task_icon_snapshot") val taskIconSnapshot: String? = null,
     @SerialName("task_hourly_rate_snapshot") val taskHourlyRateSnapshot: Double? = null,
+    @SerialName("client_updated_at") val clientUpdatedAt: String,
 )
 
 @Serializable
@@ -61,4 +70,12 @@ data class RemoteShiftUpdate(
     @SerialName("task_name_snapshot") val taskNameSnapshot: String? = null,
     @SerialName("task_icon_snapshot") val taskIconSnapshot: String? = null,
     @SerialName("task_hourly_rate_snapshot") val taskHourlyRateSnapshot: Double? = null,
+    /** Non-null makes this update a tombstone. See SupabaseShiftsDataSource.update. */
+    @SerialName("deleted_at") val deletedAt: String? = null,
+    /**
+     * The device's edit time for this change. Also the guard the write is
+     * filtered on, so an update carrying an older edit time than the row already
+     * holds matches nothing and is reported as a conflict instead of applied.
+     */
+    @SerialName("client_updated_at") val clientUpdatedAt: String,
 )
