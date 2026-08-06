@@ -378,7 +378,19 @@ class RefundClaimViewModel @Inject constructor(
                 form.linkedReceiptId?.let { receiptId ->
                     receiptsRepository.linkToClaim(receiptId, result.claim.id)
                 }
-                cleanupPendingPhoto(form.pendingPhotoPath?.takeIf { it != form.localReceiptImagePath })
+                if (result.receiptUploadFailed && form.linkedReceiptId == null) {
+                    // The retry pass finds work through the receipt row, so a
+                    // failed upload with no row would never be retried.
+                    persistReceiptForRetry(result.claim.id, form.pendingPhotoPath)
+                }
+                // Never delete the image when its upload failed. The claim saved
+                // without a receipt_path, so this file is the only copy of the
+                // photo that exists anywhere — deleting it turned a retryable
+                // upload failure into a lost receipt. The sync pipeline picks it
+                // up from the linked receipt row and uploads it later.
+                if (!result.receiptUploadFailed) {
+                    cleanupPendingPhoto(form.pendingPhotoPath?.takeIf { it != form.localReceiptImagePath })
+                }
                 refreshShift(shift.id)
                 refreshLocalReceipts()
                 _uiState.update {
@@ -652,6 +664,35 @@ class RefundClaimViewModel @Inject constructor(
             marker
         } else {
             "$existingNotes\n$marker"
+        }
+    }
+
+    /**
+     * Records a locally stored receipt image against [claimId] so the sync
+     * pipeline's retry pass can find and upload it.
+     */
+    private suspend fun persistReceiptForRetry(claimId: String, imagePath: String?) {
+        val path = imagePath ?: return
+        if (!File(path).exists()) return
+        val userId = currentUserProvider.currentUserId() ?: return
+        val now = Instant.now()
+        runCatching {
+            receiptsRepository.save(
+                Receipt(
+                    id = UUID.randomUUID().toString(),
+                    userId = userId,
+                    refundClaimId = claimId,
+                    localImageUri = path,
+                    merchantName = null,
+                    amount = null,
+                    currency = null,
+                    receiptDate = null,
+                    rawOcrText = null,
+                    parserVersion = "",
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
         }
     }
 

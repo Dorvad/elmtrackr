@@ -34,6 +34,7 @@ import com.elmtrackr.app.data.remote.toLocalEntity
 import com.elmtrackr.app.data.remote.toRemoteInsert
 import com.elmtrackr.app.data.remote.toRemoteUpdate
 import com.elmtrackr.app.data.remote.toRemoteUpsert
+import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.monitoring.CrashReporting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -70,6 +71,8 @@ class SyncRepositoryImpl @Inject constructor(
     private val remoteCompensationProfiles: RemoteCompensationProfileDataSource?,
     private val remotePremiumProfiles: RemotePremiumProfileDataSource?,
     private val remoteProfiles: RemoteProfileDataSource?,
+    private val refundReceiptStorage: com.elmtrackr.app.domain.repository.RefundReceiptStorage?,
+    private val receiptFileReader: com.elmtrackr.app.domain.repository.ReceiptFileReader?,
 ) : SyncRepository {
 
     // The push/pull methods below are only reachable through syncAll(), which
@@ -331,6 +334,7 @@ class SyncRepositoryImpl @Inject constructor(
             runSyncStep("push compensation profiles", issues) { pushCompensationProfiles(userId) }
             runSyncStep("push premium profiles", issues) { pushPremiumProfiles(userId) }
             runSyncStep("push shifts", issues) { pushShifts(userId) }
+            runSyncStep("upload pending receipts", issues) { uploadPendingReceipts(userId) }
             runSyncStep("push refund claims", issues) { pushRefundClaims(userId) }
             runSyncStep("push user settings", issues) { pushUserSettings(userId) }
             runSyncStep("push profiles", issues) { pushProfiles(userId) }
@@ -1051,14 +1055,72 @@ class SyncRepositoryImpl @Inject constructor(
         if (updated == 0) refundClaimDao.attachRemoteId(claim.localId, remoteId, syncedAt)
     }
 
-    /** Tombstone, not DELETE — see [pushTaskDelete]. */
+    /**
+     * Tombstone, not DELETE — see [pushTaskDelete] — plus the claim's receipt
+     * image in cloud storage.
+     *
+     * Deleting the object here rather than at the call site is what makes it
+     * cover deleting a whole *shift*. That cascades to the shift's claims through
+     * the database and never went near storage, so every receipt photo on a
+     * deleted shift stayed in the bucket indefinitely: paid for, backed up, and
+     * belonging to a shift the user believed they had removed.
+     *
+     * Ordered after the tombstone so a storage failure cannot block the delete
+     * from reaching other devices, and reported as a row failure so the periodic
+     * sync tries again. Both halves are idempotent, so repeating them is free.
+     */
     private suspend fun pushRefundClaimDelete(claim: RefundClaimEntity, syncedAt: Long) {
         val remoteId = claim.remoteId
         if (remoteId != null && claimsRemote.update(remoteId, claim.toRemoteUpdate()) == null) {
             adoptNewerRemoteClaim(claim, remoteId, syncedAt)
             return
         }
+        val receiptPath = claim.receiptPath
+        if (receiptPath != null && refundReceiptStorage != null) {
+            refundReceiptStorage.delete(receiptPath)
+        }
         refundClaimDao.updateSyncState(claim.localId, SyncStatus.SYNCED, claim.remoteId, syncedAt, null)
+    }
+
+    /**
+     * Uploads receipt photos that never made it to the cloud.
+     *
+     * A photo whose upload failed left the claim saved with no `receipt_path`
+     * while the image stayed in local receipt storage. Nothing ever tried again,
+     * so the receipt existed on exactly one device — and the user had been told
+     * the claim saved, which it did.
+     *
+     * Runs before the claim push so a recovered path is published in the same
+     * sync rather than waiting for the next one. Failures are per claim and
+     * deliberately swallowed: a receipt that cannot be uploaded now is picked up
+     * by the next run, and it must not fail the sync around it.
+     */
+    private suspend fun uploadPendingReceipts(userId: String) {
+        val storage = refundReceiptStorage ?: return
+        val reader = receiptFileReader ?: return
+
+        for (claim in refundClaimDao.getClaimsAwaitingReceiptUpload(userId)) {
+            val receipt = receiptDao.getByRefundClaimId(claim.localId) ?: continue
+            val upload = reader.toReceiptUpload(receipt.localImageUri) ?: continue
+            runCatching {
+                val path = storage.upload(
+                    userId,
+                    claim.shiftLocalId,
+                    RefundDirection.fromPersisted(claim.direction),
+                    upload,
+                )
+                val now = Instant.now().toEpochMilli()
+                // PENDING_UPDATE, not SYNCED: the new path is a local change that
+                // still has to reach the server, and the push below is what does it.
+                refundClaimDao.upsertClaim(
+                    claim.copy(
+                        receiptPath = path,
+                        updatedAt = now,
+                        syncStatus = SyncStatus.PENDING_UPDATE,
+                    ),
+                )
+            }
+        }
     }
 
     private suspend fun markRefundClaimFailed(claim: RefundClaimEntity, error: Throwable) {

@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
 import com.elmtrackr.app.domain.model.ReceiptUpload
+import com.elmtrackr.app.domain.repository.ReceiptFileReader
 import com.elmtrackr.app.domain.model.RefundDirection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -17,7 +18,7 @@ class PhotoFileManager(
     private val rootDir: File,
     private val uriForFile: (File) -> Uri,
     private val clock: Clock = Clock.systemUTC(),
-) {
+) : ReceiptFileReader {
     constructor(context: Context) : this(
         rootDir = File(context.filesDir, RECEIPT_ROOT_DIR),
         uriForFile = { file ->
@@ -65,7 +66,7 @@ class PhotoFileManager(
         }
     }
 
-    suspend fun toReceiptUpload(path: String): ReceiptUpload? = withContext(Dispatchers.IO) {
+    override suspend fun toReceiptUpload(path: String): ReceiptUpload? = withContext(Dispatchers.IO) {
         val file = File(path)
         if (!file.exists() || !file.isFile || file.length() <= 0 || file.length() > MAX_RECEIPT_BYTES) {
             return@withContext null

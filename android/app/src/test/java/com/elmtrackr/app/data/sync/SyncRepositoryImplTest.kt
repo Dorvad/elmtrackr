@@ -753,6 +753,162 @@ class SyncRepositoryImplTest {
         assertTrue(repository.hasRetryablePendingWork("user-1"))
     }
 
+    // ── Receipt photos ──────────────────────────────────────────────────────
+    //
+    // Both of these live in the sync pipeline rather than at the call site
+    // because both have to survive the process dying: an upload retried only
+    // while the form is open is not a retry, and a shift deleted offline still
+    // has to clean up its storage objects when the device comes back.
+
+    /**
+     * A photo whose upload failed left the claim saved with no receipt_path while
+     * the image sat in local receipt storage, and nothing ever tried again — so
+     * the receipt existed on exactly one device, forever.
+     */
+    @Test
+    fun `a receipt whose upload failed is uploaded by a later sync`() = runTest {
+        val claimDao = com.elmtrackr.app.fake.FakeRefundClaimDao()
+        val receiptDao = com.elmtrackr.app.fake.FakeReceiptDao()
+        val storage = RecordingReceiptStorage()
+
+        claimDao.upsertClaim(refundClaimEntity(receiptPath = null))
+        receiptDao.insert(receiptEntity(claimLocalId = "claim-1", path = "/receipts/claim-1.jpg"))
+
+        val repository = createRepository(
+            refundClaimDao = claimDao,
+            receiptDao = receiptDao,
+            refundReceiptStorage = storage,
+            receiptFileReader = StubReceiptFileReader(),
+        )
+
+        repository.syncAll(USER)
+
+        assertEquals(listOf("claim-1.jpg"), storage.uploads)
+        assertEquals("uploaded/claim-1.jpg", claimDao.getClaimById("claim-1")!!.receiptPath)
+    }
+
+    @Test
+    fun `a claim whose local image is gone is left alone rather than retried`() = runTest {
+        val claimDao = com.elmtrackr.app.fake.FakeRefundClaimDao()
+        val receiptDao = com.elmtrackr.app.fake.FakeReceiptDao()
+        val storage = RecordingReceiptStorage()
+
+        claimDao.upsertClaim(refundClaimEntity(receiptPath = null))
+        receiptDao.insert(receiptEntity(claimLocalId = "claim-1", path = "/receipts/gone.jpg"))
+
+        val repository = createRepository(
+            refundClaimDao = claimDao,
+            receiptDao = receiptDao,
+            refundReceiptStorage = storage,
+            receiptFileReader = StubReceiptFileReader(readable = false),
+        )
+
+        repository.syncAll(USER)
+
+        assertTrue(storage.uploads.isEmpty())
+        assertNull(claimDao.getClaimById("claim-1")!!.receiptPath)
+    }
+
+    /**
+     * Deleting a shift cascades to its claims through the database and stopped
+     * there, so every receipt photo on a deleted shift stayed in the bucket.
+     */
+    @Test
+    fun `deleting a claim removes its receipt from cloud storage`() = runTest {
+        val claimDao = com.elmtrackr.app.fake.FakeRefundClaimDao()
+        val storage = RecordingReceiptStorage()
+
+        claimDao.upsertClaim(
+            refundClaimEntity(receiptPath = "user-1/shift-1/to_work/1.jpg").copy(
+                remoteId = "remote-claim-1",
+                deletedAt = 5_000L,
+                syncStatus = SyncStatus.PENDING_DELETE,
+            ),
+        )
+
+        val repository = createRepository(
+            refundClaimDao = claimDao,
+            refundReceiptStorage = storage,
+            receiptFileReader = StubReceiptFileReader(),
+        )
+
+        repository.syncAll(USER)
+
+        assertEquals(listOf("user-1/shift-1/to_work/1.jpg"), storage.deletes)
+    }
+
+    private fun refundClaimEntity(receiptPath: String?) = RefundClaimEntity(
+        localId = "claim-1",
+        remoteId = null,
+        shiftLocalId = "shift-1",
+        userId = USER,
+        direction = com.elmtrackr.app.domain.model.RefundDirection.TO_WORK.name,
+        provider = "LIME",
+        amount = 12.5,
+        rideAt = 1_000L,
+        notes = null,
+        receiptPath = receiptPath,
+        createdAt = 1_000L,
+        updatedAt = 1_000L,
+        deletedAt = null,
+        syncStatus = SyncStatus.SYNCED,
+        lastSyncError = null,
+        lastSyncedAt = null,
+    )
+
+    private fun receiptEntity(claimLocalId: String, path: String) =
+        com.elmtrackr.app.data.local.entity.ReceiptEntity(
+            id = "receipt-1",
+            userId = USER,
+            refundClaimId = claimLocalId,
+            localImageUri = path,
+            merchantName = null,
+            amount = null,
+            currency = null,
+            receiptDate = null,
+            rawOcrText = null,
+            parserVersion = "",
+            createdAt = 1_000L,
+            updatedAt = 1_000L,
+        )
+
+    private class RecordingReceiptStorage : com.elmtrackr.app.domain.repository.RefundReceiptStorage {
+        val uploads = mutableListOf<String>()
+        val deletes = mutableListOf<String>()
+
+        override suspend fun upload(
+            userId: String,
+            shiftId: String,
+            direction: com.elmtrackr.app.domain.model.RefundDirection,
+            receipt: com.elmtrackr.app.domain.model.ReceiptUpload,
+        ): String {
+            uploads += receipt.fileName
+            return "uploaded/${receipt.fileName}"
+        }
+
+        override suspend fun createSignedUrl(path: String): String = "https://example.test/$path"
+
+        override suspend fun delete(path: String) {
+            deletes += path
+        }
+    }
+
+    /** Stands in for the filesystem; [readable] false is a missing or oversize file. */
+    private class StubReceiptFileReader(
+        private val readable: Boolean = true,
+    ) : com.elmtrackr.app.domain.repository.ReceiptFileReader {
+        override suspend fun toReceiptUpload(
+            path: String,
+        ): com.elmtrackr.app.domain.model.ReceiptUpload? {
+            if (!readable) return null
+            return com.elmtrackr.app.domain.model.ReceiptUpload(
+                fileName = path.substringAfterLast('/'),
+                bytes = byteArrayOf(1, 2, 3),
+                mimeType = "image/jpeg",
+            )
+        }
+    }
+
     // ── Two devices, one cloud ──────────────────────────────────────────────
     //
     // Each "device" is its own Room database and its own pull cursor, talking to a
@@ -959,13 +1115,17 @@ class SyncRepositoryImplTest {
         taskDao: TaskDao = EmptyTaskDao(),
         profileDao: ProfileDao = InMemoryProfileDao(),
         remoteProfiles: RemoteProfileDataSource = FakeRemoteProfileDataSource(),
+        refundClaimDao: RefundClaimDao = EmptyRefundClaimDao(),
+        receiptDao: com.elmtrackr.app.data.local.dao.ReceiptDao = com.elmtrackr.app.fake.FakeReceiptDao(),
+        refundReceiptStorage: com.elmtrackr.app.domain.repository.RefundReceiptStorage? = null,
+        receiptFileReader: com.elmtrackr.app.domain.repository.ReceiptFileReader? = null,
     ) = SyncRepositoryImpl(
         shiftDao = shiftDao,
-        refundClaimDao = EmptyRefundClaimDao(),
+        refundClaimDao = refundClaimDao,
         settingsDao = EmptySettingsDao(),
         compensationProfileDao = EmptyCompensationProfileDao(),
         premiumProfileDao = EmptyPremiumProfileDao(),
-        receiptDao = com.elmtrackr.app.fake.FakeReceiptDao(),
+        receiptDao = receiptDao,
         projectDao = com.elmtrackr.app.fake.FakeProjectDao(),
         projectBillingRecordDao = com.elmtrackr.app.fake.FakeProjectBillingRecordDao(),
         projectPaymentDao = com.elmtrackr.app.fake.FakeProjectPaymentDao(),
@@ -980,6 +1140,8 @@ class SyncRepositoryImplTest {
         remoteCompensationProfiles = EmptyRemoteCompensationProfileDataSource(),
         remotePremiumProfiles = EmptyRemotePremiumProfileDataSource(),
         remoteProfiles = remoteProfiles,
+        refundReceiptStorage = refundReceiptStorage,
+        receiptFileReader = receiptFileReader,
     )
 
     private companion object {
@@ -1217,6 +1379,8 @@ class SyncRepositoryImplTest {
         override suspend fun getAllClaimsForUser(userId: String): List<RefundClaimEntity> = emptyList()
         override suspend fun deleteAllForUser(userId: String) = Unit
         override suspend fun getClaimByRemoteId(remoteId: String): RefundClaimEntity? = null
+        override suspend fun getClaimsAwaitingReceiptUpload(userId: String): List<RefundClaimEntity> =
+            emptyList()
         override suspend fun markNeverSyncedPendingCreate(userId: String) = Unit
     }
 
@@ -1488,10 +1652,28 @@ class SyncRepositoryImplTest {
         override suspend fun findById(remoteId: String): RemoteRefundClaimRow? = null
         override suspend fun insert(claim: RemoteRefundClaimInsert): RemoteRefundClaimRow =
             error("not used")
+
+        // Returns a row, not null. Null is the guard rejecting a stale write, which
+        // is a different outcome entirely — a stub that returns it makes every push
+        // look like a conflict.
         override suspend fun update(
             remoteId: String,
             claim: RemoteRefundClaimUpdate,
-        ): RemoteRefundClaimRow? = null
+        ): RemoteRefundClaimRow = RemoteRefundClaimRow(
+            id = remoteId,
+            shiftId = "shift-1",
+            userId = "user-1",
+            direction = claim.direction,
+            provider = claim.provider,
+            amount = claim.amount,
+            rideAt = claim.rideAt,
+            notes = claim.notes,
+            receiptPath = claim.receiptPath,
+            createdAt = claim.clientUpdatedAt,
+            updatedAt = claim.clientUpdatedAt,
+            deletedAt = claim.deletedAt,
+            clientUpdatedAt = claim.clientUpdatedAt,
+        )
     }
 
     private class EmptyRemoteUserSettingsDataSource : RemoteUserSettingsDataSource {
