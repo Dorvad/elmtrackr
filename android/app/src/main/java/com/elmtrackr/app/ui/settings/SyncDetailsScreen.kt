@@ -428,6 +428,29 @@ private fun BackupCard(
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(Modifier.height(Spacing.s6))
+        // Separate line, error colour, and an icon: this is the one thing on the
+        // card a user can act on wrongly. The copy above says what the file
+        // contains; this says who else can read it, and that is not a detail to
+        // bury in a sentence about JSON.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.s6),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                Icons.Outlined.WarningAmber,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(Spacing.s16),
+            )
+            Text(
+                stringResource(R.string.settings_backup_privacy_warning),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 

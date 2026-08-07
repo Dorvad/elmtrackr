@@ -16,6 +16,10 @@ data class RemoteRefundClaimRow(
     @SerialName("receipt_path") val receiptPath: String? = null,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String,
+    /** Set when the row is a tombstone; the claim was deleted on some device. */
+    @SerialName("deleted_at") val deletedAt: String? = null,
+    /** See RemoteShiftRow.clientUpdatedAt. */
+    @SerialName("client_updated_at") val clientUpdatedAt: String? = null,
 )
 
 @Serializable
@@ -30,6 +34,7 @@ data class RemoteRefundClaimInsert(
     @SerialName("ride_at") val rideAt: String,
     val notes: String? = null,
     @SerialName("receipt_path") val receiptPath: String? = null,
+    @SerialName("client_updated_at") val clientUpdatedAt: String,
 )
 
 @Serializable
@@ -40,4 +45,8 @@ data class RemoteRefundClaimUpdate(
     @SerialName("ride_at") val rideAt: String,
     val notes: String? = null,
     @SerialName("receipt_path") val receiptPath: String? = null,
+    /** Non-null makes this update a tombstone. */
+    @SerialName("deleted_at") val deletedAt: String? = null,
+    /** See RemoteShiftUpdate.clientUpdatedAt — this is the write's guard. */
+    @SerialName("client_updated_at") val clientUpdatedAt: String,
 )

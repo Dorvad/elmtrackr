@@ -72,6 +72,7 @@
     <string name="reports_reminder_other">%1$d reminders</string>
     <string name="reports_open_shift_submit">Open the shift to submit a claim or mark no ride.</string>
     <string name="reports_reimb_history">Reimbursement History</string>
+    <string name="reports_show_earlier_months">Show %1$d earlier months</string>
     <string name="reports_showing_months">Showing %1$s with ride reimbursements.</string>
     <string name="reports_month_count_one">%1$d month</string>
     <string name="reports_month_count_other">%1$d months</string>

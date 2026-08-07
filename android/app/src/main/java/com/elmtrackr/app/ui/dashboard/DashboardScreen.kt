@@ -123,6 +123,9 @@ import com.elmtrackr.app.ui.settings.SettingsLaunchRequest
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.elmtrackr.app.ui.components.motion.HOUR_MILLIS
+import com.elmtrackr.app.ui.components.motion.MINUTE_MILLIS
+import com.elmtrackr.app.ui.components.motion.rememberCurrentInstant
 import com.elmtrackr.app.ui.components.motion.rememberElapsedUnits
 import com.elmtrackr.app.ui.components.motion.ShiftElapsedDisplay
 import com.elmtrackr.app.ui.components.motion.activeShiftPulse
@@ -260,6 +263,9 @@ fun DashboardScreen(
                                     when (step) {
                                         SetupStep.CLOCK_STYLE -> SettingsLaunchRequest.APPEARANCE
                                         SetupStep.COMPENSATION -> SettingsLaunchRequest.COMPENSATION
+                                        SetupStep.PROFILE_NAME -> SettingsLaunchRequest.PROFILE
+                                        SetupStep.FEATURES -> SettingsLaunchRequest.FEATURES
+                                        SetupStep.APP_LOCK -> SettingsLaunchRequest.SECURITY
                                         else -> SettingsLaunchRequest.PREMIUM
                                     },
                                 )
@@ -609,6 +615,9 @@ private fun DashboardReady(
                                 SetupStep.FIRST_SHIFT -> handleClockIn()
                                 SetupStep.CLOCK_STYLE,
                                 SetupStep.COMPENSATION,
+                                SetupStep.PROFILE_NAME,
+                                SetupStep.FEATURES,
+                                SetupStep.APP_LOCK,
                                 SetupStep.PREMIUM -> onSetupNavigate(step)
                                 SetupStep.TASKS -> onManageTasks()
                                 SetupStep.WIDGET -> onRequestPinWidget()
@@ -684,7 +693,10 @@ private fun DashboardReady(
 private fun DashboardHeader(
     displayName: String?,
 ) {
-    val hour = Instant.now().atZone(ZoneId.systemDefault()).hour
+    // Ticked hourly so the greeting follows the day. A direct read left a
+    // dashboard opened before noon saying "Good morning" until something else
+    // happened to recompose it.
+    val hour = rememberCurrentInstant(HOUR_MILLIS).atZone(LocalWorkZone.current).hour
     val greetingBase = stringResource(
         when (hour) {
             in 0..11 -> R.string.dashboard_greeting_morning
@@ -1550,7 +1562,14 @@ private fun ExpressiveClockCard(
                     )
                 } else {
                     Text(
-                        LocalTime.now().format(timeFormatter),
+                        // rememberCurrentInstant, not LocalTime.now(): with no
+                        // shift running nothing else on this screen recomposes,
+                        // so a direct read froze at the minute the dashboard was
+                        // opened. The work zone, not the device's, for the same
+                        // reason every other time on this screen uses it.
+                        rememberCurrentInstant(MINUTE_MILLIS)
+                            .atZone(LocalWorkZone.current)
+                            .format(timeFormatter),
                         style = if (style == SupportedClockStyle.BOLD) MaterialTheme.typography.displayLarge else if (style == SupportedClockStyle.FOCUS) MaterialTheme.typography.displayMedium else MaterialTheme.typography.displaySmall,
                         fontWeight = if (style == SupportedClockStyle.FOCUS) FontWeight.Light else FontWeight.Bold,
                         color = foreground,
@@ -1809,11 +1828,14 @@ internal fun MonthSummaryCard(
     onOpenReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Two allocations and a locale lookup per recomposition otherwise, and this
-    // card sits next to the clock, which recomposes once a second.
+    // Keyed on the current month, so the heading follows the calendar over a
+    // month boundary instead of naming the month the screen was opened in. The
+    // remember still holds: recomposing does not repeat the locale lookup or the
+    // display-name allocation unless the month or the locale actually changed.
     val locale = appLocale()
-    val monthName = remember(locale) {
-        YearMonth.now().month.getDisplayName(TextStyle.FULL, locale)
+    val month = YearMonth.from(rememberCurrentInstant(MINUTE_MILLIS).atZone(LocalWorkZone.current))
+    val monthName = remember(locale, month) {
+        month.month.getDisplayName(TextStyle.FULL, locale)
     }
     val shiftCount = report?.shiftCount ?: 0
     val openReportLabel = stringResource(R.string.dashboard_month_summary_open_report)

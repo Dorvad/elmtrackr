@@ -6,112 +6,43 @@ import org.junit.Test
 
 class OnboardingStepsTest {
 
-    // ── Forward traversal ─────────────────────────────────────────────────────
+    // ── Traversal ─────────────────────────────────────────────────────────────
 
     @Test
-    fun `answering yes leads into the project defaults step`() {
-        assertEquals(
-            STEP_PROJECT_DEFAULTS,
-            nextOnboardingStep(STEP_PAID_PROJECTS, paidProjectsEnabled = true),
-        )
+    fun `the wizard is four steps`() {
+        assertEquals(4, onboardingTotalSteps())
+        assertEquals(STEP_REVIEW, onboardingTotalSteps())
     }
 
     @Test
-    fun `answering not now skips the project defaults step`() {
-        assertEquals(
-            STEP_SECURITY,
-            nextOnboardingStep(STEP_PAID_PROJECTS, paidProjectsEnabled = false),
-        )
-    }
-
-    @Test
-    fun `every other step advances by one`() {
-        listOf(STEP_LANGUAGE, STEP_WELCOME, STEP_REGION, STEP_PROFILE, STEP_PAY, STEP_WORK_WEEK, STEP_FEATURES)
-            .forEach { step ->
-                assertEquals(step + 1, nextOnboardingStep(step, paidProjectsEnabled = true))
-                assertEquals(step + 1, nextOnboardingStep(step, paidProjectsEnabled = false))
-            }
+    fun `every step advances by one`() {
+        listOf(STEP_WELCOME, STEP_REGION, STEP_PAY).forEach { step ->
+            assertEquals(step + 1, nextOnboardingStep(step))
+        }
     }
 
     @Test
     fun `review is the last step`() {
-        assertEquals(STEP_REVIEW, nextOnboardingStep(STEP_REVIEW, paidProjectsEnabled = true))
-    }
-
-    // ── Back traversal ────────────────────────────────────────────────────────
-
-    @Test
-    fun `back from security skips the project defaults step when declined`() {
-        assertEquals(
-            STEP_PAID_PROJECTS,
-            previousOnboardingStep(STEP_SECURITY, paidProjectsEnabled = false),
-        )
-    }
-
-    @Test
-    fun `back from security lands on project defaults when enabled`() {
-        assertEquals(
-            STEP_PROJECT_DEFAULTS,
-            previousOnboardingStep(STEP_SECURITY, paidProjectsEnabled = true),
-        )
+        assertEquals(STEP_REVIEW, nextOnboardingStep(STEP_REVIEW))
     }
 
     @Test
     fun `back never goes below the first step`() {
-        assertEquals(STEP_LANGUAGE, previousOnboardingStep(STEP_LANGUAGE, paidProjectsEnabled = false))
-        assertEquals(STEP_LANGUAGE, previousOnboardingStep(0, paidProjectsEnabled = false))
+        assertEquals(STEP_WELCOME, previousOnboardingStep(STEP_WELCOME))
+        assertEquals(STEP_WELCOME, previousOnboardingStep(0))
     }
 
     @Test
     fun `forward and back are inverses for every reachable step`() {
-        listOf(true, false).forEach { enabled ->
-            var step = STEP_LANGUAGE
-            val visited = mutableListOf(step)
-            while (step != STEP_REVIEW) {
-                step = nextOnboardingStep(step, enabled)
-                visited += step
-            }
-            visited.zipWithNext().reversed().forEach { (before, after) ->
-                assertEquals(
-                    "back from $after should return to $before (paidProjects=$enabled)",
-                    before,
-                    previousOnboardingStep(after, enabled),
-                )
-            }
-        }
-    }
-
-    @Test
-    fun `declining paid projects never visits the project defaults step`() {
-        var step = STEP_LANGUAGE
+        var step = STEP_WELCOME
         val visited = mutableListOf(step)
         while (step != STEP_REVIEW) {
-            step = nextOnboardingStep(step, paidProjectsEnabled = false)
+            step = nextOnboardingStep(step)
             visited += step
         }
-        assertEquals(false, visited.contains(STEP_PROJECT_DEFAULTS))
-    }
-
-    // ── Progress counter ──────────────────────────────────────────────────────
-
-    @Test
-    fun `total steps reflects the answer`() {
-        assertEquals(11, onboardingTotalSteps(paidProjectsEnabled = true))
-        assertEquals(10, onboardingTotalSteps(paidProjectsEnabled = false))
-    }
-
-    @Test
-    fun `progress never exceeds the total`() {
-        listOf(true, false).forEach { enabled ->
-            var step = STEP_LANGUAGE
-            while (step != STEP_REVIEW) {
-                val shown = onboardingProgressStep(step, enabled)
-                assert(shown in 1..onboardingTotalSteps(enabled)) {
-                    "step $step showed $shown/${onboardingTotalSteps(enabled)}"
-                }
-                step = nextOnboardingStep(step, enabled)
-            }
-            assertEquals(onboardingTotalSteps(enabled), onboardingProgressStep(STEP_REVIEW, enabled))
+        assertEquals(listOf(STEP_WELCOME, STEP_REGION, STEP_PAY, STEP_REVIEW), visited)
+        visited.zipWithNext().reversed().forEach { (before, after) ->
+            assertEquals("back from $after should return to $before", before, previousOnboardingStep(after))
         }
     }
 

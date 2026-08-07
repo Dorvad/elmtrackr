@@ -1,8 +1,20 @@
 package com.elmtrackr.app.data.remote
 
 interface RemotePremiumProfileDataSource {
-    suspend fun fetchUpdatedSince(sinceIso: String?, limit: Int): List<RemotePremiumProfileRow>
+    /** See RemoteShiftDataSource.fetchUpdatedSince for what [offset] is for. */
+    suspend fun fetchUpdatedSince(
+        sinceIso: String?,
+        limit: Int,
+        offset: Int = 0,
+    ): List<RemotePremiumProfileRow>
+
+    suspend fun findById(remoteId: String): RemotePremiumProfileRow?
+
     suspend fun insert(profile: RemotePremiumProfileInsert): RemotePremiumProfileRow
-    suspend fun update(remoteId: String, profile: RemotePremiumProfileUpdate)
-    suspend fun delete(remoteId: String)
+
+    /** @return null when a newer edit already exists remotely. */
+    suspend fun update(
+        remoteId: String,
+        profile: RemotePremiumProfileUpdate,
+    ): RemotePremiumProfileRow?
 }

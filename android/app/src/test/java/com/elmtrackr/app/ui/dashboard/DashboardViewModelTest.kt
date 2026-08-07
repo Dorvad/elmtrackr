@@ -339,7 +339,7 @@ class DashboardViewModelTest {
         advanceUntilIdle()
 
         val checklist = collected.filterNotNull().lastOrNull()
-        assertEquals(6, checklist?.totalCount)
+        assertEquals(com.elmtrackr.app.domain.setup.SetupStep.entries.size, checklist?.totalCount)
         assertEquals(0, checklist?.completedCount)
         job.cancel()
     }

@@ -25,6 +25,8 @@ import com.elmtrackr.app.data.sync.PreferenceSyncCursorStore
 import com.elmtrackr.app.data.sync.SyncCursorStore
 import com.elmtrackr.app.data.sync.SyncScheduler
 import com.elmtrackr.app.data.sync.SyncTrigger
+import com.elmtrackr.app.data.receipts.PhotoFileManager
+import com.elmtrackr.app.domain.repository.ReceiptFileReader
 import com.elmtrackr.app.domain.repository.RefundReceiptStorage
 import com.elmtrackr.app.ui.settings.AppThemePreferenceStore
 import com.elmtrackr.app.ui.settings.ThemePreferenceStore
@@ -100,4 +102,29 @@ object AppModule {
     @Provides
     fun provideRefundReceiptStorage(): RefundReceiptStorage? =
         SupabaseClientProvider.get()?.let { SupabaseRefundReceiptStorage(it) }
+
+    @Provides
+    fun provideRemoteProjectsDataSource(): com.elmtrackr.app.data.remote.RemoteProjectDataSource? =
+        SupabaseClientProvider.get()?.let {
+            com.elmtrackr.app.data.remote.SupabaseProjectsDataSource(it)
+        }
+
+    @Provides
+    fun provideRemoteProjectBillingRecordsDataSource():
+        com.elmtrackr.app.data.remote.RemoteProjectBillingRecordDataSource? =
+        SupabaseClientProvider.get()?.let {
+            com.elmtrackr.app.data.remote.SupabaseProjectBillingRecordsDataSource(it)
+        }
+
+    @Provides
+    fun provideRemoteProjectPaymentsDataSource():
+        com.elmtrackr.app.data.remote.RemoteProjectPaymentDataSource? =
+        SupabaseClientProvider.get()?.let {
+            com.elmtrackr.app.data.remote.SupabaseProjectPaymentsDataSource(it)
+        }
+
+    @Provides
+    fun provideReceiptFileReader(
+        @ApplicationContext context: Context,
+    ): ReceiptFileReader = PhotoFileManager(context)
 }

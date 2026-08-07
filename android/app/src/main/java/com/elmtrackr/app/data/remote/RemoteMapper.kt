@@ -34,8 +34,14 @@ fun ShiftEntity.toRemoteInsert(
     taskNameSnapshot = taskNameSnapshot,
     taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
+    clientUpdatedAt = epochToIso(updatedAt),
 )
 
+/**
+ * @param deleted pushes the row as a tombstone. Passing the entity's own
+ *   `deletedAt` keeps the delete carrying the same edit time as any other
+ *   change, so a delete and a concurrent edit are ordered by the same rule.
+ */
 fun ShiftEntity.toRemoteUpdate(
     compensationProfileRemoteId: String? = null,
     premiumProfileRemoteId: String? = null,
@@ -55,6 +61,8 @@ fun ShiftEntity.toRemoteUpdate(
     taskNameSnapshot = taskNameSnapshot,
     taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
+    deletedAt = deletedAt?.let(::epochToIso),
+    clientUpdatedAt = epochToIso(updatedAt),
 )
 
 /**
@@ -100,7 +108,10 @@ fun RemoteShiftRow.toLocalEntity(
         compensationSource = preserveLocal?.compensationSource,
         createdAt = created,
         updatedAt = updated,
-        deletedAt = null,
+        // Carries the cloud tombstone through to the local row. Without this a
+        // delete made on another device arrived as an ordinary update and the
+        // shift stayed visible here forever.
+        deletedAt = deletedAt?.let(::isoToEpoch),
         syncStatus = syncStatus,
         lastSyncError = null,
         lastSyncedAt = updated,

@@ -257,6 +257,11 @@ class FakeRefundClaimDao : RefundClaimDao {
     override suspend fun getClaimByRemoteId(remoteId: String): RefundClaimEntity? =
         store.values.firstOrNull { it.remoteId == remoteId }
 
+    override suspend fun getClaimsAwaitingReceiptUpload(userId: String): List<RefundClaimEntity> =
+        store.values.filter {
+            it.userId == userId && it.deletedAt == null && it.receiptPath == null
+        }
+
     override suspend fun deleteAllForUser(userId: String) {
         store.entries.removeIf { it.value.userId == userId }
         refresh()

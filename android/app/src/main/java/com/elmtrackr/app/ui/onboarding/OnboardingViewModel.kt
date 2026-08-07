@@ -211,9 +211,9 @@ class OnboardingViewModel @Inject constructor(
 
     private fun validate(input: OnboardingInput): Map<String, UiText> {
         val errors = mutableMapOf<String, UiText>()
-        if (input.displayName.isBlank()) {
-            errors["displayName"] = UiText.Res(R.string.onboarding_profile_name_error)
-        }
+        // A blank display name is accepted. It feeds the dashboard greeting and
+        // nothing else, so refusing to finish setup without one made a cosmetic
+        // field a gate on using the app. The setup checklist asks for it later.
         // Same bounds the screen enforces (daily ≤ 24 h, weekly ≤ 168 h) so the
         // two layers cannot drift apart.
         if (input.dailyOvertimeHours <= 0 || input.dailyOvertimeHours > 24) {

@@ -302,7 +302,8 @@
     <string name="settings_export_backup">ייצוא גיבוי</string>
     <string name="settings_importing">מייבא…</string>
     <string name="settings_import_backup">ייבוא גיבוי</string>
-    <string name="settings_backup_hint">קובץ JSON פשוט עם כל מה שבמכשיר הזה. ייבוא אף פעם לא דורס פריטים קיימים.</string>
+    <string name="settings_backup_hint">קובץ JSON עם המשמרות, החזרי הנסיעות, הגדרות השכר, הפרויקטים והחיובים שלך. צילומי קבלות אינם נכללים. ייבוא אף פעם לא דורס פריטים קיימים.</string>
+    <string name="settings_backup_privacy_warning">הקובץ אינו מוצפן. כל מי שפותח אותו יכול לקרוא את השעות, השכר ופרטי הלקוחות שלך, לכן שמרו אותו במקום פרטי.</string>
     <string name="settings_synced_on_device">%1$s מסונכרנים</string>
     <string name="settings_up_to_date">מעודכן</string>
     <string name="settings_count_pending">%1$s ממתינים</string>
@@ -344,6 +345,9 @@
     <string name="sync_failed_with">הסנכרון נכשל — %1$s</string>
     <string name="sync_finished">הסנכרון הסתיים</string>
     <string name="sync_failed">הסנכרון נכשל</string>
+    <string name="sync_not_configured">סנכרון לענן אינו מוגדר. הנתונים שלך שמורים במכשיר הזה.</string>
+    <string name="sync_failed_retrying">הסנכרון לא הושלם. ננסה שוב באופן אוטומטי.</string>
+    <string name="settings_sync_synced_some_skipped">הסנכרון הושלם, אך חלק מהפריטים דולגו.</string>
     <string name="sync_session_expired">החיבור לחשבון פג. צריך להתחבר שוב כדי להמשיך לסנכרן.</string>
     <string name="sync_backup_ready">הגיבוי מוכן לשיתוף</string>
     <string name="sync_export_failed">ייצוא הגיבוי לא הצליח</string>

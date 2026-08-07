@@ -61,6 +61,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -113,6 +114,7 @@ import com.elmtrackr.app.ui.design.ElmDistributionLegend
 import com.elmtrackr.app.ui.design.ElmEmptyState
 import com.elmtrackr.app.ui.design.ElmStatCard
 import com.elmtrackr.app.ui.design.ElmStatVariant
+import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
 import com.elmtrackr.app.ui.design.ElmSectionHeader
@@ -1612,7 +1614,11 @@ private fun RefundReview(
         return
     }
     if (claims.isNotEmpty()) RefundAnalytics(claims, state.allShifts, state.settings, state.profiles, state.premiumProfiles, state.zone)
-    val exportRows = submittedExportRows(state.allShifts, claims)
+    // Remembered: this walks every shift ever recorded against every claim, and
+    // it only changes when one of those lists does.
+    val exportRows = remember(state.allShifts, claims) {
+        submittedExportRows(state.allShifts, claims)
+    }
     if (exportRows.isNotEmpty()) {
         Spacer(Modifier.height(14.dp))
         Button(
@@ -1681,7 +1687,20 @@ private fun RefundReview(
             .toMap()
         claims.groupBy { monthOfShift[it.shiftId] }
     }
-    shiftsByMonth.forEach { (month, monthShifts) ->
+    // Only a window of months is composed. This list is every reimbursable shift
+    // the user has ever recorded, and it lives inside a verticalScroll — which
+    // composes and measures every child whether or not it is on screen. After a
+    // few years that is thousands of rows built before the first frame, and
+    // rebuilt on every recomposition of this screen.
+    //
+    // A window rather than a LazyColumn because the refunds tab is one section of
+    // a scrolling page, and a lazy list nested in a vertical scroller has no
+    // bounded height to work with.
+    var visibleMonths by rememberSaveable { mutableIntStateOf(INITIAL_REFUND_MONTHS) }
+    val monthsToShow = shiftsByMonth.entries.take(visibleMonths)
+    val hiddenMonths = shiftsByMonth.size - monthsToShow.size
+
+    monthsToShow.forEach { (month, monthShifts) ->
         RefundMonthCard(
             month = month,
             shifts = monthShifts,
@@ -1713,7 +1732,22 @@ private fun RefundReview(
         )
         Spacer(Modifier.height(12.dp))
     }
+
+    if (hiddenMonths > 0) {
+        TextButton(
+            onClick = { visibleMonths += REFUND_MONTHS_STEP },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = Layout.minTouchTarget),
+        ) {
+            Text(stringResource(R.string.reports_show_earlier_months, hiddenMonths))
+        }
+    }
 }
+
+/** Months of refund history composed before the user asks for more. */
+private const val INITIAL_REFUND_MONTHS = 3
+private const val REFUND_MONTHS_STEP = 6
 
 @Composable
 private fun RefundAnalytics(
@@ -1786,9 +1820,13 @@ private fun RefundMonthCard(
             StatPill(stringResource(R.string.dashboard_stat_total), MoneyFormatter.format(claims.sumOf { it.amount }, currency), MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, Modifier.weight(1f))
         }
         Spacer(Modifier.height(10.dp))
-        shifts.sortedByDescending { it.startTime }.forEachIndexed { index, shift ->
+        // Sorted and indexed once per card rather than per row: the sort ran on
+        // every recomposition and the claim lookup was a scan for each shift.
+        val orderedShifts = remember(shifts) { shifts.sortedByDescending { it.startTime } }
+        val claimsByShift = remember(claims) { claims.groupBy { it.shiftId } }
+        orderedShifts.forEachIndexed { index, shift ->
             if (index > 0) HorizontalDivider(Modifier.padding(vertical = 7.dp), color = MaterialTheme.colorScheme.outlineVariant)
-            val shiftClaims = claims.filter { it.shiftId == shift.id }
+            val shiftClaims = claimsByShift[shift.id].orEmpty()
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
                     Text(shift.startTime.atZone(zone).format(DateTimeFormatter.ofPattern("EEE, d MMM", appLocale())), fontWeight = FontWeight.SemiBold)
@@ -2037,12 +2075,19 @@ private fun ReportRow(label: String, value: String, valueColor: Color = AuroraIn
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/**
+ * Indexes the claims once instead of scanning them per shift. The old form was
+ * shifts × claims, and both grow with the user's whole history, so the cost of
+ * this rose with the square of how long they had been using the app.
+ */
 private fun submittedExportRows(
     shifts: List<Shift>,
     claims: List<RefundClaim>,
-): List<Pair<Shift, RefundClaim>> =
-    shifts.filter { it.refundAction == RefundAction.SUBMITTED }
-        .flatMap { shift -> claims.filter { it.shiftId == shift.id }.map { shift to it } }
+): List<Pair<Shift, RefundClaim>> {
+    val claimsByShift = claims.groupBy { it.shiftId }
+    return shifts.filter { it.refundAction == RefundAction.SUBMITTED }
+        .flatMap { shift -> claimsByShift[shift.id].orEmpty().map { shift to it } }
+}
 
 @Composable
 private fun monthsLabelCount(shifts: List<Shift>, zone: ZoneId): String {

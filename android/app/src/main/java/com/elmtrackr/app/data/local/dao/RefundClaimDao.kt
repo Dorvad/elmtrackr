@@ -127,4 +127,17 @@ interface RefundClaimDao {
 
     @Query("SELECT * FROM refund_claims WHERE remoteId = :remoteId LIMIT 1")
     suspend fun getClaimByRemoteId(remoteId: String): RefundClaimEntity?
+
+    /**
+     * Live claims whose receipt never reached cloud storage.
+     *
+     * A photo that failed to upload leaves the claim saved with receiptPath null
+     * while the image sits in local receipt storage, reachable only from this
+     * device. These are the rows the retry pass picks up.
+     */
+    @Query(
+        "SELECT * FROM refund_claims WHERE userId = :userId " +
+            "AND deletedAt IS NULL AND receiptPath IS NULL"
+    )
+    suspend fun getClaimsAwaitingReceiptUpload(userId: String): List<RefundClaimEntity>
 }

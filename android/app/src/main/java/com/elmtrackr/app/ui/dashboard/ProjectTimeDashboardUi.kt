@@ -21,11 +21,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import com.elmtrackr.app.ui.components.motion.MINUTE_MILLIS
+import com.elmtrackr.app.ui.components.motion.rememberCurrentInstant
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -39,7 +37,6 @@ import com.elmtrackr.app.domain.projects.ProjectClockInOption
 import com.elmtrackr.app.domain.projects.ProjectShiftProjectionCalculator
 import com.elmtrackr.app.domain.money.Money
 import com.elmtrackr.app.domain.text.BidiText
-import kotlinx.coroutines.delay
 import java.time.Instant
 import com.elmtrackr.app.ui.design.ElmCard
 import com.elmtrackr.app.ui.design.ElmChipLabel
@@ -177,13 +174,11 @@ fun ActiveProjectShiftCard(
     // The projected rate and budget move as the shift runs. A minute is the
     // finest resolution any of these figures is shown at, so the card re-projects
     // once a minute rather than on the per-second elapsed-time timer.
-    var now by remember(activeShift.id) { mutableStateOf(Instant.now()) }
-    LaunchedEffect(activeShift.id) {
-        while (true) {
-            now = Instant.now()
-            delay(PROJECTION_TICK_MILLIS)
-        }
-    }
+    //
+    // The shared ticker rather than a local loop: this one kept waking the main
+    // thread once a minute behind the launcher, because composition survives
+    // being stopped and `delay` is a scheduled resumption, not a frame callback.
+    val now = rememberCurrentInstant(MINUTE_MILLIS)
     val projection = remember(project, activeShift, projectShifts, now) {
         ProjectShiftProjectionCalculator.project(project, activeShift, projectShifts, now)
     }
@@ -274,7 +269,6 @@ fun ActiveProjectShiftCard(
 }
 
 /** A minute: the finest resolution any figure on this card is shown at. */
-private const val PROJECTION_TICK_MILLIS = 60_000L
 
 @Composable
 private fun RateFigure(label: String, rate: Money?, modifier: Modifier = Modifier) {

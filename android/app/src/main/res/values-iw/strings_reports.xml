@@ -72,6 +72,7 @@
     <string name="reports_reminder_other">%1$d תזכורות</string>
     <string name="reports_open_shift_submit">פותחים את המשמרת כדי להגיש בקשה או לסמן שלא הייתה נסיעה.</string>
     <string name="reports_reimb_history">היסטוריית החזרים</string>
+    <string name="reports_show_earlier_months">הצגת %1$d חודשים קודמים</string>
     <string name="reports_showing_months">מוצגים %1$s עם החזרי נסיעות.</string>
     <string name="reports_month_count_one">%1$d חודש</string>
     <string name="reports_month_count_other">%1$d חודשים</string>

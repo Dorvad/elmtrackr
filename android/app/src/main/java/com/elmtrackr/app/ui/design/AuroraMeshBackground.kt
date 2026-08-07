@@ -19,7 +19,9 @@ import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeach
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.isAuroraDarkTheme
-import java.time.LocalTime
+import com.elmtrackr.app.ui.components.motion.HOUR_MILLIS
+import com.elmtrackr.app.ui.components.motion.rememberCurrentInstant
+import com.elmtrackr.app.ui.common.LocalWorkZone
 
 private enum class AuroraPhase { Dawn, Day, Dusk, Night }
 
@@ -60,7 +62,14 @@ private fun phaseColors(phase: AuroraPhase, dark: Boolean): Triple<Color, Color,
 fun AuroraMeshBackground(
     modifier: Modifier = Modifier,
 ) {
-    val phase = remember { hourToPhase(LocalTime.now().hour) }
+    // Keyed on the ticking hour. `remember {}` with no key read the clock once
+    // per composition and then kept that phase for the life of the screen, so a
+    // background opened in the afternoon stayed on afternoon colours into the
+    // night.
+    // The work zone where a screen provides one, so the background does not sit
+    // on evening colours behind a dashboard that says it is still afternoon.
+    val hour = rememberCurrentInstant(HOUR_MILLIS).atZone(LocalWorkZone.current).hour
+    val phase = remember(hour) { hourToPhase(hour) }
     val dark = isAuroraDarkTheme()
     val (c0, c1, c2) = remember(phase, dark) { phaseColors(phase, dark) }
     // Held at the midpoint rather than an extreme when motion is reduced: drift

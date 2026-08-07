@@ -17,6 +17,7 @@ fun RefundClaimEntity.toRemoteInsert(shiftRemoteId: String): RemoteRefundClaimIn
         rideAt = epochToIso(rideAt),
         notes = notes,
         receiptPath = receiptPath,
+        clientUpdatedAt = epochToIso(updatedAt),
     )
 
 fun RefundClaimEntity.toRemoteUpdate(): RemoteRefundClaimUpdate = RemoteRefundClaimUpdate(
@@ -26,6 +27,8 @@ fun RefundClaimEntity.toRemoteUpdate(): RemoteRefundClaimUpdate = RemoteRefundCl
     rideAt = epochToIso(rideAt),
     notes = notes,
     receiptPath = receiptPath,
+    deletedAt = deletedAt?.let(::epochToIso),
+    clientUpdatedAt = epochToIso(updatedAt),
 )
 
 fun RemoteRefundClaimRow.toLocalEntity(
@@ -48,7 +51,9 @@ fun RemoteRefundClaimRow.toLocalEntity(
         receiptPath = receiptPath,
         createdAt = created,
         updatedAt = updated,
-        deletedAt = null,
+        // Carries the cloud tombstone through, so a claim deleted on another
+        // device stops showing here too.
+        deletedAt = deletedAt?.let(::isoToEpoch),
         syncStatus = syncStatus,
         lastSyncError = null,
         lastSyncedAt = updated,

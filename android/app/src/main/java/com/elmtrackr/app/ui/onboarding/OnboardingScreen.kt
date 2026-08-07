@@ -212,8 +212,8 @@ fun OnboardingScreen(
     LaunchedEffect(step) { scrollState.scrollTo(0) }
 
     BackHandler(enabled = replay && step == 1) { onCompleted() }
-    BackHandler(enabled = step > STEP_LANGUAGE) {
-        step = previousOnboardingStep(step, paidProjects)
+    BackHandler(enabled = step > STEP_WELCOME) {
+        step = previousOnboardingStep(step)
     }
 
     val hourlyRate = hourlyRateText.toDoubleOrNull()
@@ -262,8 +262,8 @@ fun OnboardingScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 OnboardingProgress(
-                    step = onboardingProgressStep(step, paidProjects),
-                    totalSteps = onboardingTotalSteps(paidProjects),
+                    step = step,
+                    totalSteps = onboardingTotalSteps(),
                     titleRes = stepTitleRes(step),
                 )
                 Spacer(Modifier.height(24.dp))
@@ -282,11 +282,8 @@ fun OnboardingScreen(
                 ) { current ->
                     Column(Modifier.widthIn(max = 460.dp).fillMaxWidth()) {
                         when (current) {
-                            STEP_LANGUAGE -> LanguageStep(
-                                onNext = { step = nextOnboardingStep(STEP_LANGUAGE, paidProjects) },
-                            )
                             STEP_WELCOME -> WelcomeStep(replay) {
-                                step = nextOnboardingStep(STEP_WELCOME, paidProjects)
+                                step = nextOnboardingStep(STEP_WELCOME)
                             }
                             STEP_REGION -> RegionStep(
                                 regionCode = regionCode,
@@ -307,18 +304,8 @@ fun OnboardingScreen(
                                         weekendDays = preset.rules.weekendDays
                                     }
                                 },
-                                onBack = { step = previousOnboardingStep(STEP_REGION, paidProjects) },
-                                onNext = { step = nextOnboardingStep(STEP_REGION, paidProjects) },
-                            )
-                            STEP_PROFILE -> ProfileStep(
-                                name = displayName,
-                                email = initialProfile?.email.orEmpty(),
-                                onNameChange = { displayName = it },
-                                showError = !profileValid && displayName.isNotEmpty(),
-                                onBack = { step = previousOnboardingStep(STEP_PROFILE, paidProjects) },
-                                onNext = {
-                                    if (profileValid) step = nextOnboardingStep(STEP_PROFILE, paidProjects)
-                                },
+                                onBack = { step = previousOnboardingStep(STEP_REGION) },
+                                onNext = { step = nextOnboardingStep(STEP_REGION) },
                             )
                             STEP_PAY -> PaySetupStep(
                                 hourlyRate = hourlyRateText,
@@ -326,87 +313,10 @@ fun OnboardingScreen(
                                 onHourlyRateChange = { hourlyRateText = it.decimalInput() },
                                 onCurrencyChange = { currency = it; currencyCode = it.name },
                                 valid = payValid,
-                                onBack = { step = previousOnboardingStep(STEP_PAY, paidProjects) },
+                                onBack = { step = previousOnboardingStep(STEP_PAY) },
                                 onNext = {
-                                    if (payValid) step = nextOnboardingStep(STEP_PAY, paidProjects)
+                                    if (payValid) step = nextOnboardingStep(STEP_PAY)
                                 },
-                            )
-                            STEP_WORK_WEEK -> WorkWeekStep(
-                                weekendDays = weekendDays,
-                                dailyOt = dailyOtText,
-                                weeklyOt = weeklyOtText,
-                                timezone = timezone,
-                                onWeekendDaysChange = { weekendDays = it },
-                                onDailyOtChange = { dailyOtText = it.decimalInput() },
-                                onWeeklyOtChange = { weeklyOtText = it.decimalInput() },
-                                onTimezoneChange = { timezone = it },
-                                valid = workWeekValid,
-                                onBack = { step = previousOnboardingStep(STEP_WORK_WEEK, paidProjects) },
-                                onNext = {
-                                    if (workWeekValid) step = nextOnboardingStep(STEP_WORK_WEEK, paidProjects)
-                                },
-                            )
-                            STEP_FEATURES -> FeaturesStep(
-                                travelRefunds, insights,
-                                { travelRefunds = it }, { insights = it },
-                                onBack = { step = previousOnboardingStep(STEP_FEATURES, paidProjects) },
-                                onNext = { step = nextOnboardingStep(STEP_FEATURES, paidProjects) },
-                            )
-                            STEP_PAID_PROJECTS -> PaidProjectsStep(
-                                enabled = paidProjects,
-                                onChoose = { enable ->
-                                    paidProjects = enable
-                                    step = nextOnboardingStep(STEP_PAID_PROJECTS, enable)
-                                },
-                                onBack = { step = previousOnboardingStep(STEP_PAID_PROJECTS, paidProjects) },
-                            )
-                            STEP_PROJECT_DEFAULTS -> ProjectDefaultsStep(
-                                regionCode = projectRegionCode ?: regionCode,
-                                currency = projectCurrency ?: currency,
-                                taxLabel = projectTaxLabel,
-                                taxRate = projectTaxRateText,
-                                taxInclusive = projectTaxInclusive,
-                                taxRateValid = projectTaxValid,
-                                onRegionChange = { projectRegionCode = it },
-                                onCurrencyChange = { projectCurrency = it },
-                                onTaxLabelChange = { projectTaxLabel = it },
-                                onTaxRateChange = { projectTaxRateText = it.decimalInput() },
-                                onTaxInclusiveChange = { projectTaxInclusive = it },
-                                onSkip = {
-                                    // Skipping clears the optional tax fields so a
-                                    // half-typed rate is never silently stored.
-                                    projectTaxLabel = ""
-                                    projectTaxRateText = ""
-                                    projectTaxInclusive = false
-                                    step = nextOnboardingStep(STEP_PROJECT_DEFAULTS, paidProjects)
-                                },
-                                onBack = { step = previousOnboardingStep(STEP_PROJECT_DEFAULTS, paidProjects) },
-                                onNext = {
-                                    if (projectTaxValid) {
-                                        step = nextOnboardingStep(STEP_PROJECT_DEFAULTS, paidProjects)
-                                    }
-                                },
-                            )
-                            STEP_SECURITY -> SecurityStep(
-                                appLockEnabled = enableAppLock,
-                                biometricAvailability = biometricAvailability,
-                                onAppLockChange = { enabled ->
-                                    // Confirmed in both directions, mirroring the
-                                    // Settings security screen — a replay seeds the
-                                    // toggle on, and turning it off is as much a
-                                    // security decision as turning it on.
-                                    activity?.let { host ->
-                                        BiometricAuthPrompt.show(
-                                            activity = host,
-                                            title = appLockPromptTitle,
-                                            subtitle = appLockPromptSubtitle,
-                                            onSuccess = { enableAppLock = enabled },
-                                            onFailure = { },
-                                        )
-                                    }
-                                },
-                                onBack = { step = previousOnboardingStep(STEP_SECURITY, paidProjects) },
-                                onNext = { step = nextOnboardingStep(STEP_SECURITY, paidProjects) },
                             )
                             else -> ReviewStep(
                                 displayName = displayName.trim(),
@@ -418,7 +328,7 @@ fun OnboardingScreen(
                                     .count { it },
                                 paidProjectsEnabled = paidProjects,
                                 error = (state as? OnboardingUiState.ValidationError)?.errors?.values?.firstOrNull()?.asString(),
-                                onBack = { step = previousOnboardingStep(STEP_REVIEW, paidProjects) },
+                                onBack = { step = previousOnboardingStep(STEP_REVIEW) },
                                 onFinish = {
                                     val validDailyOt = dailyOt ?: return@ReviewStep
                                     val validWeeklyOt = weeklyOt ?: return@ReviewStep
@@ -507,16 +417,9 @@ internal fun OnboardingProgress(
 
 @StringRes
 private fun stepTitleRes(step: Int): Int = when (step) {
-    STEP_LANGUAGE -> R.string.onboarding_step_language
     STEP_WELCOME -> R.string.onboarding_step_welcome
     STEP_REGION -> R.string.onboarding_step_region
-    STEP_PROFILE -> R.string.onboarding_step_profile
     STEP_PAY -> R.string.onboarding_step_pay
-    STEP_WORK_WEEK -> R.string.onboarding_step_work_week
-    STEP_FEATURES -> R.string.onboarding_step_features
-    STEP_PAID_PROJECTS -> R.string.onboarding_step_paid_projects
-    STEP_PROJECT_DEFAULTS -> R.string.onboarding_step_project_defaults
-    STEP_SECURITY -> R.string.onboarding_step_security
     else -> R.string.onboarding_step_review
 }
 
@@ -531,49 +434,6 @@ internal fun percentTextToBasisPoints(text: String): Int {
 internal fun basisPointsToPercentText(basisPoints: Int): String {
     if (basisPoints <= 0) return ""
     return (basisPoints / 100.0).toString().removeSuffix(".0")
-}
-
-@Composable
-internal fun LanguageStep(onNext: () -> Unit) {
-    // Selection reflects the language the UI is currently rendered in;
-    // picking a language applies it immediately (recreating the activity),
-    // and rememberSaveable keeps the flow on this step.
-    val context = LocalContext.current
-    val uiLanguage = LocalConfiguration.current.locales[0]?.language
-    val hebrewSelected = uiLanguage == "he" || uiLanguage == "iw"
-    SetupHero(
-        Icons.Filled.Language,
-        stringResource(R.string.onboarding_language_title),
-        stringResource(R.string.onboarding_language_subtitle),
-    )
-    SetupCard {
-        // Each option is intentionally hardcoded in its own language so it
-        // stays readable no matter which language is currently active.
-        LanguageOptionCard(
-            title = "English",
-            subtitle = "Track your hours in English",
-            selected = !hebrewSelected,
-            layoutDirection = LayoutDirection.Ltr,
-            onClick = { AppLanguage.apply(context, AppLanguage.ENGLISH) },
-        )
-        LanguageOptionCard(
-            title = "עברית",
-            subtitle = "לעקוב אחרי השעות שלך בעברית",
-            selected = hebrewSelected,
-            layoutDirection = LayoutDirection.Rtl,
-            onClick = { AppLanguage.apply(context, AppLanguage.HEBREW) },
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            stringResource(R.string.onboarding_language_change_later),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-    Spacer(Modifier.height(18.dp))
-    ElmGradientButton(onClick = onNext) {
-        Text(stringResource(R.string.onboarding_continue), fontWeight = FontWeight.Bold)
-    }
 }
 
 @Composable
@@ -675,37 +535,6 @@ internal fun RegionStep(
 }
 
 @Composable
-internal fun ProfileStep(
-    name: String,
-    email: String,
-    onNameChange: (String) -> Unit,
-    showError: Boolean,
-    onBack: () -> Unit,
-    onNext: () -> Unit,
-) {
-    SetupHero(Icons.Filled.Person, stringResource(R.string.onboarding_profile_title), stringResource(R.string.onboarding_profile_subtitle))
-    SetupCard {
-        OutlinedTextField(
-            value = name,
-            onValueChange = onNameChange,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.onboarding_profile_name_label)) },
-            placeholder = { Text(stringResource(R.string.onboarding_profile_name_placeholder)) },
-            supportingText = { Text(if (showError) stringResource(R.string.onboarding_profile_name_error) else stringResource(R.string.onboarding_profile_name_helper)) },
-            isError = showError,
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-        )
-        if (email.isNotBlank()) {
-            Spacer(Modifier.height(10.dp))
-            Text(stringResource(R.string.onboarding_profile_signed_in_as, email), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-    Spacer(Modifier.height(18.dp))
-    NavRow(onBack, onNext, nextEnabled = name.isNotBlank())
-}
-
-@Composable
 internal fun PaySetupStep(
     hourlyRate: String,
     currency: CurrencyCode,
@@ -760,116 +589,6 @@ internal fun PaySetupStep(
                 }
             }
             Spacer(Modifier.height(8.dp))
-        }
-    }
-    Spacer(Modifier.height(18.dp))
-    NavRow(onBack, onNext, nextEnabled = valid)
-}
-
-@Composable
-internal fun WorkWeekStep(
-    weekendDays: List<Int>,
-    dailyOt: String,
-    weeklyOt: String,
-    timezone: String,
-    onWeekendDaysChange: (List<Int>) -> Unit,
-    onDailyOtChange: (String) -> Unit,
-    onWeeklyOtChange: (String) -> Unit,
-    onTimezoneChange: (String) -> Unit,
-    valid: Boolean,
-    onBack: () -> Unit,
-    onNext: () -> Unit,
-) {
-    var showTimezoneEditor by rememberSaveable { mutableStateOf(false) }
-    SetupHero(Icons.Filled.CalendarMonth, stringResource(R.string.onboarding_work_week_title), stringResource(R.string.onboarding_work_week_subtitle))
-    SetupCard {
-        val dayLabels = stringArrayResource(R.array.weekday_short_labels)
-        Text(stringResource(R.string.onboarding_weekend_days_label), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-        Text(stringResource(R.string.onboarding_weekend_days_helper), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(10.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            dayLabels.forEachIndexed { day, label ->
-                val selected = day in weekendDays
-                Card(
-                    onClick = {
-                        onWeekendDaysChange(
-                            if (selected) weekendDays - day else (weekendDays + day).sorted(),
-                        )
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(CornerRadius.Small),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-                ) {
-                    Text(
-                        label.take(2),
-                        Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-        if (weekendDays.isEmpty()) {
-            Text(stringResource(R.string.onboarding_weekend_days_error), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-        }
-        Spacer(Modifier.height(18.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedTextField(
-                value = dailyOt,
-                onValueChange = onDailyOtChange,
-                modifier = Modifier.weight(1f),
-                label = { Text(stringResource(R.string.onboarding_daily_ot_label)) },
-                suffix = { Text(stringResource(R.string.onboarding_hours_suffix)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            )
-            OutlinedTextField(
-                value = weeklyOt,
-                onValueChange = onWeeklyOtChange,
-                modifier = Modifier.weight(1f),
-                label = { Text(stringResource(R.string.onboarding_weekly_ot_label)) },
-                suffix = { Text(stringResource(R.string.onboarding_hours_suffix)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            )
-        }
-        if (!valid && weekendDays.isNotEmpty()) {
-            Text(stringResource(R.string.onboarding_ot_error), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-        }
-        Spacer(Modifier.height(14.dp))
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(CornerRadius.Medium))
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Filled.Public, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.onboarding_timezone_label), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(timezone, fontWeight = FontWeight.SemiBold)
-                Text(
-                    stringResource(R.string.onboarding_timezone_helper),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = { showTimezoneEditor = !showTimezoneEditor }) {
-                Text(if (showTimezoneEditor) stringResource(R.string.onboarding_hide_timezone_picker) else stringResource(R.string.onboarding_change_timezone))
-            }
-        }
-        if (showTimezoneEditor) {
-            IanaTimezonePicker(
-                selected = timezone,
-                onSelect = onTimezoneChange,
-            )
         }
     }
     Spacer(Modifier.height(18.dp))
@@ -936,222 +655,6 @@ private fun ReviewRow(label: String, value: String, showDivider: Boolean = true)
     if (showDivider) Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
 }
 
-/**
- * The Paid Projects question. Two explicit choices rather than a switch: the
- * answer decides whether the optional defaults step is shown next, so an
- * unanswered switch would leave the wizard with nowhere sensible to go.
- *
- * Writes the same persisted flag Settings edits — there is no onboarding-only
- * copy of this value.
- */
-@Composable
-internal fun PaidProjectsStep(
-    enabled: Boolean,
-    onChoose: (Boolean) -> Unit,
-    onBack: () -> Unit,
-) {
-    SetupHero(
-        Icons.Outlined.WorkOutline,
-        stringResource(R.string.onboarding_paid_projects_title),
-        stringResource(R.string.onboarding_paid_projects_subtitle),
-    )
-    ChoiceCard(
-        title = stringResource(R.string.onboarding_paid_projects_yes),
-        description = stringResource(R.string.onboarding_paid_projects_yes_desc),
-        selected = enabled,
-        onClick = { onChoose(true) },
-    )
-    ChoiceCard(
-        title = stringResource(R.string.onboarding_paid_projects_no),
-        description = stringResource(R.string.onboarding_paid_projects_no_desc),
-        selected = !enabled,
-        onClick = { onChoose(false) },
-    )
-    Spacer(Modifier.height(18.dp))
-    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.onboarding_back))
-    }
-}
-
-/**
- * Defaults applied to new projects. Everything here is optional; the tax rate
- * in particular is left blank unless the user types one — the app must not
- * invent a rate, so a skipped or empty field stores 0 (tax off).
- */
-@Composable
-internal fun ProjectDefaultsStep(
-    regionCode: RegionCode,
-    currency: CurrencyCode,
-    taxLabel: String,
-    taxRate: String,
-    taxInclusive: Boolean,
-    taxRateValid: Boolean,
-    onRegionChange: (RegionCode) -> Unit,
-    onCurrencyChange: (CurrencyCode) -> Unit,
-    onTaxLabelChange: (String) -> Unit,
-    onTaxRateChange: (String) -> Unit,
-    onTaxInclusiveChange: (Boolean) -> Unit,
-    onSkip: () -> Unit,
-    onBack: () -> Unit,
-    onNext: () -> Unit,
-) {
-    SetupHero(
-        Icons.Filled.Public,
-        stringResource(R.string.onboarding_project_defaults_title),
-        stringResource(R.string.onboarding_project_defaults_subtitle),
-    )
-    SetupCard {
-        Text(
-            stringResource(R.string.onboarding_project_defaults_country),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.height(8.dp))
-        RegionPresets.all.chunked(2).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { preset ->
-                    val selected = preset.regionCode == regionCode
-                    Card(
-                        onClick = { onRegionChange(preset.regionCode) },
-                        modifier = Modifier.weight(1f).then(
-                            if (selected) {
-                                Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(CornerRadius.Medium))
-                            } else {
-                                Modifier
-                            },
-                        ),
-                        shape = RoundedCornerShape(CornerRadius.Medium),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (selected) {
-                                MaterialTheme.colorScheme.primaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            },
-                        ),
-                    ) {
-                        Text(
-                            stringResource(preset.labelRes),
-                            modifier = Modifier.padding(11.dp),
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(8.dp))
-        }
-
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(R.string.onboarding_project_defaults_currency),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.height(8.dp))
-        CurrencyCode.entries.chunked(2).forEach { rowCurrencies ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                rowCurrencies.forEach { option ->
-                    val selected = option == currency
-                    Card(
-                        onClick = { onCurrencyChange(option) },
-                        modifier = Modifier.weight(1f).then(
-                            if (selected) {
-                                Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(CornerRadius.Medium))
-                            } else {
-                                Modifier
-                            },
-                        ),
-                        shape = RoundedCornerShape(CornerRadius.Medium),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (selected) {
-                                MaterialTheme.colorScheme.primaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            },
-                        ),
-                    ) {
-                        Row(Modifier.fillMaxWidth().padding(11.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                option.symbol,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(option.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-        }
-
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(R.string.onboarding_project_defaults_tax_section),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = taxLabel,
-            onValueChange = onTaxLabelChange,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.onboarding_project_defaults_tax_label)) },
-            placeholder = { Text(stringResource(R.string.onboarding_project_defaults_tax_label_placeholder)) },
-            supportingText = { Text(stringResource(R.string.onboarding_project_defaults_tax_label_helper)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
-        )
-        Spacer(Modifier.height(10.dp))
-        OutlinedTextField(
-            value = taxRate,
-            onValueChange = onTaxRateChange,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.onboarding_project_defaults_tax_rate)) },
-            supportingText = {
-                Text(
-                    if (taxRateValid) {
-                        stringResource(R.string.onboarding_project_defaults_tax_rate_helper)
-                    } else {
-                        stringResource(R.string.onboarding_project_defaults_tax_rate_error)
-                    },
-                )
-            },
-            isError = !taxRateValid,
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        )
-        Spacer(Modifier.height(12.dp))
-        ChoiceCard(
-            title = stringResource(R.string.onboarding_project_defaults_tax_exclusive),
-            description = stringResource(R.string.onboarding_project_defaults_tax_exclusive_desc),
-            selected = !taxInclusive,
-            onClick = { onTaxInclusiveChange(false) },
-        )
-        ChoiceCard(
-            title = stringResource(R.string.onboarding_project_defaults_tax_inclusive),
-            description = stringResource(R.string.onboarding_project_defaults_tax_inclusive_desc),
-            selected = taxInclusive,
-            onClick = { onTaxInclusiveChange(true) },
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            stringResource(R.string.onboarding_project_defaults_disclaimer),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-    Spacer(Modifier.height(18.dp))
-    NavRow(onBack, onNext, nextEnabled = taxRateValid)
-    Spacer(Modifier.height(8.dp))
-    TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.onboarding_project_defaults_skip))
-    }
-}
-
-/** Selectable option card used by the two new steps. */
 @Composable
 private fun ChoiceCard(
     title: String,
@@ -1221,6 +724,15 @@ private fun SetupCard(content: @Composable () -> Unit) {
 
 @Composable
 internal fun WelcomeStep(replay: Boolean, onNext: () -> Unit) {
+    // Language lives here rather than on a screen of its own. It was the very
+    // first thing the wizard asked, before the app had said what it was — and it
+    // is one choice with two options, which is not a screen's worth of decision.
+    // Picking one applies it immediately and recreates the activity;
+    // rememberSaveable in the host keeps the flow on this step.
+    val context = LocalContext.current
+    val uiLanguage = LocalConfiguration.current.locales[0]?.language
+    val hebrewSelected = uiLanguage == "he" || uiLanguage == "iw"
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(132.dp), contentAlignment = Alignment.Center) {
             Box(Modifier.size(118.dp).background(AuroraAqua.copy(alpha = .16f), RoundedCornerShape(CornerRadius.Large)))
@@ -1242,6 +754,25 @@ internal fun WelcomeStep(replay: Boolean, onNext: () -> Unit) {
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(24.dp))
+        SetupCard {
+            // Each option is written in its own language so it stays readable
+            // whichever one is currently active.
+            LanguageOptionCard(
+                title = "English",
+                subtitle = "Track your hours in English",
+                selected = !hebrewSelected,
+                layoutDirection = LayoutDirection.Ltr,
+                onClick = { AppLanguage.apply(context, AppLanguage.ENGLISH) },
+            )
+            LanguageOptionCard(
+                title = "עברית",
+                subtitle = "לעקוב אחרי השעות שלך בעברית",
+                selected = hebrewSelected,
+                layoutDirection = LayoutDirection.Rtl,
+                onClick = { AppLanguage.apply(context, AppLanguage.HEBREW) },
+            )
+        }
+        Spacer(Modifier.height(16.dp))
         SetupCard {
             Text(
                 stringResource(R.string.onboarding_how_it_works),
@@ -1312,60 +843,6 @@ private fun HowItWorksRow(number: Int, title: String, description: String, showD
         }
     }
     if (showDivider) Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
-}
-
-@Composable
-internal fun SecurityStep(
-    appLockEnabled: Boolean,
-    biometricAvailability: BiometricAvailability,
-    onAppLockChange: (Boolean) -> Unit,
-    onBack: () -> Unit,
-    onNext: () -> Unit,
-) {
-    SetupHero(
-        Icons.Filled.Fingerprint,
-        stringResource(R.string.onboarding_security_title),
-        stringResource(R.string.onboarding_security_subtitle),
-    )
-    SetupCard {
-        val canEnable = biometricAvailability == BiometricAvailability.AVAILABLE
-        FeatureCard(
-            title = stringResource(R.string.onboarding_security_app_lock_title),
-            description = when (biometricAvailability) {
-                BiometricAvailability.AVAILABLE ->
-                    stringResource(R.string.onboarding_security_desc_available)
-                BiometricAvailability.NOT_ENROLLED ->
-                    stringResource(R.string.onboarding_security_desc_not_enrolled)
-                BiometricAvailability.UNAVAILABLE ->
-                    stringResource(R.string.onboarding_security_desc_unavailable)
-            },
-            enabled = appLockEnabled,
-            onChange = { enabled ->
-                if (canEnable || !enabled) onAppLockChange(enabled)
-            },
-            unavailable = !canEnable && !appLockEnabled,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(R.string.onboarding_security_change_later),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-    Spacer(Modifier.height(18.dp))
-    NavRow(onBack, onNext)
-}
-
-@Composable
-internal fun FeaturesStep(
-    travel: Boolean, insights: Boolean,
-    onTravel: (Boolean) -> Unit, onInsights: (Boolean) -> Unit,
-    onBack: () -> Unit, onNext: () -> Unit,
-) {
-    StepHeader(stringResource(R.string.onboarding_features_title), stringResource(R.string.onboarding_features_subtitle))
-    FeatureCard(stringResource(R.string.onboarding_feature_travel_title), stringResource(R.string.onboarding_feature_travel_desc), travel, onTravel)
-    FeatureCard(stringResource(R.string.onboarding_feature_insights_title), stringResource(R.string.onboarding_feature_insights_desc), insights, onInsights)
-    Spacer(Modifier.height(20.dp)); NavRow(onBack, onNext)
 }
 
 @Composable

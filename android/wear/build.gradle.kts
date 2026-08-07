@@ -90,6 +90,18 @@ android {
     buildFeatures {
         compose = true
     }
+
+    bundle {
+        language {
+            // Same reason as :app — the watch UI follows the language chosen in
+            // the phone app, not the device's, so Play must not install only one.
+            enableSplit = false
+        }
+    }
+
+    androidResources {
+        localeFilters += listOf("en", "iw")
+    }
 }
 
 kotlin {

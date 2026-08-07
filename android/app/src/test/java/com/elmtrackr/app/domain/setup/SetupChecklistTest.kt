@@ -17,11 +17,17 @@ class SetupChecklistTest {
         hasAnyTask: Boolean = false,
         hasPinnedWidget: Boolean = false,
         widgetPinSupported: Boolean = true,
+        hasDisplayName: Boolean = false,
+        hasEnabledFeature: Boolean = false,
+        appLockConfigured: Boolean = false,
         visitedStepKeys: Set<String> = emptySet(),
         dismissed: Boolean = false,
         celebrated: Boolean = false,
     ) = SetupChecklistInputs(
         hasCompletedShift = hasCompletedShift,
+        hasDisplayName = hasDisplayName,
+        hasEnabledFeature = hasEnabledFeature,
+        appLockConfigured = appLockConfigured,
         clockStyleCustomized = clockStyleCustomized,
         compensationProfileCount = compensationProfileCount,
         hasCustomPremiumProfile = hasCustomPremiumProfile,
@@ -37,12 +43,48 @@ class SetupChecklistTest {
         steps.first { it.step == step }
 
     @Test
-    fun `fresh user sees all six steps incomplete`() {
+    fun `fresh user sees every step incomplete`() {
         val state = SetupChecklist.build(inputs())
         assertNotNull(state)
-        assertEquals(6, state!!.totalCount)
+        assertEquals(SetupStep.entries.size, state!!.totalCount)
         assertEquals(0, state.completedCount)
         assertFalse(state.showCelebration)
+    }
+
+    /**
+     * These three moved off the sign-up wizard. Each completes from real data
+     * where there is data to read, so a user who already answered is not asked
+     * again, and from a visit otherwise — leaving the features screen with
+     * everything off is a real answer.
+     */
+    @Test
+    fun `a name already on the profile completes its step`() {
+        val state = SetupChecklist.build(inputs(hasDisplayName = true))!!
+
+        assertTrue(state.stepFor(SetupStep.PROFILE_NAME).isComplete)
+    }
+
+    @Test
+    fun `an app lock already switched on completes its step`() {
+        val state = SetupChecklist.build(inputs(appLockConfigured = true))!!
+
+        assertTrue(state.stepFor(SetupStep.APP_LOCK).isComplete)
+    }
+
+    @Test
+    fun `a feature already switched on completes the features step`() {
+        val state = SetupChecklist.build(inputs(hasEnabledFeature = true))!!
+
+        assertTrue(state.stepFor(SetupStep.FEATURES).isComplete)
+    }
+
+    @Test
+    fun `visiting the features screen completes its step whatever was chosen`() {
+        val state = SetupChecklist.build(
+            inputs(visitedStepKeys = setOf(SetupStep.FEATURES.key)),
+        )!!
+
+        assertTrue(state.stepFor(SetupStep.FEATURES).isComplete)
     }
 
     @Test
@@ -53,7 +95,7 @@ class SetupChecklistTest {
     @Test
     fun `widget step is omitted when pinning is unsupported`() {
         val state = SetupChecklist.build(inputs(widgetPinSupported = false))!!
-        assertEquals(5, state.totalCount)
+        assertEquals(SetupStep.entries.size - 1, state.totalCount)
         assertTrue(state.steps.none { it.step == SetupStep.WIDGET })
     }
 
@@ -105,6 +147,9 @@ class SetupChecklistTest {
             hasCustomPremiumProfile = true,
             hasAnyTask = true,
             hasPinnedWidget = true,
+            hasDisplayName = true,
+            hasEnabledFeature = true,
+            appLockConfigured = true,
             // Engagement evidence: the user followed at least one checklist CTA
             // (or onboarding recorded a visit on their behalf).
             visitedStepKeys = setOf(SetupStep.COMPENSATION.key),
@@ -114,6 +159,15 @@ class SetupChecklistTest {
         assertTrue(state.showCelebration)
 
         assertNull(SetupChecklist.build(done.copy(celebrated = true)))
+    }
+
+    /**
+     * Adding steps in a later version must not resurrect the checklist for
+     * someone who already cleared it.
+     */
+    @Test
+    fun `a user who already celebrated never sees the checklist again`() {
+        assertNull(SetupChecklist.build(inputs(celebrated = true)))
     }
 
     @Test
@@ -128,6 +182,9 @@ class SetupChecklistTest {
             hasCustomPremiumProfile = true,
             hasAnyTask = true,
             hasPinnedWidget = true,
+            hasDisplayName = true,
+            hasEnabledFeature = true,
+            appLockConfigured = true,
             visitedStepKeys = emptySet(),
         )
         assertNull(SetupChecklist.build(upgrader))

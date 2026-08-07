@@ -134,6 +134,34 @@ android {
         }
     }
 
+    bundle {
+        language {
+            // Ship both languages to every device.
+            //
+            // Play's default is to split by language and install only the one the
+            // device is set to. That is the wrong default for this app: the
+            // language is chosen *inside* ElmTrackr, independently of the phone's,
+            // so a device set to English installs no Hebrew resources and picking
+            // Hebrew in Settings then has nothing to resolve against. Google's own
+            // App Bundle guidance says to disable the split when an app switches
+            // language in-app.
+            //
+            // With only two languages the cost is a few tens of kilobytes; see
+            // localeFilters below, which is what keeps it that small.
+            enableSplit = false
+        }
+    }
+
+    androidResources {
+        // Only the languages ElmTrackr actually offers, matching
+        // res/xml/locales_config.xml.
+        //
+        // This matters more with the language split off: without it the base APK
+        // would carry every translation AndroidX and Play Services ship — around
+        // eighty locales the app has no UI for — on every device.
+        localeFilters += listOf("en", "iw")
+    }
+
     lint {
         // AndroidX's detector is binary-incompatible with this Kotlin analysis API version.
         disable += "NullSafeMutableLiveData"

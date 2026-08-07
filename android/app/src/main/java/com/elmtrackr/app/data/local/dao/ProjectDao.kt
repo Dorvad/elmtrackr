@@ -136,6 +136,24 @@ interface ProjectBillingRecordDao {
     suspend fun getPendingSyncRecords(userId: String): List<ProjectBillingRecordEntity>
 
     @Query(
+        "SELECT EXISTS(SELECT 1 FROM project_billing_records WHERE userId = :userId " +
+            "AND syncStatus IN $PENDING_STATUSES LIMIT 1)",
+    )
+    suspend fun hasPendingSyncRecords(userId: String): Boolean
+
+    @Query(
+        "UPDATE project_billing_records SET syncStatus = :status, remoteId = :remoteId, " +
+            "lastSyncedAt = :syncedAt, lastSyncError = :error WHERE localId = :localId",
+    )
+    suspend fun updateSyncState(
+        localId: String,
+        status: SyncStatus,
+        remoteId: String?,
+        syncedAt: Long?,
+        error: String?,
+    )
+
+    @Query(
         "UPDATE project_billing_records SET cancelledAt = :cancelledAt, " +
             "syncStatus = :syncStatus, updatedAt = :updatedAt WHERE localId = :localId",
     )
@@ -210,6 +228,24 @@ interface ProjectPaymentDao {
 
     @Query("SELECT * FROM project_payments WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
     suspend fun getPendingSyncPayments(userId: String): List<ProjectPaymentEntity>
+
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM project_payments WHERE userId = :userId " +
+            "AND syncStatus IN $PENDING_STATUSES LIMIT 1)",
+    )
+    suspend fun hasPendingSyncPayments(userId: String): Boolean
+
+    @Query(
+        "UPDATE project_payments SET syncStatus = :status, remoteId = :remoteId, " +
+            "lastSyncedAt = :syncedAt, lastSyncError = :error WHERE localId = :localId",
+    )
+    suspend fun updateSyncState(
+        localId: String,
+        status: SyncStatus,
+        remoteId: String?,
+        syncedAt: Long?,
+        error: String?,
+    )
 
     @Query(
         "UPDATE project_payments SET deletedAt = :deletedAt, syncStatus = :syncStatus, " +
