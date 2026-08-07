@@ -199,6 +199,27 @@ class FakeProjectBillingRecordDao : ProjectBillingRecordDao {
         store.entries.removeIf { it.value.userId == userId }
         refresh()
     }
+    override suspend fun hasPendingSyncRecords(userId: String): Boolean =
+        store.values.any { it.userId == userId && it.syncStatus in PENDING }
+
+    override suspend fun updateSyncState(
+        localId: String,
+        status: com.elmtrackr.app.data.local.entity.SyncStatus,
+        remoteId: String?,
+        syncedAt: Long?,
+        error: String?,
+    ) {
+        store[localId]?.let {
+            store[localId] = it.copy(
+                syncStatus = status,
+                remoteId = remoteId,
+                lastSyncedAt = syncedAt,
+                lastSyncError = error,
+            )
+        }
+        refresh()
+    }
+
 }
 
 class FakeProjectPaymentDao : ProjectPaymentDao {
@@ -288,4 +309,25 @@ class FakeProjectPaymentDao : ProjectPaymentDao {
         store.entries.removeIf { it.value.userId == userId }
         refresh()
     }
+    override suspend fun hasPendingSyncPayments(userId: String): Boolean =
+        store.values.any { it.userId == userId && it.syncStatus in PENDING }
+
+    override suspend fun updateSyncState(
+        localId: String,
+        status: com.elmtrackr.app.data.local.entity.SyncStatus,
+        remoteId: String?,
+        syncedAt: Long?,
+        error: String?,
+    ) {
+        store[localId]?.let {
+            store[localId] = it.copy(
+                syncStatus = status,
+                remoteId = remoteId,
+                lastSyncedAt = syncedAt,
+                lastSyncError = error,
+            )
+        }
+        refresh()
+    }
+
 }

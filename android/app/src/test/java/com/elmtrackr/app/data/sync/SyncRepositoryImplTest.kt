@@ -1119,6 +1119,12 @@ class SyncRepositoryImplTest {
         receiptDao: com.elmtrackr.app.data.local.dao.ReceiptDao = com.elmtrackr.app.fake.FakeReceiptDao(),
         refundReceiptStorage: com.elmtrackr.app.domain.repository.RefundReceiptStorage? = null,
         receiptFileReader: com.elmtrackr.app.domain.repository.ReceiptFileReader? = null,
+        remoteProjects: com.elmtrackr.app.data.remote.RemoteProjectDataSource =
+            EmptyRemoteProjectDataSource(),
+        remoteBillingRecords: com.elmtrackr.app.data.remote.RemoteProjectBillingRecordDataSource =
+            EmptyRemoteProjectBillingRecordDataSource(),
+        remoteProjectPayments: com.elmtrackr.app.data.remote.RemoteProjectPaymentDataSource =
+            EmptyRemoteProjectPaymentDataSource(),
     ) = SyncRepositoryImpl(
         shiftDao = shiftDao,
         refundClaimDao = refundClaimDao,
@@ -1142,6 +1148,9 @@ class SyncRepositoryImplTest {
         remoteProfiles = remoteProfiles,
         refundReceiptStorage = refundReceiptStorage,
         receiptFileReader = receiptFileReader,
+        remoteProjects = remoteProjects,
+        remoteBillingRecords = remoteBillingRecords,
+        remoteProjectPayments = remoteProjectPayments,
     )
 
     private companion object {
@@ -1712,6 +1721,60 @@ class SyncRepositoryImplTest {
             remoteId: String,
             profile: RemotePremiumProfileUpdate,
         ): RemotePremiumProfileRow? = null
+    }
+
+    private class EmptyRemoteProjectDataSource : com.elmtrackr.app.data.remote.RemoteProjectDataSource {
+        override suspend fun fetchUpdatedSince(
+            sinceIso: String?,
+            limit: Int,
+            offset: Int,
+        ): List<com.elmtrackr.app.data.remote.RemoteProjectRow> = emptyList()
+        override suspend fun findById(remoteId: String): com.elmtrackr.app.data.remote.RemoteProjectRow? = null
+        override suspend fun insert(
+            project: com.elmtrackr.app.data.remote.RemoteProjectInsert,
+        ): com.elmtrackr.app.data.remote.RemoteProjectRow = error("not used")
+        override suspend fun update(
+            remoteId: String,
+            project: com.elmtrackr.app.data.remote.RemoteProjectUpdate,
+        ): com.elmtrackr.app.data.remote.RemoteProjectRow? = null
+    }
+
+    private class EmptyRemoteProjectBillingRecordDataSource :
+        com.elmtrackr.app.data.remote.RemoteProjectBillingRecordDataSource {
+        override suspend fun fetchUpdatedSince(
+            sinceIso: String?,
+            limit: Int,
+            offset: Int,
+        ): List<com.elmtrackr.app.data.remote.RemoteProjectBillingRecordRow> = emptyList()
+        override suspend fun findById(
+            remoteId: String,
+        ): com.elmtrackr.app.data.remote.RemoteProjectBillingRecordRow? = null
+        override suspend fun insert(
+            record: com.elmtrackr.app.data.remote.RemoteProjectBillingRecordInsert,
+        ): com.elmtrackr.app.data.remote.RemoteProjectBillingRecordRow = error("not used")
+        override suspend fun update(
+            remoteId: String,
+            record: com.elmtrackr.app.data.remote.RemoteProjectBillingRecordUpdate,
+        ): com.elmtrackr.app.data.remote.RemoteProjectBillingRecordRow? = null
+    }
+
+    private class EmptyRemoteProjectPaymentDataSource :
+        com.elmtrackr.app.data.remote.RemoteProjectPaymentDataSource {
+        override suspend fun fetchUpdatedSince(
+            sinceIso: String?,
+            limit: Int,
+            offset: Int,
+        ): List<com.elmtrackr.app.data.remote.RemoteProjectPaymentRow> = emptyList()
+        override suspend fun findById(
+            remoteId: String,
+        ): com.elmtrackr.app.data.remote.RemoteProjectPaymentRow? = null
+        override suspend fun insert(
+            payment: com.elmtrackr.app.data.remote.RemoteProjectPaymentInsert,
+        ): com.elmtrackr.app.data.remote.RemoteProjectPaymentRow = error("not used")
+        override suspend fun update(
+            remoteId: String,
+            payment: com.elmtrackr.app.data.remote.RemoteProjectPaymentUpdate,
+        ): com.elmtrackr.app.data.remote.RemoteProjectPaymentRow? = null
     }
 
     private class InMemoryShiftDao : ShiftDao {

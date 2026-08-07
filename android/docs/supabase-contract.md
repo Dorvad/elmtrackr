@@ -27,6 +27,9 @@ When changing the contract:
 | `compensation_profiles` | Named pay-rule profiles |
 | `premium_profiles` | Reusable shift premium multipliers and stacking types |
 | `tasks` | Paid-project tasks for clock-in (synced per user) |
+| `projects` | Fixed-fee projects |
+| `project_billing_records` | What has been billed against a project |
+| `project_payments` | What has been received against a billing record |
 
 Base DDL for `profiles`, `user_settings`, `shifts`, and `refund_claims` predates the
 in-repo migrations and lives in the Supabase project itself (not in this repo).
@@ -34,9 +37,7 @@ Everything added since is under [`supabase/migrations/`](../../supabase/migratio
 applied in filename order. This document is the authoritative column list for the
 base tables.
 
-### Not in the contract: Paid Projects
-
-Three Room tables have **no Supabase counterpart and no remote data source**:
+### Paid Projects
 
 | Room entity | Table |
 |-------------|-------|
@@ -44,23 +45,42 @@ Three Room tables have **no Supabase counterpart and no remote data source**:
 | `ProjectBillingRecordEntity` | `project_billing_records` |
 | `ProjectPaymentEntity` | `project_payments` |
 
-They carry `remoteId` and `syncStatus` columns, and an index on
-`(userId, syncStatus)`, because they were modelled on the synced entities — not
-because anything syncs them. `SyncRepositoryImpl` deliberately excludes their
-pending rows from `hasPendingWork` so the app does not show a "changes waiting"
-badge the user can never clear.
+Added by `20260806100000_paid_projects.sql`. Before it these three tables had no
+Supabase counterpart at all, so a project and the record of money owed for it
+lived on one device and nowhere else — a reinstall or a new phone lost them
+unless the user had exported a local backup first.
 
-**What this means for the user.** Paid Projects data — including the record of
-money owed to them — does not survive a reinstall or a device change unless they
-export a local backup first (Settings → Backup, which does include these
-tables). Nothing in the UI says so.
+Column names, nullability and semantics mirror the Room entities exactly. The
+app is the only writer and the shapes were already settled; a second, subtly
+different model on the server would be a source of bugs rather than a
+refinement.
 
-**To close it:** add migrations for the three tables with the same
-`auth.uid() = user_id` RLS policies as the rest, add remote data sources and
-mappers, add push/pull steps ordered after `tasks` (billing records reference
-projects), and remove the exclusion in `hasPendingWork`. Settings columns for
-Paid Projects defaults are also preserved local-only on pull
-(`preserveLocal` in `pullUserSettings`) and would need the same treatment.
+**Money columns are `text`, not `numeric`.** Room stores them as canonical
+decimal strings because binary floating point cannot represent most decimal
+amounts exactly and a stored fee must round-trip byte for byte. `numeric` would
+hold the value correctly in Postgres, but PostgREST serialises numeric as a JSON
+number — so the value would pass through a double on its way to and from the
+client, which is the exact conversion the local schema exists to avoid. A check
+constraint keeps non-numeric text out, and the app does all project arithmetic
+client-side (`ProjectFee`, `ProjectMetrics`), so nothing needs to sum these in
+SQL. Kotlin writes them with `BigDecimal.toPlainString()`; `toString()` would
+emit scientific notation at some scales and fail the constraint.
+
+**Calendar dates are epoch-day integers** (`billed_on`, `paid_on`, a project's
+`deadline`), matching Room, so a due date cannot shift by a day through a
+timezone conversion.
+
+**Foreign keys are real**, so sync order matters: projects, then billing
+records, then payments, in both directions. A child pushed before its parent is
+rejected; a child pulled before its parent has no local row to attach to, so the
+pull holds its cursor and retries next run.
+
+**Still local-only:** the `user_settings` columns holding Paid Projects
+*defaults* for new projects (region, currency, tax label and rate). They are
+preserved across pulls by `preserveLocal` in `pullUserSettings`. They are per-
+device preferences rather than records of money, so losing them on a device
+change is an annoyance rather than data loss — but closing that gap means adding
+those columns to `user_settings` and dropping the `preserveLocal` clause.
 
 ---
 
@@ -183,11 +203,13 @@ Shifts may reference `task_id` (nullable FK). Clock-in stores `task_*_snapshot` 
 Push and pull phases run in order:
 
 1. **tasks** (before shifts — shifts may reference task IDs)  
-2. shifts  
-3. refund claims  
-4. user settings  
-5. **profiles** (display name / `full_name`)  
-6. compensation profiles  
+2. **projects → project billing records → project payments** (real foreign keys;
+   also before shifts, which carry a project link)  
+3. shifts  
+4. refund claims  
+5. user settings  
+6. **profiles** (display name / `full_name`)  
+7. compensation profiles  
 
 Pull runs profiles before compensation profiles and user settings so the display name is available early.
 

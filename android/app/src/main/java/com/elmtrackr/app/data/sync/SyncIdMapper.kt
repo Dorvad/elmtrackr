@@ -10,7 +10,21 @@ class SyncIdMapper(
     private val compensationProfileDao: CompensationProfileDao,
     private val premiumProfileDao: PremiumProfileDao,
     private val taskDao: TaskDao,
+    private val projectDao: com.elmtrackr.app.data.local.dao.ProjectDao,
+    private val billingRecordDao: com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao,
 ) {
+    suspend fun projectLocalToRemote(localId: String?): String? =
+        localId?.let { projectDao.getByLocalId(it)?.remoteId }
+
+    suspend fun projectRemoteToLocal(remoteId: String?): String? =
+        remoteId?.let { projectDao.getByRemoteId(it)?.localId }
+
+    suspend fun billingRecordLocalToRemote(localId: String?): String? =
+        localId?.let { billingRecordDao.getByLocalId(it)?.remoteId }
+
+    suspend fun billingRecordRemoteToLocal(remoteId: String?): String? =
+        remoteId?.let { billingRecordDao.getByRemoteId(it)?.localId }
+
     suspend fun shiftLocalToRemote(localId: String): String? =
         shiftDao.getShiftById(localId)?.remoteId
 

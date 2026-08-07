@@ -9,6 +9,9 @@ import com.elmtrackr.app.data.local.dao.TaskDao
 import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
 import com.elmtrackr.app.data.local.entity.ProfileEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
+import com.elmtrackr.app.data.local.entity.ProjectBillingRecordEntity
+import com.elmtrackr.app.data.local.entity.ProjectEntity
+import com.elmtrackr.app.data.local.entity.ProjectPaymentEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.TaskEntity
@@ -73,6 +76,9 @@ class SyncRepositoryImpl @Inject constructor(
     private val remoteProfiles: RemoteProfileDataSource?,
     private val refundReceiptStorage: com.elmtrackr.app.domain.repository.RefundReceiptStorage?,
     private val receiptFileReader: com.elmtrackr.app.domain.repository.ReceiptFileReader?,
+    private val remoteProjects: com.elmtrackr.app.data.remote.RemoteProjectDataSource?,
+    private val remoteBillingRecords: com.elmtrackr.app.data.remote.RemoteProjectBillingRecordDataSource?,
+    private val remoteProjectPayments: com.elmtrackr.app.data.remote.RemoteProjectPaymentDataSource?,
 ) : SyncRepository {
 
     // The push/pull methods below are only reachable through syncAll(), which
@@ -86,8 +92,18 @@ class SyncRepositoryImpl @Inject constructor(
     private val compensationRemote get() = checkNotNull(remoteCompensationProfiles) { REMOTES_NOT_CONFIGURED }
     private val premiumRemote get() = checkNotNull(remotePremiumProfiles) { REMOTES_NOT_CONFIGURED }
     private val profilesRemote get() = checkNotNull(remoteProfiles) { REMOTES_NOT_CONFIGURED }
+    private val projectsRemote get() = checkNotNull(remoteProjects) { REMOTES_NOT_CONFIGURED }
+    private val billingRemote get() = checkNotNull(remoteBillingRecords) { REMOTES_NOT_CONFIGURED }
+    private val paymentsRemote get() = checkNotNull(remoteProjectPayments) { REMOTES_NOT_CONFIGURED }
 
-    private val idMapper = SyncIdMapper(shiftDao, compensationProfileDao, premiumProfileDao, taskDao)
+    private val idMapper = SyncIdMapper(
+        shiftDao,
+        compensationProfileDao,
+        premiumProfileDao,
+        taskDao,
+        projectDao,
+        projectBillingRecordDao,
+    )
     private val lastSyncStatus = MutableStateFlow<String?>(null)
     // syncAll can be invoked concurrently (WorkManager, auth bootstrap, manual retry);
     // without serialization two runs can push the same PENDING_CREATE row twice.
@@ -288,16 +304,17 @@ class SyncRepositoryImpl @Inject constructor(
             compensationProfileDao.hasPendingSyncProfiles(userId) ||
             premiumProfileDao.hasPendingSyncProfiles(userId) ||
             taskDao.hasPendingSyncTasks(userId) ||
-            // Paid Projects tables are local-only until the Supabase contract
-            // carries them, so their pending rows are deliberately not counted
-            // here — reporting unsyncable work would show a permanent
-            // "N changes waiting" badge the user can never clear.
+            projectDao.hasPendingSyncProjects(userId) ||
+            projectBillingRecordDao.hasPendingSyncRecords(userId) ||
+            projectPaymentDao.hasPendingSyncPayments(userId) ||
             profileDao.hasPendingSyncProfiles(userId)
 
     override suspend fun syncAll(userId: String): SyncResult {
         if (remoteTasks == null || remoteShifts == null || remoteRefundClaims == null ||
             remoteSettings == null || remoteCompensationProfiles == null ||
-            remotePremiumProfiles == null || remoteProfiles == null
+            remotePremiumProfiles == null || remoteProfiles == null ||
+            remoteProjects == null || remoteBillingRecords == null ||
+            remoteProjectPayments == null
         ) {
             lastSyncStatus.value = "Not configured"
             return SyncResult.NotConfigured
@@ -333,6 +350,9 @@ class SyncRepositoryImpl @Inject constructor(
             runSyncStep("push tasks", issues) { pushTasks(userId, warnings) }
             runSyncStep("push compensation profiles", issues) { pushCompensationProfiles(userId) }
             runSyncStep("push premium profiles", issues) { pushPremiumProfiles(userId) }
+            runSyncStep("push projects", issues) { pushProjects(userId) }
+            runSyncStep("push project billing records", issues) { pushBillingRecords(userId) }
+            runSyncStep("push project payments", issues) { pushProjectPayments(userId) }
             runSyncStep("push shifts", issues) { pushShifts(userId) }
             runSyncStep("upload pending receipts", issues) { uploadPendingReceipts(userId) }
             runSyncStep("push refund claims", issues) { pushRefundClaims(userId) }
@@ -345,6 +365,10 @@ class SyncRepositoryImpl @Inject constructor(
             // Tasks must land before shifts: applyRemoteShift resolves each
             // shift's task_id against the local tasks table.
             runSyncStep("pull tasks", issues) { pullTasks(userId, warnings) }
+            // Before shifts, which carry a project link.
+            runSyncStep("pull projects", issues) { pullProjects(userId) }
+            runSyncStep("pull project billing records", issues) { pullBillingRecords(userId) }
+            runSyncStep("pull project payments", issues) { pullProjectPayments(userId) }
             runSyncStep("pull shifts", issues) { pullShifts(userId) }
             runSyncStep("pull refund claims", issues) { pullRefundClaims(userId) }
 
@@ -988,6 +1012,320 @@ class SyncRepositoryImpl @Inject constructor(
         return true
     }
 
+    // ── Paid Projects ─────────────────────────────────────────────────────────
+    //
+    // Projects, what has been billed against them, and what has been paid. These
+    // three tables were local-only: a project and the record of money owed for it
+    // existed on one device and nowhere else, so changing phones lost them unless
+    // the user had exported a backup first.
+    //
+    // Ordered parents before children in both directions. A billing record's
+    // project_id and a payment's billing_record_id are real foreign keys on the
+    // server, so pushing a child before its parent is rejected, and pulling one
+    // before its parent has no local row to attach it to.
+
+    private suspend fun pushProjects(userId: String) {
+        val now = Instant.now().toEpochMilli()
+        for (project in projectDao.getPendingSyncProjects(userId)) {
+            runCatching {
+                when {
+                    project.syncStatus == SyncStatus.SYNCED -> Unit
+                    project.deletedAt != null -> pushProjectDelete(project, now)
+                    project.remoteId == null -> pushProjectCreate(project, now)
+                    else -> pushProjectUpdate(project, now)
+                }
+            }.onFailure { error ->
+                projectDao.updateSyncState(
+                    project.localId, SyncStatus.FAILED, project.remoteId, project.lastSyncedAt, error.message,
+                )
+            }
+        }
+    }
+
+    private suspend fun pushProjectCreate(project: ProjectEntity, syncedAt: Long) {
+        val remoteId = try {
+            projectsRemote.insert(project.toRemoteInsert()).id
+        } catch (e: Exception) {
+            // The insert carries the client-generated id, so a retry after a lost
+            // response collides with the row it already created — adopt it.
+            if (RemoteSyncErrors.isPrimaryKeyViolation(e, ENTITY_PROJECTS)) project.localId else throw e
+        }
+        projectDao.updateSyncState(project.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pushProjectUpdate(project: ProjectEntity, syncedAt: Long) {
+        val remoteId = project.remoteId ?: error("Missing remoteId for project ${project.localId}")
+        if (projectsRemote.update(remoteId, project.toRemoteUpdate()) == null) {
+            adoptNewerRemoteProject(project, remoteId, syncedAt)
+            return
+        }
+        projectDao.updateSyncState(project.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    /** Tombstone, not DELETE — see [pushTaskDelete]. */
+    private suspend fun pushProjectDelete(project: ProjectEntity, syncedAt: Long) {
+        val remoteId = project.remoteId
+        if (remoteId != null && projectsRemote.update(remoteId, project.toRemoteUpdate()) == null) {
+            adoptNewerRemoteProject(project, remoteId, syncedAt)
+            return
+        }
+        projectDao.updateSyncState(project.localId, SyncStatus.SYNCED, project.remoteId, syncedAt, null)
+    }
+
+    /** See [adoptNewerRemoteShift]. */
+    private suspend fun adoptNewerRemoteProject(project: ProjectEntity, remoteId: String, syncedAt: Long) {
+        val remote = projectsRemote.findById(remoteId) ?: return
+        projectDao.upsert(remote.toLocalEntity(existingLocalId = project.localId))
+        projectDao.updateSyncState(project.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pullProjects(userId: String) {
+        pullIncremental(
+            userId = userId,
+            entity = ENTITY_PROJECTS,
+            fetchPage = { since, offset -> projectsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
+            updatedAtIso = { it.updatedAt },
+            remoteIdOf = { it.id },
+            ownerOf = { it.userId },
+        ) { remote ->
+            val existing = projectDao.getByRemoteId(remote.id)
+            when {
+                existing == null && remote.deletedAt != null -> Unit
+                existing == null -> projectDao.upsert(remote.toLocalEntity())
+                existing.syncStatus != SyncStatus.SYNCED -> Unit
+                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                    projectDao.upsert(remote.toLocalEntity(existingLocalId = existing.localId))
+            }
+            true
+        }
+    }
+
+    private suspend fun pushBillingRecords(userId: String) {
+        val now = Instant.now().toEpochMilli()
+        for (record in projectBillingRecordDao.getPendingSyncRecords(userId)) {
+            runCatching {
+                when {
+                    record.syncStatus == SyncStatus.SYNCED -> Unit
+                    record.deletedAt != null -> pushBillingRecordDelete(record, now)
+                    record.remoteId == null -> {
+                        // Parent project not pushed yet: leave the record pending
+                        // rather than sending a project_id the server will reject.
+                        val projectRemoteId = idMapper.projectLocalToRemote(record.projectLocalId)
+                            ?: return@runCatching
+                        pushBillingRecordCreate(record, projectRemoteId, now)
+                    }
+                    else -> pushBillingRecordUpdate(record, now)
+                }
+            }.onFailure { error ->
+                projectBillingRecordDao.updateSyncState(
+                    record.localId, SyncStatus.FAILED, record.remoteId, record.lastSyncedAt, error.message,
+                )
+            }
+        }
+    }
+
+    private suspend fun pushBillingRecordCreate(
+        record: ProjectBillingRecordEntity,
+        projectRemoteId: String,
+        syncedAt: Long,
+    ) {
+        val remoteId = try {
+            billingRemote.insert(record.toRemoteInsert(projectRemoteId)).id
+        } catch (e: Exception) {
+            if (RemoteSyncErrors.isPrimaryKeyViolation(e, ENTITY_PROJECT_BILLING_RECORDS)) {
+                record.localId
+            } else {
+                throw e
+            }
+        }
+        projectBillingRecordDao.updateSyncState(record.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pushBillingRecordUpdate(record: ProjectBillingRecordEntity, syncedAt: Long) {
+        val remoteId = record.remoteId ?: error("Missing remoteId for billing record ${record.localId}")
+        if (billingRemote.update(remoteId, record.toRemoteUpdate()) == null) {
+            adoptNewerRemoteBillingRecord(record, remoteId, syncedAt)
+            return
+        }
+        projectBillingRecordDao.updateSyncState(record.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    /** Tombstone, not DELETE — see [pushTaskDelete]. */
+    private suspend fun pushBillingRecordDelete(record: ProjectBillingRecordEntity, syncedAt: Long) {
+        val remoteId = record.remoteId
+        if (remoteId != null && billingRemote.update(remoteId, record.toRemoteUpdate()) == null) {
+            adoptNewerRemoteBillingRecord(record, remoteId, syncedAt)
+            return
+        }
+        projectBillingRecordDao.updateSyncState(
+            record.localId, SyncStatus.SYNCED, record.remoteId, syncedAt, null,
+        )
+    }
+
+    /** See [adoptNewerRemoteShift]. */
+    private suspend fun adoptNewerRemoteBillingRecord(
+        record: ProjectBillingRecordEntity,
+        remoteId: String,
+        syncedAt: Long,
+    ) {
+        val remote = billingRemote.findById(remoteId) ?: return
+        projectBillingRecordDao.upsert(
+            remote.toLocalEntity(
+                projectLocalId = record.projectLocalId,
+                existingLocalId = record.localId,
+            ),
+        )
+        projectBillingRecordDao.updateSyncState(record.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pullBillingRecords(userId: String) {
+        pullIncremental(
+            userId = userId,
+            entity = ENTITY_PROJECT_BILLING_RECORDS,
+            fetchPage = { since, offset -> billingRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
+            updatedAtIso = { it.updatedAt },
+            remoteIdOf = { it.id },
+            ownerOf = { it.userId },
+        ) { remote ->
+            // Parent project not pulled yet (e.g. the projects step failed this
+            // run): hold the cursor so this row is re-fetched once it exists.
+            val projectLocalId = idMapper.projectRemoteToLocal(remote.projectId)
+                ?: return@pullIncremental false
+            val existing = projectBillingRecordDao.getByRemoteId(remote.id)
+            when {
+                existing == null && remote.deletedAt != null -> Unit
+                existing == null ->
+                    projectBillingRecordDao.upsert(remote.toLocalEntity(projectLocalId = projectLocalId))
+                existing.syncStatus != SyncStatus.SYNCED -> Unit
+                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                    projectBillingRecordDao.upsert(
+                        remote.toLocalEntity(
+                            projectLocalId = projectLocalId,
+                            existingLocalId = existing.localId,
+                        ),
+                    )
+            }
+            true
+        }
+    }
+
+    private suspend fun pushProjectPayments(userId: String) {
+        val now = Instant.now().toEpochMilli()
+        for (payment in projectPaymentDao.getPendingSyncPayments(userId)) {
+            runCatching {
+                when {
+                    payment.syncStatus == SyncStatus.SYNCED -> Unit
+                    payment.deletedAt != null -> pushProjectPaymentDelete(payment, now)
+                    payment.remoteId == null -> {
+                        val projectRemoteId = idMapper.projectLocalToRemote(payment.projectLocalId)
+                            ?: return@runCatching
+                        val recordRemoteId = idMapper.billingRecordLocalToRemote(payment.billingRecordLocalId)
+                            ?: return@runCatching
+                        pushProjectPaymentCreate(payment, projectRemoteId, recordRemoteId, now)
+                    }
+                    else -> pushProjectPaymentUpdate(payment, now)
+                }
+            }.onFailure { error ->
+                projectPaymentDao.updateSyncState(
+                    payment.localId, SyncStatus.FAILED, payment.remoteId, payment.lastSyncedAt, error.message,
+                )
+            }
+        }
+    }
+
+    private suspend fun pushProjectPaymentCreate(
+        payment: ProjectPaymentEntity,
+        projectRemoteId: String,
+        billingRecordRemoteId: String,
+        syncedAt: Long,
+    ) {
+        val remoteId = try {
+            paymentsRemote.insert(payment.toRemoteInsert(projectRemoteId, billingRecordRemoteId)).id
+        } catch (e: Exception) {
+            if (RemoteSyncErrors.isPrimaryKeyViolation(e, ENTITY_PROJECT_PAYMENTS)) {
+                payment.localId
+            } else {
+                throw e
+            }
+        }
+        projectPaymentDao.updateSyncState(payment.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pushProjectPaymentUpdate(payment: ProjectPaymentEntity, syncedAt: Long) {
+        val remoteId = payment.remoteId ?: error("Missing remoteId for payment ${payment.localId}")
+        if (paymentsRemote.update(remoteId, payment.toRemoteUpdate()) == null) {
+            adoptNewerRemoteProjectPayment(payment, remoteId, syncedAt)
+            return
+        }
+        projectPaymentDao.updateSyncState(payment.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    /** Tombstone, not DELETE — see [pushTaskDelete]. */
+    private suspend fun pushProjectPaymentDelete(payment: ProjectPaymentEntity, syncedAt: Long) {
+        val remoteId = payment.remoteId
+        if (remoteId != null && paymentsRemote.update(remoteId, payment.toRemoteUpdate()) == null) {
+            adoptNewerRemoteProjectPayment(payment, remoteId, syncedAt)
+            return
+        }
+        projectPaymentDao.updateSyncState(
+            payment.localId, SyncStatus.SYNCED, payment.remoteId, syncedAt, null,
+        )
+    }
+
+    /** See [adoptNewerRemoteShift]. */
+    private suspend fun adoptNewerRemoteProjectPayment(
+        payment: ProjectPaymentEntity,
+        remoteId: String,
+        syncedAt: Long,
+    ) {
+        val remote = paymentsRemote.findById(remoteId) ?: return
+        projectPaymentDao.upsert(
+            remote.toLocalEntity(
+                projectLocalId = payment.projectLocalId,
+                billingRecordLocalId = payment.billingRecordLocalId,
+                existingLocalId = payment.localId,
+            ),
+        )
+        projectPaymentDao.updateSyncState(payment.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pullProjectPayments(userId: String) {
+        pullIncremental(
+            userId = userId,
+            entity = ENTITY_PROJECT_PAYMENTS,
+            fetchPage = { since, offset -> paymentsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
+            updatedAtIso = { it.updatedAt },
+            remoteIdOf = { it.id },
+            ownerOf = { it.userId },
+        ) { remote ->
+            val projectLocalId = idMapper.projectRemoteToLocal(remote.projectId)
+                ?: return@pullIncremental false
+            val recordLocalId = idMapper.billingRecordRemoteToLocal(remote.billingRecordId)
+                ?: return@pullIncremental false
+            val existing = projectPaymentDao.getByRemoteId(remote.id)
+            when {
+                existing == null && remote.deletedAt != null -> Unit
+                existing == null ->
+                    projectPaymentDao.upsert(
+                        remote.toLocalEntity(
+                            projectLocalId = projectLocalId,
+                            billingRecordLocalId = recordLocalId,
+                        ),
+                    )
+                existing.syncStatus != SyncStatus.SYNCED -> Unit
+                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                    projectPaymentDao.upsert(
+                        remote.toLocalEntity(
+                            projectLocalId = projectLocalId,
+                            billingRecordLocalId = recordLocalId,
+                            existingLocalId = existing.localId,
+                        ),
+                    )
+            }
+            true
+        }
+    }
+
     // ── Refund claims ─────────────────────────────────────────────────────────
 
     private suspend fun pushRefundClaims(userId: String) {
@@ -1562,6 +1900,9 @@ class SyncRepositoryImpl @Inject constructor(
         const val ENTITY_PREMIUM_PROFILES = "premium_profiles"
         const val ENTITY_USER_SETTINGS = "user_settings"
         const val ENTITY_PROFILES = "profiles"
+        const val ENTITY_PROJECTS = "projects"
+        const val ENTITY_PROJECT_BILLING_RECORDS = "project_billing_records"
+        const val ENTITY_PROJECT_PAYMENTS = "project_payments"
         const val TASKS_TABLE_MISSING_WARNING =
             "Tasks sync paused because the Supabase tasks table is missing. " +
                 "Apply supabase/migrations/20250628000000_tasks.sql, then sync again."
