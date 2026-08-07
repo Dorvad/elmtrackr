@@ -34,6 +34,15 @@ class DesignSystemBudgetTest {
     private val maxUngatedAnimatorCheck = 0
 
     /**
+     * Files that animate without consulting the reduce-motion setting at all.
+     *
+     * At zero, and it has to stay there. "Reduce motion" that stops most of the
+     * animation is not a setting, it is a suggestion — someone who turns it on
+     * because movement makes them ill is not helped by the two that were missed.
+     */
+    private val maxUngatedAnimation = 0
+
+    /**
      * Files that are drawings rather than screens — clock-face canvases, the
      * ride-provider marks, the update wizard's artwork and the Wear settings
      * watch. Their numbers are illustration geometry and their hex values are
@@ -113,6 +122,37 @@ class DesignSystemBudgetTest {
         )
     }
 
+    /**
+     * Every file that animates must decide what to do when motion is reduced.
+     *
+     * Gating at the call site is what let the side navigation's selection pill
+     * and the empty state's entrance keep animating with the setting on: each is
+     * one `animateFloatAsState` in a file nobody revisited, and nothing pointed
+     * that out. Either read [auroraMotionEnabled] or pass a spec that already
+     * accounts for it — `auroraAnimationSpec` collapses to a snap.
+     */
+    @Test
+    fun `animations consult the reduce-motion setting`() {
+        val offenders = uiRoot.kotlinFiles()
+            .filter { file ->
+                val text = file.readText()
+                val animates = text.lines().any { it.isCode() && ANIMATES.containsMatchIn(it) }
+                val gated = text.contains("auroraMotionEnabled") ||
+                    text.contains("LocalReduceMotion") ||
+                    text.contains("auroraAnimationSpec")
+                animates && !gated
+            }
+            .map { it.name }
+            .sorted()
+
+        assertWithinBudget(
+            "files animating without a reduce-motion check (${offenders.joinToString()})",
+            offenders.size,
+            maxUngatedAnimation,
+            "auroraMotionEnabled() or auroraAnimationSpec()",
+        )
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun assertWithinBudget(what: String, count: Int, budget: Int, useInstead: String) {
@@ -159,6 +199,9 @@ class DesignSystemBudgetTest {
         val RAW_DP = Regex("""\b\d+(\.\d+)?\.dp\b""")
         val RAW_COLOR = Regex("""\bColor\(0x""")
         val RAW_TEXT_FIELD = Regex("""(^|[^A-Za-z])(OutlinedTextField|TextField)\(""", RegexOption.MULTILINE)
+        val ANIMATES = Regex(
+            """\b(animate(Float|Dp|Color|Int|Offset|Size|Rect)AsState|rememberInfiniteTransition)\b""",
+        )
         val RAW_CARD = Regex("""(^|[^A-Za-z])(Card|ElevatedCard|OutlinedCard)\(""", RegexOption.MULTILINE)
     }
 }

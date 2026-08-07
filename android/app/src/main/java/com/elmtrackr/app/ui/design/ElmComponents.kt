@@ -159,7 +159,7 @@ fun ElmEmptyState(
     LaunchedEffect(Unit) { visible = true }
     val iconScale by animateFloatAsState(
         targetValue = if (visible) 1f else 0.88f,
-        animationSpec = tween(AuroraMotion.RiseMillis, easing = AuroraEaseOut),
+        animationSpec = auroraAnimationSpec(AuroraMotion.RiseMillis, AuroraEaseOut),
         label = "empty-state-icon-scale",
     )
     Column(

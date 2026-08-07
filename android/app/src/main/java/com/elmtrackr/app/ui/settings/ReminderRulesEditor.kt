@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import com.elmtrackr.app.ui.design.auroraExpandable
+import com.elmtrackr.app.ui.theme.Layout
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -252,7 +255,7 @@ private fun ReminderRuleEditorSheet(
 @Composable
 private fun RuleKindChip(rule: ReminderRule, onUpdate: (ReminderRule) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    SentenceChip(text = kindLabel(rule.kind), onClick = { expanded = true }) {
+    SentenceChip(text = kindLabel(rule.kind), onClick = { expanded = true }, expanded = expanded) {
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             ReminderTriggerKind.entries.forEach { kind ->
                 DropdownMenuItem(
@@ -285,7 +288,7 @@ private fun RuleValueChip(rule: ReminderRule, onUpdate: (ReminderRule) -> Unit) 
 
     when (rule.kind) {
         ReminderTriggerKind.BEFORE_OVERTIME -> {
-            SentenceChip(text = beforeValueLabel(rule.offsetMinutes), onClick = { expanded = true }) {
+            SentenceChip(text = beforeValueLabel(rule.offsetMinutes), onClick = { expanded = true }, expanded = expanded) {
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     BEFORE_OPTIONS_MINUTES.forEach { minutes ->
                         DropdownMenuItem(
@@ -301,7 +304,7 @@ private fun RuleValueChip(rule: ReminderRule, onUpdate: (ReminderRule) -> Unit) 
         }
 
         ReminderTriggerKind.AFTER_OVERTIME -> {
-            SentenceChip(text = afterValueLabel(rule.offsetMinutes), onClick = { expanded = true }) {
+            SentenceChip(text = afterValueLabel(rule.offsetMinutes), onClick = { expanded = true }, expanded = expanded) {
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     AFTER_OPTIONS_MINUTES.forEach { minutes ->
                         DropdownMenuItem(
@@ -431,16 +434,31 @@ private fun RuleDaysChip(rule: ReminderRule, onUpdate: (ReminderRule) -> Unit) {
     }
 }
 
+/**
+ * A word in the reminder sentence that opens a menu when tapped.
+ *
+ * @param expanded whether this chip's menu is open. It has to be passed in
+ *   rather than inferred: the chevron is the only thing on screen that shows it,
+ *   and a chevron is decorative to TalkBack, so without this a screen-reader
+ *   user could not tell an open menu from a closed one.
+ */
 @Composable
 private fun SentenceChip(
     text: String,
     onClick: () -> Unit,
+    expanded: Boolean = false,
     dropdownContent: @Composable () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
             .background(AuroraIndigo.copy(alpha = 0.12f), RoundedCornerShape(999.dp))
             .clickable(onClick = onClick)
+            .auroraExpandable(expanded)
+            // The chip is sized by its text, which left it around 30dp tall —
+            // under the 48dp a fingertip actually covers. The target grows
+            // without the pill growing with it, so the sentence still reads as a
+            // sentence.
+            .heightIn(min = Layout.minTouchTarget)
             .padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

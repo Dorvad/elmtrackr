@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.navigation
 
 import androidx.compose.animation.core.animateFloatAsState
+import com.elmtrackr.app.ui.design.auroraAnimationSpec
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,6 +9,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
+import com.elmtrackr.app.ui.theme.Layout
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -165,7 +168,7 @@ private fun SideNavItem(
     val interactionSource = remember { MutableInteractionSource() }
     val pillAlpha by animateFloatAsState(
         targetValue = if (isSelected) 1f else 0f,
-        animationSpec = tween(
+        animationSpec = auroraAnimationSpec(
             durationMillis = if (isSelected) 250 else 150,
             easing = AuroraEaseOut,
         ),
@@ -173,7 +176,7 @@ private fun SideNavItem(
     )
     val pillScale by animateFloatAsState(
         targetValue = if (isSelected) 1f else 0.94f,
-        animationSpec = tween(
+        animationSpec = auroraAnimationSpec(
             durationMillis = if (isSelected) 250 else 150,
             easing = AuroraEaseOut,
         ),
@@ -188,6 +191,10 @@ private fun SideNavItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            // 2dp outer + 10dp inner padding around a 20dp icon left the row a
+            // few dp under the 48dp a fingertip covers. Stated rather than
+            // accumulated, so a padding tweak cannot quietly shrink it again.
+            .heightIn(min = Layout.minTouchTarget)
             .semantics(mergeDescendants = true) {
                 role = Role.Tab
                 selected = isSelected
