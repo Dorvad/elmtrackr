@@ -49,20 +49,13 @@ import com.elmtrackr.app.ui.auth.SignedOutContent
 import com.elmtrackr.app.ui.dashboard.DashboardReadyPreview
 import com.elmtrackr.app.ui.dashboard.DashboardSkeleton
 import com.elmtrackr.app.ui.dashboard.DashboardUiState
-import com.elmtrackr.app.ui.onboarding.FeaturesStep
 import com.elmtrackr.app.ui.onboarding.OnboardingProgress
 import com.elmtrackr.app.ui.onboarding.PaySetupStep
-import com.elmtrackr.app.ui.onboarding.ProfileStep
 import com.elmtrackr.app.ui.onboarding.ReviewStep
 import com.elmtrackr.app.ui.onboarding.WelcomeStep
-import com.elmtrackr.app.ui.onboarding.STEP_FEATURES
 import com.elmtrackr.app.ui.onboarding.STEP_PAY
-import com.elmtrackr.app.ui.onboarding.STEP_PROFILE
 import com.elmtrackr.app.ui.onboarding.STEP_REVIEW
 import com.elmtrackr.app.ui.onboarding.STEP_WELCOME
-import com.elmtrackr.app.ui.onboarding.STEP_WORK_WEEK
-import com.elmtrackr.app.ui.onboarding.onboardingProgressStep
-import com.elmtrackr.app.ui.onboarding.WorkWeekStep
 import com.elmtrackr.app.ui.reports.HoursReport
 import com.elmtrackr.app.ui.reports.ReportsUiState
 import com.elmtrackr.app.ui.settings.AppearanceDetailScreen
@@ -119,29 +112,18 @@ class FullAppScreenshotJvmTest {
     }
 
     @Test fun onboardingWelcome() = capture("02-onboarding-welcome") {
-        OnboardingColumn(onboardingProgressStep(STEP_WELCOME, false)) { WelcomeStep(replay = false, onNext = {}) }
+        OnboardingColumn(STEP_WELCOME) { WelcomeStep(replay = false, onNext = {}) }
     }
 
-    @Test fun onboardingProfile() = capture("03-onboarding-profile") {
-        OnboardingColumn(onboardingProgressStep(STEP_PROFILE, false)) { ProfileStep("Dor", "dor@example.com", {}, false, {}, {}) }
-    }
 
     @Test fun onboardingPay() = capture("04-onboarding-pay") {
-        OnboardingColumn(onboardingProgressStep(STEP_PAY, false)) { PaySetupStep("50", CurrencyCode.ILS, {}, {}, true, {}, {}) }
+        OnboardingColumn(STEP_PAY) { PaySetupStep("50", CurrencyCode.ILS, {}, {}, true, {}, {}) }
     }
 
-    @Test fun onboardingWorkWeek() = capture("05-onboarding-work-week") {
-        OnboardingColumn(onboardingProgressStep(STEP_WORK_WEEK, false)) {
-            WorkWeekStep(listOf(5, 6), "8", "40", "Asia/Jerusalem", {}, {}, {}, {}, true, {}, {})
-        }
-    }
 
-    @Test fun onboardingFeatures() = capture("06-onboarding-features") {
-        OnboardingColumn(onboardingProgressStep(STEP_FEATURES, false)) { FeaturesStep(false, true, {}, {}, {}, {}) }
-    }
 
     @Test fun onboardingReview() = capture("07-onboarding-review") {
-        OnboardingColumn(onboardingProgressStep(STEP_REVIEW, false)) {
+        OnboardingColumn(STEP_REVIEW) {
             ReviewStep("Dor", 50.0, CurrencyCode.ILS, "Israel", listOf(5, 6), 2, null, {}, {})
         }
     }
@@ -398,7 +380,7 @@ class FullAppScreenshotJvmTest {
     // mirrored chevrons, slide directions, and start/end padding issues.
     @Test fun onboardingWelcomeRtl() = capture("28-onboarding-welcome-rtl") {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            OnboardingColumn(onboardingProgressStep(STEP_WELCOME, false)) { WelcomeStep(replay = false, onNext = {}) }
+            OnboardingColumn(STEP_WELCOME) { WelcomeStep(replay = false, onNext = {}) }
         }
     }
 

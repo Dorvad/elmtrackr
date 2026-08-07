@@ -685,6 +685,12 @@ class DashboardViewModel @Inject constructor(
                     hasCustomPremiumProfile = premiumProfiles.any { !it.isDefault },
                     compensationProfileCount = compensationProfiles.size,
                     hasAnyTask = tasks.isNotEmpty(),
+                    hasDisplayName = !profile.fullName.isNullOrBlank(),
+                    // The opt-ins only. featuresInsights ships on, so counting it
+                    // would tick this step for every brand-new user before they
+                    // had chosen anything.
+                    hasEnabledFeature = settings.featuresTravelRefunds ||
+                        settings.featuresPaidProjects,
                 )
             }.combine(setupPreferences.preferences) { signals, prefs ->
                 signals?.let { it to prefs }
@@ -697,6 +703,9 @@ class DashboardViewModel @Inject constructor(
                         compensationProfileCount = signals.compensationProfileCount,
                         hasCustomPremiumProfile = signals.hasCustomPremiumProfile,
                         hasAnyTask = signals.hasAnyTask,
+                        hasDisplayName = signals.hasDisplayName,
+                        hasEnabledFeature = signals.hasEnabledFeature,
+                        appLockConfigured = prefs.appLockEnabled,
                         hasPinnedWidget = widgetPinned,
                         widgetPinSupported = widgetPinInspector.isPinSupported(),
                         visitedStepKeys = prefs.setupChecklistVisitedSteps,
@@ -724,6 +733,8 @@ class DashboardViewModel @Inject constructor(
         val hasCustomPremiumProfile: Boolean,
         val compensationProfileCount: Int,
         val hasAnyTask: Boolean,
+        val hasDisplayName: Boolean,
+        val hasEnabledFeature: Boolean,
     )
 
     /** Marks a teach-by-visiting step as seen when the user follows its call to action. */

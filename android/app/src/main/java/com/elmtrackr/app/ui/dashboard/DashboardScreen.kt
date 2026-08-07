@@ -263,6 +263,9 @@ fun DashboardScreen(
                                     when (step) {
                                         SetupStep.CLOCK_STYLE -> SettingsLaunchRequest.APPEARANCE
                                         SetupStep.COMPENSATION -> SettingsLaunchRequest.COMPENSATION
+                                        SetupStep.PROFILE_NAME -> SettingsLaunchRequest.PROFILE
+                                        SetupStep.FEATURES -> SettingsLaunchRequest.FEATURES
+                                        SetupStep.APP_LOCK -> SettingsLaunchRequest.SECURITY
                                         else -> SettingsLaunchRequest.PREMIUM
                                     },
                                 )
@@ -612,6 +615,9 @@ private fun DashboardReady(
                                 SetupStep.FIRST_SHIFT -> handleClockIn()
                                 SetupStep.CLOCK_STYLE,
                                 SetupStep.COMPENSATION,
+                                SetupStep.PROFILE_NAME,
+                                SetupStep.FEATURES,
+                                SetupStep.APP_LOCK,
                                 SetupStep.PREMIUM -> onSetupNavigate(step)
                                 SetupStep.TASKS -> onManageTasks()
                                 SetupStep.WIDGET -> onRequestPinWidget()

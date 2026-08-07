@@ -8,10 +8,16 @@ enum class SettingsLaunchRequest {
     APPEARANCE,
     COMPENSATION,
     PREMIUM,
+    PROFILE,
+    FEATURES,
+    SECURITY,
 }
 
 internal fun SettingsLaunchRequest.toDestination(): SettingsDestination = when (this) {
     SettingsLaunchRequest.APPEARANCE -> SettingsDestination.APPEARANCE
     SettingsLaunchRequest.COMPENSATION -> SettingsDestination.COMPENSATION
     SettingsLaunchRequest.PREMIUM -> SettingsDestination.PREMIUM
+    SettingsLaunchRequest.PROFILE -> SettingsDestination.PROFILE
+    SettingsLaunchRequest.FEATURES -> SettingsDestination.FEATURES
+    SettingsLaunchRequest.SECURITY -> SettingsDestination.SECURITY
 }

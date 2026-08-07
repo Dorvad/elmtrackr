@@ -10,6 +10,14 @@ package com.elmtrackr.app.domain.setup
  */
 enum class SetupStep(val key: String) {
     FIRST_SHIFT("first_shift"),
+    // The three below used to be forced screens in the sign-up wizard. None of
+    // them has to be answered before the app works — a name is for a greeting, a
+    // feature toggle is an opt-in, an app lock is a preference — so they belong
+    // here, where they can be answered when the user cares rather than before
+    // they have seen anything.
+    PROFILE_NAME("profile_name"),
+    FEATURES("features"),
+    APP_LOCK("app_lock"),
     CLOCK_STYLE("clock_style"),
     COMPENSATION("compensation"),
     PREMIUM("premium"),
@@ -19,6 +27,9 @@ enum class SetupStep(val key: String) {
 
 data class SetupChecklistInputs(
     val hasCompletedShift: Boolean,
+    val hasDisplayName: Boolean,
+    val hasEnabledFeature: Boolean,
+    val appLockConfigured: Boolean,
     val clockStyleCustomized: Boolean,
     val compensationProfileCount: Int,
     val hasCustomPremiumProfile: Boolean,
@@ -51,13 +62,17 @@ object SetupChecklist {
     fun build(inputs: SetupChecklistInputs): SetupChecklistState? {
         if (inputs.dismissed) return null
 
+        // Someone who already finished the checklist is done with it for good,
+        // including when a later version adds steps. It is a one-time
+        // getting-started aid, not a to-do list that grows back under a user who
+        // had already cleared it.
+        if (inputs.celebrated) return null
+
         val steps = SetupStep.entries
             .filter { it != SetupStep.WIDGET || inputs.widgetPinSupported }
             .map { SetupStepState(it, isComplete(it, inputs)) }
         val completed = steps.count { it.isComplete }
         val allComplete = completed == steps.size
-
-        if (allComplete && inputs.celebrated) return null
 
         // A checklist that arrives already finished — an upgrading user whose
         // existing data satisfies every signal — has nothing to teach and no
@@ -78,6 +93,17 @@ object SetupChecklist {
         val visited = step.key in inputs.visitedStepKeys
         return when (step) {
             SetupStep.FIRST_SHIFT -> inputs.hasCompletedShift
+            // Data-driven where there is data to read, and "visited" otherwise:
+            // leaving the features screen with everything off is a real answer,
+            // and the checklist must not keep asking for it.
+            SetupStep.PROFILE_NAME -> inputs.hasDisplayName || visited
+            // Any optional feature already switched on counts, so an upgrading
+            // user who configured these long ago is not asked again. Without a
+            // data signal this step could only ever complete by visiting, which
+            // would make "complete without any recorded visit" unreachable and
+            // quietly disable the upgrader guard above.
+            SetupStep.FEATURES -> inputs.hasEnabledFeature || visited
+            SetupStep.APP_LOCK -> inputs.appLockConfigured || visited
             SetupStep.CLOCK_STYLE -> inputs.clockStyleCustomized || visited
             // The default "Main job" profile is auto-created, so only a second
             // profile counts as data-driven completion; reviewing the rules

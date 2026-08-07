@@ -114,12 +114,21 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `blank display name returns validation error`() {
+    /**
+     * A display name feeds the dashboard greeting and nothing else, so requiring
+     * one made a cosmetic field a gate on finishing setup and using the app. The
+     * setup checklist asks for it afterwards instead.
+     */
+    fun `a blank display name does not block finishing setup`() = runTest {
         val vm = buildVm()
-        vm.completeOnboarding(validInput(displayName = ""))
+        val states = mutableListOf<OnboardingUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
 
-        val state = vm.uiState.value as OnboardingUiState.ValidationError
-        assertNotNull(state.errors["displayName"])
+        vm.completeOnboarding(validInput(displayName = ""))
+        advanceUntilIdle()
+
+        assertEquals(OnboardingUiState.Completed, states.last())
+        job.cancel()
     }
 
     @Test

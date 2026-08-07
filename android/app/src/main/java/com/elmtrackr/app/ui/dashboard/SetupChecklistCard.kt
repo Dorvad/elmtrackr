@@ -238,6 +238,24 @@ private fun SetupStepRow(
             bodyRes = R.string.dashboard_setup_shift_body
             actionRes = R.string.dashboard_setup_shift_action
         }
+        SetupStep.PROFILE_NAME -> {
+            titleRes = R.string.dashboard_setup_name_title
+            blurbRes = R.string.dashboard_setup_name_blurb
+            bodyRes = R.string.dashboard_setup_name_body
+            actionRes = R.string.dashboard_setup_name_action
+        }
+        SetupStep.FEATURES -> {
+            titleRes = R.string.dashboard_setup_features_title
+            blurbRes = R.string.dashboard_setup_features_blurb
+            bodyRes = R.string.dashboard_setup_features_body
+            actionRes = R.string.dashboard_setup_features_action
+        }
+        SetupStep.APP_LOCK -> {
+            titleRes = R.string.dashboard_setup_lock_title
+            blurbRes = R.string.dashboard_setup_lock_blurb
+            bodyRes = R.string.dashboard_setup_lock_body
+            actionRes = R.string.dashboard_setup_lock_action
+        }
         SetupStep.CLOCK_STYLE -> {
             titleRes = R.string.dashboard_setup_clock_title
             blurbRes = R.string.dashboard_setup_clock_blurb
@@ -410,6 +428,13 @@ private fun SetupStepIcon(step: SetupStep, isComplete: Boolean, emphasized: Bool
         Canvas(Modifier.size(26.dp)) {
             when (step) {
                 SetupStep.FIRST_SHIFT -> drawShiftMotif(phase, trackColor)
+                // These three reuse existing motifs rather than adding drawings
+                // for steps that only moved here: a name and a lock read fine on
+                // the compensation and premium marks, and the features step is a
+                // list of toggles like tasks.
+                SetupStep.PROFILE_NAME -> drawCompensationMotif(phase)
+                SetupStep.FEATURES -> drawTasksMotif(phase)
+                SetupStep.APP_LOCK -> drawPremiumMotif(phase)
                 SetupStep.CLOCK_STYLE -> drawClockStyleMotif(phase, trackColor)
                 SetupStep.COMPENSATION -> drawCompensationMotif(phase)
                 SetupStep.PREMIUM -> drawPremiumMotif(phase)
