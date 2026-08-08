@@ -195,7 +195,10 @@ every crash it finds as a blocker).
    a few days, then raise to 100%.
 
 For each new upload: bump `versionCode` (and `versionName` when user-facing)
-in `app/build.gradle.kts` — Play rejects reused version codes.
+in `app/build.gradle.kts` — Play rejects reused version codes. Bump
+`wear/build.gradle.kts` together with it: the watch artifact's versionCode
+must be unique across all form factors, so `:wear` uses its own range,
+10000 + the phone versionCode.
 
 ---
 

@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -68,6 +69,7 @@ import com.elmtrackr.wear.sync.WearConfirmation
 @Composable
 private fun WearFace(
     onTap: (() -> Unit)? = null,
+    onTapLabel: String? = null,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -78,6 +80,10 @@ private fun WearFace(
                     base.clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
+                        // Screen readers announce the action ("Punch in") instead
+                        // of a bare "double tap to activate" on the unlabeled face.
+                        onClickLabel = onTapLabel,
+                        role = Role.Button,
                         onClick = onTap,
                     )
                 } else {
@@ -170,7 +176,10 @@ fun IdleScreen(
         todayShort.ifBlank { null }?.let { stringResource(R.string.wear_today, it) },
     ).joinToString(" · ")
 
-    WearFace(onTap = onPunchIn.takeIf { !isLoading }) {
+    WearFace(
+        onTap = onPunchIn.takeIf { !isLoading },
+        onTapLabel = stringResource(R.string.punch_in),
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             WearBoltButton(size = 60.dp, isLoading = isLoading)
             Spacer(Modifier.height(10.dp))
@@ -210,7 +219,10 @@ fun RunningScreen(
     onPunchOut: () -> Unit,
     isLoading: Boolean,
 ) {
-    WearFace(onTap = onPunchOut.takeIf { !isLoading }) {
+    WearFace(
+        onTap = onPunchOut.takeIf { !isLoading },
+        onTapLabel = stringResource(R.string.punch_out),
+    ) {
         AuroraProgressRing(progressPercent = progressPercent)
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             StatusDotRow(
@@ -274,6 +286,8 @@ fun CountdownOverlay(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
+                onClickLabel = stringResource(R.string.countdown_tap_to_cancel),
+                role = Role.Button,
                 onClick = onCancel,
             ),
         contentAlignment = Alignment.Center,

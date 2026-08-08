@@ -17,6 +17,7 @@ import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -120,14 +121,23 @@ class WearStateRepository(
         }
     }
 
-    suspend fun showConfirmation(message: String, isSuccess: Boolean = true) {
+    private var confirmationDismissJob: Job? = null
+
+    fun showConfirmation(message: String, isSuccess: Boolean = true) {
         _confirmation.value = WearConfirmation(message, isSuccess)
-        // Long enough for the result-mark draw-in animation to complete.
-        delay(1_600)
-        _confirmation.value = null
+        // The auto-dismiss runs on the repository's own application-lifetime
+        // scope, not the caller's: a ViewModel scope dies when the user drops
+        // their wrist, and a cancelled dismiss used to leave the overlay stuck
+        // on the next launch. 1.6s is long enough for the result-mark draw-in.
+        confirmationDismissJob?.cancel()
+        confirmationDismissJob = applyScope.launch {
+            delay(1_600)
+            _confirmation.value = null
+        }
     }
 
     fun dismissConfirmation() {
+        confirmationDismissJob?.cancel()
         _confirmation.value = null
     }
 

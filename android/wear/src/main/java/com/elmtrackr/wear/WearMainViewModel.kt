@@ -77,7 +77,7 @@ class WearMainViewModel(
                 delay(1_000)
             }
             _punchCountdown.value = null
-            if (isPunchIn) punchIn() else punchOut()
+            submitPunch(isPunchIn)
         }
     }
 
@@ -87,24 +87,20 @@ class WearMainViewModel(
         _punchCountdown.value = null
     }
 
-    fun punchIn() {
+    private fun submitPunch(isPunchIn: Boolean) {
         viewModelScope.launch {
-            val result = app.wearActionClient.punchIn()
+            val result = if (isPunchIn) app.wearActionClient.punchIn() else app.wearActionClient.punchOut()
             if (result.success) {
-                app.wearStateRepository.showConfirmation(app.getString(R.string.confirmed_in))
+                app.wearStateRepository.showConfirmation(
+                    app.getString(if (isPunchIn) R.string.confirmed_in else R.string.confirmed_out),
+                )
             } else {
                 app.wearStateRepository.showConfirmation(failureMessage(result.errorCode), isSuccess = false)
-            }
-        }
-    }
-
-    fun punchOut() {
-        viewModelScope.launch {
-            val result = app.wearActionClient.punchOut()
-            if (result.success) {
-                app.wearStateRepository.showConfirmation(app.getString(R.string.confirmed_out))
-            } else {
-                app.wearStateRepository.showConfirmation(failureMessage(result.errorCode), isSuccess = false)
+                // A failed punch usually means the face is stale — e.g. punching
+                // out after the phone already ended the shift — so re-pull the
+                // phone state instead of leaving a face that fails the same way
+                // on every tap.
+                app.wearActionClient.requestRefreshFromPhone()
             }
         }
     }

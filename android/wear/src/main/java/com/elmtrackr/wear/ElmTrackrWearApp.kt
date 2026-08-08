@@ -42,6 +42,11 @@ class ElmTrackrWearApp : Application() {
                 wearStateRepository.showConfirmation(
                     getString(if (isPunchIn) R.string.confirmed_in else R.string.confirmed_out),
                 )
+            } else {
+                // A failed tile punch usually means the tile is stale (the phone
+                // already ended or started the shift) — re-pull so the next
+                // render shows the real state instead of failing again.
+                wearActionClient.requestRefreshFromPhone()
             }
         }
     }
