@@ -77,6 +77,24 @@ internal fun SettingsDestination.backDestination(): SettingsDestination? = when 
     else -> SettingsDestination.HUB
 }
 
+/**
+ * Destinations that edit the same value, so moving between them is not leaving a
+ * screen with unsaved changes.
+ *
+ * Choosing a clock face spans two of them: the appearance screen holds the
+ * selection and the Save bar, and the gallery is the only place the faces outside
+ * the four quick picks can be reached. Treating that hop as an exit put a discard
+ * prompt in the middle of the one edit it was meant to protect.
+ */
+private val CLOCK_FACE_FLOW = setOf(
+    SettingsDestination.APPEARANCE,
+    SettingsDestination.CLOCK_FACES,
+)
+
+/** True when a move from [from] to [to] stays inside one editing task. */
+internal fun sharesPendingEdits(from: SettingsDestination, to: SettingsDestination): Boolean =
+    from in CLOCK_FACE_FLOW && to in CLOCK_FACE_FLOW
+
 /** Used to pick slide direction for [AnimatedContent] transitions between settings screens. */
 internal fun SettingsDestination.motionOrder(): Int = when (this) {
     SettingsDestination.HUB -> 0
@@ -110,10 +128,17 @@ fun SettingsScreen(
     val motionEnabled = auroraMotionEnabled()
     var unsavedCount by remember { mutableStateOf(0) }
     var pendingDiscardTarget by remember { mutableStateOf<SettingsDestination?>(null) }
+    // The chosen-but-unsaved clock face is held here rather than in the form,
+    // unlike every other field on these screens. [AnimatedContent] composes each
+    // destination in its own slot, so form state does not survive a destination
+    // change — which is exactly what choosing a face requires, since the gallery
+    // and the Save bar are on different screens. null means no pending choice: the
+    // saved face shows through.
+    var pendingClockStyle by rememberSaveable { mutableStateOf<ClockStyle?>(null) }
 
     // Leaving a detail screen with unsaved edits requires an explicit choice.
     fun navigateGuarded(target: SettingsDestination) {
-        if (unsavedCount > 0 && target != destination) {
+        if (unsavedCount > 0 && target != destination && !sharesPendingEdits(destination, target)) {
             pendingDiscardTarget = target
         } else {
             destination = target
@@ -139,6 +164,9 @@ fun SettingsScreen(
                 TextButton(onClick = {
                     pendingDiscardTarget = null
                     unsavedCount = 0
+                    // Form fields discard themselves when their slot goes away.
+                    // This one outlives the slot, so discarding it is explicit.
+                    pendingClockStyle = null
                     destination = target
                 }) { Text(stringResource(R.string.settings_discard_confirm), color = MaterialTheme.colorScheme.error) }
             },
@@ -207,8 +235,16 @@ fun SettingsScreen(
                             state = state,
                             destination = dest,
                             authState = authState,
+                            pendingClockStyle = pendingClockStyle,
+                            onPendingClockStyleChange = { pendingClockStyle = it },
                             onNavigate = { navigateGuarded(it) },
-                            onNavigateBack = { navigateGuarded(SettingsDestination.HUB) },
+                            // Back follows the destination's own parent instead of
+                            // always the hub, so the gallery returns to the
+                            // appearance screen the user opened it from — and to the
+                            // Save bar that commits the face they just picked.
+                            onNavigateBack = {
+                                navigateGuarded(dest.backDestination() ?: SettingsDestination.HUB)
+                            },
                             onUnsavedCountChange = { unsavedCount = it },
                             onClearPasswordResetFeedback = viewModel::clearPasswordResetFeedback,
                             onSave = viewModel::saveSettings,
@@ -241,6 +277,8 @@ private fun SettingsFormHost(
     state: SettingsUiState.Ready,
     destination: SettingsDestination,
     authState: AuthUiState?,
+    pendingClockStyle: ClockStyle? = null,
+    onPendingClockStyleChange: (ClockStyle?) -> Unit = {},
     onNavigate: (SettingsDestination) -> Unit,
     onNavigateBack: () -> Unit,
     onUnsavedCountChange: (Int) -> Unit = {},
@@ -281,7 +319,9 @@ private fun SettingsFormHost(
     }
     var hourlyRateText by rememberSaveable { mutableStateOf(state.settings.hourlyRate?.toString() ?: "") }
     var timezone by rememberSaveable { mutableStateOf(state.settings.timezone) }
-    var clockStyle by rememberSaveable { mutableStateOf(supportedClockStyleOf(state.settings.clockStyle)) }
+    // Not remembered here: the choice is made on one destination and saved from
+    // another, so it is hoisted to the caller, above the per-destination slots.
+    val clockStyle = pendingClockStyle ?: supportedClockStyleOf(state.settings.clockStyle)
     var currency by rememberSaveable { mutableStateOf(state.settings.currency) }
     var travelRefunds by rememberSaveable { mutableStateOf(state.settings.featuresTravelRefunds) }
     var paidProjects by rememberSaveable { mutableStateOf(state.settings.featuresPaidProjects) }
@@ -291,6 +331,18 @@ private fun SettingsFormHost(
         mutableStateOf(state.settings.featuresOvertimeReminders)
     }
     var weekendDays by rememberSaveable { mutableStateOf(state.settings.weekendDays) }
+
+    // Released once the saved value has caught up, rather than when Save is tapped:
+    // waiting for the stored face means the preview never falls back to the old one
+    // while the write lands. Holding it any longer would shadow a face changed on
+    // another device and report it forever as an unsaved edit.
+    LaunchedEffect(pendingClockStyle, state.settings.clockStyle) {
+        if (pendingClockStyle != null &&
+            pendingClockStyle == supportedClockStyleOf(state.settings.clockStyle)
+        ) {
+            onPendingClockStyleChange(null)
+        }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
@@ -355,7 +407,10 @@ private fun SettingsFormHost(
             currency != state.settings.currency,
             weekendDays.sorted() != state.settings.weekendDays.sorted(),
         ).count { it }
-        SettingsDestination.APPEARANCE -> listOf(
+        // The gallery counts the same edits as the appearance screen. It shares the
+        // pending face, so leaving it for the hub has to raise the same prompt —
+        // reporting zero here let the choice vanish without a word.
+        SettingsDestination.APPEARANCE, SettingsDestination.CLOCK_FACES -> listOf(
             clockStyle != supportedClockStyleOf(state.settings.clockStyle),
             clockStyles != state.settings.featuresClockStyles,
         ).count { it }
@@ -421,7 +476,7 @@ private fun SettingsFormHost(
             SettingsDestination.APPEARANCE -> AppearanceDetailScreen(
                 state = state,
                 clockStyle = clockStyle,
-                onClockStyleChange = { clockStyle = it },
+                onClockStyleChange = { onPendingClockStyleChange(it) },
                 clockStylesEnabled = clockStyles,
                 onClockStylesEnabledChange = { clockStyles = it },
                 reduceMotionEnabled = state.reduceMotionEnabled,
@@ -436,12 +491,14 @@ private fun SettingsFormHost(
                     stored = state.storedClockFacePacks,
                     selected = clockStyle,
                 ),
-                onSelect = { clockStyle = it },
+                onSelect = { onPendingClockStyleChange(it) },
                 onInstallPack = onInstallClockFacePack,
                 // The callback moves the unsaved selection off a face that is going
                 // away. Without it the pack would vanish while this screen still
                 // showed one of its faces as selected.
-                onRemovePack = { pack -> onRemoveClockFacePack(pack, clockStyle) { clockStyle = it } },
+                onRemovePack = { pack ->
+                    onRemoveClockFacePack(pack, clockStyle) { onPendingClockStyleChange(it) }
+                },
                 onBack = onNavigateBack,
             )
             SettingsDestination.FEATURES -> {
