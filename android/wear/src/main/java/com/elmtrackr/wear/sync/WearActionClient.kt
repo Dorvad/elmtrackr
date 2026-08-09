@@ -8,6 +8,7 @@ import com.elmtrackr.wear.sync.WearMessages.REFRESH
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.Node
 import com.google.android.gms.wearable.Wearable
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 
@@ -55,8 +56,15 @@ class WearActionClient(
                 messageClient.sendMessage(phone.id, path, ByteArray(0)).await()
                 waitForPunchResult()
             } finally {
-                messageClient.removeListener(this)
+                runCatching { messageClient.removeListener(this) }
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // The node lookup and sendMessage throw ApiException when Play
+            // Services is unavailable or the phone drops mid-flight. A punch
+            // must fail with feedback, never crash the watch app.
+            PunchResult(success = false, errorCode = "phone_unreachable")
         } finally {
             wearStateRepository.setPunchInProgress(false)
         }

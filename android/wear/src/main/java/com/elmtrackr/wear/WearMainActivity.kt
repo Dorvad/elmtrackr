@@ -74,7 +74,9 @@ class WearMainActivity : ComponentActivity() {
                             lastPunchLabel = WearLabels.lastPunch(this@WearMainActivity, snapshot).ifBlank {
                                 snapshot.startTimeLabel.takeIf { it != "--:--" }.orEmpty()
                             },
-                            todayShort = display.todayShort,
+                            // Match the tile: no "Today 0m" when nothing was
+                            // worked yet — the detail line just stays shorter.
+                            todayShort = display.todayShort.takeIf { snapshot.todayMinutes > 0 }.orEmpty(),
                             onPunchIn = viewModel::requestPunchIn,
                             isLoading = isLoading,
                         )

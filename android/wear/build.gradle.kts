@@ -19,7 +19,11 @@ android {
         applicationId = "com.elmlaunch.myapp"
         minSdk = 30
         targetSdk = 36
-        versionCode = 11
+        // Play requires a watch artifact's versionCode to be unique across all
+        // form factors of the listing, and the phone module shares this
+        // applicationId — so the wear module keeps its own range:
+        // 10000 + the phone :app versionCode. Bump both together.
+        versionCode = 10011
         versionName = "1.1.1"
     }
 

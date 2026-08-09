@@ -86,6 +86,11 @@
             <meta-data
                 android:name="android.support.wearable.complications.SUPPORTED_TYPES"
                 android:value="SHORT_TEXT,LONG_TEXT,RANGED_VALUE" />
+            <!-- 0 = no periodic polling: the phone pushes snapshots and the
+                 sync layer calls requestUpdateAll() on every change. -->
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="0" />
         </service>
 
     </application>

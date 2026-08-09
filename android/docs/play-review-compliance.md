@@ -93,8 +93,10 @@ The watch app is a companion (`standalone=false`): all content requires the
 
 ## Re-submission steps
 
-1. Build new bundles (versionCode **11**): `./gradlew :app:bundleRelease
-   :wear:bundleRelease`.
+1. Build new bundles (phone versionCode **11**, wear versionCode **10011**):
+   `./gradlew :app:bundleRelease :wear:bundleRelease`. A watch artifact's
+   versionCode must be unique across all form factors of the listing, so the
+   `:wear` module keeps its own range: 10000 + the phone versionCode.
 2. Upload both to their tracks, move the rejected versionCode 10 artifacts to
    "Not included", and roll out.
 3. Update the store listing description (§1) and App access credentials (§4)
