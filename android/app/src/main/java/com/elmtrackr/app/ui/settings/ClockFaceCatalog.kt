@@ -5,7 +5,7 @@ import com.elmtrackr.app.domain.model.ClockStyle
 /**
  * The clock faces, grouped for browsing.
  *
- * Nineteen faces in one flat grid is a wall: nothing tells the user which ones
+ * Twenty faces in one flat grid is a wall: nothing tells the user which ones
  * are alike, so choosing means reading every label. The groups are the browsing
  * unit — each holds at most [GROUP_SIZE] faces, which is what makes the gallery
  * lay out as clean 2×2 blocks rather than a ragged list.
@@ -46,18 +46,12 @@ enum class ClockFaceGroup(val faces: List<ClockStyle>, val isBundled: Boolean = 
 
     /** The day as a trip with a destination. */
     JOURNEYS(
-        listOf(ClockStyle.ORBIT, ClockStyle.METRO, ClockStyle.VINYL),
+        listOf(ClockStyle.ORBIT, ClockStyle.METRO, ClockStyle.VINYL, ClockStyle.SUMMIT),
     ),
     ;
 
     companion object {
-        /**
-         * Faces per group, and per row-pair in the gallery.
-         *
-         * [JOURNEYS] holds three rather than four. Padding it with a filler face
-         * would be worse than the gap: the groups exist to mean something, and
-         * one short group is honest about there being nineteen faces.
-         */
+        /** Faces per group, and per row-pair in the gallery. */
         const val GROUP_SIZE = 4
 
         /** Always present, never removable. */

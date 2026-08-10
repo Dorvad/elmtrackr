@@ -93,7 +93,7 @@
     <string name="settings_face_focus">Distraction free</string>
     <string name="settings_face_bold">Large and clear</string>
     <string name="settings_face_night">Cyan night glow</string>
-    <string name="settings_face_retro">Amber terminal</string>
+    <string name="settings_face_retro">Amber split-flap board</string>
     <string name="settings_face_aurora">Gradient ring</string>
     <string name="settings_face_pulse">Glowing rings</string>
     <string name="settings_face_dial">Analog timer</string>
@@ -107,6 +107,7 @@
     <string name="settings_face_metro">Your day as a commute — one station per hour</string>
     <string name="settings_face_vinyl">A record spinning while you work</string>
     <string name="settings_face_luna">A moon that waxes to full at eight</string>
+    <string name="settings_face_summit">Your day as a climb — summit at eight</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">No hourly rate</string>

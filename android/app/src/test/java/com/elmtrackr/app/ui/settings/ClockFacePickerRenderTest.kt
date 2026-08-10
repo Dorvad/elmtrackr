@@ -51,7 +51,7 @@ class ClockFacePickerRenderTest {
             }
         }
 
-        // Four tiles, not nineteen. Selectable is what a tile is; nothing else on
+        // Four tiles, not twenty. Selectable is what a tile is; nothing else on
         // this control reports a selected state.
         assertEquals(
             CLOCK_FACE_QUICK_PICK_COUNT,

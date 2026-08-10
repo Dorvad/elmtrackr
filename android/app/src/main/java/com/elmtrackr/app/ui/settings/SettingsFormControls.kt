@@ -106,6 +106,7 @@ internal fun clockStyleDisplayName(style: ClockStyle): String = stringResource(
         ClockStyle.METRO -> R.string.clock_style_metro
         ClockStyle.VINYL -> R.string.clock_style_vinyl
         ClockStyle.LUNA -> R.string.clock_style_luna
+        ClockStyle.SUMMIT -> R.string.clock_style_summit
     },
 )
 
@@ -336,7 +337,31 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
                 ClockStyle.NIGHT -> repeat(12) { i ->
                     drawCircle(Color.White.copy(alpha = if (i % 3 == 0) animatedPulse else .35f), 1.5f, Offset((i * 31 % 97) / 100f * size.width, (i * 47 % 89) / 100f * size.height))
                 }
-                ClockStyle.RETRO -> drawRoundRect(accent.copy(alpha = .55f), style = Stroke(2f))
+                ClockStyle.RETRO -> {
+                    // Four flip cards with their centre seam; the time overlays them.
+                    val cardW = size.width * .17f
+                    val cardH = size.height * .66f
+                    val gap = size.width * .03f
+                    val startX = (size.width - (cardW * 4 + gap * 3)) / 2f
+                    val cardY = center.y - cardH / 2f
+                    repeat(4) { i ->
+                        val x = startX + i * (cardW + gap)
+                        drawRoundRect(
+                            Color.Black.copy(alpha = .4f),
+                            Offset(x, cardY),
+                            Size(cardW, cardH),
+                            androidx.compose.ui.geometry.CornerRadius(5f),
+                        )
+                        drawRoundRect(
+                            accent.copy(alpha = .3f),
+                            Offset(x, cardY),
+                            Size(cardW, cardH),
+                            androidx.compose.ui.geometry.CornerRadius(5f),
+                            style = Stroke(1.5f),
+                        )
+                        drawLine(Color.Black.copy(alpha = .7f), Offset(x, center.y), Offset(x + cardW, center.y), 2f)
+                    }
+                }
                 ClockStyle.PULSE -> repeat(3) { i ->
                     drawCircle(accent.copy(alpha = animatedPulse / (i + 2)), radius * (.55f + i * .28f), center, style = Stroke(2f))
                 }
@@ -494,6 +519,41 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
                     drawLine(accent, star - Offset(arm, 0f), star + Offset(arm, 0f), 1.5f, StrokeCap.Round)
                     drawLine(accent, star - Offset(0f, arm), star + Offset(0f, arm), 1.5f, StrokeCap.Round)
                 }
+                ClockStyle.SUMMIT -> {
+                    val baseY = size.height * .8f
+                    val peak = Offset(size.width * .58f, size.height * .22f)
+                    fun Path.trailUp() {
+                        moveTo(size.width * .12f, baseY)
+                        quadraticTo(size.width * .3f, size.height * .6f, size.width * .42f, size.height * .52f)
+                        quadraticTo(size.width * .5f, size.height * .44f, peak.x, peak.y)
+                    }
+                    val body = Path().apply {
+                        trailUp()
+                        quadraticTo(size.width * .68f, size.height * .46f, size.width * .84f, baseY)
+                        close()
+                    }
+                    drawPath(body, accent.copy(alpha = .12f))
+                    drawPath(
+                        Path().apply { trailUp() },
+                        accent.copy(alpha = .45f),
+                        style = Stroke(2f, cap = StrokeCap.Round, pathEffect = PathEffect.dashPathEffect(floatArrayOf(3f, 5f))),
+                    )
+                    drawCircle(accent, 2.5f, Offset(size.width * .28f, size.height * .61f))
+                    drawCircle(accent.copy(alpha = .35f), 2.5f, Offset(size.width * .47f, size.height * .46f))
+                    drawLine(accent, peak, Offset(peak.x, peak.y - 9f), 2f, StrokeCap.Round)
+                    val pennant = Path().apply {
+                        moveTo(peak.x, peak.y - 9f)
+                        lineTo(peak.x + 6f, peak.y - 6.5f)
+                        lineTo(peak.x, peak.y - 4f)
+                        close()
+                    }
+                    drawPath(pennant, accent)
+                    drawCircle(
+                        accent.copy(alpha = .4f + animatedPulse * .5f),
+                        3f,
+                        Offset(size.width * .36f, size.height * .55f),
+                    )
+                }
                 ClockStyle.TIDE -> {
                     val vesselRadius = size.minDimension * .42f
                     drawCircle(accent.copy(alpha = .35f), vesselRadius, center, style = Stroke(2f))
@@ -550,6 +610,7 @@ internal fun watchFaceDescription(style: ClockStyle): String = stringResource(
         ClockStyle.METRO -> R.string.settings_face_metro
         ClockStyle.VINYL -> R.string.settings_face_vinyl
         ClockStyle.LUNA -> R.string.settings_face_luna
+        ClockStyle.SUMMIT -> R.string.settings_face_summit
     },
 )
 

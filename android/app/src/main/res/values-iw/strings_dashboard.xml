@@ -65,6 +65,8 @@
     <string name="dashboard_clock_new_moon">מולד ירח</string>
     <string name="dashboard_clock_growing">בצמיחה</string>
     <string name="dashboard_clock_ready_to_grow">מוכנים לצמוח</string>
+    <string name="dashboard_clock_climbing">בטיפוס</string>
+    <string name="dashboard_clock_base_camp">במחנה הבסיס</string>
 
     <!-- Month summary -->
     <string name="dashboard_month_summary_title">סיכום %1$s</string>

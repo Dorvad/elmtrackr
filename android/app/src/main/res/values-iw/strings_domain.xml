@@ -62,6 +62,7 @@
     <string name="clock_style_vinyl">ויניל</string>
     <string name="clock_style_luna">לונה</string>
     <string name="clock_style_sprout">נבט</string>
+    <string name="clock_style_summit">פסגה</string>
 
     <!-- Currency display names -->
     <string name="currency_ils">שקל חדש</string>

@@ -896,7 +896,8 @@ private fun DashboardClockSection(
                 SupportedClockStyle.SPROUT,
                 SupportedClockStyle.METRO,
                 SupportedClockStyle.VINYL,
-                SupportedClockStyle.LUNA -> ExpressiveClockCard(
+                SupportedClockStyle.LUNA,
+                SupportedClockStyle.SUMMIT -> ExpressiveClockCard(
                     style = renderStyle,
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
@@ -1283,6 +1284,7 @@ private fun ExpressiveClockCard(
                     SupportedClockStyle.METRO -> stringResource(if (running) R.string.dashboard_clock_in_transit else R.string.dashboard_clock_on_platform)
                     SupportedClockStyle.VINYL -> stringResource(if (running) R.string.dashboard_clock_now_playing else R.string.dashboard_clock_drop_needle)
                     SupportedClockStyle.LUNA -> stringResource(if (running) R.string.dashboard_clock_waxing else R.string.dashboard_clock_new_moon)
+                    SupportedClockStyle.SUMMIT -> stringResource(if (running) R.string.dashboard_clock_climbing else R.string.dashboard_clock_base_camp)
                     else -> ""
                 },
                 style = MaterialTheme.typography.labelSmall,
@@ -1312,12 +1314,13 @@ private fun ExpressiveClockCard(
                             if (running) drawCircle(accent.copy(alpha = .08f + pulse() * .08f), 72.dp.toPx(), center)
                         }
                         SupportedClockStyle.RETRO -> {
+                            // Just the amber grid: the split-flap board drawn in
+                            // the overlay below is the face.
                             val gap = 13.dp.toPx()
                             var x = 0f
                             while (x < size.width) { drawLine(accent.copy(alpha = .08f), Offset(x, 0f), Offset(x, size.height), 1f); x += gap }
                             var y = 0f
                             while (y < size.height) { drawLine(accent.copy(alpha = .08f), Offset(0f, y), Offset(size.width, y), 1f); y += gap }
-                            drawRoundRect(accent.copy(alpha = .12f), Offset(size.width * .08f, size.height * .18f), Size(size.width * .84f, size.height * .64f), GeometryCornerRadius(5.dp.toPx()), style = Stroke(2.dp.toPx()))
                         }
                         SupportedClockStyle.PULSE -> repeat(3) { index ->
                             val phase = (pulse() + index / 3f) % 1f
@@ -1541,10 +1544,34 @@ private fun ExpressiveClockCard(
                             running = running,
                             overtime = dayOvertime,
                         )
+                        SupportedClockStyle.SUMMIT -> drawSummitFace(
+                            progress = dayProgress,
+                            overtime = dayOvertime,
+                            overtimeProgress = overtimeExtension,
+                            pulse = pulse(),
+                            running = running,
+                            foreground = foreground,
+                            surface = background,
+                        )
                         else -> Unit
                     }
                 }
-                if (running) {
+                if (style == SupportedClockStyle.RETRO) {
+                    // The split-flap board is this face's readout, in both
+                    // states the text branches below cover: elapsed time on a
+                    // running shift, the wall clock while idle.
+                    RetroFlipBoard(
+                        text = if (running) {
+                            flipElapsedText(elapsedSeconds)
+                        } else {
+                            rememberCurrentInstant(MINUTE_MILLIS)
+                                .atZone(LocalWorkZone.current)
+                                .format(timeFormatter)
+                        },
+                        digitColor = accent,
+                        surface = background,
+                    )
+                } else if (running) {
                     ShiftElapsedDisplay(
                         elapsedSeconds = elapsedSeconds,
                         running = true,

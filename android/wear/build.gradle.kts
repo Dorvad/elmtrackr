@@ -23,8 +23,8 @@ android {
         // form factors of the listing, and the phone module shares this
         // applicationId — so the wear module keeps its own range:
         // 10000 + the phone :app versionCode. Bump both together.
-        versionCode = 10011
-        versionName = "1.1.1"
+        versionCode = 10012
+        versionName = "1.2.0"
     }
 
     // The Play Store only delivers the watch app to a paired watch when it is
