@@ -42,8 +42,8 @@ import com.elmtrackr.app.ui.theme.Spacing
 /**
  * The four faces offered on the appearance screen, plus a way to see the rest.
  *
- * Progressive disclosure, and the reason is arithmetic: nineteen faces in a flat
- * grid is nineteen animated previews composed at once and a wall of labels to
+ * Progressive disclosure, and the reason is arithmetic: twenty faces in a flat
+ * grid is twenty animated previews composed at once and a wall of labels to
  * read before the first decision. Four covers the people this screen is actually
  * for — someone who rotates between a handful of faces never leaves this row —
  * and everyone else is one tap from the full set.

@@ -36,14 +36,14 @@ import com.elmtrackr.app.ui.theme.Spacing
  * Every clock face, grouped, with the packs the user does not have offered rather
  * than hidden.
  *
- * Split off the appearance screen rather than expanded in place. Nineteen faces is
+ * Split off the appearance screen rather than expanded in place. Twenty faces is
  * a browsing task, and browsing wants its own surface: room for group names, and a
  * back gesture that returns you where you were instead of leaving you scrolled
  * halfway down a settings page.
  *
  * Each group is its own lazy item, so a group's four animated previews compose when
  * it scrolls into view. The flat grid this replaced lived in one item, which meant
- * all nineteen previews — and their nineteen infinite animations — composed the
+ * every preview — and every one of their infinite animations — composed the
  * moment the screen opened.
  *
  * Selecting a face returns immediately: the tap answers the question the screen

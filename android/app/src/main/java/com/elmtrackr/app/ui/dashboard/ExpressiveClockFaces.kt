@@ -30,11 +30,11 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * The v1.2 expressive faces: Metro, Vinyl and Luna. Each draws inside the
- * shared 176dp [ExpressiveClockCard] face box on the single 1800 ms pulse, and
- * reads whole-day progress (Sprout precedent) so the face is worth a glance
- * while clocked out. Geometry follows the design reference's 312×176 canvas:
- * x positions stretch with the card width, everything else is in dp.
+ * The expressive journey faces: Metro, Vinyl, Luna and Summit. Each draws
+ * inside the shared 176dp [ExpressiveClockCard] face box on the single 1800 ms
+ * pulse, and reads whole-day progress (Sprout precedent) so the face is worth
+ * a glance while clocked out. Geometry follows the design reference's 312×176
+ * canvas: x positions stretch with the card width, everything else is in dp.
  */
 
 /**
@@ -298,6 +298,230 @@ internal fun DrawScope.drawVinylFace(
             needle,
             style = Stroke(1.5.dp.toPx()),
         )
+    }
+}
+
+// ── Summit ────────────────────────────────────────────────────────────────────
+
+private val SummitSnow = Color(0xFFF1F0FB)
+private val SummitSun = Color(0xFFFFC857)
+
+/**
+ * The Summit route's geometry, cached across frames for the same reasons as
+ * [MetroGeometry]: the paths and their measures wrap native objects and depend
+ * only on the face's size, never on the animation.
+ */
+private class SummitGeometry private constructor(val size: Size) {
+    // Kept alive alongside their measures: the paths are what the measures read.
+    private val ascent = Path()
+    private val descent = Path()
+
+    val ascentMeasure: PathMeasure
+    val descentMeasure: PathMeasure
+
+    /** The mountain body under the ridge, filled faintly behind the route. */
+    val mountain = Path()
+
+    /** A more distant peak, fainter still, for depth. */
+    val backPeak = Path()
+
+    init {
+        // Same 312×176 reference mapping as the other faces.
+        fun at(x: Float, y: Float) = Offset(x / 312f * size.width, y / 176f * size.height)
+
+        // The ridge climbs left to right with two switchbacks — a climb, not a
+        // ramp. Written as a block so the ascent path and the filled silhouette
+        // trace the exact same line.
+        fun Path.ridgeUp() {
+            moveTo(at(18f, 148f).x, at(18f, 148f).y)
+            cubicTo(at(56f, 140f).x, at(56f, 140f).y, at(76f, 120f).x, at(76f, 120f).y, at(98f, 112f).x, at(98f, 112f).y)
+            cubicTo(at(120f, 104f).x, at(120f, 104f).y, at(128f, 118f).x, at(128f, 118f).y, at(150f, 102f).x, at(150f, 102f).y)
+            cubicTo(at(176f, 83f).x, at(176f, 83f).y, at(186f, 94f).x, at(186f, 94f).y, at(208f, 66f).x, at(208f, 66f).y)
+            cubicTo(at(222f, 48f).x, at(222f, 48f).y, at(230f, 42f).x, at(230f, 42f).y, at(240f, 32f).x, at(240f, 32f).y)
+        }
+
+        // Overtime rolls over the top and partway down the far side — the
+        // mountaineer's truth that the summit is only halfway.
+        fun Path.ridgeDown() {
+            cubicTo(at(252f, 44f).x, at(252f, 44f).y, at(262f, 62f).x, at(262f, 62f).y, at(288f, 86f).x, at(288f, 86f).y)
+        }
+
+        ascent.ridgeUp()
+        descent.moveTo(at(240f, 32f).x, at(240f, 32f).y)
+        descent.ridgeDown()
+
+        mountain.ridgeUp()
+        mountain.ridgeDown()
+        mountain.lineTo(at(296f, 148f).x, at(296f, 148f).y)
+        mountain.close()
+
+        backPeak.moveTo(at(28f, 148f).x, at(28f, 148f).y)
+        backPeak.cubicTo(at(60f, 116f).x, at(60f, 116f).y, at(78f, 86f).x, at(78f, 86f).y, at(96f, 74f).x, at(96f, 74f).y)
+        backPeak.cubicTo(at(116f, 88f).x, at(116f, 88f).y, at(136f, 120f).x, at(136f, 120f).y, at(158f, 148f).x, at(158f, 148f).y)
+        backPeak.close()
+
+        ascentMeasure = PathMeasure().apply { setPath(ascent, false) }
+        descentMeasure = PathMeasure().apply { setPath(descent, false) }
+    }
+
+    companion object {
+        private var cached: SummitGeometry? = null
+
+        fun forSize(size: Size): SummitGeometry =
+            cached?.takeIf { it.size == size } ?: SummitGeometry(size).also { cached = it }
+    }
+}
+
+/**
+ * Summit face: the day is a climb. The route rises from the trailhead to the
+ * summit flag at the overtime threshold, camps mark hours 1–7 along the way,
+ * and the climber works upward as the day progresses — with the sun climbing
+ * the sky alongside. Overtime crosses the top onto a dashed peach descent.
+ * Clocked out, the climber rests where today left off.
+ */
+internal fun DrawScope.drawSummitFace(
+    progress: Float,
+    overtime: Boolean,
+    overtimeProgress: Float,
+    pulse: Float,
+    running: Boolean,
+    foreground: Color,
+    surface: Color,
+) {
+    // The route reads trailhead → summit in the reading direction.
+    if (layoutDirection == LayoutDirection.Rtl) {
+        scale(scaleX = -1f, scaleY = 1f, pivot = Offset(size.width / 2f, size.height / 2f)) {
+            drawSummitScene(progress, overtime, overtimeProgress, pulse, running, foreground, surface)
+        }
+    } else {
+        drawSummitScene(progress, overtime, overtimeProgress, pulse, running, foreground, surface)
+    }
+}
+
+private fun DrawScope.drawSummitScene(
+    progress: Float,
+    overtime: Boolean,
+    overtimeProgress: Float,
+    pulse: Float,
+    running: Boolean,
+    foreground: Color,
+    surface: Color,
+) {
+    fun at(x: Float, y: Float) = Offset(x / 312f * size.width, y / 176f * size.height)
+
+    val geometry = SummitGeometry.forSize(size)
+    val ascent = geometry.ascentMeasure
+    val descentMeasure = geometry.descentMeasure
+    val accent = if (overtime) AuroraPeachDeep else AuroraIndigo
+    val summit = ascent.getPosition(ascent.length)
+
+    fun strokeAlong(measure: PathMeasure, fraction: Float, color: Color, width: Float, dash: PathEffect? = null) {
+        // Same trade as Metro: the measures are the expensive part, the segment
+        // path is cheap and drawPath copies it at record time.
+        val segment = Path()
+        measure.getSegment(0f, measure.length * fraction.coerceIn(0f, 1f), segment, true)
+        drawPath(
+            segment,
+            color,
+            style = Stroke(width, cap = StrokeCap.Round, join = StrokeJoin.Round, pathEffect = dash),
+        )
+    }
+
+    // The sun climbs with the day and warms to peach past the threshold;
+    // it breathes gently while a shift runs.
+    val sun = at(48f, 96f - 62f * progress)
+    val sunColor = if (overtime) AuroraPeachDeep else SummitSun
+    drawCircle(
+        sunColor.copy(alpha = 0.25f + if (running) pulse * 0.10f else 0f),
+        11.dp.toPx() + if (running) pulse * 2.dp.toPx() else 0f,
+        sun,
+    )
+    drawCircle(sunColor.copy(alpha = 0.75f), 6.dp.toPx(), sun)
+
+    // Scenery behind the route: the far peak, the mountain body, the valley floor.
+    drawPath(geometry.backPeak, foreground.copy(alpha = 0.05f))
+    drawPath(geometry.mountain, foreground.copy(alpha = 0.09f))
+    drawLine(
+        foreground.copy(alpha = 0.12f),
+        at(10f, 148f), at(302f, 148f),
+        2.dp.toPx(), StrokeCap.Round,
+    )
+
+    // The route: dotted where unclimbed, solid where the day has been.
+    val routeDash = PathEffect.dashPathEffect(floatArrayOf(1.dp.toPx(), 7.dp.toPx()))
+    strokeAlong(ascent, 1f, foreground.copy(alpha = 0.30f), 3.dp.toPx(), routeDash)
+    if (overtime) {
+        strokeAlong(
+            descentMeasure, 1f, AuroraPeachDeep.copy(alpha = 0.45f), 3.dp.toPx(),
+            PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 6.dp.toPx())),
+        )
+    }
+    if (progress > 0.002f) strokeAlong(ascent, progress, AuroraIndigo, 4.dp.toPx())
+    if (overtime && overtimeProgress > 0.02f) {
+        strokeAlong(descentMeasure, overtimeProgress, AuroraPeachDeep, 3.dp.toPx())
+    }
+
+    // Camps at hours 1–7; the summit itself carries the flag below.
+    repeat(7) { i ->
+        val camp = ascent.getPosition(ascent.length * (i + 1) / 8f)
+        val passed = progress >= (i + 1) / 8f - 0.001f
+        if (passed) {
+            drawCircle(AuroraIndigo, 4.dp.toPx(), camp)
+            drawCircle(surface, 1.8.dp.toPx(), camp)
+        } else {
+            drawCircle(surface, 4.dp.toPx(), camp)
+            drawCircle(foreground.copy(alpha = 0.25f), 4.dp.toPx(), camp, style = Stroke(1.8.dp.toPx()))
+        }
+    }
+
+    // The summit flag — the overtime threshold. Planted grey until reached,
+    // in full colour after, peach once the day rolls past it.
+    val summited = progress >= 0.999f
+    val flagColor = if (summited) accent else foreground.copy(alpha = 0.30f)
+    val poleTop = summit - Offset(0f, 14.dp.toPx())
+    if (summited) {
+        drawCircle(
+            accent.copy(alpha = 0.15f + if (running) pulse * 0.08f else 0f),
+            13.dp.toPx(), summit,
+        )
+    }
+    drawLine(flagColor, summit, poleTop, 2.dp.toPx(), StrokeCap.Round)
+    val pennant = Path().apply {
+        moveTo(poleTop.x, poleTop.y)
+        lineTo(poleTop.x + 9.dp.toPx(), poleTop.y + 3.dp.toPx())
+        lineTo(poleTop.x, poleTop.y + 6.dp.toPx())
+        close()
+    }
+    drawPath(pennant, flagColor)
+
+    // Snow on the upper reaches, revealed as scenery rather than progress.
+    drawCircle(SummitSnow.copy(alpha = 0.45f), 3.dp.toPx(), summit + Offset(6.dp.toPx(), 9.dp.toPx()))
+    drawCircle(SummitSnow.copy(alpha = 0.30f), 2.2.dp.toPx(), summit + Offset(-7.dp.toPx(), 13.dp.toPx()))
+
+    // The next camp glows while the climber approaches it.
+    if (running && progress < 1f) {
+        val next = ((progress * 8f).toInt() + 1).coerceAtMost(8)
+        val halo = ascent.getPosition(ascent.length * next / 8f)
+        drawCircle(
+            AuroraIndigo.copy(alpha = (1f - pulse) * 0.4f),
+            5.dp.toPx() + pulse * 8.dp.toPx(),
+            halo,
+            style = Stroke(2.dp.toPx()),
+        )
+    }
+
+    // The climber: resting at today's spot, stepping gently while on shift.
+    val measure = if (overtime) descentMeasure else ascent
+    val distance = measure.length * (if (overtime) overtimeProgress.coerceAtLeast(0.02f) else progress)
+    val position = measure.getPosition(distance)
+    val bob = if (running) abs(sin(pulse * 2f * Math.PI.toFloat())) * -1.5.dp.toPx() else 0f
+    val climber = position + Offset(0f, bob - 4.dp.toPx())
+    drawCircle(accent, 5.dp.toPx(), climber)
+    drawCircle(Color.White, 2.dp.toPx(), climber)
+    // The rope back to the last camp: a short trailing stroke of effort.
+    if (running && !overtime && distance > 6.dp.toPx()) {
+        val behind = measure.getPosition(distance - 6.dp.toPx())
+        drawLine(accent.copy(alpha = 0.5f), behind, position - Offset(0f, 2.dp.toPx()), 2.dp.toPx(), StrokeCap.Round)
     }
 }
 

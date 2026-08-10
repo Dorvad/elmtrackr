@@ -37,5 +37,6 @@ class SupportedClockStyleTest {
         assertEquals(ClockStyle.METRO, ClockStyle.fromPersisted("metro"))
         assertEquals(ClockStyle.VINYL, ClockStyle.fromPersisted("vinyl"))
         assertEquals(ClockStyle.LUNA, ClockStyle.fromPersisted("luna"))
+        assertEquals(ClockStyle.SUMMIT, ClockStyle.fromPersisted("summit"))
     }
 }

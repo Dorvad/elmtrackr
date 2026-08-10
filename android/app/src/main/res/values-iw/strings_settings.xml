@@ -93,7 +93,7 @@
     <string name="settings_face_focus">בלי הסחות דעת</string>
     <string name="settings_face_bold">גדול וברור</string>
     <string name="settings_face_night">זוהר לילי בטורקיז</string>
-    <string name="settings_face_retro">מסוף בגוון ענבר</string>
+    <string name="settings_face_retro">לוח כרטיסיות מתהפכות בגוון ענבר</string>
     <string name="settings_face_aurora">טבעת גרדיאנט</string>
     <string name="settings_face_pulse">טבעות זוהרות</string>
     <string name="settings_face_dial">טיימר אנלוגי</string>
@@ -107,6 +107,7 @@
     <string name="settings_face_vinyl">תקליט שמסתובב בזמן העבודה</string>
     <string name="settings_face_luna">ירח שמתמלא עד שעה שמינית</string>
     <string name="settings_face_sprout">צמח שגדל בכל שעה — פריחה מלאה בשעה השמינית</string>
+    <string name="settings_face_summit">היום שלכם כטיפוס — פסגה בשעה השמינית</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">בלי שכר שעתי</string>
