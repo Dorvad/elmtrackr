@@ -55,6 +55,9 @@ sealed interface LeaveEstimate {
 }
 
 enum class LeaveEstimateGap {
+    /** The workplace has no leave policy at all yet. */
+    NO_POLICY,
+
     /** The workplace's policy has this kind of leave switched off. */
     LEAVE_TYPE_DISABLED,
 

@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ReportEntryTypeSheet -->
+    <string name="leave_report_sheet_title">מה תרצה לדווח?</string>
+    <string name="leave_report_work">עבודה</string>
+    <string name="leave_report_work_sub">משמרת שעבדת</string>
+    <string name="leave_report_vacation">חופשה</string>
+    <string name="leave_report_vacation_sub">יום חופש שלקחת</string>
+    <string name="leave_report_sick">מחלה</string>
+    <string name="leave_report_sick_sub">יום שבו לא יכולת לעבוד</string>
+
+    <!-- AbsenceFormScreen -->
+    <string name="leave_form_title_vacation">חופשה</string>
+    <string name="leave_form_title_sick">מחלה</string>
+    <string name="leave_form_back">חזרה</string>
+    <string name="leave_form_workplace">מקום עבודה</string>
+    <string name="leave_form_when">מתי</string>
+    <string name="leave_form_length_single">יום אחד</string>
+    <string name="leave_form_length_range">כמה ימים</string>
+    <string name="leave_form_date">תאריך</string>
+    <string name="leave_form_first_day">היום הראשון של המחלה</string>
+    <string name="leave_form_start_date">תאריך התחלה</string>
+    <string name="leave_form_end_date">תאריך סיום</string>
+    <string name="leave_form_pick_date">בחירת %1$s</string>
+    <string name="leave_form_duration">משך</string>
+    <string name="leave_form_full_day">יום מלא</string>
+    <string name="leave_form_partial_day">חלק מהיום</string>
+    <string name="leave_form_amount_days">ימים</string>
+    <string name="leave_form_amount_hours">שעות</string>
+    <string name="leave_form_note">הערה (לא חובה)</string>
+    <string name="leave_form_affected_days">הימים שהיית עובד בהם</string>
+    <string name="leave_form_affected_days_help">רק הימים שהיית עובד בהם במקום העבודה הזה יורדים מהיתרה.</string>
+    <string name="leave_form_no_pattern">ל-ElmTrackr אין מידע על הימים שבהם אתה עובד כאן בדרך כלל. בחר את הימים שהיית עובד בהם.</string>
+    <string name="leave_form_no_days_selected">בחר יום אחד לפחות.</string>
+    <string name="leave_form_sick_day">יום מחלה %1$d</string>
+    <string name="leave_form_pays_percent">בתשלום %1$d%%</string>
+    <string name="leave_form_estimated_pay">שכר משוער</string>
+    <string name="leave_form_estimated_total">סה״כ משוער</string>
+    <string name="leave_form_how_calculated">איך חושב הסכום?</string>
+    <string name="leave_form_save">שמירה</string>
+    <string name="leave_form_delete">מחיקה</string>
+    <string name="leave_form_delete_title">למחוק את ההיעדרות?</string>
+    <string name="leave_form_delete_body">הימים שהיא כוללת יחזרו ליתרה המשוערת.</string>
+    <string name="leave_form_cancel">ביטול</string>
+    <string name="leave_form_saved">ההיעדרות נשמרה</string>
+    <string name="leave_form_deleted">ההיעדרות נמחקה</string>
+    <string name="leave_form_no_workplace">כדי לדווח על היעדרות יש להוסיף קודם מקום עבודה.</string>
+
+    <!-- Calculation explanation -->
+    <string name="leave_calc_title">איך חושב הסכום</string>
+    <string name="leave_calc_basis_statutory">השכר הקובע בתקופה של שלושה חודשים, חלקי 90.</string>
+    <string name="leave_calc_basis_workdays">ממוצע השכר ליום עבודה בפועל, על פני שלושה חודשים.</string>
+    <string name="leave_calc_basis_scheduled">השעות שהיית אמור לעבוד, לפי השכר השעתי שלך.</string>
+    <string name="leave_calc_basis_fixed">יום עבודה תקני, לפי השכר השעתי שלך.</string>
+    <string name="leave_calc_basis_manual">סכום שהזנת בעצמך.</string>
+    <string name="leave_calc_period">התקופה: %1$s עד %2$s</string>
+    <string name="leave_calc_included">השכר שנכלל: %1$s</string>
+    <string name="leave_calc_divisor">חלקי: %1$s</string>
+    <string name="leave_calc_day_value">שווי יום מלא: %1$s</string>
+    <string name="leave_calc_sick_tier">יום מחלה %1$d משולם בשיעור %2$d%%.</string>
+    <string name="leave_calc_result">שכר משוער: %1$s</string>
+    <string name="leave_calc_fallback">שלושת החודשים שלפני ההיעדרות לא היו מלאים, ולכן נבחרו שלושת החודשים הרצופים הגבוהים ביותר בשנה שחלפה.</string>
+    <string name="leave_calc_manual_note">הזנת את הסכום הזה בעצמך, ולכן הגדרות מקום העבודה לא שימשו לחישוב.</string>
+
+    <!-- Insufficient data -->
+    <string name="leave_gap_no_policy">למקום העבודה הזה עדיין אין הגדרות היעדרות.</string>
+    <string name="leave_gap_no_wage">ל-ElmTrackr אין שכר שעתי למקום העבודה הזה, ולכן אין לו דרך לחשב את שווי היום.</string>
+    <string name="leave_gap_no_history">אין מספיק היסטוריית שכר כדי להעריך את היום הזה.</string>
+    <string name="leave_gap_no_hours">ל-ElmTrackr אין דרך לדעת מה היית משתכר בתאריך הזה.</string>
+    <string name="leave_gap_no_standard_day">לא הוגדר יום עבודה תקני למקום העבודה הזה, והחישוב הזה זקוק לו.</string>
+    <string name="leave_gap_no_tier">הגדרות דמי המחלה של מקום העבודה הזה לא מתייחסות ליום הזה של המחלה.</string>
+    <string name="leave_gap_disabled">סוג ההיעדרות הזה כבוי בהגדרות מקום העבודה.</string>
+    <string name="leave_gap_no_manual_amount">הזן מה אמור להיות התשלום עבור היום הזה.</string>
+    <string name="leave_gap_action_amount">הזנת סכום</string>
+    <string name="leave_gap_action_hours">הזנת שעות צפויות</string>
+    <string name="leave_gap_action_settings">פתיחת הגדרות היעדרות</string>
+    <string name="leave_gap_saved_anyway">היום הזה נשמר בכל מקרה ויורד מהיתרה.</string>
+
+    <!-- Conflicts -->
+    <string name="leave_conflict_duplicate">ב-%1$s כבר דווחה היעדרות במקום העבודה הזה.</string>
+    <string name="leave_conflict_shift">קיימת גם משמרת עבודה ב-%1$s. בדוק שההיעדרות מכסה רק את השעות שהחסרת.</string>
+    <string name="leave_conflict_archived">מקום העבודה הזה בארכיון.</string>
+    <string name="leave_conflict_merge_title">לאחד לתקופת מחלה אחת?</string>
+    <string name="leave_conflict_merge_body">זה צמוד לתקופת מחלה מ-%1$s עד %2$s. איחוד ממשיך את מספור ימי המחלה במקום להתחיל שוב מיום ראשון.</string>
+    <string name="leave_conflict_merge_confirm">איחוד</string>
+    <string name="leave_conflict_merge_keep">להשאיר בנפרד</string>
+
+    <!-- Balances -->
+    <string name="leave_balances_title">יתרות היעדרות</string>
+    <string name="leave_balance_official">יתרה רשמית</string>
+    <string name="leave_balance_as_of">היתרה בתלוש מתאריך %1$s</string>
+    <string name="leave_balance_used_since">נוצל מאז</string>
+    <string name="leave_balance_estimated">יתרה משוערת</string>
+    <string name="leave_balance_estimated_value">כ-%1$s</string>
+    <string name="leave_balance_none">עדיין לא הוזנה יתרה מהתלוש</string>
+    <string name="leave_balance_none_help">הזן את היתרה מהתלוש האחרון, ו-ElmTrackr ימשיך לעדכן ממנה הערכה.</string>
+    <string name="leave_balance_negative">ייתכן שהיתרה בתלוש אינה מעודכנת, או שמקום העבודה אישר היעדרות על חשבון העתיד.</string>
+    <string name="leave_balance_accrual_note">לא כולל ימים שנצברו מאז התלוש האחרון.</string>
+    <string name="leave_balance_update">עדכון מהתלוש</string>
+    <string name="leave_balance_unconvertible">%1$d רשומות דווחו ביחידה אחרת ואינן נכללות. הגדר יום עבודה תקני כדי לכלול אותן.</string>
+    <string name="leave_balance_days">%1$s ימים</string>
+    <string name="leave_balance_hours">%1$s שעות</string>
+    <string name="leave_balance_type_vacation">חופשה</string>
+    <string name="leave_balance_type_sick">מחלה</string>
+    <string name="leave_balance_form_title">עדכון יתרות</string>
+    <string name="leave_balance_form_date">תאריך התלוש</string>
+    <string name="leave_balance_form_vacation">יתרת חופשה</string>
+    <string name="leave_balance_form_sick">יתרת מחלה</string>
+    <string name="leave_balance_form_unit">יחידה</string>
+    <string name="leave_balance_form_label">תיאור (לא חובה)</string>
+    <string name="leave_balance_form_label_hint">תלוש יולי</string>
+    <string name="leave_balance_form_save">שמירת היתרות</string>
+    <string name="leave_balance_form_help">השמירה מוסיפה רשומה חדשה. היתרות הקודמות נשמרות, כך שההערכה תמיד יודעת מאיזה תלוש היא נגזרת.</string>
+    <string name="leave_balance_form_one_is_enough">מלא רק את היתרה שברצונך לעדכן.</string>
+    <string name="leave_balance_form_nothing_entered">הזן יתרה אחת לפחות.</string>
+    <string name="leave_balance_history">היסטוריית יתרות</string>
+    <string name="leave_balance_saved">היתרות נשמרו</string>
+
+    <!-- Policy settings -->
+    <string name="leave_policy_title">חופשה ומחלה</string>
+    <string name="leave_policy_sick_section">תשלום דמי מחלה</string>
+    <string name="leave_policy_vacation_section">תשלום דמי חופשה</string>
+    <string name="leave_policy_track_sick">מעקב אחר ימי מחלה</string>
+    <string name="leave_policy_track_vacation">מעקב אחר ימי חופשה</string>
+    <string name="leave_policy_preset_israel">ברירת המחדל לישראל</string>
+    <string name="leave_policy_preset_custom">מותאם אישית</string>
+    <string name="leave_policy_reset_preset">חזרה לברירת המחדל</string>
+    <string name="leave_policy_pay_from_day_one">בתשלום מלא מהיום הראשון</string>
+    <string name="leave_policy_tier_day">יום %1$d</string>
+    <string name="leave_policy_tier_days">ימים %1$d&#8211;%2$d</string>
+    <string name="leave_policy_tier_day_plus">מיום %1$d והלאה</string>
+    <string name="leave_policy_tier_percent">%1$d%%</string>
+    <string name="leave_policy_basis">מחושב לפי</string>
+    <string name="leave_policy_basis_statutory">הממוצע הקובע בישראל</string>
+    <string name="leave_policy_basis_workdays">ממוצע ליום עבודה בפועל</string>
+    <string name="leave_policy_basis_scheduled">השעות שהיית אמור לעבוד</string>
+    <string name="leave_policy_basis_fixed">מספר שעות קבוע ליום</string>
+    <string name="leave_policy_basis_manual">סכום שאזין בכל פעם</string>
+    <string name="leave_policy_fixed_daily_hours">שעות ביום היעדרות בתשלום</string>
+    <string name="leave_policy_standard_day">יום עבודה תקני (שעות)</string>
+    <string name="leave_policy_standard_day_help">משמש רק להמרה בין שעות לימים. אם יישאר ריק, ElmTrackr ישאל במקום להניח.</string>
+    <string name="leave_policy_balance_unit">בתלוש שלך היתרות מופיעות ב</string>
+    <string name="leave_policy_less_favourable">זה פחות ממה שברירת המחדל לישראל משלמת. ElmTrackr מספק הערכות בלבד — בדוק בתלוש או בהסכם העבודה שלך.</string>
+    <string name="leave_policy_accrual_note">ElmTrackr אינו מוסיף ימים שנצברו באופן אוטומטי. הזן את היתרה מהתלוש, וההערכה תימשך ממנה.</string>
+    <string name="leave_policy_saved">הגדרות ההיעדרות נשמרו</string>
+    <string name="leave_policy_advanced">מתקדם</string>
+
+    <!-- Workplaces -->
+    <string name="leave_workplaces_title">מקומות עבודה</string>
+    <string name="leave_workplaces_subtitle">%1$d מקומות עבודה</string>
+    <string name="leave_workplaces_subtitle_one">מקום עבודה אחד</string>
+    <string name="leave_workplace_leave_row">חופשה ומחלה</string>
+    <string name="leave_workplace_balances_row">יתרות היעדרות</string>
+    <string name="leave_workplace_add">הוספת מקום עבודה</string>
+    <string name="leave_workplace_name">שם</string>
+    <string name="leave_workplace_archived">בארכיון</string>
+    <string name="leave_workplace_archive">העברה לארכיון</string>
+    <string name="leave_workplace_archive_body">ההיסטוריה נשארת זמינה לקריאה והחודשים שחלפו שומרים על מה שדווח בהם. לא תוכל לדווח היעדרות חדשה עבורו.</string>
+    <string name="leave_workplace_saved">מקום העבודה נשמר</string>
+    <string name="leave_workplace_name_required">תן שם למקום העבודה.</string>
+
+    <!-- Reports and history -->
+    <string name="leave_reports_section">היעדרות בתשלום</string>
+    <string name="leave_reports_vacation">חופשה</string>
+    <string name="leave_reports_sick">מחלה</string>
+    <string name="leave_reports_worked">עבודה</string>
+    <string name="leave_reports_estimated_total">סה״כ משוער</string>
+    <string name="leave_reports_none">לא דווחה היעדרות בחודש הזה</string>
+    <string name="leave_reports_days_value">%1$s ימים</string>
+    <string name="leave_reports_hours_value">%1$s שעות</string>
+    <string name="leave_history_estimated">%1$s (משוער)</string>
+    <string name="leave_history_needs_value">חסר סכום</string>
+    <string name="leave_history_filter_all">הכול</string>
+    <string name="leave_history_filter_work">עבודה</string>
+    <string name="leave_history_filter_vacation">חופשה</string>
+    <string name="leave_history_filter_sick">מחלה</string>
+
+    <!-- Disclaimers -->
+    <string name="leave_disclaimer">ElmTrackr מספק הערכות המבוססות על הגדרות מקום העבודה ועל המידע שאתה מזין. הזכאות, היתרה והתשלום בפועל עשויים להיות שונים בהתאם להסכם העבודה שלך, להסכמים קיבוציים, לנתוני התלוש ולדין החל.</string>
+    <string name="leave_balance_disclaimer">היתרה המשוערת מבוססת על היתרה האחרונה שהזנת ועל ההיעדרויות שדווחו ב-ElmTrackr. היא אינה כוללת צבירה חדשה או תיקונים שנעשו מצד המעסיק לאחר אותו תאריך.</string>
+    <string name="leave_preset_disclaimer">ברירת המחדל לישראל היא נקודת פתיחה מוצעת, ולא ייעוץ שכר או ייעוץ משפטי. אפשר לשנות כל חלק ממנה כדי להתאים אותה להסדר שלך.</string>
+
+    <!-- Accessibility -->
+    <string name="leave_a11y_day_included">%1$s, נכלל</string>
+    <string name="leave_a11y_day_excluded">%1$s, לא נכלל</string>
+    <string name="leave_a11y_estimate_warning">נדרשת השלמת פרטים</string>
+
+</resources>

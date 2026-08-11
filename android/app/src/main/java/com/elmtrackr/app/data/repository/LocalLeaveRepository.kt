@@ -17,7 +17,13 @@ import com.elmtrackr.app.domain.leave.LeaveCalculator
 import com.elmtrackr.app.domain.leave.LeaveEarningsBase
 import com.elmtrackr.app.domain.leave.LeaveEarningsHistory
 import com.elmtrackr.app.domain.leave.LeaveEstimate
+import com.elmtrackr.app.domain.leave.LeaveEstimateGap
 import com.elmtrackr.app.domain.leave.LeaveEstimateRequest
+import com.elmtrackr.app.domain.leave.LeaveConflict
+import com.elmtrackr.app.domain.leave.LeaveConflictDetector
+import com.elmtrackr.app.domain.leave.ExistingLeaveDate
+import com.elmtrackr.app.domain.leave.SickPeriod
+import com.elmtrackr.app.domain.leave.WorkedDate
 import com.elmtrackr.app.domain.model.AbsenceAllocation
 import com.elmtrackr.app.domain.model.AbsenceEvent
 import com.elmtrackr.app.domain.model.AbsenceType
@@ -28,6 +34,7 @@ import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.model.Workplace
 import com.elmtrackr.app.domain.repository.AbsenceDayInput
+import com.elmtrackr.app.domain.repository.AbsenceDayPreview
 import com.elmtrackr.app.domain.repository.AbsenceDraft
 import com.elmtrackr.app.domain.repository.LeaveRepository
 import com.elmtrackr.app.domain.repository.SettingsRepository
@@ -80,6 +87,112 @@ class LocalLeaveRepository @Inject constructor(
 
     override suspend fun getAllocationsForEvent(eventId: String): List<AbsenceAllocation> =
         absenceAllocationDao.getForEvent(eventId).mapToDomain { it.toDomain() }
+
+    override suspend fun previewAbsence(userId: String, draft: AbsenceDraft): List<AbsenceDayPreview> {
+        val now = Instant.now()
+        // A throwaway event carrying the draft's range, because the sick-day
+        // ordinal is a property of the range and the preview has to show the same
+        // ordinals the save will store.
+        val event = AbsenceEvent(
+            id = "",
+            userId = userId,
+            type = draft.type,
+            startDate = draft.startDate,
+            endDate = draft.endDate,
+            notes = draft.notes,
+            createdAt = now,
+            updatedAt = now,
+        )
+        return estimateDays(userId, event, draft, now).map { (day, estimate) ->
+            AbsenceDayPreview(workplaceId = day.workplaceId, date = day.date, estimate = estimate)
+        }
+    }
+
+    override suspend fun workedDatesForWorkplace(userId: String, workplaceId: String): List<LocalDate> {
+        val settings = settingsRepository.getSettings(userId) ?: return emptyList()
+        val zone = WorkTimezone.zoneFor(settings)
+        val reference = YearMonth.now(zone)
+        val from = reference.minusMonths(WORKED_PATTERN_LOOKBACK_MONTHS).atDay(1)
+            .atStartOfDay(zone).toInstant().toEpochMilli()
+        val to = reference.atEndOfMonth().plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val isDefault = workplaceDao.getDefaultWorkplace(userId)?.localId == workplaceId
+        val shifts: List<Shift> = shiftDao.getCompletedShiftsInRange(userId, from, to)
+            .mapToDomain { it.toDomain() }
+        return LeaveEarningsBase.workedDates(
+            shifts = shifts,
+            settings = settings,
+            workplaceId = workplaceId,
+            treatUnassignedAsThisWorkplace = isDefault,
+        )
+    }
+
+    override suspend fun detectConflicts(
+        userId: String,
+        draft: AbsenceDraft,
+        excludeEventId: String?,
+    ): List<LeaveConflict> {
+        if (draft.days.isEmpty()) return emptyList()
+        val settings = settingsRepository.getSettings(userId)
+        val zone = settings?.let { WorkTimezone.zoneFor(it) }
+        val typeByEvent = absenceEventDao.getByUser(userId).associate { it.localId to it.type }
+        val dates = draft.days.map { it.date }
+        val workplaceIds = draft.days.map { it.workplaceId }.distinct()
+
+        val existingLeave = workplaceIds.flatMap { workplaceId ->
+            absenceAllocationDao
+                .getForWorkplaceInRange(workplaceId, dates.min().toEpochDay(), dates.max().toEpochDay())
+                .mapToDomain { it.toDomain() }
+                .filter { it.absenceEventId != excludeEventId }
+                .mapNotNull { allocation ->
+                    AbsenceType.fromPersisted(typeByEvent[allocation.absenceEventId])
+                        ?.let { ExistingLeaveDate(allocation.affectedDate, it) }
+                }
+        }
+
+        val workedDates = if (settings == null || zone == null) {
+            emptyList()
+        } else {
+            val from = dates.min().atStartOfDay(zone).toInstant().toEpochMilli()
+            val to = dates.max().plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+            shiftDao.getCompletedShiftsInRange(userId, from, to)
+                .mapToDomain { it.toDomain() }
+                .filter { shift -> shift.workplaceId == null || shift.workplaceId in workplaceIds }
+                .map { shift ->
+                    WorkedDate(
+                        date = WorkTimezone.shiftLocalDate(shift, zone),
+                        workedMinutes = shift.endTime?.let { end ->
+                            (((end.toEpochMilli() - shift.startTime.toEpochMilli()) / 60_000L).toInt() -
+                                shift.breakMinutes).coerceAtLeast(0)
+                        } ?: 0,
+                    )
+                }
+        }
+
+        val sickPeriods = if (draft.type != AbsenceType.SICK) {
+            emptyList()
+        } else {
+            absenceEventDao
+                .getOverlapping(
+                    userId = userId,
+                    type = AbsenceType.SICK.persistedValue,
+                    fromDate = draft.startDate.toEpochDay(),
+                    toDate = draft.endDate.toEpochDay(),
+                )
+                .filter { it.localId != excludeEventId }
+                .map { SickPeriod(it.localId, LocalDate.ofEpochDay(it.startDate), LocalDate.ofEpochDay(it.endDate)) }
+        }
+
+        val archived = workplaceIds.any { workplaceDao.getByLocalId(it)?.isArchived == true }
+
+        return LeaveConflictDetector.detect(
+            dates = dates,
+            type = draft.type,
+            existingLeave = existingLeave,
+            workedDates = workedDates,
+            existingSickPeriods = sickPeriods,
+            workplaceIsArchived = archived,
+        )
+    }
 
     // ── Saving ────────────────────────────────────────────────────────────────
 
@@ -242,70 +355,17 @@ class LocalLeaveRepository @Inject constructor(
         return merged
     }
 
-    /**
-     * Prices every day of a draft, one workplace at a time.
-     *
-     * A day the engine cannot value is still saved. It consumed entitlement
-     * whether or not the app can say what it was worth, so dropping it would
-     * quietly overstate the remaining balance; it is stored with a zero estimate
-     * and no calculation snapshot, which is how the UI knows to ask for a value
-     * rather than presenting zero as an answer.
-     */
+    /** Turns each priced day into the allocation row that gets stored. */
     private suspend fun priceAllocations(
         userId: String,
         event: AbsenceEvent,
         draft: AbsenceDraft,
         now: Instant,
     ): List<AbsenceAllocation> {
-        val settings = settingsRepository.getSettings(userId)
-        val profiles = compensationProfilesRepository.getProfiles(userId)
-        val defaultWorkplaceId = workplaceDao.getDefaultWorkplace(userId)?.localId
-        val historyCache = mutableMapOf<String, LeaveEarningsHistory>()
-        val policyCache = mutableMapOf<String, LeavePolicy?>()
-
-        return draft.days.map { day ->
-            val policy = policyCache.getOrPut(day.workplaceId) {
-                workplacesRepository.resolvePolicy(day.workplaceId, now)
-            }
-            val workplace = workplaceDao.getByLocalId(day.workplaceId)?.toDomain()
-            val history = if (settings == null) {
-                LeaveEarningsHistory.EMPTY
-            } else {
-                historyCache.getOrPut(day.workplaceId) {
-                    buildHistory(
-                        userId = userId,
-                        settings = settings,
-                        profiles = profiles,
-                        workplaceId = day.workplaceId,
-                        isDefaultWorkplace = day.workplaceId == defaultWorkplaceId,
-                        reference = YearMonth.from(day.date),
-                    )
-                }
-            }
-            val snapshot = policy?.let {
-                val estimate = LeaveCalculator.estimate(
-                    LeaveEstimateRequest(
-                        event = event,
-                        workplaceId = day.workplaceId,
-                        policy = it,
-                        affectedDate = day.date,
-                        entitlementUnits = day.entitlementUnits,
-                        unit = day.unit,
-                        expectedWorkMinutes = day.expectedWorkMinutes,
-                        hourlyRate = hourlyRateFor(day.workplaceId, profiles, settings),
-                        currencyCode = workplace?.currencyCode
-                            ?: settings?.currencyCode
-                            ?: settings?.currency?.name
-                            ?: "ILS",
-                        history = history,
-                        manualDailyAmount = day.manualDailyAmount,
-                        manualReason = day.manualReason,
-                        calculatedAt = now,
-                    ),
-                )
-                (estimate as? LeaveEstimate.Ready)?.snapshot
-            }
-
+        val policies = mutableMapOf<String, LeavePolicy?>()
+        return estimateDays(userId, event, draft, now, policies).map { (day, estimate) ->
+            val snapshot = (estimate as? LeaveEstimate.Ready)?.snapshot
+            val policy = policies[day.workplaceId]
             AbsenceAllocation(
                 id = UUID.randomUUID().toString(),
                 userId = userId,
@@ -321,6 +381,79 @@ class LocalLeaveRepository @Inject constructor(
                 createdAt = now,
                 updatedAt = now,
             )
+        }
+    }
+
+    /**
+     * Prices each day of a draft and returns the engine's verdict alongside the
+     * input, so a caller can either store it or show it.
+     *
+     * A day the engine cannot value still comes back. It consumed entitlement
+     * whether or not the app can say what it was worth, so dropping it would
+     * quietly overstate the remaining balance; the [LeaveEstimate.NeedsInput] is
+     * what tells the UI to ask for a value rather than presenting zero as an
+     * answer.
+     */
+    private suspend fun estimateDays(
+        userId: String,
+        event: AbsenceEvent,
+        draft: AbsenceDraft,
+        now: Instant,
+        policyCacheOut: MutableMap<String, LeavePolicy?> = mutableMapOf(),
+    ): List<Pair<AbsenceDayInput, LeaveEstimate>> {
+        val settings = settingsRepository.getSettings(userId)
+        val profiles = compensationProfilesRepository.getProfiles(userId)
+        val defaultWorkplaceId = workplaceDao.getDefaultWorkplace(userId)?.localId
+        val historyCache = mutableMapOf<String, LeaveEarningsHistory>()
+        val policyCache = policyCacheOut
+        val workplaceCache = mutableMapOf<String, Workplace?>()
+
+        return draft.days.map { day ->
+            val policy = policyCache.getOrPut(day.workplaceId) {
+                workplacesRepository.resolvePolicy(day.workplaceId, now)
+            }
+            val workplace = workplaceCache.getOrPut(day.workplaceId) {
+                workplaceDao.getByLocalId(day.workplaceId)?.toDomain()
+            }
+            val history = if (settings == null) {
+                LeaveEarningsHistory.EMPTY
+            } else {
+                historyCache.getOrPut(day.workplaceId) {
+                    buildHistory(
+                        userId = userId,
+                        settings = settings,
+                        profiles = profiles,
+                        workplaceId = day.workplaceId,
+                        isDefaultWorkplace = day.workplaceId == defaultWorkplaceId,
+                        reference = YearMonth.from(day.date),
+                    )
+                }
+            }
+            val estimate: LeaveEstimate = if (policy == null) {
+                LeaveEstimate.NeedsInput(LeaveEstimateGap.NO_POLICY)
+            } else {
+                LeaveCalculator.estimate(
+                    LeaveEstimateRequest(
+                        event = event,
+                        workplaceId = day.workplaceId,
+                        policy = policy,
+                        affectedDate = day.date,
+                        entitlementUnits = day.entitlementUnits,
+                        unit = day.unit,
+                        expectedWorkMinutes = day.expectedWorkMinutes,
+                        hourlyRate = hourlyRateFor(day.workplaceId, profiles, settings),
+                        currencyCode = workplace?.currencyCode
+                            ?: settings?.currencyCode
+                            ?: settings?.currency?.name
+                            ?: "ILS",
+                        history = history,
+                        manualDailyAmount = day.manualDailyAmount,
+                        manualReason = day.manualReason,
+                        calculatedAt = now,
+                    ),
+                )
+            }
+            day to estimate
         }
     }
 
@@ -486,5 +619,12 @@ class LocalLeaveRepository @Inject constructor(
          * before the absence are not usable.
          */
         const val EARNINGS_LOOKBACK_MONTHS = 12L
+
+        /**
+         * How far back the weekday pattern is sampled when proposing which days an
+         * absence affects. Six months is long enough to see a regular pattern and
+         * short enough that a job someone left a year ago does not shape it.
+         */
+        const val WORKED_PATTERN_LOOKBACK_MONTHS = 6L
     }
 }

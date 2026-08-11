@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ReportEntryTypeSheet -->
+    <string name="leave_report_sheet_title">What would you like to report?</string>
+    <string name="leave_report_work">Work</string>
+    <string name="leave_report_work_sub">A shift you worked</string>
+    <string name="leave_report_vacation">Vacation</string>
+    <string name="leave_report_vacation_sub">A day off you took</string>
+    <string name="leave_report_sick">Sick leave</string>
+    <string name="leave_report_sick_sub">A day you could not work</string>
+
+    <!-- AbsenceFormScreen -->
+    <string name="leave_form_title_vacation">Vacation</string>
+    <string name="leave_form_title_sick">Sick leave</string>
+    <string name="leave_form_back">Back</string>
+    <string name="leave_form_workplace">Workplace</string>
+    <string name="leave_form_when">When</string>
+    <string name="leave_form_length_single">One day</string>
+    <string name="leave_form_length_range">Several days</string>
+    <string name="leave_form_date">Date</string>
+    <string name="leave_form_first_day">First day of illness</string>
+    <string name="leave_form_start_date">Start date</string>
+    <string name="leave_form_end_date">End date</string>
+    <string name="leave_form_pick_date">Choose %1$s</string>
+    <string name="leave_form_duration">Duration</string>
+    <string name="leave_form_full_day">Full day</string>
+    <string name="leave_form_partial_day">Part of a day</string>
+    <string name="leave_form_amount_days">Days</string>
+    <string name="leave_form_amount_hours">Hours</string>
+    <string name="leave_form_note">Note (optional)</string>
+    <string name="leave_form_affected_days">Days you would have worked</string>
+    <string name="leave_form_affected_days_help">Only the days you would otherwise have worked at this job count against your balance.</string>
+    <string name="leave_form_no_pattern">ElmTrackr does not know which days you usually work here. Choose the days you would have worked.</string>
+    <string name="leave_form_no_days_selected">Choose at least one day.</string>
+    <string name="leave_form_sick_day">Sick day %1$d</string>
+    <string name="leave_form_pays_percent">pays %1$d%%</string>
+    <string name="leave_form_estimated_pay">Estimated pay</string>
+    <string name="leave_form_estimated_total">Estimated total</string>
+    <string name="leave_form_how_calculated">How was this calculated?</string>
+    <string name="leave_form_save">Save</string>
+    <string name="leave_form_delete">Delete</string>
+    <string name="leave_form_delete_title">Delete this leave?</string>
+    <string name="leave_form_delete_body">The days it covers go back onto your estimated balance.</string>
+    <string name="leave_form_cancel">Cancel</string>
+    <string name="leave_form_saved">Leave saved</string>
+    <string name="leave_form_deleted">Leave deleted</string>
+    <string name="leave_form_no_workplace">Add a workplace before reporting leave.</string>
+
+    <!-- Calculation explanation -->
+    <string name="leave_calc_title">How this was calculated</string>
+    <string name="leave_calc_basis_statutory">Eligible earnings over a three-month period, divided by 90.</string>
+    <string name="leave_calc_basis_workdays">Average pay for a day you actually worked, over three months.</string>
+    <string name="leave_calc_basis_scheduled">The hours you were due to work, at your hourly rate.</string>
+    <string name="leave_calc_basis_fixed">A standard working day, at your hourly rate.</string>
+    <string name="leave_calc_basis_manual">An amount you entered yourself.</string>
+    <string name="leave_calc_period">Period: %1$s to %2$s</string>
+    <string name="leave_calc_included">Earnings included: %1$s</string>
+    <string name="leave_calc_divisor">Divided by: %1$s</string>
+    <string name="leave_calc_day_value">Value of a full day: %1$s</string>
+    <string name="leave_calc_sick_tier">Sick day %1$d is paid at %2$d%%.</string>
+    <string name="leave_calc_result">Estimated pay: %1$s</string>
+    <string name="leave_calc_fallback">The three months before this absence were not complete, so the strongest three consecutive months of the past year were used instead.</string>
+    <string name="leave_calc_manual_note">You entered this amount, so the workplace settings were not used.</string>
+
+    <!-- Insufficient data -->
+    <string name="leave_gap_no_policy">This workplace has no leave settings yet.</string>
+    <string name="leave_gap_no_wage">ElmTrackr has no hourly rate for this workplace, so it cannot value this day.</string>
+    <string name="leave_gap_no_history">There is not enough pay history to estimate this day.</string>
+    <string name="leave_gap_no_hours">ElmTrackr cannot tell what you would normally have earned on this date.</string>
+    <string name="leave_gap_no_standard_day">This workplace has no standard working day set, which this calculation needs.</string>
+    <string name="leave_gap_no_tier">This workplace\'s sick pay settings say nothing about this day of the illness.</string>
+    <string name="leave_gap_disabled">This kind of leave is switched off in this workplace\'s settings.</string>
+    <string name="leave_gap_no_manual_amount">Enter what this day should pay.</string>
+    <string name="leave_gap_action_amount">Enter amount</string>
+    <string name="leave_gap_action_hours">Enter expected hours</string>
+    <string name="leave_gap_action_settings">Open leave settings</string>
+    <string name="leave_gap_saved_anyway">This day is still recorded and still counts against your balance.</string>
+
+    <!-- Conflicts -->
+    <string name="leave_conflict_duplicate">%1$s already has leave reported at this workplace.</string>
+    <string name="leave_conflict_shift">You also have a work shift on %1$s. Check that the leave only covers the hours you missed.</string>
+    <string name="leave_conflict_archived">This workplace is archived.</string>
+    <string name="leave_conflict_merge_title">Merge into one sick period?</string>
+    <string name="leave_conflict_merge_body">This is next to a sick period from %1$s to %2$s. Merging keeps the sick-day count running instead of starting again at day one.</string>
+    <string name="leave_conflict_merge_confirm">Merge</string>
+    <string name="leave_conflict_merge_keep">Keep separate</string>
+
+    <!-- Balances -->
+    <string name="leave_balances_title">Leave balances</string>
+    <string name="leave_balance_official">Official balance</string>
+    <string name="leave_balance_as_of">Payslip balance as of %1$s</string>
+    <string name="leave_balance_used_since">Used since</string>
+    <string name="leave_balance_estimated">Estimated balance</string>
+    <string name="leave_balance_estimated_value">~%1$s</string>
+    <string name="leave_balance_none">No payslip balance entered yet</string>
+    <string name="leave_balance_none_help">Enter the balance from your latest payslip and ElmTrackr will estimate it forward.</string>
+    <string name="leave_balance_negative">This may mean your payslip balance is out of date, or that your workplace allowed leave in advance.</string>
+    <string name="leave_balance_accrual_note">Does not include days accrued since your last payslip.</string>
+    <string name="leave_balance_update">Update from payslip</string>
+    <string name="leave_balance_unconvertible">%1$d reported entries use a different unit and are not counted. Set a standard working day to include them.</string>
+    <string name="leave_balance_days">%1$s days</string>
+    <string name="leave_balance_hours">%1$s hours</string>
+    <string name="leave_balance_type_vacation">Vacation</string>
+    <string name="leave_balance_type_sick">Sick</string>
+    <string name="leave_balance_form_title">Update balances</string>
+    <string name="leave_balance_form_date">Payslip date</string>
+    <string name="leave_balance_form_vacation">Vacation balance</string>
+    <string name="leave_balance_form_sick">Sick balance</string>
+    <string name="leave_balance_form_unit">Unit</string>
+    <string name="leave_balance_form_label">Label (optional)</string>
+    <string name="leave_balance_form_label_hint">July payslip</string>
+    <string name="leave_balance_form_save">Save balances</string>
+    <string name="leave_balance_form_help">Saving adds a new entry. Your previous balances are kept, so the estimate always knows which payslip it came from.</string>
+    <string name="leave_balance_form_one_is_enough">Fill in only the balance you want to update.</string>
+    <string name="leave_balance_form_nothing_entered">Enter at least one balance.</string>
+    <string name="leave_balance_history">Balance history</string>
+    <string name="leave_balance_saved">Balances saved</string>
+
+    <!-- Policy settings -->
+    <string name="leave_policy_title">Vacation &amp; sick leave</string>
+    <string name="leave_policy_sick_section">Sick leave pay</string>
+    <string name="leave_policy_vacation_section">Vacation pay</string>
+    <string name="leave_policy_track_sick">Track sick leave</string>
+    <string name="leave_policy_track_vacation">Track vacation</string>
+    <string name="leave_policy_preset_israel">Israel preset</string>
+    <string name="leave_policy_preset_custom">Custom</string>
+    <string name="leave_policy_reset_preset">Use the preset again</string>
+    <string name="leave_policy_pay_from_day_one">Paid in full from day one</string>
+    <string name="leave_policy_tier_day">Day %1$d</string>
+    <string name="leave_policy_tier_days">Days %1$d&#8211;%2$d</string>
+    <string name="leave_policy_tier_day_plus">Day %1$d onwards</string>
+    <string name="leave_policy_tier_percent">%1$d%%</string>
+    <string name="leave_policy_basis">Calculated from</string>
+    <string name="leave_policy_basis_statutory">Israeli statutory average</string>
+    <string name="leave_policy_basis_workdays">Average per day actually worked</string>
+    <string name="leave_policy_basis_scheduled">Hours you were due to work</string>
+    <string name="leave_policy_basis_fixed">A fixed daily number of hours</string>
+    <string name="leave_policy_basis_manual">An amount I enter each time</string>
+    <string name="leave_policy_fixed_daily_hours">Hours in a paid leave day</string>
+    <string name="leave_policy_standard_day">Standard working day (hours)</string>
+    <string name="leave_policy_standard_day_help">Used only to convert between hours and days. Left empty, ElmTrackr will ask rather than assume.</string>
+    <string name="leave_policy_balance_unit">Your payslip states balances in</string>
+    <string name="leave_policy_less_favourable">This is less than the standard Israeli preset pays. ElmTrackr provides estimates only — check your payslip or your employment agreement.</string>
+    <string name="leave_policy_accrual_note">ElmTrackr does not add accrued days automatically. Enter the balance from your payslip and it estimates forward from there.</string>
+    <string name="leave_policy_saved">Leave settings saved</string>
+    <string name="leave_policy_advanced">Advanced</string>
+
+    <!-- Workplaces -->
+    <string name="leave_workplaces_title">Workplaces</string>
+    <string name="leave_workplaces_subtitle">%1$d workplaces</string>
+    <string name="leave_workplaces_subtitle_one">1 workplace</string>
+    <string name="leave_workplace_leave_row">Vacation &amp; sick leave</string>
+    <string name="leave_workplace_balances_row">Leave balances</string>
+    <string name="leave_workplace_add">Add workplace</string>
+    <string name="leave_workplace_name">Name</string>
+    <string name="leave_workplace_archived">Archived</string>
+    <string name="leave_workplace_archive">Archive workplace</string>
+    <string name="leave_workplace_archive_body">Its history stays readable and past months keep what they reported. You can no longer report new leave against it.</string>
+    <string name="leave_workplace_saved">Workplace saved</string>
+    <string name="leave_workplace_name_required">Give the workplace a name.</string>
+
+    <!-- Reports and history -->
+    <string name="leave_reports_section">Paid leave</string>
+    <string name="leave_reports_vacation">Vacation</string>
+    <string name="leave_reports_sick">Sick leave</string>
+    <string name="leave_reports_worked">Worked</string>
+    <string name="leave_reports_estimated_total">Estimated total</string>
+    <string name="leave_reports_none">No leave reported this month</string>
+    <string name="leave_reports_days_value">%1$s days</string>
+    <string name="leave_reports_hours_value">%1$s hours</string>
+    <string name="leave_history_estimated">%1$s estimated</string>
+    <string name="leave_history_needs_value">Needs a value</string>
+    <string name="leave_history_filter_all">All</string>
+    <string name="leave_history_filter_work">Work</string>
+    <string name="leave_history_filter_vacation">Vacation</string>
+    <string name="leave_history_filter_sick">Sick</string>
+
+    <!-- Disclaimers. Deliberately never "legally owed", "guaranteed" or "exact". -->
+    <string name="leave_disclaimer">ElmTrackr provides estimates based on the workplace settings and the information you enter. Actual leave entitlement, balance and payment may differ based on your employment agreement, collective arrangements, payslip data and applicable law.</string>
+    <string name="leave_balance_disclaimer">Estimated balance is based on the latest balance you entered and the leave reported in ElmTrackr. It does not include new accruals or employer-side adjustments made after that date.</string>
+    <string name="leave_preset_disclaimer">The Israel preset is a suggested starting point, not payroll or legal advice. Change any part of it to match your own arrangement.</string>
+
+    <!-- Accessibility -->
+    <string name="leave_a11y_day_included">%1$s, counted</string>
+    <string name="leave_a11y_day_excluded">%1$s, not counted</string>
+    <string name="leave_a11y_estimate_warning">Needs your input</string>
+
+</resources>

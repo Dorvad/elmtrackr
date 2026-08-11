@@ -33,7 +33,33 @@ data class AbsenceDraft(
     val days: List<AbsenceDayInput>,
 )
 
+/** One day of a draft, priced but not saved, for the preview the form shows. */
+data class AbsenceDayPreview(
+    val workplaceId: String,
+    val date: LocalDate,
+    val estimate: com.elmtrackr.app.domain.leave.LeaveEstimate,
+)
+
 interface LeaveRepository {
+
+    /**
+     * Prices a draft without saving it, through the same path a save uses.
+     *
+     * The same path deliberately: a preview computed differently from the save is
+     * a preview that can disagree with what gets stored, and the number the user
+     * agreed to is the one they will look for on their payslip.
+     */
+    suspend fun previewAbsence(userId: String, draft: AbsenceDraft): List<AbsenceDayPreview>
+
+    /** Dates the user has worked at a workplace, for proposing which days an absence hits. */
+    suspend fun workedDatesForWorkplace(userId: String, workplaceId: String): List<LocalDate>
+
+    /** Duplicate leave, a shift on the same day, an archived job, an adjacent illness. */
+    suspend fun detectConflicts(
+        userId: String,
+        draft: AbsenceDraft,
+        excludeEventId: String? = null,
+    ): List<com.elmtrackr.app.domain.leave.LeaveConflict>
 
     fun observeEvents(userId: String): Flow<List<AbsenceEvent>>
 
