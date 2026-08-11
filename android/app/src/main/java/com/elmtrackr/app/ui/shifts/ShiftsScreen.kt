@@ -58,7 +58,10 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.LocalTime
 import androidx.compose.runtime.CompositionLocalProvider
+import com.elmtrackr.app.domain.model.AbsenceType
 import com.elmtrackr.app.ui.common.LocalWorkZone
+import com.elmtrackr.app.ui.leave.AbsenceFormScreen
+import com.elmtrackr.app.ui.leave.ReportEntryTypeSheet
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.YearMonth
@@ -80,6 +83,17 @@ fun ShiftsScreen(
     val userMessage by viewModel.userMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // The manual-add action now asks what kind of entry this is. Clock in is
+    // untouched — this only stands where "add a shift manually" used to.
+    //
+    // The absence type is held as a String because rememberSaveable cannot put an
+    // enum in a Bundle, the same reason ShiftFormContent stores its nullable
+    // fields as "".
+    var showEntryTypeSheet by rememberSaveable { mutableStateOf(false) }
+    var absenceTypeName by rememberSaveable { mutableStateOf<String?>(null) }
+    val absenceType = absenceTypeName?.let(AbsenceType::fromPersisted)
+    val openEntryTypeSheet = { showEntryTypeSheet = true }
+
     val userMessageText = userMessage?.asString()
     LaunchedEffect(userMessageText) {
         userMessageText?.let { message ->
@@ -88,8 +102,8 @@ fun ShiftsScreen(
         }
     }
 
-    LaunchedEffect(formTarget) {
-        onFormVisibilityChanged(formTarget != null)
+    LaunchedEffect(formTarget, absenceType) {
+        onFormVisibilityChanged(formTarget != null || absenceType != null)
     }
 
     LaunchedEffect(pendingEditShiftId) {
@@ -101,6 +115,13 @@ fun ShiftsScreen(
 
     // The open form owns the back gesture (see ShiftEditFormContent): it must be able to
     // intercept it and confirm before discarding unsaved edits.
+
+    if (absenceType != null) {
+        // Full screen, and it owns its own back handling, so it replaces the list
+        // rather than sitting over it.
+        AbsenceFormScreen(type = absenceType, onClose = { absenceTypeName = null })
+        return
+    }
 
     Box(Modifier.fillMaxSize()) {
     AnimatedContent(
@@ -154,7 +175,7 @@ fun ShiftsScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = Spacing.screenH),
                         ) {
-                            ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
+                            ShiftsPageHeader(onAddShift = openEntryTypeSheet)
                             ShiftsMonthPicker(
                                 month = selectedMonth,
                                 onPrevious = viewModel::previousMonth,
@@ -169,7 +190,7 @@ fun ShiftsScreen(
                                 .fillMaxSize()
                                 .padding(horizontal = Spacing.screenH),
                         ) {
-                            ShiftsPageHeader(onAddShift = viewModel::showCreateForm)
+                            ShiftsPageHeader(onAddShift = openEntryTypeSheet)
                             Spacer(Modifier.height(Spacing.sm))
                             ShiftsHeroSummaryCard(
                                 shifts = emptyList(),
@@ -189,7 +210,7 @@ fun ShiftsScreen(
                                 )
                             }
                             ShiftsAddPastShiftButton(
-                                onClick = viewModel::showCreateForm,
+                                onClick = openEntryTypeSheet,
                                 modifier = Modifier.padding(bottom = Spacing.xl),
                             )
                         }
@@ -198,7 +219,7 @@ fun ShiftsScreen(
                             state = state,
                             onPreviousMonth = viewModel::previousMonth,
                             onNextMonth = viewModel::nextMonth,
-                            onAddShift = viewModel::showCreateForm,
+                            onAddShift = openEntryTypeSheet,
                             onEditShift = viewModel::showEditForm,
                         )
 
@@ -217,6 +238,20 @@ fun ShiftsScreen(
             .align(Alignment.BottomCenter)
             .padding(bottom = Spacing.md),
     )
+    }
+
+    if (showEntryTypeSheet) {
+        ReportEntryTypeSheet(
+            onDismiss = { showEntryTypeSheet = false },
+            onWork = {
+                showEntryTypeSheet = false
+                viewModel.showCreateForm()
+            },
+            onAbsence = { type ->
+                showEntryTypeSheet = false
+                absenceTypeName = type.persistedValue
+            },
+        )
     }
 }
 

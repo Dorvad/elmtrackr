@@ -107,11 +107,27 @@ class AbsenceFormViewModel @Inject constructor(
     private var userId: String? = null
     private var workedDates: List<LocalDate> = emptyList()
 
+    /**
+     * What [start] was last called with.
+     *
+     * This ViewModel is resolved from the Shifts destination's store, so it
+     * outlives the form being closed. Without this key, reporting a vacation and
+     * then opening sick leave would reuse the vacation state, and the one-shot
+     * [closed] flag would still be true and shut the new form immediately.
+     */
+    private var startedKey: Pair<AbsenceType, String?>? = null
+
     /** Cancelled and restarted on each edit, so a slow estimate cannot land after a newer one. */
     private var estimateJob: Job? = null
 
     fun start(type: AbsenceType, editingEventId: String? = null, today: LocalDate = LocalDate.now()) {
-        if (_uiState.value is AbsenceFormUiState.Ready) return
+        val key = type to editingEventId
+        if (startedKey == key && _uiState.value is AbsenceFormUiState.Ready) return
+        startedKey = key
+        estimateJob?.cancel()
+        _closed.value = false
+        _userMessage.value = null
+        _uiState.value = AbsenceFormUiState.Loading
         viewModelScope.launch {
             val user = currentUserProvider.currentUserId()
             if (user == null) {
@@ -147,7 +163,9 @@ class AbsenceFormViewModel @Inject constructor(
                 startDate = start,
                 endDate = end,
                 days = if (allocations.isEmpty()) {
-                    proposeDays(start, end, emptyList())
+                    // null, not emptyList: null means "propose from the work pattern",
+                    // while an empty list of days to keep would tick nothing at all.
+                    proposeDays(start, end, null)
                 } else {
                     // Editing keeps exactly the days that were reported, ticked. The
                     // proposal is for a new entry; re-proposing here could silently
