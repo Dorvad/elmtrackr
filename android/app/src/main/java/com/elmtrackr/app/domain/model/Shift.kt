@@ -42,6 +42,16 @@ data class Shift(
      * The one switch every pay calculation consults; see [CompensationSource].
      */
     val compensationSource: CompensationSource = CompensationSource.EMPLOYEE,
+    /**
+     * Which job this shift was worked at, when known. Null for every shift
+     * recorded before workplaces existed, and for a user who has not created one.
+     *
+     * No pay calculation reads it. It exists so leave, payslip balances and the
+     * per-workplace earnings a leave estimate averages over can be scoped to an
+     * employer — a compensation profile changes with a raise, an employer does
+     * not.
+     */
+    val workplaceId: String? = null,
     val createdAt: Instant = Instant.EPOCH,
     val updatedAt: Instant = Instant.EPOCH,
 ) {

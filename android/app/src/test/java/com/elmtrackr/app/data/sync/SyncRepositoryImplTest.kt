@@ -1901,6 +1901,20 @@ class SyncRepositoryImplTest {
         override suspend fun getAllShiftsForUser(userId: String): List<ShiftEntity> =
             shifts.value.filter { it.userId == userId && it.deletedAt == null }
 
+        override suspend fun getCompletedShiftsInRange(
+            userId: String,
+            fromEpoch: Long,
+            toEpoch: Long,
+        ): List<ShiftEntity> = shifts.value
+            .filter {
+                it.userId == userId &&
+                    it.deletedAt == null &&
+                    it.endTime != null &&
+                    it.startTime >= fromEpoch &&
+                    it.startTime < toEpoch
+            }
+            .sortedBy { it.startTime }
+
         override suspend fun hasAnyShifts(userId: String): Boolean =
             shifts.value.any { it.userId == userId && it.deletedAt == null }
 

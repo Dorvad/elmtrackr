@@ -18,6 +18,16 @@ import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.dao.PremiumProfileDao
+import com.elmtrackr.app.data.local.dao.AbsenceAllocationDao
+import com.elmtrackr.app.data.local.dao.AbsenceEventDao
+import com.elmtrackr.app.data.local.dao.LeaveBalanceSnapshotDao
+import com.elmtrackr.app.data.local.dao.LeavePolicyDao
+import com.elmtrackr.app.data.local.dao.WorkplaceDao
+import com.elmtrackr.app.data.local.entity.AbsenceAllocationEntity
+import com.elmtrackr.app.data.local.entity.AbsenceEventEntity
+import com.elmtrackr.app.data.local.entity.LeaveBalanceSnapshotEntity
+import com.elmtrackr.app.data.local.entity.LeavePolicyEntity
+import com.elmtrackr.app.data.local.entity.WorkplaceEntity
 import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
 import com.elmtrackr.app.data.local.entity.PremiumProfileEntity
 import com.elmtrackr.app.data.local.entity.ProfileEntity
@@ -45,8 +55,13 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         ProjectEntity::class,
         ProjectBillingRecordEntity::class,
         ProjectPaymentEntity::class,
+        WorkplaceEntity::class,
+        LeavePolicyEntity::class,
+        AbsenceEventEntity::class,
+        AbsenceAllocationEntity::class,
+        LeaveBalanceSnapshotEntity::class,
     ],
-    version = 18,
+    version = 19,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -70,6 +85,16 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
     abstract fun projectBillingRecordDao(): ProjectBillingRecordDao
 
     abstract fun projectPaymentDao(): ProjectPaymentDao
+
+    abstract fun workplaceDao(): WorkplaceDao
+
+    abstract fun leavePolicyDao(): LeavePolicyDao
+
+    abstract fun absenceEventDao(): AbsenceEventDao
+
+    abstract fun absenceAllocationDao(): AbsenceAllocationDao
+
+    abstract fun leaveBalanceSnapshotDao(): LeaveBalanceSnapshotDao
 
     companion object {
         @Volatile private var INSTANCE: ElmTrackrDatabase? = null
@@ -134,6 +159,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_15_16,
                     MIGRATION_16_17,
                     MIGRATION_17_18,
+                    MIGRATION_18_19,
                 )
                 .build()
         }
@@ -681,6 +707,240 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
         internal val MIGRATION_17_18 = object : Migration(17, 18) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE project_billing_records ADD COLUMN notes TEXT")
+            }
+        }
+
+        /**
+         * Workplaces, leave policies, reported absences and payslip balance
+         * snapshots.
+         *
+         * Purely additive and non-destructive:
+         *  - five new tables, so no existing row is read or rewritten;
+         *  - the two new `workplaceId` columns are nullable with no default and
+         *    are never backfilled, so every existing shift and compensation
+         *    profile stays exactly as it was and no wage calculation changes.
+         *
+         * The absence of a backfill is the deliberate part. Assigning historical
+         * shifts to a workplace during an upgrade would rewrite the user's
+         * recorded history invisibly, and this schema's rule is that an upgrade
+         * never restates a recorded shift or its pay. Existing rows join a
+         * workplace the first time the user has one — see
+         * `WorkplaceDao.adoptShifts` — where it is an ordinary edit that syncs
+         * like any other.
+         *
+         * Absences are deliberately not shifts. A shift means worked time and
+         * feeds net minutes, overtime, premiums and the shift count; modelling a
+         * sick day as an eight-hour shift would inflate all four and invent
+         * overtime nobody worked.
+         *
+         * Calendar dates are INTEGER epoch days (`affectedDate`, `asOfDate`,
+         * `startDate`) so an absence cannot move by a day through a timezone
+         * conversion; timestamps stay INTEGER epoch millis.
+         *
+         * `estimatedGrossPay` is REAL, unlike the TEXT that Paid Projects money
+         * uses. The two are different kinds of number: a billed fee is an amount
+         * that must round-trip byte for byte, while this is a derived estimate
+         * computed from an hourly rate that is itself REAL, and it is labelled an
+         * estimate everywhere it appears.
+         *
+         * No SQL foreign keys, matching how shifts reference tasks: this schema
+         * soft-deletes and the repositories cascade. Every index created here is
+         * declared on the corresponding entity — the 7→8 migration once created
+         * indexes that were not, and Room rejected every upgraded database until
+         * 8→9 repaired it.
+         */
+        internal val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS workplaces (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        regionCode TEXT NOT NULL,
+                        currencyCode TEXT NOT NULL,
+                        timezone TEXT NOT NULL,
+                        employmentStartDate INTEGER,
+                        isDefault INTEGER NOT NULL,
+                        isArchived INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_workplaces_userId` ON `workplaces` (`userId`)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_workplaces_userId_syncStatus` " +
+                        "ON `workplaces` (`userId`, `syncStatus`)",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_workplaces_remoteId` ON `workplaces` (`remoteId`)")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS leave_policies (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        workplaceLocalId TEXT NOT NULL,
+                        regionCode TEXT NOT NULL,
+                        rulesJson TEXT NOT NULL,
+                        effectiveFrom INTEGER NOT NULL,
+                        effectiveUntil INTEGER,
+                        isActive INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_leave_policies_userId` ON `leave_policies` (`userId`)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_leave_policies_workplaceLocalId` " +
+                        "ON `leave_policies` (`workplaceLocalId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_leave_policies_userId_syncStatus` " +
+                        "ON `leave_policies` (`userId`, `syncStatus`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_leave_policies_remoteId` ON `leave_policies` (`remoteId`)",
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS absence_events (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        type TEXT NOT NULL,
+                        startDate INTEGER NOT NULL,
+                        endDate INTEGER NOT NULL,
+                        notes TEXT,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_absence_events_userId` ON `absence_events` (`userId`)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_absence_events_userId_startDate` " +
+                        "ON `absence_events` (`userId`, `startDate`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_absence_events_userId_syncStatus` " +
+                        "ON `absence_events` (`userId`, `syncStatus`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_absence_events_remoteId` ON `absence_events` (`remoteId`)",
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS absence_allocations (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        absenceEventLocalId TEXT NOT NULL,
+                        workplaceLocalId TEXT NOT NULL,
+                        affectedDate INTEGER NOT NULL,
+                        entitlementUnits REAL NOT NULL,
+                        unit TEXT NOT NULL,
+                        expectedWorkMinutes INTEGER,
+                        policySnapshotJson TEXT,
+                        calculationSnapshotJson TEXT,
+                        estimatedGrossPay REAL NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_absence_allocations_userId` " +
+                        "ON `absence_allocations` (`userId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_absence_allocations_absenceEventLocalId` " +
+                        "ON `absence_allocations` (`absenceEventLocalId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_absence_allocations_workplaceLocalId_affectedDate` " +
+                        "ON `absence_allocations` (`workplaceLocalId`, `affectedDate`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_absence_allocations_userId_syncStatus` " +
+                        "ON `absence_allocations` (`userId`, `syncStatus`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_absence_allocations_remoteId` " +
+                        "ON `absence_allocations` (`remoteId`)",
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS leave_balance_snapshots (
+                        localId TEXT NOT NULL PRIMARY KEY,
+                        remoteId TEXT,
+                        userId TEXT NOT NULL,
+                        workplaceLocalId TEXT NOT NULL,
+                        balanceType TEXT NOT NULL,
+                        balance REAL NOT NULL,
+                        unit TEXT NOT NULL,
+                        asOfDate INTEGER NOT NULL,
+                        source TEXT NOT NULL,
+                        label TEXT,
+                        notes TEXT,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        deletedAt INTEGER,
+                        syncStatus TEXT NOT NULL,
+                        lastSyncError TEXT,
+                        lastSyncedAt INTEGER
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_leave_balance_snapshots_userId` " +
+                        "ON `leave_balance_snapshots` (`userId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS " +
+                        "`index_leave_balance_snapshots_workplaceLocalId_balanceType_asOfDate` " +
+                        "ON `leave_balance_snapshots` (`workplaceLocalId`, `balanceType`, `asOfDate`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_leave_balance_snapshots_userId_syncStatus` " +
+                        "ON `leave_balance_snapshots` (`userId`, `syncStatus`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_leave_balance_snapshots_remoteId` " +
+                        "ON `leave_balance_snapshots` (`remoteId`)",
+                )
+
+                // Guarded because a database first created at version 19 already has
+                // the column from the entity, and this migration also runs as part
+                // of the 1→19 chain the migration test walks.
+                if (!db.hasColumn("shifts", "workplaceId")) {
+                    db.execSQL("ALTER TABLE shifts ADD COLUMN workplaceId TEXT")
+                }
+                if (!db.hasColumn("compensation_profiles", "workplaceId")) {
+                    db.execSQL("ALTER TABLE compensation_profiles ADD COLUMN workplaceId TEXT")
+                }
             }
         }
 

@@ -27,6 +27,12 @@ data class CompensationProfileEntity(
     val effectiveUntil: Long?,
     val isDefault: Boolean,
     val isArchived: Boolean,
+    /**
+     * The job this profile pays for. Nullable and never backfilled: a profile is
+     * still the authority on how worked time is paid, and this only records which
+     * employer it belongs to so leave entitlement can outlive a wage change.
+     */
+    val workplaceId: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

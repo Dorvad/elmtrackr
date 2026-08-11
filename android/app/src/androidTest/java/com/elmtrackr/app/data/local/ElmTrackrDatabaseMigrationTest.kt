@@ -557,6 +557,80 @@ class ElmTrackrDatabaseMigrationTest {
         }
     }
 
+    /**
+     * Workplaces and leave arrive as new tables, and the two workplace links are
+     * added without touching a single recorded shift.
+     *
+     * The assertion that matters most here is the negative one: after the upgrade
+     * the existing shift's start time, break, and pay-related columns read back
+     * exactly as they were, and its workplaceId is NULL. Backfilling it would have
+     * been easy and wrong — an upgrade may never restate what someone recorded, so
+     * rows join a workplace later, as an edit the user can see.
+     */
+    @Test
+    fun migration18To19AddsLeaveTablesWithoutRestatingAnyShift() {
+        helper.createDatabase(TEST_DB_LEAVE, 18).apply {
+            execSQL(
+                """
+                INSERT INTO shifts (
+                    localId, userId, startTime, endTime, breakMinutes, notes, isSpecialDay,
+                    forceRegularRate, refundAction, createdAt, updatedAt, syncStatus
+                ) VALUES (
+                    's1', 'user', 1000, 5000, 30, 'kept', 0, 0, NULL, 0, 0, 'SYNCED'
+                )
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB_LEAVE, 19, true, ElmTrackrDatabase.MIGRATION_18_19,
+        ).use { db ->
+            // The five new tables exist and are empty: nothing is invented for an
+            // existing user by the upgrade itself.
+            listOf(
+                "workplaces",
+                "leave_policies",
+                "absence_events",
+                "absence_allocations",
+                "leave_balance_snapshots",
+            ).forEach { table ->
+                db.query("SELECT COUNT(*) FROM `$table`").use { cursor ->
+                    assertEquals(true, cursor.moveToFirst())
+                    assertEquals(0, cursor.getInt(0))
+                }
+            }
+
+            db.query(
+                "SELECT startTime, endTime, breakMinutes, notes, workplaceId FROM shifts WHERE localId = 's1'",
+            ).use { cursor ->
+                assertEquals(true, cursor.moveToFirst())
+                assertEquals(1000L, cursor.getLong(0))
+                assertEquals(5000L, cursor.getLong(1))
+                assertEquals(30, cursor.getInt(2))
+                assertEquals("kept", cursor.getString(3))
+                assertEquals(true, cursor.isNull(4))
+            }
+
+            // An estimate is a derived number computed from an hourly rate, which is
+            // itself REAL, so it is stored as REAL — unlike Paid Projects money,
+            // which is TEXT because a billed amount must round-trip exactly.
+            db.query("PRAGMA table_info(`absence_allocations`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndexOrThrow("name")
+                val typeIndex = cursor.getColumnIndexOrThrow("type")
+                val types = mutableMapOf<String, String>()
+                while (cursor.moveToNext()) {
+                    types[cursor.getString(nameIndex)] = cursor.getString(typeIndex)
+                }
+                assertEquals("REAL", types["estimatedGrossPay"])
+                assertEquals("REAL", types["entitlementUnits"])
+                // Calendar dates are epoch-day integers so an absence cannot move a
+                // day through a timezone conversion.
+                assertEquals("INTEGER", types["affectedDate"])
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "currency-migration-test"
         const val TEST_DB_CHAIN = "full-chain-migration-test"
@@ -567,15 +641,17 @@ class ElmTrackrDatabaseMigrationTest {
         const val TEST_DB_V1_DATA = "v1-data-migration-test"
         const val TEST_DB_COMP_SOURCE = "compensation-source-migration-test"
         const val TEST_DB_BILLING_NOTES = "billing-notes-migration-test"
+        const val TEST_DB_LEAVE = "workplaces-and-leave-migration-test"
 
-        const val CURRENT_VERSION = 18
+        const val CURRENT_VERSION = 19
 
         /**
          * Schema versions a production database can currently be at. 9 is
          * missing because `9.json` was never exported; see
          * everySupportedStartVersionMigratesToCurrent.
          */
-        val SUPPORTED_START_VERSIONS = listOf(1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17)
+        val SUPPORTED_START_VERSIONS =
+            listOf(1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18)
 
         val ALL_MIGRATIONS = arrayOf(
             ElmTrackrDatabase.MIGRATION_1_2,
@@ -595,6 +671,7 @@ class ElmTrackrDatabaseMigrationTest {
             ElmTrackrDatabase.MIGRATION_15_16,
             ElmTrackrDatabase.MIGRATION_16_17,
             ElmTrackrDatabase.MIGRATION_17_18,
+            ElmTrackrDatabase.MIGRATION_18_19,
         )
     }
 }

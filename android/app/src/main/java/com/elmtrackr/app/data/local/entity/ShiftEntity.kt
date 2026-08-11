@@ -51,6 +51,15 @@ data class ShiftEntity(
      * written before this column existed keeps its exact wage behaviour.
      */
     val compensationSource: String? = null,
+    /**
+     * Which job this shift was worked at. Nullable and never backfilled by an
+     * upgrade: NULL means "not assigned yet", which is what every shift recorded
+     * before workplaces existed is. Rows join a workplace when the user's first
+     * one is created, as an ordinary edit rather than an invisible rewrite of
+     * their history. No pay calculation reads this — it exists so leave and
+     * balances can be scoped to an employer.
+     */
+    val workplaceId: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,

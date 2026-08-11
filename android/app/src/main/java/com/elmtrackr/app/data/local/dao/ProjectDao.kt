@@ -186,6 +186,18 @@ interface ProjectBillingRecordDao {
     @Query("SELECT * FROM project_billing_records WHERE userId = :userId")
     suspend fun getAllForUser(userId: String): List<ProjectBillingRecordEntity>
 
+
+    /**
+     * Re-attaches rows written before sign-in, when the user id was a placeholder.
+     *
+     * A project cannot be adopted without its money: moving `projects` to the real
+     * user while the billing records and payments stayed under 'local-user' would
+     * leave the project showing nothing billed and nothing received, which reads
+     * as lost money rather than as an un-adopted row.
+     */
+    @Query("UPDATE project_billing_records SET userId = :userId WHERE userId = 'local-user'")
+    suspend fun adoptLegacyUser(userId: String)
+
     @Query("DELETE FROM project_billing_records WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
 }
@@ -279,6 +291,18 @@ interface ProjectPaymentDao {
     /** Every row including soft-deleted ones, for a full-fidelity backup. */
     @Query("SELECT * FROM project_payments WHERE userId = :userId")
     suspend fun getAllForUser(userId: String): List<ProjectPaymentEntity>
+
+
+    /**
+     * Re-attaches rows written before sign-in, when the user id was a placeholder.
+     *
+     * A project cannot be adopted without its money: moving `projects` to the real
+     * user while the billing records and payments stayed under 'local-user' would
+     * leave the project showing nothing billed and nothing received, which reads
+     * as lost money rather than as an un-adopted row.
+     */
+    @Query("UPDATE project_payments SET userId = :userId WHERE userId = 'local-user'")
+    suspend fun adoptLegacyUser(userId: String)
 
     @Query("DELETE FROM project_payments WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)

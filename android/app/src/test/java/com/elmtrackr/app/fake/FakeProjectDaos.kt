@@ -18,6 +18,8 @@ private val PENDING = setOf(
     SyncStatus.FAILED,
 )
 
+private const val LEGACY_USER_ID = "local-user"
+
 class FakeProjectDao : ProjectDao {
     private val store = linkedMapOf<String, ProjectEntity>()
     private val flow = MutableStateFlow<List<ProjectEntity>>(emptyList())
@@ -192,6 +194,14 @@ class FakeProjectBillingRecordDao : ProjectBillingRecordDao {
         refresh()
     }
 
+    override suspend fun adoptLegacyUser(userId: String) {
+        store.keys.toList().forEach { key ->
+            val row = store.getValue(key)
+            if (row.userId == LEGACY_USER_ID) store[key] = row.copy(userId = userId)
+        }
+        refresh()
+    }
+
     override suspend fun getAllForUser(userId: String): List<ProjectBillingRecordEntity> =
         store.values.filter { it.userId == userId }
 
@@ -298,6 +308,14 @@ class FakeProjectPaymentDao : ProjectPaymentDao {
             } else {
                 row
             }
+        }
+        refresh()
+    }
+
+    override suspend fun adoptLegacyUser(userId: String) {
+        store.keys.toList().forEach { key ->
+            val row = store.getValue(key)
+            if (row.userId == LEGACY_USER_ID) store[key] = row.copy(userId = userId)
         }
         refresh()
     }

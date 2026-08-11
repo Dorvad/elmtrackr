@@ -30,6 +30,7 @@ fun ShiftEntity.toDomain(): Shift = Shift(
     projectId = projectId,
     projectNameSnapshot = projectNameSnapshot,
     compensationSource = CompensationSource.fromPersisted(compensationSource),
+    workplaceId = workplaceId,
     createdAt = Instant.ofEpochMilli(createdAt),
     updatedAt = Instant.ofEpochMilli(updatedAt),
 )
@@ -61,6 +62,7 @@ fun Shift.toEntity(
     projectId = projectId,
     projectNameSnapshot = projectNameSnapshot,
     compensationSource = compensationSource.name,
+    workplaceId = workplaceId,
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
     deletedAt = deletedAt,

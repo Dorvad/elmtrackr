@@ -30,6 +30,11 @@ When changing the contract:
 | `projects` | Fixed-fee projects |
 | `project_billing_records` | What has been billed against a project |
 | `project_payments` | What has been received against a billing record |
+| `workplaces` | A job. Owns leave entitlement and payslip balances |
+| `leave_policies` | A workplace's sick/vacation rules, effective-dated |
+| `absence_events` | A period of absence as the user experienced it (user-level) |
+| `absence_allocations` | One absent date at one workplace, priced |
+| `leave_balance_snapshots` | A balance read off a payslip, kept as history |
 
 Base DDL for `profiles`, `user_settings`, `shifts`, and `refund_claims` predates the
 in-repo migrations and lives in the Supabase project itself (not in this repo).
@@ -82,6 +87,158 @@ device preferences rather than records of money, so losing them on a device
 change is an annoyance rather than data loss — but closing that gap means adding
 those columns to `user_settings` and dropping the `preserveLocal` clause.
 
+### Workplaces and leave
+
+| Room entity | Table |
+|-------------|-------|
+| `WorkplaceEntity` | `workplaces` |
+| `LeavePolicyEntity` | `leave_policies` |
+| `AbsenceEventEntity` | `absence_events` |
+| `AbsenceAllocationEntity` | `absence_allocations` |
+| `LeaveBalanceSnapshotEntity` | `leave_balance_snapshots` |
+
+Added by `20260811000000_workplaces_and_leave.sql` (Room v19, `MIGRATION_18_19`).
+
+**Absences are not shifts, deliberately.** A shift means worked time and feeds net
+minutes, the overtime ladders, weekend/holiday/night premiums and the shift count.
+An absence has none of those properties, so there is no `shiftType` column and no
+synthetic eight-hour shift: a sick day recorded that way would inflate all four
+and invent overtime nobody worked. The two domains meet only at the money level,
+where a report adds work, vacation and sick gross into an estimated total.
+
+**`workplaces` is not `compensation_profiles`.** A profile answers "how is worked
+time paid" and changes with a raise or a new effective-dated profile. Leave
+entitlement, seniority and payslip balances belong to the employer and survive
+all of that, so they hang off a workplace instead.
+
+**Money here is `numeric`, not the `text` Paid Projects uses.**
+`absence_allocations.estimated_gross_pay` and `leave_balance_snapshots.balance`
+are `numeric` and map to Kotlin `Double`, matching
+`compensation_profiles.base_hourly_rate` and every other wage figure. The two are
+different kinds of number: a billed fee is an amount of money that must
+round-trip byte for byte, while this is a derived estimate recomputed from an
+hourly rate that is itself a REAL/`Double`, and it is labelled an estimate
+everywhere it appears. Storing it as text would mean the reports could not add
+work and leave gross together without crossing between two numeric systems.
+
+**Calendar dates are epoch-day integers** (`affected_date`, `as_of_date`,
+`start_date`, `end_date`, `employment_start_date`), matching Paid Projects, so an
+absence cannot move by a day through a timezone conversion.
+
+**`rules_json`, `policy_snapshot_json` and `calculation_snapshot_json`** are
+`jsonb`, read through `LeavePolicyCodec` with a documented default for every
+field. The two snapshot columns follow the same rule as
+`shifts.compensation_snapshot_json`: a historical estimate stays reproducible
+after a wage or policy change and is never silently recomputed.
+
+**Foreign keys are real**, so sync order matters: workplaces, then leave policies
+and balance snapshots, then absence events, then absence allocations. The two
+`workplace_id` links added to `shifts` and `compensation_profiles` are
+`on delete set null`, so archiving or removing a workplace never deletes work
+history.
+
+**Not backfilled, on purpose.** Both `workplace_id` columns are nullable with no
+default and no backfill; NULL reads as "not assigned yet", which is what every
+row written before this release is. Rows join a workplace the first time the user
+has one (`LocalWorkplacesRepository.ensureDefaultWorkplace`, which also creates
+the default policy), where it is an ordinary edit that syncs like any other
+rather than an upgrade rewriting recorded history.
+
+**Extra RLS on the child tables.** Beyond `auth.uid() = user_id`, the three
+tables carrying a parent reference also check `owns_workplace()` /
+`owns_absence_event()`, so a row cannot *point at* a parent the caller does not
+own. The check constraints are `not valid`, which skips the one-time scan: the
+tables are new so there is nothing to scan, and `auth.uid()` is null outside a
+request, so validating would evaluate the predicate with no session.
+
+**`delete_own_account` was extended** with the five tables, children first. Sick
+leave is the most sensitive data this app stores, so account deletion names them
+explicitly rather than relying on the `auth.users` cascade.
+
+**Client-side sync is not wired yet.** The tables, RLS and account deletion are
+in place, and the Room entities carry the full `remoteId` / `syncStatus` /
+`deletedAt` / `lastSyncedAt` block, but `SyncRepositoryImpl` has no push or pull
+step for them and there is no `data/remote/RemoteLeave*`. Leave is therefore
+device-local until that is added — the same order Paid Projects shipped in (Room
+v16 first, cloud sync in a later change). Until then a reinstall loses reported
+leave and entered balances unless the user exported a local backup.
+
+---
+
+## `workplaces`
+
+| Column | Type | Wire format | Android |
+|--------|------|-------------|---------|
+| `name` | text | non-empty | string |
+| `region_code` | text | see RegionCode | `RegionCode.fromPersisted()` |
+| `currency_code` | text | e.g. `ILS` | string |
+| `timezone` | text | IANA | string |
+| `employment_start_date` | integer | epoch day, nullable | `LocalDate?` |
+| `is_default` / `is_archived` | bool | | bool |
+
+## `leave_policies`
+
+| Column | Type | Wire format | Android |
+|--------|------|-------------|---------|
+| `workplace_id` | uuid | FK → `workplaces.id` | `workplaceLocalId` |
+| `region_code` | text | see RegionCode | `RegionCode.fromPersisted()` |
+| `rules_json` | jsonb | LeavePolicyRules shape | `LeavePolicyCodec` |
+| `effective_from` / `effective_until` | timestamptz | ISO-8601 | Instant |
+| `is_active` | bool | | bool |
+
+## `absence_events`
+
+| Column | Type | Wire format | Android |
+|--------|------|-------------|---------|
+| `type` | text | `sick`, `vacation` | `AbsenceType.fromPersisted()` |
+| `start_date` / `end_date` | integer | epoch day | LocalDate |
+| `notes` | text | nullable, never medical detail | string? |
+
+DB check constraint: `type in ('sick', 'vacation')`
+
+## `absence_allocations`
+
+| Column | Type | Wire format | Android |
+|--------|------|-------------|---------|
+| `absence_event_id` | uuid | FK → `absence_events.id` | `absenceEventLocalId` |
+| `workplace_id` | uuid | FK → `workplaces.id` | `workplaceLocalId` |
+| `affected_date` | integer | epoch day | LocalDate |
+| `entitlement_units` | numeric | 1 = whole day, 0.5 = half | double |
+| `unit` | text | `days`, `hours` | `LeaveBalanceUnit.fromPersisted()` |
+| `expected_work_minutes` | integer | nullable | Int? |
+| `policy_snapshot_json` | jsonb | nullable | `LeavePolicyCodec` |
+| `calculation_snapshot_json` | jsonb | nullable | `LeavePolicyCodec` |
+| `estimated_gross_pay` | numeric | derived estimate | double |
+
+Check constraints: `unit in ('days', 'hours')`
+
+Deliberately **no** unique index on `(absence_event_id, workplace_id,
+affected_date)`. The client writes exactly one row per triple inside one
+transaction, and editing an event rebuilds its allocations as
+tombstone-plus-insert; a unique index would let a rebuild whose tombstone had not
+yet been pushed collide with its own replacement and leave the push permanently
+FAILED — the same reason `shifts_user_id_open_idx` is not unique.
+
+## `leave_balance_snapshots`
+
+| Column | Type | Wire format | Android |
+|--------|------|-------------|---------|
+| `workplace_id` | uuid | FK → `workplaces.id` | `workplaceLocalId` |
+| `balance_type` | text | `sick`, `vacation` | `AbsenceType.fromPersisted()` |
+| `balance` | numeric | may be negative | double |
+| `unit` | text | `days`, `hours` | `LeaveBalanceUnit.fromPersisted()` |
+| `as_of_date` | integer | epoch day | LocalDate |
+| `source` | text | `payslip`, `manual` | `LeaveBalanceSource.fromPersisted()` |
+| `label` / `notes` | text | nullable | string? |
+
+Check constraints: `balance_type in ('vacation','sick')`, `unit in ('days','hours')`,
+`source in ('payslip','manual')`
+
+No unique constraint on `(workplace_id, balance_type, as_of_date)`: correcting a
+mistyped balance for a date already entered is normal, and the estimator reads
+the latest by `as_of_date` then by `created_at`, so a correction supersedes the
+earlier row while leaving it in the history.
+
 ---
 
 ## `user_settings`
@@ -125,6 +282,7 @@ those columns to `user_settings` and dropping the `preserveLocal` clause.
 | `task_name_snapshot` | text | nullable | string? |
 | `task_icon_snapshot` | text | nullable | string? |
 | `task_hourly_rate_snapshot` | numeric | nullable | double? |
+| `workplace_id` | uuid | nullable FK → `workplaces.id`, never backfilled | string? |
 
 DB check constraint (legacy): `refund_action in ('no_ride_taken', 'remind_later', 'submitted')`
 
@@ -156,6 +314,7 @@ Unique: `(shift_id, direction)`
 | `stacking_policy` | text | see StackingPolicy (aligned with `premium_type`) | `StackingPolicy.fromPersisted()` |
 | `effective_from` / `effective_until` | timestamptz | ISO-8601 | Instant |
 | `is_default` / `is_archived` | bool | | bool |
+| `workplace_id` | uuid | nullable FK → `workplaces.id`, never backfilled | string? |
 
 ---
 
@@ -202,6 +361,10 @@ Shifts may reference `task_id` (nullable FK). Clock-in stores `task_*_snapshot` 
 
 Push and pull phases run in order:
 
+0. **workplaces → leave policies / balance snapshots → absence events → absence
+   allocations** (real foreign keys; workplaces also before shifts and
+   compensation profiles, which carry a workplace link). *Not yet implemented —
+   see "Client-side sync is not wired yet" above.*
 1. **tasks** (before shifts — shifts may reference task IDs)  
 2. **projects → project billing records → project payments** (real foreign keys;
    also before shifts, which carry a project link)  
@@ -217,7 +380,7 @@ Incremental pull uses `updated_at >= lastPulledAt` per entity (see `SyncCursorSt
 
 Local `PENDING_*` rows always win over remote until pushed.
 
-`delete_own_account` removes tasks, shifts, refund claims, compensation profiles, user settings, profiles, and refund-receipt storage objects.
+`delete_own_account` removes absence allocations, absence events, leave balance snapshots, leave policies, tasks, shifts, refund claims, compensation profiles, workplaces, user settings, profiles, and refund-receipt storage objects.
 
 ### `deleted_at` and `client_updated_at`
 
@@ -398,6 +561,50 @@ accept the same six wire values, and matching options combine rates with identic
 The same values are accepted for the per-rule `stacking` fields inside `rules_json`
 (weekend/holiday/night).
 
+
+### AbsenceType (`absence_events.type`, `leave_balance_snapshots.balance_type`)
+
+| Wire | Android |
+|------|---------|
+| `sick` | `SICK` |
+| `vacation` | `VACATION` |
+| unknown / null | **null — the row is skipped** |
+
+The one enum here with no fallback, on purpose. Guessing between sick and
+vacation would put a day against the wrong balance and pay it under the wrong
+policy, which is worse than dropping a row this build did not write.
+
+### LeaveBalanceUnit (`absence_allocations.unit`, `leave_balance_snapshots.unit`)
+
+| Wire | Android |
+|------|---------|
+| `days` | `DAYS` |
+| `hours` | `HOURS` |
+| unknown | `DAYS` (fallback) |
+
+### LeaveBalanceSource (`leave_balance_snapshots.source`)
+
+| Wire | Android |
+|------|---------|
+| `payslip` | `PAYSLIP` |
+| `manual` | `MANUAL` |
+| unknown | `MANUAL` (fallback — the weaker of the two claims) |
+
+### Leave pay bases (inside `leave_policies.rules_json`)
+
+`sick.payBasis`: `historical_average` (fallback), `scheduled_hours`,
+`fixed_daily_hours`, `manual`.
+
+`vacation.payBasis`: `israel_statutory_average_90` (fallback),
+`actual_workdays_average`, `scheduled_hours`, `fixed_daily_hours`, `manual`.
+
+Sick pay tiers are data, not code: `payTiers` is a list of
+`{fromDay, toDay, multiplier}`, and the Israeli default of 0% / 50% / 50% / 100%
+is three of them. A workplace with a better agreement replaces it with a single
+`{fromDay: 1, multiplier: 1.0}` rung, and no code path asks whether a workplace
+is Israeli to decide what a sick day pays. A day the ladder does not cover
+resolves to *no tier* rather than to zero — zero is a real multiplier here, so it
+cannot also mean "the policy does not say".
 
 ## Adding a new enum value (checklist)
 
