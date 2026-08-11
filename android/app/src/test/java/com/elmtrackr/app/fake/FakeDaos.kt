@@ -95,6 +95,20 @@ class FakeShiftDao : ShiftDao {
     override suspend fun getAllShiftsForUser(userId: String): List<ShiftEntity> =
         store.values.filter { it.userId == userId && it.deletedAt == null }
 
+    override suspend fun getCompletedShiftsInRange(
+        userId: String,
+        fromEpoch: Long,
+        toEpoch: Long,
+    ): List<ShiftEntity> = store.values
+        .filter {
+            it.userId == userId &&
+                it.deletedAt == null &&
+                it.endTime != null &&
+                it.startTime >= fromEpoch &&
+                it.startTime < toEpoch
+        }
+        .sortedBy { it.startTime }
+
     override suspend fun hasAnyShifts(userId: String): Boolean =
         store.values.any { it.userId == userId && it.deletedAt == null }
 
