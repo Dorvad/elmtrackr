@@ -126,6 +126,12 @@ data class CompensationProfile(
     val effectiveUntil: Instant? = null,
     val isDefault: Boolean = false,
     val isArchived: Boolean = false,
+    /**
+     * The job this profile pays for, when known. A profile remains the authority
+     * on how worked time is paid; this only records which employer it belongs to,
+     * so leave entitlement and balances survive a raise or a new profile.
+     */
+    val workplaceId: String? = null,
     val createdAt: Instant = Instant.EPOCH,
     val updatedAt: Instant = Instant.EPOCH,
     val remoteId: String? = null,

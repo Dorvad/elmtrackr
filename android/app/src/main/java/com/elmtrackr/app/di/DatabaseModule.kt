@@ -6,6 +6,11 @@ import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.ProfileDao
 import com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao
 import com.elmtrackr.app.data.local.dao.ProjectDao
+import com.elmtrackr.app.data.local.dao.AbsenceAllocationDao
+import com.elmtrackr.app.data.local.dao.AbsenceEventDao
+import com.elmtrackr.app.data.local.dao.LeaveBalanceSnapshotDao
+import com.elmtrackr.app.data.local.dao.LeavePolicyDao
+import com.elmtrackr.app.data.local.dao.WorkplaceDao
 import com.elmtrackr.app.data.local.dao.ProjectPaymentDao
 import com.elmtrackr.app.data.local.dao.ReceiptDao
 import com.elmtrackr.app.data.local.dao.PremiumProfileDao
@@ -65,4 +70,21 @@ object DatabaseModule {
     @Provides
     fun provideProjectPaymentDao(database: ElmTrackrDatabase): ProjectPaymentDao =
         database.projectPaymentDao()
+
+    @Provides
+    fun provideWorkplaceDao(database: ElmTrackrDatabase): WorkplaceDao = database.workplaceDao()
+
+    @Provides
+    fun provideLeavePolicyDao(database: ElmTrackrDatabase): LeavePolicyDao = database.leavePolicyDao()
+
+    @Provides
+    fun provideAbsenceEventDao(database: ElmTrackrDatabase): AbsenceEventDao = database.absenceEventDao()
+
+    @Provides
+    fun provideAbsenceAllocationDao(database: ElmTrackrDatabase): AbsenceAllocationDao =
+        database.absenceAllocationDao()
+
+    @Provides
+    fun provideLeaveBalanceSnapshotDao(database: ElmTrackrDatabase): LeaveBalanceSnapshotDao =
+        database.leaveBalanceSnapshotDao()
 }

@@ -120,6 +120,18 @@ interface ShiftDao {
     @Query("SELECT * FROM shifts WHERE userId = :userId AND deletedAt IS NULL")
     suspend fun getAllShiftsForUser(userId: String): List<ShiftEntity>
 
+    /**
+     * Completed shifts in a window, for the earnings base a leave estimate
+     * averages over. Bounded deliberately: that estimate looks back twelve
+     * months, and loading a long-standing user's entire history to average three
+     * of them would grow without limit.
+     */
+    @Query(
+        "SELECT * FROM shifts WHERE userId = :userId AND deletedAt IS NULL AND endTime IS NOT NULL " +
+            "AND startTime >= :fromEpoch AND startTime < :toEpoch ORDER BY startTime ASC",
+    )
+    suspend fun getCompletedShiftsInRange(userId: String, fromEpoch: Long, toEpoch: Long): List<ShiftEntity>
+
     @Query(
         "SELECT EXISTS(SELECT 1 FROM shifts WHERE userId = :userId AND deletedAt IS NULL LIMIT 1)",
     )

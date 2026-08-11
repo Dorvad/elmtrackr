@@ -1,6 +1,11 @@
 package com.elmtrackr.app.data.local
 
+import com.elmtrackr.app.data.local.dao.AbsenceAllocationDao
+import com.elmtrackr.app.data.local.dao.AbsenceEventDao
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
+import com.elmtrackr.app.data.local.dao.LeaveBalanceSnapshotDao
+import com.elmtrackr.app.data.local.dao.LeavePolicyDao
+import com.elmtrackr.app.data.local.dao.WorkplaceDao
 import com.elmtrackr.app.data.local.dao.PremiumProfileDao
 import com.elmtrackr.app.data.local.dao.ProfileDao
 import com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao
@@ -30,6 +35,11 @@ class LocalUserDataCleaner @Inject constructor(
     private val projectDao: ProjectDao,
     private val projectBillingRecordDao: ProjectBillingRecordDao,
     private val projectPaymentDao: ProjectPaymentDao,
+    private val workplaceDao: WorkplaceDao,
+    private val leavePolicyDao: LeavePolicyDao,
+    private val absenceEventDao: AbsenceEventDao,
+    private val absenceAllocationDao: AbsenceAllocationDao,
+    private val leaveBalanceSnapshotDao: LeaveBalanceSnapshotDao,
 ) {
     suspend fun clearUserData(userId: String) {
         // Receipt images are files, so they cannot participate in the transaction;
@@ -52,6 +62,15 @@ class LocalUserDataCleaner @Inject constructor(
             projectPaymentDao.deleteAllForUser(userId)
             projectBillingRecordDao.deleteAllForUser(userId)
             projectDao.deleteAllForUser(userId)
+            // Same order for leave: allocations reference events and workplaces,
+            // policies and balances reference workplaces. Sick-leave records are the
+            // most sensitive rows here, so "delete my data" has to actually remove
+            // them rather than leave orphans behind.
+            absenceAllocationDao.deleteAllForUser(userId)
+            absenceEventDao.deleteAllForUser(userId)
+            leaveBalanceSnapshotDao.deleteAllForUser(userId)
+            leavePolicyDao.deleteAllForUser(userId)
+            workplaceDao.deleteAllForUser(userId)
             profileDao.deleteAllForUser(userId)
         }
     }
