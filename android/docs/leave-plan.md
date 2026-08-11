@@ -17,7 +17,7 @@ Supabase schema land first, the cloud wiring follows in its own change.
 | Room v19 + `MIGRATION_18_19` | `data/local/ElmTrackrDatabase.kt` |
 | Entities, DAOs, mappers | `data/local/{entity,dao,mapper}` |
 | Repositories, DI, data cleaner, legacy adopter | `data/repository/Local{Workplaces,Leave}Repository.kt` |
-| Reporting flow | `ui/leave/` |
+| Reporting flow, reachable from the shifts add action | `ui/leave/`, `ui/shifts/ShiftsScreen.kt` |
 | Strings, both locales | `res/values{,-iw}/strings_leave.xml` |
 | Unit tests (82) | `app/src/test/.../domain/leave/` |
 | Migration test | `app/src/androidTest/.../ElmTrackrDatabaseMigrationTest.kt` |
@@ -41,23 +41,7 @@ Until it is committed, `ElmTrackrDatabaseMigrationTest` cannot validate against
 version 19 and the instrumented CI job fails. Do not create a gap here the way
 `9.json` was left missing.
 
-### 2. Wire the entry point
-
-`ui/leave/ReportEntryTypeSheet.kt` and `AbsenceFormScreen.kt` are complete but
-nothing opens them yet. Three call sites currently invoke
-`ShiftsViewModel.showCreateForm()`:
-
-- `ui/shifts/ShiftsListUi.kt` — `ShiftsPageHeader`'s add button, and
-  `ShiftsAddPastShiftButton`
-- `ui/shifts/ShiftsScreen.kt` — the empty state's copy of the dashed button
-
-Point all of them at one lambda that raises the sheet, and widen
-`ui/shifts/ShiftFormNavState.kt` (today `Create` / `Edit`) with the absence
-cases so the existing `AnimatedContent` and `onFormVisibilityChanged`
-chrome-hiding carry the new screen for free. `AbsenceFormScreen` already takes
-`type`, `editingEventId` and `onClose`.
-
-### 3. Balances and policy screens
+### 2. Balances and policy screens
 
 `LocalLeaveRepository.addBalanceSnapshot` / `estimateBalance` /
 `observeBalanceEstimates` and `LocalWorkplacesRepository.updatePolicyRules` are
@@ -74,7 +58,7 @@ the negative case visible. `LeaveBalanceEstimate` already carries
 `unconvertibleCount` for the hours/days mismatch the UI has to surface rather
 than guess.
 
-### 4. Reports and export
+### 3. Reports and export
 
 Do **not** add leave to `MonthlyReport`. Its documented invariant is
 `regular + overtime + weekend == total` minutes, and the distribution bar, CSV
@@ -93,7 +77,7 @@ formula-injection guard, and the export goes to a payroll recipient. PDF:
 `ReportExporter.shareShiftPdf` already takes the whole `Ready` state, so a new
 field needs no signature change.
 
-### 5. Cloud sync
+### 4. Cloud sync
 
 The five tables exist server-side with RLS, and the entities carry the full
 `remoteId` / `syncStatus` / `deletedAt` / `lastSyncedAt` block, but there is no
