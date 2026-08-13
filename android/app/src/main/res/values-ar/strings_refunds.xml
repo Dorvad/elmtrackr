@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Refund claims section -->
+    <string name="refunds_reading_receipt">جارٍ قراءة نص الإيصال…</string>
+    <string name="refunds_not_eligible">هذه المناوبة غير مؤهّلة لاسترداد بدل السفر.</string>
+    <string name="refunds_ok">حسنًا</string>
+    <string name="refunds_claim_icon_description">مطالبة استرداد</string>
+    <string name="refunds_direction_to_work">رحلة إلى العمل</string>
+    <string name="refunds_direction_from_work">رحلة من العمل</string>
+    <string name="refunds_no_rides_yet">لم تُضَف رحلات بعد</string>
+    <!-- Arabic needs all six CLDR categories: 3-10 takes the broken plural
+         (رحلات), 11-99 and 100+ take the singular (رحلة). -->
+    <plurals name="refunds_rides_saved">
+        <item quantity="zero">لم تُحفَظ أي رحلة</item>
+        <item quantity="one">حُفِظت رحلة واحدة</item>
+        <item quantity="two">حُفِظت رحلتان</item>
+        <item quantity="few">حُفِظت %d رحلات</item>
+        <item quantity="many">حُفِظت %d رحلة</item>
+        <item quantity="other">حُفِظت %d رحلة</item>
+    </plurals>
+    <string name="refunds_add_receipt_now">إضافة الإيصال الآن</string>
+    <string name="refunds_add_ride">إضافة رحلة</string>
+    <string name="refunds_add_another_ride">إضافة رحلة أخرى</string>
+    <string name="refunds_claim_summary">%1$s - %2$s</string>
+    <string name="refunds_date_at_time">%1$s في %2$s</string>
+    <string name="refunds_edit">تعديل</string>
+    <string name="refunds_view_receipt">عرض الإيصال</string>
+    <string name="refunds_delete">حذف</string>
+    <string name="refunds_no_ride">لا رحلة</string>
+    <string name="refunds_remind_later">التذكير لاحقًا</string>
+    <string name="refunds_marked_no_ride">تم تحديدها كمناوبة بلا رحلة</string>
+    <string name="refunds_undo">تراجع</string>
+    <string name="refunds_reminder_kept">تم الإبقاء على التذكير لوقت لاحق</string>
+
+    <!-- Claim form dialog -->
+    <string name="refunds_form_title_add">إضافة %1$s</string>
+    <string name="refunds_form_title_edit">تعديل %1$s</string>
+    <string name="refunds_form_subtitle">أدرِج الإيصال والمبلغ ومزوّد الخدمة ووقت الرحلة لهذه المطالبة.</string>
+    <string name="refunds_amount_label">المبلغ (%1$s)</string>
+    <string name="refunds_notes_label">ملاحظات (اختياري)</string>
+    <string name="refunds_cancel">إلغاء</string>
+    <string name="refunds_save">حفظ</string>
+    <string name="refunds_update">تحديث</string>
+
+    <!-- Receipt photo area -->
+    <string name="refunds_receipt_photo">صورة الإيصال</string>
+    <string name="refunds_pending_receipt_photo">صورة إيصال قيد الانتظار</string>
+    <string name="refunds_new_receipt_photo">صورة إيصال جديدة</string>
+    <string name="refunds_no_receipt_attached">لا إيصال مرفق</string>
+    <string name="refunds_existing_receipt_attached">إيصال موجود مرفق</string>
+    <string name="refunds_receipt_attached">تم إرفاق الإيصال</string>
+    <string name="refunds_cloud_receipt_attached">إيصال سحابي مرفق</string>
+    <string name="refunds_no_receipt_yet">لم يُرفَق إيصال بعد</string>
+    <string name="refunds_scan_receipt">مسح الإيصال</string>
+    <string name="refunds_attach_receipt">إرفاق إيصال</string>
+    <string name="refunds_use_device_camera">استخدام كاميرا الجهاز</string>
+    <string name="refunds_retake_with_camera">إعادة التصوير بالكاميرا</string>
+    <string name="refunds_remove_receipt_photo">إزالة صورة الإيصال</string>
+    <string name="refunds_remove_photo">إزالة الصورة</string>
+    <string name="refunds_view_cloud_receipt">عرض الإيصال السحابي</string>
+
+    <!-- Ride date/time pickers -->
+    <string name="refunds_ride_date">تاريخ الرحلة</string>
+    <string name="refunds_ride_time">وقت الرحلة</string>
+    <string name="refunds_pick_ride_date">اختيار تاريخ الرحلة</string>
+    <string name="refunds_pick_ride_time">اختيار وقت الرحلة</string>
+    <string name="refunds_select_time">اختيار الوقت</string>
+
+    <!-- Receipt review dialog -->
+    <string name="refunds_review_title">راجع تفاصيل الإيصال</string>
+    <string name="refunds_review_subtitle">تحقّق من التفاصيل الممسوحة قبل الحفظ. فقد يُخطئ التعرّف الضوئي على الحروف في القراءة أو يفوته بعض القيم، خصوصًا في الإيصالات الباهتة أو المجعّدة.</string>
+    <string name="refunds_scanned_receipt_preview">معاينة الإيصال الممسوح</string>
+    <string name="refunds_merchant_label">التاجر</string>
+    <string name="refunds_amount_only_label">المبلغ</string>
+    <string name="refunds_currency_label">العملة</string>
+    <string name="refunds_save_receipt">حفظ الإيصال</string>
+    <string name="refunds_confidence_ocr_failed">فشل التعرّف على النص. ولا يزال بإمكانك حفظ الإيصال وإدخال التفاصيل يدويًا.</string>
+    <string name="refunds_confidence_none">لم يُكتشف أي مبلغ. احفظ الإيصال وأدخل مبلغ الاسترداد يدويًا.</string>
+    <string name="refunds_confidence_low">نتيجة المسح منخفضة الثقة. تحقّق من كل حقل مرتين قبل الحفظ.</string>
+    <string name="refunds_confidence_medium">تم اكتشاف بعض التفاصيل. يُرجى التحقّق منها قبل الحفظ.</string>
+    <string name="refunds_confidence_high">تم اكتشاف التفاصيل بثقة جيدة. يُرجى التحقّق منها قبل الحفظ.</string>
+
+    <!-- Receipt preview dialog -->
+    <string name="refunds_receipt_title">الإيصال</string>
+    <string name="refunds_receipt_image">صورة الإيصال</string>
+    <string name="refunds_receipt_preview_failed">تعذّر تحميل معاينة الإيصال. فقد يكون الملف قد أُزيل.</string>
+    <string name="refunds_close">إغلاق</string>
+
+    <!-- Receipt camera -->
+    <string name="refunds_receipt_camera">كاميرا الإيصالات</string>
+    <string name="refunds_close_camera">إغلاق الكاميرا</string>
+    <string name="refunds_captured_receipt_preview">معاينة الإيصال الملتقط</string>
+    <string name="refunds_capture_receipt">التقاط الإيصال</string>
+    <string name="refunds_camera_permission_title">يلزم إذن الكاميرا لتصوير إيصالات الرحلات.</string>
+    <string name="refunds_camera_permission_body">ولا يزال بإمكانك اختيار صورة إيصال موجودة على هاتفك.</string>
+    <string name="refunds_allow_camera">السماح بالكاميرا</string>
+    <string name="refunds_not_now">ليس الآن</string>
+
+    <!-- ViewModel messages -->
+    <string name="refunds_err_load">تعذّر تحميل مطالبات الاسترداد</string>
+    <string name="refunds_err_scanner">تعذّر فتح ماسح الإيصالات</string>
+    <string name="refunds_err_scan_failed">تعذّرت قراءة هذا الإيصال. جرّب صورة أوضح، أو أدخل التفاصيل يدويًا.</string>
+    <string name="refunds_err_photo_not_saved">لم تُحفَظ صورة الإيصال. أعد المحاولة.</string>
+    <string name="refunds_err_photo_store">تعذّر تخزين صورة الإيصال. أعد المحاولة.</string>
+    <string name="refunds_err_capture">تعذّر التقاط صورة الإيصال</string>
+    <string name="refunds_err_save_receipt_local">تعذّر حفظ الإيصال محليًا</string>
+    <string name="refunds_err_amount">أدخل مبلغ استرداد صحيحًا</string>
+    <string name="refunds_err_photo_missing_large">صورة الإيصال مفقودة أو حجمها أكبر من 10 ميغابايت.</string>
+    <string name="refunds_err_save_claim">تعذّر حفظ مطالبة الاسترداد</string>
+    <string name="refunds_err_delete_claim">تعذّر حذف مطالبة الاسترداد</string>
+    <string name="refunds_err_update_status">تعذّر تحديث حالة الاسترداد</string>
+    <string name="refunds_err_no_receipt">لا يوجد إيصال مرفق بهذه المطالبة.</string>
+    <string name="refunds_err_receipt_file_missing">ملف صورة الإيصال مفقود.</string>
+    <string name="refunds_err_preview_unavailable">معاينة الإيصال غير متاحة حاليًا.</string>
+    <string name="refunds_err_image_too_large">اختر صورة أصغر من 10 ميغابايت.</string>
+    <string name="refunds_notice_receipt_saved_enter_amount">تم حفظ الإيصال محليًا. أدخل مبلغ الاسترداد قبل تقديم المطالبة.</string>
+    <string name="refunds_notice_receipt_saved_verify">تم حفظ الإيصال محليًا. تحقّق من تفاصيل المطالبة قبل تقديمها.</string>
+    <string name="refunds_notice_saved_no_receipt">تم حفظ المطالبة دون الإيصال الجديد. رفع الإيصالات غير متاح حاليًا، ويمكنك إرفاقه لاحقًا.</string>
+    <string name="refunds_notice_deleted_cleanup_retry">تم حذف المطالبة. وستُعاد محاولة تنظيف بعض الإيصالات لاحقًا.</string>
+    <string name="refunds_notice_deleted_cloud_retry">تم حذف المطالبة. وستُعاد محاولة تنظيف الإيصال السحابي لاحقًا.</string>
+    <string name="refunds_notice_deleted_local_failed">تم حذف المطالبة. وفشل تنظيف ملف الإيصال المحلي.</string>
+    <string name="refunds_delete_dialog_title">حذف هذه المطالبة؟</string>
+    <string name="refunds_delete_dialog_text">ستُحذف المطالبة وصورة الإيصال المرفقة بها نهائيًا.</string>
+</resources>
