@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ElmTrackr</string>
+    <string name="tile_label">‏ElmTrackr — التسجيل</string>
+    <string name="complication_label">‏ElmTrackr — الحالة</string>
+    <string name="setup_title">سجّل الدخول من هاتفك</string>
+    <string name="setup_body">افتح ‏ElmTrackr على هاتفك المقترن لتسجيل الدخول، ثم عد إلى هنا.</string>
+    <string name="idle_last_punch">آخر تسجيل</string>
+    <string name="idle_tap_hint">انقر لتسجيل الحضور</string>
+    <string name="countdown_punching_in">جارٍ تسجيل الحضور</string>
+    <string name="countdown_punching_out">جارٍ تسجيل الانصراف</string>
+    <string name="countdown_tap_to_cancel">انقر للإلغاء</string>
+    <!-- wear_brand is translatable="false" in res/values and omitted here. -->
+    <string name="wear_on_shift">في مناوبة</string>
+    <string name="wear_clocked_out">خارج المناوبة</string>
+    <string name="wear_tap_to_stop">انقر للإيقاف</string>
+    <string name="running_since">منذ %1$s</string>
+    <string name="punch_in">تسجيل الحضور</string>
+    <string name="punch_out">تسجيل الانصراف</string>
+    <string name="confirmed_in">تم تسجيل الحضور</string>
+    <string name="confirmed_out">تم تسجيل الانصراف</string>
+    <string name="phone_unreachable">الهاتف غير متاح</string>
+    <string name="punch_failed">فشل التسجيل</string>
+    <string name="wear_sync_disabled">الساعة معطّلة في إعدادات الهاتف</string>
+    <string name="wear_refresh">تحديث</string>
+    <string name="wear_today">اليوم %1$s</string>
+    <string name="wear_percent_of_day">%1$d%% من اليوم</string>
+    <string name="tile_sign_in">تسجيل الدخول</string>
+    <string name="tile_on_phone">من الهاتف</string>
+    <string name="tile_tap_punch_out">انقر لتسجيل الانصراف</string>
+    <string name="tile_tap_punch_in">انقر لتسجيل الحضور</string>
+    <string name="wear_last_out_today">آخر انصراف • اليوم %1$s</string>
+    <string name="wear_last_out_yesterday">آخر انصراف • أمس %1$s</string>
+    <string name="wear_last_out_other">آخر انصراف • %1$s</string>
+    <string name="wear_comp_in">حضور</string>
+    <string name="wear_comp_out">انصراف</string>
+    <string name="wear_comp_clocked_in">مسجَّل الحضور · %1$s</string>
+</resources>

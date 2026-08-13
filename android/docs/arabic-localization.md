@@ -8,12 +8,41 @@ which is the usual failure mode once more than one person edits the strings.
 ## Status
 
 The Arabic strings are a **complete first pass, pending native-speaker review.**
-Every key in `res/values` has an Arabic counterpart, so the build and lint are
-clean and the language is fully usable — but the wording has not yet been read by
-a native Arabic speaker. Treat the payroll, tax and legal strings in
-`strings_domain.xml`, `strings_settings.xml` and `strings_legal.xml` as the
-highest-risk areas to review first: they carry regulatory vocabulary where a
-loose synonym changes the meaning.
+Every translatable key in `res/values` has an Arabic counterpart — 1,719 in
+`:app` and 34 in `:wear` — so lint's `MissingTranslation` has nothing to report
+and the language is fully usable. What has *not* happened is a native Arabic
+speaker reading the wording.
+
+Review these first, in this order:
+
+1. **Payroll, tax and leave vocabulary** — `strings_domain.xml`,
+   `strings_settings.xml`, `strings_leave.xml`. These carry regulatory terms
+   (premium stacking, statutory sick-pay tiers, deduction bases) where a loose
+   synonym changes the meaning rather than just the register.
+2. **The four `<plurals>`** — the `few` / `many` split is the single most
+   error-prone thing in this folder. See the table below.
+3. **Legal text** — `strings_legal.xml` and the disclaimers at the bottom of
+   `strings_leave.xml`. The English is deliberately hedged ("estimates only",
+   never "legally owed"); the Arabic must stay equally hedged.
+4. **`strings_reports.xml` insight cards** — these are jokes, and jokes are
+   where a faithful translation still lands wrong. Two separate questions for
+   the product owner, not the translator: whether the wordplay survives
+   (`insight_binge_text` leans on a Breaking Bad / Better Call Saul pun that
+   does not), and whether the Israeli national references — Tel Aviv–Eilat,
+   El Al, HaTikvah, army-service hours — are the right content for an
+   Arabic-reading audience. They were translated faithfully rather than
+   substituted, because changing which content a locale shows is a product
+   decision, not a translation one.
+
+Two smaller things worth a look:
+
+- `weekday_short_labels` uses CLDR's short Arabic day names (`ثلاثاء`,
+  `أربعاء`), which are longer than the Hebrew single letters. Both call sites
+  wrap (`FlowRow`, and a comma-joined review row), so nothing overflows — but
+  the weekend picker is taller in Arabic than in the other two languages.
+- `complication_label` renders "complication" as `إضافة الساعة`. There is no
+  settled Arabic term for the Wear OS concept; if Google's own wording differs,
+  match that instead.
 
 ## Variant
 

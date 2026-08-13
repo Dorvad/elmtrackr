@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Paid Projects module -->
+    <string name="projects_title">المشاريع المدفوعة</string>
+    <string name="projects_subtitle">عمل بسعر ثابت، والوقت الذي بذلته فيه، وما تم دفعه لك.</string>
+    <string name="projects_empty_title">لا مشاريع بعد</string>
+    <string name="projects_empty_subtitle">أضف أول مشروع بسعر ثابت لتتبّع أتعابه وساعاتك وما تم دفعه.</string>
+    <string name="projects_create_cta">مشروع جديد</string>
+    <string name="projects_footer_note">لا يُنشئ ‏ElmTrackr فواتير رسمية. ويمكنك تسجيل مرجع فاتورة أصدرتها في مكان آخر.</string>
+
+    <!-- Feature toggle (Settings → Features) -->
+    <string name="settings_paid_projects">المشاريع المدفوعة</string>
+    <string name="settings_paid_projects_desc">تتبّع المشاريع ذات السعر الثابت والوقت المبذول والمدفوعات وأجرك الفعلي بالساعة.</string>
+    <string name="settings_feature_paid_projects_short">المشاريع المدفوعة</string>
+
+    <!-- Update wizard shown once to existing users (replaces the old discovery card) -->
+    <string name="projects_wizard_title">‏ElmTrackr v1.2 - وصلت المشاريع المدفوعة</string>
+    <string name="projects_wizard_page_projects_title">تتبّع العمل ذي السعر الثابت</string>
+    <string name="projects_wizard_page_projects_body">أنشئ مشروعًا بعميل وأتعاب متفق عليها وضريبة اختيارية. وتبقى الأتعاب والضريبة وإجمالي العميل متوافقة دائمًا.</string>
+    <string name="projects_wizard_page_time_title">سجّل الحضور على مشروع</string>
+    <string name="projects_wizard_page_time_body">تتبّع المناوبات كوقت مشروع. وتُحسب تلك الساعات على أتعاب المشروع وتبقى خارج أجورك وساعاتك الإضافية.</string>
+    <string name="projects_wizard_page_billing_title">الفواتير والمدفوعات</string>
+    <string name="projects_wizard_page_billing_body">سجّل ما طالبت به وكل دفعة استلمتها. ويأتي الرصيد المستحق وحالة التأخّر وتذكيرات مواعيد السداد من تلقاء نفسها.</string>
+    <string name="projects_wizard_page_insights_title">اعرف أجرك الحقيقي بالساعة</string>
+    <string name="projects_wizard_page_insights_body">الأجر الفعلي لكل مشروع، واستهلاك ميزانية الساعات، وتقرير للمشاريع، وتصدير ‏CSV — لتعرف ما يدفعه السعر الثابت فعليًا.</string>
+    <string name="projects_wizard_page_faces_title">أيضًا في ‏v1.2: واجهات ساعة جديدة</string>
+    <string name="projects_wizard_page_faces_body">مترو وأسطوانة وقمر تنضم إلى ساعة اللوحة الرئيسية. اختر واجهة في أي وقت من الإعدادات ← المظهر والساعة.</string>
+    <string name="projects_wizard_next">التالي</string>
+    <string name="projects_wizard_back">رجوع</string>
+    <string name="projects_wizard_skip">تخطّي</string>
+    <string name="projects_wizard_activate">تفعيل المشاريع المدفوعة</string>
+    <string name="projects_wizard_not_now">ليس الآن</string>
+    <string name="projects_wizard_footer">اختياري. ويمكنك تفعيله أو تعطيله في أي وقت من الإعدادات ← الميزات.</string>
+    <string name="projects_wizard_close_a11y">إغلاق التعريف بالمشاريع المدفوعة</string>
+    <string name="projects_wizard_step_a11y">الخطوة %1$d من %2$d</string>
+
+    <!-- Onboarding: the question step -->
+    <string name="onboarding_step_paid_projects">المشاريع</string>
+    <string name="onboarding_paid_projects_title">هل تتلقى أجرًا لكل مشروع أيضًا؟</string>
+    <string name="onboarding_paid_projects_subtitle">فعّل تتبّع المشاريع للعمل ذي السعر الثابت والوقت القابل للفوترة ومتابعة المدفوعات.</string>
+    <string name="onboarding_paid_projects_yes">نعم، فعّل المشاريع المدفوعة</string>
+    <string name="onboarding_paid_projects_yes_desc">يضيف علامة تبويب للمشاريع. ويمكنك تعطيله في أي وقت من الإعدادات.</string>
+    <string name="onboarding_paid_projects_no">ليس الآن</string>
+    <string name="onboarding_paid_projects_no_desc">اترك التطبيق كما هو. لن يتغيّر شيء.</string>
+
+    <!-- Onboarding: the optional project defaults step -->
+    <string name="onboarding_step_project_defaults">إعدادات المشاريع الافتراضية</string>
+    <string name="onboarding_project_defaults_title">إعدادات المشاريع الافتراضية</string>
+    <string name="onboarding_project_defaults_subtitle">تُطبَّق على المشاريع الجديدة. وكل ما هنا اختياري وقابل للتعديل لاحقًا.</string>
+    <string name="onboarding_project_defaults_country">البلد أو المنطقة</string>
+    <string name="onboarding_project_defaults_currency">العملة الافتراضية</string>
+    <string name="onboarding_project_defaults_tax_section">الضريبة (اختياري)</string>
+    <string name="onboarding_project_defaults_tax_label">تسمية الضريبة</string>
+    <string name="onboarding_project_defaults_tax_label_placeholder">ضريبة القيمة المضافة</string>
+    <string name="onboarding_project_defaults_tax_label_helper">ما تُسمّى به الضريبة في مستنداتك.</string>
+    <string name="onboarding_project_defaults_tax_rate">نسبة الضريبة (%)</string>
+    <string name="onboarding_project_defaults_tax_rate_helper">اتركها فارغة لإبقاء الضريبة معطّلة. ويمكنك ضبط نسبة لاحقًا من الإعدادات.</string>
+    <string name="onboarding_project_defaults_tax_rate_error">أدخل نسبة بين 0 و100، أو اتركها فارغة.</string>
+    <string name="onboarding_project_defaults_tax_exclusive">الأتعاب لا تشمل الضريبة</string>
+    <string name="onboarding_project_defaults_tax_exclusive_desc">تُضاف الضريبة فوق الأتعاب المتفق عليها.</string>
+    <string name="onboarding_project_defaults_tax_inclusive">الأتعاب تشمل الضريبة</string>
+    <string name="onboarding_project_defaults_tax_inclusive_desc">الأتعاب المتفق عليها تحتوي الضريبة بالفعل.</string>
+    <string name="onboarding_project_defaults_skip">تخطّي الآن</string>
+    <string name="onboarding_project_defaults_disclaimer">لا يقدّم ‏ElmTrackr استشارات ضريبية ولا يصدر فواتير رسمية. تحقّق من النسبة الصحيحة مع محاسبك أو سلطة الضرائب.</string>
+
+    <!-- Onboarding review row -->
+    <string name="onboarding_review_paid_projects">المشاريع المدفوعة</string>
+    <string name="onboarding_review_paid_projects_on">مفعَّلة</string>
+    <string name="onboarding_review_paid_projects_off">معطّلة</string>
+
+    <!-- Projects list -->
+    <string name="projects_search_hint">ابحث في المشاريع أو العملاء</string>
+    <string name="projects_search_clear">محو البحث</string>
+    <string name="projects_create">مشروع جديد</string>
+    <string name="projects_add_another">إضافة مشروع</string>
+    <string name="projects_no_matches_title">لا مشاريع مطابقة</string>
+    <string name="projects_no_matches_subtitle">جرّب بحثًا مختلفًا أو مُرشِّح حالة آخر.</string>
+    <string name="projects_count">%1$d مشاريع</string>
+    <string name="projects_show_more">تفاصيل أكثر</string>
+    <string name="projects_show_less">تفاصيل أقل</string>
+
+    <!-- Work status -->
+    <string name="project_status_draft">مسوّدة</string>
+    <string name="project_status_active">نشط</string>
+    <string name="project_status_paused">متوقّف مؤقتًا</string>
+    <string name="project_status_completed">مكتمل</string>
+    <string name="project_status_cancelled">ملغى</string>
+    <string name="project_status_archived">مؤرشف</string>
+    <string name="project_filter_all">الكل</string>
+
+    <!-- Billing status -->
+    <string name="project_billing_not_billed">لم تُرسل فاتورة</string>
+    <string name="project_billing_billed">أُرسلت فاتورة</string>
+    <string name="project_billing_partially_paid">مدفوع جزئيًا</string>
+    <string name="project_billing_paid">مدفوع</string>
+    <string name="project_billing_overdue">متأخّر</string>
+
+    <!-- Work status actions -->
+    <string name="project_action_save_draft">حفظ كمسوّدة</string>
+    <string name="project_action_start">بدء المشروع</string>
+    <string name="project_action_pause">إيقاف مؤقت</string>
+    <string name="project_action_resume">استئناف</string>
+    <string name="project_action_complete">إكمال</string>
+    <string name="project_action_cancel">إلغاء المشروع</string>
+    <string name="project_action_archive">أرشفة</string>
+    <string name="project_action_unarchive">استعادة من الأرشيف</string>
+    <string name="project_actions_title">حالة المشروع</string>
+    <string name="project_actions_note">إكمال المشروع لا يجعله مدفوعًا، وتسجيل الدفع لا يجعله مكتملًا.</string>
+
+    <!-- Form -->
+    <string name="project_form_new_title">مشروع جديد</string>
+    <string name="project_form_edit_title">تعديل المشروع</string>
+    <string name="project_form_section_basics">المشروع</string>
+    <string name="project_form_section_amount">المبلغ</string>
+    <string name="project_form_section_tax">الضريبة</string>
+    <string name="project_form_section_time">الوقت والأهداف</string>
+    <string name="project_form_section_dates">التواريخ</string>
+    <string name="project_form_section_notes">ملاحظات</string>
+    <string name="project_form_name">اسم المشروع</string>
+    <string name="project_form_client">اسم العميل</string>
+    <string name="project_form_description">الوصف</string>
+    <string name="project_form_notes">ملاحظات</string>
+    <string name="project_form_currency">العملة</string>
+    <string name="project_form_currency_change">تغيير العملة</string>
+    <string name="project_form_currency_note">لا يحوّل ‏ElmTrackr بين العملات. ويجب تسجيل مدفوعات هذا المشروع بعملة %1$s.</string>
+    <string name="project_form_currency_search">ابحث برمز العملة</string>
+    <string name="project_form_entry_mode">أي مبلغ تعرفه؟</string>
+    <string name="project_form_entry_fee">أتعابك قبل الضريبة</string>
+    <string name="project_form_entry_total">الإجمالي المستحق على العميل</string>
+    <string name="project_form_amount_fee_label">أتعابك قبل الضريبة</string>
+    <string name="project_form_amount_total_label">الإجمالي المستحق على العميل</string>
+    <string name="project_form_tax_enabled">إضافة ضريبة إلى هذا المشروع</string>
+    <string name="project_form_tax_label">تسمية الضريبة</string>
+    <string name="project_form_tax_label_hint">ضريبة القيمة المضافة</string>
+    <string name="project_form_tax_rate">نسبة الضريبة (%)</string>
+    <string name="project_form_tax_note">تسميتك ونسبتك الخاصتان. ولا يحدّد ‏ElmTrackr أي ضريبة تنطبق ولا يقدّم استشارات ضريبية.</string>
+    <string name="project_form_hour_budget">ميزانية الساعات</string>
+    <string name="project_form_target_rate">الأجر المستهدف بالساعة</string>
+    <string name="project_form_start_date">تاريخ البداية</string>
+    <string name="project_form_deadline">الموعد النهائي</string>
+    <string name="project_form_date_none">غير محدَّد</string>
+    <string name="project_form_date_clear">محو</string>
+    <string name="project_form_save">حفظ المشروع</string>
+    <string name="project_form_billed_warning">لهذا المشروع طلب فاتورة مسجَّل. وتغيير المبلغ يحدّث المشروع وحده — أما طلب الفاتورة فيحتفظ بالمبلغ الذي أُرسل به. صحّحه من قسم الفواتير.</string>
+    <string name="project_form_breakdown_title">التفصيل</string>
+
+    <!-- Amounts -->
+    <string name="project_amount_base">أتعابك قبل الضريبة</string>
+    <string name="project_amount_tax">الضريبة</string>
+    <string name="project_amount_tax_named">%1$s (%2$s)</string>
+    <string name="project_amount_client_total">الإجمالي المستحق على العميل</string>
+
+    <!-- Detail -->
+    <string name="project_detail_section_overview">نظرة عامة</string>
+    <string name="project_detail_section_time">الوقت</string>
+    <string name="project_detail_section_billing">الفواتير</string>
+    <string name="project_detail_section_notes">ملاحظات</string>
+    <string name="project_detail_edit">تعديل المشروع</string>
+    <string name="project_detail_client">العميل</string>
+    <string name="project_detail_work_status">حالة العمل</string>
+    <string name="project_detail_currency">العملة</string>
+    <string name="project_detail_hours_tracked">الساعات المتتبَّعة</string>
+    <string name="project_detail_hour_budget">ميزانية الساعات</string>
+    <string name="project_detail_effective_rate">الأجر الفعلي بالساعة</string>
+    <string name="project_detail_effective_rate_note">أتعابك قبل الضريبة مقسومة على الساعات المتتبَّعة. ولا تزال ضريبة الدخل والمصروفات وخصومات أخرى منطبقة.</string>
+    <string name="project_detail_target_rate">الأجر المستهدف بالساعة</string>
+    <string name="project_detail_deadline">الموعد النهائي</string>
+    <string name="project_detail_start_date">تاريخ البداية</string>
+    <string name="project_detail_completed_on">اكتمل في</string>
+    <string name="project_detail_billing_status">حالة الفاتورة</string>
+    <string name="project_detail_total_paid">إجمالي المدفوع</string>
+    <string name="project_detail_outstanding">الرصيد المستحق</string>
+    <string name="project_detail_credit">مسجَّل فوق إجمالي الفاتورة</string>
+    <string name="project_detail_billing_reference">مرجع فاتورة خارجي</string>
+    <string name="project_detail_billed_on">أُرسلت الفاتورة في</string>
+    <string name="project_detail_due_on">تاريخ السداد</string>
+    <string name="project_detail_payments">المدفوعات</string>
+    <string name="project_detail_payment_count">%1$d مدفوعات</string>
+    <string name="project_detail_no_billing">لم يُسجَّل طلب فاتورة بعد.</string>
+    <string name="project_detail_billing_disclaimer">لا يُنشئ ‏ElmTrackr فواتير رسمية. سجّل مرجعًا من الفاتورة التي أصدرتها في مكان آخر.</string>
+    <string name="project_detail_no_time_yet">لم يُتتبَّع وقت على هذا المشروع بعد.</string>
+    <string name="project_detail_time_pending">سجّل الحضور واختر هذا المشروع لتتبّع الوقت عليه.</string>
+    <string name="project_detail_shift_count">%1$d مناوبات</string>
+    <string name="project_detail_budget_used">استُخدم %1$s من %2$s</string>
+    <string name="project_detail_no_description">لا وصف.</string>
+    <string name="project_detail_not_set">غير محدَّد</string>
+    <string name="project_detail_no_rate_yet">تتبّع الوقت لعرض هذا</string>
+    <string name="project_detail_cancelled_billing">أُلغي طلب الفاتورة هذا.</string>
+
+    <!-- Delete and archive -->
+    <string name="project_delete">حذف المشروع</string>
+    <string name="project_delete_confirm_title">حذف هذا المشروع؟</string>
+    <string name="project_delete_confirm_text">هذه المسوّدة بلا وقت متتبَّع ولا طلبات فواتير ولا مدفوعات، فيمكن إزالتها نهائيًا. ولا يمكن التراجع عن هذا.</string>
+    <string name="project_delete_confirm">حذف</string>
+    <string name="project_delete_keep">إبقاء</string>
+
+    <!-- Form errors -->
+    <string name="project_error_required">مطلوب</string>
+    <string name="project_error_not_a_number">أدخل رقمًا</string>
+    <string name="project_error_positive">يجب أن يكون أكبر من صفر</string>
+    <string name="project_error_tax_rate">أدخل نسبة بين 0 و100</string>
+    <string name="project_error_currency">اختر عملة</string>
+    <string name="project_error_deadline">لا يمكن أن يكون الموعد النهائي قبل تاريخ البداية</string>
+
+    <!-- Project time tracking -->
+    <string name="project_time_source_title">لماذا هذا الوقت؟</string>
+    <string name="project_time_source_hourly">عمل بالساعة</string>
+    <string name="project_time_source_hourly_desc">يُدفع كأجور. ويُحسب في الساعات الإضافية والعلاوات.</string>
+    <string name="project_time_source_project">وقت مشروع</string>
+    <string name="project_time_source_project_desc">يُتتبَّع على أتعاب مشروع. ولا يُدفع كأجور ولا يُحسب ساعات إضافية.</string>
+    <string name="project_time_pick_project">المشروع</string>
+    <string name="project_time_pick_project_hint">اختر المشروع الذي ينتمي إليه هذا الوقت.</string>
+    <string name="project_time_no_projects">لا مشروع مفتوح لتتبّع الوقت. ابدأ مشروعًا أو استأنفه أولًا.</string>
+    <string name="project_time_note">ملاحظة (اختياري)</string>
+    <string name="project_time_note_hint">ما عملت عليه. يُحفظ مع المناوبة.</string>
+    <string name="project_time_client_currency">%1$s · %2$s</string>
+    <string name="project_time_shift_label">وقت مشروع</string>
+    <string name="project_time_shift_label_named">وقت مشروع · %1$s</string>
+    <string name="project_time_shift_unpaid_note">لا يُدفع كأجور — هذا الوقت يُحسب على أتعاب المشروع.</string>
+
+    <!-- Active project shift -->
+    <string name="project_active_title">جارٍ تتبّع %1$s</string>
+    <string name="project_active_current_rate">الأجر حتى الآن</string>
+    <string name="project_active_projected_rate">الأجر إن توقّفت الآن</string>
+    <string name="project_active_no_rate">الساعات غير كافية بعد</string>
+    <string name="project_active_budget_left">بقي %1$s من الميزانية</string>
+    <string name="project_active_budget_over">‏%1$s فوق الميزانية</string>
+    <string name="project_active_target_left">بقي %1$s قبل أن تنزل تحت %2$s في الساعة</string>
+    <string name="project_active_target_passed">أنت بالفعل تحت هدفك البالغ %1$s في الساعة</string>
+    <string name="project_active_feature_off">المشاريع المدفوعة معطّلة، لكن هذه المناوبة ما زالت تُتتبَّع على %1$s. سجّل الانصراف كالعادة — وستبقى وقت مشروع، لا ساعات مدفوعة.</string>
+    <string name="project_active_feature_off_unknown">المشاريع المدفوعة معطّلة، لكن هذه المناوبة ما زالت تُتتبَّع كوقت مشروع. سجّل الانصراف كالعادة — ولن تصبح ساعات مدفوعة.</string>
+
+    <!-- After a project shift -->
+    <string name="project_shift_done_title">أُضيف %1$s إلى %2$s</string>
+    <string name="project_shift_done_rate">الأجر الفعلي الآن %1$s في الساعة</string>
+    <string name="project_shift_done_no_rate">لا أجر بعد — لم تُحدَّد أتعاب المشروع.</string>
+    <string name="project_shift_done_view">عرض المشروع</string>
+    <string name="project_shift_done_dismiss">إخفاء</string>
+
+    <!-- Editing a shift -->
+    <string name="project_edit_source_title">الأجر</string>
+    <string name="project_edit_source_helper">تغيير هذا يعيد حساب المناوبة. فالوقت يُحسب أجورًا أو وقت مشروع، لا الاثنين معًا.</string>
+    <string name="project_edit_to_project_warning">لن تُدفع هذه المناوبة كأجور بعد الآن، وستخرج ساعاتها من مجاميع ساعاتك الإضافية وعلاواتك.</string>
+    <string name="project_edit_to_hourly_warning">ستُدفع هذه المناوبة كأجور مرة أخرى، وستخرج ساعاتها من المشروع.</string>
+
+    <!-- Record billing details -->
+    <string name="project_billing_action">تحديدها كمُفوترة</string>
+    <string name="project_billing_form_title">تسجيل تفاصيل الفاتورة</string>
+    <string name="project_billing_form_subtitle">لا يُنشئ ‏ElmTrackr فواتير رسمية. سجّل ما طالبت به والمرجع من الفاتورة التي أصدرتها في مكان آخر.</string>
+    <string name="project_billing_amount">المبلغ المُطالب به (قبل الضريبة)</string>
+    <string name="project_billing_amount_helper">القيمة الافتراضية هي الأتعاب المتفق عليها لهذا المشروع. غيّرها إن طالبت بمبلغ مختلف.</string>
+    <string name="project_billing_currency">العملة</string>
+    <string name="project_billing_date">تاريخ الفاتورة</string>
+    <string name="project_billing_due_date">تاريخ السداد</string>
+    <string name="project_billing_due_date_helper">اختياري. يُستخدم لتتبّع التأخّر والتذكيرات.</string>
+    <string name="project_billing_reference_label">مرجع فاتورة خارجي</string>
+    <string name="project_billing_reference_helper">الرقم من فاتورتك أو دفتر الإيصالات أو برنامج المحاسبة.</string>
+    <string name="project_billing_notes">ملاحظات</string>
+    <string name="project_billing_save">حفظ تفاصيل الفاتورة</string>
+    <string name="project_billing_preview">الإجمالي على العميل %1$s</string>
+    <string name="project_billing_error_due_before_billed">لا يمكن أن يكون تاريخ السداد قبل تاريخ الفاتورة</string>
+    <string name="project_billing_already_billed">لهذا المشروع سجل فاتورة بالفعل.</string>
+
+    <!-- Billing correction -->
+    <string name="project_billing_correct">تصحيح تفاصيل الفاتورة</string>
+    <string name="project_billing_cancel_record">إلغاء سجل الفاتورة هذا</string>
+    <string name="project_billing_cancel_confirm_title">إلغاء سجل الفاتورة هذا؟</string>
+    <string name="project_billing_cancel_confirm_text">يبقى ظاهرًا كملغى، ويمكنك تسجيل تفاصيل مصحَّحة بعد ذلك.</string>
+    <string name="project_billing_cancel_confirm">إلغاء السجل</string>
+    <string name="project_billing_cancel_keep">الإبقاء عليه</string>
+    <string name="project_billing_blocked_has_payments">سُجّلت مدفوعات على سجل الفاتورة هذا، فلا يمكن استبداله. إذ يجب أن يبقى سجل المدفوعات كما هو. احذف المدفوعات أولًا إن كانت مسجَّلة خطأً.</string>
+    <string name="project_billing_blocked_cancelled">سجل الفاتورة هذا ملغى بالفعل.</string>
+    <string name="project_billing_restore">استعادة سجل الفاتورة هذا</string>
+
+    <!-- Record payment -->
+    <string name="project_payment_action">تسجيل دفعة</string>
+    <string name="project_payment_form_title">تسجيل دفعة</string>
+    <string name="project_payment_amount">المبلغ المستلم</string>
+    <string name="project_payment_amount_helper">الرصيد المستحق هو %1$s.</string>
+    <string name="project_payment_date">تاريخ الدفع</string>
+    <string name="project_payment_method">طريقة الدفع</string>
+    <string name="project_payment_reference">المرجع</string>
+    <string name="project_payment_notes">ملاحظات</string>
+    <string name="project_payment_save">حفظ الدفعة</string>
+    <string name="project_payment_method_bank_transfer">تحويل بنكي</string>
+    <string name="project_payment_method_cash">نقدًا</string>
+    <string name="project_payment_method_card">بطاقة</string>
+    <string name="project_payment_method_check">شيك</string>
+    <string name="project_payment_method_paypal">PayPal</string>
+    <string name="project_payment_method_payment_app">تطبيق دفع</string>
+    <string name="project_payment_method_other">أخرى</string>
+
+    <!-- Payment errors -->
+    <string name="project_payment_error_amount">أدخل مبلغًا أكبر من صفر</string>
+    <string name="project_payment_error_negative">لا يمكن أن تكون الدفعة سالبة</string>
+    <string name="project_payment_error_overpayment">هذا أكثر من %1$s المتبقية المستحقة. سجّل %1$s أو أقل.</string>
+    <string name="project_payment_error_currency">هذه الدفعة بعملة %1$s لكن سجل الفاتورة بعملة %2$s. ولا يحوّل ‏ElmTrackr بين العملات.</string>
+    <string name="project_payment_error_no_record">سجّل تفاصيل الفاتورة قبل تسجيل دفعة.</string>
+
+    <!-- Payment history -->
+    <string name="project_payment_history">سجل المدفوعات</string>
+    <string name="project_payment_history_empty">لم تُسجَّل مدفوعات بعد.</string>
+    <string name="project_payment_row">%1$s · %2$s</string>
+    <string name="project_payment_delete">حذف الدفعة</string>
+    <string name="project_payment_delete_confirm_title">حذف هذه الدفعة؟</string>
+    <string name="project_payment_delete_confirm_text">سيُعاد حساب الرصيد المستحق وحالة الفاتورة. ولا يمكن التراجع عن هذا.</string>
+    <string name="project_payment_delete_confirm">حذف</string>
+    <string name="project_payment_delete_keep">إبقاء</string>
+
+    <!-- Overdue -->
+    <string name="project_billing_overdue_days">متأخّر %1$d أيام</string>
+    <string name="project_billing_overdue_one_day">متأخّر يومًا واحدًا</string>
+    <string name="project_billing_due_today">السداد اليوم</string>
+    <string name="project_billing_due_in_days">السداد بعد %1$d أيام</string>
+
+    <!-- Billing reminders -->
+    <string name="project_reminder_upcoming_title">موعد سداد %1$s يقترب</string>
+    <string name="project_reminder_upcoming_text">‏%1$s مستحقة، بتاريخ %2$s.</string>
+    <string name="project_reminder_due_today_title">موعد سداد %1$s اليوم</string>
+    <string name="project_reminder_due_today_text">‏%1$s مستحقة.</string>
+    <string name="project_reminder_overdue_title">‏%1$s متأخّر</string>
+    <string name="project_reminder_overdue_text">‏%1$s مستحقة، كان موعدها %2$s.</string>
+    <string name="notif_channel_project_billing">فواتير المشاريع</string>
+    <string name="notif_channel_project_billing_desc">تذكيرات بمدفوعات المشاريع المستحقة أو المتأخّرة.</string>
+
+    <!-- Dashboard project block -->
+    <string name="project_dash_title">المشاريع</string>
+    <string name="project_dash_active">%1$d نشطة</string>
+    <string name="project_dash_unbilled">%1$d بلا فاتورة</string>
+    <string name="project_dash_outstanding">الرصيد المستحق</string>
+    <string name="project_dash_overdue">متأخّر</string>
+    <string name="project_dash_received">مدفوعات المشاريع المستلمة</string>
+    <string name="project_dash_received_period">هذا الشهر</string>
+    <string name="project_dash_tax_collected">الضريبة المحصَّلة</string>
+    <string name="project_dash_revenue_before_tax">إيراد المشاريع قبل الضريبة</string>
+    <string name="project_dash_attention">%1$d تحتاج إلى انتباه</string>
+    <string name="project_dash_open">عرض المشاريع</string>
+    <string name="project_dash_basis_note">الأرباح بالساعة هي قيمة العمل المنجَز هذا الشهر. أما مدفوعات المشاريع فهي النقد المستلم هذا الشهر. ولا يُجمعان معًا لأنهما يقيسان أمرين مختلفين.</string>
+
+    <!-- Accounting basis labels -->
+    <string name="project_basis_hourly">الأرباح بالساعة</string>
+    <string name="project_basis_hourly_desc">قيمة العمل بالساعة المنجَز في هذه الفترة.</string>
+    <string name="project_basis_received">مدفوعات المشاريع المستلمة</string>
+    <string name="project_basis_received_desc">مدفوعات المشاريع التي وصلت في هذه الفترة.</string>
+    <string name="project_basis_work_performed">العمل المنجَز</string>
+    <string name="project_basis_billed">المبلغ المُطالب به</string>
+    <string name="project_basis_cash">النقد المستلم</string>
+    <string name="project_basis_tax">الضريبة المحصَّلة</string>
+    <string name="project_basis_outstanding">المستحق</string>
+
+    <!-- Project health -->
+    <string name="project_health_on_track">على المسار</string>
+    <string name="project_health_on_track_why">لا شيء يحتاج إلى انتباه.</string>
+    <string name="project_health_near_budget">قريب من ميزانية الساعات</string>
+    <string name="project_health_near_budget_why">استُخدم %1$d%% من ميزانية الساعات.</string>
+    <string name="project_health_over_budget">تجاوز ميزانية الساعات</string>
+    <string name="project_health_over_budget_why">‏%1$s فوق ميزانية الساعات.</string>
+    <string name="project_health_rate_below">الأجر الفعلي تحت الهدف</string>
+    <string name="project_health_rate_below_why">‏%1$s في الساعة تحت هدفك.</string>
+    <string name="project_health_due_soon">موعد الدفع يقترب</string>
+    <string name="project_health_due_soon_why">‏%1$s مستحقة بعد %2$d أيام.</string>
+    <string name="project_health_overdue">الدفع متأخّر</string>
+    <string name="project_health_overdue_why">‏%1$s متأخّرة %2$d أيام.</string>
+    <string name="project_health_not_billed">مكتمل لكن بلا فاتورة</string>
+    <string name="project_health_not_billed_why">العمل انتهى ولم تُرسل أي فاتورة.</string>
+
+    <!-- Project report -->
+    <string name="project_report_title">تقرير المشاريع</string>
+    <string name="project_report_empty">لا مشاريع مطابقة لهذه المُرشِّحات.</string>
+    <string name="project_report_section_time">وقت المشاريع</string>
+    <string name="project_report_section_value">قيمة المشاريع</string>
+    <string name="project_report_section_efficiency">كفاءة الإيراد</string>
+    <string name="project_report_tracked_hours">الساعات المتتبَّعة</string>
+    <string name="project_report_active_days">الأيام النشطة</string>
+    <string name="project_report_average">المتوسط لكل مشروع</string>
+    <string name="project_report_over_budget">الساعات فوق الميزانية</string>
+    <string name="project_report_contracted">الأتعاب الأساسية المتعاقد عليها</string>
+    <string name="project_report_client_totals">إجماليات العملاء</string>
+    <string name="project_report_tax">الضريبة</string>
+    <string name="project_report_billed">المُطالب به</string>
+    <string name="project_report_paid">المدفوع</string>
+    <string name="project_report_outstanding">الرصيد المستحق</string>
+    <!-- The fee covers the whole engagement, so its hours must too; the label says
+         so rather than letting a monthly report imply the rate is monthly. -->
+    <string name="project_report_effective_rate_all_time">الأجر الفعلي بالساعة (لكل الفترات)</string>
+    <string name="project_report_value_per_hour">قيمة المشروع لكل ساعة</string>
+    <string name="project_report_efficiency_note">قيمة المشروع لكل ساعة هي الأتعاب المتفق عليها قبل الضريبة مقسومة على ساعات العمل. والمصروفات غير متتبَّعة، فهذا ليس ربحًا صافيًا.</string>
+    <string name="project_report_currency_note">المبالغ مجمَّعة حسب العملة. ولا يحوّل ‏ElmTrackr بين العملات.</string>
+    <string name="project_report_export">تصدير ملف ‏CSV للمشاريع</string>
+
+    <!-- Report filters -->
+    <string name="project_filter_title">المُرشِّحات</string>
+    <string name="project_filter_from">من</string>
+    <string name="project_filter_to">إلى</string>
+    <string name="project_filter_project">المشروع</string>
+    <string name="project_filter_client">العميل</string>
+    <string name="project_filter_work_status">حالة العمل</string>
+    <string name="project_filter_billing_status">حالة الفاتورة</string>
+    <string name="project_filter_currency">العملة</string>
+    <string name="project_filter_any">أي</string>
+    <string name="project_filter_include_archived">تضمين المؤرشفة</string>
+    <string name="project_filter_clear">محو المُرشِّحات</string>
+    <!-- Prompt 7: internationalisation and accessibility -->
+
+    <!-- Durations. The numeral is supplied already localised; only the unit
+         words differ per language, and a translator may reorder the parts. -->
+    <string name="project_duration_hm">%1$s س %2$s د</string>
+    <string name="project_duration_h">%1$s س</string>
+    <string name="project_duration_m">%1$s د</string>
+
+    <!-- An amount shown next to a different currency, where the symbol alone
+         does not say which currency this row is. -->
+    <string name="project_money_with_code">%1$s %2$s</string>
+    <string name="project_money_label_with_code">%1$s (%2$s)</string>
+
+    <!-- Short forms, for the bottom bar and the narrow card rows only. -->
+    <string name="project_detail_outstanding_short">المستحق</string>
+    <string name="project_amount_client_total_short">إجمالي العميل</string>
+
+    <!-- Glossary terms the module needed names for. -->
+    <string name="project_fee">أتعاب المشروع</string>
+    <string name="project_payment_received">دفعة مستلمة</string>
+
+    <!-- Accessibility. Label and value are announced as one phrase, so a
+         screen reader does not read a column of numbers with no names. -->
+    <string name="project_a11y_row">%1$s: %2$s</string>
+    <string name="project_a11y_work_status">حالة المشروع: %1$s</string>
+    <string name="project_a11y_billing_status">حالة الفاتورة: %1$s</string>
+    <string name="project_a11y_days_overdue">متأخّر %1$s أيام</string>
+    <string name="project_a11y_currency">العملة: %1$s</string>
+    <string name="project_a11y_reference">المرجع %1$s</string>
+    <string name="project_a11y_budget_used">استُخدم %1$s من ميزانية الساعات</string>
+    <string name="project_a11y_project_card">%1$s، %2$s</string>
+    <string name="project_a11y_error">خطأ: %1$s</string>
+    <string name="nav_destination_added">أُضيف %1$s إلى شريط التنقّل</string>
+
+    <!-- Prompt 8: lock-screen redaction. Named the project, never the amount. -->
+    <string name="project_reminder_public_text">دفعة مستحقة</string>
+    <string name="project_delete_shifts_kept">‏%1$d مناوبات (‏%2$s س) تحتفظ بساعاتها وتصبح عملًا مدفوعًا عاديًا.</string>
+    <string name="project_delete_billing_lost">تُحذف سجلات الفواتير والمدفوعات الخاصة بهذا المشروع.</string>
+    <string name="project_delete_archive_hint">للإبقاء على المشروع في التقارير دون حذفه، أرشِفه بدلًا من ذلك.</string>
+</resources>
