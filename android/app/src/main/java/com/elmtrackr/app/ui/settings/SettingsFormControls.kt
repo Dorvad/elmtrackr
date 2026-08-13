@@ -236,7 +236,12 @@ internal fun LanguageSegmentedControl() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Wraps rather than a plain Row: the device-language chip plus one chip
+        // per language no longer fits a phone's width on a single line.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             FilterChip(
                 selected = current == AppLanguage.SYSTEM,
                 onClick = { AppLanguage.apply(context, AppLanguage.SYSTEM) },
@@ -252,6 +257,11 @@ internal fun LanguageSegmentedControl() {
                 selected = current == AppLanguage.HEBREW,
                 onClick = { AppLanguage.apply(context, AppLanguage.HEBREW) },
                 label = { Text("עברית") },
+            )
+            FilterChip(
+                selected = current == AppLanguage.ARABIC,
+                onClick = { AppLanguage.apply(context, AppLanguage.ARABIC) },
+                label = { Text("العربية") },
             )
         }
     }
