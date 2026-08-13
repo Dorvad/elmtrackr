@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ReportEntryTypeSheet -->
+    <string name="leave_report_sheet_title">ما الذي تريد الإبلاغ عنه؟</string>
+    <string name="leave_report_work">عمل</string>
+    <string name="leave_report_work_sub">مناوبة عملتها</string>
+    <string name="leave_report_vacation">إجازة</string>
+    <string name="leave_report_vacation_sub">يوم عطلة أخذته</string>
+    <string name="leave_report_sick">إجازة مرضية</string>
+    <string name="leave_report_sick_sub">يوم لم تستطع العمل فيه</string>
+
+    <!-- AbsenceFormScreen -->
+    <string name="leave_form_title_vacation">إجازة</string>
+    <string name="leave_form_title_sick">إجازة مرضية</string>
+    <string name="leave_form_back">رجوع</string>
+    <string name="leave_form_workplace">مكان العمل</string>
+    <string name="leave_form_when">التاريخ</string>
+    <string name="leave_form_length_single">يوم واحد</string>
+    <string name="leave_form_length_range">عدة أيام</string>
+    <string name="leave_form_date">التاريخ</string>
+    <string name="leave_form_first_day">أول يوم مرض</string>
+    <string name="leave_form_start_date">تاريخ البداية</string>
+    <string name="leave_form_end_date">تاريخ النهاية</string>
+    <string name="leave_form_pick_date">اختيار %1$s</string>
+    <string name="leave_form_duration">المدة</string>
+    <string name="leave_form_full_day">يوم كامل</string>
+    <string name="leave_form_partial_day">جزء من يوم</string>
+    <string name="leave_form_amount_days">أيام</string>
+    <string name="leave_form_amount_hours">ساعات</string>
+    <string name="leave_form_note">ملاحظة (اختياري)</string>
+    <string name="leave_form_affected_days">الأيام التي كنت ستعمل فيها</string>
+    <string name="leave_form_affected_days_help">لا تُحسب من رصيدك إلا الأيام التي كنت ستعمل فيها في هذه الوظيفة.</string>
+    <string name="leave_form_no_pattern">لا يعرف ‏ElmTrackr الأيام التي تعمل فيها عادةً هنا. اختر الأيام التي كنت ستعمل فيها.</string>
+    <string name="leave_form_no_days_selected">اختر يومًا واحدًا على الأقل.</string>
+    <string name="leave_form_sick_day">يوم المرض %1$d</string>
+    <string name="leave_form_pays_percent">يُدفع بنسبة %1$d%%</string>
+    <string name="leave_form_estimated_pay">الأجر التقديري</string>
+    <string name="leave_form_estimated_total">الإجمالي التقديري</string>
+    <string name="leave_form_how_calculated">كيف تم حساب هذا؟</string>
+    <string name="leave_form_save">حفظ</string>
+    <string name="leave_form_delete">حذف</string>
+    <string name="leave_form_delete_title">حذف هذه الإجازة؟</string>
+    <string name="leave_form_delete_body">تعود الأيام التي تغطيها إلى رصيدك التقديري.</string>
+    <string name="leave_form_cancel">إلغاء</string>
+    <string name="leave_form_saved">تم حفظ الإجازة</string>
+    <string name="leave_form_deleted">تم حذف الإجازة</string>
+    <string name="leave_form_no_workplace">أضف مكان عمل قبل الإبلاغ عن إجازة.</string>
+
+    <!-- Calculation explanation -->
+    <string name="leave_calc_title">كيف تم حساب هذا</string>
+    <string name="leave_calc_basis_statutory">الأرباح المؤهَّلة على مدى ثلاثة أشهر، مقسومة على 90.</string>
+    <string name="leave_calc_basis_workdays">متوسط أجر اليوم الذي عملت فيه فعليًا، على مدى ثلاثة أشهر.</string>
+    <string name="leave_calc_basis_scheduled">الساعات التي كان عليك العمل فيها، بأجرك بالساعة.</string>
+    <string name="leave_calc_basis_fixed">يوم عمل قياسي، بأجرك بالساعة.</string>
+    <string name="leave_calc_basis_manual">مبلغ أدخلته بنفسك.</string>
+    <string name="leave_calc_period">الفترة: من %1$s إلى %2$s</string>
+    <string name="leave_calc_included">الأرباح المشمولة: %1$s</string>
+    <string name="leave_calc_divisor">مقسومة على: %1$s</string>
+    <string name="leave_calc_day_value">قيمة اليوم الكامل: %1$s</string>
+    <string name="leave_calc_sick_tier">يوم المرض %1$d يُدفع بنسبة %2$d%%.</string>
+    <string name="leave_calc_result">الأجر التقديري: %1$s</string>
+    <string name="leave_calc_fallback">الأشهر الثلاثة السابقة لهذا الغياب لم تكن كاملة، فاستُخدمت بدلًا منها أقوى ثلاثة أشهر متتالية في العام الماضي.</string>
+    <string name="leave_calc_manual_note">أنت أدخلت هذا المبلغ، فلم تُستخدم إعدادات مكان العمل.</string>
+
+    <!-- Insufficient data -->
+    <string name="leave_gap_no_policy">لا توجد إعدادات إجازات لمكان العمل هذا بعد.</string>
+    <string name="leave_gap_no_wage">لا يعرف ‏ElmTrackr أجرك بالساعة في مكان العمل هذا، فلا يستطيع تقدير قيمة هذا اليوم.</string>
+    <string name="leave_gap_no_history">لا يوجد سجل أجور كافٍ لتقدير هذا اليوم.</string>
+    <string name="leave_gap_no_hours">لا يستطيع ‏ElmTrackr معرفة ما كنت ستكسبه عادةً في هذا التاريخ.</string>
+    <string name="leave_gap_no_standard_day">لا يوجد يوم عمل قياسي محدَّد لمكان العمل هذا، وهذا الحساب يحتاج إليه.</string>
+    <string name="leave_gap_no_tier">لا تذكر إعدادات أجر المرض في مكان العمل هذا شيئًا عن هذا اليوم من المرض.</string>
+    <string name="leave_gap_disabled">هذا النوع من الإجازات مُعطَّل في إعدادات مكان العمل هذا.</string>
+    <string name="leave_gap_no_manual_amount">أدخل المبلغ الذي يجب أن يُدفع لهذا اليوم.</string>
+    <string name="leave_gap_action_amount">إدخال المبلغ</string>
+    <string name="leave_gap_action_hours">إدخال الساعات المتوقّعة</string>
+    <string name="leave_gap_action_settings">فتح إعدادات الإجازات</string>
+    <string name="leave_gap_saved_anyway">هذا اليوم مسجَّل ومحسوب من رصيدك على أي حال.</string>
+
+    <!-- Conflicts -->
+    <string name="leave_conflict_duplicate">‏%1$s مُبلَّغ عنه بإجازة في مكان العمل هذا بالفعل.</string>
+    <string name="leave_conflict_shift">لديك أيضًا مناوبة عمل في %1$s. تحقّق من أن الإجازة تغطي الساعات التي فوّتتها فقط.</string>
+    <string name="leave_conflict_archived">مكان العمل هذا مؤرشف.</string>
+    <string name="leave_conflict_merge_title">الدمج في فترة مرض واحدة؟</string>
+    <string name="leave_conflict_merge_body">هذه الفترة ملاصقة لفترة مرض من %1$s إلى %2$s. والدمج يُبقي عدّ أيام المرض متواصلًا بدلًا من البدء من اليوم الأول مرة أخرى.</string>
+    <string name="leave_conflict_merge_confirm">دمج</string>
+    <string name="leave_conflict_merge_keep">الإبقاء منفصلة</string>
+
+    <!-- Balances -->
+    <string name="leave_balances_title">أرصدة الإجازات</string>
+    <string name="leave_balance_official">الرصيد الرسمي</string>
+    <string name="leave_balance_as_of">رصيد قسيمة الأجر بتاريخ %1$s</string>
+    <string name="leave_balance_used_since">المستخدم منذ ذلك الحين</string>
+    <string name="leave_balance_estimated">الرصيد التقديري</string>
+    <string name="leave_balance_estimated_value">~%1$s</string>
+    <string name="leave_balance_none">لم يُدخَل رصيد قسيمة أجر بعد</string>
+    <string name="leave_balance_none_help">أدخل الرصيد من أحدث قسيمة أجر لديك وسيقدّره ‏ElmTrackr إلى الأمام.</string>
+    <string name="leave_balance_negative">قد يعني هذا أن رصيد قسيمة أجرك قديم، أو أن مكان عملك سمح بإجازة مقدَّمًا.</string>
+    <string name="leave_balance_accrual_note">لا يشمل الأيام المتراكمة منذ قسيمة أجرك الأخيرة.</string>
+    <string name="leave_balance_update">تحديث من قسيمة الأجر</string>
+    <string name="leave_balance_unconvertible">‏%1$d من المدخلات المُبلَّغ عنها تستخدم وحدة مختلفة ولا تُحسب. اضبط يوم عمل قياسي لتضمينها.</string>
+    <string name="leave_balance_days">%1$s أيام</string>
+    <string name="leave_balance_hours">%1$s ساعات</string>
+    <string name="leave_balance_type_vacation">إجازة</string>
+    <string name="leave_balance_type_sick">مرضية</string>
+    <string name="leave_balance_form_title">تحديث الأرصدة</string>
+    <string name="leave_balance_form_date">تاريخ قسيمة الأجر</string>
+    <string name="leave_balance_form_vacation">رصيد الإجازات</string>
+    <string name="leave_balance_form_sick">رصيد الإجازات المرضية</string>
+    <string name="leave_balance_form_unit">الوحدة</string>
+    <string name="leave_balance_form_label">تسمية (اختياري)</string>
+    <string name="leave_balance_form_label_hint">قسيمة أجر يوليو</string>
+    <string name="leave_balance_form_save">حفظ الأرصدة</string>
+    <string name="leave_balance_form_help">الحفظ يضيف مدخلًا جديدًا. وتبقى أرصدتك السابقة محفوظة، فيعرف التقدير دائمًا من أي قسيمة أجر جاء.</string>
+    <string name="leave_balance_form_one_is_enough">املأ الرصيد الذي تريد تحديثه فقط.</string>
+    <string name="leave_balance_form_nothing_entered">أدخل رصيدًا واحدًا على الأقل.</string>
+    <string name="leave_balance_history">سجل الأرصدة</string>
+    <string name="leave_balance_saved">تم حفظ الأرصدة</string>
+
+    <!-- Policy settings -->
+    <string name="leave_policy_title">الإجازات والإجازات المرضية</string>
+    <string name="leave_policy_sick_section">أجر الإجازة المرضية</string>
+    <string name="leave_policy_vacation_section">أجر الإجازة</string>
+    <string name="leave_policy_track_sick">تتبّع الإجازات المرضية</string>
+    <string name="leave_policy_track_vacation">تتبّع الإجازات</string>
+    <string name="leave_policy_preset_israel">الإعداد الجاهز لإسرائيل</string>
+    <string name="leave_policy_preset_custom">مخصّص</string>
+    <string name="leave_policy_reset_preset">استخدام الإعداد الجاهز مرة أخرى</string>
+    <string name="leave_policy_pay_from_day_one">مدفوع بالكامل من اليوم الأول</string>
+    <string name="leave_policy_tier_day">اليوم %1$d</string>
+    <string name="leave_policy_tier_days">الأيام %1$d&#8211;%2$d</string>
+    <string name="leave_policy_tier_day_plus">من اليوم %1$d وما بعده</string>
+    <string name="leave_policy_tier_percent">%1$d%%</string>
+    <string name="leave_policy_basis">محسوب من</string>
+    <string name="leave_policy_basis_statutory">المتوسط القانوني الإسرائيلي</string>
+    <string name="leave_policy_basis_workdays">المتوسط لكل يوم عمل فعلي</string>
+    <string name="leave_policy_basis_scheduled">الساعات التي كان عليك العمل فيها</string>
+    <string name="leave_policy_basis_fixed">عدد ساعات يومي ثابت</string>
+    <string name="leave_policy_basis_manual">مبلغ أُدخِله في كل مرة</string>
+    <string name="leave_policy_fixed_daily_hours">الساعات في يوم الإجازة المدفوعة</string>
+    <string name="leave_policy_standard_day">يوم العمل القياسي (بالساعات)</string>
+    <string name="leave_policy_standard_day_help">يُستخدم للتحويل بين الساعات والأيام فقط. وإن تُرك فارغًا، فسيسأل ‏ElmTrackr بدلًا من أن يفترض.</string>
+    <string name="leave_policy_balance_unit">قسيمة أجرك تذكر الأرصدة بوحدة</string>
+    <string name="leave_policy_less_favourable">هذا أقل مما يدفعه الإعداد الجاهز الإسرائيلي القياسي. و‏ElmTrackr يقدّم تقديرات فقط — راجع قسيمة أجرك أو عقد عملك.</string>
+    <string name="leave_policy_accrual_note">لا يضيف ‏ElmTrackr الأيام المتراكمة تلقائيًا. أدخل الرصيد من قسيمة أجرك وسيقدّر إلى الأمام من هناك.</string>
+    <string name="leave_policy_saved">تم حفظ إعدادات الإجازات</string>
+    <string name="leave_policy_advanced">إعدادات متقدّمة</string>
+
+    <!-- Workplaces -->
+    <string name="leave_workplaces_title">أماكن العمل</string>
+    <string name="leave_workplaces_subtitle">%1$d أماكن عمل</string>
+    <string name="leave_workplaces_subtitle_one">مكان عمل واحد</string>
+    <string name="leave_workplace_leave_row">الإجازات والإجازات المرضية</string>
+    <string name="leave_workplace_balances_row">أرصدة الإجازات</string>
+    <string name="leave_workplace_add">إضافة مكان عمل</string>
+    <string name="leave_workplace_name">الاسم</string>
+    <string name="leave_workplace_archived">مؤرشف</string>
+    <string name="leave_workplace_archive">أرشفة مكان العمل</string>
+    <string name="leave_workplace_archive_body">يبقى سجله قابلًا للقراءة وتحتفظ الأشهر الماضية بما أُبلغ عنه فيها. ولن تستطيع الإبلاغ عن إجازات جديدة عليه بعد الآن.</string>
+    <string name="leave_workplace_saved">تم حفظ مكان العمل</string>
+    <string name="leave_workplace_name_required">أعطِ مكان العمل اسمًا.</string>
+
+    <!-- Reports and history -->
+    <string name="leave_reports_section">الإجازة المدفوعة</string>
+    <string name="leave_reports_vacation">إجازة</string>
+    <string name="leave_reports_sick">إجازة مرضية</string>
+    <string name="leave_reports_worked">عمل</string>
+    <string name="leave_reports_estimated_total">الإجمالي التقديري</string>
+    <string name="leave_reports_none">لم يُبلَّغ عن إجازات هذا الشهر</string>
+    <string name="leave_reports_days_value">%1$s أيام</string>
+    <string name="leave_reports_hours_value">%1$s ساعات</string>
+    <string name="leave_history_estimated">%1$s تقديريًا</string>
+    <string name="leave_history_needs_value">يحتاج إلى قيمة</string>
+    <string name="leave_history_filter_all">الكل</string>
+    <string name="leave_history_filter_work">عمل</string>
+    <string name="leave_history_filter_vacation">إجازة</string>
+    <string name="leave_history_filter_sick">مرضية</string>
+
+    <!-- Disclaimers. Deliberately never "legally owed", "guaranteed" or "exact". -->
+    <string name="leave_disclaimer">‏ElmTrackr يقدّم تقديرات بناءً على إعدادات مكان العمل والمعلومات التي تدخلها. وقد يختلف استحقاق الإجازة ورصيدها ومبلغها الفعلي بحسب عقد عملك والترتيبات الجماعية وبيانات قسيمة الأجر والقانون المنطبق.</string>
+    <string name="leave_balance_disclaimer">الرصيد التقديري مبني على آخر رصيد أدخلته والإجازات المُبلَّغ عنها في ‏ElmTrackr. ولا يشمل التراكمات الجديدة أو التعديلات التي أجراها صاحب العمل بعد ذلك التاريخ.</string>
+    <string name="leave_preset_disclaimer">الإعداد الجاهز لإسرائيل نقطة بداية مقترحة، وليس استشارة قانونية أو تتعلق بالرواتب. غيّر أي جزء منه ليطابق ترتيبك الخاص.</string>
+
+    <!-- Accessibility -->
+    <string name="leave_a11y_day_included">%1$s، محسوب</string>
+    <string name="leave_a11y_day_excluded">%1$s، غير محسوب</string>
+    <string name="leave_a11y_estimate_warning">يحتاج إلى إدخالك</string>
+
+</resources>

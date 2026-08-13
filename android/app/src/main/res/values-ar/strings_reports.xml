@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Screen chrome -->
+    <string name="reports_title">التقارير</string>
+    <string name="reports_subtitle">نظرة عامة على أدائك</string>
+    <string name="reports_tab_hours">الساعات</string>
+    <string name="reports_tab_refunds">استرداد بدل السفر</string>
+    <string name="reports_tab_projects">المشاريع</string>
+    <string name="reports_empty_title">لا مناوبات مكتملة</string>
+    <string name="reports_empty_subtitle">أكمل بعض المناوبات لعرض تقريرك.</string>
+
+    <!-- Stat cards -->
+    <string name="reports_hours_value">%1$s س</string>
+    <string name="reports_all_hours_month">كل ساعات هذا الشهر</string>
+    <string name="reports_pct_of_total">%1$d%% من الإجمالي</string>
+    <string name="reports_gross_pay_before_tax">الأجر الإجمالي · قبل الضريبة</string>
+    <string name="reports_peak_performer">أفضل أداء</string>
+    <string name="reports_peak_more">عملت %1$d%% ساعات أكثر من %2$s. حافظ على هذا الزخم!</string>
+    <string name="reports_peak_fewer">عملت %1$d%% ساعات أقل من %2$s.</string>
+    <string name="reports_peak_same">الساعات نفسها كما في %1$s.</string>
+    <string name="reports_month_over_month">مقارنة بالشهر السابق</string>
+    <string name="reports_hours_this_month">%1$s س هذا الشهر</string>
+    <string name="reports_vs_prev">%1$s %2$s س مقابل %3$s</string>
+
+    <!-- Shift insights -->
+    <string name="reports_insights_off_title">الرؤى معطّلة</string>
+    <string name="reports_insights_off_body">فعّل الرؤى من الإعدادات ← الميزات لعرض البطاقات اليومية وإحصاءات المناوبات هنا.</string>
+    <string name="reports_shift_insights">رؤى المناوبات</string>
+    <string name="reports_weekend_shifts">مناوبات نهاية الأسبوع</string>
+    <string name="reports_avg_shift_length">متوسط طول المناوبة</string>
+    <string name="reports_overtime_shifts">مناوبات الساعات الإضافية</string>
+    <string name="reports_longest_shift">أطول مناوبة</string>
+    <string name="reports_avg_pay_shift">متوسط الأجر لكل مناوبة</string>
+    <string name="reports_best_shift">أفضل مناوبة</string>
+    <string name="reports_per_shift">لكل مناوبة</string>
+    <string name="reports_shift_one">مناوبة</string>
+    <string name="reports_shift_other">مناوبات</string>
+    <string name="reports_set_rate_unlock">اضبط المعدل للفتح</string>
+
+    <!-- Daily insight pager -->
+    <string name="reports_insights_of_day">رؤى اليوم</string>
+    <string name="reports_swipe_daily">اسحب · تتغيّر يوميًا</string>
+    <string name="reports_index_of">%1$d من %2$d</string>
+    <string name="reports_today_dot">● اليوم</string>
+
+    <!-- Weekly / task / shift breakdown -->
+    <string name="reports_weekly_breakdown">التوزيع الأسبوعي</string>
+    <string name="reports_vs_month">مقابل %1$s</string>
+    <string name="reports_by_task">حسب المهمة</string>
+    <string name="reports_shift_breakdown">توزيع المناوبات</string>
+    <string name="reports_week_label">الأسبوع %1$s</string>
+    <string name="reports_week_days">الأيام %1$s</string>
+    <string name="reports_task_shifts_avg">%1$d مناوبة · بمتوسط %2$s س</string>
+    <string name="reports_ot_hours">إضافي %1$s س</string>
+    <string name="reports_ot_suffix">%1$s إضافي</string>
+    <string name="reports_plus_ot">‏+%1$s إضافي</string>
+    <string name="reports_chip_weekend">نهاية الأسبوع</string>
+    <string name="reports_chip_overnight">ليلية ممتدة</string>
+    <!-- Quoted to keep the leading space, as in res/values. -->
+    <string name="reports_break_suffix">" · استراحة %1$d د"</string>
+    <string name="reports_daily_ot_after">الساعات الإضافية اليومية تبدأ بعد</string>
+    <string name="reports_weekly_ot_after">الساعات الإضافية الأسبوعية تبدأ بعد</string>
+    <string name="reports_hours_distribution">توزيع الساعات</string>
+    <string name="reports_export_pdf_month">تصدير PDF - %1$s</string>
+    <string name="reports_preparing_pdf">جارٍ تحضير ملف PDF…</string>
+
+    <!-- Refunds tab -->
+    <string name="reports_no_reimb_title">لا عمليات استرداد لتكاليف الرحلات بعد</string>
+    <string name="reports_no_reimb_body">أضف مطالبات الاسترداد من أي مناوبة مكتملة في شاشة تعديل المناوبة.</string>
+    <string name="reports_export_all_receipts">تصدير كل إيصالات الاسترداد</string>
+    <string name="reports_preparing_reimb_pdf">جارٍ تحضير ملف PDF للاسترداد…</string>
+    <string name="reports_reminder_one">%1$d تذكير</string>
+    <string name="reports_reminder_other">%1$d تذكيرات</string>
+    <string name="reports_open_shift_submit">افتح المناوبة لتقديم مطالبة أو لتحديدها بلا رحلة.</string>
+    <string name="reports_reimb_history">سجل الاسترداد</string>
+    <string name="reports_show_earlier_months">إظهار %1$d أشهر سابقة</string>
+    <string name="reports_showing_months">يُعرض %1$s تحتوي على استرداد تكاليف رحلات.</string>
+    <string name="reports_month_count_one">%1$d شهر</string>
+    <string name="reports_month_count_other">%1$d أشهر</string>
+    <string name="reports_total_refunded">إجمالي المسترد</string>
+    <string name="reports_rides_months">%1$d رحلة - %2$d أشهر</string>
+    <string name="reports_total_compensation">إجمالي التعويض</string>
+    <string name="reports_by_provider">حسب المزوّد</string>
+    <string name="reports_provider_rides">%1$s - %2$d رحلة</string>
+    <string name="reports_avg_per_ride">المتوسط لكل رحلة</string>
+    <string name="reports_largest_ride">أكبر رحلة</string>
+    <string name="reports_submitted">مُقدَّمة</string>
+    <string name="reports_pending">معلَّقة</string>
+    <string name="reports_dir_to_work">إلى العمل</string>
+    <string name="reports_dir_from_work">من العمل</string>
+    <string name="reports_claim_line">%1$s - %2$s - %3$s</string>
+    <string name="reports_receipt_suffix">" - إيصال"</string>
+    <string name="reports_view">عرض</string>
+    <string name="reports_all_months">كل الأشهر</string>
+
+    <!-- PDF export -->
+    <string name="export_monthly_title">تقرير المناوبات الشهري</string>
+    <string name="export_completed_shifts">%1$d مناوبة مكتملة</string>
+    <string name="export_generated_by">أُنشئ بواسطة ‏ElmTrackr</string>
+    <string name="export_gross_pay">الأجر الإجمالي</string>
+    <string name="export_thresholds">الحدود</string>
+    <string name="export_note">ملاحظة: %1$s</string>
+    <string name="export_share_csv">تصدير CSV</string>
+    <string name="export_share_pdf">تصدير ملف PDF للمناوبات</string>
+    <string name="export_reimb_title">تقرير استرداد بدل السفر</string>
+    <string name="export_claims_count">%1$d مطالبة</string>
+    <string name="export_total">الإجمالي: %1$s</string>
+    <string name="export_col_direction">الاتجاه</string>
+    <string name="export_col_ride_date">تاريخ الرحلة</string>
+    <string name="export_col_provider">المزوّد</string>
+    <string name="export_col_amount">المبلغ</string>
+    <string name="export_shift_prefix">المناوبة: %1$s</string>
+    <string name="export_col_date">التاريخ</string>
+    <string name="export_col_time">الوقت</string>
+    <string name="export_col_total">الإجمالي</string>
+    <string name="export_col_tags">الوسوم</string>
+    <string name="export_col_gross">الإجمالي</string>
+    <string name="export_col_task">المهمة</string>
+    <string name="export_col_shifts">المناوبات</string>
+    <string name="export_col_ot">إضافي</string>
+    <string name="export_avg">بمتوسط %1$s</string>
+    <string name="export_receipt_n">الإيصال %1$s: %2$s - %3$s</string>
+    <string name="export_share_reimb">تصدير ملف PDF للاسترداد</string>
+
+    <!-- Daily insight cards (** marks bold segments) -->
+    <string name="insight_fallback_title">في البداية</string>
+    <string name="insight_fallback_text">سجّل أول مناوباتك المكتملة لفتح الرؤى اليومية.</string>
+    <string name="insight_workdays_title">ما يعادله بأيام عمل</string>
+    <string name="insight_workdays_text">عملك بمقدار **%1$d س** يساوي **%2$d يوم عمل كامل من %3$s س**. مواصلة ثابتة.</string>
+    <string name="insight_movies_title">ماراثون أفلام</string>
+    <string name="insight_movies_text">بدلًا من العمل **%1$d س**، كان يمكنك مشاهدة **%2$d فيلمًا**. الفشار غير مشمول.</string>
+    <string name="insight_books_title">نادي الكتاب</string>
+    <string name="insight_books_text">عملك بمقدار **%1$d س** = **%2$d كتابًا** كان يمكنك قراءتها من الغلاف إلى الغلاف. لقب دودة الكتب قيد الانتظار.</string>
+    <string name="insight_eilat_title">رحلة برية</string>
+    <string name="insight_eilat_text">ساعاتك هذا الشهر تساوي **%1$d رحلة** بالسيارة من تل أبيب إلى إيلات. كثبان رملية وريح صحراوية ومواعيد تسليم.</string>
+    <string name="insight_coffee_title">حسابات القهوة</string>
+    <string name="insight_coffee_text">عملك بمقدار **%1$d س** احتاج إلى نحو **%2$d فنجان قهوة** — بمعدل 20 دقيقة من الطقوس لكل فنجان. ولا قهوة منزوعة الكافيين.</string>
+    <string name="insight_flights_title">ساعات في الجو</string>
+    <string name="insight_flights_text">‏**%1$d س** من العمل = **%2$d رحلة مباشرة على إل عال** من تل أبيب إلى نيويورك. واضطراب الرحلات الجوية غير مشمول.</string>
+    <string name="insight_binge_title">مشاهدة متواصلة</string>
+    <string name="insight_binge_text">‏**%1$d س** من العمل = **%2$s× مشاهدة مسلسل Breaking Bad بالكامل** (‏%3$d س كاملة). فلنسمّه شهرًا منتِجًا.</string>
+    <string name="insight_beach_title">ضريبة الشاطئ</string>
+    <string name="insight_beach_text_one">سجّلت **مناوبة واحدة** هذا الشهر. أي **يوم شاطئ محتمل واحد** تنازلت عنه للإنتاجية. هل كان يستحق؟</string>
+    <string name="insight_beach_text_other">سجّلت **%1$d مناوبة** هذا الشهر. أي **%1$d يوم شاطئ محتمل** تنازلت عنه للإنتاجية. هل كان يستحق؟</string>
+    <string name="insight_surf_title">الأمواج جاهزة</string>
+    <string name="insight_surf_text">جلسة التجديف على الأمواج تستغرق في المتوسط **%1$s س**. وعملك هذا الشهر = **%2$d جلسة تجديف** كان يمكنك اللحاق بها بدلًا من ذلك.</string>
+    <string name="insight_monopoly_title">بطل ألعاب الطاولة</string>
+    <string name="insight_monopoly_text">مباراة مونوبولي تستغرق في المتوسط **%1$d س**. وعملك هذا الشهر = **%2$d مباراة مونوبولي كاملة**. لقد كنت تجمع الإيجار في الحياة الحقيقية.</string>
+    <string name="insight_shwarma_title">اقتصاد الشاورما</string>
+    <string name="insight_shwarma_text">بمعدل %1$d دقيقة لكل شاورما، كان يمكنك أكل **%2$d شاورما** في الوقت الذي عملته هذا الشهر. صحتين وعافية.</string>
+    <string name="insight_pizza_title">صندوق البيتزا</string>
+    <string name="insight_pizza_text">أرباح هذا الشهر تكفي لشراء **%1$d بيتزا** بسعر ‏₪%2$d للواحدة. هذا عدد كبير من القطع.</string>
+    <string name="insight_coke_title">عدّاد الكولا</string>
+    <string name="insight_coke_text">أي **%1$d زجاجة كوكا كولا** بسعر ‏₪%2$s للواحدة. ميزانية الترطيب مفتوحة.</string>
+    <string name="insight_cinema_title">ميزانية السينما</string>
+    <string name="insight_cinema_text">أرباحك تكفي **%1$d تذكرة سينما** بسعر ‏₪%2$d للواحدة. والفشار يُباع منفصلًا.</string>
+    <string name="insight_burger_title">جولة برغر</string>
+    <string name="insight_burger_text">أي **%1$d وجبة بنمط بيغ ماك** بسعر ‏₪%2$d للواحدة. أنا أحب الساعات الإضافية.</string>
+    <string name="insight_netflix_title">رصيد البث</string>
+    <string name="insight_netflix_text">أجرك يكفي **%1$d شهر من Netflix** بسعر ‏₪%2$d شهريًا. ووقت وفير للاسترخاء — بعد العمل.</string>
+    <string name="insight_spotify_title">ميزانية قوائم التشغيل</string>
+    <string name="insight_spotify_text">أي **%1$d شهر من Spotify Premium** بسعر ‏₪%2$d شهريًا. اجعل لمناوباتك موسيقى تصويرية.</string>
+    <string name="insight_avocado_title">مؤشّر الأفوكادو</string>
+    <string name="insight_avocado_text">الفاكهة المفضّلة في إسرائيل: **%1$d حبة أفوكادو** بسعر ‏₪%2$d للحبة. حسابات وجبة الفطور المتأخرة صحيحة.</string>
+    <string name="insight_beer_title">ساعة العروض</string>
+    <string name="insight_beer_text">أرباحك تساوي **%1$d زجاجة جعة** بسعر ‏₪%2$d للزجاجة. نخب يوم الراتب.</string>
+    <string name="insight_eggs_title">صندوق الفطور</string>
+    <string name="insight_eggs_text">أي **%1$d علبة بيض** بسعر ‏₪%2$d للعلبة. وموسم الشكشوكة لا ينتهي.</string>
+    <string name="insight_bus_title">وقت التنقّل</string>
+    <string name="insight_bus_text">رحلة الحافلة تستغرق في المتوسط **%1$d دقيقة**. وقد عملت ما يكفي لـ**%2$d رحلة** عبر المدينة.</string>
+    <string name="insight_podcast_title">قائمة البودكاست</string>
+    <string name="insight_podcast_text">حلقة البودكاست النموذجية تستغرق **%1$d دقيقة**. و**%2$d س** من وقتك = **%3$d حلقة** كان يمكنك مشاهدتها بلا توقّف.</string>
+    <string name="insight_laundry_title">حمولات الغسيل</string>
+    <string name="insight_laundry_text">دورة الغسيل الواحدة تستغرق نحو **%1$d دقيقة**. وقد عملت ما يكفي لـ**%2$d حمولة كاملة**. الجوارب مشمولة.</string>
+    <string name="insight_dishes_title">مهمة الأطباق</string>
+    <string name="insight_dishes_text">دورة غسّالة الأطباق تستغرق **%1$d دقيقة**. وساعاتك = **%2$d دورة نظيفة تمامًا**. ولا حاجة إلى إسفنجة.</string>
+    <string name="insight_army_title">ساعات الخدمة</string>
+    <string name="insight_army_text">الخدمة العسكرية الإسرائيلية للرجال تبلغ نحو **%1$d س** إجمالًا. وعملك هذا الشهر = **%2$d%%** من الخدمة الكاملة. تحية.</string>
+    <string name="insight_hatikva_title">النشيد الوطني</string>
+    <string name="insight_hatikva_text">\"هاتيكفا\" تستغرق **نحو %1$s دقيقة**. وعملك هذا الشهر = **%2$d تشغيل** للنشيد الوطني. 🇮🇱</string>
+    <string name="insight_snail_title">سباق الحلزون</string>
+    <string name="insight_snail_text">أقصى سرعة لحلزون الحديقة **%1$s كم/س**. وفي **%2$d س** من عملك هذا الشهر، كان الحلزون سيقطع **%3$s كم**.</string>
+    <string name="insight_iss_title">ميكانيكا المدار</string>
+    <string name="insight_iss_text">محطة الفضاء الدولية تدور حول الأرض كل **%1$d دقيقة**. وأثناء عملك **%2$d س**، أكملت **%3$d دورة كاملة**. منظور مختلف.</string>
+    <string name="insight_shark_title">عدْو القرش</string>
+    <string name="insight_shark_text">القرش الأبيض الكبير يبلغ **%1$d كم/س**. وفي **%2$d ساعة عمل** لك، كان القرش سيسبح **%3$d كم**. لا تدخل الماء.</string>
+    <string name="insight_bee_title">نحلة مشغولة</string>
+    <string name="insight_bee_text">النحلة العاملة تجمع الرحيق نحو **%1$d س** في حياتها. وعملك هذا الشهر = **%2$s%%** من مسيرة نحلة كاملة. بزز.</string>
+    <string name="insight_shakespeare_title">وضع شكسبير</string>
+    <string name="insight_shakespeare_text">يقدّر الخبراء أن شكسبير أمضى **%1$s س** في كتابة جميع أعماله. وهذا الشهر أنجزت **%2$s%%** من شكسبير.</string>
+    <string name="insight_earth_title">حول العالم</string>
+    <string name="insight_earth_text">المشي حول محيط الأرض بسرعة 5 كم/س يستغرق **%1$s س**. وعملك هذا الشهر يعادل **%2$s%%** من الطريق حول الكرة الأرضية.</string>
+    <string name="insight_degree_title">تقدّم الشهادة</string>
+    <string name="insight_degree_text">الشهادة الجامعية الكاملة تستغرق نحو **%1$s ساعة** من الدراسة. وعملك هذا الشهر = **%2$s%%** من شهادة كاملة.</string>
+    <string name="insight_guitar_title">أسطورة الغيتار</string>
+    <string name="insight_guitar_text">منفردة الغيتار تدوم في المتوسط **%1$d ث**. وقد عملت ما يكفي لـ**%2$d منفردة غيتار**. واصل العزف.</string>
+    <string name="insight_ramen_title">عدّاد الرامن</string>
+    <string name="insight_ramen_text">الرامن السريع يستغرق **%1$d دقيقة**. وفي **%2$d س** من عملك، كان يمكنك تحضير **%3$d وعاء**. عيش اقتصادي.</string>
+</resources>
