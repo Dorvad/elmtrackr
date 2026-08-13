@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget labels resolved at render time. The English file shouts some of
+         these in capitals; Arabic has no case, so they read as normal text. -->
+    <string name="widget_clocked_in">تم تسجيل الحضور</string>
+    <string name="widget_clocked_out">تم تسجيل الانصراف</string>
+    <string name="widget_punch_in">تسجيل الحضور</string>
+    <string name="widget_punch_out">تسجيل الانصراف</string>
+    <string name="widget_tap_start_shift">انقر لبدء المناوبة</string>
+    <string name="widget_tap_end_shift">انقر لإنهاء المناوبة</string>
+    <string name="widget_on_shift">في مناوبة</string>
+    <string name="widget_last_punch">آخر تسجيل</string>
+    <string name="widget_on_shift_upper">في مناوبة</string>
+    <string name="widget_last_punch_upper">آخر تسجيل</string>
+    <string name="widget_since">منذ %1$s</string>
+    <string name="widget_today_short">اليوم %1$s</string>
+    <string name="widget_tap_to_start">انقر للبدء</string>
+    <string name="widget_yesterday_short">أمس %1$s</string>
+    <string name="widget_signed_out_hint">انقر لتسجيل الدخول</string>
+    <string name="widget_today_logged">سُجّل اليوم %1$s</string>
+    <string name="widget_no_time_today">لا وقت مسجَّل اليوم</string>
+    <string name="widget_active_sub">منذ %1$s · اليوم %2$s</string>
+    <string name="widget_progress_active">%1$d%% من يوم %2$s · بدأت %3$s</string>
+    <string name="widget_progress_idle">%1$d%% من يوم %2$s · %3$s حتى الهدف</string>
+    <string name="widget_today_lower">اليوم</string>
+    <string name="widget_clock_in">تسجيل الحضور</string>
+    <string name="widget_clock_out">تسجيل الانصراف</string>
+
+    <!-- The widget-picker preview samples are translatable="false" in
+         res/values and deliberately absent here. -->
+
+    <!-- Notification channels -->
+    <string name="notif_channel_active_shift">مناوبة نشطة</string>
+    <string name="notif_channel_active_shift_desc">يظهر أثناء تسجيل حضورك</string>
+    <string name="notif_channel_reminders">التذكيرات</string>
+    <string name="notif_channel_reminders_desc">تذكيرات المناوبات الطويلة وغيرها</string>
+
+    <!-- Shortcut clock-out feedback -->
+    <string name="shortcut_feedback_clocked_out_title">تم تسجيل الانصراف</string>
+    <string name="shortcut_feedback_clocked_out_body">تم إنهاء مناوبتك.</string>
+    <string name="shortcut_feedback_no_shift_title">لا توجد مناوبة نشطة</string>
+    <string name="shortcut_feedback_no_shift_body">لا توجد مناوبة نشطة لتسجيل الانصراف منها.</string>
+</resources>

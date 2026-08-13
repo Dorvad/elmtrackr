@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sign-in / sign-up -->
+    <string name="auth_tagline">تتبّع المناوبات والساعات الإضافية والأرباح</string>
+    <string name="auth_sign_in">تسجيل الدخول</string>
+    <string name="auth_create_account">إنشاء حساب</string>
+    <string name="auth_reset_password">إعادة تعيين كلمة المرور</string>
+    <string name="auth_email_label">البريد الإلكتروني</string>
+    <string name="auth_password_label">كلمة المرور</string>
+    <string name="auth_email_invalid">أدخل عنوان بريد إلكتروني صحيحًا</string>
+    <string name="auth_password_too_short">يجب أن تكون كلمة المرور %1$d أحرف على الأقل</string>
+    <string name="auth_show_password">إظهار كلمة المرور</string>
+    <string name="auth_hide_password">إخفاء كلمة المرور</string>
+    <string name="auth_send_reset_email">إرسال رسالة إعادة التعيين</string>
+    <string name="auth_no_account_sign_up">لا تملك حسابًا؟ أنشئ حسابًا</string>
+    <string name="auth_forgot_password">هل نسيت كلمة المرور؟</string>
+    <string name="auth_have_account_sign_in">تملك حسابًا بالفعل؟ سجّل الدخول</string>
+    <string name="auth_back_to_sign_in">العودة إلى تسجيل الدخول</string>
+    <string name="auth_loading_workspace">جارٍ تحميل مساحة عملك…</string>
+
+    <!-- Password recovery -->
+    <string name="auth_choose_new_password">اختر كلمة مرور جديدة</string>
+    <string name="auth_new_password_body">أدخل كلمة مرور جديدة لحسابك في ‏ElmTrackr.</string>
+    <string name="auth_new_password_label">كلمة المرور الجديدة</string>
+    <string name="auth_confirm_password_label">تأكيد كلمة المرور</string>
+    <string name="auth_passwords_do_not_match">كلمتا المرور غير متطابقتين</string>
+    <string name="auth_update_password">تحديث كلمة المرور</string>
+
+    <!-- Confirmation screens -->
+    <string name="auth_check_your_email">تحقّق من بريدك الإلكتروني</string>
+    <string name="auth_reset_link_sent">تم إرسال رابط إعادة تعيين كلمة المرور إلى عنوان بريدك الإلكتروني.</string>
+    <string name="auth_confirm_your_email">أكّد بريدك الإلكتروني</string>
+    <string name="auth_confirmation_link_sent">أرسلنا رابط تأكيد إلى %1$s. افتحه ثم عد إلى هنا لتسجيل الدخول.</string>
+
+    <!-- Developer-facing fallback -->
+    <string name="auth_not_configured_title">المصادقة غير مُهيّأة</string>
+    <string name="auth_not_configured_body">أضف ‏SUPABASE_URL و‏SUPABASE_ANON_KEY إلى ‏local.properties لتفعيل تسجيل الدخول.</string>
+
+    <!-- Error messages (mapped from SDK failures) -->
+    <string name="auth_error_incorrect_credentials">البريد الإلكتروني أو كلمة المرور غير صحيحة.</string>
+    <string name="auth_error_confirm_email">أكّد بريدك الإلكتروني قبل تسجيل الدخول.</string>
+    <string name="auth_error_account_exists">يوجد حساب بهذا البريد الإلكتروني بالفعل.</string>
+    <string name="auth_error_weak_password">اختر كلمة مرور أقوى.</string>
+    <string name="auth_error_rate_limited">محاولات كثيرة جدًا. يُرجى الانتظار وإعادة المحاولة.</string>
+    <string name="auth_error_network">تحقّق من اتصالك بالإنترنت وأعد المحاولة.</string>
+    <string name="auth_error_sign_in">تعذّر تسجيل الدخول. يُرجى إعادة المحاولة.</string>
+    <string name="auth_error_sign_up">تعذّر إنشاء حسابك. يُرجى إعادة المحاولة.</string>
+    <string name="auth_error_password_reset">تعذّر إرسال رسالة إعادة التعيين. يُرجى إعادة المحاولة.</string>
+    <string name="auth_error_recovery_link">رابط إعادة التعيين غير صالح أو انتهت صلاحيته.</string>
+    <string name="auth_error_update_password">تعذّر تحديث كلمة المرور. يُرجى إعادة المحاولة.</string>
+    <string name="auth_error_delete_account">تعذّر حذف حسابك. تحقّق من اتصالك وأعد المحاولة.</string>
+    <string name="auth_error_no_account_to_delete">لا يوجد حساب لحذفه</string>
+    <string name="auth_error_not_configured">‏Supabase غير مُهيّأ</string>
+    <string name="auth_error_session_check">تعذّر التحقّق من جلستك. يُرجى إعادة المحاولة.</string>
+</resources>

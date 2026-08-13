@@ -27,17 +27,34 @@ enum class AppLanguage(val tag: String?) {
     SYSTEM(null),
     ENGLISH("en"),
     HEBREW("he"),
+    ARABIC("ar"),
     ;
 
     companion object {
         // Java Locale reports Hebrew with the legacy ISO code "iw".
         private val HEBREW_CODES = setOf("he", "iw")
 
+        /**
+         * The language an ISO code renders as — never [SYSTEM], since a code
+         * has already been resolved to a real language. Matched on the tags
+         * rather than name by name, so a new entry above is all it takes.
+         * Codes the app has no UI for resolve to English, mirroring how
+         * resources fall back to res/values.
+         *
+         * Use this for the language the UI is *currently drawn in* (read off
+         * the configuration); use [current] for the stored choice.
+         */
+        fun forLanguageCode(code: String?): AppLanguage {
+            if (code == null) return ENGLISH
+            if (code in HEBREW_CODES) return HEBREW
+            return entries.firstOrNull { it.tag == code } ?: ENGLISH
+        }
+
         fun current(): AppLanguage {
             val locales = AppCompatDelegate.getApplicationLocales()
             if (locales.isEmpty) return SYSTEM
             val language = locales[0]?.language ?: return SYSTEM
-            return if (language in HEBREW_CODES) HEBREW else ENGLISH
+            return forLanguageCode(language)
         }
 
         fun apply(context: Context, language: AppLanguage) {

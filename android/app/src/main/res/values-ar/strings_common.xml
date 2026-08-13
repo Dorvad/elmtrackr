@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared UI states -->
+    <string name="common_something_went_wrong">حدث خطأ ما</string>
+    <string name="common_try_again">إعادة المحاولة</string>
+    <string name="error_network">لم نتمكّن من الوصول إلى الخادم. تحقّق من اتصالك وأعد المحاولة.</string>
+    <string name="error_generic">لم نتمكّن من تحميل بياناتك. يُرجى إعادة المحاولة.</string>
+    <!-- Shown in place of raw server or file-system exception text. The technical
+         detail goes to diagnostic logs only. -->
+    <string name="error_offline">يبدو أنك غير متصل. سيكتمل هذا بمجرّد عودة الاتصال بالإنترنت.</string>
+    <string name="error_session_expired">انتهت صلاحية جلستك. سجّل الدخول مرة أخرى للمتابعة.</string>
+    <string name="error_server">لم يتمكّن الخادم من إكمال ذلك. يُرجى إعادة المحاولة بعد قليل.</string>
+    <string name="error_storage_full">لا تتوفّر مساحة كافية على هذا الجهاز لحفظ ذلك.</string>
+    <string name="error_permission">‏ElmTrackr لا يملك الإذن للقيام بذلك.</string>
+    <string name="error_receipt_upload">لم نتمكّن من رفع صورة الإيصال. الصورة محفوظة على هذا الجهاز وسنعيد المحاولة.</string>
+
+    <!-- First clock-in celebration -->
+    <string name="celebration_tracking_title">بدأ التتبّع!</string>
+    <string name="celebration_tracking_body">ساعاتك وتقدير أجرك وساعاتك الإضافية تظهر مباشرة على الشاشة الرئيسية. اترك المناوبة تعمل — أو سجّل الانصراف عند الانتهاء.</string>
+    <string name="celebration_got_it">فهمت</string>
+    <string name="a11y_app_logo">شعار ‏ElmTrackr</string>
+    <!-- Announced by TalkBack for collapsible cards and rows -->
+    <string name="a11y_expanded">موسَّع</string>
+    <string name="a11y_collapsed">مطوي</string>
+    <string name="a11y_expand">توسيع</string>
+    <string name="a11y_collapse">طي</string>
+</resources>

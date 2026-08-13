@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bottom/side navigation tabs -->
+    <string name="nav_home">الرئيسية</string>
+    <string name="nav_shifts">المناوبات</string>
+    <string name="nav_reports">التقارير</string>
+    <string name="nav_projects">المشاريع</string>
+    <string name="nav_settings">الإعدادات</string>
+    <string name="nav_tab_selected">%1$s، محدَّد</string>
+
+    <!-- Region presets -->
+    <string name="region_us_label">الولايات المتحدة (فيدرالي / FLSA)</string>
+    <string name="region_us_desc">ساعات إضافية أسبوعية فقط (‏1.5× بعد 40 ساعة في الأسبوع وفق قانون FLSA). لا توجد ساعات إضافية يومية — عدّل القواعد إذا كانت ولايتك تشترطها. علاوة العطلة تنطبق فقط على المناوبات التي تحدّدها كمناوبات خاصة، وهي ليست إلزامية فيدراليًا.</string>
+    <string name="region_us_ca_label">الولايات المتحدة (كاليفورنيا)</string>
+    <string name="region_us_ca_desc">ساعات إضافية يومية بنمط كاليفورنيا (‏1.5× بعد 8 ساعات، و2× بعد 12 ساعة)، وساعات إضافية أسبوعية عند 40 ساعة، وعلاوات يوم العمل السابع المتواصل (‏1.5× لأول 8 ساعات، و2× بعدها). عدّلها لتطابق مكان عملك.</string>
+    <string name="region_gb_label">المملكة المتحدة</string>
+    <string name="region_gb_desc">لا ينص قانون المملكة المتحدة على ساعات إضافية أو علاوة عطلة رسمية، لذا تبدأ الساعات الإضافية معطّلة — والأجر يتبع عقدك. يوجد قالب جاهز بمعدل ‏1.5× بعد 48 ساعة في الأسبوع إن فعّلت الساعات الإضافية؛ عدّله ليطابق عقدك.</string>
+    <string name="region_eu_label">الاتحاد الأوروبي</string>
+    <string name="region_eu_desc">إعدادات افتراضية توضيحية فقط — يختلف قانون الساعات الإضافية والعلاوات اختلافًا كبيرًا بين دول الاتحاد الأوروبي. عدّلها لتطابق بلدك وعقدك.</string>
+    <string name="region_il_label">إسرائيل</string>
+    <string name="region_il_desc">نقطة بداية مقترحة للساعات الإضافية اليومية والأسبوعية وشرائح عطلة نهاية الأسبوع والعطل بالنمط الإسرائيلي. عدّلها لتطابق مكان عملك.</string>
+    <string name="region_custom_label">مخصّص / يدوي</string>
+    <string name="region_custom_desc">ابدأ من صفحة فارغة واضبط جميع قواعد الأجر بنفسك.</string>
+
+    <!-- Premium stacking policies -->
+    <string name="stacking_highest_title">الأعلى فقط</string>
+    <string name="stacking_highest_helper">عند انطباق أكثر من علاوة (مثل الساعات الإضافية والعمل الليلي)، يُستخدم المعدل الأعلى وحده — فالعلاوات لا تتراكم فوق بعضها.</string>
+    <string name="stacking_additive_title">تراكمي</string>
+    <string name="stacking_additive_helper" formatted="false">عند انطباق أكثر من علاوة، تُضاف فوق المعدل الحالي (مثلًا 150% ساعات إضافية زائد 25% عمل ليلي = 175%).</string>
+    <string name="stacking_multiplicative_title">ضربي</string>
+    <string name="stacking_multiplicative_helper" formatted="false">عند انطباق أكثر من علاوة، يُطبَّق مضاعف فوق الآخر (مثلًا 150% ساعات إضافية × 125% عمل ليلي = 187.5%).</string>
+    <string name="stacking_base_plus_title">الأساس زائد العلاوة</string>
+    <string name="stacking_base_plus_helper">تُحسب الساعات الإضافية على معدل الأجر الأساسي، ثم تُضاف العلاوة كبند منفصل فوقه.</string>
+    <string name="stacking_premium_in_rr_title">العلاوة داخل المعدل العادي</string>
+    <string name="stacking_premium_in_rr_helper">يُستخدم أعلى معدل منطبق هنا؛ وتُدرَج العلاوة في الأساس المستخدم لحساب الساعات الإضافية على علاوات المناوبة.</string>
+    <string name="stacking_excluded_rr_title">مستثناة من المعدل العادي</string>
+    <string name="stacking_excluded_rr_helper">يُستخدم أعلى معدل منطبق هنا؛ وتبقى العلاوة خارج أساس الساعات الإضافية على علاوات المناوبة.</string>
+
+    <!-- Compensation guidance and disclaimers -->
+    <string name="comp_rules_guidance">إذا لم تكن متأكدًا من قواعد الأجر المنطبقة على عملك، راجع صاحب العمل أو قسم الموارد البشرية أو الرواتب، والمصادر الحكومية الرسمية لقانون العمل في منطقتك قبل ضبط هذه الإعدادات.</string>
+    <string name="comp_disclaimer">‏ElmTrackr يقدّم تقديرًا للأجر بناءً على القواعد التي تضبطها. قد يختلف الأجر الفعلي بسبب الضرائب والخصومات وسياسة صاحب العمل وممارسات الرواتب والاتفاقيات الجماعية وقوانين العمل المحلية وقواعد أخرى منطبقة. ‏ElmTrackr لا يقدّم استشارات قانونية أو ضريبية أو استشارات تتعلق بالرواتب أو المحاسبة أو التمويل.</string>
+    <string name="comp_estimate_note">تقدير فقط. قد يختلف الأجر الفعلي.</string>
+    <string name="comp_profile_helper">تقديرات الأجر مبنية على هذا الملف. قد يختلف الأجر الفعلي بحسب الضرائب والخصومات وسياسة صاحب العمل واللوائح المحلية وقواعد الرواتب.</string>
+
+    <!-- Clock style names -->
+    <string name="clock_style_classic">كلاسيكي</string>
+    <string name="clock_style_minimal">بسيط</string>
+    <string name="clock_style_focus">تركيز</string>
+    <string name="clock_style_bold">عريض</string>
+    <string name="clock_style_night">ليلي</string>
+    <string name="clock_style_retro">طراز قديم</string>
+    <string name="clock_style_aurora">شفق</string>
+    <string name="clock_style_pulse">نبض</string>
+    <string name="clock_style_dial">مينا</string>
+    <string name="clock_style_strand">خيط</string>
+    <string name="clock_style_prism">منشور</string>
+    <string name="clock_style_sand">رمل</string>
+    <string name="clock_style_blocks">مكعبات</string>
+    <string name="clock_style_orbit">مدار</string>
+    <string name="clock_style_tide">مدّ وجزر</string>
+    <string name="clock_style_sprout">برعم</string>
+    <string name="clock_style_metro">مترو</string>
+    <string name="clock_style_vinyl">أسطوانة</string>
+    <string name="clock_style_luna">قمر</string>
+    <string name="clock_style_summit">قمة</string>
+
+    <!-- Currency display names -->
+    <string name="currency_ils">الشيكل الإسرائيلي الجديد</string>
+    <string name="currency_usd">الدولار الأمريكي</string>
+    <string name="currency_eur">اليورو</string>
+    <string name="currency_gbp">الجنيه الإسترليني</string>
+    <string name="currency_cad">الدولار الكندي</string>
+    <string name="currency_aud">الدولار الأسترالي</string>
+    <string name="currency_jpy">الين الياباني</string>
+    <string name="currency_chf">الفرنك السويسري</string>
+
+    <!-- Sync entity types -->
+    <string name="sync_entity_tasks">المهام</string>
+    <string name="sync_entity_shifts">المناوبات</string>
+    <string name="sync_entity_refund_claims">مطالبات الاسترداد</string>
+    <string name="sync_entity_settings">الإعدادات</string>
+    <string name="sync_entity_pay_profiles">ملفات الأجر</string>
+</resources>

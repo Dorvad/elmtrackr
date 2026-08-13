@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared -->
+    <string name="onboarding_brand">ELMTRACKR</string>
+    <string name="onboarding_step_counter">%1$d / %2$d</string>
+    <string name="onboarding_back">رجوع</string>
+    <string name="onboarding_continue">متابعة</string>
+    <string name="onboarding_tagline">سجّل الحضور مرة واحدة. واعرف ساعاتك وتقدير أجرك وساعاتك الإضافية فورًا.</string>
+    <string name="onboarding_hours_suffix">س</string>
+
+    <!-- Language step -->
+    <string name="onboarding_step_language">اللغة</string>
+    <string name="onboarding_language_title">اختر لغتك</string>
+    <string name="onboarding_language_subtitle">‏ElmTrackr يتحدّث العربية والعبرية والإنجليزية. ويمكنك التبديل في أي وقت من الإعدادات.</string>
+    <string name="onboarding_language_change_later">يمكنك تغيير هذا لاحقًا من الإعدادات ← المظهر.</string>
+
+    <!-- Save failure -->
+    <string name="onboarding_save_failed">فشل الحفظ. يُرجى إعادة المحاولة.</string>
+    <string name="onboarding_sign_in_first">سجّل الدخول قبل إكمال الإعداد</string>
+
+    <!-- App lock biometric prompt -->
+    <string name="onboarding_biometric_prompt_title">تفعيل قفل التطبيق</string>
+    <string name="onboarding_biometric_prompt_subtitle">أكّد لطلب فتح القفل بالسمات الحيوية عند فتح ‏ElmTrackr</string>
+
+    <!-- Step titles -->
+    <string name="onboarding_step_welcome">ترحيب</string>
+    <string name="onboarding_step_region">منطقتك</string>
+    <string name="onboarding_step_profile">ملفك الشخصي</string>
+    <string name="onboarding_step_pay">تفضيلات الأجر</string>
+    <string name="onboarding_step_work_week">أسبوع العمل</string>
+    <string name="onboarding_step_features">الميزات</string>
+    <string name="onboarding_step_security">الأمان</string>
+    <string name="onboarding_step_review">مراجعة</string>
+
+    <!-- Welcome step -->
+    <string name="onboarding_welcome_title">مرحبًا بك في ‏ElmTrackr</string>
+    <string name="onboarding_welcome_replay_title">راجع إعداداتك</string>
+    <string name="onboarding_welcome_replay_subtitle">حدّث ملفك الشخصي وأجرك وأسبوع عملك والميزات.</string>
+    <string name="onboarding_welcome_intro">ساعاتك وساعاتك الإضافية وأجرك — تُتَبَّع بلمسة واحدة، حتى دون اتصال.</string>
+    <string name="onboarding_how_it_works">كيف يعمل</string>
+    <string name="onboarding_how_step1_title">سجّل الحضور عند البدء</string>
+    <string name="onboarding_how_step1_desc">لمسة واحدة على هاتفك أو ساعتك أو أداة الشاشة الرئيسية.</string>
+    <string name="onboarding_how_step2_title">‏ElmTrackr يتولّى الحساب</string>
+    <string name="onboarding_how_step2_desc">تُحسب الساعات والاستراحات والساعات الإضافية والعلاوات مباشرة أثناء عملك.</string>
+    <string name="onboarding_how_step3_title">اعرف ما كسبته</string>
+    <string name="onboarding_how_step3_desc">تقديرات أجر مباشرة وتقارير شهرية وتصدير بلمسة واحدة لأجل الرواتب.</string>
+    <string name="onboarding_welcome_reassurance">يعمل دون اتصال · مشفَّر على جهازك · يتزامن تلقائيًا</string>
+    <string name="onboarding_welcome_setup_time">يستغرق الإعداد دقيقة تقريبًا.</string>
+    <string name="onboarding_review_setup_button">مراجعة الإعداد</string>
+    <string name="onboarding_get_started">لنبدأ</string>
+
+    <!-- Region step -->
+    <string name="onboarding_region_title">أين تعمل؟</string>
+    <string name="onboarding_region_subtitle">اختر إعدادًا جاهزًا لمنطقتك لتبدأ بقواعد أجر مقترحة. ويمكنك تخصيص كل شيء لاحقًا.</string>
+    <string name="onboarding_region_currency_timezone">العملة: %1$s · المنطقة الزمنية: %2$s</string>
+    <string name="onboarding_region_disclaimer">‏ElmTrackr يقدّم تقديرًا للأجر فقط — وليس استشارة قانونية أو تتعلق بالرواتب.</string>
+
+    <!-- Profile step -->
+    <string name="onboarding_profile_title">لنجعله خاصًا بك</string>
+    <string name="onboarding_profile_subtitle">بماذا نناديك داخل ‏ElmTrackr؟</string>
+    <string name="onboarding_profile_name_label">اسمك</string>
+    <string name="onboarding_profile_name_placeholder">مثال: دور</string>
+    <string name="onboarding_profile_name_error">أدخل اسمك للمتابعة</string>
+    <string name="onboarding_profile_name_helper">يظهر هذا في لوحتك وتقاريرك</string>
+    <string name="onboarding_profile_signed_in_as">مسجَّل الدخول باسم %1$s</string>
+
+    <!-- Pay setup step -->
+    <string name="onboarding_pay_title">اعرف قيمة وقتك</string>
+    <string name="onboarding_pay_subtitle">أضف أجرك الأساسي بالساعة للحصول على تقديرات مباشرة للأجر الإجمالي.</string>
+    <string name="onboarding_pay_hourly_salary_label">الأجر بالساعة</string>
+    <string name="onboarding_pay_rate_placeholder">0.00</string>
+    <string name="onboarding_pay_rate_error">أدخل مبلغًا موجبًا</string>
+    <string name="onboarding_pay_rate_helper">اختياري. اتركه فارغًا إن أردت تتبّع الساعات فقط.</string>
+    <string name="onboarding_pay_currency_label">العملة</string>
+
+    <!-- Work week step -->
+    <string name="onboarding_work_week_title">اضبط أسبوع عملك</string>
+    <string name="onboarding_work_week_subtitle">اختر أيام نهاية الأسبوع ومتى تبدأ الساعات الإضافية.</string>
+    <string name="onboarding_weekend_days_label">أيام نهاية الأسبوع</string>
+    <string name="onboarding_weekend_days_helper">تستخدم قواعد أجر نهاية الأسبوع والعطل هذه الأيام.</string>
+    <string name="onboarding_weekend_days_error">اختر يومًا واحدًا على الأقل</string>
+    <string name="onboarding_daily_ot_label">الساعات الإضافية اليومية</string>
+    <string name="onboarding_weekly_ot_label">الساعات الإضافية الأسبوعية</string>
+    <string name="onboarding_ot_error">يجب أن يكون الحد اليومي بين ساعة و24 ساعة، وأن يكون الأسبوعي مساويًا لليومي على الأقل وألا يزيد على 168 ساعة.</string>
+    <string name="onboarding_timezone_label">المنطقة الزمنية</string>
+    <string name="onboarding_timezone_helper">مضبوطة حسب المنطقة التي اخترتها</string>
+    <string name="onboarding_hide_timezone_picker">إخفاء مُحدِّد المنطقة الزمنية</string>
+    <string name="onboarding_change_timezone">تغيير المنطقة الزمنية</string>
+
+    <!-- Features step -->
+    <string name="onboarding_features_title">ما الذي تحتاج إليه؟</string>
+    <string name="onboarding_features_subtitle">فعّل الميزات التي تناسب طريقة عملك. ويمكنك تغييرها لاحقًا من الإعدادات.</string>
+    <string name="onboarding_feature_travel_title">استرداد بدل السفر</string>
+    <string name="onboarding_feature_travel_desc">أضف مطالبات استرداد تكاليف الرحلات إلى أي مناوبة مكتملة.</string>
+    <string name="onboarding_feature_insights_title">الرؤى والتحليلات</string>
+    <string name="onboarding_feature_insights_desc">ملخّصات ذكية واتجاهات أسبوعية وإرشاد يومي.</string>
+
+    <!-- Security step -->
+    <string name="onboarding_security_title">احمِ بياناتك</string>
+    <string name="onboarding_security_subtitle">يمكنك اختياريًا طلب بصمة الإصبع أو الفتح بالوجه أو رمز PIN الخاص بجهازك لفتح ‏ElmTrackr.</string>
+    <string name="onboarding_security_app_lock_title">طلب السمات الحيوية للفتح</string>
+    <string name="onboarding_security_desc_available">اقفل معدلات الأجر والإيصالات وسجل المناوبات عندما يكون التطبيق في الخلفية</string>
+    <string name="onboarding_security_desc_not_enrolled">اضبط أولًا بصمة إصبع أو فتحًا بالوجه أو رمز PIN للجهاز في إعدادات النظام</string>
+    <string name="onboarding_security_desc_unavailable">فتح القفل بالسمات الحيوية أو ببيانات الجهاز غير متاح على هذا الجهاز</string>
+    <string name="onboarding_security_change_later">يمكنك تغيير هذا في أي وقت من الإعدادات ← الأمان.</string>
+
+    <!-- Review step -->
+    <string name="onboarding_review_title">جاهز للبدء</string>
+    <string name="onboarding_review_name">الاسم</string>
+    <string name="onboarding_review_region">المنطقة</string>
+    <string name="onboarding_review_hourly_salary">الأجر بالساعة</string>
+    <string name="onboarding_review_not_set">غير محدَّد</string>
+    <string name="onboarding_review_weekend">نهاية الأسبوع</string>
+    <string name="onboarding_review_optional_features">الميزات الاختيارية</string>
+    <string name="onboarding_review_enabled_count">%1$d مفعَّلة</string>
+    <string name="onboarding_save_and_start">حفظ وبدء التتبّع</string>
+
+</resources>

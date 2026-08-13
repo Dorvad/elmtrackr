@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared -->
+    <string name="settings_title">الإعدادات</string>
+    <string name="settings_back">رجوع</string>
+    <string name="settings_cancel">إلغاء</string>
+    <string name="settings_save">حفظ</string>
+    <string name="settings_saving">جارٍ الحفظ…</string>
+    <string name="settings_sign_out">تسجيل الخروج</string>
+    <string name="settings_signing_out">جارٍ تسجيل الخروج…</string>
+    <string name="settings_syncing">جارٍ المزامنة…</string>
+
+    <!-- Hub. Section headers are capitalised in English; Arabic has no case. -->
+    <string name="settings_section_tracking_pay">التتبّع والأجر</string>
+    <string name="settings_pay_overtime">الأجر والساعات الإضافية</string>
+    <string name="settings_section_app">التطبيق</string>
+    <string name="settings_appearance_clock">المظهر والساعة</string>
+    <string name="settings_features">الميزات</string>
+    <string name="settings_security">الأمان</string>
+    <string name="settings_security_subtitle">قفل التطبيق والتخزين المشفَّر</string>
+    <string name="settings_section_support">الدعم</string>
+    <string name="settings_help_about">المساعدة وحول التطبيق</string>
+    <string name="settings_help_about_subtitle">الإصدار %1$s · المزامنة والشؤون القانونية</string>
+    <string name="settings_your_profile">ملفك الشخصي</string>
+
+    <!-- Profile -->
+    <string name="settings_profile">الملف الشخصي</string>
+    <string name="settings_display_name">الاسم المعروض</string>
+    <string name="settings_display_name_hint">يُستخدم للترحيب بك على الشاشة الرئيسية.</string>
+    <string name="settings_email">البريد الإلكتروني</string>
+    <string name="settings_send_password_reset">إرسال رسالة إعادة تعيين كلمة المرور</string>
+    <string name="settings_password_reset_hint">سنرسل إليك رابط إعادة تعيين آمنًا بالبريد الإلكتروني.</string>
+    <string name="settings_danger_zone">منطقة الخطر</string>
+    <string name="settings_delete_account_warning">حذف حسابك السحابي ومناوباتك وإعداداتك ومطالبات الاسترداد وصور الإيصالات نهائيًا.</string>
+    <string name="settings_delete_account">حذف الحساب</string>
+    <string name="settings_delete_account_title">حذف الحساب؟</string>
+    <string name="settings_delete_account_body">يحذف هذا نهائيًا حسابك السحابي ومناوباتك وإعداداتك ومطالبات الاسترداد وصور الإيصالات. وستُزال أيضًا البيانات المحلية على هذا الجهاز. ولا يمكن التراجع عن هذا.</string>
+    <string name="settings_deleting_account">جارٍ حذف الحساب…</string>
+    <string name="settings_delete_local_user">حذف المستخدم</string>
+    <string name="settings_delete_local_user_title">حذف المستخدم؟</string>
+    <string name="settings_delete_local_user_warning">حذف هذا المستخدم وكل البيانات المخزَّنة على هذا الجهاز نهائيًا: المناوبات والإعدادات ومطالبات الاسترداد وصور الإيصالات.</string>
+    <string name="settings_delete_local_user_body">يحذف هذا نهائيًا المستخدم وكل البيانات المخزَّنة على هذا الجهاز: المناوبات والإعدادات ومطالبات الاسترداد وصور الإيصالات. ولا يمكن التراجع عن هذا.</string>
+    <string name="settings_local_only_mode">يعمل في وضع محلي فقط (‏Supabase غير مُهيّأ).</string>
+
+    <!-- Pay & overtime -->
+    <string name="settings_compensation_rules">قواعد الأجر</string>
+    <string name="settings_compensation_rules_subtitle">إعدادات المناطق الجاهزة وشرائح الساعات الإضافية والعلاوات</string>
+    <string name="settings_premium_profiles">ملفات العلاوات</string>
+    <string name="settings_premium_profiles_subtitle">مضاعفات مخصّصة للمناوبات الخاصة</string>
+    <string name="settings_tasks">المهام</string>
+    <string name="settings_tasks_subtitle">تسميات مهام اختيارية لتسجيل الحضور</string>
+    <string name="settings_pay_rate">معدل الأجر</string>
+    <string name="settings_hourly_rate">الأجر بالساعة</string>
+    <string name="settings_overtime_thresholds">حدود الساعات الإضافية</string>
+    <string name="settings_overtime_thresholds_hint">تحدّث هذه الأساسيات ملفّ أجرك الافتراضي. وللشرائح والعلاوات والاستراحات والخصومات، افتح قواعد الأجر أعلاه.</string>
+    <string name="settings_daily_overtime_hours">الساعات الإضافية اليومية (بالساعات)</string>
+    <string name="settings_weekly_overtime_hours">الساعات الإضافية الأسبوعية (بالساعات)</string>
+    <string name="settings_weekend_days">أيام نهاية الأسبوع</string>
+    <string name="settings_weekend_days_hint">تحصل المناوبات في هذه الأيام على معدل نهاية الأسبوع تلقائيًا. ويمكنك تجاوز ذلك في أي مناوبة بمفتاح نهاية الأسبوع/العطلة في شاشة تعديلها.</string>
+    <string name="settings_location">الموقع</string>
+
+    <!-- Language -->
+    <string name="settings_language">اللغة</string>
+    <string name="settings_language_system">لغة الجهاز</string>
+
+    <!-- Appearance -->
+    <string name="settings_theme">المظهر</string>
+    <string name="settings_theme_system">النظام</string>
+    <string name="settings_theme_light">فاتح</string>
+    <string name="settings_theme_dark">داكن</string>
+    <string name="settings_currency">العملة</string>
+    <string name="settings_watch_face">واجهة الساعة</string>
+    <string name="settings_watch_face_hint">اختر واجهة متحرّكة لساعة اللوحة الرئيسية.</string>
+    <string name="settings_browse_all_faces">تصفّح كل الواجهات (%1$d)</string>
+    <string name="settings_all_clock_faces">كل واجهات الساعة</string>
+    <string name="settings_pack_add">إضافة</string>
+    <string name="settings_pack_remove">إزالة</string>
+    <string name="settings_pack_in_use">مستخدمة</string>
+    <string name="settings_pack_not_added">%1$d واجهة — أضف الحزمة لاستخدامها</string>
+    <string name="clock_group_essentials">الأساسيات</string>
+    <string name="clock_group_essentials_desc">اقرأ الوقت وامضِ في شأنك</string>
+    <string name="clock_group_progress">التقدّم</string>
+    <string name="clock_group_progress_desc">إلى أي مدى بلغت في يومك</string>
+    <string name="clock_group_atmosphere">الأجواء</string>
+    <string name="clock_group_atmosphere_desc">لون وتوهّج وملمس</string>
+    <string name="clock_group_nature">الطبيعة</string>
+    <string name="clock_group_nature_desc">يوم ينمو أو يجري أو يمتلئ</string>
+    <string name="clock_group_journeys">الرحلات</string>
+    <string name="clock_group_journeys_desc">يوم له وجهة</string>
+    <string name="settings_selected">محدَّدة</string>
+    <string name="settings_face_classic">حلقة تقدّم</string>
+    <string name="settings_face_minimal">عرض نظيف</string>
+    <string name="settings_face_focus">بلا مشتّتات</string>
+    <string name="settings_face_bold">كبيرة وواضحة</string>
+    <string name="settings_face_night">توهّج ليلي سماوي</string>
+    <string name="settings_face_retro">لوحة قلّابة كهرمانية</string>
+    <string name="settings_face_aurora">حلقة متدرّجة الألوان</string>
+    <string name="settings_face_pulse">حلقات متوهّجة</string>
+    <string name="settings_face_dial">مؤقّت عقارب</string>
+    <string name="settings_face_strand">تقدّم خطي</string>
+    <string name="settings_face_prism">طيف صاعد</string>
+    <string name="settings_face_sand">ساعة رملية متدفّقة</string>
+    <string name="settings_face_blocks">مكعّبات ساعة بساعة</string>
+    <string name="settings_face_orbit">قمر صناعي يدور</string>
+    <string name="settings_face_tide">مدّ يعلو مع يومك</string>
+    <string name="settings_face_sprout">نبتة تنمو كل ساعة — وتتفتّح كاملة عند الثامنة</string>
+    <string name="settings_face_metro">يومك كرحلة تنقّل — محطة لكل ساعة</string>
+    <string name="settings_face_vinyl">أسطوانة تدور أثناء عملك</string>
+    <string name="settings_face_luna">قمر يتزايد حتى يكتمل عند الثامنة</string>
+    <string name="settings_face_summit">يومك كصعود — والقمة عند الثامنة</string>
+
+    <!-- Hub summaries -->
+    <string name="settings_summary_no_rate">لا أجر بالساعة</string>
+    <string name="settings_summary_rate_per_hour">%1$s/ساعة</string>
+    <string name="settings_summary_ot">إضافي %1$s/%2$s س</string>
+    <string name="settings_summary_face">واجهة %1$s</string>
+    <string name="settings_summary_no_features">لا ميزات اختيارية مفعَّلة</string>
+    <string name="settings_summary_features_count">%1$d ميزات مفعَّلة</string>
+    <string name="settings_feature_travel_short">استرداد بدل السفر</string>
+    <string name="settings_feature_insights_short">الرؤى</string>
+    <string name="settings_feature_clock_styles_short">أنماط الساعة</string>
+    <string name="settings_feature_ot_reminders_short">تذكيرات الساعات الإضافية</string>
+
+    <!-- Compensation rules -->
+    <string name="settings_comp_rules_title">قواعد الأجر</string>
+    <string name="settings_section_profiles">الملفات</string>
+    <string name="settings_comp_profiles_hint">لكل ملف قواعد أجره الخاصة. اختر واحدًا لتعديله، أو أضف آخر لوظيفة ثانية.</string>
+    <string name="settings_region_preset">الإعداد الجاهز للمنطقة</string>
+    <string name="settings_section_work_week">أسبوع العمل</string>
+    <string name="settings_daily_standard_hours">المعيار اليومي (بالساعات)</string>
+    <string name="settings_weekly_standard_hours">المعيار الأسبوعي (بالساعات)</string>
+    <string name="settings_week_starts_on">الأسبوع يبدأ يوم</string>
+    <string name="settings_week_starts_hint">تُحسب الساعات الإضافية الأسبوعية من هذا اليوم. وأسبوع العمل في إسرائيل ومعظم الولايات المتحدة يبدأ الأحد.</string>
+    <string name="settings_section_premiums">العلاوات</string>
+    <string name="settings_overtime">الساعات الإضافية</string>
+    <string name="settings_seventh_day">علاوة اليوم السابع المتواصل</string>
+    <string name="settings_seventh_day_hint" formatted="false">العمل في جميع أيام أسبوع الأجر السبعة يمنح علاوة من الدقيقة الأولى من اليوم السابع (بنمط كاليفورنيا: 150% لأول 8 ساعات، و200% بعدها).</string>
+    <string name="settings_weekend_premium">علاوة نهاية الأسبوع</string>
+    <string name="settings_weekend_multiplier">مضاعف نهاية الأسبوع</string>
+    <string name="settings_holiday_special">عطلة / يوم خاص</string>
+    <string name="settings_holiday_multiplier">مضاعف العطلة</string>
+    <string name="settings_night_shift">المناوبة الليلية</string>
+    <string name="settings_night_multiplier">مضاعف العمل الليلي</string>
+    <string name="settings_night_starts">الليل يبدأ</string>
+    <string name="settings_night_ends">الليل ينتهي</string>
+    <string name="settings_section_time_breaks">الوقت والاستراحات</string>
+    <string name="settings_breaks_paid">الاستراحات مدفوعة</string>
+    <string name="settings_auto_deduct_break">خصم الاستراحة تلقائيًا (بالدقائق)</string>
+    <string name="settings_auto_deduct_hint">تُخصم تلقائيًا عندما لا تكون للمناوبة استراحة مسجَّلة.</string>
+    <string name="settings_min_shift_pay">الحد الأدنى لأجر المناوبة (بالدقائق)</string>
+    <string name="settings_min_shift_hint">تُدفع المناوبات الأقصر كما لو دامت هذه المدة (أجر الحضور الأدنى).</string>
+    <string name="settings_round_shift_length">تقريب طول المناوبة</string>
+    <string name="settings_rounding_increment">وحدة التقريب (بالدقائق)</string>
+    <string name="settings_rounding_nearest">الأقرب</string>
+    <string name="settings_rounding_up">للأعلى</string>
+    <string name="settings_rounding_down">للأسفل</string>
+    <string name="settings_section_deductions">الخصومات</string>
+    <string name="settings_deduct_gross">الخصم من التقدير الإجمالي</string>
+    <string name="settings_deduction_percent" formatted="false">الخصم (%)</string>
+    <string name="settings_deduction_fixed">الخصم (%1$s لكل مناوبة)</string>
+    <string name="settings_deduction_hint">تعديل تقريبي لصافي الأجر (مثل تقدير للضريبة أو التقاعد) — وليس حسابًا صافيًا بمستوى كشف الرواتب.</string>
+    <string name="settings_save_comp_rules">حفظ قواعد الأجر</string>
+    <string name="settings_ladder_daily">يوميًا بعد %1$s: %2$d%%</string>
+    <string name="settings_ladder_weekly">أسبوعيًا بعد %1$s: %2$d%%</string>
+    <string name="settings_ladder_summary">السلّم الحالي — %1$s. اختر إعدادًا جاهزًا لمنطقة لتغيير الشرائح.</string>
+    <string name="settings_add_profile">إضافة ملف</string>
+    <string name="settings_base_hourly_rate">الأجر الأساسي بالساعة (%1$s)</string>
+    <string name="settings_rounding_direction">اتجاه التقريب</string>
+    <string name="settings_percentage">نسبة مئوية</string>
+    <string name="settings_fixed_per_shift">مبلغ ثابت لكل مناوبة</string>
+    <string name="settings_new_comp_profile">ملفّ أجر جديد</string>
+    <string name="settings_comp_profile_name_placeholder">مثال: وظيفة ثانية، عمل نهاية الأسبوع</string>
+    <string name="settings_create">إنشاء</string>
+    <string name="settings_premium_stacking">تراكم العلاوات</string>
+    <string name="settings_use_hhmm">استخدم صيغة ساعة:دقيقة، مثل 22:00</string>
+
+    <!-- Timezone picker -->
+    <string name="settings_timezone">المنطقة الزمنية</string>
+    <string name="settings_timezone_search_hint">ابحث في مناطق ‏IANA (مثل ‏Europe/London)</string>
+    <string name="settings_no_matching_timezones">لا مناطق زمنية مطابقة</string>
+
+    <string name="settings_clock_faces">واجهات الساعة</string>
+    <string name="settings_clock_faces_desc">‏14 نمطًا لساعتك الرئيسية</string>
+    <string name="settings_reduce_motion">تقليل الحركة</string>
+    <string name="settings_reduce_motion_desc">تقليل الرسوم المتحرّكة في التطبيق كله</string>
+    <string name="settings_preview">معاينة</string>
+
+    <!-- Features -->
+    <string name="settings_travel_refunds">استرداد بدل السفر</string>
+    <string name="settings_travel_refunds_desc">تتبّع استرداد تكاليف المواصلات لمناوبات الليل المتأخر أو العطل</string>
+    <string name="settings_insights_analytics">الرؤى والتحليلات</string>
+    <string name="settings_insights_analytics_desc">ملخّصات ذكية واتجاهات أسبوعية وتنبيهات إرشادية يومية</string>
+    <string name="settings_overtime_reminders">تذكيرات الساعات الإضافية</string>
+    <string name="settings_overtime_reminders_desc">استلم تذكيرات بتسجيل الانصراف أثناء المناوبة، وفق جدول تبنيه أدناه</string>
+    <string name="settings_reminder_schedule_title">جدول التذكيرات</string>
+    <string name="settings_remind_me">ذكّرني</string>
+    <string name="settings_rule_before_overtime">قبل الساعات الإضافية</string>
+    <string name="settings_rule_after_overtime">بعد الساعات الإضافية</string>
+    <string name="settings_rule_at_specific_time">في وقت محدَّد</string>
+    <string name="settings_rule_minutes_short">%1$d د</string>
+    <string name="settings_rule_one_hour">ساعة واحدة</string>
+    <string name="settings_rule_when_it_starts">عند بدئها</string>
+    <string name="settings_rule_every_minutes">كل %1$d د</string>
+    <string name="settings_rule_every_hour">كل ساعة</string>
+    <string name="settings_rule_every_n_hours">كل %1$d ساعات</string>
+    <string name="settings_rule_pick_time">اختر وقت التذكير</string>
+    <string name="settings_rule_time_ok">حسنًا</string>
+    <string name="settings_rule_time_cancel">إلغاء</string>
+    <string name="settings_rule_pick_days">التكرار في</string>
+    <string name="settings_rule_pick_days_hint">انقر على يوم لتفعيله أو تعطيله. ولا يُرسل التذكير إلا في الأيام المعلَّمة بعلامة صح.</string>
+    <string name="settings_rule_days_selected_summary">سيُرسل التذكير: %1$s</string>
+    <string name="settings_rule_days_none_selected">اختر يومًا واحدًا على الأقل للحفظ.</string>
+    <string name="settings_rule_days_done">تم</string>
+    <string name="settings_rule_every_day">كل يوم</string>
+    <string name="settings_day_short_sun">أحد</string>
+    <string name="settings_day_short_mon">اثنين</string>
+    <string name="settings_day_short_tue">ثلاثاء</string>
+    <string name="settings_day_short_wed">أربعاء</string>
+    <string name="settings_day_short_thu">خميس</string>
+    <string name="settings_day_short_fri">جمعة</string>
+    <string name="settings_day_short_sat">سبت</string>
+    <string name="settings_notification_create">إنشاء إشعار</string>
+    <string name="settings_notification_edit_title">تعديل الإشعار</string>
+    <string name="settings_notification_delete">حذف الإشعار</string>
+    <string name="settings_notification_done">تم</string>
+    <string name="settings_rule_summary_generic">%1$s %2$s</string>
+    <string name="settings_rule_summary_at_time">%1$s · %2$s</string>
+    <string name="settings_reminder_schedule_empty">لا تذكيرات بعد. انقر على “إنشاء إشعار” لإضافة واحد.</string>
+    <string name="settings_reminder_schedule_footer">تُطلق التذكيرات أثناء تسجيل حضورك فقط. وهي محفوظة على هذا الجهاز.</string>
+    <string name="settings_features_footer">نُقلت واجهات الساعة إلى المظهر. وتعطيل ميزة يخفي علاماتها وبطاقاتها في التطبيق كله.</string>
+
+    <!-- Wear OS -->
+    <string name="settings_wear_title">ساعة ‏Wear OS</string>
+    <string name="settings_wear_hub_subtitle">اتصال الساعة ومزامنة المناوبات</string>
+    <string name="settings_wear_section_watch">الساعة</string>
+    <string name="settings_wear_section_sync">المزامنة</string>
+    <string name="settings_wear_checking">جارٍ البحث عن ساعة مقترنة…</string>
+    <string name="settings_wear_status_connected">الساعة متصلة</string>
+    <string name="settings_wear_status_connected_no_app">الساعة متصلة — التطبيق غير مثبَّت</string>
+    <string name="settings_wear_status_no_watch">لا ساعة متصلة</string>
+    <string name="settings_wear_status_sync_off">مزامنة الساعة معطّلة</string>
+    <string name="settings_wear_status_unavailable">تحتاج ميزات ‏Wear OS إلى خدمات ‏Google Play، وهي غير متوفّرة على هذا الهاتف.</string>
+    <string name="settings_wear_status_unavailable_short">‏Wear OS غير متوفّر</string>
+    <string name="settings_wear_watch_nearby">قريبة</string>
+    <string name="settings_wear_watch_remote">متصلة عن بُعد</string>
+    <string name="settings_wear_app_installed">‏ElmTrackr مثبَّت</string>
+    <string name="settings_wear_app_missing">‏ElmTrackr غير موجود على هذه الساعة بعد. افتح ‏Play Store على الساعة لتثبيته.</string>
+    <string name="settings_wear_pairing_hint">لم تُعثر على ساعة. اقرن واحدة بهذا الهاتف باستخدام تطبيق ‏Wear OS — وسيتصل ‏ElmTrackr بها تلقائيًا.</string>
+    <string name="settings_wear_refresh">تحديث</string>
+    <string name="settings_wear_sync_toggle">مزامنة المناوبات مع الساعة</string>
+    <string name="settings_wear_sync_toggle_desc">اعرض حالة مناوبتك وساعات اليوم على الساعة، واسمح بتسجيل الحضور والانصراف منها</string>
+    <string name="settings_wear_sync_now">مزامنة الآن</string>
+    <string name="settings_wear_sync_sent">أُرسلت إلى الساعة في %1$s</string>
+    <string name="settings_wear_disabled_hint">المزامنة معطّلة: تعرض الساعة شاشة تسجيل خروج، وتُهمَل عمليات التسجيل منها.</string>
+    <string name="settings_wear_graphic_connected">رسم توضيحي لساعة ذكية، متصلة</string>
+    <string name="settings_wear_graphic_disconnected">رسم توضيحي لساعة ذكية، غير متصلة</string>
+
+    <!-- Help & about -->
+    <string name="settings_section_about">حول التطبيق</string>
+    <string name="settings_version">الإصدار</string>
+    <string name="settings_privacy_policy">سياسة الخصوصية</string>
+    <string name="settings_privacy_policy_subtitle">كيف نتعامل مع بياناتك</string>
+    <string name="settings_terms_of_service">شروط الخدمة</string>
+    <string name="settings_terms_subtitle">أحكام الاستخدام وشروطه</string>
+    <string name="settings_replay_onboarding">إعادة الإعداد الأولي</string>
+    <string name="settings_replay_onboarding_subtitle">مراجعة إعداد الميزات والخيارات</string>
+    <string name="settings_rate_app">قيّم ‏ElmTrackr</string>
+    <string name="settings_rate_app_subtitle">اترك تقييمًا على ‏Google Play</string>
+    <string name="settings_send_feedback">إرسال ملاحظات</string>
+    <string name="settings_send_feedback_subtitle">أرسل إلينا أفكارك أو المشكلات بالبريد الإلكتروني</string>
+    <string name="settings_feedback_email_subject">ملاحظات على ‏ElmTrackr</string>
+    <string name="settings_support_email">الدعم: %1$s</string>
+    <string name="settings_section_sync">المزامنة</string>
+    <string name="settings_sync_pending_failed">%1$s معلَّقة · %2$s فاشلة</string>
+    <string name="settings_sync_changes_waiting">%1$s تغييرات في انتظار المزامنة</string>
+    <string name="settings_all_changes_synced">تمت مزامنة كل التغييرات</string>
+    <string name="settings_status">الحالة</string>
+    <string name="settings_last_sync">آخر مزامنة</string>
+    <string name="settings_sync_details">تفاصيل المزامنة</string>
+    <string name="settings_sync_failed_view_rows">%1$s فاشلة · عرض الصفوف المعلَّقة</string>
+    <string name="settings_sync_pending_view_breakdown">%1$s معلَّقة · عرض التفصيل</string>
+    <string name="settings_sync_details_subtitle">الحالة المحلية مقابل المتزامنة وتصدير النسخة الاحتياطية</string>
+    <string name="settings_sync_now">مزامنة الآن</string>
+
+    <!-- Sync details -->
+    <string name="settings_sync_details_tagline">ما هو مخزَّن هنا وما هو مرفوع</string>
+    <string name="settings_not_synced_yet">لم تُجرَ مزامنة على هذا الجهاز بعد</string>
+    <!-- Arabic needs all six CLDR categories: 3-10 takes the broken plural
+         (تغييرات), 11-99 and 100+ take the singular (تغييرًا). -->
+    <plurals name="settings_sync_hero_waiting">
+        <item quantity="zero">لا تغييرات في الانتظار</item>
+        <item quantity="one">تغيير واحد في الانتظار</item>
+        <item quantity="two">تغييران في الانتظار</item>
+        <item quantity="few">%1$d تغييرات في الانتظار</item>
+        <item quantity="many">%1$d تغييرًا في الانتظار</item>
+        <item quantity="other">%1$d تغيير في الانتظار</item>
+    </plurals>
+    <string name="settings_sync_hero_all_synced">كل شيء متزامن</string>
+    <string name="settings_sync_last_synced">آخر مزامنة %1$s</string>
+    <!-- Same six categories; صفوف for 3-10, صفًّا for 11-99 and above. -->
+    <plurals name="settings_sync_rows_attention">
+        <item quantity="zero">لا صفوف تحتاج إلى انتباه</item>
+        <item quantity="one">صف واحد يحتاج إلى انتباه</item>
+        <item quantity="two">صفان يحتاجان إلى انتباه</item>
+        <item quantity="few">%1$d صفوف تحتاج إلى انتباه</item>
+        <item quantity="many">%1$d صفًّا يحتاج إلى انتباه</item>
+        <item quantity="other">%1$d صف يحتاج إلى انتباه</item>
+    </plurals>
+    <string name="settings_section_on_device">على هذا الجهاز</string>
+    <string name="settings_section_backup">النسخ الاحتياطي</string>
+    <string name="settings_retry">إعادة المحاولة</string>
+    <string name="settings_preparing_backup">جارٍ تحضير النسخة الاحتياطية…</string>
+    <string name="settings_export_backup">تصدير نسخة احتياطية</string>
+    <string name="settings_importing">جارٍ الاستيراد…</string>
+    <string name="settings_import_backup">استيراد نسخة احتياطية</string>
+    <string name="settings_backup_hint">ملف ‏JSON يحتوي على مناوباتك واستردادات السفر وإعدادات الأجر والمشاريع والفواتير. صور الإيصالات غير مشمولة. والاستيراد لا يستبدل العناصر الموجودة أبدًا.</string>
+    <string name="settings_backup_privacy_warning">الملف غير مشفَّر. وكل من يفتحه يستطيع قراءة ساعاتك وأجرك وتفاصيل عملائك، فاحفظه في مكان خاص.</string>
+    <string name="settings_synced_on_device">%1$s متزامنة</string>
+    <string name="settings_up_to_date">محدَّث</string>
+    <string name="settings_count_pending">%1$s معلَّقة</string>
+
+    <!-- Save/account feedback -->
+    <string name="settings_feedback_saved">تم حفظ الإعدادات</string>
+    <string name="settings_feedback_save_failed">تعذّر حفظ الإعدادات</string>
+    <string name="settings_feedback_fix_fields">صحّح الحقول المعلَّمة قبل الحفظ</string>
+    <string name="settings_feedback_account_deleted">تم حذف الحساب</string>
+    <string name="settings_feedback_local_cleared">تم محو البيانات المحلية</string>
+    <string name="settings_feedback_reset_sent">أُرسل رابط إعادة التعيين إلى %1$s. تحقّق من صندوق بريدك.</string>
+    <string name="settings_feedback_profile_created">تم إنشاء الملف</string>
+    <string name="settings_premium_error_name">أدخل اسم الملف</string>
+    <string name="settings_premium_error_multiplier">أدخل مضاعفًا صحيحًا</string>
+    <string name="settings_premium_feedback_saved">تم حفظ ملفّ العلاوة</string>
+    <string name="settings_premium_feedback_removed">تم إزالة الملف</string>
+    <string name="settings_premium_error_load">تعذّر تحميل ملفات العلاوات</string>
+    <string name="settings_premium_error_save">تعذّر حفظ ملفّ العلاوة</string>
+    <string name="settings_premium_error_delete">تعذّر إزالة الملف</string>
+    <string name="settings_feedback_profile_deleted">تم حذف الملف</string>
+    <string name="settings_feedback_delete_failed">تعذّر حذف الملف</string>
+    <string name="settings_feedback_delete_last_profile">لا يمكنك حذف ملفك الوحيد</string>
+    <string name="settings_feedback_create_failed">فشل الإنشاء</string>
+    <string name="settings_feedback_rules_saved">تم حفظ قواعد الأجر</string>
+    <string name="settings_error_no_comp_profile">لم يُعثر على ملفّ أجر. افتح إعدادات الرواتب أو أكمل الإعداد الأولي.</string>
+
+    <!-- Field validation -->
+    <string name="settings_error_positive">يجب أن تكون القيمة موجبة</string>
+    <string name="settings_error_max_24">لا يمكن أن تتجاوز 24 ساعة</string>
+    <string name="settings_error_max_168">لا يمكن أن تتجاوز 168 ساعة</string>
+    <string name="settings_error_weekly_gte_daily">يجب أن تكون ≥ الحد اليومي</string>
+    <string name="settings_error_rate_nonnegative">يجب أن تكون صفرًا أو أكثر</string>
+
+    <!-- Sync status / feedback -->
+    <string name="sync_synced_just_now">تمت المزامنة الآن</string>
+    <string name="sync_synced_min_ago">تمت المزامنة قبل %1$d د</string>
+    <string name="sync_synced_today_at">تمت المزامنة اليوم في %1$s</string>
+    <string name="sync_synced_on">تمت المزامنة في %1$s</string>
+    <string name="sync_failed_with">فشلت المزامنة — %1$s</string>
+    <string name="sync_finished">انتهت المزامنة</string>
+    <string name="sync_failed">فشلت المزامنة</string>
+    <!-- Replaces sync_failed_with / settings_sync_synced_with_warnings, which
+         interpolated the pipeline's own untranslated diagnostics. -->
+    <string name="sync_not_configured">المزامنة السحابية غير مُهيّأة. بياناتك محفوظة على هذا الجهاز.</string>
+    <string name="sync_failed_retrying">لم تكتمل المزامنة. وسنعيد المحاولة تلقائيًا.</string>
+    <string name="settings_sync_synced_some_skipped">تمت المزامنة، لكن تم تخطّي بعض العناصر.</string>
+    <string name="sync_session_expired">انتهت صلاحية جلستك. سجّل الدخول مرة أخرى لاستئناف المزامنة.</string>
+    <string name="sync_backup_ready">النسخة الاحتياطية جاهزة للمشاركة</string>
+    <string name="sync_export_failed">تعذّر تصدير النسخة الاحتياطية</string>
+    <string name="sync_import_failed">تعذّر استيراد النسخة الاحتياطية</string>
+    <string name="sync_import_nothing_new">لا شيء لاستيراده — كل ما في هذه النسخة الاحتياطية موجود بالفعل.</string>
+    <string name="sync_import_empty">لم تحتوِ النسخة الاحتياطية على بيانات للاستيراد.</string>
+    <string name="sync_import_count">تم استيراد %1$d عنصر.</string>
+    <string name="sync_import_count_skipped">تم استيراد %1$d عنصر (‏%2$d كان موجودًا بالفعل).</string>
+
+    <!-- Shared list UI -->
+    <string name="settings_unsaved_change">%1$s تغيير غير محفوظ</string>
+    <string name="settings_unsaved_changes">%1$s تغييرات غير محفوظة</string>
+    <string name="settings_collapse">طي %1$s</string>
+    <string name="settings_expand">توسيع %1$s</string>
+
+    <!-- Premium profiles -->
+    <string name="settings_premium_profiles_tagline">معدلات قابلة لإعادة الاستخدام للمناوبات الخاصة</string>
+    <string name="settings_new">جديد</string>
+    <string name="settings_your_profiles">ملفاتك</string>
+    <string name="settings_new_profile">ملف جديد</string>
+    <string name="settings_edit_profile">تعديل الملف</string>
+    <string name="settings_default">افتراضي</string>
+    <string name="settings_delete_profile">حذف الملف</string>
+    <string name="settings_remove_this_rate">إزالة هذا المعدل</string>
+    <string name="settings_delete_comp_profile_title">حذف “%1$s”؟</string>
+    <string name="settings_delete_comp_profile_body">تحتفظ المناوبات التي سجّلتها بالأجر الذي حُسب لها. ويُزال الملف من أجهزتك المتزامنة أيضًا. ولا يمكن التراجع عن هذا.</string>
+    <string name="settings_delete">حذف</string>
+    <string name="settings_profile_name">اسم الملف</string>
+    <string name="settings_multiplier">المضاعف</string>
+    <string name="settings_multiplier_hint" formatted="false">‏1.5 = أجر بنسبة 150%</string>
+    <string name="settings_multiplier_equals">= أجر بنسبة %1$d%%</string>
+    <string name="settings_premium_type">نوع العلاوة</string>
+    <string name="settings_save_profile">حفظ الملف</string>
+    <!-- Crash reporting -->
+    <string name="settings_crash_reports">مشاركة تقارير الأعطال</string>
+    <string name="settings_crash_reports_desc">أرسل تشخيصات أعطال مجهولة المصدر للمساعدة في إصلاح الأخطاء. ولا تُضمَّن مناوباتك ولا أجرك ولا تفاصيلك الشخصية أبدًا.</string>
+    <string name="settings_night_il_note">يُعالَج العمل الليلي في الإعداد الجاهز لإسرائيل تلقائيًا: المناوبة التي تضم ساعتين أو أكثر بين 22:00 و06:00 تستخدم معيارًا يوميًا مختصرًا من 7 ساعات، فتبدأ الساعات الإضافية أبكر. ولا ينطبق مضاعف ليلي منفصل.</string>
+    <string name="settings_delete_premium_title">حذف معدل العلاوة؟</string>
+    <string name="settings_delete_premium_text">ستُزال \"%1$s\". وتحتفظ المناوبات التي استخدمتها بأجرها المحفوظ، لكن لن تستطيع تطبيقها على مناوبات جديدة.</string>
+    <string name="settings_discard_title">تجاهل التغييرات؟</string>
+    <string name="settings_discard_text">لديك تغييرات غير محفوظة في هذه الشاشة.</string>
+    <string name="settings_discard_confirm">تجاهل</string>
+    <string name="settings_discard_keep">متابعة التعديل</string>
+    <string name="settings_pay_default_job_note">تنطبق هذه القيم على وظيفتك الافتراضية (%1$s). أما معدلات الوظائف الأخرى وساعاتها فتُعدَّل في قواعد الأجر.</string>
+    <!-- Android share sheet for the local JSON backup -->
+    <string name="settings_backup_share_subject">نسخة ‏ElmTrackr الاحتياطية المحلية</string>
+    <string name="settings_backup_share_chooser">تصدير النسخة الاحتياطية المحلية</string>
+    <string name="settings_sync_synced_with_warnings">تمت المزامنة مع تحذيرات: %1$s</string>
+    <string name="settings_sync_synced_unsent">تمت المزامنة. التغييرات غير المرفوعة: %1$d</string>
+</resources>

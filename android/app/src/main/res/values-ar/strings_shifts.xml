@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ShiftsScreen -->
+    <string name="shifts_empty_title">لا مناوبات هذا الشهر</string>
+    <string name="shifts_empty_subtitle">سجّل الحضور من الشاشة الرئيسية أو أضف مناوبة يدويًا.</string>
+    <string name="shifts_ok">حسنًا</string>
+    <string name="shifts_cancel">إلغاء</string>
+    <string name="shifts_select_time">اختيار الوقت</string>
+
+    <!-- ShiftsListUi -->
+    <string name="shifts_title">المناوبات</string>
+    <string name="shifts_this_week">هذا الأسبوع</string>
+    <string name="shifts_add">إضافة</string>
+    <string name="shifts_previous_month">الشهر السابق</string>
+    <string name="shifts_next_month">الشهر التالي</string>
+    <string name="shifts_hours_tracked_header">الساعات المتتبَّعة</string>
+    <string name="shifts_est_gross_header">الإجمالي التقديري</string>
+    <string name="shifts_hours_value">%1$s س</string>
+    <string name="shifts_hours_value_spaced">%1$s س</string>
+    <string name="shifts_legend_regular">عادي</string>
+    <string name="shifts_legend_overtime">ساعات إضافية</string>
+    <string name="shifts_legend_weekend">نهاية الأسبوع</string>
+    <string name="shifts_badge_premium">علاوة</string>
+    <string name="shifts_badge_weekend">نهاية الأسبوع</string>
+    <string name="shifts_badge_ot">إضافي</string>
+    <string name="shifts_badge_live">مباشر</string>
+    <string name="shifts_badge_now">الآن</string>
+    <string name="shifts_time_range">%1$s - %2$s</string>
+    <string name="shifts_break_line">استراحة %1$d د</string>
+    <string name="shifts_on_shift">في مناوبة</string>
+    <string name="shifts_since">منذ %1$s</string>
+    <string name="shifts_add_past_shift">إضافة مناوبة سابقة</string>
+
+    <!-- ShiftEditFormUi -->
+    <string name="shifts_discard_title">تجاهل التغييرات؟</string>
+    <!-- Arabic needs all six CLDR categories: 3-10 takes the broken plural
+         (تغييرات), 11-99 and 100+ take the singular (تغييرًا). -->
+    <plurals name="shifts_discard_text">
+        <item quantity="zero">لا توجد تغييرات غير محفوظة.</item>
+        <item quantity="one">لديك تغيير واحد غير محفوظ. والخروج الآن يتجاهله.</item>
+        <item quantity="two">لديك تغييران غير محفوظين. والخروج الآن يتجاهلهما.</item>
+        <item quantity="few">لديك %d تغييرات غير محفوظة. والخروج الآن يتجاهلها.</item>
+        <item quantity="many">لديك %d تغييرًا غير محفوظ. والخروج الآن يتجاهلها.</item>
+        <item quantity="other">لديك %d تغيير غير محفوظ. والخروج الآن يتجاهلها.</item>
+    </plurals>
+    <string name="shifts_discard_confirm">تجاهل</string>
+    <string name="shifts_discard_keep">متابعة التعديل</string>
+    <string name="shifts_delete_dialog_title">حذف المناوبة؟</string>
+    <string name="shifts_delete_dialog_text">ستُزال هذه المناوبة. وستتزامن عملية الحذف عند الاتصال بالإنترنت.</string>
+    <string name="shifts_delete">حذف</string>
+    <string name="shifts_back">رجوع</string>
+    <string name="shifts_edit_shift_title">تعديل المناوبة</string>
+    <string name="shifts_new_shift_title">مناوبة جديدة</string>
+    <string name="shifts_estimated_pay_header">الأجر التقديري • يتحدّث أثناء التعديل</string>
+    <string name="shifts_pay_bracket_line">%1$s س %2$s - %3$s</string>
+    <string name="shifts_section_when">الوقت</string>
+    <string name="shifts_section_break_premium">الاستراحة والعلاوة</string>
+    <string name="shifts_section_pay_task">الأجر والمهمة</string>
+    <string name="shifts_section_notes">ملاحظات</string>
+    <string name="shifts_start_label">البداية</string>
+    <string name="shifts_end_label">النهاية</string>
+    <string name="shifts_pick_date">اختيار تاريخ %1$s</string>
+    <string name="shifts_pick_time">اختيار وقت %1$s</string>
+    <string name="shifts_still_on_shift">ما زلت في المناوبة</string>
+    <string name="shifts_active">نشطة</string>
+    <string name="shifts_tap_to_set_end">انقر لتحديد النهاية</string>
+    <string name="shifts_hours_paid">%1$s س مدفوعة</string>
+    <string name="shifts_when_summary">%1$s عمل • استراحة %2$d د • %3$s</string>
+    <string name="shifts_unpaid_break">استراحة غير مدفوعة</string>
+    <string name="shifts_break_minutes_value">%1$d د</string>
+    <string name="shifts_task_label">المهمة</string>
+    <string name="shifts_task_edit_hint">غيّر المهمة التي استخدمتها هذه المناوبة — ويتحدّث الأجر عند الحفظ.</string>
+    <string name="shifts_task_none">بلا</string>
+    <string name="shifts_saved_task">المهمة المحفوظة: %1$s %2$s (%3$s/ساعة)</string>
+    <string name="shifts_notes_placeholder">أضف ملاحظات عن هذه المناوبة…</string>
+    <string name="shifts_travel_refund">استرداد بدل السفر</string>
+    <string name="shifts_travel_refund_subtitle">أضف مطالبات استرداد تكاليف الرحلات لهذه المناوبة</string>
+    <string name="shifts_close">إغلاق</string>
+    <string name="shifts_claim">مطالبة</string>
+    <string name="shifts_delete_shift">حذف المناوبة</string>
+    <string name="shifts_save">حفظ</string>
+    <string name="shifts_unsaved_changes_one">%1$d تغيير غير محفوظ</string>
+    <string name="shifts_unsaved_changes_other">%1$d تغييرات غير محفوظة</string>
+
+    <!-- CompensationProfilePicker / PremiumProfilePicker -->
+    <string name="shifts_compensation_profile_label">ملفّ الأجر</string>
+    <string name="shifts_add_compensation_profile">إضافة ملف</string>
+    <string name="shifts_new_compensation_profile_title">ملفّ أجر جديد</string>
+    <string name="shifts_compensation_profile_name_label">اسم الملف</string>
+    <string name="shifts_compensation_profile_name_placeholder">مثال: وظيفة ثانية، عمل نهاية الأسبوع</string>
+    <string name="shifts_create_profile">إنشاء</string>
+    <string name="shifts_premium_label">العلاوة</string>
+    <string name="shifts_no_premium">بلا علاوة</string>
+    <string name="shifts_premium_applies">يطبّق معدل %1$d%% على هذه المناوبة</string>
+    <string name="shifts_premium_standard">أجر عادي إلا إذا انطبقت قواعد نهاية الأسبوع</string>
+
+    <!-- RideProviderGraphics -->
+    <string name="shifts_ride_provider">مزوّد الرحلة</string>
+    <string name="shifts_ride_provider_a11y">مزوّد الرحلة %1$s</string>
+    <string name="shifts_ride_provider_a11y_selected">مزوّد الرحلة %1$s، محدَّد</string>
+
+    <!-- ViewModel feedback and validation -->
+    <string name="shifts_feedback_added">تمت إضافة المناوبة</string>
+    <string name="shifts_feedback_updated">تم تحديث المناوبة</string>
+    <string name="shifts_refund_saved_without_receipt">تم حفظ المطالبة دون الإيصال — الرفع غير متاح حاليًا. افتح المطالبة لإرفاقه لاحقًا.</string>
+    <string name="shifts_feedback_deleted">تم حذف المناوبة</string>
+    <string name="shifts_error_end_after_start">يجب أن يكون وقت النهاية بعد وقت البداية</string>
+    <string name="shifts_error_break_negative">يجب أن تكون دقائق الاستراحة صفرًا أو أكثر</string>
+    <string name="shifts_error_break_too_long">لا يمكن أن تكون الاستراحة أطول من المناوبة نفسها</string>
+    <string name="shifts_error_refund_amount">أدخل مبلغ استرداد صحيحًا</string>
+    <string name="shifts_error_refund_shift_missing">لم يتم العثور على المناوبة</string>
+    <string name="shifts_error_refund_sign_in">سجّل الدخول قبل حفظ المطالبة</string>
+    <string name="shifts_error_refund_save_failed">تعذّر حفظ مطالبة الاسترداد</string>
+
+    <!-- Rate section (weekend/holiday override) -->
+    <string name="shifts_section_rate">معدل الأجر</string>
+    <string name="shifts_section_break">الاستراحة</string>
+    <string name="shifts_premium_toggle">معدل نهاية الأسبوع / العطلة</string>
+    <string name="shifts_premium_auto_on">ينطبق تلقائيًا — هذا اليوم من أيام نهاية أسبوعك</string>
+    <string name="shifts_premium_auto_off">معدل عادي — هذا اليوم ليس من أيام نهاية أسبوعك</string>
+    <string name="shifts_premium_forced_off">معدل عادي لهذه المناوبة — يتجاوز أيام نهاية أسبوعك</string>
+    <string name="shifts_premium_on_hint">اختر علاوة للعطل والأيام الخاصة، أو اترك \"بلا\" لاستخدام معدل نهاية الأسبوع</string>
+</resources>

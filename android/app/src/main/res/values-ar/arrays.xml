@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Short weekday labels, Sunday first (0 = Sunday). CLDR's short Arabic
+         forms, so these read the same as any date the app formats itself. -->
+    <string-array name="weekday_short_labels">
+        <item>أحد</item>
+        <item>اثنين</item>
+        <item>ثلاثاء</item>
+        <item>أربعاء</item>
+        <item>خميس</item>
+        <item>جمعة</item>
+        <item>سبت</item>
+    </string-array>
+</resources>

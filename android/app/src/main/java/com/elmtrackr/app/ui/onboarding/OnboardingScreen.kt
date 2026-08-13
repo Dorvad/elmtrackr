@@ -726,12 +726,13 @@ private fun SetupCard(content: @Composable () -> Unit) {
 internal fun WelcomeStep(replay: Boolean, onNext: () -> Unit) {
     // Language lives here rather than on a screen of its own. It was the very
     // first thing the wizard asked, before the app had said what it was — and it
-    // is one choice with two options, which is not a screen's worth of decision.
+    // is a short list of options, which is not a screen's worth of decision.
     // Picking one applies it immediately and recreates the activity;
     // rememberSaveable in the host keeps the flow on this step.
     val context = LocalContext.current
-    val uiLanguage = LocalConfiguration.current.locales[0]?.language
-    val hebrewSelected = uiLanguage == "he" || uiLanguage == "iw"
+    // Read off the configuration rather than AppLanguage.current(), so the card
+    // marked is the language on screen even when the choice is the device's.
+    val selectedLanguage = AppLanguage.forLanguageCode(LocalConfiguration.current.locales[0]?.language)
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(132.dp), contentAlignment = Alignment.Center) {
@@ -760,16 +761,23 @@ internal fun WelcomeStep(replay: Boolean, onNext: () -> Unit) {
             LanguageOptionCard(
                 title = "English",
                 subtitle = "Track your hours in English",
-                selected = !hebrewSelected,
+                selected = selectedLanguage == AppLanguage.ENGLISH,
                 layoutDirection = LayoutDirection.Ltr,
                 onClick = { AppLanguage.apply(context, AppLanguage.ENGLISH) },
             )
             LanguageOptionCard(
                 title = "עברית",
                 subtitle = "לעקוב אחרי השעות שלך בעברית",
-                selected = hebrewSelected,
+                selected = selectedLanguage == AppLanguage.HEBREW,
                 layoutDirection = LayoutDirection.Rtl,
                 onClick = { AppLanguage.apply(context, AppLanguage.HEBREW) },
+            )
+            LanguageOptionCard(
+                title = "العربية",
+                subtitle = "تتبّع ساعات عملك بالعربية",
+                selected = selectedLanguage == AppLanguage.ARABIC,
+                layoutDirection = LayoutDirection.Rtl,
+                onClick = { AppLanguage.apply(context, AppLanguage.ARABIC) },
             )
         }
         Spacer(Modifier.height(16.dp))

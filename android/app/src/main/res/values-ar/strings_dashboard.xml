@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notification permission rationale dialog -->
+    <string name="dashboard_notif_rationale_title">ابقَ على اطّلاع بمناوبتك</string>
+    <string name="dashboard_notif_rationale_text">يستخدم ‏ElmTrackr الإشعارات لإبقاء مناوبتك النشطة ظاهرة وتذكيرك قبل بدء الساعات الإضافية.</string>
+    <string name="dashboard_notif_rationale_continue">متابعة</string>
+    <string name="dashboard_notif_rationale_not_now">ليس الآن</string>
+
+    <!-- Load-failure fallback -->
+    <string name="dashboard_error_message">حدث خطأ ما: %1$s</string>
+
+    <!-- Header -->
+    <string name="dashboard_greeting_morning">صباح الخير</string>
+    <string name="dashboard_greeting_afternoon">طاب يومك</string>
+    <string name="dashboard_greeting_evening">مساء الخير</string>
+    <string name="dashboard_greeting_with_name">%1$s · %2$s</string>
+    <string name="dashboard_wordmark">elmtrackr</string>
+
+    <!-- Refund reminder banner -->
+    <string name="dashboard_refund_pending_one">%1$d استرداد سفر معلَّق</string>
+    <string name="dashboard_refund_pending_other">%1$d عمليات استرداد سفر معلَّقة</string>
+    <string name="dashboard_refund_banner_body">نهاية الشهر تقترب — لا تنسَ تقديم مطالبات المواصلات.</string>
+    <string name="dashboard_refund_banner_review">مراجعة الاستردادات ←</string>
+    <string name="dashboard_refund_banner_dismiss">إخفاء تذكير الاسترداد</string>
+
+    <!-- First-run welcome card -->
+    <string name="dashboard_welcome_title">أنت جاهز</string>
+    <string name="dashboard_welcome_body">سجّل الحضور مرة واحدة. واعرف ساعاتك وتقدير أجرك وساعاتك الإضافية فورًا.</string>
+    <string name="dashboard_welcome_button">تسجيل الحضور الآن</string>
+
+    <!-- Clock cards -->
+    <string name="dashboard_clock_in">تسجيل الحضور</string>
+    <string name="dashboard_clock_out">تسجيل الانصراف</string>
+    <string name="dashboard_clock_in_accessibility">تسجيل الحضور. بدء تتبّع مناوبتك.</string>
+    <string name="dashboard_clock_out_accessibility">تسجيل الانصراف. إنهاء مناوبتك الحالية.</string>
+    <string name="dashboard_overtime_label">ساعات إضافية</string>
+    <string name="dashboard_since_time">منذ %1$s</string>
+    <string name="dashboard_edit_start_time">تعديل وقت البداية</string>
+    <string name="dashboard_ready_to_clock_in">جاهز لتسجيل الحضور</string>
+    <string name="dashboard_clock_in_short">حضور</string>
+    <string name="dashboard_clock_out_short">انصراف</string>
+    <string name="dashboard_ready">جاهز</string>
+    <string name="dashboard_tap_to_start">انقر لبدء تتبّع مناوبتك</string>
+
+    <!-- Expressive clock card status labels. Capitalised in English for effect;
+         Arabic has no case, so the register carries the emphasis instead. -->
+    <string name="dashboard_clock_focus_session">جلسة تركيز</string>
+    <string name="dashboard_clock_ready_to_focus">جاهز للتركيز</string>
+    <string name="dashboard_clock_on_the_clock">في الدوام</string>
+    <string name="dashboard_clock_make_it_count">اجعلها ذات قيمة</string>
+    <string name="dashboard_clock_night_shift">مناوبة ليلية</string>
+    <string name="dashboard_clock_standby">في الانتظار</string>
+    <string name="dashboard_clock_shift_active">المناوبة نشطة</string>
+    <string name="dashboard_clock_system_ready">النظام جاهز</string>
+    <string name="dashboard_clock_ready_caps">جاهز</string>
+    <string name="dashboard_clock_elapsed">المنقضي</string>
+    <string name="dashboard_clock_workday">يوم العمل</string>
+    <string name="dashboard_clock_time_flowing">الوقت يجري</string>
+    <string name="dashboard_clock_in_orbit">في المدار</string>
+    <string name="dashboard_clock_tide_rising">المدّ يعلو</string>
+    <string name="dashboard_clock_growing">ينمو</string>
+    <string name="dashboard_clock_ready_to_grow">جاهز للنمو</string>
+    <string name="dashboard_clock_in_transit">في الطريق</string>
+    <string name="dashboard_clock_on_platform">على الرصيف</string>
+    <string name="dashboard_clock_now_playing">يُشغَّل الآن</string>
+    <string name="dashboard_clock_drop_needle">أنزِل الإبرة</string>
+    <string name="dashboard_clock_waxing">في التزايد</string>
+    <string name="dashboard_clock_new_moon">محاق</string>
+    <string name="dashboard_clock_climbing">في الصعود</string>
+    <string name="dashboard_clock_base_camp">في المخيّم الأساسي</string>
+
+    <!-- Month summary -->
+    <string name="dashboard_month_summary_title">ملخّص %1$s</string>
+    <string name="dashboard_shift_count_one">%1$d مناوبة</string>
+    <string name="dashboard_shift_count_other">%1$d مناوبات</string>
+    <string name="dashboard_hours_distribution">توزيع الساعات</string>
+    <!-- Quoted to keep the leading space, as in res/values. -->
+    <string name="dashboard_hours_total_suffix">" س إجمالًا"</string>
+    <string name="dashboard_hours_value">%1$s س</string>
+    <string name="dashboard_stat_total">الإجمالي</string>
+    <string name="dashboard_stat_regular">عادي</string>
+    <string name="dashboard_stat_overtime">ساعات إضافية</string>
+    <string name="dashboard_stat_weekend">نهاية الأسبوع</string>
+    <string name="dashboard_gross_pay_title">هذا الشهر - الأجر الإجمالي</string>
+    <string name="dashboard_before_tax_suffix">" قبل الضريبة"</string>
+    <string name="dashboard_pay_holiday">عطلة</string>
+
+    <!-- Recent shifts -->
+    <string name="dashboard_recent_shifts">المناوبات الأخيرة</string>
+    <string name="dashboard_no_completed_shifts">لا مناوبات مكتملة بعد</string>
+    <string name="dashboard_special_day_suffix">" خاص"</string>
+    <string name="dashboard_shift_time_range">%1$s - %2$s</string>
+
+    <!-- Edit start time dialog -->
+    <string name="dashboard_save">حفظ</string>
+    <string name="dashboard_cancel">إلغاء</string>
+    <!-- Getting-started checklist -->
+    <string name="dashboard_setup_title">لنبدأ</string>
+    <string name="dashboard_setup_subtitle">%1$d من %2$d مكتملة — تعرّف على ما يستطيع ‏ElmTrackr فعله</string>
+    <string name="dashboard_setup_dismiss">إخفاء القائمة</string>
+    <string name="dashboard_setup_step_done">مكتملة</string>
+    <string name="dashboard_setup_progress_accessibility">اكتملت %1$d من %2$d خطوات الإعداد</string>
+    <string name="dashboard_setup_shift_title">تتبّع مناوبتك الأولى</string>
+    <string name="dashboard_setup_shift_blurb">سجّل الحضور عند البدء والانصراف عند الانتهاء.</string>
+    <string name="dashboard_setup_shift_body">كل مناوبة تتتبّعها تتحوّل إلى تقدير للأجر: تُحسب الساعات العادية والإضافية وساعات نهاية الأسبوع كل على حدة، وبمعدلاتك الحقيقية.</string>
+    <string name="dashboard_setup_shift_action">تسجيل الحضور الآن</string>
+    <string name="dashboard_setup_name_title">أضف اسمك</string>
+    <string name="dashboard_setup_name_blurb">للترحيب على هذه الشاشة.</string>
+    <string name="dashboard_setup_name_body">يرحّب بك ‏ElmTrackr باسمك على الشاشة الرئيسية. ولا يستخدمه في أي شيء آخر، ولهذا لم نعد نسأل عنه قبل أن ترى التطبيق.</string>
+    <string name="dashboard_setup_name_action">أضف اسمك</string>
+    <string name="dashboard_setup_features_title">فعّل ما تحتاج إليه</string>
+    <string name="dashboard_setup_features_blurb">استرداد بدل السفر والرؤى والمشاريع المدفوعة.</string>
+    <string name="dashboard_setup_features_body">يتتبّع ‏ElmTrackr الساعات منذ اللحظة الأولى. فعّل استرداد بدل السفر لمطالبة تكاليف الرحلات، أو الرؤى لتتبّع الأنماط الأسبوعية، أو المشاريع المدفوعة لإصدار فواتير للعملاء.</string>
+    <string name="dashboard_setup_features_action">اطّلع على الإضافات</string>
+    <string name="dashboard_setup_lock_title">اقفل التطبيق</string>
+    <string name="dashboard_setup_lock_blurb">أجرك خلف بصمة إصبعك.</string>
+    <string name="dashboard_setup_lock_body">يحتفظ ‏ElmTrackr بساعاتك وأجرك وعملائك. وقفل التطبيق يطلب بصمة إصبعك أو قفل شاشتك قبل عرض أي منها.</string>
+    <string name="dashboard_setup_lock_action">إعداد قفل التطبيق</string>
+    <string name="dashboard_setup_clock_title">اجعل الساعة على ذوقك</string>
+    <string name="dashboard_setup_clock_blurb">‏15 واجهة ساعة للاختيار بينها.</string>
+    <string name="dashboard_setup_clock_body">الساعة الكبيرة على هذه الشاشة هي بطاقة دوامك. اختر واجهة تناسب ذوقك — من مينا بسيطة إلى مدّ يعلو.</string>
+    <string name="dashboard_setup_clock_action">اختر نمطًا</string>
+    <string name="dashboard_setup_compensation_title">تحقّق من قواعد أجرك</string>
+    <string name="dashboard_setup_compensation_blurb">معدلات الساعات الإضافية ونهاية الأسبوع والعطل.</string>
+    <string name="dashboard_setup_compensation_body">تقدير أجرك لا يكون أفضل من القواعد التي يقوم عليها. راجع حدود الساعات الإضافية ومضاعفات المعدلات، وقارنها بعقدك أو بقسيمة أجر حديثة — وإن اختلف أي شيء، فأكّد التفاصيل مع صاحب العمل.</string>
+    <string name="dashboard_setup_compensation_action">مراجعة قواعد الأجر</string>
+    <string name="dashboard_setup_premium_title">أضف معدل علاوة</string>
+    <string name="dashboard_setup_premium_blurb">ملفات معدلات إضافية قابلة لإعادة الاستخدام.</string>
+    <string name="dashboard_setup_premium_body" formatted="false">ملفّ العلاوة هو معدل إضافي بعلامة اسم — مثلًا 150% للعمل الليلي — يمكنك تطبيقه على أي مناوبة. أنشئ واحدًا وراقب كيف يغيّر أجر المناوبة.</string>
+    <string name="dashboard_setup_premium_action">إعداد العلاوات</string>
+    <string name="dashboard_setup_tasks_title">أنشئ مهمة</string>
+    <string name="dashboard_setup_tasks_blurb">معدل مختلف لكل مشروع أو عميل.</string>
+    <string name="dashboard_setup_tasks_body">تَسِم المهام مناوباتك بمشروع أو عميل، ولكل منها أجرها بالساعة — وهو أمر مفيد عندما يتوزّع وقتك على أعمال متعددة.</string>
+    <string name="dashboard_setup_tasks_action">أنشئ مهمة</string>
+    <string name="dashboard_setup_widget_title">أضف أداة إلى الشاشة الرئيسية</string>
+    <string name="dashboard_setup_widget_blurb">سجّل الحضور دون فتح التطبيق.</string>
+    <string name="dashboard_setup_widget_body">تعرض الأداة مناوبتك الجارية وتسجّل حضورك أو انصرافك بلمسة واحدة، من شاشتك الرئيسية مباشرة.</string>
+    <string name="dashboard_setup_widget_action">إضافة أداة</string>
+    <string name="dashboard_setup_celebration_title">كل شيء جاهز!</string>
+    <string name="dashboard_setup_celebration_body">لقد استكشفت الأساسيات. و‏ElmTrackr الآن يتتبّع مناوباتك ويحسب أجرها بالطريقة التي تعمل بها تمامًا.</string>
+    <string name="dashboard_start_time_future_error">لا يمكن أن يكون وقت البداية في المستقبل.</string>
+    <string name="dashboard_month_summary_open_report">عرض التقرير الكامل</string>
+    <string name="dashboard_gross_before_tax">الإجمالي · قبل الضريبة</string>
+</resources>
