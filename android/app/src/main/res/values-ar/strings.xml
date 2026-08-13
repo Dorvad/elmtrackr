@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ElmTrackr</string>
+    <string name="app_lock_action_blocked">افتح قفل ‏ElmTrackr داخل التطبيق لاستخدام هذا الإجراء</string>
+    <string name="shortcut_new_shift_short">مناوبة جديدة</string>
+    <string name="shortcut_new_shift_long">تسجيل مناوبة يدويًا</string>
+    <string name="shortcut_clock_in_short">تسجيل الحضور</string>
+    <string name="shortcut_clock_in_long">تسجيل الحضور في ‏ElmTrackr</string>
+    <string name="shortcut_clock_out_short">تسجيل الانصراف</string>
+    <string name="shortcut_clock_out_long">تسجيل الانصراف من ‏ElmTrackr</string>
+    <string name="widget_description">شريط 4×1 بمفتاح واحد: الحالة ومؤقّت مباشر وزر واحد لتسجيل الحضور والانصراف.</string>
+    <string name="widget_description_minimal">شريط تقدّم 4×1: تقدّم هدف اليوم ومفتاح دائري.</string>
+    <string name="widget_description_aurora">بطاقة طويلة 4×2: ساعة كبيرة وشريط إجراءات بعرض كامل.</string>
+    <string name="widget_description_ring">مفتاح دائري مربّع 1×1 يعرض تقدّم المناوبة.</string>
+    <string name="widget_description_big_action">مفتاح إجراء كبير مربّع 1×1 بأوسع مساحة لمس.</string>
+    <string name="widget_label_classic">‏ElmTrackr — مفتاح واحد</string>
+    <string name="widget_label_minimal">‏ElmTrackr — التقدّم</string>
+    <string name="widget_label_aurora">‏ElmTrackr — طويل</string>
+    <string name="widget_label_ring">‏ElmTrackr — دائرة</string>
+    <string name="widget_label_big_action">‏ElmTrackr — إجراء كبير</string>
+
+    <!-- Active shift notification -->
+    <string name="notif_active_shift_title">تم تسجيل الحضور</string>
+    <string name="notif_active_shift_text">منذ %1$s</string>
+    <string name="notif_clock_out_action">تسجيل الانصراف</string>
+
+    <!-- Overtime reminder notifications -->
+    <string name="notif_overtime_pre_warning_title">الساعات الإضافية تبدأ بعد 30 دقيقة</string>
+    <string name="notif_overtime_pre_warning_title_min">الساعات الإضافية تبدأ بعد %1$d دقيقة</string>
+    <string name="notif_overtime_pre_warning_text">مسجَّل الحضور منذ %1$s. تذكّر تسجيل الانصراف قبل بدء الساعات الإضافية.</string>
+    <string name="notif_scheduled_reminder_title">تذكير بتسجيل الانصراف</string>
+    <string name="notif_scheduled_reminder_text">ما زلت مسجَّل الحضور منذ %1$s.</string>
+    <string name="notif_overtime_at_threshold_title">أنت في الساعات الإضافية</string>
+    <string name="notif_overtime_at_threshold_text">مسجَّل الحضور منذ %1$s. قد يكون الوقت مناسبًا لتسجيل الانصراف.</string>
+    <string name="notif_overtime_hourly_title">ما زلت مسجَّل الحضور في الساعات الإضافية</string>
+    <string name="notif_overtime_hourly_text">أنت في الساعات الإضافية منذ %1$s. لا تنسَ تسجيل الانصراف.</string>
+
+    <!-- Legacy reminder strings (kept for screenshot/regression compatibility) -->
+    <string name="notif_reminder_title">ما زلت مسجَّل الحضور</string>
+    <string name="notif_reminder_text">منذ %1$s. انقر للمراجعة.</string>
+</resources>

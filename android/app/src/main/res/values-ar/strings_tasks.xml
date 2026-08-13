@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- TaskManagementScreen -->
+    <string name="tasks_title">المهام</string>
+    <string name="tasks_subtitle">تسميات لتسجيل الحضور لكل منها معدل أجر خاص</string>
+    <string name="tasks_back">رجوع</string>
+    <string name="tasks_delete_title">حذف \"%1$s\"؟</string>
+    <string name="tasks_delete_message">يزيل هذا المهمة من كل مكان. أما المناوبات التي استخدمتها فتحتفظ بالاسم والمعدل المسجَّلين فيها. ولا يمكن التراجع عن هذا.</string>
+    <string name="tasks_delete">حذف</string>
+    <string name="tasks_cancel">إلغاء</string>
+    <string name="tasks_add">إضافة</string>
+    <string name="tasks_your_tasks">مهامك</string>
+    <string name="tasks_empty_hint">لا مهام بعد. أضف مهمة لوسم المناوبات بمعدلات أجر مختلفة بالساعة.</string>
+    <string name="tasks_archived_header">المؤرشفة</string>
+    <string name="tasks_rate_per_hour">%1$s/ساعة</string>
+    <string name="tasks_archive_task">أرشفة هذه المهمة</string>
+    <string name="tasks_restore">استعادة</string>
+    <string name="tasks_schedule_defaults">الإعدادات الافتراضية للجدول</string>
+    <string name="tasks_schedule_defaults_hint">مستنتجة من سجلّك · تشغّل “المقترحة الآن”</string>
+    <string name="tasks_more_rules">‏+%1$d إضافية</string>
+    <string name="tasks_new_task">مهمة جديدة</string>
+    <string name="tasks_edit_task">تعديل المهمة</string>
+    <string name="tasks_name_label">اسم المهمة</string>
+    <string name="tasks_icon_label">الأيقونة</string>
+    <string name="tasks_color_label">اللون</string>
+    <string name="tasks_hourly_rate_label">الأجر بالساعة</string>
+    <string name="tasks_save">حفظ</string>
+    <string name="tasks_error_name_required">أدخل اسم المهمة</string>
+    <string name="tasks_error_name_exists">توجد مهمة بهذا الاسم بالفعل</string>
+    <string name="tasks_error_rate_invalid">أدخل أجرًا صحيحًا بالساعة</string>
+
+    <!-- TaskSelectorBar -->
+    <string name="tasks_task_label">المهمة</string>
+    <string name="tasks_manage">إدارة</string>
+    <string name="tasks_suggested_now">المقترحة الآن</string>
+    <string name="tasks_chip_suggested">✨ %1$s %2$s</string>
+    <string name="tasks_chip_a11y">%1$s، %2$s في الساعة</string>
+    <string name="tasks_chip_a11y_suggested">%1$s، %2$s في الساعة، مقترحة الآن</string>
+    <string name="tasks_selected_summary">%1$s %2$s · %3$s/ساعة</string>
+    <string name="tasks_badge_with_rate">%1$s %2$s · %3$s/ساعة</string>
+
+    <!-- ViewModel messages -->
+    <string name="tasks_msg_saved">تم حفظ المهمة</string>
+    <string name="tasks_msg_archived">تمت أرشفة المهمة</string>
+    <string name="tasks_msg_restored">تمت استعادة المهمة</string>
+    <string name="tasks_msg_deleted">تم حذف المهمة</string>
+</resources>

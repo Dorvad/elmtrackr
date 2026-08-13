@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App lock gate + biometric prompt -->
+    <string name="security_unlock_title">فتح قفل ‏ElmTrackr</string>
+    <string name="security_unlock_subtitle">أكّد هويتك لعرض بيانات الأجر والمناوبات</string>
+    <string name="security_locked_title">‏ElmTrackr مقفل</string>
+    <string name="security_locked_body">استخدم بصمة إصبعك أو التعرّف على وجهك أو رمز PIN الخاص بالجهاز للمتابعة.</string>
+    <string name="security_unlock_button">فتح القفل</string>
+
+    <!-- Security settings detail -->
+    <string name="security_section_app_lock">قفل التطبيق</string>
+    <string name="security_encryption_note">البيانات المحلية مشفَّرة في حالة السكون باستخدام ‏SQLCipher. وتُحجب إجراءات الأدوات والإشعارات أثناء قفل التطبيق.</string>
+    <string name="security_app_lock_suspended">قفل التطبيق متوقّف مؤقتًا لأن هذا الجهاز بلا قفل شاشة. اضبط بصمة إصبع أو فتحًا بالوجه أو رمز PIN في إعدادات النظام وسيعود إلى العمل من تلقاء نفسه.</string>
+    <!-- Biometric confirmation shown before the app lock is switched on or off -->
+    <string name="security_prompt_enable_title">تفعيل قفل التطبيق</string>
+    <string name="security_prompt_disable_title">تعطيل قفل التطبيق</string>
+    <string name="security_prompt_enable_subtitle">أكّد لطلب فتح القفل بالسمات الحيوية عند فتح ‏ElmTrackr</string>
+    <string name="security_prompt_disable_subtitle">أكّد لإيقاف قفل التطبيق بالسمات الحيوية</string>
+</resources>
