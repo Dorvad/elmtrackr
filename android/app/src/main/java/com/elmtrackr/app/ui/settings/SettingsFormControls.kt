@@ -263,6 +263,11 @@ internal fun LanguageSegmentedControl() {
                 onClick = { AppLanguage.apply(context, AppLanguage.ARABIC) },
                 label = { Text("العربية") },
             )
+            FilterChip(
+                selected = current == AppLanguage.RUSSIAN,
+                onClick = { AppLanguage.apply(context, AppLanguage.RUSSIAN) },
+                label = { Text("Русский") },
+            )
         }
     }
 }

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App lock gate + biometric prompt -->
+    <string name="security_unlock_title">Разблокировать ElmTrackr</string>
+    <string name="security_unlock_subtitle">Подтвердите личность, чтобы увидеть данные об оплате и сменах</string>
+    <string name="security_locked_title">ElmTrackr заблокирован</string>
+    <string name="security_locked_body">Используйте отпечаток пальца, распознавание лица или PIN-код устройства, чтобы продолжить.</string>
+    <string name="security_unlock_button">Разблокировать</string>
+
+    <!-- Security settings detail -->
+    <string name="security_section_app_lock">Блокировка приложения</string>
+    <string name="security_encryption_note">Локальные данные зашифрованы при хранении с помощью SQLCipher. Пока приложение заблокировано, действия из виджетов и уведомлений недоступны.</string>
+    <string name="security_app_lock_suspended">Блокировка приложения приостановлена, потому что на устройстве не задана блокировка экрана. Настройте отпечаток пальца, распознавание лица или PIN-код в настройках системы — и она заработает снова сама.</string>
+    <!-- Biometric confirmation shown before the app lock is switched on or off -->
+    <string name="security_prompt_enable_title">Включить блокировку приложения</string>
+    <string name="security_prompt_disable_title">Отключить блокировку приложения</string>
+    <string name="security_prompt_enable_subtitle">Подтвердите, чтобы запрашивать биометрию при открытии ElmTrackr</string>
+    <string name="security_prompt_disable_subtitle">Подтвердите, чтобы отключить биометрическую блокировку</string>
+</resources>

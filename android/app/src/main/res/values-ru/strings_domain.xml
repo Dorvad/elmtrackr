@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bottom/side navigation tabs -->
+    <string name="nav_home">Главная</string>
+    <string name="nav_shifts">Смены</string>
+    <string name="nav_reports">Отчёты</string>
+    <string name="nav_projects">Проекты</string>
+    <string name="nav_settings">Настройки</string>
+    <string name="nav_tab_selected">%1$s, выбрано</string>
+
+    <!-- Region presets -->
+    <string name="region_us_label">США (федеральный уровень / FLSA)</string>
+    <string name="region_us_desc">Только недельные сверхурочные (1,5× после 40 ч в неделю согласно FLSA). Дневных сверхурочных нет — измените правила, если их требует ваш штат. Праздничная надбавка применяется только к сменам, отмеченным как особые: на федеральном уровне она не обязательна.</string>
+    <string name="region_us_ca_label">США (Калифорния)</string>
+    <string name="region_us_ca_desc">Дневные сверхурочные калифорнийского типа (1,5× после 8 ч, 2× после 12 ч), недельные после 40 ч и надбавка за седьмой день подряд (1,5× первые 8 ч, далее 2×). Измените под своё место работы.</string>
+    <string name="region_gb_label">Великобритания</string>
+    <string name="region_gb_desc">Законодательство Великобритании не устанавливает ни сверхурочных, ни надбавки за государственные праздники, поэтому сверхурочные изначально отключены — оплата определяется вашим договором. Шаблон 1,5× после 48 ч в неделю готов, если вы включите сверхурочные; измените его под свой договор.</string>
+    <string name="region_eu_label">Европейский союз</string>
+    <string name="region_eu_desc">Только примерные значения — законы о сверхурочных и надбавках существенно различаются в разных странах ЕС. Измените под свою страну и договор.</string>
+    <string name="region_il_label">Израиль</string>
+    <string name="region_il_desc">Предлагаемая отправная точка для дневных и недельных сверхурочных израильского типа и ступеней за выходные и праздники. Измените под своё место работы.</string>
+    <string name="region_custom_label">Свои правила</string>
+    <string name="region_custom_desc">Начните с чистого листа и задайте все правила оплаты самостоятельно.</string>
+
+    <!-- Premium stacking policies -->
+    <string name="stacking_highest_title">Только наибольшая</string>
+    <string name="stacking_highest_helper">Когда применимо несколько надбавок (например, сверхурочные и ночные), берётся только наибольшая ставка — надбавки не складываются друг с другом.</string>
+    <string name="stacking_additive_title">Суммирование</string>
+    <string name="stacking_additive_helper" formatted="false">Когда применимо несколько надбавок, они прибавляются к текущей ставке (например, 150% за сверхурочные плюс 25% за ночные = 175%).</string>
+    <string name="stacking_multiplicative_title">Умножение</string>
+    <string name="stacking_multiplicative_helper" formatted="false">Когда применимо несколько надбавок, один коэффициент умножается на другой (например, 150% за сверхурочные × 125% за ночные = 187,5%).</string>
+    <string name="stacking_base_plus_title">База плюс надбавка</string>
+    <string name="stacking_base_plus_helper">Сверхурочные считаются от базовой ставки, а надбавка добавляется отдельной строкой сверху.</string>
+    <string name="stacking_premium_in_rr_title">Надбавка в обычной ставке</string>
+    <string name="stacking_premium_in_rr_helper">Здесь берётся наибольшая применимая ставка; надбавка включается в базу, от которой считаются сверхурочные по сменным надбавкам.</string>
+    <string name="stacking_excluded_rr_title">Вне обычной ставки</string>
+    <string name="stacking_excluded_rr_helper">Здесь берётся наибольшая применимая ставка; надбавка остаётся вне базы сверхурочных по сменным надбавкам.</string>
+
+    <!-- Compensation guidance and disclaimers -->
+    <string name="comp_rules_guidance">Если вы не уверены, какие правила оплаты действуют для вашей работы, уточните их у работодателя, в отделе кадров или расчёта зарплаты, а также в официальных источниках трудового права вашего региона, прежде чем задавать эти настройки.</string>
+    <string name="comp_disclaimer">ElmTrackr даёт оценку оплаты на основе заданных вами правил. Фактическая оплата может отличаться из-за налогов, удержаний, политики работодателя, порядка расчёта зарплаты, коллективных договоров, местного трудового законодательства и других применимых норм. ElmTrackr не оказывает юридических, налоговых, бухгалтерских, финансовых и зарплатных консультаций.</string>
+    <string name="comp_estimate_note">Только оценка. Фактическая оплата может отличаться.</string>
+    <string name="comp_profile_helper">Оценки оплаты основаны на этом профиле. Фактическая оплата может отличаться из-за налогов, удержаний, политики работодателя, местных норм и правил расчёта зарплаты.</string>
+
+    <!-- Clock style names -->
+    <string name="clock_style_classic">Классика</string>
+    <string name="clock_style_minimal">Минимализм</string>
+    <string name="clock_style_focus">Фокус</string>
+    <string name="clock_style_bold">Крупный</string>
+    <string name="clock_style_night">Ночь</string>
+    <string name="clock_style_retro">Ретро</string>
+    <string name="clock_style_aurora">Сияние</string>
+    <string name="clock_style_pulse">Пульс</string>
+    <string name="clock_style_dial">Циферблат</string>
+    <string name="clock_style_strand">Нить</string>
+    <string name="clock_style_prism">Призма</string>
+    <string name="clock_style_sand">Песок</string>
+    <string name="clock_style_blocks">Блоки</string>
+    <string name="clock_style_orbit">Орбита</string>
+    <string name="clock_style_tide">Прилив</string>
+    <string name="clock_style_sprout">Росток</string>
+    <string name="clock_style_metro">Метро</string>
+    <string name="clock_style_vinyl">Винил</string>
+    <string name="clock_style_luna">Луна</string>
+    <string name="clock_style_summit">Вершина</string>
+
+    <!-- Currency display names -->
+    <string name="currency_ils">Новый израильский шекель</string>
+    <string name="currency_usd">Доллар США</string>
+    <string name="currency_eur">Евро</string>
+    <string name="currency_gbp">Фунт стерлингов</string>
+    <string name="currency_cad">Канадский доллар</string>
+    <string name="currency_aud">Австралийский доллар</string>
+    <string name="currency_jpy">Японская иена</string>
+    <string name="currency_chf">Швейцарский франк</string>
+
+    <!-- Sync entity types -->
+    <string name="sync_entity_tasks">Задачи</string>
+    <string name="sync_entity_shifts">Смены</string>
+    <string name="sync_entity_refund_claims">Заявки на компенсацию</string>
+    <string name="sync_entity_settings">Настройки</string>
+    <string name="sync_entity_pay_profiles">Профили оплаты</string>
+</resources>

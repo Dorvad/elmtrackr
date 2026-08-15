@@ -11,7 +11,7 @@
     <!-- Language step -->
     <string name="onboarding_step_language">Language</string>
     <string name="onboarding_language_title">Choose your language</string>
-    <string name="onboarding_language_subtitle">ElmTrackr speaks English, Hebrew and Arabic. You can switch anytime in Settings.</string>
+    <string name="onboarding_language_subtitle">ElmTrackr speaks English, Hebrew, Arabic and Russian. You can switch anytime in Settings.</string>
     <string name="onboarding_language_change_later">You can change this later in Settings → Appearance.</string>
 
     <!-- Save failure -->

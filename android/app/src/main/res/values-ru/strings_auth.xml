@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sign-in / sign-up -->
+    <string name="auth_tagline">Учёт смен, сверхурочных и заработка</string>
+    <string name="auth_sign_in">Войти</string>
+    <string name="auth_create_account">Создать аккаунт</string>
+    <string name="auth_reset_password">Сбросить пароль</string>
+    <string name="auth_email_label">Эл. почта</string>
+    <string name="auth_password_label">Пароль</string>
+    <string name="auth_email_invalid">Введите корректный адрес эл. почты</string>
+    <string name="auth_password_too_short">Пароль должен содержать не менее %1$d символов</string>
+    <string name="auth_show_password">Показать пароль</string>
+    <string name="auth_hide_password">Скрыть пароль</string>
+    <string name="auth_send_reset_email">Отправить письмо для сброса</string>
+    <string name="auth_no_account_sign_up">Нет аккаунта? Зарегистрируйтесь</string>
+    <string name="auth_forgot_password">Забыли пароль?</string>
+    <string name="auth_have_account_sign_in">Уже есть аккаунт? Войдите</string>
+    <string name="auth_back_to_sign_in">Назад ко входу</string>
+    <string name="auth_loading_workspace">Загружаем ваше рабочее пространство…</string>
+
+    <!-- Password recovery -->
+    <string name="auth_choose_new_password">Выберите новый пароль</string>
+    <string name="auth_new_password_body">Введите новый пароль для вашего аккаунта ElmTrackr.</string>
+    <string name="auth_new_password_label">Новый пароль</string>
+    <string name="auth_confirm_password_label">Подтвердите пароль</string>
+    <string name="auth_passwords_do_not_match">Пароли не совпадают</string>
+    <string name="auth_update_password">Обновить пароль</string>
+
+    <!-- Confirmation screens -->
+    <string name="auth_check_your_email">Проверьте почту</string>
+    <string name="auth_reset_link_sent">Ссылка для сброса пароля отправлена на ваш адрес эл. почты.</string>
+    <string name="auth_confirm_your_email">Подтвердите адрес эл. почты</string>
+    <string name="auth_confirmation_link_sent">Мы отправили ссылку для подтверждения на %1$s. Откройте её и вернитесь сюда, чтобы войти.</string>
+
+    <!-- Developer-facing fallback -->
+    <string name="auth_not_configured_title">Аутентификация не настроена</string>
+    <string name="auth_not_configured_body">Добавьте SUPABASE_URL и SUPABASE_ANON_KEY в local.properties, чтобы включить вход.</string>
+
+    <!-- Error messages (mapped from SDK failures) -->
+    <string name="auth_error_incorrect_credentials">Неверный адрес эл. почты или пароль.</string>
+    <string name="auth_error_confirm_email">Подтвердите адрес эл. почты, прежде чем входить.</string>
+    <string name="auth_error_account_exists">Аккаунт с таким адресом эл. почты уже существует.</string>
+    <string name="auth_error_weak_password">Выберите более надёжный пароль.</string>
+    <string name="auth_error_rate_limited">Слишком много попыток. Подождите и повторите.</string>
+    <string name="auth_error_network">Проверьте подключение к интернету и повторите попытку.</string>
+    <string name="auth_error_sign_in">Не удалось войти. Повторите попытку.</string>
+    <string name="auth_error_sign_up">Не удалось создать аккаунт. Повторите попытку.</string>
+    <string name="auth_error_password_reset">Не удалось отправить письмо для сброса. Повторите попытку.</string>
+    <string name="auth_error_recovery_link">Эта ссылка для сброса недействительна или устарела.</string>
+    <string name="auth_error_update_password">Не удалось обновить пароль. Повторите попытку.</string>
+    <string name="auth_error_delete_account">Не удалось удалить аккаунт. Проверьте подключение и повторите попытку.</string>
+    <string name="auth_error_no_account_to_delete">Нет аккаунта для удаления</string>
+    <string name="auth_error_not_configured">Supabase не настроен</string>
+    <string name="auth_error_session_check">Не удалось проверить сеанс. Повторите попытку.</string>
+</resources>

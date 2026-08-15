@@ -779,6 +779,13 @@ internal fun WelcomeStep(replay: Boolean, onNext: () -> Unit) {
                 layoutDirection = LayoutDirection.Rtl,
                 onClick = { AppLanguage.apply(context, AppLanguage.ARABIC) },
             )
+            LanguageOptionCard(
+                title = "Русский",
+                subtitle = "Учёт рабочих часов на русском",
+                selected = selectedLanguage == AppLanguage.RUSSIAN,
+                layoutDirection = LayoutDirection.Ltr,
+                onClick = { AppLanguage.apply(context, AppLanguage.RUSSIAN) },
+            )
         }
         Spacer(Modifier.height(16.dp))
         SetupCard {

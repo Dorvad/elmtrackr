@@ -104,7 +104,7 @@ android {
     }
 
     androidResources {
-        localeFilters += listOf("en", "iw", "ar")
+        localeFilters += listOf("en", "iw", "ar", "ru")
     }
 }
 
