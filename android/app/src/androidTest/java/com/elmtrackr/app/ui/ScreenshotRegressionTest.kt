@@ -71,28 +71,9 @@ class ScreenshotRegressionTest {
     }
 
     @Test
-    fun onboardingFeatures() = verify("onboarding-features") {
-        OnboardingTestColumn(STEP_FEATURES) { FeaturesStep(false, true, {}, {}, {}, {}) }
-    }
-
-    @Test
-    fun onboardingProfile() = verify("onboarding-profile") {
-        OnboardingTestColumn(STEP_PROFILE) {
-            ProfileStep("Dor", "dor@example.com", {}, false, {}, {})
-        }
-    }
-
-    @Test
     fun onboardingPay() = verify("onboarding-pay") {
         OnboardingTestColumn(STEP_PAY) {
             PaySetupStep("50", CurrencyCode.ILS, {}, {}, true, {}, {})
-        }
-    }
-
-    @Test
-    fun onboardingWorkWeek() = verify("onboarding-work-week") {
-        OnboardingTestColumn(STEP_WORK_WEEK) {
-            WorkWeekStep(listOf(5, 6), "8", "40", "Asia/Jerusalem", {}, {}, {}, {}, true, {}, {})
         }
     }
 

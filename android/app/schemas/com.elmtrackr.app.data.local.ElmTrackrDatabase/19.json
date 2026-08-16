@@ -1,0 +1,2420 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 19,
+    "identityHash": "dd3443e947af8d1f529bb300d78e578f",
+    "entities": [
+      {
+        "tableName": "shifts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `startTime` INTEGER NOT NULL, `endTime` INTEGER, `breakMinutes` INTEGER NOT NULL, `notes` TEXT, `isSpecialDay` INTEGER NOT NULL, `premiumProfileId` TEXT, `forceRegularRate` INTEGER NOT NULL DEFAULT 0, `refundAction` TEXT, `compensationProfileId` TEXT, `compensationSnapshotJson` TEXT, `taskId` TEXT, `taskNameSnapshot` TEXT, `taskIconSnapshot` TEXT, `taskHourlyRateSnapshot` REAL, `projectId` TEXT, `projectNameSnapshot` TEXT, `compensationSource` TEXT, `workplaceId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startTime",
+            "columnName": "startTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endTime",
+            "columnName": "endTime",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "breakMinutes",
+            "columnName": "breakMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isSpecialDay",
+            "columnName": "isSpecialDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "premiumProfileId",
+            "columnName": "premiumProfileId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "forceRegularRate",
+            "columnName": "forceRegularRate",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "refundAction",
+            "columnName": "refundAction",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "compensationProfileId",
+            "columnName": "compensationProfileId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "compensationSnapshotJson",
+            "columnName": "compensationSnapshotJson",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "taskId",
+            "columnName": "taskId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "taskNameSnapshot",
+            "columnName": "taskNameSnapshot",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "taskIconSnapshot",
+            "columnName": "taskIconSnapshot",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "taskHourlyRateSnapshot",
+            "columnName": "taskHourlyRateSnapshot",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "projectId",
+            "columnName": "projectId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "projectNameSnapshot",
+            "columnName": "projectNameSnapshot",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "compensationSource",
+            "columnName": "compensationSource",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "workplaceId",
+            "columnName": "workplaceId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_shifts_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_shifts_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_shifts_userId_endTime",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "endTime"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_shifts_userId_endTime` ON `${TABLE_NAME}` (`userId`, `endTime`)"
+          },
+          {
+            "name": "index_shifts_userId_startTime",
+            "unique": true,
+            "columnNames": [
+              "userId",
+              "startTime"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_shifts_userId_startTime` ON `${TABLE_NAME}` (`userId`, `startTime`)"
+          },
+          {
+            "name": "index_shifts_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_shifts_syncStatus` ON `${TABLE_NAME}` (`syncStatus`)"
+          },
+          {
+            "name": "index_shifts_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_shifts_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_shifts_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_shifts_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "user_settings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `timezone` TEXT NOT NULL, `dailyOvertimeThresholdMinutes` INTEGER NOT NULL, `weeklyOvertimeThresholdMinutes` INTEGER NOT NULL, `weekendDays` TEXT NOT NULL, `hourlyRate` REAL, `currency` TEXT NOT NULL, `regionCode` TEXT, `currencyCode` TEXT, `defaultCompensationProfileId` TEXT, `onboardingCompleted` INTEGER NOT NULL, `onboardingCompletedAt` INTEGER, `featuresTravelRefunds` INTEGER NOT NULL, `featuresPaidProjects` INTEGER NOT NULL, `featuresInsights` INTEGER NOT NULL, `featuresClockStyles` INTEGER NOT NULL, `featuresOvertimeReminders` INTEGER NOT NULL, `projectsDefaultRegionCode` TEXT, `projectsDefaultCurrencyCode` TEXT, `projectsTaxLabel` TEXT, `projectsTaxRateBasisPoints` INTEGER NOT NULL DEFAULT 0, `projectsTaxInclusive` INTEGER NOT NULL DEFAULT 0, `clockStyle` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timezone",
+            "columnName": "timezone",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dailyOvertimeThresholdMinutes",
+            "columnName": "dailyOvertimeThresholdMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weeklyOvertimeThresholdMinutes",
+            "columnName": "weeklyOvertimeThresholdMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weekendDays",
+            "columnName": "weekendDays",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hourlyRate",
+            "columnName": "hourlyRate",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "regionCode",
+            "columnName": "regionCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "currencyCode",
+            "columnName": "currencyCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "defaultCompensationProfileId",
+            "columnName": "defaultCompensationProfileId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "onboardingCompleted",
+            "columnName": "onboardingCompleted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "onboardingCompletedAt",
+            "columnName": "onboardingCompletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "featuresTravelRefunds",
+            "columnName": "featuresTravelRefunds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "featuresPaidProjects",
+            "columnName": "featuresPaidProjects",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "featuresInsights",
+            "columnName": "featuresInsights",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "featuresClockStyles",
+            "columnName": "featuresClockStyles",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "featuresOvertimeReminders",
+            "columnName": "featuresOvertimeReminders",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "projectsDefaultRegionCode",
+            "columnName": "projectsDefaultRegionCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "projectsDefaultCurrencyCode",
+            "columnName": "projectsDefaultCurrencyCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "projectsTaxLabel",
+            "columnName": "projectsTaxLabel",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "projectsTaxRateBasisPoints",
+            "columnName": "projectsTaxRateBasisPoints",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "projectsTaxInclusive",
+            "columnName": "projectsTaxInclusive",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "clockStyle",
+            "columnName": "clockStyle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_user_settings_userId",
+            "unique": true,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_user_settings_userId` ON `${TABLE_NAME}` (`userId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "profiles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `email` TEXT NOT NULL, `fullName` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "email",
+            "columnName": "email",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fullName",
+            "columnName": "fullName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_profiles_userId",
+            "unique": true,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_profiles_userId` ON `${TABLE_NAME}` (`userId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "refund_claims",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `shiftLocalId` TEXT NOT NULL, `userId` TEXT NOT NULL, `direction` TEXT NOT NULL, `provider` TEXT NOT NULL, `amount` REAL NOT NULL, `rideAt` INTEGER NOT NULL, `notes` TEXT, `receiptPath` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "shiftLocalId",
+            "columnName": "shiftLocalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "direction",
+            "columnName": "direction",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "provider",
+            "columnName": "provider",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amount",
+            "columnName": "amount",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rideAt",
+            "columnName": "rideAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "receiptPath",
+            "columnName": "receiptPath",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_refund_claims_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_refund_claims_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_refund_claims_shiftLocalId",
+            "unique": false,
+            "columnNames": [
+              "shiftLocalId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_refund_claims_shiftLocalId` ON `${TABLE_NAME}` (`shiftLocalId`)"
+          },
+          {
+            "name": "index_refund_claims_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_refund_claims_syncStatus` ON `${TABLE_NAME}` (`syncStatus`)"
+          },
+          {
+            "name": "index_refund_claims_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_refund_claims_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_refund_claims_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_refund_claims_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "receipts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `userId` TEXT, `refundClaimId` TEXT, `localImageUri` TEXT NOT NULL, `merchantName` TEXT, `amount` REAL, `currency` TEXT, `receiptDate` INTEGER, `rawOcrText` TEXT, `parserVersion` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`refundClaimId`) REFERENCES `refund_claims`(`localId`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "refundClaimId",
+            "columnName": "refundClaimId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "localImageUri",
+            "columnName": "localImageUri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "merchantName",
+            "columnName": "merchantName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "amount",
+            "columnName": "amount",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "receiptDate",
+            "columnName": "receiptDate",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "rawOcrText",
+            "columnName": "rawOcrText",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "parserVersion",
+            "columnName": "parserVersion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_receipts_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_receipts_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_receipts_refundClaimId",
+            "unique": false,
+            "columnNames": [
+              "refundClaimId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_receipts_refundClaimId` ON `${TABLE_NAME}` (`refundClaimId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "refund_claims",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "refundClaimId"
+            ],
+            "referencedColumns": [
+              "localId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "compensation_profiles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `name` TEXT NOT NULL, `regionCode` TEXT NOT NULL, `currencyCode` TEXT NOT NULL, `timezone` TEXT NOT NULL, `baseHourlyRate` REAL, `rulesJson` TEXT NOT NULL, `stackingPolicy` TEXT NOT NULL, `effectiveFrom` INTEGER NOT NULL, `effectiveUntil` INTEGER, `isDefault` INTEGER NOT NULL, `isArchived` INTEGER NOT NULL, `workplaceId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "regionCode",
+            "columnName": "regionCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currencyCode",
+            "columnName": "currencyCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timezone",
+            "columnName": "timezone",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "baseHourlyRate",
+            "columnName": "baseHourlyRate",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "rulesJson",
+            "columnName": "rulesJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stackingPolicy",
+            "columnName": "stackingPolicy",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "effectiveFrom",
+            "columnName": "effectiveFrom",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "effectiveUntil",
+            "columnName": "effectiveUntil",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isDefault",
+            "columnName": "isDefault",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isArchived",
+            "columnName": "isArchived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workplaceId",
+            "columnName": "workplaceId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_compensation_profiles_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_compensation_profiles_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_compensation_profiles_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_compensation_profiles_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_compensation_profiles_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_compensation_profiles_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "premium_profiles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `name` TEXT NOT NULL, `multiplier` REAL NOT NULL, `premiumType` TEXT NOT NULL, `isDefault` INTEGER NOT NULL, `isArchived` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "multiplier",
+            "columnName": "multiplier",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "premiumType",
+            "columnName": "premiumType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDefault",
+            "columnName": "isDefault",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isArchived",
+            "columnName": "isArchived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_premium_profiles_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_premium_profiles_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_premium_profiles_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_premium_profiles_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_premium_profiles_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_premium_profiles_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "tasks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `name` TEXT NOT NULL, `icon` TEXT NOT NULL, `color` TEXT, `hourlyRate` REAL NOT NULL, `isArchived` INTEGER NOT NULL, `lastUsedAt` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "icon",
+            "columnName": "icon",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "color",
+            "columnName": "color",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "hourlyRate",
+            "columnName": "hourlyRate",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isArchived",
+            "columnName": "isArchived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastUsedAt",
+            "columnName": "lastUsedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_tasks_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_tasks_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_tasks_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "projects",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `name` TEXT NOT NULL, `clientName` TEXT, `clientId` TEXT, `description` TEXT, `workStatus` TEXT NOT NULL, `currencyCode` TEXT NOT NULL, `baseFee` TEXT NOT NULL, `taxLabel` TEXT, `taxRatePercent` TEXT NOT NULL, `taxMode` TEXT NOT NULL, `taxAmount` TEXT NOT NULL, `clientTotal` TEXT NOT NULL, `hourBudgetMinutes` INTEGER, `targetHourlyRate` TEXT, `startDate` INTEGER, `deadline` INTEGER, `completionDate` INTEGER, `notes` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `archivedAt` INTEGER, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clientName",
+            "columnName": "clientName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "clientId",
+            "columnName": "clientId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "workStatus",
+            "columnName": "workStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currencyCode",
+            "columnName": "currencyCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "baseFee",
+            "columnName": "baseFee",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taxLabel",
+            "columnName": "taxLabel",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "taxRatePercent",
+            "columnName": "taxRatePercent",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taxMode",
+            "columnName": "taxMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taxAmount",
+            "columnName": "taxAmount",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clientTotal",
+            "columnName": "clientTotal",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hourBudgetMinutes",
+            "columnName": "hourBudgetMinutes",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "targetHourlyRate",
+            "columnName": "targetHourlyRate",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "startDate",
+            "columnName": "startDate",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "deadline",
+            "columnName": "deadline",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "completionDate",
+            "columnName": "completionDate",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "archivedAt",
+            "columnName": "archivedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_projects_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_projects_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_projects_userId_workStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "workStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_projects_userId_workStatus` ON `${TABLE_NAME}` (`userId`, `workStatus`)"
+          },
+          {
+            "name": "index_projects_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_projects_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_projects_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_projects_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "project_billing_records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `projectLocalId` TEXT NOT NULL, `baseAmount` TEXT NOT NULL, `taxLabel` TEXT, `taxRatePercent` TEXT NOT NULL, `taxMode` TEXT NOT NULL, `taxAmount` TEXT NOT NULL, `totalAmount` TEXT NOT NULL, `currencyCode` TEXT NOT NULL, `externalReference` TEXT, `notes` TEXT, `billedOn` INTEGER NOT NULL, `dueOn` INTEGER, `cancelledAt` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "projectLocalId",
+            "columnName": "projectLocalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "baseAmount",
+            "columnName": "baseAmount",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taxLabel",
+            "columnName": "taxLabel",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "taxRatePercent",
+            "columnName": "taxRatePercent",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taxMode",
+            "columnName": "taxMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taxAmount",
+            "columnName": "taxAmount",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalAmount",
+            "columnName": "totalAmount",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currencyCode",
+            "columnName": "currencyCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "externalReference",
+            "columnName": "externalReference",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "billedOn",
+            "columnName": "billedOn",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dueOn",
+            "columnName": "dueOn",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "cancelledAt",
+            "columnName": "cancelledAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_project_billing_records_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_billing_records_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_project_billing_records_projectLocalId",
+            "unique": false,
+            "columnNames": [
+              "projectLocalId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_billing_records_projectLocalId` ON `${TABLE_NAME}` (`projectLocalId`)"
+          },
+          {
+            "name": "index_project_billing_records_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_billing_records_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_project_billing_records_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_billing_records_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "project_payments",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `projectLocalId` TEXT NOT NULL, `billingRecordLocalId` TEXT NOT NULL, `paidOn` INTEGER NOT NULL, `amount` TEXT NOT NULL, `currencyCode` TEXT NOT NULL, `method` TEXT, `externalReference` TEXT, `notes` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "projectLocalId",
+            "columnName": "projectLocalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "billingRecordLocalId",
+            "columnName": "billingRecordLocalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "paidOn",
+            "columnName": "paidOn",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amount",
+            "columnName": "amount",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currencyCode",
+            "columnName": "currencyCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "method",
+            "columnName": "method",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "externalReference",
+            "columnName": "externalReference",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_project_payments_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_payments_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_project_payments_projectLocalId",
+            "unique": false,
+            "columnNames": [
+              "projectLocalId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_payments_projectLocalId` ON `${TABLE_NAME}` (`projectLocalId`)"
+          },
+          {
+            "name": "index_project_payments_billingRecordLocalId",
+            "unique": false,
+            "columnNames": [
+              "billingRecordLocalId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_payments_billingRecordLocalId` ON `${TABLE_NAME}` (`billingRecordLocalId`)"
+          },
+          {
+            "name": "index_project_payments_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_payments_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_project_payments_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_payments_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "workplaces",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `name` TEXT NOT NULL, `regionCode` TEXT NOT NULL, `currencyCode` TEXT NOT NULL, `timezone` TEXT NOT NULL, `employmentStartDate` INTEGER, `isDefault` INTEGER NOT NULL, `isArchived` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "regionCode",
+            "columnName": "regionCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currencyCode",
+            "columnName": "currencyCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timezone",
+            "columnName": "timezone",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "employmentStartDate",
+            "columnName": "employmentStartDate",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isDefault",
+            "columnName": "isDefault",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isArchived",
+            "columnName": "isArchived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_workplaces_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_workplaces_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_workplaces_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_workplaces_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_workplaces_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_workplaces_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "leave_policies",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `workplaceLocalId` TEXT NOT NULL, `regionCode` TEXT NOT NULL, `rulesJson` TEXT NOT NULL, `effectiveFrom` INTEGER NOT NULL, `effectiveUntil` INTEGER, `isActive` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workplaceLocalId",
+            "columnName": "workplaceLocalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "regionCode",
+            "columnName": "regionCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rulesJson",
+            "columnName": "rulesJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "effectiveFrom",
+            "columnName": "effectiveFrom",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "effectiveUntil",
+            "columnName": "effectiveUntil",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isActive",
+            "columnName": "isActive",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_leave_policies_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_leave_policies_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_leave_policies_workplaceLocalId",
+            "unique": false,
+            "columnNames": [
+              "workplaceLocalId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_leave_policies_workplaceLocalId` ON `${TABLE_NAME}` (`workplaceLocalId`)"
+          },
+          {
+            "name": "index_leave_policies_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_leave_policies_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_leave_policies_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_leave_policies_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "absence_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `type` TEXT NOT NULL, `startDate` INTEGER NOT NULL, `endDate` INTEGER NOT NULL, `notes` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startDate",
+            "columnName": "startDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endDate",
+            "columnName": "endDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_absence_events_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_absence_events_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_absence_events_userId_startDate",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "startDate"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_absence_events_userId_startDate` ON `${TABLE_NAME}` (`userId`, `startDate`)"
+          },
+          {
+            "name": "index_absence_events_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_absence_events_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_absence_events_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_absence_events_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "absence_allocations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `absenceEventLocalId` TEXT NOT NULL, `workplaceLocalId` TEXT NOT NULL, `affectedDate` INTEGER NOT NULL, `entitlementUnits` REAL NOT NULL, `unit` TEXT NOT NULL, `expectedWorkMinutes` INTEGER, `policySnapshotJson` TEXT, `calculationSnapshotJson` TEXT, `estimatedGrossPay` REAL NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "absenceEventLocalId",
+            "columnName": "absenceEventLocalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workplaceLocalId",
+            "columnName": "workplaceLocalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "affectedDate",
+            "columnName": "affectedDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entitlementUnits",
+            "columnName": "entitlementUnits",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unit",
+            "columnName": "unit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "expectedWorkMinutes",
+            "columnName": "expectedWorkMinutes",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "policySnapshotJson",
+            "columnName": "policySnapshotJson",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "calculationSnapshotJson",
+            "columnName": "calculationSnapshotJson",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "estimatedGrossPay",
+            "columnName": "estimatedGrossPay",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_absence_allocations_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_absence_allocations_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_absence_allocations_absenceEventLocalId",
+            "unique": false,
+            "columnNames": [
+              "absenceEventLocalId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_absence_allocations_absenceEventLocalId` ON `${TABLE_NAME}` (`absenceEventLocalId`)"
+          },
+          {
+            "name": "index_absence_allocations_workplaceLocalId_affectedDate",
+            "unique": false,
+            "columnNames": [
+              "workplaceLocalId",
+              "affectedDate"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_absence_allocations_workplaceLocalId_affectedDate` ON `${TABLE_NAME}` (`workplaceLocalId`, `affectedDate`)"
+          },
+          {
+            "name": "index_absence_allocations_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_absence_allocations_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_absence_allocations_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_absence_allocations_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "leave_balance_snapshots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localId` TEXT NOT NULL, `remoteId` TEXT, `userId` TEXT NOT NULL, `workplaceLocalId` TEXT NOT NULL, `balanceType` TEXT NOT NULL, `balance` REAL NOT NULL, `unit` TEXT NOT NULL, `asOfDate` INTEGER NOT NULL, `source` TEXT NOT NULL, `label` TEXT, `notes` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncStatus` TEXT NOT NULL, `lastSyncError` TEXT, `lastSyncedAt` INTEGER, PRIMARY KEY(`localId`))",
+        "fields": [
+          {
+            "fieldPath": "localId",
+            "columnName": "localId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workplaceLocalId",
+            "columnName": "workplaceLocalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "balanceType",
+            "columnName": "balanceType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "balance",
+            "columnName": "balance",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unit",
+            "columnName": "unit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "asOfDate",
+            "columnName": "asOfDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_leave_balance_snapshots_userId",
+            "unique": false,
+            "columnNames": [
+              "userId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_leave_balance_snapshots_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_leave_balance_snapshots_workplaceLocalId_balanceType_asOfDate",
+            "unique": false,
+            "columnNames": [
+              "workplaceLocalId",
+              "balanceType",
+              "asOfDate"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_leave_balance_snapshots_workplaceLocalId_balanceType_asOfDate` ON `${TABLE_NAME}` (`workplaceLocalId`, `balanceType`, `asOfDate`)"
+          },
+          {
+            "name": "index_leave_balance_snapshots_userId_syncStatus",
+            "unique": false,
+            "columnNames": [
+              "userId",
+              "syncStatus"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_leave_balance_snapshots_userId_syncStatus` ON `${TABLE_NAME}` (`userId`, `syncStatus`)"
+          },
+          {
+            "name": "index_leave_balance_snapshots_remoteId",
+            "unique": false,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_leave_balance_snapshots_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dd3443e947af8d1f529bb300d78e578f')"
+    ]
+  }
+}
