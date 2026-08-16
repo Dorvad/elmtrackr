@@ -69,8 +69,10 @@ class ShiftDaoTest {
 
     @Test
     fun activeShiftQuery_returnsShiftWithNullEndTime() = runTest {
-        dao.insertShift(shift("s1", endTime = null))
-        dao.insertShift(shift("s2", endTime = 3_000_000L))
+        // Distinct start times: (userId, startTime) is unique, and insertShift
+        // REPLACEs on conflict, so shared defaults would overwrite s1 with s2.
+        dao.insertShift(shift("s1", startTime = 1_000_000L, endTime = null))
+        dao.insertShift(shift("s2", startTime = 2_000_000L, endTime = 3_000_000L))
         val active = dao.observeActiveShift("u1").first()
         assertNotNull(active)
         assertEquals("s1", active!!.localId)
@@ -94,9 +96,10 @@ class ShiftDaoTest {
 
     @Test
     fun pendingSyncObservesCreatedAndUpdated() = runTest {
-        dao.insertShift(shift("s1", syncStatus = SyncStatus.PENDING_CREATE))
-        dao.insertShift(shift("s2", syncStatus = SyncStatus.SYNCED))
-        dao.insertShift(shift("s3", syncStatus = SyncStatus.PENDING_UPDATE))
+        // Distinct start times: see activeShiftQuery_returnsShiftWithNullEndTime.
+        dao.insertShift(shift("s1", startTime = 1_000_000L, syncStatus = SyncStatus.PENDING_CREATE))
+        dao.insertShift(shift("s2", startTime = 2_000_000L, syncStatus = SyncStatus.SYNCED))
+        dao.insertShift(shift("s3", startTime = 3_000_000L, syncStatus = SyncStatus.PENDING_UPDATE))
         val pending = dao.observePendingSyncShifts("u1").first()
         val ids = pending.map { it.localId }
         assertTrue(ids.contains("s1"))

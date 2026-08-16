@@ -446,6 +446,7 @@ class FullAppScreenshotTest {
                 onReduceMotionChange = {},
                 onBack = {},
                 onTheme = {},
+                onBrowseAllFaces = {},
             )
             SettingsDestination.FEATURES -> FeaturesDetailScreen(
                 travelRefunds = true,
