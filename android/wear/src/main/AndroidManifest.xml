@@ -10,8 +10,9 @@
         android:name=".ElmTrackrWearApp"
         android:allowBackup="false"
         android:enableOnBackInvokedCallback="true"
-        android:icon="@drawable/app_logo"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault">
 
@@ -34,9 +35,16 @@
             </intent-filter>
         </activity>
 
+        <!-- The tile's punch button targets this activity through a
+             LaunchAction. That action is carried out by the Wear OS tile host,
+             which is a separate app under a separate uid, so the activity has
+             to be exported for the tap to reach it at all — with
+             exported="false" the activity manager refuses the start and the
+             tile's one-tap punch silently does nothing. It stays invisible,
+             finishes in onCreate, and honours only the two punch actions. -->
         <activity
             android:name=".tile.WearPunchTrampolineActivity"
-            android:exported="false"
+            android:exported="true"
             android:noHistory="true"
             android:excludeFromRecents="true"
             android:taskAffinity=""

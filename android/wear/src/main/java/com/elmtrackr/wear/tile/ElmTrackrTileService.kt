@@ -68,9 +68,12 @@ class ElmTrackrTileService : TileService() {
             .build()
 
     private suspend fun buildTile(): TileBuilders.Tile {
-        val app = applicationContext as ElmTrackrWearApp
-        app.wearStateRepository.refreshFromDataLayer()
-        val snapshot = app.wearStateRepository.snapshot.value
+        val app = ElmTrackrWearApp.from(this)
+        app?.wearStateRepository?.refreshFromDataLayer()
+        // No repository means no phone state to show, which is exactly the
+        // signed-out face — the tile still renders instead of erroring out and
+        // leaving a blank slot in the tile carousel.
+        val snapshot = app?.wearStateRepository?.snapshot?.value ?: WearShiftSnapshot.signedOut()
 
         val root = when {
             !snapshot.signedIn -> signedOutFace()

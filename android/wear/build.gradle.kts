@@ -23,8 +23,15 @@ android {
         // form factors of the listing, and the phone module shares this
         // applicationId — so the wear module keeps its own range:
         // 10000 + the phone :app versionCode. Bump both together.
-        versionCode = 10012
-        versionName = "1.2.0"
+        //
+        // 10042, not 10013: the artifact Play rejected in August was versionCode
+        // 10041, which is higher than anything recorded in this repository.
+        // Play refuses any upload at or below a code it has already seen, so the
+        // next watch upload has to clear 10041 whatever the repository says.
+        // Confirm both numbers against Play Console → Release overview before
+        // building the resubmission.
+        versionCode = 10042
+        versionName = "1.2.1"
     }
 
     // The Play Store only delivers the watch app to a paired watch when it is

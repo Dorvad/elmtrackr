@@ -32,8 +32,11 @@ android {
         applicationId = "com.elmlaunch.myapp"
         minSdk = 26
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.2.0"
+        // Kept in step with :wear, which had to clear the rejected watch
+        // artifact at versionCode 10041 (see wear/build.gradle.kts). The
+        // module invariant is wear == 10000 + this number, so this moves to 42.
+        versionCode = 42
+        versionName = "1.2.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")

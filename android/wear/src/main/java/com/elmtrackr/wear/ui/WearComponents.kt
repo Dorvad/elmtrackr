@@ -123,7 +123,11 @@ fun WearAppLogo(
         contentAlignment = Alignment.Center,
     ) {
         Image(
-            painter = painterResource(R.drawable.app_logo),
+            // The density-bucketed launcher icon, not the 1024x1024 nodpi
+            // master: a nodpi bitmap is decoded at its full size whatever it is
+            // drawn into, so a 34dp badge on the setup screen was costing a 4 MB
+            // allocation on a watch with a fraction of a phone's heap.
+            painter = painterResource(R.mipmap.ic_launcher_round),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier

@@ -22,9 +22,9 @@ import com.elmtrackr.wear.ui.WearLabels
 class ElmTrackrComplicationService : SuspendingComplicationDataSourceService() {
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
-        val app = applicationContext as ElmTrackrWearApp
-        app.wearStateRepository.refreshFromDataLayer()
-        val snapshot = app.wearStateRepository.snapshot.value
+        val app = ElmTrackrWearApp.from(this)
+        app?.wearStateRepository?.refreshFromDataLayer()
+        val snapshot = app?.wearStateRepository?.snapshot?.value ?: WearShiftSnapshot.signedOut()
         val tapAction = PendingIntent.getActivity(
             this,
             0,

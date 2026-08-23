@@ -1,5 +1,6 @@
 package com.elmtrackr.wear
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.wear.sync.WearConfirmation
@@ -53,15 +54,22 @@ class WearMainViewModel(
     val punchCountdown: StateFlow<PunchCountdown?> = _punchCountdown.asStateFlow()
 
     init {
+        // The repository already swallows its own failures; the extra guard is
+        // here because this runs on viewModelScope, and an exception escaping a
+        // viewModelScope coroutine reaches the default handler and kills the
+        // process while the first frame is still being composed.
         viewModelScope.launch {
-            app.wearStateRepository.bootstrap()
-            app.wearActionClient.requestRefreshFromPhone()
+            runCatchingCancellable {
+                app.wearStateRepository.bootstrap()
+                app.wearActionClient.requestRefreshFromPhone()
+            }.onFailure { Log.w(TAG, "Watch state bootstrap failed", it) }
         }
     }
 
     fun refresh() {
         viewModelScope.launch {
-            app.wearActionClient.requestRefreshFromPhone()
+            runCatchingCancellable { app.wearActionClient.requestRefreshFromPhone() }
+                .onFailure { Log.w(TAG, "Refresh from the phone failed", it) }
         }
     }
 
@@ -89,19 +97,24 @@ class WearMainViewModel(
 
     private fun submitPunch(isPunchIn: Boolean) {
         viewModelScope.launch {
-            val result = if (isPunchIn) app.wearActionClient.punchIn() else app.wearActionClient.punchOut()
-            if (result.success) {
-                app.wearStateRepository.showConfirmation(
-                    app.getString(if (isPunchIn) R.string.confirmed_in else R.string.confirmed_out),
-                )
-            } else {
-                app.wearStateRepository.showConfirmation(failureMessage(result.errorCode), isSuccess = false)
-                // A failed punch usually means the face is stale — e.g. punching
-                // out after the phone already ended the shift — so re-pull the
-                // phone state instead of leaving a face that fails the same way
-                // on every tap.
-                app.wearActionClient.requestRefreshFromPhone()
-            }
+            runCatchingCancellable { punch(isPunchIn) }
+                .onFailure { Log.w(TAG, "Punch submission failed", it) }
+        }
+    }
+
+    private suspend fun punch(isPunchIn: Boolean) {
+        val result = if (isPunchIn) app.wearActionClient.punchIn() else app.wearActionClient.punchOut()
+        if (result.success) {
+            app.wearStateRepository.showConfirmation(
+                app.getString(if (isPunchIn) R.string.confirmed_in else R.string.confirmed_out),
+            )
+        } else {
+            app.wearStateRepository.showConfirmation(failureMessage(result.errorCode), isSuccess = false)
+            // A failed punch usually means the face is stale — e.g. punching
+            // out after the phone already ended the shift — so re-pull the
+            // phone state instead of leaving a face that fails the same way
+            // on every tap.
+            app.wearActionClient.requestRefreshFromPhone()
         }
     }
 
@@ -120,5 +133,6 @@ class WearMainViewModel(
 
     private companion object {
         const val COUNTDOWN_SECONDS = 3
+        const val TAG = "WearMainViewModel"
     }
 }
