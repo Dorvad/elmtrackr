@@ -205,6 +205,12 @@ internal fun ShiftsHeroSummaryCard(
     month: YearMonth,
     profiles: List<CompensationProfile> = emptyList(),
     premiumProfiles: List<PremiumProfile> = emptyList(),
+    /**
+     * [shifts] plus the tail of the pay week containing the 1st — pay-week context for
+     * the money and overtime figures only. Nothing here is counted or displayed from
+     * it; the hours come from [shifts].
+     */
+    payContextShifts: List<Shift> = emptyList(),
     onPreviousMonth: (() -> Unit)? = null,
     onNextMonth: (() -> Unit)? = null,
 ) {
@@ -215,10 +221,14 @@ internal fun ShiftsHeroSummaryCard(
                 ?: java.time.ZoneId.systemDefault(),
         )
     }
-    val summary = remember(completed, settings, month, profiles, premiumProfiles) {
+    val summary = remember(completed, settings, month, profiles, premiumProfiles, payContextShifts) {
         val completedMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
+        val payContext = payContextShifts.filter { it.isCompleted }.ifEmpty { completed }
         val report = settings?.let {
-            MonthlyReportBuilder.buildMonthlyReport(month.year, month.monthValue, completed, it, profiles)
+            MonthlyReportBuilder.buildMonthlyReport(
+                month.year, month.monthValue, completed, it, profiles,
+                contextShifts = payContext,
+            )
         }
         val regularMin = report?.regularMinutes ?: 0
         val overtimeMin = report?.overtimeMinutes ?: 0
@@ -226,7 +236,13 @@ internal fun ShiftsHeroSummaryCard(
         val pay = settings?.let { s ->
             val hasRate = (s.hourlyRate ?: 0.0) > 0.0 ||
                 profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
-            if (hasRate) PayrollCalculator.sumMonthlyPay(completed, s, profiles, premiumProfiles).totalGross else null
+            if (hasRate) {
+                PayrollCalculator.sumMonthlyPay(
+                    completed, s, profiles, premiumProfiles, contextShifts = payContext,
+                ).totalGross
+            } else {
+                null
+            }
         }
         HeroSummaryData(
             completedMinutes = completedMinutes,

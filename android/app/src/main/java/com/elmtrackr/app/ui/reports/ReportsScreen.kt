@@ -1479,6 +1479,15 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
 
 // ── Shift report row with left stripe ────────────────────────────────────────
 
+/** The per-row figures [ShiftReportRow] derives from the pay engine, remembered as one unit. */
+private data class ShiftReportRowPay(
+    val breakdown: com.elmtrackr.app.domain.model.ShiftBreakdown,
+    val weekend: Boolean,
+    val overnight: Boolean,
+    val pay: com.elmtrackr.app.domain.model.ShiftPayBreakdown?,
+    val otMinutes: Int,
+)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ShiftReportRow(
@@ -1489,20 +1498,38 @@ private fun ShiftReportRow(
     premiumProfiles: List<PremiumProfile> = emptyList(),
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
-    val breakdown = MonthlyReportBuilder.buildShiftBreakdown(shift, settings, profiles)
+    // Remembered because `calculateShiftPayInContext` is not a cheap read: it walks
+    // this shift's pay week, and in the Israeli engine it re-classifies every prior
+    // shift of that week minute by minute. Computed inline it ran again on every
+    // recomposition of every visible row, on the main thread — the ViewModel moved the
+    // month's payroll to a computation dispatcher for exactly this cost, and these
+    // per-row calls sat outside that.
+    val rowPay = remember(shift, settings, profiles, allShifts, premiumProfiles, zone) {
+        ShiftReportRowPay(
+            breakdown = MonthlyReportBuilder.buildShiftBreakdown(shift, settings, profiles),
+            weekend = CompensationResolver.isWeekendShift(shift, settings, profiles),
+            overnight = OvernightShiftDetector.isOvernight(shift, zone),
+            pay = PayrollCalculator.calculateShiftPayInContext(
+                shift,
+                allShifts.ifEmpty { listOf(shift) },
+                settings,
+                profiles,
+                premiumProfiles,
+            ),
+            otMinutes = maxOf(
+                0,
+                (ShiftDurationCalculator.netMinutes(shift) ?: 0) -
+                    CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+                        .rules.dailyStandardMinutes,
+            ),
+        )
+    }
+    val breakdown = rowPay.breakdown
     val date = shift.startTime.atZone(zone).toLocalDate()
-    val weekend = CompensationResolver.isWeekendShift(shift, settings, profiles)
-    val overnight = OvernightShiftDetector.isOvernight(shift, zone)
-    val pay = PayrollCalculator.calculateShiftPayInContext(
-        shift,
-        allShifts.ifEmpty { listOf(shift) },
-        settings,
-        profiles,
-        premiumProfiles,
-    )
-    val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
-    val otThreshold = resolved.rules.dailyStandardMinutes
-    val otMins = maxOf(0, (ShiftDurationCalculator.netMinutes(shift) ?: 0) - otThreshold)
+    val weekend = rowPay.weekend
+    val overnight = rowPay.overnight
+    val pay = rowPay.pay
+    val otMins = rowPay.otMinutes
 
     // Stripe color logic — matches web app
     val stripeColor = when {
@@ -1760,9 +1787,15 @@ private fun RefundAnalytics(
 ) {
     val total = claims.sumOf { it.amount }
     val currency = settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
-    val salary = settings?.let { s ->
-        val gross = PayrollCalculator.sumMonthlyPay(shifts.filter { it.isCompleted }, s, profiles, premiumProfiles).totalGross
-        gross.takeIf { it > 0 }
+    // Same reason as ShiftReportRow: sumMonthlyPay walks every completed shift of the
+    // month through the pay engine, and this ran on each recomposition of the card.
+    val salary = remember(shifts, settings, profiles, premiumProfiles) {
+        settings?.let { s ->
+            val gross = PayrollCalculator
+                .sumMonthlyPay(shifts.filter { it.isCompleted }, s, profiles, premiumProfiles)
+                .totalGross
+            gross.takeIf { it > 0 }
+        }
     }
     Card(shape = RoundedCornerShape(CornerRadius.Large), colors = CardDefaults.cardColors(containerColor = AuroraIndigo)) {
         Column(Modifier.padding(18.dp)) {

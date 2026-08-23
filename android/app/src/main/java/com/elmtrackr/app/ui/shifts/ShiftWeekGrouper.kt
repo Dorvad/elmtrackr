@@ -34,6 +34,14 @@ object ShiftWeekGrouper {
      *   card while its minutes counted toward the next pay week, so the per-section hours
      *   and pay disagreed with Reports for the same shifts.
      */
+    /**
+     * @param payContextShifts [shifts] plus the tail of the pay week containing the
+     *   1st. Only supplies the prior-minutes accumulation that decides weekly
+     *   overtime; nothing here is listed or counted from it. Without it each week
+     *   card's pay was computed with only that week's in-month shifts as context, so
+     *   a week straddling the 1st began with no prior minutes and under-counted
+     *   overtime against what Reports showed for the same days.
+     */
     fun groupByWeek(
         shifts: List<Shift>,
         activeShift: Shift?,
@@ -44,6 +52,7 @@ object ShiftWeekGrouper {
         zone: ZoneId = ZoneId.systemDefault(),
         locale: Locale = Locale.getDefault(),
         weekStartDay: Int = resolveWeekStartDay(settings, profiles),
+        payContextShifts: List<Shift> = shifts,
     ): List<ShiftWeekSection> {
         val weekLabelFmt = DateTimeFormatter.ofPattern("MMM d", locale)
         val displayShifts = buildList {
@@ -77,7 +86,10 @@ object ShiftWeekGrouper {
                 }
                 val pay = settings?.let { s ->
                     completed.takeIf { it.isNotEmpty() }?.let {
-                        PayrollCalculator.sumMonthlyPay(it, s, profiles, premiumProfiles).totalGross
+                        PayrollCalculator.sumMonthlyPay(
+                            it, s, profiles, premiumProfiles,
+                            contextShifts = payContextShifts.ifEmpty { it },
+                        ).totalGross
                     }
                 }
                 val isCurrentWeek = !today.isBefore(weekStart) && !today.isAfter(weekEnd)

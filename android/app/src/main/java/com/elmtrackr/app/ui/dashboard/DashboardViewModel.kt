@@ -38,6 +38,9 @@ import com.elmtrackr.app.domain.tasks.TaskClockInHelper
 import com.elmtrackr.app.domain.tasks.TaskHabitSuggestionBuilder
 import com.elmtrackr.app.domain.tasks.TaskSorting
 import com.elmtrackr.app.domain.time.WorkTimezone
+import com.elmtrackr.app.di.ComputationDispatcher
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +50,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -74,6 +78,10 @@ class DashboardViewModel @Inject constructor(
     private val projectsRepository: ProjectsRepository,
     private val featureDiscoveryPreferences: FeatureDiscoveryPreferences,
     private val reviewPromptRecorder: ReviewPromptRecorder,
+    // Injected so tests can run the payroll transform on their own test dispatcher;
+    // production keeps it off the main thread (see flowOn below).
+    @ComputationDispatcher
+    private val computationDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
     private val _refreshNonce = MutableStateFlow(0)
@@ -330,6 +338,18 @@ class DashboardViewModel @Inject constructor(
             }
         }
         }
+        // The transform above runs the month's payroll: sumMonthlyPay plus
+        // MonthlyReportBuilder over every completed shift of the month, which in the
+        // Israeli engine walks each shift minute by minute and re-classifies every
+        // prior shift of the week for every shift. Without flowOn that ran in the
+        // stateIn coroutine — viewModelScope, so Dispatchers.Main.immediate — on the
+        // app's home screen, at startup and again on every shift, settings or sync
+        // emission. ReportsViewModel already moved the same computation off the main
+        // thread for the same reason; this is the other caller of it.
+        //
+        // Placed here so only the payroll transform moves: the state combines below
+        // are field copies, and they keep collecting wherever stateIn puts them.
+        .flowOn(computationDispatcher)
         .combine(_selectedTaskId) { state, selectedTaskId ->
             when (state) {
                 is DashboardUiState.Ready -> state.copy(selectedTaskId = selectedTaskId)

@@ -62,6 +62,9 @@ class DashboardViewModelTest {
     private fun buildVm() = DashboardViewModel(
         shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, appPrefs,
         premiumRepo, setupPrefs, widgetPin, projectsRepo, discoveryPrefs, reviewRecorder,
+        // The production flowOn dispatcher would run the payroll transform off the
+        // test scheduler, so advanceUntilIdle could not await its emissions.
+        computationDispatcher = mainDispatcherRule.dispatcher,
     )
 
     private fun defaultSettings() = UserSettings(
@@ -414,6 +417,9 @@ class DashboardViewModelTest {
         val vm = DashboardViewModel(
             shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, prefs,
             premiumRepo, setupPrefs, widgetPin, projectsRepo, discoveryPrefs, reviewRecorder,
+            // The production flowOn dispatcher would run the payroll transform off the
+            // test scheduler, so advanceUntilIdle could not await its emissions.
+            computationDispatcher = mainDispatcherRule.dispatcher,
         )
         settingsRepo.setSettings(defaultSettings())
         advanceUntilIdle()

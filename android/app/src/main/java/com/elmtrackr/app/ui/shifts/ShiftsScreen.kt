@@ -274,6 +274,7 @@ private fun ShiftsListContent(
         state.settings,
         state.profiles,
         state.premiumProfiles,
+        state.payContextShifts,
         itemsZone,
         itemsLocale,
     ) {
@@ -286,6 +287,7 @@ private fun ShiftsListContent(
             premiumProfiles = state.premiumProfiles,
             zone = itemsZone,
             locale = itemsLocale,
+            payContextShifts = state.payContextShifts,
         )
     }
 
@@ -306,6 +308,7 @@ private fun ShiftsListContent(
                 month = state.month,
                 profiles = state.profiles,
                 premiumProfiles = state.premiumProfiles,
+                payContextShifts = state.payContextShifts,
                 onPreviousMonth = onPreviousMonth,
                 onNextMonth = onNextMonth,
             )

@@ -23,6 +23,7 @@ import com.elmtrackr.app.domain.repository.SettingsRepository
 import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
 import com.elmtrackr.app.domain.tasks.TaskHabitSuggestionBuilder
+import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.time.WorkTimezone
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -147,17 +148,32 @@ class ShiftsViewModel @Inject constructor(
                         flow {
                             emit(ShiftsUiState.Loading)
                             combine(
-                                shiftsRepository.observeShiftsByMonthInZone(
+                                // The month plus the leading tail of the pay week that
+                                // contains the 1st, so the week cards and per-row pay
+                                // see the same weekly-overtime context Reports does.
+                                // One query and a handful of extra rows; filtered back
+                                // to the month for everything that is displayed.
+                                shiftsRepository.observeShiftsForPayContext(
                                     userId,
                                     month.year,
                                     month.monthValue,
                                     zone,
+                                    settings?.let { MonthlyReportBuilder.defaultWeekStartDay(it) } ?: 0,
                                 ),
                                 shiftsRepository.observeActiveShift(userId),
                                 compensationProfilesRepository.observeProfiles(userId),
                                 premiumProfilesRepository.observeProfiles(userId),
                                 tasksRepository.observeAllTasks(userId),
-                            ) { shifts, activeShift, profiles, premiumProfiles, tasks ->
+                            ) { contextShifts, activeShift, profiles, premiumProfiles, tasks ->
+                                val shifts = if (settings == null) {
+                                    contextShifts.filter {
+                                        YearMonth.from(it.startTime.atZone(zone)) == month
+                                    }
+                                } else {
+                                    MonthlyReportBuilder.filterByMonth(
+                                        contextShifts, month.year, month.monthValue, settings,
+                                    )
+                                }
                                 if (shifts.isEmpty()) {
                                     ShiftsUiState.Empty(month)
                                 } else {
@@ -170,6 +186,7 @@ class ShiftsViewModel @Inject constructor(
                                         profiles = profiles,
                                         premiumProfiles = premiumProfiles,
                                         tasks = tasks,
+                                        payContextShifts = contextShifts,
                                     )
                                 }
                             }.collect { emit(it) }
