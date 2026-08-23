@@ -112,6 +112,23 @@ data class CompensationRules(
     val deductionsFixedAmount: Double = 0.0,
 )
 
+/**
+ * True when these rules can actually produce *daily* overtime pay.
+ *
+ * A profile can carry a daily standard without a daily ladder to pay from: the US
+ * federal preset is weekly-only by design ([dailyOvertimeTiers] is empty), and the
+ * UK preset ships with overtime off entirely. Measuring minutes past the daily
+ * standard for either invents overtime hours that no pay figure ever pays.
+ *
+ * Named here rather than spelled out at each site because the two copies had
+ * already drifted: the month-level overtime total was gated on this pair of
+ * conditions while `MonthlyReportBuilder.buildShiftBreakdown` was not — and that
+ * breakdown feeds the shift-row overtime badge, the per-shift rows in Reports, the
+ * CSV, the PDF and the per-task totals.
+ */
+val CompensationRules.paysDailyOvertime: Boolean
+    get() = overtimeEnabled && dailyOvertimeTiers.isNotEmpty()
+
 data class CompensationProfile(
     val id: String,
     val userId: String,

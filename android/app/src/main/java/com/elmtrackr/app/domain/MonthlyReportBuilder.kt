@@ -4,6 +4,7 @@ import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.compensation.RegionPresets
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.MonthlyReport
+import com.elmtrackr.app.domain.model.paysDailyOvertime
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.ShiftBreakdown
 import com.elmtrackr.app.domain.model.UserSettings
@@ -54,7 +55,22 @@ object MonthlyReportBuilder {
         }
         val weekendMins = WeekendRules.totalWeekendMinutes(segments)
         val weekdayMins = maxOf(0, net - weekendMins)
-        val otMins = maxOf(0, weekdayMins - resolved.rules.dailyStandardMinutes)
+        // Only where the profile has a daily ladder to pay from. Without this gate a
+        // weekly-only profile (the US federal preset) or one with overtime switched off
+        // (the UK preset) reported every minute past its daily *standard* as overtime,
+        // while pay treated all of it as regular — a 10-hour day showed 120 overtime
+        // minutes that nothing paid. `buildMonthlyReport` already gated its month total
+        // on exactly this; the per-shift breakdown did not, and it is what feeds the
+        // shift-row badge, the per-shift rows in Reports, the CSV, the PDF and the
+        // per-task totals.
+        //
+        // Weekly overtime is a property of the week, not of one day, so it is not
+        // attributable here at all; `buildMonthlyReport` applies it over real pay weeks.
+        val otMins = if (resolved.rules.paysDailyOvertime) {
+            maxOf(0, weekdayMins - resolved.rules.dailyStandardMinutes)
+        } else {
+            0
+        }
         val regularMins = maxOf(0, weekdayMins - otMins)
 
         return ShiftBreakdown(
@@ -133,7 +149,7 @@ object MonthlyReportBuilder {
             // pair of conditions; the report did not.
             val dailyOt = weekShifts.zip(weekdayMinsPerShift) { s, m ->
                 val rules = rulesMap[s]
-                if (rules != null && (!rules.overtimeEnabled || rules.dailyOvertimeTiers.isEmpty())) {
+                if (rules != null && !rules.paysDailyOvertime) {
                     0
                 } else {
                     maxOf(0, m - (rules?.dailyStandardMinutes ?: settings.dailyOvertimeThresholdMinutes))

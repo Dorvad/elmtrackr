@@ -410,6 +410,120 @@ class MonthlyReportBuilderTest {
         assertEquals(60, bd.overtimeMinutes)
     }
 
+    // ── Daily overtime is only reported where a daily ladder pays it ─────────
+
+    private fun presetProfile(region: RegionCode, id: String) = CompensationProfile(
+        id = id,
+        userId = "u1",
+        name = "Main job",
+        regionCode = region,
+        currencyCode = RegionPresets.forRegion(region).currencyCode,
+        // UTC so the calendar in these fixtures needs no zone arithmetic to read.
+        timezone = "UTC",
+        baseHourlyRate = 60.0,
+        rules = RegionPresets.forRegion(region).rules,
+        stackingPolicy = RegionPresets.forRegion(region).stackingPolicy,
+        isDefault = true,
+    )
+
+    private fun settingsFor(profile: CompensationProfile) = settings.copy(
+        timezone = "UTC",
+        regionCode = profile.regionCode,
+        defaultCompensationProfileId = profile.id,
+    )
+
+    /**
+     * The US federal preset is weekly-only by design — `dailyOvertimeTiers` is empty —
+     * so nothing pays a premium for the 9th and 10th hour of a single day. The report
+     * counted them anyway, because it measured against the daily *standard*: a 10-hour
+     * Monday showed 120 overtime minutes that no pay figure paid, on the shift row
+     * badge, the per-shift rows in Reports, the CSV, the PDF and the per-task totals.
+     */
+    @Test
+    fun `a weekly-only profile reports no daily overtime for a long single day`() {
+        val p = presetProfile(RegionCode.US, "p-us")
+        val tenHours = shift("s1", "2024-01-08T08:00:00Z", "2024-01-08T18:00:00Z")
+
+        val bd = MonthlyReportBuilder.buildShiftBreakdown(tenHours, settingsFor(p), listOf(p))
+
+        assertEquals(600, bd.totalMinutes)
+        assertEquals(0, bd.overtimeMinutes)
+        assertEquals(600, bd.regularMinutes)
+    }
+
+    /**
+     * The invariant, asserted against the pay path's own output rather than a literal,
+     * so the two cannot drift apart again without this failing. This is the same
+     * assertion the IL profile already had; it did not hold for a weekly-only one.
+     */
+    @Test
+    fun `weekly-only profile - report overtime minutes match the payroll brackets`() {
+        val p = presetProfile(RegionCode.US, "p-us")
+        val settingsUs = settingsFor(p)
+        val tenHours = shift("s1", "2024-01-08T08:00:00Z", "2024-01-08T18:00:00Z")
+        val shifts = listOf(tenHours)
+
+        val bd = MonthlyReportBuilder.buildShiftBreakdown(tenHours, settingsUs, listOf(p))
+        val pay = PayrollCalculator.calculateShiftPayInContext(tenHours, shifts, settingsUs, listOf(p))!!
+        val paidOvertimeMinutes = pay.brackets.filter { it.rate > 1.0 }.sumOf { it.minutes }
+
+        assertEquals(paidOvertimeMinutes, bd.overtimeMinutes)
+    }
+
+    /**
+     * And the gate does not swallow the overtime that preset *does* pay: six 8-hour
+     * days is 48 hours, so the week is 8 hours past the FLSA 40-hour threshold. That
+     * belongs to the week, which is why it is reported at month level and not
+     * attributed to any one day.
+     */
+    @Test
+    fun `a weekly-only profile still reports weekly overtime`() {
+        val p = presetProfile(RegionCode.US, "p-us")
+        // Mon 8 Jan – Sat 13 Jan 2024, all inside the pay week starting Sunday the 7th.
+        val shifts = (8..13).map { day ->
+            val d = "%02d".format(day)
+            shift("s$day", "2024-01-${d}T08:00:00Z", "2024-01-${d}T16:00:00Z")
+        }
+
+        val report = MonthlyReportBuilder.buildMonthlyReport(
+            2024, 1, shifts, settingsFor(p), listOf(p),
+        )
+
+        assertEquals(2880, report.totalMinutes)
+        assertEquals(480, report.overtimeMinutes)
+        // Every per-shift breakdown stays at zero: no single day crossed a daily ladder.
+        assertTrue(report.shifts.all { it.overtimeMinutes == 0 })
+    }
+
+    /** The UK preset ships with overtime switched off entirely. */
+    @Test
+    fun `a profile with overtime disabled reports no overtime`() {
+        val p = presetProfile(RegionCode.GB, "p-gb")
+        val tenHours = shift("s1", "2024-01-08T08:00:00Z", "2024-01-08T18:00:00Z")
+        val settingsGb = settingsFor(p)
+
+        val bd = MonthlyReportBuilder.buildShiftBreakdown(tenHours, settingsGb, listOf(p))
+        val report = MonthlyReportBuilder.buildMonthlyReport(
+            2024, 1, listOf(tenHours), settingsGb, listOf(p),
+        )
+
+        assertEquals(0, bd.overtimeMinutes)
+        assertEquals(0, report.overtimeMinutes)
+    }
+
+    /** California does pay a daily ladder, so its daily overtime is still reported. */
+    @Test
+    fun `a profile with a daily ladder still reports daily overtime`() {
+        val p = presetProfile(RegionCode.US_CA, "p-ca")
+        val tenHours = shift("s1", "2024-01-08T08:00:00Z", "2024-01-08T18:00:00Z")
+
+        val bd = MonthlyReportBuilder.buildShiftBreakdown(tenHours, settingsFor(p), listOf(p))
+
+        assertEquals(600, bd.totalMinutes)
+        assertEquals(120, bd.overtimeMinutes)
+        assertEquals(480, bd.regularMinutes)
+    }
+
     /** The weekly threshold moved with the daily one; 2400 vs the IL preset's 2520. */
     @Test
     fun `weekly report overtime uses the profile weekly standard`() {

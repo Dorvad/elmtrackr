@@ -7,6 +7,7 @@ import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.PayBracket
+import com.elmtrackr.app.domain.model.paysDailyOvertime
 import com.elmtrackr.app.domain.model.ResolvedCompensation
 import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
@@ -17,6 +18,7 @@ import com.elmtrackr.app.domain.model.PremiumType
 import com.elmtrackr.app.domain.premium.PremiumStacking
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.time.WorkTimezone
+import com.elmtrackr.app.domain.time.ZoneMinutes
 import kotlin.math.min
 
 /**
@@ -129,18 +131,18 @@ object PayrollCalculator {
             }
         }
 
+        val nightFraction = nightFractionFor(resolved, shift, zone)
+
         val brackets = segments.map { segment ->
-            val (nightStackedRate, nightFraction) = applyNightPremium(
-                segment.multiplier,
-                resolved,
-                shift,
-                zone,
-                shiftPremiumType,
-            )
-            val blendedRate = segment.multiplier + nightFraction * (nightStackedRate - segment.multiplier)
+            val nightRate = if (nightFraction > 0.0) {
+                nightStackedRate(segment.multiplier, resolved, shiftPremiumType)
+            } else {
+                segment.multiplier
+            }
+            val blendedRate = segment.multiplier + nightFraction * (nightRate - segment.multiplier)
             val amount = segment.minutes * ratePerMinute * blendedRate
             val nightPremium =
-                segment.minutes * ratePerMinute * nightFraction * (nightStackedRate - segment.multiplier)
+                segment.minutes * ratePerMinute * nightFraction * (nightRate - segment.multiplier)
             when {
                 segment.label.contains("Premium", ignoreCase = true) -> holidayGross += amount - nightPremium
                 segment.isWeeklyRest && segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
@@ -272,22 +274,22 @@ object PayrollCalculator {
         var holidayGross = 0.0
         var nightGross = 0.0
 
+        val nightFraction = nightFractionFor(resolved, shift, zone)
+
         for (tier in tiers) {
             if (remaining <= 0) break
             val mins = if (tier.capMinutes == Int.MAX_VALUE) remaining else minOf(remaining, tier.capMinutes)
-            val (nightStackedRate, nightFraction) = applyNightPremium(
-                tier.rate,
-                resolved,
-                shift,
-                zone,
-                shiftPremium?.premiumType,
-            )
+            val nightRate = if (nightFraction > 0.0) {
+                nightStackedRate(tier.rate, resolved, shiftPremium?.premiumType)
+            } else {
+                tier.rate
+            }
             // Night uplift applies to this tier's own minutes, proportional to
             // the share of the shift inside the night window. The blended rate
             // keeps totals exact and every category bucket non-negative.
-            val blendedRate = tier.rate + nightFraction * (nightStackedRate - tier.rate)
+            val blendedRate = tier.rate + nightFraction * (nightRate - tier.rate)
             val amount = mins * ratePerMinute * blendedRate
-            val nightPremium = mins * ratePerMinute * nightFraction * (nightStackedRate - tier.rate)
+            val nightPremium = mins * ratePerMinute * nightFraction * (nightRate - tier.rate)
             brackets += PayBracket(tier.label, mins, blendedRate, amount)
 
             when {
@@ -378,7 +380,7 @@ object PayrollCalculator {
             .sumOf { prior ->
                 val rules = CompensationResolver.resolveShiftCompensation(prior, settings, profiles).rules
                 val net = payableNetMinutes(prior, rules) ?: 0
-                if (rules.overtimeEnabled && rules.dailyOvertimeTiers.isNotEmpty()) {
+                if (rules.paysDailyOvertime) {
                     min(net, effectiveDailyStandardMinutes(rules, prior, zone))
                 } else {
                     net
@@ -873,45 +875,69 @@ object PayrollCalculator {
         PremiumStacking.combinePolicy(daily, weekly, policy)
 
     /**
-     * Returns the night-stacked rate for a tier plus the fraction of the
-     * shift's net minutes that the night uplift applies to (1.0 for
-     * "entire_shift", window/net otherwise, 0.0 when night pay is inactive).
+     * Fraction of the shift's net minutes the night uplift applies to — 1.0 for
+     * "entire_shift", window/net otherwise, and 0.0 when night pay is inactive for
+     * this shift.
      *
-     * The fraction lets the tier loop apply the uplift proportionally: paying
-     * the whole tier at the stacked rate would overcharge shifts that only
-     * partially overlap the night window, and attributing the whole shift's
-     * premium to every tier corrupted the category split (a bucket could go
-     * negative while "night pay" showed several times the real premium).
+     * The fraction lets the tier loop apply the uplift proportionally: paying a whole
+     * tier at the stacked rate would overcharge a shift that only partly overlaps the
+     * night window, and attributing the whole shift's premium to every tier corrupted
+     * the category split (a bucket could go negative while "night pay" showed several
+     * times the real premium).
+     *
+     * Resolved once per shift rather than once per tier. It is a property of the shift
+     * — nothing in it varies by bracket — but it used to be recomputed inside the tier
+     * loop, and [countNightMinutes] walks the shift a minute at a time: a four-bracket
+     * shift ran that walk four times, and the Israeli path ran it once per classified
+     * segment.
      */
-    private fun applyNightPremium(
-        baseRate: Double,
+    internal fun nightFractionFor(
         resolved: ResolvedCompensation,
         shift: Shift,
         zone: java.time.ZoneId,
-        premiumType: PremiumType? = null,
-    ): Pair<Double, Double> {
+    ): Double {
         val rules = resolved.rules
-        if (!rules.nightEnabled || shift.endTime == null) return baseRate to 0.0
-        val nightDelta = rules.nightMultiplier - 1.0
-        if (nightDelta <= 0) return baseRate to 0.0
+        if (!rules.nightEnabled || shift.endTime == null) return 0.0
+        if (rules.nightMultiplier - 1.0 <= 0) return 0.0
 
-        val net = ShiftDurationCalculator.netMinutes(shift)?.takeIf { it > 0 } ?: return baseRate to 0.0
+        val net = ShiftDurationCalculator.netMinutes(shift)?.takeIf { it > 0 } ?: return 0.0
         val nightMinutes = if (rules.nightApplyTo == "entire_shift") {
             net
         } else {
             countNightMinutes(shift, rules.nightStartTime, rules.nightEndTime, zone)
         }
-        if (nightMinutes <= 0) return baseRate to 0.0
-
-        val effectiveRate = if (premiumType != null) {
-            PremiumStacking.combine(baseRate, rules.nightMultiplier, premiumType)
-        } else {
-            PremiumStacking.combinePolicy(rules.nightMultiplier, baseRate, resolved.stackingPolicy)
-        }
-        val nightFraction = (nightMinutes.toDouble() / net).coerceIn(0.0, 1.0)
-        return effectiveRate to nightFraction
+        if (nightMinutes <= 0) return 0.0
+        return (nightMinutes.toDouble() / net).coerceIn(0.0, 1.0)
     }
 
+    /**
+     * [baseRate] with the night multiplier stacked onto it under the applicable
+     * policy. Only meaningful where [nightFractionFor] is above zero; callers keep the
+     * base rate unchanged otherwise, which is what the old single function returned
+     * from each of its early exits.
+     */
+    private fun nightStackedRate(
+        baseRate: Double,
+        resolved: ResolvedCompensation,
+        premiumType: PremiumType?,
+    ): Double = if (premiumType != null) {
+        PremiumStacking.combine(baseRate, resolved.rules.nightMultiplier, premiumType)
+    } else {
+        PremiumStacking.combinePolicy(resolved.rules.nightMultiplier, baseRate, resolved.stackingPolicy)
+    }
+
+    /**
+     * Minutes of the shift that fall inside the night window, scaled down by the
+     * break the same way the rest of the shift is.
+     *
+     * Walked a minute at a time because the window is a local wall-clock range, so a
+     * shift crossing midnight or a DST change cannot be measured by subtracting two
+     * instants. What the walk needs from each minute is only its minute-of-day, and
+     * [ZoneMinutes] derives that arithmetically wherever the zone holds one offset
+     * across the shift — which removes an `Instant.atZone` allocation and zone-rules
+     * lookup per minute. A shift containing a transition still converts each minute
+     * the original way.
+     */
     private fun countNightMinutes(
         shift: Shift,
         nightStart: String,
@@ -927,10 +953,16 @@ object PayrollCalculator {
 
         var nightMs = 0L
         val step = 60_000L
+        val fixedOffset = ZoneMinutes.hasFixedOffset(zone, startMs, endMs - 1)
+        val offsetSeconds = if (fixedOffset) ZoneMinutes.offsetSecondsAt(zone, startMs) else 0L
         var t = startMs
         while (t < endMs) {
-            val localTime = java.time.Instant.ofEpochMilli(t).atZone(zone).toLocalTime()
-            val mins = localTime.hour * 60 + localTime.minute
+            val mins = if (fixedOffset) {
+                ZoneMinutes.minuteOfDay(t, offsetSeconds)
+            } else {
+                val localTime = java.time.Instant.ofEpochMilli(t).atZone(zone).toLocalTime()
+                localTime.hour * 60 + localTime.minute
+            }
             val inNight = if (ns > ne) mins >= ns || mins < ne else mins in ns until ne
             if (inNight) nightMs += step
             t += step
