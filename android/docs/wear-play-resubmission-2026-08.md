@@ -201,12 +201,23 @@ with file names and line numbers, which the previous release could not produce.
 
 ## 4. Resubmission checklist
 
-1. **Confirm the version codes against Play Console → Release overview.** This
-   repository was at phone 12 / wear 10012 while Play had already seen wear
-   10041, so the two are out of sync and the repository is not the authority.
-   They are now set to phone **42** / wear **10042**, preserving the documented
-   `wear == 10000 + phone` rule and clearing the rejected code. If Play shows a
-   higher number than 42 for the phone, raise both before building.
+1. **Version codes: phone 42, wear 10042, both `1.2.4`.** Confirmed against
+   Play: production is on phone **40** (`1.2.3`), and the rejected watch
+   artifact was **10041**.
+
+   The phone skips 41. It is free, but the module invariant is
+   `wear == 10000 + phone`, and a phone 41 would need a wear 10041 — a code
+   Play has already seen and will refuse. 42 is the lowest pair that clears
+   both constraints.
+
+   `versionName` moves 1.2.3 → **1.2.4**. It had been left at 1.2.1 in this
+   branch, which would have shipped a *lower* version string than production.
+   1.3.0 is also defensible given the watch redesign; it is a one-line change
+   if you want the release to read as a minor rather than a patch.
+
+   This repository was at phone 12 / wear 10012 when the work started, so it is
+   not the authority on live numbers — check Release overview again before the
+   build if any other upload happens in between.
 2. Build both artifacts: `./gradlew :app:bundleRelease :wear:bundleRelease`.
 3. Install the wear release on an emulator or watch and walk §3's list.
 4. Replace **all** Wear screenshots in the listing with captures from

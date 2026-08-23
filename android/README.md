@@ -301,7 +301,8 @@ Output: `android/app/build/outputs/bundle/release/app-release.aab`
 
 ### 4. Upload to Play Console
 
-- Use a **new `versionCode`** each upload (currently **12** / `1.2.0` in `app/build.gradle.kts`).
+- Use a **new `versionCode`** each upload (currently **42** / `1.2.4` in `app/build.gradle.kts`,
+  with `:wear` on **10042** — see the invariant in `docs/release-checklist.md`).
 - Upload the locally built `app-release.aab`, not a CI artifact.
 
 ---
