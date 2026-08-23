@@ -89,6 +89,16 @@
 }
 
 # ============================================================
+# The brand typefaces are referenced from Kotlin by R.font id, so R8 sees the
+# reference and keeps them; the resource shrinker sees it too. Nothing to keep
+# here — this note exists so the next person does not add a defensive rule for
+# them. If the wordmark ever renders in the system font on a release build, the
+# cause is a missing glyph, not shrinking: neither face covers Hebrew or Arabic
+# (verified against their cmap tables), so those locales fall back to the
+# platform font on the watch exactly as they already do on the phone.
+# ============================================================
+
+# ============================================================
 # Wear surfaces the system starts by ComponentName. The activity,
 # the tile service, the complication provider and the data-layer
 # listener are all declared in the manifest, so AGP's generated

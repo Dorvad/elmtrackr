@@ -44,19 +44,16 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.wear.compose.material3.Button
-import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import com.elmtrackr.wear.PunchCountdown
 import com.elmtrackr.wear.R
@@ -70,6 +67,7 @@ import com.elmtrackr.wear.sync.WearConfirmation
 private fun WearFace(
     onTap: (() -> Unit)? = null,
     onTapLabel: String? = null,
+    showWordmark: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -91,14 +89,16 @@ private fun WearFace(
                 }
             },
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                // Clear of the curved TimeText band along the top bezel.
-                .padding(top = 28.dp),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            WearBrandLabel()
+        if (showWordmark) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    // Clear of the curved TimeText band along the top bezel.
+                    .padding(top = 28.dp),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                WearBrandLabel()
+            }
         }
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             content()
@@ -107,7 +107,7 @@ private fun WearFace(
 }
 
 @Composable
-private fun StatusDotRow(label: String, dotColor: androidx.compose.ui.graphics.Color) {
+private fun StatusDotRow(label: String, dotColor: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
@@ -118,9 +118,8 @@ private fun StatusDotRow(label: String, dotColor: androidx.compose.ui.graphics.C
         Spacer(Modifier.width(5.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.5.sp),
-            fontWeight = FontWeight.Bold,
-            color = AuroraOnSurface.copy(alpha = 0.85f),
+            style = WearElmType.status,
+            color = AuroraInk2,
         )
     }
 }
@@ -128,7 +127,12 @@ private fun StatusDotRow(label: String, dotColor: androidx.compose.ui.graphics.C
 @Composable
 fun SetupScreen(onRefresh: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
-    WearFace {
+    // No wordmark on this face. It is the tallest of the six — badge, heading,
+    // two lines of body and a 48dp button — and the wordmark sits in a separate
+    // layer pinned to the top, so a column this tall slides underneath it. It
+    // would also be the only screen showing the brand twice: the badge below is
+    // the same mark. Dropping it fixes the overlap and removes the repetition.
+    WearFace(showWordmark = false) {
         // Scrollable so oversized accessibility fonts push content into a
         // scroll instead of clipping it against the round bezel.
         Column(
@@ -142,22 +146,27 @@ fun SetupScreen(onRefresh: () -> Unit) {
             WearAppLogo(size = 34.dp)
             Text(
                 text = stringResource(R.string.setup_title),
-                style = MaterialTheme.typography.titleMedium,
+                style = WearElmType.title,
+                color = AuroraInk,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 8.dp),
             )
             Text(
                 text = stringResource(R.string.setup_body),
-                style = MaterialTheme.typography.bodySmall,
+                style = WearElmType.body,
                 textAlign = TextAlign.Center,
-                color = AuroraOnSurface.copy(alpha = 0.75f),
+                color = AuroraInk2,
                 modifier = Modifier.padding(top = 5.dp, bottom = 12.dp),
             )
-            Button(
+            WearGradientButton(
                 onClick = onRefresh,
-                modifier = Modifier.wearPressScale(interactionSource),
+                interactionSource = interactionSource,
             ) {
-                Text(stringResource(R.string.wear_refresh))
+                Text(
+                    text = stringResource(R.string.wear_refresh),
+                    style = WearElmType.button,
+                    color = Color.White,
+                )
             }
         }
     }
@@ -185,20 +194,19 @@ fun IdleScreen(
             Spacer(Modifier.height(10.dp))
             Text(
                 text = stringResource(R.string.punch_in).uppercase(),
-                style = MaterialTheme.typography.titleMedium.copy(letterSpacing = 1.sp),
-                fontWeight = FontWeight.Bold,
-                color = AuroraOnSurface,
+                style = WearElmType.action,
+                color = AuroraInk,
             )
             Spacer(Modifier.height(6.dp))
             StatusDotRow(
                 label = stringResource(R.string.wear_clocked_out),
-                dotColor = AuroraOnSurface.copy(alpha = 0.55f),
+                dotColor = AuroraOutline,
             )
             if (detail.isNotBlank()) {
                 Text(
                     text = detail,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AuroraOnSurface.copy(alpha = 0.65f),
+                    style = WearElmType.detail,
+                    color = AuroraOutline,
                     textAlign = TextAlign.Center,
                     // Two lines + ellipsis: large accessibility fonts wrap
                     // instead of being clipped at the screen edge.
@@ -227,16 +235,14 @@ fun RunningScreen(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             StatusDotRow(
                 label = stringResource(R.string.wear_on_shift),
-                dotColor = AuroraGreen,
+                dotColor = AuroraSuccess,
             )
             Spacer(Modifier.height(2.dp))
             WearAnimatedTimeLabel(
                 value = elapsed.ifBlank { "0:00" },
                 // Capped scale: the count-up numerals grow with accessibility
                 // fonts up to the point where they would clip inside the ring.
-                style = MaterialTheme.typography.displayMedium
-                    .copy(fontWeight = FontWeight.Bold)
-                    .withCappedFontScale(),
+                style = WearElmType.countUp.withCappedFontScale(),
             )
             Spacer(Modifier.height(2.dp))
             if (isLoading) {
@@ -246,8 +252,8 @@ fun RunningScreen(
             } else {
                 Text(
                     text = stringResource(R.string.wear_tap_to_stop),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AuroraOnSurface.copy(alpha = 0.7f),
+                    style = WearElmType.detail,
+                    color = AuroraOutline,
                 )
             }
         }
@@ -297,7 +303,7 @@ fun CountdownOverlay(
             val inset = stroke / 2f + 10.dp.toPx()
             val arcSize = Size(size.width - inset * 2f, size.height - inset * 2f)
             drawArc(
-                color = AuroraOnSurface.copy(alpha = 0.2f),
+                color = AuroraOutline.copy(alpha = 0.22f),
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -305,15 +311,22 @@ fun CountdownOverlay(
                 size = arcSize,
                 style = Stroke(width = stroke, cap = StrokeCap.Round),
             )
-            drawArc(
-                color = AuroraOnSurface,
-                startAngle = -90f,
-                sweepAngle = 360f * ring.value.coerceIn(0f, 1f),
-                useCenter = false,
-                topLeft = Offset(inset, inset),
-                size = arcSize,
-                style = Stroke(width = stroke, cap = StrokeCap.Round),
-            )
+            // Same ramp and same 12-o'clock origin as the goal ring on the
+            // running face, so the two rings read as one component in two states.
+            rotate(degrees = -90f) {
+                drawArc(
+                    brush = Brush.sweepGradient(
+                        colorStops = AuroraGradientStops,
+                        center = Offset(size.width / 2f, size.height / 2f),
+                    ),
+                    startAngle = 0f,
+                    sweepAngle = 360f * ring.value.coerceIn(0f, 1f),
+                    useCenter = false,
+                    topLeft = Offset(inset, inset),
+                    size = arcSize,
+                    style = Stroke(width = stroke, cap = StrokeCap.Round),
+                )
+            }
         }
         Column(
             modifier = Modifier.padding(horizontal = 28.dp),
@@ -323,8 +336,8 @@ fun CountdownOverlay(
                 text = stringResource(
                     if (countdown.isPunchIn) R.string.countdown_punching_in else R.string.countdown_punching_out,
                 ),
-                style = MaterialTheme.typography.labelSmall,
-                color = AuroraOnSurface.copy(alpha = 0.75f),
+                style = WearElmType.caption,
+                color = AuroraInk2,
                 textAlign = TextAlign.Center,
             )
             if (motion) {
@@ -338,22 +351,22 @@ fun CountdownOverlay(
                 ) { seconds ->
                     Text(
                         text = seconds.toString(),
-                        style = MaterialTheme.typography.displayLarge.withCappedFontScale(),
-                        color = AuroraOnSurface,
+                        style = WearElmType.countdownDigit.withCappedFontScale(),
+                        color = AuroraInk,
                     )
                 }
             } else {
                 Text(
                     text = countdown.secondsLeft.toString(),
-                    style = MaterialTheme.typography.displayLarge.withCappedFontScale(),
-                    color = AuroraOnSurface,
+                    style = WearElmType.countdownDigit.withCappedFontScale(),
+                    color = AuroraInk,
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.countdown_tap_to_cancel),
-                style = MaterialTheme.typography.labelSmall,
-                color = AuroraOnSurface.copy(alpha = 0.6f),
+                style = WearElmType.caption,
+                color = AuroraOutline,
                 textAlign = TextAlign.Center,
             )
         }
@@ -397,25 +410,27 @@ fun ConfirmationOverlay(confirmation: WearConfirmation) {
                 .size(64.dp)
                 .clip(CircleShape)
                 .background(
-                    Brush.linearGradient(
-                        if (confirmation.isSuccess) {
-                            listOf(AuroraIndigo.copy(alpha = 0.55f), AuroraAqua.copy(alpha = 0.55f))
-                        } else {
-                            listOf(AuroraPlum.copy(alpha = 0.55f), AuroraIndigo.copy(alpha = 0.55f))
-                        },
-                    ),
+                    if (confirmation.isSuccess) {
+                        // Full-strength Aurora ramp, the phone's own stops. It
+                        // was drawn at 55% alpha to sit on the old indigo face;
+                        // on black that just made the brand look washed out.
+                        Brush.linearGradient(colorStops = AuroraGradientStops)
+                    } else {
+                        Brush.linearGradient(listOf(AuroraPlum, AuroraIndigo))
+                    },
                 ),
             contentAlignment = Alignment.Center,
         ) {
             AnimatedResultMark(
                 success = confirmation.isSuccess,
                 size = 40.dp,
-                color = AuroraOnSurface,
+                color = Color.White,
             )
         }
         Text(
             text = message,
-            style = MaterialTheme.typography.titleLarge,
+            style = WearElmType.title,
+            color = AuroraInk,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 10.dp, start = 12.dp, end = 12.dp),
         )
@@ -425,7 +440,7 @@ fun ConfirmationOverlay(confirmation: WearConfirmation) {
 @Composable
 private fun WearAnimatedTimeLabel(
     value: String,
-    style: TextStyle = MaterialTheme.typography.labelSmall,
+    style: TextStyle = WearElmType.detail,
     modifier: Modifier = Modifier,
 ) {
     if (!wearMotionEnabled()) {

@@ -1,14 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- White circular punch button with the brand lightning bolt. -->
+<!--
+    The ElmTrackr punch mark: the Aurora gradient on a disc, with a white bolt.
+
+    This is the phone's treatment of the same mark — a gradient container with a
+    white Icons.Filled.Bolt on it (DashboardScreen header, PaidProjectsUpdateWizard,
+    ElmSideNavigation logo) — at the phone's own stops: #5B4DF2 → #8B5CF6 → #16C8D6.
+
+    It used to be the inverse, a white disc with a #4664F4 bolt. That blue is in
+    neither app's palette, so the brand's primary mark was the one element the
+    phone and the watch did not share.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="48dp"
     android:height="48dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <path android:pathData="M12,1a11,11 0 1,0 0,22a11,11 0 1,0 0,-22z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="2"
+                android:startY="2"
+                android:endX="22"
+                android:endY="22">
+                <item android:offset="0" android:color="#FF5B4DF2" />
+                <item android:offset="0.42" android:color="#FF8B5CF6" />
+                <item android:offset="1" android:color="#FF16C8D6" />
+            </gradient>
+        </aapt:attr>
+    </path>
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M12,1a11,11 0 1,0 0,22a11,11 0 1,0 0,-22z" />
-    <path
-        android:fillColor="#4664F4"
+        android:fillColor="#FFFFFFFF"
         android:pathData="M12.62,6.42 L8.9,12.62 L12,12.62 L11.38,17.58 L16.34,11.38 L13.24,11.38 Z" />
 </vector>
