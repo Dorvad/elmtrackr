@@ -162,16 +162,20 @@ Google Web client id, so a build that skips this ships email sign-in only.
 Full instructions, including which SHA-1 to register and why two OAuth clients
 are needed, are in [`google-sign-in-setup.md`](google-sign-in-setup.md). In short:
 
-1. Google Cloud → two OAuth client IDs: a **Web** one and an **Android** one
-   (package `com.elmlaunch.myapp`, plus the SHA-1 of whichever key signs the
-   build — the Play App Signing certificate for anything distributed through
-   Play, not the upload key).
-2. Supabase → *Authentication* → *Providers* → *Google*: enable it, set the Web
+1. Google Cloud → configure **Google Auth Platform** (branding, External
+   audience, the `openid`/`email`/`profile` scopes) and **add every first-round
+   tester as a test user** — in Testing status nobody else can sign in at all.
+2. Two OAuth client IDs: a **Web** one, with the Supabase callback URL in its
+   authorised redirect URIs, and an **Android** one (package
+   `com.elmlaunch.myapp` plus the SHA-1 of whichever key signs the build — the
+   Play App Signing certificate for anything distributed through Play, not the
+   upload key).
+3. Supabase → *Authentication* → *Providers* → *Google*: enable it, set the Web
    client ID and secret, and add the Web client ID to **Authorized Client IDs**.
-   Leave *Skip nonce checks* off.
-3. `android/local.properties` → `google.web.client.id=<web client id>`. CI needs
+   Leave *Skip nonce check* off — that instruction in Supabase's docs is for iOS.
+4. `android/local.properties` → `google.web.client.id=<web client id>`. CI needs
    the same line written before the build, same pattern as `SUPABASE_URL`.
-4. On the first internal build: sign in with a Google account on a device with
+5. On the first internal build: sign in with a Google account on a device with
    no ElmTrackr account, then sign out and confirm the account picker reappears
    rather than silently reusing the same account.
 
