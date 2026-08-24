@@ -79,6 +79,7 @@ import com.elmtrackr.app.ui.projects.StatusPill
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Layout
+import com.elmtrackr.app.ui.dashboard.WorkProfileSelectorBar
 import com.elmtrackr.app.ui.theme.Spacing
 import com.elmtrackr.app.ui.theme.auroraSemantics
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
@@ -128,6 +129,7 @@ fun TaskManagementScreen(
                 onArchive = viewModel::archiveTask,
                 onRestore = viewModel::unarchiveTask,
                 onDelete = viewModel::deleteTask,
+                onSelectProfile = viewModel::selectProfile,
                 onDismissMessage = viewModel::clearMessage,
             )
         }
@@ -147,6 +149,7 @@ internal fun TaskManagementContent(
     onArchive: (String) -> Unit,
     onRestore: (String) -> Unit = {},
     onDelete: (String) -> Unit = {},
+    onSelectProfile: (String) -> Unit = {},
     onDismissMessage: () -> Unit,
 ) {
     var editingId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -224,6 +227,18 @@ internal fun TaskManagementContent(
                         Text(stringResource(R.string.tasks_add), fontWeight = FontWeight.SemiBold)
                     }
                 },
+            )
+        }
+
+        // Which job's tasks these are. Renders nothing for a single profile, so a
+        // one-job user sees the screen exactly as before. Above the list rather
+        // than inside the task editor: the context is the same for every task
+        // added in a sitting, and a per-task picker would ask it repeatedly.
+        item {
+            WorkProfileSelectorBar(
+                profiles = state.profiles,
+                selectedProfileId = state.selectedProfileId,
+                onSelectProfile = onSelectProfile,
             )
         }
 

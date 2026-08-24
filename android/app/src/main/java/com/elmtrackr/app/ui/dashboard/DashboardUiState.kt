@@ -26,6 +26,21 @@ sealed interface DashboardUiState {
         val monthlyReport: MonthlyReport?,
         val settings: UserSettings,
         val profiles: List<com.elmtrackr.app.domain.model.CompensationProfile> = emptyList(),
+        /**
+         * The work profile the next clock-in books to.
+         *
+         * Only meaningful when [profiles] holds more than one: with a single job
+         * there is nothing to choose, and the selector stays off screen rather
+         * than occupying a row above the clock to state the obvious.
+         */
+        val selectedWorkProfileId: String? = null,
+        /**
+         * Tasks belonging to [selectedWorkProfileId], not every task the user has.
+         *
+         * A task is something you do at one job, so scoping the picker is what
+         * stops it growing without bound as jobs are added — the selector above it
+         * has already narrowed the question.
+         */
         val activeTasks: List<Task> = emptyList(),
         val selectedTaskId: String? = null,
         val suggestedTaskId: String? = null,

@@ -87,6 +87,12 @@ class DashboardViewModel @Inject constructor(
     private val _refreshNonce = MutableStateFlow(0)
     private val _showFirstClockInCelebration = MutableStateFlow(false)
     private val _selectedTaskId = MutableStateFlow<String?>(null)
+
+    /**
+     * The work profile the next clock-in books to. Null means "the default one",
+     * which is what a single-job user always gets and never has to choose.
+     */
+    private val _selectedWorkProfileId = MutableStateFlow<String?>(null)
     private val _suggestedTaskId = MutableStateFlow<String?>(null)
     private val _showSuggestedNow = MutableStateFlow(false)
     private val _suggestionExplanation = MutableStateFlow<String?>(null)
@@ -321,6 +327,7 @@ class DashboardViewModel @Inject constructor(
                     settings = raw.settings,
                     profiles = raw.profiles,
                     activeTasks = raw.activeTasks,
+                    selectedWorkProfileId = resolveWorkProfileId(raw.profiles, raw.settings),
                     selectedTaskId = _selectedTaskId.value,
                     suggestedTaskId = _suggestedTaskId.value,
                     showSuggestedNow = _showSuggestedNow.value,
@@ -350,9 +357,26 @@ class DashboardViewModel @Inject constructor(
         // Placed here so only the payroll transform moves: the state combines below
         // are field copies, and they keep collecting wherever stateIn puts them.
         .flowOn(computationDispatcher)
+        .combine(_selectedWorkProfileId) { state, requested ->
+            when (state) {
+                is DashboardUiState.Ready -> {
+                    val profileId = resolveWorkProfileId(state.profiles, state.settings, requested)
+                    state.copy(
+                        selectedWorkProfileId = profileId,
+                        activeTasks = tasksForProfile(state.activeTasks, profileId, state.profiles),
+                    )
+                }
+                else -> state
+            }
+        }
         .combine(_selectedTaskId) { state, selectedTaskId ->
             when (state) {
-                is DashboardUiState.Ready -> state.copy(selectedTaskId = selectedTaskId)
+                is DashboardUiState.Ready -> state.copy(
+                    // A task belongs to one job, so a selection that is not in the
+                    // narrowed list is dropped rather than carried into a clock-in
+                    // against the wrong profile.
+                    selectedTaskId = selectedTaskId?.takeIf { id -> state.activeTasks.any { it.id == id } },
+                )
                 else -> state
             }
         }
@@ -513,7 +537,12 @@ class DashboardViewModel @Inject constructor(
             val isFirstClockIn = !shiftsRepository.hasAnyShifts(userId) &&
                 !appPreferences.currentPreferences().firstClockInCelebrated
             val defaultProfile = compensationProfilesRepository.ensureMigrated(userId)
-            val tasks = tasksRepository.getActiveTasks(userId)
+            // Read before the tasks: the profile decides which tasks are on offer.
+            val profiles = compensationProfilesRepository.getProfiles(userId)
+            val workProfileId = resolveWorkProfileId(profiles, settings, _selectedWorkProfileId.value)
+                ?: defaultProfile?.id
+            val allTasks = tasksRepository.getActiveTasks(userId)
+            val tasks = tasksForProfile(allTasks, workProfileId, profiles)
             val selected = tasks.firstOrNull { it.id == _selectedTaskId.value }
                 ?: TaskSorting.byRecency(tasks).firstOrNull()
             val taskParams = TaskClockInHelper.paramsFromTask(selected)
@@ -528,7 +557,7 @@ class DashboardViewModel @Inject constructor(
             )
             val shift = shiftsRepository.clockIn(
                 userId = userId,
-                compensationProfileId = settings.defaultCompensationProfileId ?: defaultProfile?.id,
+                compensationProfileId = workProfileId,
                 taskId = taskParams.taskId,
                 taskNameSnapshot = taskParams.taskNameSnapshot,
                 taskIconSnapshot = taskParams.taskIconSnapshot,
@@ -548,6 +577,57 @@ class DashboardViewModel @Inject constructor(
                 appPreferences.setFirstClockInCelebrationPending(false)
                 _showFirstClockInCelebration.value = true
             }
+        }
+    }
+
+    /**
+     * Picks the work profile the next clock-in books to.
+     *
+     * The task selection is cleared with it: tasks belong to a job, so keeping one
+     * across a switch would offer a task from the profile the user just left.
+     */
+    fun selectWorkProfile(profileId: String) {
+        if (_selectedWorkProfileId.value == profileId) return
+        _selectedWorkProfileId.value = profileId
+        _selectedTaskId.value = null
+    }
+
+    /**
+     * The profile in force: the explicit choice while it still exists, then the
+     * user's default, then the first profile.
+     *
+     * Falling through rather than holding a stale id matters after a profile is
+     * deleted on another device — the punch lands on a real profile instead of
+     * silently carrying no rate.
+     */
+    private fun resolveWorkProfileId(
+        profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
+        settings: UserSettings?,
+        requested: String? = _selectedWorkProfileId.value,
+    ): String? = requested?.takeIf { id -> profiles.any { it.id == id } }
+        ?: settings?.defaultCompensationProfileId?.takeIf { id -> profiles.any { it.id == id } }
+        ?: profiles.firstOrNull { it.isDefault }?.id
+        ?: profiles.firstOrNull()?.id
+
+    /**
+     * The tasks belonging to [profileId].
+     *
+     * A task with no profile is shown under the default one rather than hidden:
+     * every task created before tasks were scoped to a job has none, and taking
+     * an upgrading user's list away would be a worse answer than showing it where
+     * they have always seen it.
+     */
+    private fun tasksForProfile(
+        tasks: List<Task>,
+        profileId: String?,
+        profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
+    ): List<Task> {
+        if (profileId == null) return tasks
+        val isDefaultProfile = profiles.firstOrNull { it.id == profileId }?.isDefault == true ||
+            profiles.size <= 1
+        return tasks.filter { task ->
+            task.compensationProfileId == profileId ||
+                (task.compensationProfileId == null && isDefaultProfile)
         }
     }
 

@@ -139,4 +139,8 @@
     <string name="dashboard_start_time_future_error">Start time can\'t be in the future.</string>
     <string name="dashboard_month_summary_open_report">View full report</string>
     <string name="dashboard_gross_before_tax">GROSS · BEFORE TAX</string>
+
+    <!-- Work profile selection above the clock -->
+    <string name="dashboard_work_profile_label">Working at</string>
+    <string name="dashboard_active_work_profile">Clocked in at %1$s</string>
 </resources>

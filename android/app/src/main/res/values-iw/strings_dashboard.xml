@@ -139,4 +139,8 @@
     <string name="dashboard_start_time_future_error">שעת ההתחלה לא יכולה להיות בעתיד.</string>
     <string name="dashboard_month_summary_open_report">לדוח המלא</string>
     <string name="dashboard_gross_before_tax">ברוטו · לפני מס</string>
+
+    <!-- Work profile selection above the clock -->
+    <string name="dashboard_work_profile_label">עובד/ת ב־</string>
+    <string name="dashboard_active_work_profile">משמרת פעילה ב־%1$s</string>
 </resources>

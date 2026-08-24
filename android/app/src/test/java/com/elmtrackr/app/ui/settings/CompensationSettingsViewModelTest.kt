@@ -142,6 +142,8 @@ class CompensationSettingsViewModelTest {
         stackingPolicy = p.stackingPolicy,
         rules = p.rules,
         sickLeave = sickLeave,
+        color = p.color ?: "#5B4DF2",
+        icon = p.icon ?: "💼",
     )
 
     /**

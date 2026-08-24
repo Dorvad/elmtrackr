@@ -141,4 +141,8 @@
     <string name="dashboard_start_time_future_error">لا يمكن أن يكون وقت البداية في المستقبل.</string>
     <string name="dashboard_month_summary_open_report">عرض التقرير الكامل</string>
     <string name="dashboard_gross_before_tax">الإجمالي · قبل الضريبة</string>
+
+    <!-- Work profile selection above the clock -->
+    <string name="dashboard_work_profile_label">العمل في</string>
+    <string name="dashboard_active_work_profile">دوام جارٍ في %1$s</string>
 </resources>
