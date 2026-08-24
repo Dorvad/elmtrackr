@@ -118,17 +118,17 @@
     <string name="dashboard_setup_clock_blurb">15 עיצובי שעון לבחירה.</string>
     <string name="dashboard_setup_clock_body">השעון הגדול במסך הזה הוא כרטיס הנוכחות שלכם. בחרו עיצוב שמתאים לכם \u2014 מחוגה מינימליסטית ועד גאות עולה.</string>
     <string name="dashboard_setup_clock_action">בחירת עיצוב</string>
-    <string name="dashboard_setup_compensation_title">בדקו את כללי השכר</string>
-    <string name="dashboard_setup_compensation_blurb">תעריפי שעות נוספות, סוף שבוע וחג.</string>
-    <string name="dashboard_setup_compensation_body">אומדן השכר מדויק רק כמו הכללים שהוזנו. עברו על ספי השעות הנוספות ומכפילי התעריף, והשוו אותם לחוזה או לתלוש שכר אחרון \u2014 אם משהו שונה, כדאי לוודא את הפרטים מול המעסיק.</string>
-    <string name="dashboard_setup_compensation_action">בדיקת כללי השכר</string>
+    <string name="dashboard_setup_compensation_title">הגדירו את פרופיל העבודה</string>
+    <string name="dashboard_setup_compensation_blurb">התעריף, השעות הנוספות והתוספות \u2014 לעבודה הזאת.</string>
+    <string name="dashboard_setup_compensation_body">פרופיל עבודה הוא עבודה אחת: התעריף השעתי שלה, ספי השעות הנוספות, התוספות, דמי המחלה והצבע שלה. התחילו מהתעריף \u2014 כל סכום באפליקציה נשען עליו \u2014 ואז השוו את הכללים לחוזה או לתלוש אחרון. יש עבודה נוספת? הוסיפו פרופיל שני ותוכלו להחליף ביניהם מעל השעון.</string>
+    <string name="dashboard_setup_compensation_action">להגדיר פרופיל עבודה</string>
     <string name="dashboard_setup_premium_title">הוסיפו תעריף פרמיה</string>
     <string name="dashboard_setup_premium_blurb">פרופילי תוספת לשימוש חוזר.</string>
     <string name="dashboard_setup_premium_body" formatted="false">פרופיל פרמיה הוא תוספת בעלת שם קבוע \u2014 למשל 150% לעבודת לילה \u2014 שאפשר להחיל על כל משמרת. צרו אחד וראו איך הוא משנה את שכר המשמרת.</string>
     <string name="dashboard_setup_premium_action">הגדרת פרמיות</string>
     <string name="dashboard_setup_tasks_title">צרו משימה</string>
-    <string name="dashboard_setup_tasks_blurb">תעריף שונה לכל פרויקט או לקוח.</string>
-    <string name="dashboard_setup_tasks_body">משימות מתייגות משמרות לפי פרויקט או לקוח, לכל אחד תעריף שעתי משלו \u2014 שימושי כשמחלקים את הזמן בין עבודות.</string>
+    <string name="dashboard_setup_tasks_blurb">לפצל עבודה אחת למה שבאמת עושים בה.</string>
+    <string name="dashboard_setup_tasks_body">משימה היא משהו שעושים בעבודה אחת, עם תעריף שעתי משלה \u2014 למשל משמרת בבר במקום באולם. משימות שייכות לפרופיל עבודה, ולכן הבחירה מציעה רק את אלה של העבודה שנכנסים אליה. למעסיק אחר \u2014 הוסיפו פרופיל עבודה.</string>
     <string name="dashboard_setup_tasks_action">יצירת משימה</string>
     <string name="dashboard_setup_widget_title">הוסיפו וידג׳ט למסך הבית</string>
     <string name="dashboard_setup_widget_blurb">כניסה למשמרת בלי לפתוח את האפליקציה.</string>

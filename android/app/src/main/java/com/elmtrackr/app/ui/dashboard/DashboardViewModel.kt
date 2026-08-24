@@ -784,6 +784,7 @@ class DashboardViewModel @Inject constructor(
                     hasCompletedShift = completedShifts.isNotEmpty(),
                     hasCustomPremiumProfile = premiumProfiles.any { !it.isDefault },
                     compensationProfileCount = compensationProfiles.size,
+                    hasWorkProfileRate = compensationProfiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 },
                     hasAnyTask = tasks.isNotEmpty(),
                     hasDisplayName = !profile.fullName.isNullOrBlank(),
                     // The opt-ins only. featuresInsights ships on, so counting it
@@ -801,6 +802,7 @@ class DashboardViewModel @Inject constructor(
                         hasCompletedShift = signals.hasCompletedShift,
                         clockStyleCustomized = signals.clockStyleCustomized,
                         compensationProfileCount = signals.compensationProfileCount,
+                        hasWorkProfileRate = signals.hasWorkProfileRate,
                         hasCustomPremiumProfile = signals.hasCustomPremiumProfile,
                         hasAnyTask = signals.hasAnyTask,
                         hasDisplayName = signals.hasDisplayName,
@@ -832,6 +834,7 @@ class DashboardViewModel @Inject constructor(
         val hasCompletedShift: Boolean,
         val hasCustomPremiumProfile: Boolean,
         val compensationProfileCount: Int,
+        val hasWorkProfileRate: Boolean,
         val hasAnyTask: Boolean,
         val hasDisplayName: Boolean,
         val hasEnabledFeature: Boolean,

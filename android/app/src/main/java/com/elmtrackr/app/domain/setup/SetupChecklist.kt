@@ -4,9 +4,10 @@ package com.elmtrackr.app.domain.setup
  * The guided getting-started checklist shown on the dashboard after onboarding.
  *
  * Steps either auto-complete from real data (a completed shift, a created task,
- * a pinned widget, a customized clock style, a user-created premium or second
- * compensation profile) or complete when the user opens the relevant screen
- * from the checklist ("visited" steps, keyed by [SetupStep.key] in preferences).
+ * a pinned widget, a customized clock style, a work profile with an hourly rate,
+ * a user-created premium profile) or complete when the user opens the relevant
+ * screen from the checklist ("visited" steps, keyed by [SetupStep.key] in
+ * preferences).
  */
 enum class SetupStep(val key: String) {
     FIRST_SHIFT("first_shift"),
@@ -31,7 +32,18 @@ data class SetupChecklistInputs(
     val hasEnabledFeature: Boolean,
     val appLockConfigured: Boolean,
     val clockStyleCustomized: Boolean,
+    /** Read by callers building the checklist; no step is gated on it any more. */
     val compensationProfileCount: Int,
+    /**
+     * True when the default work profile has an hourly rate.
+     *
+     * The signal that the step actually asks for. It used to be
+     * `compensationProfileCount > 1` — a *second* job — which is a thing most
+     * people never have, so the step could only ever be cleared by opening the
+     * screen. A rate is what every pay figure in the app depends on, and its
+     * absence is exactly what the step exists to catch.
+     */
+    val hasWorkProfileRate: Boolean = false,
     val hasCustomPremiumProfile: Boolean,
     val hasAnyTask: Boolean,
     val hasPinnedWidget: Boolean,
@@ -105,10 +117,12 @@ object SetupChecklist {
             SetupStep.FEATURES -> inputs.hasEnabledFeature || visited
             SetupStep.APP_LOCK -> inputs.appLockConfigured || visited
             SetupStep.CLOCK_STYLE -> inputs.clockStyleCustomized || visited
-            // The default "Main job" profile is auto-created, so only a second
-            // profile counts as data-driven completion; reviewing the rules
-            // screen from the checklist counts too.
-            SetupStep.COMPENSATION -> inputs.compensationProfileCount > 1 || visited
+            // A configured rate is the real answer: the profile itself is
+            // auto-created, so its existence proves nothing, and a second one is
+            // a thing most people never have. Reviewing the screen counts too —
+            // someone whose job genuinely pays no fixed hourly rate has answered
+            // the question by looking.
+            SetupStep.COMPENSATION -> inputs.hasWorkProfileRate || visited
             // Same reasoning: a default premium profile always exists.
             SetupStep.PREMIUM -> inputs.hasCustomPremiumProfile || visited
             SetupStep.TASKS -> inputs.hasAnyTask

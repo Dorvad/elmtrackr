@@ -118,17 +118,17 @@
     <string name="dashboard_setup_clock_blurb">15 clock faces to choose from.</string>
     <string name="dashboard_setup_clock_body">The big clock on this screen is your punch card. Pick a face that fits your style \u2014 from a minimalist dial to a rising tide.</string>
     <string name="dashboard_setup_clock_action">Choose a style</string>
-    <string name="dashboard_setup_compensation_title">Check your pay rules</string>
-    <string name="dashboard_setup_compensation_blurb">Overtime, weekend, and holiday rates.</string>
-    <string name="dashboard_setup_compensation_body">Your pay estimate is only as good as its rules. Review the overtime thresholds and rate multipliers, and compare them with your contract or a recent payslip \u2014 if anything differs, confirm the details with your employer.</string>
-    <string name="dashboard_setup_compensation_action">Review pay rules</string>
+    <string name="dashboard_setup_compensation_title">Set up your work profile</string>
+    <string name="dashboard_setup_compensation_blurb">Your rate, overtime and premiums \u2014 for this job.</string>
+    <string name="dashboard_setup_compensation_body">A work profile is one job: its hourly rate, overtime thresholds, premiums, sick pay and its colour. Add your rate first \u2014 every pay figure in the app is built on it \u2014 then compare the rules with your contract or a recent payslip. Have a second job? Add a second profile and switch between them above the clock.</string>
+    <string name="dashboard_setup_compensation_action">Set up work profile</string>
     <string name="dashboard_setup_premium_title">Add a premium rate</string>
     <string name="dashboard_setup_premium_blurb">Reusable bonus-rate profiles.</string>
     <string name="dashboard_setup_premium_body" formatted="false">A premium profile is a named extra rate \u2014 for example 150% for night work \u2014 that you can apply to any shift. Create one and watch how it changes a shift\'s pay.</string>
     <string name="dashboard_setup_premium_action">Set up premiums</string>
     <string name="dashboard_setup_tasks_title">Create a task</string>
-    <string name="dashboard_setup_tasks_blurb">A different rate for each project or client.</string>
-    <string name="dashboard_setup_tasks_body">Tasks tag your shifts with a project or client, each with its own hourly rate \u2014 handy when your time is split across jobs.</string>
+    <string name="dashboard_setup_tasks_blurb">Split one job into what you actually do.</string>
+    <string name="dashboard_setup_tasks_body">A task is something you do at one job, with its own hourly rate \u2014 a shift on the bar rather than the floor, say. Tasks belong to a work profile, so the picker only offers the ones for the job you are clocking into. For a different employer, add a work profile instead.</string>
     <string name="dashboard_setup_tasks_action">Create a task</string>
     <string name="dashboard_setup_widget_title">Add a home-screen widget</string>
     <string name="dashboard_setup_widget_blurb">Punch in without opening the app.</string>

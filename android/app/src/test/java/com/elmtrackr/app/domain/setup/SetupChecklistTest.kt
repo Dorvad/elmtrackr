@@ -13,6 +13,7 @@ class SetupChecklistTest {
         hasCompletedShift: Boolean = false,
         clockStyleCustomized: Boolean = false,
         compensationProfileCount: Int = 1,
+        hasWorkProfileRate: Boolean = false,
         hasCustomPremiumProfile: Boolean = false,
         hasAnyTask: Boolean = false,
         hasPinnedWidget: Boolean = false,
@@ -30,6 +31,7 @@ class SetupChecklistTest {
         appLockConfigured = appLockConfigured,
         clockStyleCustomized = clockStyleCustomized,
         compensationProfileCount = compensationProfileCount,
+        hasWorkProfileRate = hasWorkProfileRate,
         hasCustomPremiumProfile = hasCustomPremiumProfile,
         hasAnyTask = hasAnyTask,
         hasPinnedWidget = hasPinnedWidget,
@@ -120,10 +122,22 @@ class SetupChecklistTest {
         assertTrue(state.stepFor(SetupStep.COMPENSATION).isComplete)
     }
 
+    /**
+     * The signal the step actually asks for. It used to be a *second* work
+     * profile, which most people never have — so the step could only ever be
+     * cleared by opening the screen, and the one thing every pay figure depends
+     * on went unchecked.
+     */
     @Test
-    fun `second compensation profile completes the step without a visit`() {
-        val state = SetupChecklist.build(inputs(compensationProfileCount = 2))!!
+    fun `an hourly rate completes the work profile step without a visit`() {
+        val state = SetupChecklist.build(inputs(hasWorkProfileRate = true))!!
         assertTrue(state.stepFor(SetupStep.COMPENSATION).isComplete)
+    }
+
+    @Test
+    fun `a second work profile with no rate does not complete the step`() {
+        val state = SetupChecklist.build(inputs(compensationProfileCount = 2))!!
+        assertFalse(state.stepFor(SetupStep.COMPENSATION).isComplete)
     }
 
     @Test
@@ -143,7 +157,7 @@ class SetupChecklistTest {
         val done = inputs(
             hasCompletedShift = true,
             clockStyleCustomized = true,
-            compensationProfileCount = 2,
+            hasWorkProfileRate = true,
             hasCustomPremiumProfile = true,
             hasAnyTask = true,
             hasPinnedWidget = true,
@@ -178,7 +192,7 @@ class SetupChecklistTest {
         val upgrader = inputs(
             hasCompletedShift = true,
             clockStyleCustomized = true,
-            compensationProfileCount = 2,
+            hasWorkProfileRate = true,
             hasCustomPremiumProfile = true,
             hasAnyTask = true,
             hasPinnedWidget = true,
