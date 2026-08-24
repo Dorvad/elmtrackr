@@ -51,10 +51,14 @@ import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.common.durationText
 import com.elmtrackr.app.domain.compensation.StackingPolicyLabels
 import com.elmtrackr.app.domain.ShiftDurationCalculator
+import com.elmtrackr.app.domain.leave.SickPayOption
+import com.elmtrackr.app.domain.leave.SickPayOptions
+import com.elmtrackr.app.domain.leave.SickPayRung
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.RegionCode
+import com.elmtrackr.app.domain.model.SickLeavePolicy
 import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.ui.components.states.ErrorState
@@ -63,6 +67,8 @@ import com.elmtrackr.app.ui.design.ElmCardPadded
 import com.elmtrackr.app.ui.design.ElmDropdownField
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmSectionHeader
+import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
+import com.elmtrackr.app.domain.money.MoneyFormat
 import com.elmtrackr.app.ui.theme.Spacing
 import kotlin.math.roundToInt
 
@@ -110,9 +116,7 @@ internal fun CompensationSettingsContent(
     onSelectProfile: (String) -> Unit,
     onCreateProfile: (String) -> Unit,
     onDeleteProfile: () -> Unit,
-    onSave: (
-        String, RegionCode, String, String, Double?, StackingPolicy, CompensationRules,
-    ) -> Unit,
+    onSave: (CompensationFormValues) -> Unit,
     onDismissMessage: () -> Unit,
 ) {
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
@@ -130,6 +134,11 @@ internal fun CompensationSettingsContent(
     // CompensationRules is not Bundle-saveable; unsaved tier edits still reset
     // on rotation. Tracked as a known limitation.
     var rules by remember(state.profile.id) { mutableStateOf(state.profile.rules) }
+    // Keyed on the profile, deliberately not on state.sickLeave: re-keying on the
+    // incoming value would reset the control under the user's finger every time the
+    // policies flow re-emits. The first Ready already carries the stored policy —
+    // observePolicies is in the same combine — so there is nothing to wait for.
+    var sickLeave by remember(state.profile.id) { mutableStateOf(state.sickLeave) }
 
     LaunchedEffect(state.saveMessage) {
         if (state.saveMessage != null) {
@@ -442,6 +451,19 @@ internal fun CompensationSettingsContent(
         }
 
         item {
+            SickLeaveCard(
+                sickLeave = sickLeave,
+                regionCode = regionCode,
+                // Nothing in the app assigns a workplace to a pay profile yet, so
+                // every profile resolves to the one default workplace and shares its
+                // leave policy. The card says so rather than letting a two-job user
+                // believe they are editing this job alone.
+                sharedAcrossProfiles = state.profiles.size > 1,
+                onChange = { sickLeave = it },
+            )
+        }
+
+        item {
             ElmCardPadded {
                 ElmSectionHeader(stringResource(R.string.settings_section_deductions))
                 Spacer(Modifier.height(8.dp))
@@ -511,8 +533,18 @@ internal fun CompensationSettingsContent(
             }
             ElmGradientButton(
                 onClick = {
-                    val rate = hourlyRateText.toDoubleOrNull()
-                    onSave(name, regionCode, currencyCode, timezone, rate, stackingPolicy, rules)
+                    onSave(
+                        CompensationFormValues(
+                            name = name,
+                            regionCode = regionCode,
+                            currencyCode = currencyCode,
+                            timezone = timezone,
+                            hourlyRate = hourlyRateText.toDoubleOrNull(),
+                            stackingPolicy = stackingPolicy,
+                            rules = rules,
+                            sickLeave = sickLeave,
+                        ),
+                    )
                 },
                 enabled = !state.isSaving,
                 modifier = Modifier.fillMaxWidth(),
@@ -744,4 +776,146 @@ private fun MultiplierField(label: String, value: Double, onChange: (Double) -> 
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
     )
+}
+
+/**
+ * The sick-pay arrangement for this job.
+ *
+ * It sits on this screen rather than on a leave screen of its own because it is
+ * the same question as the rest of the form — what does this employer pay — and
+ * because until now there was nowhere at all to answer it: the region preset was
+ * applied once when the workplace's policy row was created and no screen could
+ * change it, so an Israeli user whose employer pays from day one was stuck with a
+ * statutory unpaid first day.
+ *
+ * The ladder itself is stored on the workplace's leave policy, which is why this
+ * takes a [SickLeavePolicy] rather than editing [CompensationRules].
+ */
+@Composable
+private fun SickLeaveCard(
+    sickLeave: SickLeavePolicy,
+    regionCode: RegionCode,
+    sharedAcrossProfiles: Boolean,
+    onChange: (SickLeavePolicy) -> Unit,
+) {
+    val current = SickPayOptions.of(sickLeave.payTiers, regionCode)
+    // CUSTOM appears only while it is what the policy actually is, so a ladder built
+    // elsewhere is shown and left alone rather than replaced the moment this screen
+    // opens. It leaves the list as soon as a named option is picked, which is what
+    // makes selecting it a no-op below.
+    val options = SickPayOptions.selectable + listOfNotNull(SickPayOption.CUSTOM.takeIf { current == it })
+
+    ElmCardPadded {
+        ElmSectionHeader(stringResource(R.string.settings_section_sick_leave))
+        Spacer(Modifier.height(Spacing.s8))
+        ToggleRow(stringResource(R.string.settings_sick_paid), sickLeave.enabled) {
+            onChange(sickLeave.copy(enabled = it))
+        }
+        if (!sickLeave.enabled) {
+            Text(
+                stringResource(R.string.settings_sick_off_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return@ElmCardPadded
+        }
+
+        Spacer(Modifier.height(Spacing.s8))
+        Text(
+            stringResource(R.string.settings_sick_arrangement),
+            style = MaterialTheme.typography.labelMedium,
+        )
+        Spacer(Modifier.height(Spacing.s8))
+        ElmSegmentedPillRow(
+            options = options.map { stringResource(sickPayOptionLabel(it)) },
+            selectedIndex = options.indexOf(current).coerceAtLeast(0),
+            onSelect = { index ->
+                // Only the named options generate a ladder; CUSTOM is whatever is
+                // already stored, so tapping it changes nothing.
+                SickPayOptions.tiersFor(options[index], regionCode)?.let { tiers ->
+                    onChange(sickLeave.copy(payTiers = tiers))
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        // What the choice pays, spelled out. The selector names an arrangement; a
+        // user reconciling against a payslip needs the rungs.
+        val rungs = SickPayOptions.describe(sickLeave.payTiers)
+        if (rungs.isNotEmpty()) {
+            Spacer(Modifier.height(Spacing.s12))
+            Text(
+                stringResource(R.string.settings_sick_ladder_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(Spacing.s4))
+            rungs.forEach { rung ->
+                Text(
+                    sickRungText(rung),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+
+        if (current == SickPayOption.CUSTOM) {
+            Spacer(Modifier.height(Spacing.s8))
+            Text(
+                stringResource(R.string.settings_sick_custom_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else if (SickPayOptions.standardIsFromDayOne(regionCode)) {
+            Spacer(Modifier.height(Spacing.s8))
+            Text(
+                stringResource(R.string.settings_sick_standard_same),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        if (sharedAcrossProfiles) {
+            Spacer(Modifier.height(Spacing.s8))
+            Text(
+                stringResource(R.string.settings_sick_shared_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Spacer(Modifier.height(Spacing.s8))
+        Text(
+            stringResource(R.string.settings_sick_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+private fun sickPayOptionLabel(option: SickPayOption): Int = when (option) {
+    SickPayOption.FROM_DAY_ONE -> R.string.settings_sick_from_day_one
+    SickPayOption.REGION_STANDARD -> R.string.settings_sick_standard
+    SickPayOption.CUSTOM -> R.string.settings_sick_custom
+}
+
+/**
+ * One rung as a sentence: "Day 1: not paid", "Days 2\u20133: 50%",
+ * "Day 4 onwards: 100%".
+ *
+ * A null multiplier is a hole in the ladder and says so — zero is a real,
+ * intentional rate in this domain, so an unset day cannot be shown as 0%.
+ */
+@Composable
+private fun sickRungText(rung: SickPayRung): String {
+    val rate = when (rung.multiplier) {
+        null -> stringResource(R.string.settings_sick_rung_gap)
+        0.0 -> stringResource(R.string.settings_sick_rung_unpaid)
+        else -> MoneyFormat.formatRate(rung.multiplier)
+    }
+    return when {
+        rung.toDay == null -> stringResource(R.string.settings_sick_rung_open, rung.fromDay, rate)
+        rung.toDay == rung.fromDay -> stringResource(R.string.settings_sick_rung_single, rung.fromDay, rate)
+        else -> stringResource(R.string.settings_sick_rung_range, rung.fromDay, rung.toDay, rate)
+    }
 }
