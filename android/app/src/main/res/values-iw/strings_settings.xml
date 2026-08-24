@@ -432,4 +432,15 @@
     <string name="settings_profile_identity_hint">יופיעו בכל מקום שבו העבודה הזאת מוצגת — בבחירה לפני כניסה למשמרת, בשורות המשמרות ובתג של משמרת פעילה.</string>
     <string name="settings_profile_icon">אייקון</string>
     <string name="settings_profile_color">צבע</string>
+
+    <!-- Work profile form: validation and destructive-change guards -->
+    <string name="settings_rate_invalid">הזינו מספר, או השאירו ריק לעבודה ללא תעריף שעתי קבוע.</string>
+    <string name="settings_rate_cleared_title">לשמור בלי תעריף שעתי?</string>
+    <string name="settings_rate_cleared_body">לעבודה הזאת לא יוצגו הערכות שכר \u2014 לא בדשבורד, לא ברשימת המשמרות, לא בדוחות ולא בייצוא. השעות ימשיכו להיספר.</string>
+    <string name="settings_rate_cleared_confirm">לשמור בכל זאת</string>
+    <string name="settings_region_replace_title">להחליף את הכללים של העבודה הזאת?</string>
+    <string name="settings_region_replace_body">ל%1$s יש ספי שעות נוספות, תוספות, הפסקות וניכויים משלה. מעבר אליה יחליף את הכללים שהגדרתם כאן. השעות והשכר שכבר נרשמו לא יושפעו.</string>
+    <string name="settings_region_replace_confirm">להחליף כללים</string>
+    <string name="settings_discard_profile_title">לבטל את השינויים?</string>
+    <string name="settings_discard_profile_body">לפרופיל העבודה הזה יש שינויים שלא נשמרו.</string>
 </resources>

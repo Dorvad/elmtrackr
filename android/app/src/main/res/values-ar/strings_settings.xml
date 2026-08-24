@@ -444,4 +444,15 @@
     <string name="settings_profile_identity_hint">تظهر في كل مكان يُعرض فيه هذا العمل — عند اختيار بداية الدوام، في صفوف الدوام، وعلى شارة الدوام الجاري.</string>
     <string name="settings_profile_icon">أيقونة</string>
     <string name="settings_profile_color">لون</string>
+
+    <!-- Work profile form: validation and destructive-change guards -->
+    <string name="settings_rate_invalid">أدخل رقماً، أو اتركه فارغاً لعمل بلا أجر بالساعة ثابت.</string>
+    <string name="settings_rate_cleared_title">الحفظ بدون أجر بالساعة؟</string>
+    <string name="settings_rate_cleared_body">لن تُعرض تقديرات أجر لهذا العمل \u2014 لا في اللوحة ولا في قائمة الدوام ولا في التقارير ولا في التصدير. تبقى ساعاته محسوبة.</string>
+    <string name="settings_rate_cleared_confirm">احفظ على أي حال</string>
+    <string name="settings_region_replace_title">استبدال قواعد هذا العمل؟</string>
+    <string name="settings_region_replace_body">تأتي %1$s بعتبات ساعات إضافية وعلاوات واستراحات واقتطاعات خاصة بها. الانتقال إليها يستبدل القواعد التي ضبطتها هنا. لا تتأثر ساعاتك ولا أجرك السابق.</string>
+    <string name="settings_region_replace_confirm">استبدال القواعد</string>
+    <string name="settings_discard_profile_title">تجاهل تغييراتك؟</string>
+    <string name="settings_discard_profile_body">لملف العمل هذا تغييرات غير محفوظة.</string>
 </resources>

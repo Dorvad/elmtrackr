@@ -433,4 +433,15 @@
     <string name="settings_profile_identity_hint">Shown wherever this job appears — the clock-in picker, shift rows and the badge on a running shift.</string>
     <string name="settings_profile_icon">Icon</string>
     <string name="settings_profile_color">Colour</string>
+
+    <!-- Work profile form: validation and destructive-change guards -->
+    <string name="settings_rate_invalid">Enter a number, or leave it empty for a job with no fixed hourly rate.</string>
+    <string name="settings_rate_cleared_title">Save without an hourly rate?</string>
+    <string name="settings_rate_cleared_body">This job will show no pay estimates \u2014 no figures on the dashboard, the shift list, Reports or the exports. Its hours are still tracked.</string>
+    <string name="settings_rate_cleared_confirm">Save anyway</string>
+    <string name="settings_region_replace_title">Replace this job\u2019s rules?</string>
+    <string name="settings_region_replace_body">%1$s comes with its own overtime thresholds, premiums, breaks and deductions. Switching to it replaces the rules you have set here. Your hours and past pay are not affected.</string>
+    <string name="settings_region_replace_confirm">Replace rules</string>
+    <string name="settings_discard_profile_title">Discard your changes?</string>
+    <string name="settings_discard_profile_body">This work profile has unsaved changes.</string>
 </resources>
