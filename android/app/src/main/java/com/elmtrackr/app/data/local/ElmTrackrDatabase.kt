@@ -61,7 +61,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         AbsenceAllocationEntity::class,
         LeaveBalanceSnapshotEntity::class,
     ],
-    version = 19,
+    version = 20,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -160,6 +160,7 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
                     MIGRATION_16_17,
                     MIGRATION_17_18,
                     MIGRATION_18_19,
+                    MIGRATION_19_20,
                 )
                 .build()
         }
@@ -749,6 +750,34 @@ abstract class ElmTrackrDatabase : RoomDatabase() {
          * indexes that were not, and Room rejected every upgraded database until
          * 8→9 repaired it.
          */
+        /**
+         * Work profiles get a visual identity, and tasks get scoped to one.
+         *
+         * `color` and `icon` on `compensation_profiles` are the same pair `tasks`
+         * already carries: a job and a task are two levels of the same "what am I
+         * clocking into" question, and they read as one system only if they are
+         * drawn from one visual language.
+         *
+         * `tasks.compensationProfileId` is added nullable and **not** backfilled by
+         * this migration. A task with no profile is treated as belonging to the
+         * default one, so an upgrading user keeps their whole task list; writing a
+         * profile id into their rows here would instead rewrite their data during an
+         * upgrade, silently and before they had seen the feature. The rows join a
+         * profile the first time the user edits or uses them, the same way
+         * `adoptShifts` handles workplaces.
+         */
+        internal val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE compensation_profiles ADD COLUMN color TEXT")
+                db.execSQL("ALTER TABLE compensation_profiles ADD COLUMN icon TEXT")
+                db.execSQL("ALTER TABLE tasks ADD COLUMN compensationProfileId TEXT")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_tasks_compensationProfileId` " +
+                        "ON `tasks` (`compensationProfileId`)",
+                )
+            }
+        }
+
         internal val MIGRATION_18_19 = object : Migration(18, 19) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(

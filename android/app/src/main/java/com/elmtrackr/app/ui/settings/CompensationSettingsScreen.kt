@@ -69,6 +69,11 @@ import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
 import com.elmtrackr.app.domain.money.MoneyFormat
+import androidx.compose.foundation.layout.width
+import com.elmtrackr.app.ui.common.WorkProfileIdentity
+import com.elmtrackr.app.ui.common.WorkProfileTile
+import com.elmtrackr.app.ui.common.parseIdentityColor
+import com.elmtrackr.app.ui.tasks.TaskColorDot
 import com.elmtrackr.app.ui.theme.Spacing
 import kotlin.math.roundToInt
 
@@ -139,6 +144,12 @@ internal fun CompensationSettingsContent(
     // policies flow re-emits. The first Ready already carries the stored policy —
     // observePolicies is in the same combine — so there is nothing to wait for.
     var sickLeave by remember(state.profile.id) { mutableStateOf(state.sickLeave) }
+    var color by rememberSaveable(state.profile.id) {
+        mutableStateOf(state.profile.color ?: WorkProfileIdentity.colorHexFor(state.profile))
+    }
+    var icon by rememberSaveable(state.profile.id) {
+        mutableStateOf(state.profile.icon ?: WorkProfileIdentity.emojiFor(state.profile))
+    }
 
     LaunchedEffect(state.saveMessage) {
         if (state.saveMessage != null) {
@@ -191,6 +202,14 @@ internal fun CompensationSettingsContent(
                             selected = profile.id == state.profile.id,
                             onClick = { onSelectProfile(profile.id) },
                             label = { Text(profile.name) },
+                            // The same tile the clock-in selector shows, so the job
+                            // being edited is recognisable from the row above it.
+                            leadingIcon = {
+                                WorkProfileTile(
+                                    colorHex = WorkProfileIdentity.colorHexFor(profile),
+                                    emoji = WorkProfileIdentity.emojiFor(profile),
+                                )
+                            },
                         )
                     }
                     FilterChip(
@@ -234,6 +253,13 @@ internal fun CompensationSettingsContent(
                     label = { Text(stringResource(R.string.settings_profile_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                )
+                Spacer(Modifier.height(Spacing.s12))
+                WorkProfileIdentityPicker(
+                    color = color,
+                    icon = icon,
+                    onColor = { color = it },
+                    onIcon = { icon = it },
                 )
                 Spacer(Modifier.height(12.dp))
                 RegionDropdown(regionCode, state.presets.map { it.regionCode to stringResource(it.labelRes) }) {
@@ -543,6 +569,8 @@ internal fun CompensationSettingsContent(
                             stackingPolicy = stackingPolicy,
                             rules = rules,
                             sickLeave = sickLeave,
+                            color = color,
+                            icon = icon,
                         ),
                     )
                 },
@@ -917,5 +945,63 @@ private fun sickRungText(rung: SickPayRung): String {
         rung.toDay == null -> stringResource(R.string.settings_sick_rung_open, rung.fromDay, rate)
         rung.toDay == rung.fromDay -> stringResource(R.string.settings_sick_rung_single, rung.fromDay, rate)
         else -> stringResource(R.string.settings_sick_rung_range, rung.fromDay, rung.toDay, rate)
+    }
+}
+
+/**
+ * Colour and emoji for a work profile.
+ *
+ * Mirrors the task editor's pair deliberately — the same palette, the same chip
+ * and swatch controls — because the two identities appear stacked in the clock-in
+ * selector and have to look like one system. [WorkProfileTile] supplies the shape
+ * that tells them apart.
+ */
+@Composable
+private fun WorkProfileIdentityPicker(
+    color: String,
+    icon: String,
+    onColor: (String) -> Unit,
+    onIcon: (String) -> Unit,
+) {
+    Text(
+        stringResource(R.string.settings_profile_identity),
+        style = MaterialTheme.typography.labelMedium,
+    )
+    Spacer(Modifier.height(Spacing.s4))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        WorkProfileTile(colorHex = color, emoji = icon)
+        Spacer(Modifier.width(Spacing.s8))
+        Text(
+            stringResource(R.string.settings_profile_identity_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    Spacer(Modifier.height(Spacing.s8))
+    Text(stringResource(R.string.settings_profile_icon), style = MaterialTheme.typography.labelSmall)
+    Spacer(Modifier.height(Spacing.s4))
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.s8)) {
+        WorkProfileIdentity.EMOJI_OPTIONS.forEach { option ->
+            FilterChip(
+                selected = icon == option,
+                onClick = { onIcon(option) },
+                label = { Text(option) },
+            )
+        }
+    }
+    Spacer(Modifier.height(Spacing.s8))
+    Text(stringResource(R.string.settings_profile_color), style = MaterialTheme.typography.labelSmall)
+    Spacer(Modifier.height(Spacing.s4))
+    // No arrangement spacing: each swatch reserves a 48dp target around its 28dp
+    // circle, which supplies the gap on its own. Same as the task editor.
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+        WorkProfileIdentity.COLOR_OPTIONS.forEach { hex ->
+            TaskColorDot(
+                color = parseIdentityColor(hex) ?: MaterialTheme.colorScheme.primary,
+                selected = color == hex,
+                contentDescription = stringResource(R.string.settings_profile_color),
+                onClick = { onColor(hex) },
+            )
+        }
     }
 }

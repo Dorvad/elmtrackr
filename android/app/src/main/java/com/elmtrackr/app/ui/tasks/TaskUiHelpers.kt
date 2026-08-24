@@ -36,14 +36,12 @@ val TASK_COLOR_OPTIONS = listOf(
 
 fun Task.resolveColor(): Color = parseTaskColor(color) ?: Color(0xFF5B4DF2)
 
-fun parseTaskColor(hex: String?): Color? {
-    if (hex.isNullOrBlank()) return null
-    val normalized = hex.trim().removePrefix("#")
-    if (normalized.length != 6) return null
-    return runCatching {
-        Color(0xFF000000 or normalized.toLong(16))
-    }.getOrNull()
-}
+/**
+ * Kept as the name every task call site already uses; the rule itself is shared
+ * with work profiles so one malformed-colour behaviour covers both.
+ */
+fun parseTaskColor(hex: String?): Color? =
+    com.elmtrackr.app.ui.common.parseIdentityColor(hex)
 
 fun sortedTasksForDisplay(tasks: List<Task>, suggestedTaskId: String? = null): List<Task> {
     val sorted = TaskSorting.byRecency(tasks)

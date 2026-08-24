@@ -249,6 +249,8 @@ class CompensationSettingsViewModel @Inject constructor(
                     baseHourlyRate = values.hourlyRate,
                     stackingPolicy = values.stackingPolicy,
                     rules = values.rules,
+                    color = values.color,
+                    icon = values.icon,
                     updatedAt = Instant.now(),
                 )
                 val saved = compensationProfilesRepository.upsertProfile(updated)
@@ -319,6 +321,9 @@ data class CompensationFormValues(
     val stackingPolicy: StackingPolicy,
     val rules: CompensationRules,
     val sickLeave: SickLeavePolicy,
+    /** Visual identity, shown wherever the profile appears. */
+    val color: String,
+    val icon: String,
 )
 
 sealed interface CompensationSettingsUiState {

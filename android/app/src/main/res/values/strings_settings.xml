@@ -427,4 +427,10 @@
     <string name="settings_theme_light_lower">light</string>
     <string name="settings_theme_dark_lower">dark</string>
     <string name="settings_sick_shared_note">This arrangement is shared by every pay profile: the app keeps one workplace, so changing it here changes it for all of them.</string>
+
+    <!-- Work profile identity -->
+    <string name="settings_profile_identity">Colour and icon</string>
+    <string name="settings_profile_identity_hint">Shown wherever this job appears — the clock-in picker, shift rows and the badge on a running shift.</string>
+    <string name="settings_profile_icon">Icon</string>
+    <string name="settings_profile_color">Colour</string>
 </resources>

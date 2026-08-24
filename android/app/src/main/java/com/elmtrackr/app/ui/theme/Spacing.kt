@@ -85,4 +85,11 @@ object Layout {
      * the icon — the target can extend past the paint.
      */
     val minTouchTarget = 48.dp
+
+    /**
+     * A colour-plus-emoji identity tile — a work profile above the clock, or the
+     * same profile on a shift row. Small enough to sit inside a chip without
+     * setting the row's height.
+     */
+    val identityTile = Spacing.s24
 }

@@ -106,10 +106,19 @@ synthetic eight-hour shift: a sick day recorded that way would inflate all four
 and invent overtime nobody worked. The two domains meet only at the money level,
 where a report adds work, vacation and sick gross into an estimated total.
 
-**`workplaces` is not `compensation_profiles`.** A profile answers "how is worked
-time paid" and changes with a raise or a new effective-dated profile. Leave
-entitlement, seniority and payslip balances belong to the employer and survive
-all of that, so they hang off a workplace instead.
+**`workplaces` is not `compensation_profiles` — but the split is internal now.**
+A profile answers "how is worked time paid" and changes with a raise or a new
+effective-dated profile. Leave entitlement, seniority and payslip balances belong
+to the employer and survive all of that, so they hang off a workplace instead.
+
+To the *user* there is one thing, a **work profile**, and the word "workplace"
+appears nowhere in the app. Every profile owns exactly one workplace, created with
+it; the two rows stay separate so entitlement outlives a wage change, which is the
+only reason they are two. Do not expose the workplace as a second concept, and do
+not merge the tables to make the model look simpler — that would trade a real
+guarantee for a cosmetic one. Added by
+`20260824000000_work_profile_identity_and_task_scope.sql`, which also gives a
+profile its `color`/`icon` and scopes `tasks` to one.
 
 **Money here is `numeric`, not the `text` Paid Projects uses.**
 `absence_allocations.estimated_gross_pay` and `leave_balance_snapshots.balance`
@@ -137,9 +146,12 @@ and balance snapshots, then absence events, then absence allocations. The two
 `on delete set null`, so archiving or removing a workplace never deletes work
 history.
 
-**Not backfilled, on purpose.** Both `workplace_id` columns are nullable with no
-default and no backfill; NULL reads as "not assigned yet", which is what every
-row written before this release is. Rows join a workplace the first time the user
+**Not backfilled, on purpose.** Both `workplace_id` columns — and
+`tasks.compensation_profile_id`, added later on the same principle — are nullable
+with no default and no backfill; NULL reads as "not assigned yet", which is what
+every row written before their release is. For a task, NULL is read as the default
+work profile rather than as no profile, so an upgrading user keeps their whole task
+list. Rows join a workplace the first time the user
 has one (`LocalWorkplacesRepository.ensureDefaultWorkplace`, which also creates
 the default policy), where it is an ordinary edit that syncs like any other
 rather than an upgrade rewriting recorded history.

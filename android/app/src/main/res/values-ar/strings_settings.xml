@@ -438,4 +438,10 @@
     <string name="settings_theme_light_lower">فاتح</string>
     <string name="settings_theme_dark_lower">داكن</string>
     <string name="settings_sick_shared_note">هذا الإعداد مشترك بين جميع ملفات الأجر: يحتفظ التطبيق بمكان عمل واحد، لذا فإن تغييره هنا يغيّره لها جميعاً.</string>
+
+    <!-- Work profile identity -->
+    <string name="settings_profile_identity">اللون والأيقونة</string>
+    <string name="settings_profile_identity_hint">تظهر في كل مكان يُعرض فيه هذا العمل — عند اختيار بداية الدوام، في صفوف الدوام، وعلى شارة الدوام الجاري.</string>
+    <string name="settings_profile_icon">أيقونة</string>
+    <string name="settings_profile_color">لون</string>
 </resources>

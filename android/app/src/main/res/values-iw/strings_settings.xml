@@ -426,4 +426,10 @@
     <string name="settings_theme_light_lower">בהיר</string>
     <string name="settings_theme_dark_lower">כהה</string>
     <string name="settings_sick_shared_note">ההסדר הזה משותף לכל פרופילי התשלום: האפליקציה מנהלת מקום עבודה אחד, ולכן שינוי כאן ישנה אותו עבור כולם.</string>
+
+    <!-- Work profile identity -->
+    <string name="settings_profile_identity">צבע ואייקון</string>
+    <string name="settings_profile_identity_hint">יופיעו בכל מקום שבו העבודה הזאת מוצגת — בבחירה לפני כניסה למשמרת, בשורות המשמרות ובתג של משמרת פעילה.</string>
+    <string name="settings_profile_icon">אייקון</string>
+    <string name="settings_profile_color">צבע</string>
 </resources>

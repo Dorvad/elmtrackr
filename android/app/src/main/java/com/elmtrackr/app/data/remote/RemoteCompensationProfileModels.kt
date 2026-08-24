@@ -19,6 +19,9 @@ data class RemoteCompensationProfileRow(
     @SerialName("effective_until") val effectiveUntil: String? = null,
     @SerialName("is_default") val isDefault: Boolean,
     @SerialName("is_archived") val isArchived: Boolean,
+    /** Visual identity. Absent on rows written by a client predating the columns. */
+    val color: String? = null,
+    val icon: String? = null,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String,
     /** Set when the row is a tombstone. */
@@ -47,6 +50,9 @@ data class RemoteCompensationProfileInsert(
     @SerialName("effective_until") val effectiveUntil: String? = null,
     @SerialName("is_default") val isDefault: Boolean,
     @SerialName("is_archived") val isArchived: Boolean,
+    /** Visual identity. Absent on rows written by a client predating the columns. */
+    val color: String? = null,
+    val icon: String? = null,
     @SerialName("client_updated_at") val clientUpdatedAt: String,
 )
 
@@ -63,6 +69,9 @@ data class RemoteCompensationProfileUpdate(
     @SerialName("effective_until") val effectiveUntil: String? = null,
     @SerialName("is_default") val isDefault: Boolean,
     @SerialName("is_archived") val isArchived: Boolean,
+    /** Visual identity. Absent on rows written by a client predating the columns. */
+    val color: String? = null,
+    val icon: String? = null,
     /** Non-null makes this update a tombstone. */
     @SerialName("deleted_at") val deletedAt: String? = null,
     /** See RemoteShiftUpdate.clientUpdatedAt — this is the write's guard. */
