@@ -18,6 +18,11 @@
     <string name="auth_back_to_sign_in">العودة إلى تسجيل الدخول</string>
     <string name="auth_loading_workspace">جارٍ تحميل مساحة عملك…</string>
 
+    <!-- Google -->
+    <string name="auth_google_sign_in">تسجيل الدخول باستخدام Google</string>
+    <string name="auth_google_sign_up">التسجيل باستخدام Google</string>
+    <string name="auth_or">أو</string>
+
     <!-- Password recovery -->
     <string name="auth_choose_new_password">اختر كلمة مرور جديدة</string>
     <string name="auth_new_password_body">أدخل كلمة مرور جديدة لحسابك في ‏ElmTrackr.</string>
@@ -45,6 +50,7 @@
     <string name="auth_error_network">تحقّق من اتصالك بالإنترنت وأعد المحاولة.</string>
     <string name="auth_error_sign_in">تعذّر تسجيل الدخول. يُرجى إعادة المحاولة.</string>
     <string name="auth_error_sign_up">تعذّر إنشاء حسابك. يُرجى إعادة المحاولة.</string>
+    <string name="auth_error_google_sign_in">تعذّرت المتابعة باستخدام Google. يُرجى إعادة المحاولة.</string>
     <string name="auth_error_password_reset">تعذّر إرسال رسالة إعادة التعيين. يُرجى إعادة المحاولة.</string>
     <string name="auth_error_recovery_link">رابط إعادة التعيين غير صالح أو انتهت صلاحيته.</string>
     <string name="auth_error_update_password">تعذّر تحديث كلمة المرور. يُرجى إعادة المحاولة.</string>

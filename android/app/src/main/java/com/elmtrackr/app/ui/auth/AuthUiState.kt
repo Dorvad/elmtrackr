@@ -13,6 +13,14 @@ sealed interface AuthUiState {
     /** No active session. Ready for sign-in or sign-up. */
     data class SignedOut(
         val isLoading: Boolean = false,
+        /**
+         * Tracked apart from [isLoading] so the Google button spins on its own.
+         * One shared flag would grey out the email form while a Google sheet is
+         * up, which reads as "the app is stuck" rather than "waiting on Google".
+         */
+        val isGoogleLoading: Boolean = false,
+        /** False hides the Google button entirely — see AuthViewModel. */
+        val googleSignInAvailable: Boolean = false,
         val errorMessage: UiText? = null,
     ) : AuthUiState
 

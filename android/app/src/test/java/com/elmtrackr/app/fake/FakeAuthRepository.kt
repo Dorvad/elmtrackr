@@ -23,6 +23,8 @@ class FakeAuthRepository : AuthRepository {
     var signInSetsProfile: Boolean = true
     var signUpResult: AuthResult = AuthResult.Success
     var resetPasswordResult: AuthResult = AuthResult.Success
+    var googleSignInResult: AuthResult = AuthResult.Success
+    var googleBrowserResult: AuthResult = AuthResult.Success
     var updatePasswordResult: AuthResult = AuthResult.Success
 
     override val deepLinkErrors: SharedFlow<UiText> = _deepLinkErrors.asSharedFlow()
@@ -69,6 +71,34 @@ class FakeAuthRepository : AuthRepository {
             )
         }
         return signUpResult
+    }
+
+    /** The token and nonce of the last [signInWithGoogle], for assertions. */
+    var lastGoogleIdToken: String? = null
+        private set
+    var lastGoogleRawNonce: String? = null
+        private set
+    var browserSignInStarted: Int = 0
+        private set
+
+    override suspend fun signInWithGoogle(idToken: String, rawNonce: String): AuthResult {
+        lastGoogleIdToken = idToken
+        lastGoogleRawNonce = rawNonce
+        if (googleSignInResult is AuthResult.Success) {
+            _profile.value = Profile(
+                id = "user-1",
+                email = "google@example.com",
+                fullName = null,
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH,
+            )
+        }
+        return googleSignInResult
+    }
+
+    override suspend fun startGoogleBrowserSignIn(): AuthResult {
+        browserSignInStarted++
+        return googleBrowserResult
     }
 
     override suspend fun signOut() {

@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.auth
 
 import com.elmtrackr.app.fake.FakeAuthRepository
+import com.elmtrackr.app.fake.FakeGoogleSignInClient
 import com.elmtrackr.app.domain.model.AuthResult
 import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.Profile
@@ -26,8 +27,9 @@ class AuthViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repo = FakeAuthRepository()
+    private val googleClient = FakeGoogleSignInClient()
 
-    private fun buildVm() = AuthViewModel(repo)
+    private fun buildVm() = AuthViewModel(repo, googleClient)
 
     @Test
     fun `initial state is Loading`() {

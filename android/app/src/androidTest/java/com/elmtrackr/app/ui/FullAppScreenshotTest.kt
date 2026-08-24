@@ -98,7 +98,16 @@ class FullAppScreenshotTest {
     val compose = createComposeRule()
 
     @Test fun authSignIn() = capture("01-auth-sign-in") {
-        SignedOutContent(false, null, { _, _ -> }, { _, _ -> }, {}, {})
+        // Named: SignedOutContent gained parameters and a positional list
+        // silently slides when that happens.
+        SignedOutContent(
+            isLoading = false,
+            errorMessage = null,
+            onSignIn = { _, _ -> },
+            onSignUp = { _, _ -> },
+            onResetPassword = {},
+            onClearError = {},
+        )
     }
 
     @Test fun onboardingWelcome() = capture("02-onboarding-welcome") {

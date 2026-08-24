@@ -11,6 +11,7 @@ import com.elmtrackr.app.data.repository.LocalReportsRepository
 import com.elmtrackr.app.data.repository.LocalSettingsRepository
 import com.elmtrackr.app.data.repository.LocalShiftsRepository
 import com.elmtrackr.app.data.repository.LocalTasksRepository
+import com.elmtrackr.app.data.auth.CredentialManagerGoogleSignInClient
 import com.elmtrackr.app.data.repository.SupabaseAuthRepository
 import com.elmtrackr.app.data.sync.SyncRepository
 import com.elmtrackr.app.data.sync.SyncRepositoryImpl
@@ -18,6 +19,7 @@ import com.elmtrackr.app.data.local.RoomTransactionRunner
 import com.elmtrackr.app.data.local.TransactionRunner
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.PreferencesCurrentUserProvider
+import com.elmtrackr.app.domain.auth.GoogleSignInClient
 import com.elmtrackr.app.domain.repository.AuthRepository
 import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.LeaveRepository
@@ -77,6 +79,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAuthRepository(impl: SupabaseAuthRepository): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindGoogleSignInClient(
+        impl: CredentialManagerGoogleSignInClient,
+    ): GoogleSignInClient
 
     @Binds
     @Singleton

@@ -63,6 +63,11 @@ class LocalAuthRepository(
     override suspend fun signUp(email: String, password: String): AuthResult =
         AuthResult.NotConfigured
 
+    override suspend fun signInWithGoogle(idToken: String, rawNonce: String): AuthResult =
+        AuthResult.NotConfigured
+
+    override suspend fun startGoogleBrowserSignIn(): AuthResult = AuthResult.NotConfigured
+
     override suspend fun signOut() {
         appPrefs.setLastActiveUserId(null)
     }

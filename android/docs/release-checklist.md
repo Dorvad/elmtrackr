@@ -154,6 +154,29 @@ on, PII off, no tracing). Without a DSN the feature is compiled out entirely.
 
 ---
 
+## 4b. Sign in with Google **[manual: one-time setup]**
+
+Blocking for the first test round: the button is hidden in any build without a
+Google Web client id, so a build that skips this ships email sign-in only.
+
+Full instructions, including which SHA-1 to register and why two OAuth clients
+are needed, are in [`google-sign-in-setup.md`](google-sign-in-setup.md). In short:
+
+1. Google Cloud → two OAuth client IDs: a **Web** one and an **Android** one
+   (package `com.elmlaunch.myapp`, plus the SHA-1 of whichever key signs the
+   build — the Play App Signing certificate for anything distributed through
+   Play, not the upload key).
+2. Supabase → *Authentication* → *Providers* → *Google*: enable it, set the Web
+   client ID and secret, and add the Web client ID to **Authorized Client IDs**.
+   Leave *Skip nonce checks* off.
+3. `android/local.properties` → `google.web.client.id=<web client id>`. CI needs
+   the same line written before the build, same pattern as `SUPABASE_URL`.
+4. On the first internal build: sign in with a Google account on a device with
+   no ElmTrackr account, then sign out and confirm the account picker reappears
+   rather than silently reusing the same account.
+
+---
+
 ## 5. Device / API matrix **[manual]**
 
 Minimum coverage before production rollout:
@@ -212,4 +235,5 @@ must be unique across all form factors, so `:wear` uses its own range,
 | R8 release build verified | Done in CI-equivalent build; re-verify on device (§2) |
 | Hebrew string parity | Done (1,027/1,027); device walkthrough pending (§3) |
 | Crash reporting | Done — opt-out toggle shipped; DSN setup pending (§4) |
+| Sign in with Google | Client shipped and tested; Google Cloud + Supabase config pending (§4b) |
 | Device matrix | Pending (§5) |

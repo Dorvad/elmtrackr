@@ -167,3 +167,8 @@ hardware. Shipping it unverified risks turning a widget punch into a
 Supabase redirect URLs updated. Flipping `autoVerify` without the hosted file breaks
 sign-in outright. The client-side half — PKCE, so an intercepted callback carries a
 useless one-time code instead of live tokens — has shipped.
+
+Narrower than it was. Google sign-in goes through Credential Manager, which returns
+an ID token in-process and never touches a redirect URL, so the custom scheme is now
+only on the paths that genuinely need a link: email confirmation, password recovery,
+and the Google browser fallback for devices with no credential provider.
