@@ -79,9 +79,9 @@
     <string name="shifts_unsaved_changes_other">%1$d שינויים לא שמורים</string>
 
     <!-- CompensationProfilePicker / PremiumProfilePicker -->
-    <string name="shifts_compensation_profile_label">פרופיל תגמול</string>
-    <string name="shifts_add_compensation_profile">הוספת פרופיל</string>
-    <string name="shifts_new_compensation_profile_title">פרופיל תגמול חדש</string>
+    <string name="shifts_compensation_profile_label">פרופיל עבודה</string>
+    <string name="shifts_add_compensation_profile">הוספת עבודה</string>
+    <string name="shifts_new_compensation_profile_title">פרופיל עבודה חדש</string>
     <string name="shifts_compensation_profile_name_label">שם הפרופיל</string>
     <string name="shifts_compensation_profile_name_placeholder">למשל: עבודה שנייה, סופ״ש</string>
     <string name="shifts_create_profile">יצירה</string>

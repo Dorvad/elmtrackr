@@ -480,11 +480,11 @@ internal fun CompensationSettingsContent(
             SickLeaveCard(
                 sickLeave = sickLeave,
                 regionCode = regionCode,
-                // Nothing in the app assigns a workplace to a pay profile yet, so
-                // every profile resolves to the one default workplace and shares its
-                // leave policy. The card says so rather than letting a two-job user
-                // believe they are editing this job alone.
-                sharedAcrossProfiles = state.profiles.size > 1,
+                // Every profile now owns a workplace, so the arrangement is its
+                // own. A profile written before that still has none and falls back
+                // to the default workplace, which it may share — so the note is
+                // shown for exactly those, rather than for anyone with two jobs.
+                sharedAcrossProfiles = state.profiles.size > 1 && state.profile.workplaceId == null,
                 onChange = { sickLeave = it },
             )
         }

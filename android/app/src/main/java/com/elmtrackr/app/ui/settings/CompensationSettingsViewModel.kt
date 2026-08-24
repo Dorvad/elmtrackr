@@ -141,10 +141,15 @@ class CompensationSettingsViewModel @Inject constructor(
                         name = trimmed,
                         isDefault = false,
                         remoteId = null,
+                        // Cleared, then replaced below with a workplace of its own.
+                        // Copying the template's would have made the new job share
+                        // the old one's leave entitlement and balances.
+                        workplaceId = null,
                         createdAt = now,
                         updatedAt = now,
                     ),
                 )
+                attachWorkplace(userId, created, trimmed)
                 _selectedProfileId.value = created.id
                 _saveMessage.value = CompensationSaveMessage(UiText.Res(R.string.settings_feedback_profile_created), isError = false)
             } catch (e: Exception) {
@@ -173,6 +178,10 @@ class CompensationSettingsViewModel @Inject constructor(
                     return@launch
                 }
                 compensationProfilesRepository.deleteProfile(userId, target.id)
+                // Archived, never deleted: leave already reported against this job
+                // stays readable, and its shifts keep pointing at a real row. A job
+                // that ended is not a job that never happened.
+                target.workplaceId?.let { workplacesRepository.archiveWorkplace(userId, it) }
                 val remaining = profiles.filter { it.id != target.id }
                 var nextSelected = remaining.firstOrNull { it.isDefault } ?: remaining.first()
                 if (target.isDefault) {
@@ -254,7 +263,8 @@ class CompensationSettingsViewModel @Inject constructor(
                     updatedAt = Instant.now(),
                 )
                 val saved = compensationProfilesRepository.upsertProfile(updated)
-                saveSickLeave(userId, saved, values.sickLeave)
+                val withWorkplace = attachWorkplace(userId, saved, saved.name)
+                saveSickLeave(userId, withWorkplace, values.sickLeave)
                 if (saved.isDefault) {
                     val settings = settingsRepository.getSettings(userId) ?: error("Settings not found")
                     settingsRepository.saveSettings(
@@ -269,6 +279,72 @@ class CompensationSettingsViewModel @Inject constructor(
                 _isSaving.value = false
             }
         }
+    }
+
+    /**
+     * Ensures [profile] owns a workplace, and keeps its name in step.
+     *
+     * One workplace per work profile is what makes leave per-job: the policy, the
+     * entitlement and the payslip balances hang off the workplace, so two profiles
+     * sharing one would share their sick and vacation arrangements too. The user
+     * never sees the workplace — it is named after the profile and follows it.
+     *
+     * The very first profile is the exception: it adopts the workplace
+     * `ensureDefaultWorkplace` already created, along with the shifts and profiles
+     * that predate workplaces, rather than creating a second one beside it.
+     */
+    private suspend fun attachWorkplace(
+        userId: String,
+        profile: CompensationProfile,
+        name: String,
+    ): CompensationProfile {
+        val existingId = profile.workplaceId
+        if (existingId != null) {
+            val workplace = workplacesRepository.getWorkplace(userId, existingId)
+            if (workplace != null && workplace.name != name && name.isNotBlank()) {
+                workplacesRepository.upsertWorkplace(workplace.copy(name = name, updatedAt = Instant.now()))
+            }
+            return profile
+        }
+        // No workplace yet. The default one is unclaimed only while this is the
+        // user's first profile; otherwise this job gets one of its own.
+        val default = workplacesRepository.ensureDefaultWorkplace(userId)
+        val claimed = default?.takeIf { wp ->
+            compensationProfilesRepository.getProfiles(userId).none {
+                it.id != profile.id && it.workplaceId == wp.id
+            }
+        }
+        val label = name.ifBlank { profile.name }
+        val workplace = if (claimed != null) {
+            // The claimed default was named by `ensureDefaultWorkplace` before this
+            // profile existed. Adopting it without taking the profile's name left
+            // the workplace called "Main job" while the job on screen said
+            // something else.
+            if (claimed.name == label) {
+                claimed
+            } else {
+                workplacesRepository.upsertWorkplace(
+                    claimed.copy(name = label, updatedAt = Instant.now()),
+                )
+            }
+        } else {
+            workplacesRepository.upsertWorkplace(
+                com.elmtrackr.app.domain.model.Workplace(
+                    id = "",
+                    userId = userId,
+                    name = label,
+                    regionCode = profile.regionCode,
+                    currencyCode = profile.currencyCode,
+                    timezone = profile.timezone,
+                    isDefault = false,
+                    createdAt = Instant.now(),
+                    updatedAt = Instant.now(),
+                ),
+            )
+        }
+        return compensationProfilesRepository.upsertProfile(
+            profile.copy(workplaceId = workplace.id, updatedAt = Instant.now()),
+        )
     }
 
     /**

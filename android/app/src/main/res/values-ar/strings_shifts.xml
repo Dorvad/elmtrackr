@@ -83,9 +83,9 @@
     <string name="shifts_unsaved_changes_other">%1$d تغييرات غير محفوظة</string>
 
     <!-- CompensationProfilePicker / PremiumProfilePicker -->
-    <string name="shifts_compensation_profile_label">ملفّ الأجر</string>
-    <string name="shifts_add_compensation_profile">إضافة ملف</string>
-    <string name="shifts_new_compensation_profile_title">ملفّ أجر جديد</string>
+    <string name="shifts_compensation_profile_label">ملف العمل</string>
+    <string name="shifts_add_compensation_profile">إضافة عمل</string>
+    <string name="shifts_new_compensation_profile_title">ملف عمل جديد</string>
     <string name="shifts_compensation_profile_name_label">اسم الملف</string>
     <string name="shifts_compensation_profile_name_placeholder">مثال: وظيفة ثانية، عمل نهاية الأسبوع</string>
     <string name="shifts_create_profile">إنشاء</string>

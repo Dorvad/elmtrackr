@@ -40,7 +40,7 @@
     <string name="comp_rules_guidance">إذا لم تكن متأكدًا من قواعد الأجر المنطبقة على عملك، راجع صاحب العمل أو قسم الموارد البشرية أو الرواتب، والمصادر الحكومية الرسمية لقانون العمل في منطقتك قبل ضبط هذه الإعدادات.</string>
     <string name="comp_disclaimer">‏ElmTrackr يقدّم تقديرًا للأجر بناءً على القواعد التي تضبطها. قد يختلف الأجر الفعلي بسبب الضرائب والخصومات وسياسة صاحب العمل وممارسات الرواتب والاتفاقيات الجماعية وقوانين العمل المحلية وقواعد أخرى منطبقة. ‏ElmTrackr لا يقدّم استشارات قانونية أو ضريبية أو استشارات تتعلق بالرواتب أو المحاسبة أو التمويل.</string>
     <string name="comp_estimate_note">تقدير فقط. قد يختلف الأجر الفعلي.</string>
-    <string name="comp_profile_helper">تقديرات الأجر مبنية على هذا الملف. قد يختلف الأجر الفعلي بحسب الضرائب والخصومات وسياسة صاحب العمل واللوائح المحلية وقواعد الرواتب.</string>
+    <string name="comp_profile_helper">تستند تقديرات الأجر لهذا العمل إلى هذا الملف. قد يختلف الأجر الفعلي بسبب الضرائب والاقتطاعات وسياسة صاحب العمل والأنظمة المحلية وقواعد الرواتب.</string>
 
     <!-- Clock style names -->
     <string name="clock_style_classic">كلاسيكي</string>
@@ -79,5 +79,5 @@
     <string name="sync_entity_shifts">المناوبات</string>
     <string name="sync_entity_refund_claims">مطالبات الاسترداد</string>
     <string name="sync_entity_settings">الإعدادات</string>
-    <string name="sync_entity_pay_profiles">ملفات الأجر</string>
+    <string name="sync_entity_pay_profiles">ملفات العمل</string>
 </resources>

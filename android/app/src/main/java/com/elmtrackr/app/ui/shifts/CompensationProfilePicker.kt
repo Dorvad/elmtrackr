@@ -31,6 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.WorkProfileTile
+import com.elmtrackr.app.ui.common.WorkProfileIdentity
 import com.elmtrackr.app.domain.model.CompensationProfile
 
 @Composable
@@ -66,6 +68,15 @@ fun CompensationProfilePicker(
                     selected = selected?.id == profile.id,
                     onClick = { onSelect(profile.id) },
                     label = { Text(profile.chipLabel, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    // The same tile the clock-in selector shows, so moving a shift
+                    // to another job here is recognisably the same choice made
+                    // before the punch rather than a second, unrelated control.
+                    leadingIcon = {
+                        WorkProfileTile(
+                            colorHex = WorkProfileIdentity.colorHexFor(profile),
+                            emoji = WorkProfileIdentity.emojiFor(profile),
+                        )
+                    },
                 )
             }
             if (onCreateProfile != null) {

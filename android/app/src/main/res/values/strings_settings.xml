@@ -43,8 +43,8 @@
     <string name="settings_local_only_mode">Running in local-only mode (Supabase not configured).</string>
 
     <!-- Pay & overtime -->
-    <string name="settings_compensation_rules">Compensation rules</string>
-    <string name="settings_compensation_rules_subtitle">Region presets, overtime tiers, and premiums</string>
+    <string name="settings_compensation_rules">Work profiles</string>
+    <string name="settings_compensation_rules_subtitle">One per job \u2014 rate, overtime, premiums, sick pay</string>
     <string name="settings_premium_profiles">Premium profiles</string>
     <string name="settings_premium_profiles_subtitle">Custom multipliers for special shifts</string>
     <string name="settings_tasks">Tasks</string>
@@ -52,7 +52,7 @@
     <string name="settings_pay_rate">Pay rate</string>
     <string name="settings_hourly_rate">Hourly rate</string>
     <string name="settings_overtime_thresholds">Overtime thresholds</string>
-    <string name="settings_overtime_thresholds_hint">These basics update your default compensation profile. For tiers, premiums, breaks, and deductions open Compensation rules above.</string>
+    <string name="settings_overtime_thresholds_hint">These basics update your default work profile. For tiers, premiums, breaks and deductions open Work profiles above.</string>
     <string name="settings_daily_overtime_hours">Daily overtime (hours)</string>
     <string name="settings_weekly_overtime_hours">Weekly overtime (hours)</string>
     <string name="settings_weekend_days">Weekend days</string>
@@ -122,9 +122,9 @@
     <string name="settings_feature_ot_reminders_short">Overtime reminders</string>
 
     <!-- Compensation rules -->
-    <string name="settings_comp_rules_title">Compensation Rules</string>
-    <string name="settings_section_profiles">Profiles</string>
-    <string name="settings_comp_profiles_hint">Each profile has its own pay rules. Pick one to edit, or add another for a second job.</string>
+    <string name="settings_comp_rules_title">Work profiles</string>
+    <string name="settings_section_profiles">Your jobs</string>
+    <string name="settings_comp_profiles_hint">One profile per job: its rate, overtime, premiums, sick pay and colour. Pick one to edit, or add another for a second job \u2014 you can then switch between them above the clock.</string>
     <string name="settings_region_preset">Region preset</string>
     <string name="settings_section_work_week">Work week</string>
     <string name="settings_daily_standard_hours">Daily standard (hours)</string>
@@ -159,16 +159,16 @@
     <string name="settings_deduction_percent" formatted="false">Deduction (%)</string>
     <string name="settings_deduction_fixed">Deduction (%1$s per shift)</string>
     <string name="settings_deduction_hint">A rough take-home adjustment (e.g. tax or pension estimate) — not a payroll-grade net calculation.</string>
-    <string name="settings_save_comp_rules">Save compensation rules</string>
+    <string name="settings_save_comp_rules">Save work profile</string>
     <string name="settings_ladder_daily">daily after %1$s: %2$d%%</string>
     <string name="settings_ladder_weekly">weekly after %1$s: %2$d%%</string>
     <string name="settings_ladder_summary">Current ladder — %1$s. Pick a region preset to change tiers.</string>
-    <string name="settings_add_profile">Add profile</string>
+    <string name="settings_add_profile">Add job</string>
     <string name="settings_base_hourly_rate">Base hourly rate (%1$s)</string>
     <string name="settings_rounding_direction">Rounding direction</string>
     <string name="settings_percentage">Percentage</string>
     <string name="settings_fixed_per_shift">Fixed per shift</string>
-    <string name="settings_new_comp_profile">New compensation profile</string>
+    <string name="settings_new_comp_profile">New work profile</string>
     <string name="settings_comp_profile_name_placeholder">e.g. Second job, Weekend gig</string>
     <string name="settings_create">Create</string>
     <string name="settings_premium_stacking">Premium stacking</string>
@@ -327,8 +327,8 @@
     <string name="settings_feedback_delete_failed">Couldn\'t delete the profile</string>
     <string name="settings_feedback_delete_last_profile">You can\'t delete your only profile</string>
     <string name="settings_feedback_create_failed">Create failed</string>
-    <string name="settings_feedback_rules_saved">Compensation rules saved</string>
-    <string name="settings_error_no_comp_profile">No compensation profile found. Open Payroll settings or complete onboarding.</string>
+    <string name="settings_feedback_rules_saved">Work profile saved</string>
+    <string name="settings_error_no_comp_profile">No work profile found. Open Pay settings or complete onboarding.</string>
 
     <!-- Field validation -->
     <string name="settings_error_positive">Must be positive</string>
@@ -372,12 +372,12 @@
     <string name="settings_new_profile">New profile</string>
     <string name="settings_edit_profile">Edit profile</string>
     <string name="settings_default">Default</string>
-    <string name="settings_delete_profile">Delete profile</string>
+    <string name="settings_delete_profile">Delete this job</string>
     <string name="settings_remove_this_rate">Remove this rate</string>
     <string name="settings_delete_comp_profile_title">Delete “%1$s”?</string>
     <string name="settings_delete_comp_profile_body">Shifts you\'ve already logged keep the pay that was calculated for them. The profile is removed from your synced devices too. This cannot be undone.</string>
     <string name="settings_delete">Delete</string>
-    <string name="settings_profile_name">Profile name</string>
+    <string name="settings_profile_name">Job name</string>
     <string name="settings_multiplier">Multiplier</string>
     <string name="settings_multiplier_hint" formatted="false">1.5 = 150% pay</string>
     <string name="settings_multiplier_equals">= %1$d%% pay</string>
@@ -426,7 +426,7 @@
     <string name="settings_theme_follows_device">Following the device \u2014 %1$s right now</string>
     <string name="settings_theme_light_lower">light</string>
     <string name="settings_theme_dark_lower">dark</string>
-    <string name="settings_sick_shared_note">This arrangement is shared by every pay profile: the app keeps one workplace, so changing it here changes it for all of them.</string>
+    <string name="settings_sick_shared_note">This job has no profile of its own yet, so it shares the default one\u2019s sick pay. Saving here gives it its own.</string>
 
     <!-- Work profile identity -->
     <string name="settings_profile_identity">Colour and icon</string>
