@@ -399,4 +399,32 @@
     <string name="settings_backup_share_chooser">Export local backup</string>
     <string name="settings_sync_synced_with_warnings">Synced with warnings: %1$s</string>
     <string name="settings_sync_synced_unsent">Synced. Changes not uploaded: %1$d</string>
+
+    <!-- Sick leave arrangement, per compensation profile -->
+    <string name="settings_section_sick_leave">Sick leave</string>
+    <string name="settings_sick_paid">Sick days are paid</string>
+    <string name="settings_sick_arrangement">Your employer pays</string>
+    <string name="settings_sick_from_day_one">From day 1</string>
+    <string name="settings_sick_standard">Standard</string>
+    <string name="settings_sick_custom">Custom</string>
+    <string name="settings_sick_ladder_label">A sick day then pays</string>
+    <string name="settings_sick_rung_single">Day %1$d: %2$s</string>
+    <string name="settings_sick_rung_range">Days %1$d\u2013%2$d: %3$s</string>
+    <string name="settings_sick_rung_open">Day %1$d onwards: %2$s</string>
+    <string name="settings_sick_rung_unpaid">not paid</string>
+    <string name="settings_sick_rung_gap">not set</string>
+    <string name="settings_sick_standard_same">In this region the standard is also full pay from day one, so both options pay the same.</string>
+    <string name="settings_sick_custom_note">This workplace has a ladder that was set elsewhere. Picking an option above replaces it.</string>
+    <string name="settings_sick_hint">Set this to match your employment agreement or collective agreement. The standard ladder is a common arrangement, not a statement of what the law requires of your employer.</string>
+    <string name="settings_sick_off_note">Sick days will be recorded and counted against your balance, but not valued.</string>
+    <!-- Language, its own settings screen -->
+    <string name="settings_language_subtitle">%1$s</string>
+    <string name="settings_language_system_resolved">Device language \u00b7 %1$s</string>
+    <string name="settings_language_note">The app switches immediately. Dates, numbers and amounts follow the language you pick.</string>
+    <string name="settings_language_current">In use</string>
+    <!-- Theme -->
+    <string name="settings_theme_follows_device">Following the device \u2014 %1$s right now</string>
+    <string name="settings_theme_light_lower">light</string>
+    <string name="settings_theme_dark_lower">dark</string>
+    <string name="settings_sick_shared_note">This arrangement is shared by every pay profile: the app keeps one workplace, so changing it here changes it for all of them.</string>
 </resources>

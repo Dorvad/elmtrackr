@@ -398,4 +398,32 @@
     <string name="settings_backup_share_chooser">ייצוא גיבוי מקומי</string>
     <string name="settings_sync_synced_with_warnings">סונכרן עם אזהרות: %1$s</string>
     <string name="settings_sync_synced_unsent">סונכרן. שינויים שלא הועלו: %1$d</string>
+
+    <!-- Sick leave arrangement, per compensation profile -->
+    <string name="settings_section_sick_leave">דמי מחלה</string>
+    <string name="settings_sick_paid">ימי מחלה בתשלום</string>
+    <string name="settings_sick_arrangement">המעסיק משלם</string>
+    <string name="settings_sick_from_day_one">מהיום הראשון</string>
+    <string name="settings_sick_standard">סטנדרטי</string>
+    <string name="settings_sick_custom">מותאם</string>
+    <string name="settings_sick_ladder_label">כך משולם יום מחלה</string>
+    <string name="settings_sick_rung_single">יום %1$d: %2$s</string>
+    <string name="settings_sick_rung_range">ימים %1$d\u2013%2$d: %3$s</string>
+    <string name="settings_sick_rung_open">מיום %1$d והלאה: %2$s</string>
+    <string name="settings_sick_rung_unpaid">ללא תשלום</string>
+    <string name="settings_sick_rung_gap">לא הוגדר</string>
+    <string name="settings_sick_standard_same">באזור הזה גם ההסדר הסטנדרטי הוא תשלום מלא מהיום הראשון, ולכן שתי האפשרויות משלמות אותו דבר.</string>
+    <string name="settings_sick_custom_note">למקום העבודה הזה מוגדר סולם שנקבע במקום אחר. בחירה באפשרות מלמעלה תחליף אותו.</string>
+    <string name="settings_sick_hint">התאימו את ההגדרה להסכם העבודה או להסכם הקיבוצי שלכם. הסולם הסטנדרטי הוא הסדר מקובל, ולא קביעה מה החוק מחייב את המעסיק.</string>
+    <string name="settings_sick_off_note">ימי מחלה יירשמו ויקוזזו מהמאזן, אך לא יתומחרו.</string>
+    <!-- Language, its own settings screen -->
+    <string name="settings_language_subtitle">%1$s</string>
+    <string name="settings_language_system_resolved">שפת המכשיר \u00b7 %1$s</string>
+    <string name="settings_language_note">האפליקציה מתחלפת מיד. תאריכים, מספרים וסכומים יוצגו בשפה שתבחרו.</string>
+    <string name="settings_language_current">בשימוש</string>
+    <!-- Theme -->
+    <string name="settings_theme_follows_device">בהתאם למכשיר \u2014 כרגע %1$s</string>
+    <string name="settings_theme_light_lower">בהיר</string>
+    <string name="settings_theme_dark_lower">כהה</string>
+    <string name="settings_sick_shared_note">ההסדר הזה משותף לכל פרופילי התשלום: האפליקציה מנהלת מקום עבודה אחד, ולכן שינוי כאן ישנה אותו עבור כולם.</string>
 </resources>

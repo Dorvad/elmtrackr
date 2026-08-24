@@ -58,6 +58,7 @@ internal enum class SettingsDestination {
     PAY,
     APPEARANCE,
     CLOCK_FACES,
+    LANGUAGE,
     FEATURES,
     HELP,
     SECURITY,
@@ -105,8 +106,10 @@ internal fun SettingsDestination.motionOrder(): Int = when (this) {
     SettingsDestination.TASKS -> 5
     SettingsDestination.APPEARANCE -> 6
     // Between appearance and features so the gallery slides in from the side the
-    // user came from, like every other second-level screen.
+    // user came from, like every other second-level screen. Language sits beside
+    // it: both are reached from the App group and both return to the hub.
     SettingsDestination.CLOCK_FACES -> 7
+    SettingsDestination.LANGUAGE -> 7
     SettingsDestination.FEATURES -> 8
     SettingsDestination.HELP -> 9
     SettingsDestination.TERMS -> 10
@@ -485,6 +488,7 @@ private fun SettingsFormHost(
                 onTheme = onTheme,
                 onBrowseAllFaces = { onNavigate(SettingsDestination.CLOCK_FACES) },
             )
+            SettingsDestination.LANGUAGE -> LanguageDetailScreen(onBack = onNavigateBack)
             SettingsDestination.CLOCK_FACES -> ClockFaceGalleryScreen(
                 selected = clockStyle,
                 availablePacks = ClockFacePacks.available(

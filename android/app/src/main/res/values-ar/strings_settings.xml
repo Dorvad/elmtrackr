@@ -410,4 +410,32 @@
     <string name="settings_backup_share_chooser">تصدير النسخة الاحتياطية المحلية</string>
     <string name="settings_sync_synced_with_warnings">تمت المزامنة مع تحذيرات: %1$s</string>
     <string name="settings_sync_synced_unsent">تمت المزامنة. التغييرات غير المرفوعة: %1$d</string>
+
+    <!-- Sick leave arrangement, per compensation profile -->
+    <string name="settings_section_sick_leave">الإجازة المرضية</string>
+    <string name="settings_sick_paid">أيام المرض مدفوعة</string>
+    <string name="settings_sick_arrangement">صاحب العمل يدفع</string>
+    <string name="settings_sick_from_day_one">من اليوم الأول</string>
+    <string name="settings_sick_standard">قياسي</string>
+    <string name="settings_sick_custom">مخصّص</string>
+    <string name="settings_sick_ladder_label">ما يُدفع عن يوم المرض</string>
+    <string name="settings_sick_rung_single">اليوم %1$d: %2$s</string>
+    <string name="settings_sick_rung_range">الأيام %1$d\u2013%2$d: %3$s</string>
+    <string name="settings_sick_rung_open">من اليوم %1$d وما بعده: %2$s</string>
+    <string name="settings_sick_rung_unpaid">بدون أجر</string>
+    <string name="settings_sick_rung_gap">غير محدّد</string>
+    <string name="settings_sick_standard_same">في هذه المنطقة يكون الإعداد القياسي أيضاً أجراً كاملاً من اليوم الأول، لذا يدفع الخياران المبلغ نفسه.</string>
+    <string name="settings_sick_custom_note">لمكان العمل هذا سلّم أُعدّ في مكان آخر. اختيار أحد الخيارين أعلاه سيستبدله.</string>
+    <string name="settings_sick_hint">اضبط هذا بما يطابق عقد عملك أو اتفاقك الجماعي. السلّم القياسي إعداد شائع، وليس بياناً بما يفرضه القانون على صاحب العمل.</string>
+    <string name="settings_sick_off_note">ستُسجَّل أيام المرض وتُخصم من رصيدك، لكن لن يُحتسب أجرها.</string>
+    <!-- Language, its own settings screen -->
+    <string name="settings_language_subtitle">%1$s</string>
+    <string name="settings_language_system_resolved">لغة الجهاز \u00b7 %1$s</string>
+    <string name="settings_language_note">يتغيّر التطبيق فوراً. ستظهر التواريخ والأرقام والمبالغ باللغة التي تختارها.</string>
+    <string name="settings_language_current">قيد الاستخدام</string>
+    <!-- Theme -->
+    <string name="settings_theme_follows_device">حسب الجهاز \u2014 %1$s حالياً</string>
+    <string name="settings_theme_light_lower">فاتح</string>
+    <string name="settings_theme_dark_lower">داكن</string>
+    <string name="settings_sick_shared_note">هذا الإعداد مشترك بين جميع ملفات الأجر: يحتفظ التطبيق بمكان عمل واحد، لذا فإن تغييره هنا يغيّره لها جميعاً.</string>
 </resources>
