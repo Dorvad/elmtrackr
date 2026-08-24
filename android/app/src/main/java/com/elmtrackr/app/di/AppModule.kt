@@ -95,6 +95,35 @@ object AppModule {
     fun provideRemoteCompensationProfilesDataSource(): RemoteCompensationProfileDataSource? =
         SupabaseClientProvider.get()?.let { SupabaseCompensationProfilesDataSource(it) }
 
+    // Workplaces and leave. Nullable like every other remote: no Supabase
+    // credentials means no data source, and syncAll returns NotConfigured before
+    // the pipeline runs.
+    @Provides
+    fun provideRemoteWorkplacesDataSource(): com.elmtrackr.app.data.remote.RemoteWorkplaceDataSource? =
+        SupabaseClientProvider.get()?.let { com.elmtrackr.app.data.remote.SupabaseWorkplaceDataSource(it) }
+
+    @Provides
+    fun provideRemoteLeavePoliciesDataSource(): com.elmtrackr.app.data.remote.RemoteLeavePolicyDataSource? =
+        SupabaseClientProvider.get()?.let { com.elmtrackr.app.data.remote.SupabaseLeavePolicyDataSource(it) }
+
+    @Provides
+    fun provideRemoteAbsenceEventsDataSource(): com.elmtrackr.app.data.remote.RemoteAbsenceEventDataSource? =
+        SupabaseClientProvider.get()?.let { com.elmtrackr.app.data.remote.SupabaseAbsenceEventDataSource(it) }
+
+    @Provides
+    fun provideRemoteAbsenceAllocationsDataSource():
+        com.elmtrackr.app.data.remote.RemoteAbsenceAllocationDataSource? =
+        SupabaseClientProvider.get()?.let {
+            com.elmtrackr.app.data.remote.SupabaseAbsenceAllocationDataSource(it)
+        }
+
+    @Provides
+    fun provideRemoteLeaveBalancesDataSource():
+        com.elmtrackr.app.data.remote.RemoteLeaveBalanceSnapshotDataSource? =
+        SupabaseClientProvider.get()?.let {
+            com.elmtrackr.app.data.remote.SupabaseLeaveBalanceSnapshotDataSource(it)
+        }
+
     @Provides
     fun provideRemoteProfilesDataSource(): RemoteProfileDataSource? =
         SupabaseClientProvider.get()?.let { SupabaseProfilesDataSource(it) }

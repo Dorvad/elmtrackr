@@ -99,6 +99,28 @@ those columns to `user_settings` and dropping the `preserveLocal` clause.
 
 Added by `20260811000000_workplaces_and_leave.sql` (Room v19, `MIGRATION_18_19`).
 
+**All five are synced.** They were not, for a while: the tables shipped on the
+server and the Android pipeline had no step for any of them, so a leave
+arrangement and every absence ever reported were device-local and did not survive
+a reinstall or reach a second device. `SyncRepositoryImpl` now pushes and pulls
+all five, using the same shape as the tables that were already synced —
+tombstones rather than deletes, a primary-key collision on create read as "the
+previous attempt landed", and an update filtered on `client_updated_at` so a row
+edited more recently elsewhere is adopted rather than overwritten.
+
+**Order is not optional here, because the foreign keys are real.** Push and pull
+both run workplaces → policies and balances → absence events → allocations, and
+all of them before shifts, which resolve a `workplace_id` of their own. Parent
+links travel as *remote* ids while the entities hold *local* ones, so
+`SyncIdMapper` translates in both directions: a push whose parent has no remote id
+yet stays pending rather than sending an id the server would reject, and a pull
+whose parent is not local yet returns false so the cursor stays behind that page
+and the row is retried.
+
+**Workplaces have no tombstone sweep on pull**, unlike premium profiles. A
+workplace the server has never heard of is one created offline and not yet pushed;
+sweeping on absence would delete it before its first push.
+
 **Absences are not shifts, deliberately.** A shift means worked time and feeds net
 minutes, the overtime ladders, weekend/holiday/night premiums and the shift count.
 An absence has none of those properties, so there is no `shiftType` column and no

@@ -126,4 +126,25 @@ interface WorkplaceDao {
 
     @Query("DELETE FROM workplaces WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
+
+    /**
+     * Marks a row SYNCED only if it has not been edited since the push snapshot
+     * was taken. Returns 0 when a concurrent edit won; the row then stays pending
+     * so the newer state is pushed by a follow-up sync.
+     */
+    @Query(
+        "UPDATE workplaces SET syncStatus = 'SYNCED', remoteId = :remoteId, " +
+            "lastSyncedAt = :syncedAt, lastSyncError = NULL " +
+            "WHERE localId = :localId AND updatedAt = :expectedUpdatedAt",
+    )
+    suspend fun markSyncedIfUnchanged(
+        localId: String,
+        remoteId: String?,
+        syncedAt: Long?,
+        expectedUpdatedAt: Long,
+    ): Int
+
+    /** Records the remote id without touching syncStatus or updatedAt. */
+    @Query("UPDATE workplaces SET remoteId = :remoteId, lastSyncedAt = :syncedAt WHERE localId = :localId")
+    suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?)
 }
