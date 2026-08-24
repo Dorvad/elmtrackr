@@ -142,26 +142,35 @@ The sections are:
 | **Clients** | Leave for step 3. |
 | **Data Access** | Add the scopes `openid`, `email` and `profile` if they are not already listed. These three are non-sensitive: they do not trigger Google's app-verification review. Do not add anything else — every extra scope is one more thing to justify later. |
 
-### 2c. Add yourself as a test user — read this one carefully
+### 2c. Choose the publishing status — read this one carefully
 
-A new External project starts in **Testing** status. In Testing, **only Google
-accounts explicitly listed as test users can sign in.** Anyone else gets an
-"access blocked" error that looks like a bug in the app.
+This is the step most likely to be misread, because it looks like it is about the
+Play Store and it is not. Two different systems, no connection between them:
 
-On the **Audience** page, under **Test users**, click **Add users** and add:
+| | What it controls |
+| --- | --- |
+| Play Console release track | How the app is distributed. |
+| Google Auth Platform **publishing status** | Who may sign in with Google at all. |
 
-- your own Google account,
-- every account that will take part in the first test round.
+A new External project starts in **Testing**, where **only Google accounts
+explicitly listed as test users can sign in.** An app that is live on Play with
+its OAuth project still in Testing gives every real user an "access blocked" page
+that reads as a bug in the app.
 
-Testing status caps the number of test users. Google publishes the current limit
-on that page — check it there rather than assuming, and if your test group is
-larger than the cap you will need to publish the app first.
+**ElmTrackr is already public, so publish the project.** On the **Audience** page
+click **Publish app** and confirm. Skip the test-user list entirely — it is only
+useful for a closed pre-release round.
 
-When you are ready for real users, come back to **Audience** and click **Publish
-app** to move to *In production*. With only the three scopes above, that does not
-require Google's verification review — but the app name only appears on the
-consent screen after brand verification, so before that users see your project ID
-instead. Fine for testing; worth fixing before launch.
+This needs **no verification review from Google**. Their documentation is
+explicit: *"If your app utilizes only non-sensitive scopes, it is not mandatory
+for your app to complete the app verification process."* The three scopes in 2b
+are all non-sensitive.
+
+**Brand verification is separate, optional, and worth doing.** Without it sign-in
+works normally, but the consent screen shows the project ID instead of the name
+*ElmTrackr* — which looks improvised at exactly the moment a user is handing over
+access to their Google account. It is a lighter process than full verification and
+can be started after the button is working.
 
 ---
 
@@ -323,7 +332,8 @@ hit to their actual cause.
 | "Developer console is not set up correctly", or error `[28444]` | The signing key is not registered. The most common case by far: the build was signed with a key whose SHA-1 has no Android client — a Play build against a debug fingerprint, or a teammate's machine with a different debug key. Register that fingerprint (step 3b). |
 | Picker opens, then "Unable to continue with Google" | The token was rejected at the exchange. Check the **Authorized Client IDs** field in Supabase holds the **Web** client ID (step 4) — not the Android one, not empty. |
 | Something about the nonce claim | The hashed and raw forms were swapped, or *Skip nonce check* was toggled while the app sends a nonce. The app's side is pinned by `SignInNonceTest`; check the Supabase toggle first. |
-| "Access blocked: app has not completed verification" | The project is in **Testing** and this Google account is not on the test-user list (step 2c). |
+| "Access blocked: app has not completed verification" | The OAuth project is still in **Testing**. Publish it (step 2c) — this is unrelated to the app's Play Store status. |
+| Signs in but lands in an empty account | The address was never verified, so Supabase could not link it to the existing user. See the note on identity linking below. |
 | Browser opens instead of the in-app sheet | Expected on a device with no Google account or no Play Services. Sign-in still completes. |
 | Browser opens and shows a Google `redirect_uri_mismatch` | The Supabase callback URL is missing from the Web client's **Authorized redirect URIs** (step 3a). |
 
@@ -334,12 +344,25 @@ showing it, so if crash reporting is configured the exact exception is there.
 
 ## Worth confirming during the first test round
 
-**An email account and a Google account with the same address.** Whether Supabase
-treats these as one user or two depends on the project's identity-linking
-settings, not on anything in this app. Sign up with email, sign out, then sign in
-with Google using the same address, and check whether the shifts are still there.
-Decide this before real users create accounts — it is far harder to reconcile
-afterwards.
+**Existing email users who tap the new button.** Supabase links identities
+automatically when the address matches, so someone who signed up with email and
+later signs in with Google finds their own account rather than an empty new one.
+That is the default and needs no configuration.
+
+It has one condition, and it matters for an app that is already public: **the
+email must be verified.** Supabase declines to link an unverified address on
+purpose — doing so would allow taking over an account before its owner ever
+creates it. An existing user who signed up and never clicked the confirmation link
+is therefore *not* linked, and lands in a second, empty account.
+
+Before rolling this out, count them:
+
+```sql
+select count(*) from auth.users where email_confirmed_at is null;
+```
+
+A negligible number is fine. A significant one is a support scenario worth
+preparing for rather than discovering through complaints.
 
 **Signing out actually forgets the account**, as in check 4 above.
 

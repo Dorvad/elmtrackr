@@ -163,8 +163,11 @@ Full instructions, including which SHA-1 to register and why two OAuth clients
 are needed, are in [`google-sign-in-setup.md`](google-sign-in-setup.md). In short:
 
 1. Google Cloud → configure **Google Auth Platform** (branding, External
-   audience, the `openid`/`email`/`profile` scopes) and **add every first-round
-   tester as a test user** — in Testing status nobody else can sign in at all.
+   audience, the `openid`/`email`/`profile` scopes) and **click Publish app** on
+   the Audience page. A new OAuth project starts in Testing, where only listed
+   test users can sign in — unrelated to the Play release track, and the reason a
+   live app can still show every user an "access blocked" page. Publishing needs
+   no verification review with those three non-sensitive scopes.
 2. Two OAuth client IDs: a **Web** one, with the Supabase callback URL in its
    authorised redirect URIs, and an **Android** one (package
    `com.elmlaunch.myapp` plus the SHA-1 of whichever key signs the build — the
