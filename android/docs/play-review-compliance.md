@@ -1,5 +1,10 @@
 # Play review compliance — Wear OS rejections (Jul 27)
 
+> **A second round of rejections arrived in August 2026** (screenshots inside
+> device frames, and "does not install or launch without crashing"). See
+> [wear-play-resubmission-2026-08.md](./wear-play-resubmission-2026-08.md).
+> §1 and §4 below are re-checked on **every** review, so they still apply.
+
 Four rejections were received under the Wear App Quality Guidelines. Two are
 fixed in code (this repo), two must be resolved in the Play Console. This
 document covers all four so the next submission passes.

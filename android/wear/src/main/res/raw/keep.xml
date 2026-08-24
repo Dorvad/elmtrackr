@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The Wear capability array is read by the Wear OS platform by name, through
+    the CapabilityClient — nothing in this app's code or manifest references
+    R.array.android_wear_capabilities, so the release resource shrinker treats
+    it as dead and strips it. When it is stripped the watch stops advertising
+    the `elmtrackr_wear_app` capability, and the phone's Settings → Wear OS
+    screen can no longer tell "watch paired" from "watch paired AND ElmTrackr
+    installed on it". Debug builds are unaffected (no shrinking), which is why
+    this only ever shows up in a release artifact.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@array/android_wear_capabilities" />

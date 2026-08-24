@@ -32,8 +32,12 @@ android {
         applicationId = "com.elmlaunch.myapp"
         minSdk = 26
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.2.0"
+        // 42, not 41. Production is on 40, so 41 is the next free phone code —
+        // but the module invariant is wear == 10000 + this number, and Play has
+        // already seen (and rejected) wear 10041. A phone 41 would need a wear
+        // 10041 it cannot have, so both skip a number to keep the invariant.
+        versionCode = 42
+        versionName = "1.2.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")

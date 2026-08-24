@@ -16,6 +16,7 @@ import androidx.wear.tiles.material.Typography
 import com.elmtrackr.wear.ElmTrackrWearApp
 import com.elmtrackr.wear.R
 import com.elmtrackr.wear.WearMainActivity
+import com.elmtrackr.wear.sync.WearAuroraColors
 import com.elmtrackr.wear.sync.WearDisplayMath
 import com.elmtrackr.wear.sync.WearShiftSnapshot
 import com.google.common.util.concurrent.ListenableFuture
@@ -68,9 +69,12 @@ class ElmTrackrTileService : TileService() {
             .build()
 
     private suspend fun buildTile(): TileBuilders.Tile {
-        val app = applicationContext as ElmTrackrWearApp
-        app.wearStateRepository.refreshFromDataLayer()
-        val snapshot = app.wearStateRepository.snapshot.value
+        val app = ElmTrackrWearApp.from(this)
+        app?.wearStateRepository?.refreshFromDataLayer()
+        // No repository means no phone state to show, which is exactly the
+        // signed-out face — the tile still renders instead of erroring out and
+        // leaving a blank slot in the tile carousel.
+        val snapshot = app?.wearStateRepository?.snapshot?.value ?: WearShiftSnapshot.signedOut()
 
         val root = when {
             !snapshot.signedIn -> signedOutFace()
@@ -117,15 +121,15 @@ class ElmTrackrTileService : TileService() {
             )
             .addContent(spacer(8f))
             .addContent(
-                text(getString(R.string.punch_in).uppercase(), Typography.TYPOGRAPHY_TITLE2, WHITE),
+                text(getString(R.string.punch_in).uppercase(), Typography.TYPOGRAPHY_TITLE2, INK),
             )
             .addContent(spacer(3f))
-            .addContent(text(getString(R.string.wear_clocked_out), Typography.TYPOGRAPHY_CAPTION2, WHITE_80))
+            .addContent(text(getString(R.string.wear_clocked_out), Typography.TYPOGRAPHY_CAPTION2, INK2))
             .apply {
                 if (detail.isNotBlank()) {
                     addContent(spacer(2f))
                     // Two lines so large system fonts wrap instead of clipping.
-                    addContent(text(detail, Typography.TYPOGRAPHY_CAPTION3, WHITE_65, maxLines = 2))
+                    addContent(text(detail, Typography.TYPOGRAPHY_CAPTION3, OUTLINE, maxLines = 2))
                 }
             }
             .build()
@@ -137,11 +141,11 @@ class ElmTrackrTileService : TileService() {
         val display = WearDisplayMath.displayFor(snapshot)
         val statusRow = LayoutElementBuilders.Row.Builder()
             .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
-            .addContent(text("●", Typography.TYPOGRAPHY_CAPTION2, GREEN))
+            .addContent(text("●", Typography.TYPOGRAPHY_CAPTION2, SUCCESS))
             .addContent(
                 LayoutElementBuilders.Spacer.Builder().setWidth(DimensionBuilders.dp(4f)).build(),
             )
-            .addContent(text(getString(R.string.wear_on_shift), Typography.TYPOGRAPHY_CAPTION2, WHITE_80))
+            .addContent(text(getString(R.string.wear_on_shift), Typography.TYPOGRAPHY_CAPTION2, INK2))
             .build()
 
         val center = LayoutElementBuilders.Column.Builder()
@@ -152,11 +156,11 @@ class ElmTrackrTileService : TileService() {
                 text(
                     WearDisplayMath.elapsedHm(snapshot.shiftStartEpochMillis),
                     Typography.TYPOGRAPHY_DISPLAY1,
-                    WHITE,
+                    INK,
                 ),
             )
             .addContent(spacer(2f))
-            .addContent(text(getString(R.string.wear_tap_to_stop), Typography.TYPOGRAPHY_CAPTION1, WHITE_65))
+            .addContent(text(getString(R.string.wear_tap_to_stop), Typography.TYPOGRAPHY_CAPTION1, OUTLINE))
             .build()
 
         return face(
@@ -169,9 +173,9 @@ class ElmTrackrTileService : TileService() {
     private fun signedOutFace(): LayoutElementBuilders.LayoutElement {
         val center = LayoutElementBuilders.Column.Builder()
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-            .addContent(text(getString(R.string.tile_sign_in), Typography.TYPOGRAPHY_TITLE2, WHITE))
+            .addContent(text(getString(R.string.tile_sign_in), Typography.TYPOGRAPHY_TITLE2, INK))
             .addContent(spacer(3f))
-            .addContent(text(getString(R.string.tile_on_phone), Typography.TYPOGRAPHY_CAPTION1, WHITE_65))
+            .addContent(text(getString(R.string.tile_on_phone), Typography.TYPOGRAPHY_CAPTION1, OUTLINE))
             .build()
 
         return face(clickAction = openAppAction(), center = center)
@@ -204,9 +208,9 @@ class ElmTrackrTileService : TileService() {
             )
 
         if (ringPercent != null) {
-            builder.addContent(ring(sweepDegrees = 360f, color = WHITE_25))
+            builder.addContent(ring(sweepDegrees = 360f, color = RING_TRACK))
             builder.addContent(
-                ring(sweepDegrees = (ringPercent.coerceIn(0, 100) * 3.6f).coerceAtLeast(8f), color = WHITE),
+                ring(sweepDegrees = (ringPercent.coerceIn(0, 100) * 3.6f).coerceAtLeast(8f), color = RING),
             )
         }
 
@@ -225,7 +229,7 @@ class ElmTrackrTileService : TileService() {
                         )
                         .build(),
                 )
-                .addContent(text(getString(R.string.wear_brand), Typography.TYPOGRAPHY_CAPTION3, WHITE_85))
+                .addContent(text(getString(R.string.wear_brand), Typography.TYPOGRAPHY_CAPTION3, INK2))
                 .build(),
         )
 
@@ -320,17 +324,34 @@ class ElmTrackrTileService : TileService() {
             .build()
 
     companion object {
-        // v3: background image changed from the indigo gradient to black —
-        // the version bump forces renderers to drop the cached gradient.
-        private const val RESOURCES_VERSION = "3"
+        // v4: the bolt mark became the Aurora gradient disc with a white bolt,
+        // matching the phone. Tile renderers cache resources by this version,
+        // so a bump is the only thing that makes them re-read the drawable —
+        // without it, updated watches keep drawing the old white-disc mark.
+        private const val RESOURCES_VERSION = "4"
         private const val ID_BACKGROUND = "bg_gradient"
         private const val ID_BOLT_BUTTON = "bolt_button"
 
-        private const val WHITE = 0xFFFFFFFF.toInt()
-        private const val WHITE_85 = 0xD9FFFFFF.toInt()
-        private const val WHITE_80 = 0xCCFFFFFF.toInt()
-        private const val WHITE_65 = 0xA6FFFFFF.toInt()
-        private const val WHITE_25 = 0x40FFFFFF.toInt()
-        private const val GREEN = 0xFF34D399.toInt()
+        // The tile builders take packed ints rather than Compose Colors, so the
+        // palette is restated here. Every value is WearAuroraColors, and the
+        // WearTileColorParityTest asserts that it stays that way.
+        private val INK = WearAuroraColors.INK
+        private val INK2 = WearAuroraColors.INK2
+        private val OUTLINE = WearAuroraColors.OUTLINE
+        private val SUCCESS = WearAuroraColors.SUCCESS
+
+        /**
+         * The goal ring on the tile.
+         *
+         * Flat aqua where the app's ring is the full indigo→plum→aqua ramp:
+         * `ArcLine` takes a single `argb` colour and the tile layout format has
+         * no gradient stroke, so a ramp is not expressible here. Aqua is the
+         * ramp's end stop and the brightest of the three on black (10.3:1),
+         * which is the right one to keep if only one survives.
+         */
+        private val RING = WearAuroraColors.AQUA
+
+        /** The unfilled remainder of the ring. Outline at roughly 22% over black. */
+        private const val RING_TRACK = 0x38A4B0C3.toInt()
     }
 }

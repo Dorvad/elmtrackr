@@ -1,6 +1,7 @@
 package com.elmtrackr.wear.sync
 
 import android.content.Context
+import com.elmtrackr.wear.runCatchingCancellable
 import com.elmtrackr.wear.sync.WearMessages.PUNCH_IN
 import com.elmtrackr.wear.sync.WearMessages.PUNCH_OUT
 import com.elmtrackr.wear.sync.WearMessages.PUNCH_RESULT
@@ -24,7 +25,7 @@ class WearActionClient(
     suspend fun punchOut(): PunchResult = sendPunch(PUNCH_OUT)
 
     suspend fun requestRefreshFromPhone() {
-        runCatching {
+        runCatchingCancellable {
             val phone = findPhoneNode() ?: return
             Wearable.getMessageClient(appContext)
                 .sendMessage(phone.id, REFRESH, ByteArray(0))

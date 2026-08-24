@@ -1,5 +1,6 @@
 package com.elmtrackr.wear.sync
 
+import com.elmtrackr.wear.ElmTrackrWearApp
 import com.elmtrackr.wear.sync.WearMessages.REFRESH
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.MessageEvent
@@ -13,17 +14,18 @@ class WearDataListenerService : WearableListenerService() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    private val repository: WearStateRepository
-        get() = (application as com.elmtrackr.wear.ElmTrackrWearApp).wearStateRepository
+    private val repository: WearStateRepository?
+        get() = ElmTrackrWearApp.from(this)?.wearStateRepository
 
     override fun onDataChanged(dataEvents: DataEventBuffer) {
-        repository.handleDataEvents(dataEvents)
+        repository?.handleDataEvents(dataEvents)
     }
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
         if (messageEvent.path != REFRESH) return
+        val target = repository ?: return
         scope.launch {
-            repository.refreshFromDataLayer()
+            target.refreshFromDataLayer()
         }
     }
 }

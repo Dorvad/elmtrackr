@@ -23,8 +23,14 @@ android {
         // form factors of the listing, and the phone module shares this
         // applicationId — so the wear module keeps its own range:
         // 10000 + the phone :app versionCode. Bump both together.
-        versionCode = 10012
-        versionName = "1.2.0"
+        //
+        // 10042: the artifact Play rejected in August was 10041, and Play
+        // refuses any upload at or below a code it has already seen. That is
+        // also why the phone skips from 40 to 42 rather than to 41 — 10041 is
+        // burned, so the lowest phone code that still satisfies the invariant
+        // is 42.
+        versionCode = 10042
+        versionName = "1.2.4"
     }
 
     // The Play Store only delivers the watch app to a paired watch when it is

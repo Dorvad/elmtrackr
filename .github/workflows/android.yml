@@ -90,6 +90,8 @@ jobs:
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
       # ── Tests ─────────────────────────────────────────────────────────────
+      # Whole-build, not :app — this is what runs the :wear and :wear-sync
+      # test sources as well.
       - name: Run unit tests
         working-directory: android
         run: ./gradlew testDebugUnitTest --no-daemon
@@ -128,6 +130,56 @@ jobs:
       - name: Run Android lint (debug)
         working-directory: android
         run: ./gradlew :app:lintDebug --no-daemon
+
+      # ── Watch app ─────────────────────────────────────────────────────────
+      # The watch artifact is a separate upload to the same Play listing, and
+      # until August 2026 nothing in CI compiled it. The release build type is
+      # the one that matters: :wear minifies with R8 full mode and shrinks
+      # resources, so a missing keep rule or a stripped resource is invisible in
+      # a debug build and only shows up on a reviewer's wrist. Play rejected
+      # versionCode 10041 with "does not install or launch without crashing"
+      # against exactly that blind spot.
+      #
+      # -PallowDebugSignedRelease=true because the upload keystore is not on CI.
+      # The signature is not what is being tested here; R8, the resource
+      # shrinker and the manifest merge are.
+      - name: Assemble wear release APK (R8 + resource shrinking)
+        working-directory: android
+        run: >-
+          ./gradlew :wear:assembleRelease --no-daemon --stacktrace
+          -PallowDebugSignedRelease=true
+
+      # Advisory, deliberately. assembleRelease above already runs
+      # lintVitalRelease — the fatal-severity subset — and that step IS
+      # blocking. The full release lint has never been run against :wear, so
+      # making it blocking now would fail CI on a backlog of pre-existing
+      # findings that have nothing to do with the change under review. Read the
+      # uploaded report, work the backlog down, then drop continue-on-error.
+      - name: Run Android lint on the wear release (advisory)
+        working-directory: android
+        continue-on-error: true
+        run: ./gradlew :wear:lintRelease --no-daemon
+
+      - name: Upload wear lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wear-lint-report
+          path: |
+            android/wear/build/reports/lint-results-release.html
+            android/wear/build/reports/lint-results-release.xml
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload wear release APK
+        uses: actions/upload-artifact@v4
+        with:
+          # Verification build, debug-signed — install it on a Wear OS emulator
+          # to reproduce a store-review crash. NOT uploadable to Play.
+          name: ElmTrackr-wear-release-unsigned
+          path: android/wear/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Verify Gradle wrapper
         working-directory: android

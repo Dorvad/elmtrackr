@@ -1,12 +1,16 @@
 package com.elmtrackr.wear.sync
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.wear.tiles.TileService
+import com.elmtrackr.wear.runCatchingCancellable
 import com.elmtrackr.wear.sync.WearPaths.PAYLOAD_KEY
 import com.elmtrackr.wear.sync.WearPaths.SHIFT_STATE
 import com.elmtrackr.wear.tile.ElmTrackrTileService
@@ -27,8 +31,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 
+// A corrupt or unreadable cache file must never be fatal. Without the
+// corruption handler the `data` flow rethrows CorruptionException on every
+// read, and the read happens during Application.onCreate — so a single bad
+// write (battery pull mid-flush) would turn every subsequent launch into a
+// crash until the user cleared the app's data.
 private val Context.wearStateDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "wear_shift_state",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
 )
 
 /** Transient full-screen punch feedback: a success checkmark or a failure cross. */
@@ -61,12 +71,22 @@ class WearStateRepository(
     }
 
     suspend fun loadCached() {
-        val json = context.wearStateDataStore.data.first()[cacheKey] ?: return
-        WearSnapshotCodec.decode(json)?.let { applySnapshot(it, persist = false) }
+        // Runs on the startup path (Application.onCreate and the view model's
+        // init). Disk I/O, so it can fail for reasons that have nothing to do
+        // with this app being correct — a full filesystem, a locked file during
+        // a restore. Falling back to the signed-out snapshot shows the sign-in
+        // face; throwing here would take the process down before the first frame.
+        runCatchingCancellable {
+            val json = context.wearStateDataStore.data.first()[cacheKey]
+            val cached = json?.let(WearSnapshotCodec::decode)
+            if (cached != null) {
+                applySnapshot(cached, persist = false)
+            }
+        }.onFailure { Log.w(TAG, "Could not read the cached shift snapshot", it) }
     }
 
     suspend fun refreshFromDataLayer() {
-        runCatching {
+        runCatchingCancellable {
             val dataClient = Wearable.getDataClient(context)
             val uri = android.net.Uri.parse("wear://*$SHIFT_STATE")
             val items = dataClient.getDataItems(uri).await()
@@ -76,8 +96,10 @@ class WearStateRepository(
             val newest = items.mapNotNull { parseDataItem(it) }
                 .maxByOrNull { it.updatedAtEpochMillis }
             items.release()
-            newest?.let { applySnapshot(it) }
-        }
+            if (newest != null) {
+                applySnapshot(newest)
+            }
+        }.onFailure { Log.w(TAG, "Could not read the phone snapshot from the data layer", it) }
     }
 
     /**
@@ -102,23 +124,37 @@ class WearStateRepository(
     suspend fun applySnapshot(snapshot: WearShiftSnapshot, persist: Boolean = true) {
         _snapshot.value = snapshot
         if (persist) {
-            context.wearStateDataStore.edit { prefs ->
-                prefs[cacheKey] = WearSnapshotCodec.encode(snapshot)
+            runCatchingCancellable {
+                context.wearStateDataStore.edit { prefs ->
+                    prefs[cacheKey] = WearSnapshotCodec.encode(snapshot)
+                }
+            }.onFailure { Log.w(TAG, "Could not cache the shift snapshot", it) }
+        }
+        // Each of the three surfaces below is refreshed independently and each
+        // is wrapped on its own. They talk to system components that are not
+        // guaranteed to be present or initialised on every watch — the tile
+        // host, the watch-face complication registry, and WorkManager — and
+        // this method runs on the startup path. One missing surface must
+        // degrade that surface, not take the app down with it.
+        runCatchingCancellable {
+            if (snapshot.isActive) {
+                WearTileRefreshWorker.schedule(context)
+            } else {
+                WearTileRefreshWorker.cancel(context)
             }
-        }
-        if (snapshot.isActive) {
-            WearTileRefreshWorker.schedule(context)
-        } else {
-            WearTileRefreshWorker.cancel(context)
-        }
-        ElmTrackrComplicationBridge.requestUpdateAll(context)
+        }.onFailure { Log.w(TAG, "Could not reschedule the tile refresh worker", it) }
+
+        runCatchingCancellable {
+            ElmTrackrComplicationBridge.requestUpdateAll(context)
+        }.onFailure { Log.w(TAG, "Could not request a complication update", it) }
+
         // Re-render the tile immediately on every state change. The refresh
         // worker only drives the once-a-minute count-up while a shift runs;
         // without this, a punch made FROM the tile keeps showing the old
         // face for up to a minute, and a sign-in/out for up to an hour.
-        runCatching {
+        runCatchingCancellable {
             TileService.getUpdater(context).requestUpdate(ElmTrackrTileService::class.java)
-        }
+        }.onFailure { Log.w(TAG, "Could not request a tile update", it) }
     }
 
     private var confirmationDismissJob: Job? = null
@@ -148,5 +184,9 @@ class WearStateRepository(
     private fun parseDataItem(item: com.google.android.gms.wearable.DataItem): WearShiftSnapshot? {
         val payload = DataMapItem.fromDataItem(item).dataMap.getString(PAYLOAD_KEY) ?: return null
         return WearSnapshotCodec.decode(payload)
+    }
+
+    private companion object {
+        const val TAG = "WearStateRepository"
     }
 }

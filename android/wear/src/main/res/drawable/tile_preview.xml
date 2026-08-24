@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Tile-picker preview: black face with the white bolt button, matching the real tile. -->
+<!--
+    Tile-picker preview: the real tile in miniature — black face, the Aurora
+    gradient punch mark, and the label bar underneath. Kept in step with
+    tile_bolt_button.xml; if the mark changes there, it changes here.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="100dp"
@@ -9,13 +13,24 @@
     <path
         android:pathData="M50,0a50,50 0 1,0 0,100a50,50 0 1,0 0,-100z"
         android:fillColor="#FF000000" />
+    <path android:pathData="M50,30a20,20 0 1,0 0,40a20,20 0 1,0 0,-40z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="30"
+                android:startY="30"
+                android:endX="70"
+                android:endY="70">
+                <item android:offset="0" android:color="#FF5B4DF2" />
+                <item android:offset="0.42" android:color="#FF8B5CF6" />
+                <item android:offset="1" android:color="#FF16C8D6" />
+            </gradient>
+        </aapt:attr>
+    </path>
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M50,30a20,20 0 1,0 0,40a20,20 0 1,0 0,-40z" />
-    <path
-        android:fillColor="#4664F4"
+        android:fillColor="#FFFFFFFF"
         android:pathData="M51.13,40.04 L44.35,51.13 L50,51.13 L48.87,60.16 L57.9,48.87 L52.26,48.87 Z" />
     <path
-        android:fillColor="#B3FFFFFF"
+        android:fillColor="#FFC8D1E0"
         android:pathData="M35,78h30v4h-30z" />
 </vector>

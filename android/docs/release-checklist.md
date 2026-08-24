@@ -194,6 +194,10 @@ every crash it finds as a blocker).
 7. **Production**: staged rollout at 10–20%, watch Android Vitals + Sentry for
    a few days, then raise to 100%.
 
+> Watch releases have their own pre-flight list, including the Play screenshot
+> rules and the crash-reproduction steps that came out of the August 2026
+> rejection: [wear-play-resubmission-2026-08.md](./wear-play-resubmission-2026-08.md).
+
 For each new upload: bump `versionCode` (and `versionName` when user-facing)
 in `app/build.gradle.kts` — Play rejects reused version codes. Bump
 `wear/build.gradle.kts` together with it: the watch artifact's versionCode
