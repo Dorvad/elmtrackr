@@ -1205,4 +1205,109 @@ class PayrollCalculatorTest {
 
         assertEquals(false, bd.isSpecial)
     }
+
+    // ── Turning overtime off must not raise pay ───────────────────────────────
+
+    /**
+     * The Israeli preset with overtime switched off. Weekly rest still applies — Friday
+     * from 17:00 and all of Saturday — but no overtime ladder sits on top.
+     */
+    private fun ilProfileWithoutOvertime() = profile(
+        RegionCode.IL,
+        rules = RegionPresets.forRegion(RegionCode.IL).rules.copy(overtimeEnabled = false),
+        id = "p-il-no-ot",
+    )
+
+    private fun ilProfileWithOvertime() = profile(RegionCode.IL, id = "p-il-ot")
+
+    /**
+     * The defect: the no-overtime path classified weekly rest from the shift's start
+     * *date* through `WeekendRules.isWeekendDate`, a whole-day test, so the whole of
+     * Friday counted as rest. A Friday morning shift was paid 480 minutes at 1.5×
+     * (720) with overtime off, against 495 with it on — switching a *premium* off
+     * raised the estimate by 45%.
+     *
+     * Friday 5 Jan 2024, 08:00–16:00: entirely before the 17:00 rest boundary, so all
+     * 480 minutes are ordinary weekday time.
+     */
+    @Test
+    fun `a Friday morning shift is not weekly rest when overtime is off`() {
+        val p = ilProfileWithoutOvertime()
+        val s = shift("2024-01-05T08:00:00Z", "2024-01-05T16:00:00Z")
+
+        val pay = PayrollCalculator.calculateShiftPayInContext(s, listOf(s), settingsWithProfile(p), listOf(p))!!
+
+        assertNear(480.0, pay.totalGross)
+        assertNear(480.0, pay.regularGross)
+        assertNear(0.0, pay.weekendGross)
+        assertFalse(pay.isSpecial)
+    }
+
+    /**
+     * The invariant behind that number: overtime is a premium, so switching it off can
+     * only ever lower an estimate. Asserted against the overtime path's own output so
+     * neither side can drift without this failing.
+     */
+    @Test
+    fun `switching overtime off never raises pay for a Friday morning shift`() {
+        val withOt = ilProfileWithOvertime()
+        val withoutOt = ilProfileWithoutOvertime()
+        val s = shift("2024-01-05T08:00:00Z", "2024-01-05T16:00:00Z")
+
+        val paidWithOt = PayrollCalculator
+            .calculateShiftPayInContext(s, listOf(s), settingsWithProfile(withOt), listOf(withOt))!!
+        val paidWithoutOt = PayrollCalculator
+            .calculateShiftPayInContext(s, listOf(s), settingsWithProfile(withoutOt), listOf(withoutOt))!!
+
+        assertTrue(
+            "overtime off (${paidWithoutOt.totalGross}) must not exceed " +
+                "overtime on (${paidWithOt.totalGross})",
+            paidWithoutOt.totalGross <= paidWithOt.totalGross + 0.01,
+        )
+    }
+
+    /**
+     * A Friday shift that crosses the rest boundary is split at it, rather than being
+     * decided by whichever side it started on. 14:00–22:00: three hours of weekday
+     * time then five of weekly rest.
+     */
+    @Test
+    fun `a Friday shift crossing the rest boundary splits at it when overtime is off`() {
+        val p = ilProfileWithoutOvertime()
+        val s = shift("2024-01-05T14:00:00Z", "2024-01-05T22:00:00Z")
+
+        val pay = PayrollCalculator.calculateShiftPayInContext(s, listOf(s), settingsWithProfile(p), listOf(p))!!
+
+        // 180 min at 1.0 + 300 min at 1.5, at 60/h.
+        assertNear(630.0, pay.totalGross)
+        assertNear(180.0, pay.regularGross)
+        assertNear(450.0, pay.weekendGross)
+        assertTrue(pay.isSpecial)
+    }
+
+    /** Saturday has no rest-start boundary, so it stays weekly rest end to end. */
+    @Test
+    fun `a Saturday shift is all weekly rest when overtime is off`() {
+        val p = ilProfileWithoutOvertime()
+        val s = shift("2024-01-06T09:00:00Z", "2024-01-06T17:00:00Z")
+
+        val pay = PayrollCalculator.calculateShiftPayInContext(s, listOf(s), settingsWithProfile(p), listOf(p))!!
+
+        assertNear(720.0, pay.totalGross)
+        assertNear(720.0, pay.weekendGross)
+        assertTrue(pay.isSpecial)
+    }
+
+    /** An ordinary weekday is untouched by any of this. */
+    @Test
+    fun `a Sunday shift is ordinary time when overtime is off`() {
+        val p = ilProfileWithoutOvertime()
+        val s = shift("2024-01-07T09:00:00Z", "2024-01-07T17:00:00Z")
+
+        val pay = PayrollCalculator.calculateShiftPayInContext(s, listOf(s), settingsWithProfile(p), listOf(p))!!
+
+        assertNear(480.0, pay.totalGross)
+        assertNear(480.0, pay.regularGross)
+        assertFalse(pay.isSpecial)
+    }
 }

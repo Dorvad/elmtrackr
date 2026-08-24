@@ -3,6 +3,7 @@ package com.elmtrackr.app.ui.leave
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.UserFacingError
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.leave.LeaveConflict
 import com.elmtrackr.app.domain.leave.LeaveEstimate
@@ -296,7 +297,11 @@ class AbsenceFormViewModel @Inject constructor(
                 update {
                     it.copy(
                         isSaving = false,
-                        validationError = UiText.Raw(error.message ?: ""),
+                        // Never the exception text: repository failures carry
+                        // English developer strings, and an exception with no
+                        // message rendered as an empty error beside a re-enabled
+                        // save button — the user was told nothing at all.
+                        validationError = UserFacingError.message(error, R.string.leave_form_save_failed),
                     )
                 }
             }

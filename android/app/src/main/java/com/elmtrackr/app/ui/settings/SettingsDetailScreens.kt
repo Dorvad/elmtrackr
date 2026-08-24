@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.MotionPhotosOff
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.outlined.Info
@@ -141,6 +142,13 @@ internal fun SettingsHub(
                     onClick = { onNavigate(SettingsDestination.APPEARANCE) },
                     icon = Icons.Filled.Schedule,
                     iconTint = AuroraPlum,
+                )
+                SettingsHubNavRow(
+                    title = stringResource(R.string.settings_language),
+                    subtitle = languageSummary(),
+                    onClick = { onNavigate(SettingsDestination.LANGUAGE) },
+                    icon = Icons.Filled.Translate,
+                    iconTint = AuroraAqua,
                 )
                 SettingsHubNavRow(
                     title = stringResource(R.string.settings_features),
@@ -588,9 +596,9 @@ internal fun AppearanceDetailScreen(
     ) {
         item { SettingsDetailHeader(title = stringResource(R.string.settings_appearance_clock), onBack = onBack) }
         item {
-            LanguageSegmentedControl()
-        }
-        item {
+            // Language used to sit here. It is not appearance, and burying a
+            // top-level preference inside a screen named for the clock is where
+            // people stop finding it; it has its own row in the App group now.
             ThemeSegmentedControl(selected = state.selectedTheme, onSelect = onTheme)
         }
         item {
@@ -878,5 +886,38 @@ internal fun HelpDetailScreen(
             }
         }
         item { Spacer(Modifier.height(32.dp)) }
+    }
+}
+
+/**
+ * Language, on a screen of its own.
+ *
+ * It was previously three chips inside "Appearance & clock" — a top-level
+ * preference filed under an unrelated heading, in a control built for
+ * multi-select filtering. A screen costs one tap and gives the options room to
+ * say what they do.
+ */
+@Composable
+internal fun LanguageDetailScreen(onBack: () -> Unit) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.screenH),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        item { SettingsDetailHeader(title = stringResource(R.string.settings_language), onBack = onBack) }
+        item {
+            SettingsSectionCardPlain {
+                LanguageChoiceList()
+            }
+        }
+        item {
+            Text(
+                stringResource(R.string.settings_language_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        item { Spacer(Modifier.height(Spacing.xxl)) }
     }
 }

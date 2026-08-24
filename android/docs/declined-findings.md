@@ -141,10 +141,13 @@ a minimum-shift top-up, and `breakRatio = net / grossMinutes` then maps topped-u
 minutes into a compressed slice of wall clock, so their rest/night classification
 uses the wrong window. Narrow: it needs rounding *and* a top-up to bite.
 
-The performance half of the same finding is **not** declined and remains open: one
-`Instant.atZone` per payable minute, and `weekStateBeforeShift` re-classifying every
-prior shift, is roughly O(shifts² × minutes) per month, mitigated only by
-`flowOn(computationDispatcher)`.
+The performance half of the same finding was **not** declined. Half of it is now closed:
+the per-payable-minute `Instant.atZone` is gone (`domain/time/ZoneMinutes`), and
+`flowOn(computationDispatcher)` reached the dashboard, which never had it. The
+`weekStateBeforeShift` repetition — the O(shifts²) part — is still open, and
+`optimization-debug-audit-2026-08.md` says why it was left: memoising a classification in
+a payroll engine needs a complete cache key, and the Israeli engine has no dedicated test
+file to catch an incomplete one. Characterisation suite first, memo second.
 
 ---
 
@@ -164,3 +167,8 @@ hardware. Shipping it unverified risks turning a widget punch into a
 Supabase redirect URLs updated. Flipping `autoVerify` without the hosted file breaks
 sign-in outright. The client-side half — PKCE, so an intercepted callback carries a
 useless one-time code instead of live tokens — has shipped.
+
+Narrower than it was. Google sign-in goes through Credential Manager, which returns
+an ID token in-process and never touches a redirect URL, so the custom scheme is now
+only on the paths that genuinely need a link: email confirmation, password recovery,
+and the Google browser fallback for devices with no credential provider.

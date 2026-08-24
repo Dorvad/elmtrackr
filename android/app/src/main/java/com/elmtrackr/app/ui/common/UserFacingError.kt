@@ -38,6 +38,19 @@ object UserFacingError {
     }
 
     /**
+     * For a failure that arrives as a message rather than an exception — the
+     * camera and document-scanner callbacks hand back a platform string.
+     *
+     * The string is never shown: it is an untranslated Android error, which is
+     * exactly what this object exists to keep off screen. It is reported so the
+     * detail survives, and the caller's own translated fallback is displayed.
+     */
+    fun messageFrom(detail: String?, @StringRes fallback: Int): UiText {
+        detail?.takeIf { it.isNotBlank() }?.let { report(IllegalStateException(it)) }
+        return UiText.Res(fallback)
+    }
+
+    /**
      * The recognised causes, or null to leave it to the caller's fallback.
      *
      * Deliberately conservative. A wrong-but-confident explanation ("you're

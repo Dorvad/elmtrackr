@@ -18,6 +18,13 @@
     <string name="auth_back_to_sign_in">Back to sign in</string>
     <string name="auth_loading_workspace">Loading your workspace…</string>
 
+    <!-- Google. The wordmark stays in Latin script in every locale: Google's
+         branding guidelines allow the surrounding call to action to be
+         translated but not the name itself. -->
+    <string name="auth_google_sign_in">Sign in with Google</string>
+    <string name="auth_google_sign_up">Sign up with Google</string>
+    <string name="auth_or">or</string>
+
     <!-- Password recovery -->
     <string name="auth_choose_new_password">Choose a new password</string>
     <string name="auth_new_password_body">Enter a new password for your ElmTrackr account.</string>
@@ -45,6 +52,7 @@
     <string name="auth_error_network">Check your internet connection and try again.</string>
     <string name="auth_error_sign_in">Unable to sign in. Please try again.</string>
     <string name="auth_error_sign_up">Unable to create your account. Please try again.</string>
+    <string name="auth_error_google_sign_in">Unable to continue with Google. Please try again.</string>
     <string name="auth_error_password_reset">Unable to send the reset email. Please try again.</string>
     <string name="auth_error_recovery_link">That reset link is invalid or has expired.</string>
     <string name="auth_error_update_password">Unable to update your password. Please try again.</string>

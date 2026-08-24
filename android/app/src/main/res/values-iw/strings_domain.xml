@@ -40,7 +40,7 @@
     <string name="comp_rules_guidance">אם לא ברור אילו כללי תגמול חלים על העבודה שלך, כדאי לבדוק מול המעסיק, משאבי אנוש או השכר, ומול מקורות רשמיים של דיני העבודה באזור שלך לפני שמגדירים כאן.</string>
     <string name="comp_disclaimer">‏ElmTrackr נותן הערכת שכר לפי הכללים שהוגדרו. השכר בפועל עשוי להשתנות בגלל מסים, ניכויים, מדיניות מעסיק, נהלי שכר, הסכמים קיבוציים, דיני עבודה מקומיים וכללים נוספים. ‏ElmTrackr לא נותן ייעוץ משפטי, מס, שכר, חשבונאי או פיננסי.</string>
     <string name="comp_estimate_note">הערכה בלבד. השכר בפועל עשוי להשתנות.</string>
-    <string name="comp_profile_helper">הערכות השכר מבוססות על הפרופיל הזה. השכר בפועל עשוי להשתנות לפי מסים, ניכויים, מדיניות מעסיק, רגולציה מקומית וכללי שכר.</string>
+    <string name="comp_profile_helper">הערכות השכר לעבודה הזאת מבוססות על הפרופיל הזה. התשלום בפועל עשוי להשתנות בשל מיסים, ניכויים, מדיניות המעסיק, רגולציה מקומית וכללי שכר.</string>
 
     <!-- Clock style names -->
     <string name="clock_style_classic">קלאסי</string>
@@ -79,5 +79,5 @@
     <string name="sync_entity_shifts">משמרות</string>
     <string name="sync_entity_refund_claims">בקשות החזר</string>
     <string name="sync_entity_settings">הגדרות</string>
-    <string name="sync_entity_pay_profiles">פרופילי שכר</string>
+    <string name="sync_entity_pay_profiles">פרופילי עבודה</string>
 </resources>

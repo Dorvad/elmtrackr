@@ -62,7 +62,16 @@ class ScreenshotRegressionTest {
 
     @Test
     fun authSignIn() = verify("auth-sign-in") {
-        SignedOutContent(false, null, { _, _ -> }, { _, _ -> }, {}, {})
+        // Named: SignedOutContent gained parameters and a positional list
+        // silently slides when that happens.
+        SignedOutContent(
+            isLoading = false,
+            errorMessage = null,
+            onSignIn = { _, _ -> },
+            onSignUp = { _, _ -> },
+            onResetPassword = {},
+            onClearError = {},
+        )
     }
 
     @Test

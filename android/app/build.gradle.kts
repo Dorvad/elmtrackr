@@ -42,6 +42,17 @@ android {
 
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("supabase.anon.key", "")}\"")
+        // The Google *Web* OAuth client id — the one Supabase verifies the ID
+        // token against, not the Android client id. It is not a secret (it ships
+        // inside the APK either way), but it is per-project configuration, so it
+        // is read from local.properties like the Supabase keys rather than
+        // committed. Left empty the Google button hides itself instead of
+        // failing at tap time.
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"${localProps.getProperty("google.web.client.id", "")}\"",
+        )
         buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
 
         vectorDrawables {
@@ -262,6 +273,10 @@ dependencies {
     implementation(libs.google.mlkit.document.scanner)
     implementation(libs.google.mlkit.text.recognition)
     implementation(libs.tesseract4android)
+
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.google.identity.googleid)
 
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.security.crypto)

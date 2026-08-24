@@ -51,10 +51,14 @@ import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.common.durationText
 import com.elmtrackr.app.domain.compensation.StackingPolicyLabels
 import com.elmtrackr.app.domain.ShiftDurationCalculator
+import com.elmtrackr.app.domain.leave.SickPayOption
+import com.elmtrackr.app.domain.leave.SickPayOptions
+import com.elmtrackr.app.domain.leave.SickPayRung
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.RegionCode
+import com.elmtrackr.app.domain.model.SickLeavePolicy
 import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.ui.components.states.ErrorState
@@ -63,6 +67,13 @@ import com.elmtrackr.app.ui.design.ElmCardPadded
 import com.elmtrackr.app.ui.design.ElmDropdownField
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmSectionHeader
+import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
+import com.elmtrackr.app.domain.money.MoneyFormat
+import androidx.compose.foundation.layout.width
+import com.elmtrackr.app.ui.common.WorkProfileIdentity
+import com.elmtrackr.app.ui.common.WorkProfileTile
+import com.elmtrackr.app.ui.common.parseIdentityColor
+import com.elmtrackr.app.ui.tasks.TaskColorDot
 import com.elmtrackr.app.ui.theme.Spacing
 import kotlin.math.roundToInt
 
@@ -110,11 +121,16 @@ internal fun CompensationSettingsContent(
     onSelectProfile: (String) -> Unit,
     onCreateProfile: (String) -> Unit,
     onDeleteProfile: () -> Unit,
-    onSave: (
-        String, RegionCode, String, String, Double?, StackingPolicy, CompensationRules,
-    ) -> Unit,
+    onSave: (CompensationFormValues) -> Unit,
     onDismissMessage: () -> Unit,
 ) {
+    // Guards for the three ways this form could lose or replace work without
+    // asking. Each holds the intent until the user answers.
+    var pendingProfileSwitch by remember { mutableStateOf<String?>(null) }
+    var pendingRegion by remember { mutableStateOf<RegionCode?>(null) }
+    var confirmClearedRate by remember { mutableStateOf(false) }
+    var showBackDiscard by remember { mutableStateOf(false) }
+
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
     var newProfileName by rememberSaveable { mutableStateOf("") }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
@@ -130,6 +146,54 @@ internal fun CompensationSettingsContent(
     // CompensationRules is not Bundle-saveable; unsaved tier edits still reset
     // on rotation. Tracked as a known limitation.
     var rules by remember(state.profile.id) { mutableStateOf(state.profile.rules) }
+    // Keyed on the profile, deliberately not on state.sickLeave: re-keying on the
+    // incoming value would reset the control under the user's finger every time the
+    // policies flow re-emits. The first Ready already carries the stored policy —
+    // observePolicies is in the same combine — so there is nothing to wait for.
+    var sickLeave by remember(state.profile.id) { mutableStateOf(state.sickLeave) }
+    var color by rememberSaveable(state.profile.id) {
+        mutableStateOf(state.profile.color ?: WorkProfileIdentity.colorHexFor(state.profile))
+    }
+    var icon by rememberSaveable(state.profile.id) {
+        mutableStateOf(state.profile.icon ?: WorkProfileIdentity.emojiFor(state.profile))
+    }
+
+    /**
+     * True when the form holds anything the profile does not.
+     *
+     * Compared against the stored profile rather than tracked by each field: a
+     * field the user edited and put back is not a change, and a flag set on first
+     * keystroke would prompt for one anyway. The sick arrangement is included
+     * because it saves with this form even though it lives on the workplace.
+     */
+    val isDirty = name != state.profile.name ||
+        regionCode != state.profile.regionCode ||
+        currencyCode != state.profile.currencyCode ||
+        timezone != state.profile.timezone ||
+        hourlyRateText != state.profile.baseHourlyRate?.toString().orEmpty() ||
+        stackingPolicy != state.profile.stackingPolicy ||
+        rules != state.profile.rules ||
+        sickLeave != state.sickLeave ||
+        color != (state.profile.color ?: WorkProfileIdentity.colorHexFor(state.profile)) ||
+        icon != (state.profile.icon ?: WorkProfileIdentity.emojiFor(state.profile))
+
+    /** Saves, after the guards the Save button consults have been answered. */
+    fun commit() {
+        onSave(
+            CompensationFormValues(
+                name = name,
+                regionCode = regionCode,
+                currencyCode = currencyCode,
+                timezone = timezone,
+                hourlyRate = hourlyRateText.toDoubleOrNull(),
+                stackingPolicy = stackingPolicy,
+                rules = rules,
+                sickLeave = sickLeave,
+                color = color,
+                icon = icon,
+            ),
+        )
+    }
 
     LaunchedEffect(state.saveMessage) {
         if (state.saveMessage != null) {
@@ -148,7 +212,7 @@ internal fun CompensationSettingsContent(
         item {
             Spacer(Modifier.height(Spacing.lg))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
+                IconButton(onClick = { if (isDirty) showBackDiscard = true else onBack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
                 }
                 Text(
@@ -180,8 +244,25 @@ internal fun CompensationSettingsContent(
                     state.profiles.forEach { profile ->
                         FilterChip(
                             selected = profile.id == state.profile.id,
-                            onClick = { onSelectProfile(profile.id) },
+                            // Every field is keyed on the profile id, so switching
+                            // re-keys and resets them. That happens on this screen,
+                            // where no navigation guard would catch it.
+                            onClick = {
+                                if (profile.id != state.profile.id && isDirty) {
+                                    pendingProfileSwitch = profile.id
+                                } else {
+                                    onSelectProfile(profile.id)
+                                }
+                            },
                             label = { Text(profile.name) },
+                            // The same tile the clock-in selector shows, so the job
+                            // being edited is recognisable from the row above it.
+                            leadingIcon = {
+                                WorkProfileTile(
+                                    colorHex = WorkProfileIdentity.colorHexFor(profile),
+                                    emoji = WorkProfileIdentity.emojiFor(profile),
+                                )
+                            },
                         )
                     }
                     FilterChip(
@@ -226,15 +307,30 @@ internal fun CompensationSettingsContent(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
+                Spacer(Modifier.height(Spacing.s12))
+                WorkProfileIdentityPicker(
+                    color = color,
+                    icon = icon,
+                    onColor = { color = it },
+                    onIcon = { icon = it },
+                )
                 Spacer(Modifier.height(12.dp))
-                RegionDropdown(regionCode, state.presets.map { it.regionCode to stringResource(it.labelRes) }) {
-                    regionCode = it
-                    state.presets.firstOrNull { p -> p.regionCode == it }?.let { preset ->
-                        currencyCode = preset.currencyCode
-                        timezone = preset.timezone
-                        // Apply the preset in full — keeping the previous region's
-                        // standards silently produced wrong overtime thresholds.
-                        rules = preset.rules
+                RegionDropdown(regionCode, state.presets.map { it.regionCode to stringResource(it.labelRes) }) { picked ->
+                    // Applying a preset replaces the whole rule set — keeping the
+                    // previous region's standards silently produced wrong overtime
+                    // thresholds — so it asks first whenever there is something to
+                    // lose. Rules still matching the outgoing preset are not the
+                    // user's work, so that case applies straight away.
+                    val outgoing = state.presets.firstOrNull { it.regionCode == regionCode }?.rules
+                    if (outgoing != null && rules != outgoing) {
+                        pendingRegion = picked
+                    } else {
+                        regionCode = picked
+                        state.presets.firstOrNull { p -> p.regionCode == picked }?.let { preset ->
+                            currencyCode = preset.currencyCode
+                            timezone = preset.timezone
+                            rules = preset.rules
+                        }
                     }
                 }
                 state.presets.firstOrNull { p -> p.regionCode == regionCode }?.let { preset ->
@@ -258,10 +354,27 @@ internal fun CompensationSettingsContent(
                     timezone = it
                 }
                 Spacer(Modifier.height(12.dp))
+                // Blank is legitimate — a job can genuinely have no fixed hourly
+                // rate — but unparseable is not, and both used to end up as
+                // baseHourlyRate = null, which removes every pay figure in the app
+                // with no warning and a success message. The two are separated here:
+                // this marks the error, and the Save button below refuses it.
+                val rateInvalid = hourlyRateText.isNotBlank() && hourlyRateText.toDoubleOrNull() == null
                 OutlinedTextField(
                     value = hourlyRateText,
-                    onValueChange = { hourlyRateText = it.filter { c -> c.isDigit() || c == '.' } },
+                    // The comma a Hebrew or Arabic keyboard offers is accepted and
+                    // read as a decimal point rather than silently dropped.
+                    onValueChange = { input ->
+                        hourlyRateText = input.filter { c -> c.isDigit() || c == '.' || c == ',' }
+                            .replace(',', '.')
+                    },
                     label = { Text(stringResource(R.string.settings_base_hourly_rate, currencyCode)) },
+                    isError = rateInvalid,
+                    supportingText = if (rateInvalid) {
+                        { Text(stringResource(R.string.settings_rate_invalid)) }
+                    } else {
+                        null
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -442,6 +555,19 @@ internal fun CompensationSettingsContent(
         }
 
         item {
+            SickLeaveCard(
+                sickLeave = sickLeave,
+                regionCode = regionCode,
+                // Every profile now owns a workplace, so the arrangement is its
+                // own. A profile written before that still has none and falls back
+                // to the default workplace, which it may share — so the note is
+                // shown for exactly those, rather than for anyone with two jobs.
+                sharedAcrossProfiles = state.profiles.size > 1 && state.profile.workplaceId == null,
+                onChange = { sickLeave = it },
+            )
+        }
+
+        item {
             ElmCardPadded {
                 ElmSectionHeader(stringResource(R.string.settings_section_deductions))
                 Spacer(Modifier.height(8.dp))
@@ -509,12 +635,21 @@ internal fun CompensationSettingsContent(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
+            val rateUnparseable = hourlyRateText.isNotBlank() && hourlyRateText.toDoubleOrNull() == null
             ElmGradientButton(
                 onClick = {
-                    val rate = hourlyRateText.toDoubleOrNull()
-                    onSave(name, regionCode, currencyCode, timezone, rate, stackingPolicy, rules)
+                    // Clearing the rate is allowed but confirmed: it removes every
+                    // pay figure in the app, which is not what "I emptied a field"
+                    // looks like from the outside.
+                    if (hourlyRateText.isBlank() && state.profile.baseHourlyRate != null) {
+                        confirmClearedRate = true
+                    } else {
+                        commit()
+                    }
                 },
-                enabled = !state.isSaving,
+                // An unparseable rate is refused rather than silently stored as no
+                // rate at all, which is what toDoubleOrNull() used to do.
+                enabled = !state.isSaving && !rateUnparseable,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
@@ -524,6 +659,77 @@ internal fun CompensationSettingsContent(
             }
             Spacer(Modifier.height(Spacing.xl))
         }
+    }
+
+    pendingProfileSwitch?.let { targetId ->
+        DiscardChangesDialog(
+            onDiscard = {
+                pendingProfileSwitch = null
+                onSelectProfile(targetId)
+            },
+            onKeep = { pendingProfileSwitch = null },
+        )
+    }
+
+    if (showBackDiscard) {
+        DiscardChangesDialog(
+            onDiscard = {
+                showBackDiscard = false
+                onBack()
+            },
+            onKeep = { showBackDiscard = false },
+        )
+    }
+
+    pendingRegion?.let { picked ->
+        val preset = state.presets.firstOrNull { it.regionCode == picked }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingRegion = null },
+            title = { Text(stringResource(R.string.settings_region_replace_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.settings_region_replace_body,
+                        preset?.let { stringResource(it.labelRes) }.orEmpty(),
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        regionCode = picked
+                        preset?.let {
+                            currencyCode = it.currencyCode
+                            timezone = it.timezone
+                            rules = it.rules
+                        }
+                        pendingRegion = null
+                    },
+                ) { Text(stringResource(R.string.settings_region_replace_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRegion = null }) { Text(stringResource(R.string.settings_cancel)) }
+            },
+        )
+    }
+
+    if (confirmClearedRate) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmClearedRate = false },
+            title = { Text(stringResource(R.string.settings_rate_cleared_title)) },
+            text = { Text(stringResource(R.string.settings_rate_cleared_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmClearedRate = false
+                        commit()
+                    },
+                ) { Text(stringResource(R.string.settings_rate_cleared_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmClearedRate = false }) { Text(stringResource(R.string.settings_cancel)) }
+            },
+        )
     }
 
     if (showDeleteDialog) {
@@ -743,5 +949,229 @@ private fun MultiplierField(label: String, value: Double, onChange: (Double) -> 
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+    )
+}
+
+/**
+ * The sick-pay arrangement for this job.
+ *
+ * It sits on this screen rather than on a leave screen of its own because it is
+ * the same question as the rest of the form — what does this employer pay — and
+ * because until now there was nowhere at all to answer it: the region preset was
+ * applied once when the workplace's policy row was created and no screen could
+ * change it, so an Israeli user whose employer pays from day one was stuck with a
+ * statutory unpaid first day.
+ *
+ * The ladder itself is stored on the workplace's leave policy, which is why this
+ * takes a [SickLeavePolicy] rather than editing [CompensationRules].
+ */
+@Composable
+private fun SickLeaveCard(
+    sickLeave: SickLeavePolicy,
+    regionCode: RegionCode,
+    sharedAcrossProfiles: Boolean,
+    onChange: (SickLeavePolicy) -> Unit,
+) {
+    val current = SickPayOptions.of(sickLeave.payTiers, regionCode)
+    // CUSTOM appears only while it is what the policy actually is, so a ladder built
+    // elsewhere is shown and left alone rather than replaced the moment this screen
+    // opens. It leaves the list as soon as a named option is picked, which is what
+    // makes selecting it a no-op below.
+    val options = SickPayOptions.selectable + listOfNotNull(SickPayOption.CUSTOM.takeIf { current == it })
+
+    ElmCardPadded {
+        ElmSectionHeader(stringResource(R.string.settings_section_sick_leave))
+        Spacer(Modifier.height(Spacing.s8))
+        ToggleRow(stringResource(R.string.settings_sick_paid), sickLeave.enabled) {
+            onChange(sickLeave.copy(enabled = it))
+        }
+        if (!sickLeave.enabled) {
+            Text(
+                stringResource(R.string.settings_sick_off_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return@ElmCardPadded
+        }
+
+        Spacer(Modifier.height(Spacing.s8))
+        Text(
+            stringResource(R.string.settings_sick_arrangement),
+            style = MaterialTheme.typography.labelMedium,
+        )
+        Spacer(Modifier.height(Spacing.s8))
+        ElmSegmentedPillRow(
+            options = options.map { stringResource(sickPayOptionLabel(it)) },
+            selectedIndex = options.indexOf(current).coerceAtLeast(0),
+            onSelect = { index ->
+                // Only the named options generate a ladder; CUSTOM is whatever is
+                // already stored, so tapping it changes nothing.
+                SickPayOptions.tiersFor(options[index], regionCode)?.let { tiers ->
+                    onChange(sickLeave.copy(payTiers = tiers))
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        // What the choice pays, spelled out. The selector names an arrangement; a
+        // user reconciling against a payslip needs the rungs.
+        val rungs = SickPayOptions.describe(sickLeave.payTiers)
+        if (rungs.isNotEmpty()) {
+            Spacer(Modifier.height(Spacing.s12))
+            Text(
+                stringResource(R.string.settings_sick_ladder_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(Spacing.s4))
+            rungs.forEach { rung ->
+                Text(
+                    sickRungText(rung),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+
+        if (current == SickPayOption.CUSTOM) {
+            Spacer(Modifier.height(Spacing.s8))
+            Text(
+                stringResource(R.string.settings_sick_custom_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else if (SickPayOptions.standardIsFromDayOne(regionCode)) {
+            Spacer(Modifier.height(Spacing.s8))
+            Text(
+                stringResource(R.string.settings_sick_standard_same),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        if (sharedAcrossProfiles) {
+            Spacer(Modifier.height(Spacing.s8))
+            Text(
+                stringResource(R.string.settings_sick_shared_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Spacer(Modifier.height(Spacing.s8))
+        Text(
+            stringResource(R.string.settings_sick_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+private fun sickPayOptionLabel(option: SickPayOption): Int = when (option) {
+    SickPayOption.FROM_DAY_ONE -> R.string.settings_sick_from_day_one
+    SickPayOption.REGION_STANDARD -> R.string.settings_sick_standard
+    SickPayOption.CUSTOM -> R.string.settings_sick_custom
+}
+
+/**
+ * One rung as a sentence: "Day 1: not paid", "Days 2\u20133: 50%",
+ * "Day 4 onwards: 100%".
+ *
+ * A null multiplier is a hole in the ladder and says so — zero is a real,
+ * intentional rate in this domain, so an unset day cannot be shown as 0%.
+ */
+@Composable
+private fun sickRungText(rung: SickPayRung): String {
+    val rate = when (rung.multiplier) {
+        null -> stringResource(R.string.settings_sick_rung_gap)
+        0.0 -> stringResource(R.string.settings_sick_rung_unpaid)
+        else -> MoneyFormat.formatRate(rung.multiplier)
+    }
+    return when {
+        rung.toDay == null -> stringResource(R.string.settings_sick_rung_open, rung.fromDay, rate)
+        rung.toDay == rung.fromDay -> stringResource(R.string.settings_sick_rung_single, rung.fromDay, rate)
+        else -> stringResource(R.string.settings_sick_rung_range, rung.fromDay, rung.toDay, rate)
+    }
+}
+
+/**
+ * Colour and emoji for a work profile.
+ *
+ * Mirrors the task editor's pair deliberately — the same palette, the same chip
+ * and swatch controls — because the two identities appear stacked in the clock-in
+ * selector and have to look like one system. [WorkProfileTile] supplies the shape
+ * that tells them apart.
+ */
+@Composable
+private fun WorkProfileIdentityPicker(
+    color: String,
+    icon: String,
+    onColor: (String) -> Unit,
+    onIcon: (String) -> Unit,
+) {
+    Text(
+        stringResource(R.string.settings_profile_identity),
+        style = MaterialTheme.typography.labelMedium,
+    )
+    Spacer(Modifier.height(Spacing.s4))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        WorkProfileTile(colorHex = color, emoji = icon)
+        Spacer(Modifier.width(Spacing.s8))
+        Text(
+            stringResource(R.string.settings_profile_identity_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    Spacer(Modifier.height(Spacing.s8))
+    Text(stringResource(R.string.settings_profile_icon), style = MaterialTheme.typography.labelSmall)
+    Spacer(Modifier.height(Spacing.s4))
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.s8)) {
+        WorkProfileIdentity.EMOJI_OPTIONS.forEach { option ->
+            FilterChip(
+                selected = icon == option,
+                onClick = { onIcon(option) },
+                label = { Text(option) },
+            )
+        }
+    }
+    Spacer(Modifier.height(Spacing.s8))
+    Text(stringResource(R.string.settings_profile_color), style = MaterialTheme.typography.labelSmall)
+    Spacer(Modifier.height(Spacing.s4))
+    // No arrangement spacing: each swatch reserves a 48dp target around its 28dp
+    // circle, which supplies the gap on its own. Same as the task editor.
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+        WorkProfileIdentity.COLOR_OPTIONS.forEach { hex ->
+            TaskColorDot(
+                color = parseIdentityColor(hex) ?: MaterialTheme.colorScheme.primary,
+                selected = color == hex,
+                contentDescription = stringResource(R.string.settings_profile_color),
+                onClick = { onColor(hex) },
+            )
+        }
+    }
+}
+
+/**
+ * "You have unsaved changes" for this form.
+ *
+ * One composable for both ways out — the back arrow and a profile chip — because
+ * they are the same question, and a second dialog would be a second chance to
+ * word it differently.
+ */
+@Composable
+private fun DiscardChangesDialog(onDiscard: () -> Unit, onKeep: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onKeep,
+        title = { Text(stringResource(R.string.settings_discard_profile_title)) },
+        text = { Text(stringResource(R.string.settings_discard_profile_body)) },
+        confirmButton = {
+            TextButton(onClick = onDiscard) {
+                Text(stringResource(R.string.settings_discard_confirm), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onKeep) { Text(stringResource(R.string.settings_discard_keep)) }
+        },
     )
 }

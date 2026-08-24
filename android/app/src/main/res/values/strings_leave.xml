@@ -185,5 +185,5 @@
     <string name="leave_a11y_day_included">%1$s, counted</string>
     <string name="leave_a11y_day_excluded">%1$s, not counted</string>
     <string name="leave_a11y_estimate_warning">Needs your input</string>
-
+    <string name="leave_form_save_failed">Could not save this absence. Try again.</string>
 </resources>

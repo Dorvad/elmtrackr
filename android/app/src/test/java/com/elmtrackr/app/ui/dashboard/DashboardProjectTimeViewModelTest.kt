@@ -69,6 +69,9 @@ class DashboardProjectTimeViewModelTest {
     private fun buildVm() = DashboardViewModel(
         shiftsRepo, settingsRepo, reportsRepo, authRepo, compensationRepo, tasksRepo, appPrefs,
         premiumRepo, setupPrefs, widgetPin, projectsRepo, discoveryPrefs, reviewRecorder,
+        // The production flowOn dispatcher would run the payroll transform off the
+        // test scheduler, so advanceUntilIdle could not await its emissions.
+        computationDispatcher = mainDispatcherRule.dispatcher,
     )
 
     private fun settings(paidProjects: Boolean = true) = UserSettings(

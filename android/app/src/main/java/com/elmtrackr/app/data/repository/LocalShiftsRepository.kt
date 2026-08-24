@@ -1,5 +1,6 @@
 package com.elmtrackr.app.data.repository
 
+import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
@@ -31,6 +32,10 @@ class LocalShiftsRepository @Inject constructor(
     private val shiftDao: ShiftDao,
     private val refundsRepository: RefundsRepository,
     private val syncTrigger: SyncTrigger,
+    // The DAO rather than the profiles repository: this only needs to read one
+    // row, and going through the repository would couple two repositories for a
+    // lookup.
+    private val compensationProfileDao: CompensationProfileDao,
 ) : ShiftsRepository {
 
     // clockIn is check-then-insert; without this a double tap could create
@@ -77,6 +82,14 @@ class LocalShiftsRepository @Inject constructor(
             isSpecialDay = false,
             refundAction = null,
             compensationProfileId = compensationProfileId,
+            // Stamped here rather than by the caller so every punch path gets it —
+            // the widget, the watch, a shortcut and the headless receiver all reach
+            // this one function. Without it a shift written after the first
+            // workplace exists kept workplaceId NULL forever: `adoptShifts` runs
+            // once, when that workplace is created, and never again. Harmless while
+            // there is one workplace, and a silent misattribution of pay history
+            // the moment there are two.
+            workplaceId = compensationProfileId?.let { compensationProfileDao.getByLocalId(it)?.workplaceId },
             compensationSnapshotJson = null,
             taskId = taskId,
             taskNameSnapshot = taskNameSnapshot,

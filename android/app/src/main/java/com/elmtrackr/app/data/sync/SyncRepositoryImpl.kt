@@ -79,6 +79,16 @@ class SyncRepositoryImpl @Inject constructor(
     private val remoteProjects: com.elmtrackr.app.data.remote.RemoteProjectDataSource?,
     private val remoteBillingRecords: com.elmtrackr.app.data.remote.RemoteProjectBillingRecordDataSource?,
     private val remoteProjectPayments: com.elmtrackr.app.data.remote.RemoteProjectPaymentDataSource?,
+    private val workplaceDao: com.elmtrackr.app.data.local.dao.WorkplaceDao,
+    private val leavePolicyDao: com.elmtrackr.app.data.local.dao.LeavePolicyDao,
+    private val absenceEventDao: com.elmtrackr.app.data.local.dao.AbsenceEventDao,
+    private val absenceAllocationDao: com.elmtrackr.app.data.local.dao.AbsenceAllocationDao,
+    private val leaveBalanceSnapshotDao: com.elmtrackr.app.data.local.dao.LeaveBalanceSnapshotDao,
+    private val remoteWorkplaces: com.elmtrackr.app.data.remote.RemoteWorkplaceDataSource?,
+    private val remoteLeavePolicies: com.elmtrackr.app.data.remote.RemoteLeavePolicyDataSource?,
+    private val remoteAbsenceEvents: com.elmtrackr.app.data.remote.RemoteAbsenceEventDataSource?,
+    private val remoteAbsenceAllocations: com.elmtrackr.app.data.remote.RemoteAbsenceAllocationDataSource?,
+    private val remoteLeaveBalances: com.elmtrackr.app.data.remote.RemoteLeaveBalanceSnapshotDataSource?,
 ) : SyncRepository {
 
     // The push/pull methods below are only reachable through syncAll(), which
@@ -95,6 +105,11 @@ class SyncRepositoryImpl @Inject constructor(
     private val projectsRemote get() = checkNotNull(remoteProjects) { REMOTES_NOT_CONFIGURED }
     private val billingRemote get() = checkNotNull(remoteBillingRecords) { REMOTES_NOT_CONFIGURED }
     private val paymentsRemote get() = checkNotNull(remoteProjectPayments) { REMOTES_NOT_CONFIGURED }
+    private val workplacesRemote get() = checkNotNull(remoteWorkplaces) { REMOTES_NOT_CONFIGURED }
+    private val policiesRemote get() = checkNotNull(remoteLeavePolicies) { REMOTES_NOT_CONFIGURED }
+    private val absenceEventsRemote get() = checkNotNull(remoteAbsenceEvents) { REMOTES_NOT_CONFIGURED }
+    private val allocationsRemote get() = checkNotNull(remoteAbsenceAllocations) { REMOTES_NOT_CONFIGURED }
+    private val balancesRemote get() = checkNotNull(remoteLeaveBalances) { REMOTES_NOT_CONFIGURED }
 
     private val idMapper = SyncIdMapper(
         shiftDao,
@@ -103,6 +118,8 @@ class SyncRepositoryImpl @Inject constructor(
         taskDao,
         projectDao,
         projectBillingRecordDao,
+        workplaceDao,
+        absenceEventDao,
     )
     private val lastSyncStatus = MutableStateFlow<String?>(null)
     // syncAll can be invoked concurrently (WorkManager, auth bootstrap, manual retry);
@@ -307,14 +324,21 @@ class SyncRepositoryImpl @Inject constructor(
             projectDao.hasPendingSyncProjects(userId) ||
             projectBillingRecordDao.hasPendingSyncRecords(userId) ||
             projectPaymentDao.hasPendingSyncPayments(userId) ||
-            profileDao.hasPendingSyncProfiles(userId)
+            profileDao.hasPendingSyncProfiles(userId) ||
+            workplaceDao.hasPendingSyncWorkplaces(userId) ||
+            leavePolicyDao.hasPendingSyncPolicies(userId) ||
+            absenceEventDao.hasPendingSyncEvents(userId) ||
+            absenceAllocationDao.hasPendingSyncAllocations(userId) ||
+            leaveBalanceSnapshotDao.hasPendingSyncSnapshots(userId)
 
     override suspend fun syncAll(userId: String): SyncResult {
         if (remoteTasks == null || remoteShifts == null || remoteRefundClaims == null ||
             remoteSettings == null || remoteCompensationProfiles == null ||
             remotePremiumProfiles == null || remoteProfiles == null ||
             remoteProjects == null || remoteBillingRecords == null ||
-            remoteProjectPayments == null
+            remoteProjectPayments == null || remoteWorkplaces == null ||
+            remoteLeavePolicies == null || remoteAbsenceEvents == null ||
+            remoteAbsenceAllocations == null || remoteLeaveBalances == null
         ) {
             lastSyncStatus.value = "Not configured"
             return SyncResult.NotConfigured
@@ -353,6 +377,15 @@ class SyncRepositoryImpl @Inject constructor(
             runSyncStep("push projects", issues) { pushProjects(userId) }
             runSyncStep("push project billing records", issues) { pushBillingRecords(userId) }
             runSyncStep("push project payments", issues) { pushProjectPayments(userId) }
+            // Workplaces before their policies, balances and allocations: every one
+            // of those carries a workplace_id the server enforces as a real foreign
+            // key, so the parent has to own a remote id first.
+            runSyncStep("push workplaces", issues) { pushWorkplaces(userId) }
+            runSyncStep("push leave policies", issues) { pushLeavePolicies(userId) }
+            runSyncStep("push leave balances", issues) { pushLeaveBalances(userId) }
+            // And events before allocations, for the same reason.
+            runSyncStep("push absence events", issues) { pushAbsenceEvents(userId) }
+            runSyncStep("push absence allocations", issues) { pushAbsenceAllocations(userId) }
             runSyncStep("push shifts", issues) { pushShifts(userId) }
             runSyncStep("upload pending receipts", issues) { uploadPendingReceipts(userId) }
             runSyncStep("push refund claims", issues) { pushRefundClaims(userId) }
@@ -369,6 +402,13 @@ class SyncRepositoryImpl @Inject constructor(
             runSyncStep("pull projects", issues) { pullProjects(userId) }
             runSyncStep("pull project billing records", issues) { pullBillingRecords(userId) }
             runSyncStep("pull project payments", issues) { pullProjectPayments(userId) }
+            // Same order on the way in, and before shifts: a pulled shift resolves
+            // its workplace_id against the local workplaces table.
+            runSyncStep("pull workplaces", issues) { pullWorkplaces(userId) }
+            runSyncStep("pull leave policies", issues) { pullLeavePolicies(userId) }
+            runSyncStep("pull leave balances", issues) { pullLeaveBalances(userId) }
+            runSyncStep("pull absence events", issues) { pullAbsenceEvents(userId) }
+            runSyncStep("pull absence allocations", issues) { pullAbsenceAllocations(userId) }
             runSyncStep("pull shifts", issues) { pullShifts(userId) }
             runSyncStep("pull refund claims", issues) { pullRefundClaims(userId) }
 
@@ -1739,6 +1779,466 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
+    // ── Workplaces and leave ──────────────────────────────────────────────────
+    //
+    // Five tables that had a Supabase schema and no sync steps, so every leave
+    // arrangement and every reported absence was device-local: lost on reinstall,
+    // absent on a second device.
+    //
+    // The shape below is the one the already-synced tables use, once per table: a
+    // push that tombstones rather than deletes, a create that treats a primary-key
+    // collision as "the previous attempt landed", an update that adopts the remote
+    // row when a newer edit already exists there, and a pull that only overwrites
+    // rows with no local edit pending. Parent links are resolved through idMapper
+    // and a push whose parent has no remote id yet is left pending rather than sent
+    // with an id the server would reject.
+
+    private suspend fun pushWorkplaces(userId: String) {
+        val now = Instant.now().toEpochMilli()
+        for (row in workplaceDao.getPendingSyncWorkplaces(userId)) {
+            runCatching {
+                when {
+                    row.syncStatus == SyncStatus.SYNCED -> Unit
+                    row.deletedAt != null -> {
+                        val remoteId = row.remoteId
+                        if (remoteId != null && workplacesRemote.update(remoteId, row.toRemoteUpdate()) == null) {
+                            adoptNewerRemoteWorkplace(row, remoteId, now)
+                        } else {
+                            markWorkplaceSynced(row, row.remoteId, now)
+                        }
+                    }
+                    row.remoteId == null -> {
+                        val remoteId = try {
+                            workplacesRemote.insert(row.toRemoteInsert()).id
+                        } catch (e: Exception) {
+                            if (RemoteSyncErrors.isPrimaryKeyViolation(e, ENTITY_WORKPLACES)) row.localId else throw e
+                        }
+                        markWorkplaceSynced(row, remoteId, now)
+                    }
+                    else -> {
+                        val remoteId = row.remoteId
+                        if (workplacesRemote.update(remoteId, row.toRemoteUpdate()) == null) {
+                            adoptNewerRemoteWorkplace(row, remoteId, now)
+                        } else {
+                            markWorkplaceSynced(row, remoteId, now)
+                        }
+                    }
+                }
+            }.onFailure { error ->
+                workplaceDao.updateSyncState(
+                    row.localId, SyncStatus.FAILED, row.remoteId, row.lastSyncedAt, error.message,
+                )
+            }
+        }
+    }
+
+    private suspend fun markWorkplaceSynced(
+        row: com.elmtrackr.app.data.local.entity.WorkplaceEntity,
+        remoteId: String?,
+        syncedAt: Long,
+    ) {
+        if (workplaceDao.markSyncedIfUnchanged(row.localId, remoteId, syncedAt, row.updatedAt) == 0) {
+            workplaceDao.attachRemoteId(row.localId, remoteId, syncedAt)
+        }
+    }
+
+    private suspend fun adoptNewerRemoteWorkplace(
+        row: com.elmtrackr.app.data.local.entity.WorkplaceEntity,
+        remoteId: String,
+        syncedAt: Long,
+    ) {
+        val remote = workplacesRemote.findById(remoteId) ?: return
+        workplaceDao.upsert(remote.toLocalEntity(existingLocalId = row.localId))
+        workplaceDao.updateSyncState(row.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pullWorkplaces(userId: String) {
+        pullIncremental(
+            userId = userId,
+            entity = ENTITY_WORKPLACES,
+            fetchPage = { since, offset -> workplacesRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
+            updatedAtIso = { it.updatedAt },
+            remoteIdOf = { it.id },
+            ownerOf = { it.userId },
+        ) { remote ->
+            val existing = workplaceDao.getByRemoteId(remote.id)
+            when {
+                existing == null && remote.deletedAt != null -> Unit
+                existing == null -> workplaceDao.upsert(remote.toLocalEntity())
+                existing.syncStatus != SyncStatus.SYNCED -> Unit
+                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                    workplaceDao.upsert(remote.toLocalEntity(existingLocalId = existing.localId))
+            }
+            true
+        }
+        // No tombstone sweep here, unlike premium profiles. A workplace the server
+        // has never heard of is one created offline and not yet pushed; sweeping on
+        // absence would delete it before its first push.
+    }
+
+    private suspend fun pushLeavePolicies(userId: String) {
+        val now = Instant.now().toEpochMilli()
+        for (row in leavePolicyDao.getPendingSyncPolicies(userId)) {
+            runCatching {
+                when {
+                    row.syncStatus == SyncStatus.SYNCED -> Unit
+                    row.deletedAt != null -> {
+                        val remoteId = row.remoteId
+                        if (remoteId != null && policiesRemote.update(remoteId, row.toRemoteUpdate()) == null) {
+                            adoptNewerRemotePolicy(row, remoteId, now)
+                        } else {
+                            markPolicySynced(row, row.remoteId, now)
+                        }
+                    }
+                    row.remoteId == null -> {
+                        // Parent workplace not pushed yet: stay pending rather than
+                        // send a workplace_id the server will reject.
+                        val workplaceRemoteId = idMapper.workplaceLocalToRemote(row.workplaceLocalId)
+                            ?: return@runCatching
+                        val remoteId = try {
+                            policiesRemote.insert(row.toRemoteInsert(workplaceRemoteId)).id
+                        } catch (e: Exception) {
+                            if (RemoteSyncErrors.isPrimaryKeyViolation(e, ENTITY_LEAVE_POLICIES)) row.localId else throw e
+                        }
+                        markPolicySynced(row, remoteId, now)
+                    }
+                    else -> {
+                        val remoteId = row.remoteId
+                        if (policiesRemote.update(remoteId, row.toRemoteUpdate()) == null) {
+                            adoptNewerRemotePolicy(row, remoteId, now)
+                        } else {
+                            markPolicySynced(row, remoteId, now)
+                        }
+                    }
+                }
+            }.onFailure { error ->
+                leavePolicyDao.updateSyncState(
+                    row.localId, SyncStatus.FAILED, row.remoteId, row.lastSyncedAt, error.message,
+                )
+            }
+        }
+    }
+
+    private suspend fun markPolicySynced(
+        row: com.elmtrackr.app.data.local.entity.LeavePolicyEntity,
+        remoteId: String?,
+        syncedAt: Long,
+    ) {
+        if (leavePolicyDao.markSyncedIfUnchanged(row.localId, remoteId, syncedAt, row.updatedAt) == 0) {
+            leavePolicyDao.attachRemoteId(row.localId, remoteId, syncedAt)
+        }
+    }
+
+    private suspend fun adoptNewerRemotePolicy(
+        row: com.elmtrackr.app.data.local.entity.LeavePolicyEntity,
+        remoteId: String,
+        syncedAt: Long,
+    ) {
+        val remote = policiesRemote.findById(remoteId) ?: return
+        leavePolicyDao.upsert(
+            remote.toLocalEntity(workplaceLocalId = row.workplaceLocalId, existingLocalId = row.localId),
+        )
+        leavePolicyDao.updateSyncState(row.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pullLeavePolicies(userId: String) {
+        pullIncremental(
+            userId = userId,
+            entity = ENTITY_LEAVE_POLICIES,
+            fetchPage = { since, offset -> policiesRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
+            updatedAtIso = { it.updatedAt },
+            remoteIdOf = { it.id },
+            ownerOf = { it.userId },
+        ) { remote ->
+            // Its workplace has to be local already. Returning false leaves the
+            // cursor behind this page so the row is retried once it is.
+            val workplaceLocalId = idMapper.workplaceRemoteToLocal(remote.workplaceId)
+                ?: return@pullIncremental false
+            val existing = leavePolicyDao.getByRemoteId(remote.id)
+            when {
+                existing == null && remote.deletedAt != null -> Unit
+                existing == null -> leavePolicyDao.upsert(remote.toLocalEntity(workplaceLocalId))
+                existing.syncStatus != SyncStatus.SYNCED -> Unit
+                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                    leavePolicyDao.upsert(
+                        remote.toLocalEntity(workplaceLocalId, existingLocalId = existing.localId),
+                    )
+            }
+            true
+        }
+    }
+
+    private suspend fun pushLeaveBalances(userId: String) {
+        val now = Instant.now().toEpochMilli()
+        for (row in leaveBalanceSnapshotDao.getPendingSyncSnapshots(userId)) {
+            runCatching {
+                when {
+                    row.syncStatus == SyncStatus.SYNCED -> Unit
+                    row.deletedAt != null -> {
+                        val remoteId = row.remoteId
+                        if (remoteId != null && balancesRemote.update(remoteId, row.toRemoteUpdate()) == null) {
+                            adoptNewerRemoteBalance(row, remoteId, now)
+                        } else {
+                            markBalanceSynced(row, row.remoteId, now)
+                        }
+                    }
+                    row.remoteId == null -> {
+                        val workplaceRemoteId = idMapper.workplaceLocalToRemote(row.workplaceLocalId)
+                            ?: return@runCatching
+                        val remoteId = try {
+                            balancesRemote.insert(row.toRemoteInsert(workplaceRemoteId)).id
+                        } catch (e: Exception) {
+                            if (RemoteSyncErrors.isPrimaryKeyViolation(e, ENTITY_LEAVE_BALANCES)) row.localId else throw e
+                        }
+                        markBalanceSynced(row, remoteId, now)
+                    }
+                    else -> {
+                        val remoteId = row.remoteId
+                        if (balancesRemote.update(remoteId, row.toRemoteUpdate()) == null) {
+                            adoptNewerRemoteBalance(row, remoteId, now)
+                        } else {
+                            markBalanceSynced(row, remoteId, now)
+                        }
+                    }
+                }
+            }.onFailure { error ->
+                leaveBalanceSnapshotDao.updateSyncState(
+                    row.localId, SyncStatus.FAILED, row.remoteId, row.lastSyncedAt, error.message,
+                )
+            }
+        }
+    }
+
+    private suspend fun markBalanceSynced(
+        row: com.elmtrackr.app.data.local.entity.LeaveBalanceSnapshotEntity,
+        remoteId: String?,
+        syncedAt: Long,
+    ) {
+        if (leaveBalanceSnapshotDao.markSyncedIfUnchanged(row.localId, remoteId, syncedAt, row.updatedAt) == 0) {
+            leaveBalanceSnapshotDao.attachRemoteId(row.localId, remoteId, syncedAt)
+        }
+    }
+
+    private suspend fun adoptNewerRemoteBalance(
+        row: com.elmtrackr.app.data.local.entity.LeaveBalanceSnapshotEntity,
+        remoteId: String,
+        syncedAt: Long,
+    ) {
+        val remote = balancesRemote.findById(remoteId) ?: return
+        leaveBalanceSnapshotDao.upsert(
+            remote.toLocalEntity(workplaceLocalId = row.workplaceLocalId, existingLocalId = row.localId),
+        )
+        leaveBalanceSnapshotDao.updateSyncState(row.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pullLeaveBalances(userId: String) {
+        pullIncremental(
+            userId = userId,
+            entity = ENTITY_LEAVE_BALANCES,
+            fetchPage = { since, offset -> balancesRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
+            updatedAtIso = { it.updatedAt },
+            remoteIdOf = { it.id },
+            ownerOf = { it.userId },
+        ) { remote ->
+            val workplaceLocalId = idMapper.workplaceRemoteToLocal(remote.workplaceId)
+                ?: return@pullIncremental false
+            val existing = leaveBalanceSnapshotDao.getByRemoteId(remote.id)
+            when {
+                existing == null && remote.deletedAt != null -> Unit
+                existing == null -> leaveBalanceSnapshotDao.upsert(remote.toLocalEntity(workplaceLocalId))
+                existing.syncStatus != SyncStatus.SYNCED -> Unit
+                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                    leaveBalanceSnapshotDao.upsert(
+                        remote.toLocalEntity(workplaceLocalId, existingLocalId = existing.localId),
+                    )
+            }
+            true
+        }
+    }
+
+    private suspend fun pushAbsenceEvents(userId: String) {
+        val now = Instant.now().toEpochMilli()
+        for (row in absenceEventDao.getPendingSyncEvents(userId)) {
+            runCatching {
+                when {
+                    row.syncStatus == SyncStatus.SYNCED -> Unit
+                    row.deletedAt != null -> {
+                        val remoteId = row.remoteId
+                        if (remoteId != null && absenceEventsRemote.update(remoteId, row.toRemoteUpdate()) == null) {
+                            adoptNewerRemoteAbsenceEvent(row, remoteId, now)
+                        } else {
+                            markAbsenceEventSynced(row, row.remoteId, now)
+                        }
+                    }
+                    row.remoteId == null -> {
+                        val remoteId = try {
+                            absenceEventsRemote.insert(row.toRemoteInsert()).id
+                        } catch (e: Exception) {
+                            if (RemoteSyncErrors.isPrimaryKeyViolation(e, ENTITY_ABSENCE_EVENTS)) row.localId else throw e
+                        }
+                        markAbsenceEventSynced(row, remoteId, now)
+                    }
+                    else -> {
+                        val remoteId = row.remoteId
+                        if (absenceEventsRemote.update(remoteId, row.toRemoteUpdate()) == null) {
+                            adoptNewerRemoteAbsenceEvent(row, remoteId, now)
+                        } else {
+                            markAbsenceEventSynced(row, remoteId, now)
+                        }
+                    }
+                }
+            }.onFailure { error ->
+                absenceEventDao.updateSyncState(
+                    row.localId, SyncStatus.FAILED, row.remoteId, row.lastSyncedAt, error.message,
+                )
+            }
+        }
+    }
+
+    private suspend fun markAbsenceEventSynced(
+        row: com.elmtrackr.app.data.local.entity.AbsenceEventEntity,
+        remoteId: String?,
+        syncedAt: Long,
+    ) {
+        if (absenceEventDao.markSyncedIfUnchanged(row.localId, remoteId, syncedAt, row.updatedAt) == 0) {
+            absenceEventDao.attachRemoteId(row.localId, remoteId, syncedAt)
+        }
+    }
+
+    private suspend fun adoptNewerRemoteAbsenceEvent(
+        row: com.elmtrackr.app.data.local.entity.AbsenceEventEntity,
+        remoteId: String,
+        syncedAt: Long,
+    ) {
+        val remote = absenceEventsRemote.findById(remoteId) ?: return
+        absenceEventDao.upsert(remote.toLocalEntity(existingLocalId = row.localId))
+        absenceEventDao.updateSyncState(row.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pullAbsenceEvents(userId: String) {
+        pullIncremental(
+            userId = userId,
+            entity = ENTITY_ABSENCE_EVENTS,
+            fetchPage = { since, offset -> absenceEventsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
+            updatedAtIso = { it.updatedAt },
+            remoteIdOf = { it.id },
+            ownerOf = { it.userId },
+        ) { remote ->
+            val existing = absenceEventDao.getByRemoteId(remote.id)
+            when {
+                existing == null && remote.deletedAt != null -> Unit
+                existing == null -> absenceEventDao.upsert(remote.toLocalEntity())
+                existing.syncStatus != SyncStatus.SYNCED -> Unit
+                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                    absenceEventDao.upsert(remote.toLocalEntity(existingLocalId = existing.localId))
+            }
+            true
+        }
+    }
+
+    private suspend fun pushAbsenceAllocations(userId: String) {
+        val now = Instant.now().toEpochMilli()
+        for (row in absenceAllocationDao.getPendingSyncAllocations(userId)) {
+            runCatching {
+                when {
+                    row.syncStatus == SyncStatus.SYNCED -> Unit
+                    row.deletedAt != null -> {
+                        val remoteId = row.remoteId
+                        if (remoteId != null && allocationsRemote.update(remoteId, row.toRemoteUpdate()) == null) {
+                            adoptNewerRemoteAllocation(row, remoteId, now)
+                        } else {
+                            markAllocationSynced(row, row.remoteId, now)
+                        }
+                    }
+                    row.remoteId == null -> {
+                        // Two parents, both real foreign keys on the server.
+                        val eventRemoteId = idMapper.absenceEventLocalToRemote(row.absenceEventLocalId)
+                            ?: return@runCatching
+                        val workplaceRemoteId = idMapper.workplaceLocalToRemote(row.workplaceLocalId)
+                            ?: return@runCatching
+                        val remoteId = try {
+                            allocationsRemote.insert(row.toRemoteInsert(eventRemoteId, workplaceRemoteId)).id
+                        } catch (e: Exception) {
+                            if (RemoteSyncErrors.isPrimaryKeyViolation(e, ENTITY_ABSENCE_ALLOCATIONS)) {
+                                row.localId
+                            } else {
+                                throw e
+                            }
+                        }
+                        markAllocationSynced(row, remoteId, now)
+                    }
+                    else -> {
+                        val remoteId = row.remoteId
+                        if (allocationsRemote.update(remoteId, row.toRemoteUpdate()) == null) {
+                            adoptNewerRemoteAllocation(row, remoteId, now)
+                        } else {
+                            markAllocationSynced(row, remoteId, now)
+                        }
+                    }
+                }
+            }.onFailure { error ->
+                absenceAllocationDao.updateSyncState(
+                    row.localId, SyncStatus.FAILED, row.remoteId, row.lastSyncedAt, error.message,
+                )
+            }
+        }
+    }
+
+    private suspend fun markAllocationSynced(
+        row: com.elmtrackr.app.data.local.entity.AbsenceAllocationEntity,
+        remoteId: String?,
+        syncedAt: Long,
+    ) {
+        if (absenceAllocationDao.markSyncedIfUnchanged(row.localId, remoteId, syncedAt, row.updatedAt) == 0) {
+            absenceAllocationDao.attachRemoteId(row.localId, remoteId, syncedAt)
+        }
+    }
+
+    private suspend fun adoptNewerRemoteAllocation(
+        row: com.elmtrackr.app.data.local.entity.AbsenceAllocationEntity,
+        remoteId: String,
+        syncedAt: Long,
+    ) {
+        val remote = allocationsRemote.findById(remoteId) ?: return
+        absenceAllocationDao.upsert(
+            remote.toLocalEntity(
+                absenceEventLocalId = row.absenceEventLocalId,
+                workplaceLocalId = row.workplaceLocalId,
+                existingLocalId = row.localId,
+            ),
+        )
+        absenceAllocationDao.updateSyncState(row.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
+    }
+
+    private suspend fun pullAbsenceAllocations(userId: String) {
+        pullIncremental(
+            userId = userId,
+            entity = ENTITY_ABSENCE_ALLOCATIONS,
+            fetchPage = { since, offset -> allocationsRemote.fetchUpdatedSince(since, PULL_PAGE_SIZE, offset) },
+            updatedAtIso = { it.updatedAt },
+            remoteIdOf = { it.id },
+            ownerOf = { it.userId },
+        ) { remote ->
+            val eventLocalId = idMapper.absenceEventRemoteToLocal(remote.absenceEventId)
+                ?: return@pullIncremental false
+            val workplaceLocalId = idMapper.workplaceRemoteToLocal(remote.workplaceId)
+                ?: return@pullIncremental false
+            val existing = absenceAllocationDao.getByRemoteId(remote.id)
+            when {
+                existing == null && remote.deletedAt != null -> Unit
+                existing == null -> absenceAllocationDao.upsert(
+                    remote.toLocalEntity(eventLocalId, workplaceLocalId),
+                )
+                existing.syncStatus != SyncStatus.SYNCED -> Unit
+                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                    absenceAllocationDao.upsert(
+                        remote.toLocalEntity(eventLocalId, workplaceLocalId, existingLocalId = existing.localId),
+                    )
+            }
+            true
+        }
+    }
+
     // ── User settings ─────────────────────────────────────────────────────────
 
     private suspend fun pushUserSettings(userId: String) {
@@ -1898,6 +2398,11 @@ class SyncRepositoryImpl @Inject constructor(
         const val ENTITY_REFUND_CLAIMS = "refund_claims"
         const val ENTITY_COMPENSATION_PROFILES = "compensation_profiles"
         const val ENTITY_PREMIUM_PROFILES = "premium_profiles"
+        const val ENTITY_WORKPLACES = "workplaces"
+        const val ENTITY_LEAVE_POLICIES = "leave_policies"
+        const val ENTITY_LEAVE_BALANCES = "leave_balance_snapshots"
+        const val ENTITY_ABSENCE_EVENTS = "absence_events"
+        const val ENTITY_ABSENCE_ALLOCATIONS = "absence_allocations"
         const val ENTITY_USER_SETTINGS = "user_settings"
         const val ENTITY_PROFILES = "profiles"
         const val ENTITY_PROJECTS = "projects"

@@ -51,6 +51,8 @@ data class TaskBackupRow(
     val icon: String,
     val color: String? = null,
     val hourlyRate: Double,
+    /** Null on a backup written before tasks were scoped to a work profile. */
+    val compensationProfileId: String? = null,
     val isArchived: Boolean,
     val lastUsedAt: Long? = null,
     val createdAt: Long,
@@ -159,6 +161,10 @@ data class CompensationProfileBackupRow(
     val effectiveUntil: Long? = null,
     val isDefault: Boolean,
     val isArchived: Boolean,
+    /** Null on a backup written before work profiles had a visual identity. */
+    val color: String? = null,
+    val icon: String? = null,
+    val workplaceId: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,
@@ -286,14 +292,16 @@ internal fun syncStatusFromBackup(value: String): SyncStatus = SyncStatus.fromPe
 
 internal fun TaskEntity.toBackupRow() = TaskBackupRow(
     localId = localId, remoteId = remoteId, name = name, icon = icon, color = color,
-    hourlyRate = hourlyRate, isArchived = isArchived, lastUsedAt = lastUsedAt,
+    hourlyRate = hourlyRate, compensationProfileId = compensationProfileId,
+    isArchived = isArchived, lastUsedAt = lastUsedAt,
     createdAt = createdAt, updatedAt = updatedAt, deletedAt = deletedAt,
     syncStatus = syncStatus.name, lastSyncedAt = lastSyncedAt,
 )
 
 internal fun TaskBackupRow.toEntity(userId: String) = TaskEntity(
     localId = localId, remoteId = remoteId, userId = userId, name = name, icon = icon,
-    color = color, hourlyRate = hourlyRate, isArchived = isArchived, lastUsedAt = lastUsedAt,
+    color = color, hourlyRate = hourlyRate, compensationProfileId = compensationProfileId,
+    isArchived = isArchived, lastUsedAt = lastUsedAt,
     createdAt = createdAt, updatedAt = updatedAt, deletedAt = deletedAt,
     syncStatus = syncStatusFromBackup(syncStatus), lastSyncError = null, lastSyncedAt = lastSyncedAt,
 )
@@ -395,6 +403,7 @@ internal fun CompensationProfileEntity.toBackupRow() = CompensationProfileBackup
     currencyCode = currencyCode, timezone = timezone, baseHourlyRate = baseHourlyRate,
     rulesJson = rulesJson, stackingPolicy = stackingPolicy, effectiveFrom = effectiveFrom,
     effectiveUntil = effectiveUntil, isDefault = isDefault, isArchived = isArchived,
+    color = color, icon = icon, workplaceId = workplaceId,
     createdAt = createdAt, updatedAt = updatedAt, deletedAt = deletedAt,
     syncStatus = syncStatus.name, lastSyncedAt = lastSyncedAt,
 )
@@ -404,7 +413,8 @@ internal fun CompensationProfileBackupRow.toEntity(userId: String) = Compensatio
     regionCode = regionCode, currencyCode = currencyCode, timezone = timezone,
     baseHourlyRate = baseHourlyRate, rulesJson = rulesJson, stackingPolicy = stackingPolicy,
     effectiveFrom = effectiveFrom, effectiveUntil = effectiveUntil, isDefault = isDefault,
-    isArchived = isArchived, createdAt = createdAt, updatedAt = updatedAt, deletedAt = deletedAt,
+    isArchived = isArchived, color = color, icon = icon, workplaceId = workplaceId,
+    createdAt = createdAt, updatedAt = updatedAt, deletedAt = deletedAt,
     syncStatus = syncStatusFromBackup(syncStatus), lastSyncError = null, lastSyncedAt = lastSyncedAt,
 )
 

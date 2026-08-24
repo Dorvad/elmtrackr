@@ -49,6 +49,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -63,8 +64,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.ui.common.asString
+import com.elmtrackr.app.ui.common.findActivity
 import com.elmtrackr.app.ui.design.AppLogo
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.design.ElmOrDivider
+import com.elmtrackr.app.ui.design.GoogleSignInButton
 import com.elmtrackr.app.ui.design.AuroraMotion
 import com.elmtrackr.app.ui.design.AuroraEaseOut
 import com.elmtrackr.app.ui.design.auroraEnter
@@ -108,6 +112,7 @@ fun AuthScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val motionEnabled = auroraMotionEnabled()
+    val activity = LocalContext.current.findActivity()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -135,9 +140,15 @@ fun AuthScreen(
                 is AuthUiState.SignedIn -> SignedInContent()
                 is AuthUiState.SignedOut -> SignedOutContent(
                     isLoading = s.isLoading,
+                    isGoogleLoading = s.isGoogleLoading,
+                    // Credential Manager needs the Activity, not a wrapper around
+                    // it; without one the button would crash rather than fail, so
+                    // it is hidden instead.
+                    googleSignInAvailable = s.googleSignInAvailable && activity != null,
                     errorMessage = s.errorMessage,
                     onSignIn = { email, password -> viewModel.signIn(email, password) },
                     onSignUp = { email, password -> viewModel.signUp(email, password) },
+                    onGoogleSignIn = { activity?.let(viewModel::signInWithGoogle) },
                     onResetPassword = { email -> viewModel.resetPassword(email) },
                     onClearError = viewModel::clearError,
                 )
@@ -242,6 +253,9 @@ internal fun SignedOutContent(
     onSignUp: (email: String, password: String) -> Unit,
     onResetPassword: (email: String) -> Unit,
     onClearError: () -> Unit,
+    isGoogleLoading: Boolean = false,
+    googleSignInAvailable: Boolean = false,
+    onGoogleSignIn: () -> Unit = {},
 ) {
     var mode           by rememberSaveable { mutableStateOf(AuthMode.SIGN_IN) }
     var email          by rememberSaveable { mutableStateOf("") }
@@ -266,7 +280,11 @@ internal fun SignedOutContent(
     val passwordError = if (mode == AuthMode.SIGN_UP && password.isNotBlank() && password.length < MIN_PASSWORD_LENGTH)
         stringResource(R.string.auth_password_too_short, MIN_PASSWORD_LENGTH) else null
 
+    // isGoogleLoading counts too: the Google sheet hides the form while it is up,
+    // but the token exchange that follows does not, and two sign-ins racing from
+    // one screen is not a state worth having.
     val canSubmit = !isLoading &&
+        !isGoogleLoading &&
         email.isNotBlank() &&
         emailError == null &&
         passwordError == null &&
@@ -321,6 +339,28 @@ internal fun SignedOutContent(
                     )
 
                     Spacer(Modifier.height(20.dp))
+
+                    // Above the form, not below it: it is the faster route, and a
+                    // one-tap option discovered after typing an email is an option
+                    // discovered too late. Hidden while resetting a password —
+                    // Google has no part in that.
+                    if (googleSignInAvailable && currentMode != AuthMode.FORGOT_PASSWORD) {
+                        GoogleSignInButton(
+                            text = when (currentMode) {
+                                AuthMode.SIGN_UP -> stringResource(R.string.auth_google_sign_up)
+                                else -> stringResource(R.string.auth_google_sign_in)
+                            },
+                            onClick = {
+                                focusManager.clearFocus()
+                                onGoogleSignIn()
+                            },
+                            enabled = !isLoading,
+                            isLoading = isGoogleLoading,
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        ElmOrDivider(stringResource(R.string.auth_or))
+                        Spacer(Modifier.height(16.dp))
+                    }
 
                     OutlinedTextField(
                         value = email,

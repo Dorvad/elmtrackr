@@ -11,6 +11,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,6 +56,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -63,6 +65,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.theme.Spacing
+import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.language.AppLanguage
@@ -197,8 +201,24 @@ internal fun featuresSummary(
     }
 }
 
+/**
+ * Light / dark / follow-the-device, as a segmented control.
+ *
+ * A segmented control rather than the filter chips this used to be: three
+ * mutually exclusive options is exactly what [ElmSegmentedPillRow] is for, and
+ * chips are Material's multi-select filtering component — a screen reader
+ * announced three independent buttons where the user was making one choice.
+ * The rest of the app already uses the pill row, which announces
+ * "selected, 1 of 3".
+ *
+ * The hint under it resolves "System", which is otherwise the one option that
+ * does not say what it does. Someone who cannot tell whether the app is
+ * following the device or is simply set to light has no way to find out from
+ * three words.
+ */
 @Composable
 internal fun ThemeSegmentedControl(selected: String, onSelect: (String) -> Unit) {
+    val options = themeOptions()
     Column {
         Text(
             stringResource(R.string.settings_theme),
@@ -206,62 +226,88 @@ internal fun ThemeSegmentedControl(selected: String, onSelect: (String) -> Unit)
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            themeOptions().forEach { (value, label) ->
-                FilterChip(
-                    selected = selected == value,
-                    onClick = { onSelect(value) },
-                    label = { Text(label) },
-                )
-            }
+        Spacer(Modifier.height(Spacing.s8))
+        ElmSegmentedPillRow(
+            options = options.map { it.second },
+            selectedIndex = options.indexOfFirst { it.first == selected }.coerceAtLeast(0),
+            onSelect = { onSelect(options[it].first) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (selected == "system") {
+            Spacer(Modifier.height(Spacing.s8))
+            val resolved = stringResource(
+                if (isSystemInDarkTheme()) R.string.settings_theme_dark_lower
+                else R.string.settings_theme_light_lower,
+            )
+            Text(
+                stringResource(R.string.settings_theme_follows_device, resolved),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
 
+/** The language autonyms, written in their own language on purpose. */
+internal fun AppLanguage.autonym(): String? = when (this) {
+    AppLanguage.SYSTEM -> null
+    AppLanguage.ENGLISH -> "English"
+    AppLanguage.HEBREW -> "עברית"
+    AppLanguage.ARABIC -> "العربية"
+}
+
 /**
- * In-app language switcher. Applying a language recreates the activity, so
- * there is no state to hoist — the selection is read back from the
- * per-app locale APIs on the next composition.
+ * The name to show for the current choice — the autonym, or for the device
+ * setting the autonym of whatever it currently resolves to.
  */
 @Composable
-internal fun LanguageSegmentedControl() {
+internal fun languageSummary(): String {
+    val stored = AppLanguage.current()
+    val drawn = AppLanguage.forLanguageCode(LocalConfiguration.current.locales[0]?.language)
+    val drawnName = drawn.autonym() ?: "English"
+    return stored.autonym()
+        ?: stringResource(R.string.settings_language_system_resolved, drawnName)
+}
+
+/**
+ * In-app language picker, as a single-choice list.
+ *
+ * A list rather than the chip row this used to be. Four options did not fit a
+ * phone's width and wrapped; chips are Material's multi-select filtering
+ * component, so a screen reader met four independent buttons rather than one
+ * choice of four; and a chip has no room to say what "Device language" resolves
+ * to, which is the one option whose effect is not obvious from its name.
+ *
+ * Applying a language recreates the activity, so there is no state to hoist —
+ * the selection is read back from the per-app locale APIs on the next
+ * composition.
+ */
+@Composable
+internal fun LanguageChoiceList() {
     val context = LocalContext.current
-    val current = AppLanguage.current()
-    Column {
-        Text(
-            stringResource(R.string.settings_language),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+    val stored = AppLanguage.current()
+    // Read off the configuration rather than the stored choice, so the device
+    // option can name the language actually on screen.
+    val drawn = AppLanguage.forLanguageCode(LocalConfiguration.current.locales[0]?.language)
+    SettingsChoiceGroup {
+        SettingsChoiceRow(
+            title = stringResource(R.string.settings_language_system),
+            subtitle = drawn.autonym(),
+            selected = stored == AppLanguage.SYSTEM,
+            onSelect = { AppLanguage.apply(context, AppLanguage.SYSTEM) },
         )
-        Spacer(Modifier.height(8.dp))
-        // Wraps rather than a plain Row: the device-language chip plus one chip
-        // per language no longer fits a phone's width on a single line.
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            FilterChip(
-                selected = current == AppLanguage.SYSTEM,
-                onClick = { AppLanguage.apply(context, AppLanguage.SYSTEM) },
-                label = { Text(stringResource(R.string.settings_language_system)) },
-            )
-            // Language names stay in their own language on purpose.
-            FilterChip(
-                selected = current == AppLanguage.ENGLISH,
-                onClick = { AppLanguage.apply(context, AppLanguage.ENGLISH) },
-                label = { Text("English") },
-            )
-            FilterChip(
-                selected = current == AppLanguage.HEBREW,
-                onClick = { AppLanguage.apply(context, AppLanguage.HEBREW) },
-                label = { Text("עברית") },
-            )
-            FilterChip(
-                selected = current == AppLanguage.ARABIC,
-                onClick = { AppLanguage.apply(context, AppLanguage.ARABIC) },
-                label = { Text("العربية") },
+        listOf(AppLanguage.ENGLISH, AppLanguage.HEBREW, AppLanguage.ARABIC).forEach { language ->
+            SettingsChoiceRow(
+                title = language.autonym().orEmpty(),
+                selected = stored == language,
+                onSelect = { AppLanguage.apply(context, language) },
+                // The device option can resolve to this language too, so the row
+                // that is merely *in use* is marked apart from the one that is
+                // selected. Without it, choosing "Device language" on a Hebrew
+                // phone leaves the Hebrew row looking unrelated to what is on
+                // screen.
+                trailingLabel = stringResource(R.string.settings_language_current)
+                    .takeIf { stored == AppLanguage.SYSTEM && drawn == language },
             )
         }
     }

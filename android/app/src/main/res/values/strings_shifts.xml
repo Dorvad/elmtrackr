@@ -77,9 +77,9 @@
     <string name="shifts_unsaved_changes_other">%1$d unsaved changes</string>
 
     <!-- CompensationProfilePicker / PremiumProfilePicker -->
-    <string name="shifts_compensation_profile_label">Compensation profile</string>
-    <string name="shifts_add_compensation_profile">Add profile</string>
-    <string name="shifts_new_compensation_profile_title">New compensation profile</string>
+    <string name="shifts_compensation_profile_label">Work profile</string>
+    <string name="shifts_add_compensation_profile">Add job</string>
+    <string name="shifts_new_compensation_profile_title">New work profile</string>
     <string name="shifts_compensation_profile_name_label">Profile name</string>
     <string name="shifts_compensation_profile_name_placeholder">e.g. Second job, Weekend gig</string>
     <string name="shifts_create_profile">Create</string>

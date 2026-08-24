@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,6 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -61,6 +65,7 @@ import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.ui.text.style.TextAlign
+import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.Spacing
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 
@@ -488,6 +493,80 @@ internal fun SettingsToggleRow(
             enabled = enabled,
         )
     }
+}
+
+/**
+ * One option in a single-choice list, as a radio row.
+ *
+ * The list this belongs to must carry `Modifier.selectableGroup()`, which is what
+ * lets a screen reader announce "2 of 4" rather than four unrelated radio buttons.
+ *
+ * Modelled on [SettingsToggleRow] and merged for the same reason: with an
+ * interactive [RadioButton] beside a separate title, a screen reader reaches an
+ * unnamed control and says "radio button, not selected" — accurate about the
+ * state and silent about which option it is. The row is the target and the title
+ * is its name; the radio is state only.
+ */
+@Composable
+internal fun SettingsChoiceRow(
+    title: String,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    /** Rendered on the trailing edge, e.g. to mark the option already in effect. */
+    trailingLabel: String? = null,
+) {
+    val haptic = LocalHapticFeedback.current
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = {
+                    AuroraHaptics.toggle(haptic)
+                    onSelect()
+                },
+            )
+            // The row is the touch target, and the radio inside it is not
+            // interactive, so nothing else reserves a minimum height for it.
+            .heightIn(min = Layout.minTouchTarget)
+            .padding(vertical = Spacing.s8),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Spacer(Modifier.width(Spacing.sm))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (trailingLabel != null) {
+            Text(
+                trailingLabel,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+/** Wraps a set of [SettingsChoiceRow]s so they are announced as one group. */
+@Composable
+internal fun SettingsChoiceGroup(content: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.selectableGroup(), content = content)
 }
 
 @Composable

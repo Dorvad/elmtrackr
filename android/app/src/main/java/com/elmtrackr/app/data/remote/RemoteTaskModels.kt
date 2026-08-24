@@ -11,6 +11,12 @@ data class RemoteTaskRow(
     val icon: String,
     val color: String? = null,
     @SerialName("hourly_rate") val hourlyRate: Double,
+    /**
+     * The work profile this task belongs to. Nullable, and read tolerantly: a
+     * row written by a client that predates the column arrives without it, and a
+     * task with no profile belongs to the default one rather than to nothing.
+     */
+    @SerialName("compensation_profile_id") val compensationProfileId: String? = null,
     @SerialName("is_archived") val isArchived: Boolean,
     @SerialName("last_used_at") val lastUsedAt: String? = null,
     @SerialName("created_at") val createdAt: String,
@@ -30,6 +36,12 @@ data class RemoteTaskInsert(
     val icon: String,
     val color: String? = null,
     @SerialName("hourly_rate") val hourlyRate: Double,
+    /**
+     * The work profile this task belongs to. Nullable, and read tolerantly: a
+     * row written by a client that predates the column arrives without it, and a
+     * task with no profile belongs to the default one rather than to nothing.
+     */
+    @SerialName("compensation_profile_id") val compensationProfileId: String? = null,
     @SerialName("is_archived") val isArchived: Boolean,
     @SerialName("last_used_at") val lastUsedAt: String? = null,
     @SerialName("client_updated_at") val clientUpdatedAt: String,
@@ -41,6 +53,12 @@ data class RemoteTaskUpdate(
     val icon: String,
     val color: String? = null,
     @SerialName("hourly_rate") val hourlyRate: Double,
+    /**
+     * The work profile this task belongs to. Nullable, and read tolerantly: a
+     * row written by a client that predates the column arrives without it, and a
+     * task with no profile belongs to the default one rather than to nothing.
+     */
+    @SerialName("compensation_profile_id") val compensationProfileId: String? = null,
     @SerialName("is_archived") val isArchived: Boolean,
     @SerialName("last_used_at") val lastUsedAt: String? = null,
     /** Non-null makes this update a tombstone. */

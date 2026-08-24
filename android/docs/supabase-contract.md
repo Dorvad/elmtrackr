@@ -99,6 +99,28 @@ those columns to `user_settings` and dropping the `preserveLocal` clause.
 
 Added by `20260811000000_workplaces_and_leave.sql` (Room v19, `MIGRATION_18_19`).
 
+**All five are synced.** They were not, for a while: the tables shipped on the
+server and the Android pipeline had no step for any of them, so a leave
+arrangement and every absence ever reported were device-local and did not survive
+a reinstall or reach a second device. `SyncRepositoryImpl` now pushes and pulls
+all five, using the same shape as the tables that were already synced —
+tombstones rather than deletes, a primary-key collision on create read as "the
+previous attempt landed", and an update filtered on `client_updated_at` so a row
+edited more recently elsewhere is adopted rather than overwritten.
+
+**Order is not optional here, because the foreign keys are real.** Push and pull
+both run workplaces → policies and balances → absence events → allocations, and
+all of them before shifts, which resolve a `workplace_id` of their own. Parent
+links travel as *remote* ids while the entities hold *local* ones, so
+`SyncIdMapper` translates in both directions: a push whose parent has no remote id
+yet stays pending rather than sending an id the server would reject, and a pull
+whose parent is not local yet returns false so the cursor stays behind that page
+and the row is retried.
+
+**Workplaces have no tombstone sweep on pull**, unlike premium profiles. A
+workplace the server has never heard of is one created offline and not yet pushed;
+sweeping on absence would delete it before its first push.
+
 **Absences are not shifts, deliberately.** A shift means worked time and feeds net
 minutes, the overtime ladders, weekend/holiday/night premiums and the shift count.
 An absence has none of those properties, so there is no `shiftType` column and no
@@ -106,10 +128,19 @@ synthetic eight-hour shift: a sick day recorded that way would inflate all four
 and invent overtime nobody worked. The two domains meet only at the money level,
 where a report adds work, vacation and sick gross into an estimated total.
 
-**`workplaces` is not `compensation_profiles`.** A profile answers "how is worked
-time paid" and changes with a raise or a new effective-dated profile. Leave
-entitlement, seniority and payslip balances belong to the employer and survive
-all of that, so they hang off a workplace instead.
+**`workplaces` is not `compensation_profiles` — but the split is internal now.**
+A profile answers "how is worked time paid" and changes with a raise or a new
+effective-dated profile. Leave entitlement, seniority and payslip balances belong
+to the employer and survive all of that, so they hang off a workplace instead.
+
+To the *user* there is one thing, a **work profile**, and the word "workplace"
+appears nowhere in the app. Every profile owns exactly one workplace, created with
+it; the two rows stay separate so entitlement outlives a wage change, which is the
+only reason they are two. Do not expose the workplace as a second concept, and do
+not merge the tables to make the model look simpler — that would trade a real
+guarantee for a cosmetic one. Added by
+`20260824000000_work_profile_identity_and_task_scope.sql`, which also gives a
+profile its `color`/`icon` and scopes `tasks` to one.
 
 **Money here is `numeric`, not the `text` Paid Projects uses.**
 `absence_allocations.estimated_gross_pay` and `leave_balance_snapshots.balance`
@@ -137,9 +168,12 @@ and balance snapshots, then absence events, then absence allocations. The two
 `on delete set null`, so archiving or removing a workplace never deletes work
 history.
 
-**Not backfilled, on purpose.** Both `workplace_id` columns are nullable with no
-default and no backfill; NULL reads as "not assigned yet", which is what every
-row written before this release is. Rows join a workplace the first time the user
+**Not backfilled, on purpose.** Both `workplace_id` columns — and
+`tasks.compensation_profile_id`, added later on the same principle — are nullable
+with no default and no backfill; NULL reads as "not assigned yet", which is what
+every row written before their release is. For a task, NULL is read as the default
+work profile rather than as no profile, so an upgrading user keeps their whole task
+list. Rows join a workplace the first time the user
 has one (`LocalWorkplacesRepository.ensureDefaultWorkplace`, which also creates
 the default policy), where it is an ordinary edit that syncs like any other
 rather than an upgrade rewriting recorded history.

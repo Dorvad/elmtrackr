@@ -18,6 +18,11 @@
     <string name="auth_back_to_sign_in">חזרה להתחברות</string>
     <string name="auth_loading_workspace">טוען את סביבת העבודה שלך…</string>
 
+    <!-- Google -->
+    <string name="auth_google_sign_in">התחברות באמצעות Google</string>
+    <string name="auth_google_sign_up">הרשמה באמצעות Google</string>
+    <string name="auth_or">או</string>
+
     <!-- Password recovery -->
     <string name="auth_choose_new_password">בחירת סיסמה חדשה</string>
     <string name="auth_new_password_body">מזינים סיסמה חדשה לחשבון ElmTrackr שלך.</string>
@@ -45,6 +50,7 @@
     <string name="auth_error_network">כדאי לבדוק את חיבור האינטרנט ולנסות שוב.</string>
     <string name="auth_error_sign_in">ההתחברות לא הצליחה. כדאי לנסות שוב.</string>
     <string name="auth_error_sign_up">יצירת החשבון לא הצליחה. כדאי לנסות שוב.</string>
+    <string name="auth_error_google_sign_in">ההתחברות באמצעות Google לא הצליחה. כדאי לנסות שוב.</string>
     <string name="auth_error_password_reset">שליחת מייל האיפוס לא הצליחה. כדאי לנסות שוב.</string>
     <string name="auth_error_recovery_link">קישור האיפוס לא תקין או שפג תוקפו.</string>
     <string name="auth_error_update_password">עדכון הסיסמה לא הצליח. כדאי לנסות שוב.</string>

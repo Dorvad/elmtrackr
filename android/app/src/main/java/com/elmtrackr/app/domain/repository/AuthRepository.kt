@@ -30,6 +30,25 @@ interface AuthRepository {
     /** Create a new account with email and password. */
     suspend fun signUp(email: String, password: String): AuthResult
 
+    /**
+     * Trade a Google ID token for a Supabase session.
+     *
+     * Signing up and signing in are the same call: Supabase creates the account
+     * on first use, so there is nothing here for the user to choose between.
+     *
+     * @param rawNonce the *unhashed* nonce from the same request. Google was given
+     *   its SHA-256 hash and put that in the token; Supabase hashes this value and
+     *   compares. Passing the hash here fails every time.
+     */
+    suspend fun signInWithGoogle(idToken: String, rawNonce: String): AuthResult
+
+    /**
+     * Start Google sign-in in a browser, for devices where Credential Manager has
+     * nothing to offer. The session arrives later through [handleDeepLink], so
+     * success here means "the browser opened", not "signed in".
+     */
+    suspend fun startGoogleBrowserSignIn(): AuthResult
+
     /** Sign out and clear the local session reference. */
     suspend fun signOut()
 

@@ -167,7 +167,7 @@ class RefundClaimViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 launchDocumentScanner = false,
-                errorMessage = message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.refunds_err_scanner),
+                errorMessage = UserFacingError.messageFrom(message, R.string.refunds_err_scanner),
             )
         }
     }
@@ -235,7 +235,10 @@ class RefundClaimViewModel @Inject constructor(
     fun photoCaptureFailed(message: String?) {
         cleanupPendingPhoto(_uiState.value.camera?.outputPath)
         _uiState.update {
-            it.copy(camera = null, errorMessage = message?.let { m -> UiText.Raw(m) } ?: UiText.Res(R.string.refunds_err_capture))
+            it.copy(
+                camera = null,
+                errorMessage = UserFacingError.messageFrom(message, R.string.refunds_err_capture),
+            )
         }
     }
 

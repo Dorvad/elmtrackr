@@ -22,6 +22,21 @@
         android:name="android.hardware.camera.any"
         android:required="false" />
 
+    <!--
+      Package visibility for the browser used by the Google sign-in fallback.
+
+      From API 30 an app cannot see another package unless it declares an intent
+      it handles. Without this, androidx.browser cannot find a Custom Tabs
+      provider and drops to a plain ACTION_VIEW: sign-in still completes, but it
+      leaves the app entirely and loses the browser's existing Google session, so
+      the user is asked to authenticate again for no reason.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+    </queries>
+
     <application
         android:name=".ElmTrackrApp"
         android:allowBackup="false"

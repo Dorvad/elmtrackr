@@ -5,11 +5,17 @@ import com.elmtrackr.app.domain.compensation.RegionPresets
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.Profile
 import com.elmtrackr.app.domain.model.RegionCode
+import com.elmtrackr.app.domain.model.SickLeavePolicy
 import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.fake.FakeAuthRepository
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
+import com.elmtrackr.app.domain.leave.LeavePresets
+import com.elmtrackr.app.domain.leave.SickPayCalculator
+import com.elmtrackr.app.domain.leave.SickPayOption
+import com.elmtrackr.app.domain.leave.SickPayOptions
 import com.elmtrackr.app.fake.FakeSettingsRepository
+import com.elmtrackr.app.fake.FakeWorkplacesRepository
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -33,8 +39,10 @@ class CompensationSettingsViewModelTest {
         setProfile(Profile("u1", "test@example.com", null, Instant.EPOCH, Instant.EPOCH))
     }
     private val compensationRepo = FakeCompensationProfilesRepository()
+    private val workplacesRepo = FakeWorkplacesRepository()
 
-    private fun buildVm() = CompensationSettingsViewModel(compensationRepo, settingsRepo, authRepo)
+    private fun buildVm() =
+        CompensationSettingsViewModel(compensationRepo, settingsRepo, authRepo, workplacesRepo)
 
     private fun profile(id: String, name: String, isDefault: Boolean = false): CompensationProfile {
         val preset = RegionPresets.forRegion(RegionCode.IL)
@@ -118,6 +126,259 @@ class CompensationSettingsViewModelTest {
         assertNotNull(ready)
         assertEquals(UiText.Res(R.string.settings_feedback_delete_last_profile), ready!!.saveMessage?.text)
         assertEquals(true, ready.saveMessage?.isError)
+        job.cancel()
+    }
+
+    // ── Sick pay ──────────────────────────────────────────────────────────────
+
+    private fun formValues(
+        p: CompensationProfile,
+        sickLeave: com.elmtrackr.app.domain.model.SickLeavePolicy,
+    ) = CompensationFormValues(
+        name = p.name,
+        regionCode = p.regionCode,
+        currencyCode = p.currencyCode,
+        timezone = p.timezone,
+        hourlyRate = p.baseHourlyRate,
+        stackingPolicy = p.stackingPolicy,
+        rules = p.rules,
+        sickLeave = sickLeave,
+        color = p.color ?: "#5B4DF2",
+        icon = p.icon ?: "💼",
+    )
+
+    /**
+     * With no policy stored, the screen has to show what the workplace will
+     * actually be given the first time an absence is priced against it — the
+     * region preset — rather than an empty ladder.
+     */
+    @Test
+    fun `an unconfigured workplace reports the region preset ladder`() = runTest {
+        compensationRepo.setProfiles(profile("p1", "Main job", isDefault = true))
+        settingsRepo.setSettings(settings())
+        val vm = buildVm()
+        val states = mutableListOf<CompensationSettingsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        vm.ensureLoaded()
+        advanceUntilIdle()
+
+        val ready = lastReady(states)
+        assertNotNull(ready)
+        assertEquals(LeavePresets.israeliSickTiers, ready!!.sickLeave.payTiers)
+        assertEquals(SickPayOption.REGION_STANDARD, SickPayOptions.of(ready.sickLeave.payTiers, RegionCode.IL))
+        job.cancel()
+    }
+
+    /**
+     * The defect this closes: `updatePolicyRules` existed on the repository and
+     * had no caller anywhere in the app, so an Israeli user whose employer pays
+     * sick leave from day one had no way to say so and was stuck with a statutory
+     * unpaid first day.
+     */
+    @Test
+    fun `saving from-day-one sick pay writes it to the workplace policy`() = runTest {
+        val p = profile("p1", "Main job", isDefault = true)
+        compensationRepo.setProfiles(p)
+        settingsRepo.setSettings(settings())
+        val vm = buildVm()
+        val states = mutableListOf<CompensationSettingsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        vm.ensureLoaded()
+        advanceUntilIdle()
+        vm.saveProfile(
+            formValues(
+                p,
+                com.elmtrackr.app.domain.model.SickLeavePolicy(
+                    enabled = true,
+                    payTiers = SickPayOptions.tiersFor(SickPayOption.FROM_DAY_ONE, RegionCode.IL)!!,
+                ),
+            ),
+        )
+        advanceUntilIdle()
+
+        val workplaceId = workplacesRepo.getDefaultWorkplace("u1")?.id
+        assertNotNull(workplaceId)
+        val inForce = workplacesRepo.resolvePolicy(workplaceId!!, Instant.now())
+        assertNotNull(inForce)
+        assertEquals(1.0, SickPayCalculator.resolveTier(inForce!!.rules.sick.payTiers, 1)?.multiplier)
+        assertEquals(
+            SickPayOption.FROM_DAY_ONE,
+            SickPayOptions.of(inForce.rules.sick.payTiers, RegionCode.IL),
+        )
+        job.cancel()
+    }
+
+    /** Only the sick block moves; the rest of the leave policy carries over. */
+    @Test
+    fun `saving sick pay leaves the rest of the leave policy alone`() = runTest {
+        val p = profile("p1", "Main job", isDefault = true)
+        compensationRepo.setProfiles(p)
+        settingsRepo.setSettings(settings())
+        val vm = buildVm()
+        val job = launch { vm.uiState.collect { } }
+
+        vm.ensureLoaded()
+        advanceUntilIdle()
+        vm.saveProfile(
+            formValues(
+                p,
+                com.elmtrackr.app.domain.model.SickLeavePolicy(
+                    enabled = true,
+                    payTiers = LeavePresets.fullPayFromDayOneTiers,
+                ),
+            ),
+        )
+        advanceUntilIdle()
+
+        val workplaceId = workplacesRepo.getDefaultWorkplace("u1")!!.id
+        val inForce = workplacesRepo.resolvePolicy(workplaceId, Instant.now())!!
+        val preset = LeavePresets.forRegion(RegionCode.IL)
+        assertEquals(preset.vacation, inForce.rules.vacation)
+        assertEquals(preset.balanceUnit, inForce.rules.balanceUnit)
+        job.cancel()
+    }
+
+    /**
+     * The policy is effective-dated, so a change supersedes rather than rewrites:
+     * an absence reported under the old arrangement keeps the explanation it was
+     * priced with.
+     */
+    @Test
+    fun `changing the arrangement supersedes the old policy instead of editing it`() = runTest {
+        val p = profile("p1", "Main job", isDefault = true)
+        compensationRepo.setProfiles(p)
+        settingsRepo.setSettings(settings())
+        val vm = buildVm()
+        val job = launch { vm.uiState.collect { } }
+
+        vm.ensureLoaded()
+        advanceUntilIdle()
+        vm.saveProfile(
+            formValues(p, com.elmtrackr.app.domain.model.SickLeavePolicy(payTiers = LeavePresets.fullPayFromDayOneTiers)),
+        )
+        advanceUntilIdle()
+
+        val workplaceId = workplacesRepo.getDefaultWorkplace("u1")!!.id
+        val stored = workplacesRepo.policiesFor(workplaceId)
+        assertEquals(2, stored.size)
+        assertEquals(1, stored.count { it.isActive })
+        // The superseded row keeps the statutory ladder it was priced with.
+        val closed = stored.single { !it.isActive }
+        assertEquals(LeavePresets.israeliSickTiers, closed.rules.sick.payTiers)
+        job.cancel()
+    }
+
+    /** Saving an unchanged arrangement writes nothing, so history stays short. */
+    @Test
+    fun `saving an unchanged arrangement does not supersede the policy`() = runTest {
+        val p = profile("p1", "Main job", isDefault = true)
+        compensationRepo.setProfiles(p)
+        settingsRepo.setSettings(settings())
+        val vm = buildVm()
+        val states = mutableListOf<CompensationSettingsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        vm.ensureLoaded()
+        advanceUntilIdle()
+        vm.saveProfile(formValues(p, lastReady(states)!!.sickLeave))
+        advanceUntilIdle()
+
+        val workplaceId = workplacesRepo.getDefaultWorkplace("u1")!!.id
+        assertEquals(1, workplacesRepo.policiesFor(workplaceId).size)
+        job.cancel()
+    }
+
+    // ── One workplace per work profile ────────────────────────────────────────
+
+    /**
+     * The link that makes leave per-job. Without a workplace of its own, a second
+     * profile shares the first one's leave policy, so setting sick pay on one
+     * silently changes the other.
+     */
+    @Test
+    fun `a second work profile gets a workplace of its own`() = runTest {
+        compensationRepo.setProfiles(profile("p1", "Main job", isDefault = true))
+        settingsRepo.setSettings(settings())
+        val vm = buildVm()
+        val job = launch { vm.uiState.collect { } }
+
+        vm.ensureLoaded()
+        advanceUntilIdle()
+        // Saving the first profile claims the default workplace.
+        vm.saveProfile(
+            formValues(
+                compensationRepo.getProfiles("u1").single(),
+                LeavePresets.forRegion(RegionCode.IL).sick,
+            ),
+        )
+        advanceUntilIdle()
+        vm.createProfile("Side gig")
+        advanceUntilIdle()
+
+        val profiles = compensationRepo.getProfiles("u1")
+        assertEquals(2, profiles.size)
+        val workplaceIds = profiles.map { it.workplaceId }
+        assertTrue("every profile has a workplace: $workplaceIds", workplaceIds.all { it != null })
+        assertEquals("workplaces are distinct", 2, workplaceIds.toSet().size)
+        job.cancel()
+    }
+
+    /** The point of the split: sick pay on one job leaves the other alone. */
+    @Test
+    fun `sick pay set on one work profile does not change the other`() = runTest {
+        compensationRepo.setProfiles(profile("p1", "Main job", isDefault = true))
+        settingsRepo.setSettings(settings())
+        val vm = buildVm()
+        val states = mutableListOf<CompensationSettingsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        vm.ensureLoaded()
+        advanceUntilIdle()
+        // The preset, which is what the screen seeds the form with — a bare
+        // SickLeavePolicy() would persist an empty ladder no screen can produce.
+        val presetSick = LeavePresets.forRegion(RegionCode.IL).sick
+        vm.saveProfile(formValues(compensationRepo.getProfiles("u1").single(), presetSick))
+        advanceUntilIdle()
+        vm.createProfile("Side gig")
+        advanceUntilIdle()
+
+        // The side gig pays sick leave from day one; the main job keeps the preset.
+        val sideGig = compensationRepo.getProfiles("u1").single { it.name == "Side gig" }
+        vm.saveProfile(
+            formValues(sideGig, presetSick.copy(payTiers = LeavePresets.fullPayFromDayOneTiers)),
+        )
+        advanceUntilIdle()
+
+        val mainWorkplace = compensationRepo.getProfiles("u1").single { it.isDefault }.workplaceId!!
+        val sideWorkplace = compensationRepo.getProfiles("u1").single { it.name == "Side gig" }.workplaceId!!
+        val mainTiers = workplacesRepo.resolvePolicy(mainWorkplace, Instant.now())!!.rules.sick.payTiers
+        val sideTiers = workplacesRepo.resolvePolicy(sideWorkplace, Instant.now())!!.rules.sick.payTiers
+
+        assertEquals(0.0, SickPayCalculator.resolveTier(mainTiers, 1)?.multiplier)
+        assertEquals(1.0, SickPayCalculator.resolveTier(sideTiers, 1)?.multiplier)
+        job.cancel()
+    }
+
+    /** Renaming the job renames the workplace under it, so the two never drift. */
+    @Test
+    fun `renaming a work profile renames its workplace`() = runTest {
+        val p = profile("p1", "Main job", isDefault = true)
+        compensationRepo.setProfiles(p)
+        settingsRepo.setSettings(settings())
+        val vm = buildVm()
+        val job = launch { vm.uiState.collect { } }
+
+        vm.ensureLoaded()
+        advanceUntilIdle()
+        vm.saveProfile(
+            formValues(p, LeavePresets.forRegion(RegionCode.IL).sick).copy(name = "Night shifts"),
+        )
+        advanceUntilIdle()
+
+        val workplaceId = compensationRepo.getProfiles("u1").single().workplaceId!!
+        assertEquals("Night shifts", workplacesRepo.getWorkplace("u1", workplaceId)?.name)
         job.cancel()
     }
 }

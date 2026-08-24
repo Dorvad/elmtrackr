@@ -92,6 +92,28 @@ interface LeavePolicyDao {
 
     @Query("DELETE FROM leave_policies WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
+
+    /**
+     * Marks a row SYNCED only if it has not been edited since the push snapshot
+     * was taken. Returns 0 when a concurrent edit won; the row then stays pending
+     * so the newer state is pushed by a follow-up sync.
+     */
+    @Query(
+        "UPDATE leave_policies SET syncStatus = 'SYNCED', remoteId = :remoteId, " +
+            "lastSyncedAt = :syncedAt, lastSyncError = NULL " +
+            "WHERE localId = :localId AND updatedAt = :expectedUpdatedAt",
+    )
+    suspend fun markSyncedIfUnchanged(
+        localId: String,
+        remoteId: String?,
+        syncedAt: Long?,
+        expectedUpdatedAt: Long,
+    ): Int
+
+    /** Records the remote id without touching syncStatus or updatedAt. */
+    @Query("UPDATE leave_policies SET remoteId = :remoteId, lastSyncedAt = :syncedAt WHERE localId = :localId")
+    suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?)
+
 }
 
 @Dao
@@ -162,6 +184,28 @@ interface AbsenceEventDao {
 
     @Query("DELETE FROM absence_events WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
+
+    /**
+     * Marks a row SYNCED only if it has not been edited since the push snapshot
+     * was taken. Returns 0 when a concurrent edit won; the row then stays pending
+     * so the newer state is pushed by a follow-up sync.
+     */
+    @Query(
+        "UPDATE absence_events SET syncStatus = 'SYNCED', remoteId = :remoteId, " +
+            "lastSyncedAt = :syncedAt, lastSyncError = NULL " +
+            "WHERE localId = :localId AND updatedAt = :expectedUpdatedAt",
+    )
+    suspend fun markSyncedIfUnchanged(
+        localId: String,
+        remoteId: String?,
+        syncedAt: Long?,
+        expectedUpdatedAt: Long,
+    ): Int
+
+    /** Records the remote id without touching syncStatus or updatedAt. */
+    @Query("UPDATE absence_events SET remoteId = :remoteId, lastSyncedAt = :syncedAt WHERE localId = :localId")
+    suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?)
+
 }
 
 @Dao
@@ -278,6 +322,28 @@ interface AbsenceAllocationDao {
 
     @Query("DELETE FROM absence_allocations WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
+
+    /**
+     * Marks a row SYNCED only if it has not been edited since the push snapshot
+     * was taken. Returns 0 when a concurrent edit won; the row then stays pending
+     * so the newer state is pushed by a follow-up sync.
+     */
+    @Query(
+        "UPDATE absence_allocations SET syncStatus = 'SYNCED', remoteId = :remoteId, " +
+            "lastSyncedAt = :syncedAt, lastSyncError = NULL " +
+            "WHERE localId = :localId AND updatedAt = :expectedUpdatedAt",
+    )
+    suspend fun markSyncedIfUnchanged(
+        localId: String,
+        remoteId: String?,
+        syncedAt: Long?,
+        expectedUpdatedAt: Long,
+    ): Int
+
+    /** Records the remote id without touching syncStatus or updatedAt. */
+    @Query("UPDATE absence_allocations SET remoteId = :remoteId, lastSyncedAt = :syncedAt WHERE localId = :localId")
+    suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?)
+
 }
 
 @Dao
@@ -368,4 +434,26 @@ interface LeaveBalanceSnapshotDao {
 
     @Query("DELETE FROM leave_balance_snapshots WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
+
+    /**
+     * Marks a row SYNCED only if it has not been edited since the push snapshot
+     * was taken. Returns 0 when a concurrent edit won; the row then stays pending
+     * so the newer state is pushed by a follow-up sync.
+     */
+    @Query(
+        "UPDATE leave_balance_snapshots SET syncStatus = 'SYNCED', remoteId = :remoteId, " +
+            "lastSyncedAt = :syncedAt, lastSyncError = NULL " +
+            "WHERE localId = :localId AND updatedAt = :expectedUpdatedAt",
+    )
+    suspend fun markSyncedIfUnchanged(
+        localId: String,
+        remoteId: String?,
+        syncedAt: Long?,
+        expectedUpdatedAt: Long,
+    ): Int
+
+    /** Records the remote id without touching syncStatus or updatedAt. */
+    @Query("UPDATE leave_balance_snapshots SET remoteId = :remoteId, lastSyncedAt = :syncedAt WHERE localId = :localId")
+    suspend fun attachRemoteId(localId: String, remoteId: String?, syncedAt: Long?)
+
 }

@@ -27,10 +27,13 @@ data class CompensationProfileEntity(
     val effectiveUntil: Long?,
     val isDefault: Boolean,
     val isArchived: Boolean,
+    /** Hex colour and emoji identifying the profile on screen. See the domain model. */
+    val color: String? = null,
+    val icon: String? = null,
     /**
-     * The job this profile pays for. Nullable and never backfilled: a profile is
-     * still the authority on how worked time is paid, and this only records which
-     * employer it belongs to so leave entitlement can outlive a wage change.
+     * The job this profile pays for. Nullable for rows written before workplaces
+     * existed; a profile created since owns one, so leave entitlement hangs off
+     * something stable while the pay rules on the profile change freely.
      */
     val workplaceId: String? = null,
     val createdAt: Long,

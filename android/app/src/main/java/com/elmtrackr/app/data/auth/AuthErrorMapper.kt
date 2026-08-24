@@ -6,6 +6,7 @@ import com.elmtrackr.app.R
 internal enum class AuthOperation {
     SIGN_IN,
     SIGN_UP,
+    GOOGLE_SIGN_IN,
     PASSWORD_RESET,
     PASSWORD_RECOVERY,
     UPDATE_PASSWORD,
@@ -56,6 +57,7 @@ internal object AuthErrorMapper {
             else -> when (operation) {
                 AuthOperation.SIGN_IN -> R.string.auth_error_sign_in
                 AuthOperation.SIGN_UP -> R.string.auth_error_sign_up
+                AuthOperation.GOOGLE_SIGN_IN -> R.string.auth_error_google_sign_in
                 AuthOperation.PASSWORD_RESET -> R.string.auth_error_password_reset
                 AuthOperation.PASSWORD_RECOVERY -> R.string.auth_error_recovery_link
                 AuthOperation.UPDATE_PASSWORD -> R.string.auth_error_update_password

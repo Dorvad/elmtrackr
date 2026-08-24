@@ -76,6 +76,25 @@ class ShiftsViewModelTest {
         )
     }
 
+    /**
+     * A completed shift inside the month the ViewModel is showing.
+     *
+     * A fixed 2024 date used to work here only because [FakeShiftsRepository] does no
+     * date filtering: the ViewModel passed the repository's list straight through. It
+     * now loads the pay-week window and narrows it back to the selected month, so a
+     * January 2024 fixture is correctly absent from the current month's list. Mid-month
+     * and in UTC, which is the default [UserSettings.timezone] these tests run under.
+     */
+    private fun shiftInSelectedMonth(
+        vm: ShiftsViewModel,
+        id: String = "s1",
+        completed: Boolean = true,
+    ): Shift {
+        val start = vm.selectedMonth.value.atDay(15)
+            .atTime(9, 0).atZone(java.time.ZoneOffset.UTC).toInstant()
+        return Shift(id, "u1", start, if (completed) start.plusSeconds(8 * 3600) else null)
+    }
+
     // ── UI state ────────────────────────────────────────────────────────────
 
     @Test
@@ -110,10 +129,8 @@ class ShiftsViewModelTest {
 
     @Test
     fun `ready state includes selected month`() = runTest {
-        shiftsRepo.setShifts(
-            Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z")),
-        )
         val vm = buildVm()
+        shiftsRepo.setShifts(shiftInSelectedMonth(vm))
         val job = launch { vm.uiState.collect { } }
         advanceUntilIdle()
 
@@ -157,9 +174,7 @@ class ShiftsViewModelTest {
         val states = mutableListOf<ShiftsUiState>()
         val job = launch { vm.uiState.collect { states.add(it) } }
 
-        shiftsRepo.setShifts(
-            Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), Instant.parse("2024-01-08T17:00:00Z")),
-        )
+        shiftsRepo.setShifts(shiftInSelectedMonth(vm))
         advanceUntilIdle()
 
         val ready = states.filterIsInstance<ShiftsUiState.Ready>().last()
@@ -173,7 +188,7 @@ class ShiftsViewModelTest {
         val states = mutableListOf<ShiftsUiState>()
         val job = launch { vm.uiState.collect { states.add(it) } }
 
-        shiftsRepo.setShifts(Shift("s1", "u1", Instant.parse("2024-01-08T09:00:00Z"), null))
+        shiftsRepo.setShifts(shiftInSelectedMonth(vm, completed = false))
         advanceUntilIdle()
 
         val ready = states.filterIsInstance<ShiftsUiState.Ready>().last()

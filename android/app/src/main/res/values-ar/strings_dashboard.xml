@@ -120,17 +120,17 @@
     <string name="dashboard_setup_clock_blurb">‏15 واجهة ساعة للاختيار بينها.</string>
     <string name="dashboard_setup_clock_body">الساعة الكبيرة على هذه الشاشة هي بطاقة دوامك. اختر واجهة تناسب ذوقك — من مينا بسيطة إلى مدّ يعلو.</string>
     <string name="dashboard_setup_clock_action">اختر نمطًا</string>
-    <string name="dashboard_setup_compensation_title">تحقّق من قواعد أجرك</string>
-    <string name="dashboard_setup_compensation_blurb">معدلات الساعات الإضافية ونهاية الأسبوع والعطل.</string>
-    <string name="dashboard_setup_compensation_body">تقدير أجرك لا يكون أفضل من القواعد التي يقوم عليها. راجع حدود الساعات الإضافية ومضاعفات المعدلات، وقارنها بعقدك أو بقسيمة أجر حديثة — وإن اختلف أي شيء، فأكّد التفاصيل مع صاحب العمل.</string>
-    <string name="dashboard_setup_compensation_action">مراجعة قواعد الأجر</string>
+    <string name="dashboard_setup_compensation_title">أعدّ ملف عملك</string>
+    <string name="dashboard_setup_compensation_blurb">أجرك وساعاتك الإضافية وعلاواتك \u2014 لهذا العمل.</string>
+    <string name="dashboard_setup_compensation_body">ملف العمل هو عمل واحد: أجره بالساعة، وعتبات الساعات الإضافية، والعلاوات، وأجر المرض، ولونه. ابدأ بالأجر \u2014 فكل مبلغ في التطبيق مبني عليه \u2014 ثم قارن القواعد بعقدك أو بآخر كشف أجر. لديك عمل آخر؟ أضف ملفاً ثانياً وبدّل بينهما فوق الساعة.</string>
+    <string name="dashboard_setup_compensation_action">إعداد ملف العمل</string>
     <string name="dashboard_setup_premium_title">أضف معدل علاوة</string>
     <string name="dashboard_setup_premium_blurb">ملفات معدلات إضافية قابلة لإعادة الاستخدام.</string>
     <string name="dashboard_setup_premium_body" formatted="false">ملفّ العلاوة هو معدل إضافي بعلامة اسم — مثلًا 150% للعمل الليلي — يمكنك تطبيقه على أي مناوبة. أنشئ واحدًا وراقب كيف يغيّر أجر المناوبة.</string>
     <string name="dashboard_setup_premium_action">إعداد العلاوات</string>
     <string name="dashboard_setup_tasks_title">أنشئ مهمة</string>
-    <string name="dashboard_setup_tasks_blurb">معدل مختلف لكل مشروع أو عميل.</string>
-    <string name="dashboard_setup_tasks_body">تَسِم المهام مناوباتك بمشروع أو عميل، ولكل منها أجرها بالساعة — وهو أمر مفيد عندما يتوزّع وقتك على أعمال متعددة.</string>
+    <string name="dashboard_setup_tasks_blurb">قسّم عملاً واحداً إلى ما تفعله فيه فعلاً.</string>
+    <string name="dashboard_setup_tasks_body">المهمة شيء تفعله في عمل واحد، بأجرها بالساعة \u2014 كمناوبة في البار بدل الصالة. المهام تتبع ملف عمل، لذا يعرض الاختيار مهام العمل الذي تبدأ دوامك فيه فقط. لصاحب عمل آخر \u2014 أضف ملف عمل.</string>
     <string name="dashboard_setup_tasks_action">أنشئ مهمة</string>
     <string name="dashboard_setup_widget_title">أضف أداة إلى الشاشة الرئيسية</string>
     <string name="dashboard_setup_widget_blurb">سجّل الحضور دون فتح التطبيق.</string>
@@ -141,4 +141,8 @@
     <string name="dashboard_start_time_future_error">لا يمكن أن يكون وقت البداية في المستقبل.</string>
     <string name="dashboard_month_summary_open_report">عرض التقرير الكامل</string>
     <string name="dashboard_gross_before_tax">الإجمالي · قبل الضريبة</string>
+
+    <!-- Work profile selection above the clock -->
+    <string name="dashboard_work_profile_label">العمل في</string>
+    <string name="dashboard_active_work_profile">دوام جارٍ في %1$s</string>
 </resources>

@@ -81,6 +81,22 @@ object MoneyFormat {
         return currency.getSymbol(locale) != currency.currencyCode
     }
 
+    /**
+     * A rate held as a fraction rendered as a localised percentage: 0.5 becomes
+     * "50%", 1.25 becomes "125%".
+     *
+     * Separate from [formatTaxRate] because the inputs differ — that one takes a
+     * figure already expressed in percent, as tax rates are stored — and because a
+     * pay multiplier can exceed 100%, which reads as an error in a tax field.
+     */
+    fun formatRate(fraction: Double, locale: Locale = Locale.getDefault()): String =
+        NumberFormat.getPercentInstance(locale).apply {
+            // Whole percents for the common cases (0%, 50%, 100%, 150%), one decimal
+            // where a rate genuinely needs it rather than "62.5%" shown as "63%".
+            maximumFractionDigits = if (fraction * 1000 % 10 == 0.0) 0 else 1
+            roundingMode = RoundingMode.HALF_UP
+        }.format(fraction)
+
     /** Percentage rendered for the locale, e.g. "18%" or "17.5%". */
     fun formatTaxRate(ratePercent: java.math.BigDecimal, locale: Locale = Locale.getDefault()): String {
         val normalized = ratePercent.stripTrailingZeros()

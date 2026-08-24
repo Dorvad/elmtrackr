@@ -112,6 +112,23 @@ data class CompensationRules(
     val deductionsFixedAmount: Double = 0.0,
 )
 
+/**
+ * True when these rules can actually produce *daily* overtime pay.
+ *
+ * A profile can carry a daily standard without a daily ladder to pay from: the US
+ * federal preset is weekly-only by design ([dailyOvertimeTiers] is empty), and the
+ * UK preset ships with overtime off entirely. Measuring minutes past the daily
+ * standard for either invents overtime hours that no pay figure ever pays.
+ *
+ * Named here rather than spelled out at each site because the two copies had
+ * already drifted: the month-level overtime total was gated on this pair of
+ * conditions while `MonthlyReportBuilder.buildShiftBreakdown` was not — and that
+ * breakdown feeds the shift-row overtime badge, the per-shift rows in Reports, the
+ * CSV, the PDF and the per-task totals.
+ */
+val CompensationRules.paysDailyOvertime: Boolean
+    get() = overtimeEnabled && dailyOvertimeTiers.isNotEmpty()
+
 data class CompensationProfile(
     val id: String,
     val userId: String,
@@ -127,9 +144,24 @@ data class CompensationProfile(
     val isDefault: Boolean = false,
     val isArchived: Boolean = false,
     /**
-     * The job this profile pays for, when known. A profile remains the authority
-     * on how worked time is paid; this only records which employer it belongs to,
-     * so leave entitlement and balances survive a raise or a new profile.
+     * Hex colour and emoji that identify this profile wherever it appears — the
+     * clock-in selector, the shift rows, the badge on a running shift.
+     *
+     * Same shape as [Task.color] / [Task.icon] on purpose: a job and a task are
+     * two levels of the same "what am I clocking into" question, and one visual
+     * language across both is what lets a glance tell them apart. Null means the
+     * profile has never been given one, and the UI falls back rather than
+     * inventing a colour that would then change on the next release.
+     */
+    val color: String? = null,
+    val icon: String? = null,
+    /**
+     * The job this profile pays for. Every profile owns exactly one workplace,
+     * created with it, so leave entitlement and payslip balances hang off
+     * something stable while the pay rules on the profile change freely.
+     *
+     * Nullable only for rows written before workplaces existed; those join one
+     * the first time the user reaches a screen that needs it.
      */
     val workplaceId: String? = null,
     val createdAt: Instant = Instant.EPOCH,

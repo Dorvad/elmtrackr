@@ -13,6 +13,7 @@ import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.R
+import com.elmtrackr.app.domain.auth.GoogleSignInClient
 import com.elmtrackr.app.domain.model.AuthResult
 import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.Profile
@@ -23,7 +24,9 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.providers.builtin.IDToken
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
 import kotlinx.coroutines.CoroutineScope
@@ -55,6 +58,7 @@ class SupabaseAuthRepository @Inject constructor(
     private val localUserDataCleaner: LocalUserDataCleaner,
     private val authSessionCoordinator: AuthSessionCoordinator,
     private val syncTrigger: SyncTrigger,
+    private val googleSignInClient: GoogleSignInClient,
     @ApplicationScope private val applicationScope: CoroutineScope,
 ) : AuthRepository {
 
@@ -175,12 +179,45 @@ class SupabaseAuthRepository @Inject constructor(
         }
     }
 
+    override suspend fun signInWithGoogle(idToken: String, rawNonce: String): AuthResult {
+        val c = client ?: return AuthResult.NotConfigured
+        return try {
+            c.auth.signInWith(IDToken) {
+                this.idToken = idToken
+                this.provider = Google
+                // Raw, not hashed. Supabase hashes this and compares it against
+                // the token's nonce claim, which holds the hash Google was given.
+                this.nonce = rawNonce
+            }
+            _passwordRecoveryRequired.value = false
+            AuthResult.Success
+        } catch (e: Exception) {
+            AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.GOOGLE_SIGN_IN)))
+        }
+    }
+
+    override suspend fun startGoogleBrowserSignIn(): AuthResult {
+        val c = client ?: return AuthResult.NotConfigured
+        return try {
+            // Opens a browser and returns through elmtrackr://auth/callback, which
+            // handleDeepLink already exchanges. Success means the browser opened;
+            // the session arrives later, on the deep link.
+            c.auth.signInWith(Google, redirectUrl = AUTH_CALLBACK)
+            AuthResult.Success
+        } catch (e: Exception) {
+            AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.GOOGLE_SIGN_IN)))
+        }
+    }
+
     override suspend fun signOut() {
         try {
             client?.auth?.signOut()
         } catch (e: Exception) {
             // Best-effort — still clear local references below
         }
+        // Drop the remembered Google account too, so the next sign-in offers the
+        // picker instead of silently returning the account just signed out of.
+        googleSignInClient.forgetSelectedAccount()
         _passwordRecoveryRequired.value = false
         authSessionCoordinator.resetSession()
         appPrefs.setLastActiveUserId(null)
@@ -254,9 +291,14 @@ class SupabaseAuthRepository @Inject constructor(
     private fun UserInfo.toProfile(): Profile = Profile(
         id = id,
         email = email ?: "",
+        // "name" as a fallback for "full_name": which key a provider writes is
+        // the provider's choice, and a user who signed up with Google should not
+        // have to type a name the account already knows. Missing is still fine —
+        // the greeting falls back and the checklist asks.
         fullName = runCatching {
             userMetadata?.get("full_name")?.jsonPrimitive?.contentOrNull
-        }.getOrNull(),
+                ?: userMetadata?.get("name")?.jsonPrimitive?.contentOrNull
+        }.getOrNull()?.takeIf { it.isNotBlank() },
         createdAt = Instant.now(),
         updatedAt = Instant.now(),
     )

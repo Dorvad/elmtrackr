@@ -12,7 +12,21 @@ class SyncIdMapper(
     private val taskDao: TaskDao,
     private val projectDao: com.elmtrackr.app.data.local.dao.ProjectDao,
     private val billingRecordDao: com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao,
+    private val workplaceDao: com.elmtrackr.app.data.local.dao.WorkplaceDao,
+    private val absenceEventDao: com.elmtrackr.app.data.local.dao.AbsenceEventDao,
 ) {
+    suspend fun workplaceLocalToRemote(localId: String?): String? =
+        localId?.let { workplaceDao.getByLocalId(it)?.remoteId }
+
+    suspend fun workplaceRemoteToLocal(remoteId: String?): String? =
+        remoteId?.let { workplaceDao.getByRemoteId(it)?.localId }
+
+    suspend fun absenceEventLocalToRemote(localId: String?): String? =
+        localId?.let { absenceEventDao.getByLocalId(it)?.remoteId }
+
+    suspend fun absenceEventRemoteToLocal(remoteId: String?): String? =
+        remoteId?.let { absenceEventDao.getByRemoteId(it)?.localId }
+
     suspend fun projectLocalToRemote(localId: String?): String? =
         localId?.let { projectDao.getByLocalId(it)?.remoteId }
 

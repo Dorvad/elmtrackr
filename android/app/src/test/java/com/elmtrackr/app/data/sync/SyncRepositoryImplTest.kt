@@ -1107,6 +1107,219 @@ class SyncRepositoryImplTest {
         assertEquals(250, onlyDevice.liveShifts.size)
     }
 
+    // ── Workplaces and leave ──────────────────────────────────────────────────
+
+    private fun workplaceEntity(
+        localId: String,
+        syncStatus: SyncStatus,
+        remoteId: String? = null,
+        updatedAt: Long = 1_000L,
+    ) = com.elmtrackr.app.data.local.entity.WorkplaceEntity(
+        localId = localId,
+        remoteId = remoteId,
+        userId = USER,
+        name = "Main job",
+        regionCode = "IL",
+        currencyCode = "ILS",
+        timezone = "Asia/Jerusalem",
+        employmentStartDate = null,
+        isDefault = true,
+        isArchived = false,
+        createdAt = updatedAt,
+        updatedAt = updatedAt,
+        deletedAt = null,
+        syncStatus = syncStatus,
+        lastSyncError = null,
+        lastSyncedAt = null,
+    )
+
+    private fun policyEntity(
+        localId: String,
+        workplaceLocalId: String,
+        syncStatus: SyncStatus,
+        remoteId: String? = null,
+        updatedAt: Long = 1_000L,
+    ) = com.elmtrackr.app.data.local.entity.LeavePolicyEntity(
+        localId = localId,
+        remoteId = remoteId,
+        userId = USER,
+        workplaceLocalId = workplaceLocalId,
+        regionCode = "IL",
+        rulesJson = "{}",
+        effectiveFrom = updatedAt,
+        effectiveUntil = null,
+        isActive = true,
+        createdAt = updatedAt,
+        updatedAt = updatedAt,
+        deletedAt = null,
+        syncStatus = syncStatus,
+        lastSyncError = null,
+        lastSyncedAt = null,
+    )
+
+    @Test
+    fun `a pending workplace and its policy both reach the server`() = runTest {
+        val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+        val policyDao = com.elmtrackr.app.fake.FakeLeavePolicyDao()
+        val workplacesRemote = com.elmtrackr.app.fake.FakeWorkplaceRemote()
+        val policiesRemote = com.elmtrackr.app.fake.FakeLeavePolicyRemote()
+        workplaceDao.seed(workplaceEntity("wp-1", SyncStatus.PENDING_CREATE))
+        policyDao.seed(policyEntity("pol-1", "wp-1", SyncStatus.PENDING_CREATE))
+        val repository = createRepository(
+            workplaceDao = workplaceDao,
+            leavePolicyDao = policyDao,
+            remoteWorkplaces = workplacesRemote,
+            remoteLeavePolicies = policiesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        assertEquals(1, workplacesRemote.rows.size)
+        assertEquals(1, policiesRemote.rows.size)
+        // The policy carries its parent's *remote* id, which is what the server's
+        // foreign key is declared against.
+        assertEquals(workplacesRemote.rows.single().id, policiesRemote.rows.single().workplaceId)
+        assertEquals(SyncStatus.SYNCED, workplaceDao.rows().single().syncStatus)
+        assertEquals(SyncStatus.SYNCED, policyDao.rows().single().syncStatus)
+    }
+
+    /**
+     * The foreign key is real, so a child whose parent has no remote id yet must
+     * stay pending rather than be sent with an id the server would reject.
+     */
+    @Test
+    fun `a policy whose workplace has not been pushed stays pending`() = runTest {
+        val policyDao = com.elmtrackr.app.fake.FakeLeavePolicyDao()
+        val policiesRemote = com.elmtrackr.app.fake.FakeLeavePolicyRemote()
+        // The workplace is absent from the DAO entirely, so it has no remote id.
+        policyDao.seed(policyEntity("pol-1", "missing-workplace", SyncStatus.PENDING_CREATE))
+        val repository = createRepository(
+            leavePolicyDao = policyDao,
+            remoteLeavePolicies = policiesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        assertTrue("nothing was sent", policiesRemote.rows.isEmpty())
+        // Pending, not FAILED: there is nothing wrong with the row, its parent has
+        // simply not had its turn yet.
+        assertEquals(SyncStatus.PENDING_CREATE, policyDao.rows().single().syncStatus)
+    }
+
+    @Test
+    fun `a remote workplace and policy arrive locally with the parent resolved`() = runTest {
+        val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+        val policyDao = com.elmtrackr.app.fake.FakeLeavePolicyDao()
+        val workplacesRemote = com.elmtrackr.app.fake.FakeWorkplaceRemote()
+        val policiesRemote = com.elmtrackr.app.fake.FakeLeavePolicyRemote()
+        workplacesRemote.rows += com.elmtrackr.app.data.remote.RemoteWorkplaceRow(
+            id = "wp-remote", userId = USER, name = "Clinic", regionCode = "IL",
+            currencyCode = "ILS", timezone = "Asia/Jerusalem", isDefault = true,
+            isArchived = false, createdAt = "2026-01-01T00:00:00Z",
+            updatedAt = "2026-01-01T00:00:00Z",
+        )
+        policiesRemote.rows += com.elmtrackr.app.data.remote.RemoteLeavePolicyRow(
+            id = "pol-remote", userId = USER, workplaceId = "wp-remote", regionCode = "IL",
+            rulesJson = kotlinx.serialization.json.JsonObject(emptyMap()),
+            effectiveFrom = "2026-01-01T00:00:00Z", isActive = true,
+            createdAt = "2026-01-01T00:00:00Z", updatedAt = "2026-01-01T00:00:00Z",
+        )
+        val repository = createRepository(
+            workplaceDao = workplaceDao,
+            leavePolicyDao = policyDao,
+            remoteWorkplaces = workplacesRemote,
+            remoteLeavePolicies = policiesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        val workplace = workplaceDao.rows().single()
+        val policy = policyDao.rows().single()
+        assertEquals("Clinic", workplace.name)
+        // The policy points at the workplace's *local* id, which is what the
+        // entities reference.
+        assertEquals(workplace.localId, policy.workplaceLocalId)
+    }
+
+    /**
+     * A row edited more recently on another device is adopted, not overwritten:
+     * the update is filtered on client_updated_at, so the push loses and the newer
+     * remote state is taken instead.
+     */
+    @Test
+    fun `a newer remote workplace wins over a local push`() = runTest {
+        val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+        val workplacesRemote = com.elmtrackr.app.fake.FakeWorkplaceRemote()
+        workplacesRemote.rows += com.elmtrackr.app.data.remote.RemoteWorkplaceRow(
+            id = "wp-remote", userId = USER, name = "Renamed elsewhere", regionCode = "IL",
+            currencyCode = "ILS", timezone = "Asia/Jerusalem", isDefault = true,
+            isArchived = false, createdAt = "2026-01-01T00:00:00Z",
+            updatedAt = "2030-01-01T00:00:00Z",
+            // Far in the future, so the local push is the older write.
+            clientUpdatedAt = "2030-01-01T00:00:00Z",
+        )
+        workplaceDao.seed(
+            workplaceEntity("wp-1", SyncStatus.PENDING_UPDATE, remoteId = "wp-remote"),
+        )
+        val repository = createRepository(
+            workplaceDao = workplaceDao,
+            remoteWorkplaces = workplacesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        val local = workplaceDao.rows().single()
+        assertEquals("Renamed elsewhere", local.name)
+        assertEquals(SyncStatus.SYNCED, local.syncStatus)
+        assertEquals("Renamed elsewhere", workplacesRemote.rows.single().name)
+    }
+
+    /** An absence and its allocations round-trip with both parents resolved. */
+    @Test
+    fun `an absence allocation carries both of its parents`() = runTest {
+        val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+        val eventDao = com.elmtrackr.app.fake.FakeAbsenceEventDao()
+        val allocationDao = com.elmtrackr.app.fake.FakeAbsenceAllocationDao()
+        val workplacesRemote = com.elmtrackr.app.fake.FakeWorkplaceRemote()
+        val eventsRemote = com.elmtrackr.app.fake.FakeAbsenceEventRemote()
+        val allocationsRemote = com.elmtrackr.app.fake.FakeAbsenceAllocationRemote()
+        workplaceDao.seed(workplaceEntity("wp-1", SyncStatus.PENDING_CREATE))
+        eventDao.seed(
+            com.elmtrackr.app.data.local.entity.AbsenceEventEntity(
+                localId = "ev-1", remoteId = null, userId = USER, type = "sick",
+                startDate = 20_000L, endDate = 20_002L, notes = null,
+                createdAt = 1_000L, updatedAt = 1_000L, deletedAt = null,
+                syncStatus = SyncStatus.PENDING_CREATE, lastSyncError = null, lastSyncedAt = null,
+            ),
+        )
+        allocationDao.seed(
+            com.elmtrackr.app.data.local.entity.AbsenceAllocationEntity(
+                localId = "al-1", remoteId = null, userId = USER,
+                absenceEventLocalId = "ev-1", workplaceLocalId = "wp-1",
+                affectedDate = 20_000L, entitlementUnits = 1.0, unit = "days",
+                expectedWorkMinutes = null, policySnapshotJson = null,
+                calculationSnapshotJson = null, estimatedGrossPay = 0.0,
+                createdAt = 1_000L, updatedAt = 1_000L, deletedAt = null,
+                syncStatus = SyncStatus.PENDING_CREATE, lastSyncError = null, lastSyncedAt = null,
+            ),
+        )
+        val repository = createRepository(
+            workplaceDao = workplaceDao,
+            absenceEventDao = eventDao,
+            absenceAllocationDao = allocationDao,
+            remoteWorkplaces = workplacesRemote,
+            remoteAbsenceEvents = eventsRemote,
+            remoteAbsenceAllocations = allocationsRemote,
+        )
+
+        repository.syncAll(USER)
+
+        val allocation = allocationsRemote.rows.single()
+        assertEquals(eventsRemote.rows.single().id, allocation.absenceEventId)
+        assertEquals(workplacesRemote.rows.single().id, allocation.workplaceId)
+        assertEquals(SyncStatus.SYNCED, allocationDao.rows().single().syncStatus)
+    }
+
     private fun createRepository(
         shiftDao: ShiftDao = InMemoryShiftDao(),
         remoteShifts: RemoteShiftDataSource = FakeRemoteShiftDataSource(),
@@ -1125,6 +1338,28 @@ class SyncRepositoryImplTest {
             EmptyRemoteProjectBillingRecordDataSource(),
         remoteProjectPayments: com.elmtrackr.app.data.remote.RemoteProjectPaymentDataSource =
             EmptyRemoteProjectPaymentDataSource(),
+        // Workplaces and leave. Empty by default, so the tests in this file cover
+        // exactly what they did before while the five new steps run as no-ops.
+        workplaceDao: com.elmtrackr.app.data.local.dao.WorkplaceDao =
+            com.elmtrackr.app.fake.FakeWorkplaceDao(),
+        leavePolicyDao: com.elmtrackr.app.data.local.dao.LeavePolicyDao =
+            com.elmtrackr.app.fake.FakeLeavePolicyDao(),
+        absenceEventDao: com.elmtrackr.app.data.local.dao.AbsenceEventDao =
+            com.elmtrackr.app.fake.FakeAbsenceEventDao(),
+        absenceAllocationDao: com.elmtrackr.app.data.local.dao.AbsenceAllocationDao =
+            com.elmtrackr.app.fake.FakeAbsenceAllocationDao(),
+        leaveBalanceSnapshotDao: com.elmtrackr.app.data.local.dao.LeaveBalanceSnapshotDao =
+            com.elmtrackr.app.fake.FakeLeaveBalanceSnapshotDao(),
+        remoteWorkplaces: com.elmtrackr.app.data.remote.RemoteWorkplaceDataSource =
+            com.elmtrackr.app.fake.FakeWorkplaceRemote(),
+        remoteLeavePolicies: com.elmtrackr.app.data.remote.RemoteLeavePolicyDataSource =
+            com.elmtrackr.app.fake.FakeLeavePolicyRemote(),
+        remoteAbsenceEvents: com.elmtrackr.app.data.remote.RemoteAbsenceEventDataSource =
+            com.elmtrackr.app.fake.FakeAbsenceEventRemote(),
+        remoteAbsenceAllocations: com.elmtrackr.app.data.remote.RemoteAbsenceAllocationDataSource =
+            com.elmtrackr.app.fake.FakeAbsenceAllocationRemote(),
+        remoteLeaveBalances: com.elmtrackr.app.data.remote.RemoteLeaveBalanceSnapshotDataSource =
+            com.elmtrackr.app.fake.FakeLeaveBalanceSnapshotRemote(),
     ) = SyncRepositoryImpl(
         shiftDao = shiftDao,
         refundClaimDao = refundClaimDao,
@@ -1151,6 +1386,16 @@ class SyncRepositoryImplTest {
         remoteProjects = remoteProjects,
         remoteBillingRecords = remoteBillingRecords,
         remoteProjectPayments = remoteProjectPayments,
+        workplaceDao = workplaceDao,
+        leavePolicyDao = leavePolicyDao,
+        absenceEventDao = absenceEventDao,
+        absenceAllocationDao = absenceAllocationDao,
+        leaveBalanceSnapshotDao = leaveBalanceSnapshotDao,
+        remoteWorkplaces = remoteWorkplaces,
+        remoteLeavePolicies = remoteLeavePolicies,
+        remoteAbsenceEvents = remoteAbsenceEvents,
+        remoteAbsenceAllocations = remoteAbsenceAllocations,
+        remoteLeaveBalances = remoteLeaveBalances,
     )
 
     private companion object {

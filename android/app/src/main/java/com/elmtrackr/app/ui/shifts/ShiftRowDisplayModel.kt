@@ -83,6 +83,12 @@ internal sealed interface ShiftsLazyListItem {
     }
 }
 
+/**
+ * @param payContextShifts [shifts] plus the tail of the pay week containing the 1st,
+ *   used only as pay-week context for the money figures. Defaults to [shifts], which
+ *   is what every caller passed implicitly before the Shifts screen loaded the wider
+ *   window.
+ */
 internal fun buildShiftsLazyListItems(
     shifts: List<Shift>,
     activeShift: Shift?,
@@ -94,7 +100,9 @@ internal fun buildShiftsLazyListItems(
     // shift on the wrong date near midnight. Every caller already passes one.
     zone: ZoneId,
     locale: Locale = Locale.getDefault(),
+    payContextShifts: List<Shift> = shifts,
 ): List<ShiftsLazyListItem> {
+    val payContext = payContextShifts.ifEmpty { shifts }
     val sections = ShiftWeekGrouper.groupByWeek(
         shifts = shifts,
         activeShift = activeShift,
@@ -104,6 +112,7 @@ internal fun buildShiftsLazyListItems(
         premiumProfiles = premiumProfiles,
         zone = zone,
         locale = locale,
+        payContextShifts = payContext,
     )
     return buildList {
         sections.forEach { section ->
@@ -115,7 +124,7 @@ internal fun buildShiftsLazyListItems(
                         display = if (shift.isActive) {
                             null
                         } else {
-                            buildShiftRowDisplay(shift, settings, profiles, shifts, premiumProfiles, zone = zone, locale = locale)
+                            buildShiftRowDisplay(shift, settings, profiles, payContext, premiumProfiles, zone = zone, locale = locale)
                         },
                         isLastInSection = index == section.shifts.lastIndex,
                     ),

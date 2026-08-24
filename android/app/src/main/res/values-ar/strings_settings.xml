@@ -43,8 +43,8 @@
     <string name="settings_local_only_mode">يعمل في وضع محلي فقط (‏Supabase غير مُهيّأ).</string>
 
     <!-- Pay & overtime -->
-    <string name="settings_compensation_rules">قواعد الأجر</string>
-    <string name="settings_compensation_rules_subtitle">إعدادات المناطق الجاهزة وشرائح الساعات الإضافية والعلاوات</string>
+    <string name="settings_compensation_rules">ملفات العمل</string>
+    <string name="settings_compensation_rules_subtitle">واحد لكل عمل \u2014 الأجر والساعات الإضافية والعلاوات وأجر المرض</string>
     <string name="settings_premium_profiles">ملفات العلاوات</string>
     <string name="settings_premium_profiles_subtitle">مضاعفات مخصّصة للمناوبات الخاصة</string>
     <string name="settings_tasks">المهام</string>
@@ -52,7 +52,7 @@
     <string name="settings_pay_rate">معدل الأجر</string>
     <string name="settings_hourly_rate">الأجر بالساعة</string>
     <string name="settings_overtime_thresholds">حدود الساعات الإضافية</string>
-    <string name="settings_overtime_thresholds_hint">تحدّث هذه الأساسيات ملفّ أجرك الافتراضي. وللشرائح والعلاوات والاستراحات والخصومات، افتح قواعد الأجر أعلاه.</string>
+    <string name="settings_overtime_thresholds_hint">تحدّث هذه الأساسيات ملف عملك الافتراضي. للمستويات والعلاوات والاستراحات والاقتطاعات افتح „ملفات العمل” أعلاه.</string>
     <string name="settings_daily_overtime_hours">الساعات الإضافية اليومية (بالساعات)</string>
     <string name="settings_weekly_overtime_hours">الساعات الإضافية الأسبوعية (بالساعات)</string>
     <string name="settings_weekend_days">أيام نهاية الأسبوع</string>
@@ -122,9 +122,9 @@
     <string name="settings_feature_ot_reminders_short">تذكيرات الساعات الإضافية</string>
 
     <!-- Compensation rules -->
-    <string name="settings_comp_rules_title">قواعد الأجر</string>
-    <string name="settings_section_profiles">الملفات</string>
-    <string name="settings_comp_profiles_hint">لكل ملف قواعد أجره الخاصة. اختر واحدًا لتعديله، أو أضف آخر لوظيفة ثانية.</string>
+    <string name="settings_comp_rules_title">ملفات العمل</string>
+    <string name="settings_section_profiles">أعمالك</string>
+    <string name="settings_comp_profiles_hint">ملف واحد لكل عمل: أجره وساعاته الإضافية وعلاواته وأجر المرض ولونه. اختر واحداً لتعديله، أو أضف آخر لعمل ثانٍ \u2014 ثم يمكنك التبديل بينهما فوق الساعة.</string>
     <string name="settings_region_preset">الإعداد الجاهز للمنطقة</string>
     <string name="settings_section_work_week">أسبوع العمل</string>
     <string name="settings_daily_standard_hours">المعيار اليومي (بالساعات)</string>
@@ -159,16 +159,16 @@
     <string name="settings_deduction_percent" formatted="false">الخصم (%)</string>
     <string name="settings_deduction_fixed">الخصم (%1$s لكل مناوبة)</string>
     <string name="settings_deduction_hint">تعديل تقريبي لصافي الأجر (مثل تقدير للضريبة أو التقاعد) — وليس حسابًا صافيًا بمستوى كشف الرواتب.</string>
-    <string name="settings_save_comp_rules">حفظ قواعد الأجر</string>
+    <string name="settings_save_comp_rules">حفظ ملف العمل</string>
     <string name="settings_ladder_daily">يوميًا بعد %1$s: %2$d%%</string>
     <string name="settings_ladder_weekly">أسبوعيًا بعد %1$s: %2$d%%</string>
     <string name="settings_ladder_summary">السلّم الحالي — %1$s. اختر إعدادًا جاهزًا لمنطقة لتغيير الشرائح.</string>
-    <string name="settings_add_profile">إضافة ملف</string>
+    <string name="settings_add_profile">إضافة عمل</string>
     <string name="settings_base_hourly_rate">الأجر الأساسي بالساعة (%1$s)</string>
     <string name="settings_rounding_direction">اتجاه التقريب</string>
     <string name="settings_percentage">نسبة مئوية</string>
     <string name="settings_fixed_per_shift">مبلغ ثابت لكل مناوبة</string>
-    <string name="settings_new_comp_profile">ملفّ أجر جديد</string>
+    <string name="settings_new_comp_profile">ملف عمل جديد</string>
     <string name="settings_comp_profile_name_placeholder">مثال: وظيفة ثانية، عمل نهاية الأسبوع</string>
     <string name="settings_create">إنشاء</string>
     <string name="settings_premium_stacking">تراكم العلاوات</string>
@@ -338,8 +338,8 @@
     <string name="settings_feedback_delete_failed">تعذّر حذف الملف</string>
     <string name="settings_feedback_delete_last_profile">لا يمكنك حذف ملفك الوحيد</string>
     <string name="settings_feedback_create_failed">فشل الإنشاء</string>
-    <string name="settings_feedback_rules_saved">تم حفظ قواعد الأجر</string>
-    <string name="settings_error_no_comp_profile">لم يُعثر على ملفّ أجر. افتح إعدادات الرواتب أو أكمل الإعداد الأولي.</string>
+    <string name="settings_feedback_rules_saved">تم حفظ ملف العمل</string>
+    <string name="settings_error_no_comp_profile">لم يُعثر على ملف عمل. افتح إعدادات الأجر أو أكمل التسجيل.</string>
 
     <!-- Field validation -->
     <string name="settings_error_positive">يجب أن تكون القيمة موجبة</string>
@@ -383,12 +383,12 @@
     <string name="settings_new_profile">ملف جديد</string>
     <string name="settings_edit_profile">تعديل الملف</string>
     <string name="settings_default">افتراضي</string>
-    <string name="settings_delete_profile">حذف الملف</string>
+    <string name="settings_delete_profile">حذف هذا العمل</string>
     <string name="settings_remove_this_rate">إزالة هذا المعدل</string>
     <string name="settings_delete_comp_profile_title">حذف “%1$s”؟</string>
     <string name="settings_delete_comp_profile_body">تحتفظ المناوبات التي سجّلتها بالأجر الذي حُسب لها. ويُزال الملف من أجهزتك المتزامنة أيضًا. ولا يمكن التراجع عن هذا.</string>
     <string name="settings_delete">حذف</string>
-    <string name="settings_profile_name">اسم الملف</string>
+    <string name="settings_profile_name">اسم العمل</string>
     <string name="settings_multiplier">المضاعف</string>
     <string name="settings_multiplier_hint" formatted="false">‏1.5 = أجر بنسبة 150%</string>
     <string name="settings_multiplier_equals">= أجر بنسبة %1$d%%</string>
@@ -410,4 +410,49 @@
     <string name="settings_backup_share_chooser">تصدير النسخة الاحتياطية المحلية</string>
     <string name="settings_sync_synced_with_warnings">تمت المزامنة مع تحذيرات: %1$s</string>
     <string name="settings_sync_synced_unsent">تمت المزامنة. التغييرات غير المرفوعة: %1$d</string>
+
+    <!-- Sick leave arrangement, per compensation profile -->
+    <string name="settings_section_sick_leave">الإجازة المرضية</string>
+    <string name="settings_sick_paid">أيام المرض مدفوعة</string>
+    <string name="settings_sick_arrangement">صاحب العمل يدفع</string>
+    <string name="settings_sick_from_day_one">من اليوم الأول</string>
+    <string name="settings_sick_standard">قياسي</string>
+    <string name="settings_sick_custom">مخصّص</string>
+    <string name="settings_sick_ladder_label">ما يُدفع عن يوم المرض</string>
+    <string name="settings_sick_rung_single">اليوم %1$d: %2$s</string>
+    <string name="settings_sick_rung_range">الأيام %1$d\u2013%2$d: %3$s</string>
+    <string name="settings_sick_rung_open">من اليوم %1$d وما بعده: %2$s</string>
+    <string name="settings_sick_rung_unpaid">بدون أجر</string>
+    <string name="settings_sick_rung_gap">غير محدّد</string>
+    <string name="settings_sick_standard_same">في هذه المنطقة يكون الإعداد القياسي أيضاً أجراً كاملاً من اليوم الأول، لذا يدفع الخياران المبلغ نفسه.</string>
+    <string name="settings_sick_custom_note">لمكان العمل هذا سلّم أُعدّ في مكان آخر. اختيار أحد الخيارين أعلاه سيستبدله.</string>
+    <string name="settings_sick_hint">اضبط هذا بما يطابق عقد عملك أو اتفاقك الجماعي. السلّم القياسي إعداد شائع، وليس بياناً بما يفرضه القانون على صاحب العمل.</string>
+    <string name="settings_sick_off_note">ستُسجَّل أيام المرض وتُخصم من رصيدك، لكن لن يُحتسب أجرها.</string>
+    <!-- Language, its own settings screen -->
+    <string name="settings_language_subtitle">%1$s</string>
+    <string name="settings_language_system_resolved">لغة الجهاز \u00b7 %1$s</string>
+    <string name="settings_language_note">يتغيّر التطبيق فوراً. ستظهر التواريخ والأرقام والمبالغ باللغة التي تختارها.</string>
+    <string name="settings_language_current">قيد الاستخدام</string>
+    <!-- Theme -->
+    <string name="settings_theme_follows_device">حسب الجهاز \u2014 %1$s حالياً</string>
+    <string name="settings_theme_light_lower">فاتح</string>
+    <string name="settings_theme_dark_lower">داكن</string>
+    <string name="settings_sick_shared_note">لا يملك هذا العمل ملفاً خاصاً به بعد، لذا يشارك أجر المرض مع الملف الافتراضي. الحفظ هنا يمنحه ملفاً خاصاً.</string>
+
+    <!-- Work profile identity -->
+    <string name="settings_profile_identity">اللون والأيقونة</string>
+    <string name="settings_profile_identity_hint">تظهر في كل مكان يُعرض فيه هذا العمل — عند اختيار بداية الدوام، في صفوف الدوام، وعلى شارة الدوام الجاري.</string>
+    <string name="settings_profile_icon">أيقونة</string>
+    <string name="settings_profile_color">لون</string>
+
+    <!-- Work profile form: validation and destructive-change guards -->
+    <string name="settings_rate_invalid">أدخل رقماً، أو اتركه فارغاً لعمل بلا أجر بالساعة ثابت.</string>
+    <string name="settings_rate_cleared_title">الحفظ بدون أجر بالساعة؟</string>
+    <string name="settings_rate_cleared_body">لن تُعرض تقديرات أجر لهذا العمل \u2014 لا في اللوحة ولا في قائمة الدوام ولا في التقارير ولا في التصدير. تبقى ساعاته محسوبة.</string>
+    <string name="settings_rate_cleared_confirm">احفظ على أي حال</string>
+    <string name="settings_region_replace_title">استبدال قواعد هذا العمل؟</string>
+    <string name="settings_region_replace_body">تأتي %1$s بعتبات ساعات إضافية وعلاوات واستراحات واقتطاعات خاصة بها. الانتقال إليها يستبدل القواعد التي ضبطتها هنا. لا تتأثر ساعاتك ولا أجرك السابق.</string>
+    <string name="settings_region_replace_confirm">استبدال القواعد</string>
+    <string name="settings_discard_profile_title">تجاهل تغييراتك؟</string>
+    <string name="settings_discard_profile_body">لملف العمل هذا تغييرات غير محفوظة.</string>
 </resources>

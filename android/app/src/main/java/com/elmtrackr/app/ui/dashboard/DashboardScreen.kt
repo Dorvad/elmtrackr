@@ -241,6 +241,7 @@ fun DashboardScreen(
                             onNavigateToReports = onNavigateToReports,
                             onReviewRefunds = onReviewRefunds,
                             onSelectTask = viewModel::selectTask,
+                            onSelectWorkProfile = viewModel::selectWorkProfile,
                             onManageTasks = { showTasks = true },
                             onSelectCompensationSource = viewModel::selectCompensationSource,
                             onSelectClockInProject = viewModel::selectClockInProject,
@@ -294,6 +295,7 @@ private fun DashboardReady(
     onNavigateToReports: () -> Unit,
     onReviewRefunds: () -> Unit = onNavigateToReports,
     onSelectTask: (String) -> Unit,
+    onSelectWorkProfile: (String) -> Unit,
     onManageTasks: () -> Unit,
     onSelectCompensationSource: (CompensationSource) -> Unit = {},
     onSelectClockInProject: (String) -> Unit = {},
@@ -490,6 +492,21 @@ private fun DashboardReady(
                     onSelectSource = onSelectCompensationSource,
                     onSelectProject = onSelectClockInProject,
                     onNoteChange = onProjectNoteChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                        .auroraEnter(index = 1),
+                )
+            }
+
+            // Which job, then what at that job — one narrowing question, so the
+            // profile bar sits directly above the task bar. Renders nothing while
+            // there is only one profile.
+            if (activeShift == null && !projectModeSelected) {
+                WorkProfileSelectorBar(
+                    profiles = state.profiles,
+                    selectedProfileId = state.selectedWorkProfileId,
+                    onSelectProfile = onSelectWorkProfile,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 12.dp)
@@ -2150,6 +2167,7 @@ internal fun DashboardReadyPreview(
         onEditStartTime = { _, _ -> },
         onNavigateToReports = onNavigateToReports,
         onSelectTask = {},
+        onSelectWorkProfile = {},
         onManageTasks = {},
         showFirstClockInCelebration = false,
         onDismissFirstClockInCelebration = {},

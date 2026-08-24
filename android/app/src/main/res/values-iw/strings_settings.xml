@@ -43,8 +43,8 @@
     <string name="settings_local_only_mode">מצב מקומי בלבד (Supabase לא מוגדר).</string>
 
     <!-- Pay & overtime -->
-    <string name="settings_compensation_rules">כללי תגמול</string>
-    <string name="settings_compensation_rules_subtitle">אזורים מוגדרים מראש, מדרגות שעות נוספות ותוספות</string>
+    <string name="settings_compensation_rules">פרופילי עבודה</string>
+    <string name="settings_compensation_rules_subtitle">אחד לכל עבודה \u2014 תעריף, שעות נוספות, תוספות, דמי מחלה</string>
     <string name="settings_premium_profiles">פרופילי תוספות</string>
     <string name="settings_premium_profiles_subtitle">מכפילים מותאמים למשמרות מיוחדות</string>
     <string name="settings_tasks">משימות</string>
@@ -52,7 +52,7 @@
     <string name="settings_pay_rate">תעריף שכר</string>
     <string name="settings_hourly_rate">שכר שעתי</string>
     <string name="settings_overtime_thresholds">ספי שעות נוספות</string>
-    <string name="settings_overtime_thresholds_hint">העדכונים כאן משנים את פרופיל ברירת המחדל. למדרגות, תוספות, הפסקות וניכויים — כללי תגמול למעלה.</string>
+    <string name="settings_overtime_thresholds_hint">ההגדרות הבסיסיות האלה מעדכנות את פרופיל העבודה שמוגדר כברירת מחדל. למדרגות, תוספות, הפסקות וניכויים \u2014 פתחו „פרופילי עבודה” למעלה.</string>
     <string name="settings_daily_overtime_hours">ש״נ יומיות (שעות)</string>
     <string name="settings_weekly_overtime_hours">ש״נ שבועיות (שעות)</string>
     <string name="settings_weekend_days">ימי סוף שבוע</string>
@@ -122,9 +122,9 @@
     <string name="settings_feature_ot_reminders_short">תזכורות ש״נ</string>
 
     <!-- Compensation rules -->
-    <string name="settings_comp_rules_title">כללי תגמול</string>
-    <string name="settings_section_profiles">פרופילים</string>
-    <string name="settings_comp_profiles_hint">לכל פרופיל כללי שכר משלו. בוחרים אחד לעריכה, או מוסיפים פרופיל לעבודה נוספת.</string>
+    <string name="settings_comp_rules_title">פרופילי עבודה</string>
+    <string name="settings_section_profiles">העבודות שלך</string>
+    <string name="settings_comp_profiles_hint">פרופיל אחד לכל עבודה: התעריף, השעות הנוספות, התוספות, דמי המחלה והצבע שלה. בחרו אחד לעריכה, או הוסיפו עוד לעבודה שנייה \u2014 ואז אפשר להחליף ביניהם מעל השעון.</string>
     <string name="settings_region_preset">אזור מוגדר מראש</string>
     <string name="settings_section_work_week">שבוע עבודה</string>
     <string name="settings_daily_standard_hours">תקן יומי (שעות)</string>
@@ -159,16 +159,16 @@
     <string name="settings_deduction_percent" formatted="false">ניכוי (%)</string>
     <string name="settings_deduction_fixed">ניכוי (%1$s למשמרת)</string>
     <string name="settings_deduction_hint">התאמה גסה לנטו (למשל הערכת מס או פנסיה) — לא חישוב שכר מדויק.</string>
-    <string name="settings_save_comp_rules">שמירת כללי התגמול</string>
+    <string name="settings_save_comp_rules">שמירת פרופיל העבודה</string>
     <string name="settings_ladder_daily">יומי אחרי %1$s: %2$d%%</string>
     <string name="settings_ladder_weekly">שבועי אחרי %1$s: %2$d%%</string>
     <string name="settings_ladder_summary">המדרגות כרגע — %1$s. בחירת אזור מוגדר מראש משנה את המדרגות.</string>
-    <string name="settings_add_profile">הוספת פרופיל</string>
+    <string name="settings_add_profile">הוספת עבודה</string>
     <string name="settings_base_hourly_rate">שכר שעתי בסיסי (%1$s)</string>
     <string name="settings_rounding_direction">כיוון העיגול</string>
     <string name="settings_percentage">אחוז</string>
     <string name="settings_fixed_per_shift">סכום קבוע למשמרת</string>
-    <string name="settings_new_comp_profile">פרופיל תגמול חדש</string>
+    <string name="settings_new_comp_profile">פרופיל עבודה חדש</string>
     <string name="settings_comp_profile_name_placeholder">למשל: עבודה שנייה, סופ״ש</string>
     <string name="settings_create">יצירה</string>
     <string name="settings_premium_stacking">שילוב תוספות</string>
@@ -328,8 +328,8 @@
     <string name="settings_feedback_delete_failed">מחיקת הפרופיל נכשלה</string>
     <string name="settings_feedback_delete_last_profile">אי אפשר למחוק את הפרופיל היחיד</string>
     <string name="settings_feedback_create_failed">היצירה לא הצליחה</string>
-    <string name="settings_feedback_rules_saved">כללי התגמול נשמרו</string>
-    <string name="settings_error_no_comp_profile">לא נמצא פרופיל תגמול. אפשר לפתוח את הגדרות השכר או להשלים את ההגדרה הראשונית.</string>
+    <string name="settings_feedback_rules_saved">פרופיל העבודה נשמר</string>
+    <string name="settings_error_no_comp_profile">לא נמצא פרופיל עבודה. פתחו את הגדרות השכר או השלימו את ההצטרפות.</string>
 
     <!-- Field validation -->
     <string name="settings_error_positive">חייב להיות גדול מאפס</string>
@@ -371,12 +371,12 @@
     <string name="settings_new_profile">פרופיל חדש</string>
     <string name="settings_edit_profile">עריכת פרופיל</string>
     <string name="settings_default">ברירת מחדל</string>
-    <string name="settings_delete_profile">מחיקת פרופיל</string>
+    <string name="settings_delete_profile">מחיקת העבודה הזאת</string>
     <string name="settings_remove_this_rate">הסרת התעריף הזה</string>
     <string name="settings_delete_comp_profile_title">למחוק את ״%1$s״?</string>
     <string name="settings_delete_comp_profile_body">משמרות שכבר נרשמו שומרות על השכר שחושב עבורן. הפרופיל יוסר גם מהמכשירים המסונכרנים שלך. אי אפשר לבטל את הפעולה.</string>
     <string name="settings_delete">מחיקה</string>
-    <string name="settings_profile_name">שם הפרופיל</string>
+    <string name="settings_profile_name">שם העבודה</string>
     <string name="settings_multiplier">מכפיל</string>
     <string name="settings_multiplier_hint" formatted="false">‏1.5 = שכר של 150%</string>
     <string name="settings_multiplier_equals">‏= שכר של %1$d%%</string>
@@ -398,4 +398,49 @@
     <string name="settings_backup_share_chooser">ייצוא גיבוי מקומי</string>
     <string name="settings_sync_synced_with_warnings">סונכרן עם אזהרות: %1$s</string>
     <string name="settings_sync_synced_unsent">סונכרן. שינויים שלא הועלו: %1$d</string>
+
+    <!-- Sick leave arrangement, per compensation profile -->
+    <string name="settings_section_sick_leave">דמי מחלה</string>
+    <string name="settings_sick_paid">ימי מחלה בתשלום</string>
+    <string name="settings_sick_arrangement">המעסיק משלם</string>
+    <string name="settings_sick_from_day_one">מהיום הראשון</string>
+    <string name="settings_sick_standard">סטנדרטי</string>
+    <string name="settings_sick_custom">מותאם</string>
+    <string name="settings_sick_ladder_label">כך משולם יום מחלה</string>
+    <string name="settings_sick_rung_single">יום %1$d: %2$s</string>
+    <string name="settings_sick_rung_range">ימים %1$d\u2013%2$d: %3$s</string>
+    <string name="settings_sick_rung_open">מיום %1$d והלאה: %2$s</string>
+    <string name="settings_sick_rung_unpaid">ללא תשלום</string>
+    <string name="settings_sick_rung_gap">לא הוגדר</string>
+    <string name="settings_sick_standard_same">באזור הזה גם ההסדר הסטנדרטי הוא תשלום מלא מהיום הראשון, ולכן שתי האפשרויות משלמות אותו דבר.</string>
+    <string name="settings_sick_custom_note">למקום העבודה הזה מוגדר סולם שנקבע במקום אחר. בחירה באפשרות מלמעלה תחליף אותו.</string>
+    <string name="settings_sick_hint">התאימו את ההגדרה להסכם העבודה או להסכם הקיבוצי שלכם. הסולם הסטנדרטי הוא הסדר מקובל, ולא קביעה מה החוק מחייב את המעסיק.</string>
+    <string name="settings_sick_off_note">ימי מחלה יירשמו ויקוזזו מהמאזן, אך לא יתומחרו.</string>
+    <!-- Language, its own settings screen -->
+    <string name="settings_language_subtitle">%1$s</string>
+    <string name="settings_language_system_resolved">שפת המכשיר \u00b7 %1$s</string>
+    <string name="settings_language_note">האפליקציה מתחלפת מיד. תאריכים, מספרים וסכומים יוצגו בשפה שתבחרו.</string>
+    <string name="settings_language_current">בשימוש</string>
+    <!-- Theme -->
+    <string name="settings_theme_follows_device">בהתאם למכשיר \u2014 כרגע %1$s</string>
+    <string name="settings_theme_light_lower">בהיר</string>
+    <string name="settings_theme_dark_lower">כהה</string>
+    <string name="settings_sick_shared_note">לעבודה הזאת עדיין אין פרופיל משלה, ולכן היא חולקת את דמי המחלה של ברירת המחדל. שמירה כאן תיתן לה פרופיל משלה.</string>
+
+    <!-- Work profile identity -->
+    <string name="settings_profile_identity">צבע ואייקון</string>
+    <string name="settings_profile_identity_hint">יופיעו בכל מקום שבו העבודה הזאת מוצגת — בבחירה לפני כניסה למשמרת, בשורות המשמרות ובתג של משמרת פעילה.</string>
+    <string name="settings_profile_icon">אייקון</string>
+    <string name="settings_profile_color">צבע</string>
+
+    <!-- Work profile form: validation and destructive-change guards -->
+    <string name="settings_rate_invalid">הזינו מספר, או השאירו ריק לעבודה ללא תעריף שעתי קבוע.</string>
+    <string name="settings_rate_cleared_title">לשמור בלי תעריף שעתי?</string>
+    <string name="settings_rate_cleared_body">לעבודה הזאת לא יוצגו הערכות שכר \u2014 לא בדשבורד, לא ברשימת המשמרות, לא בדוחות ולא בייצוא. השעות ימשיכו להיספר.</string>
+    <string name="settings_rate_cleared_confirm">לשמור בכל זאת</string>
+    <string name="settings_region_replace_title">להחליף את הכללים של העבודה הזאת?</string>
+    <string name="settings_region_replace_body">ל%1$s יש ספי שעות נוספות, תוספות, הפסקות וניכויים משלה. מעבר אליה יחליף את הכללים שהגדרתם כאן. השעות והשכר שכבר נרשמו לא יושפעו.</string>
+    <string name="settings_region_replace_confirm">להחליף כללים</string>
+    <string name="settings_discard_profile_title">לבטל את השינויים?</string>
+    <string name="settings_discard_profile_body">לפרופיל העבודה הזה יש שינויים שלא נשמרו.</string>
 </resources>
