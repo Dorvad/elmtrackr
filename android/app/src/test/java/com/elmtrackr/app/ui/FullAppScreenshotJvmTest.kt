@@ -508,8 +508,16 @@ class FullAppScreenshotJvmTest {
             SettingsDestination.CLOCK_FACES -> ClockFaceGalleryScreen(
                 selected = ClockStyle.MINIMAL,
                 availablePacks = com.elmtrackr.app.ui.settings.ClockFaceGroup.entries.toSet(),
+                // Everything owned, so the screenshot shows the gallery as a user
+                // who has the packs sees it rather than a wall of Buy buttons.
+                storefront = com.elmtrackr.app.billing.ClockFacePackStorefront(
+                    owned = com.elmtrackr.app.billing.ClockFacePackProducts.purchasablePacks.toSet(),
+                    availability = com.elmtrackr.app.billing.BillingAvailability.AVAILABLE,
+                ),
                 onSelect = {},
                 onInstallPack = {},
+                onBuyPack = {},
+                onBuyAllPacks = {},
                 onRemovePack = {},
                 onBack = {},
             )

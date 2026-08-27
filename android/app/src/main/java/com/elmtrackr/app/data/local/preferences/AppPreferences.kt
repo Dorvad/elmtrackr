@@ -79,6 +79,40 @@ object AppPreferenceKeys {
      * value degrades to "just the defaults, plus whatever you have selected".
      */
     val INSTALLED_CLOCK_FACE_PACKS = stringSetPreferencesKey("installed_clock_face_packs")
+
+    /**
+     * Play product ids this account has bought, as Play last reported them.
+     *
+     * A cache, never the record. Play owns the truth and is re-asked on every
+     * foreground; this exists so a user who paid can still add their packs on a
+     * plane, and so the gallery does not blink through a "not owned" frame while
+     * the billing service connects. Stale in exactly one direction that matters —
+     * a refund shows here until the next successful query — which is the right
+     * trade against locking a paying user out of what they bought.
+     */
+    val OWNED_PRODUCT_IDS = stringSetPreferencesKey("owned_product_ids")
+
+    /**
+     * Pack names granted for free because the user already had them when packs
+     * became paid. Permanent, and never cleared on sign-out.
+     *
+     * Separate from [OWNED_PRODUCT_IDS] rather than written into it as a fake
+     * purchase: Play would drop an id it does not recognise on the next refresh,
+     * and a grant with no receipt behind it should not be able to masquerade as
+     * one.
+     */
+    val GRANDFATHERED_CLOCK_FACE_PACKS =
+        stringSetPreferencesKey("grandfathered_clock_face_packs")
+
+    /**
+     * Whether the free-era grant above has been worked out for this device.
+     *
+     * A marker rather than "is the set empty?", because empty is a legitimate
+     * outcome: a user who never added a pack grandfathers nothing, and re-running
+     * the seed later would then hand them whatever they had bought in between.
+     */
+    val CLOCK_FACE_PACKS_GRANDFATHERED =
+        booleanPreferencesKey("clock_face_packs_grandfathered")
 }
 
 data class AppPreferenceValues(
@@ -101,6 +135,12 @@ data class AppPreferenceValues(
     val recentClockFaces: List<String> = emptyList(),
     /** Raw pack names. Resolved, and widened to include the defaults, by the UI layer. */
     val installedClockFacePacks: Set<String> = emptySet(),
+    /** Raw Play product ids, as last reported by Play. Resolved by the billing layer. */
+    val ownedProductIds: Set<String> = emptySet(),
+    /** Raw pack names granted for free at the paid-packs switch. */
+    val grandfatheredClockFacePacks: Set<String> = emptySet(),
+    /** Whether [grandfatheredClockFacePacks] has been worked out on this device. */
+    val clockFacePacksGrandfathered: Boolean = false,
     /** On by default: pairing a watch should work without a settings visit. */
     val wearSyncEnabled: Boolean = true,
 )
@@ -112,6 +152,7 @@ class AppPreferencesRepository(private val context: Context) :
     SetupChecklistPreferences,
     FeatureDiscoveryPreferences,
     ClockFacePreferences,
+    PurchasePreferences,
     WearSyncPreferences {
 
     override val preferences: Flow<AppPreferenceValues> =
@@ -142,6 +183,11 @@ class AppPreferencesRepository(private val context: Context) :
                         .toList(),
                 installedClockFacePacks =
                     prefs[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] ?: emptySet(),
+                ownedProductIds = prefs[AppPreferenceKeys.OWNED_PRODUCT_IDS] ?: emptySet(),
+                grandfatheredClockFacePacks =
+                    prefs[AppPreferenceKeys.GRANDFATHERED_CLOCK_FACE_PACKS] ?: emptySet(),
+                clockFacePacksGrandfathered =
+                    prefs[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED] ?: false,
             )
         }
 
@@ -229,12 +275,37 @@ class AppPreferencesRepository(private val context: Context) :
         }
     }
 
+    override suspend fun setOwnedProductIds(productIds: Set<String>) {
+        context.appPreferencesDataStore.edit {
+            it[AppPreferenceKeys.OWNED_PRODUCT_IDS] = productIds
+        }
+    }
+
+    /**
+     * Writes the free-era grant and its marker in one edit.
+     *
+     * One transaction rather than two calls, because a process death between them
+     * would leave the marker set with nothing granted — the user's packs gone, and
+     * the seed that would have restored them already spent.
+     */
+    override suspend fun setGrandfatheredClockFacePacks(packNames: Set<String>) {
+        context.appPreferencesDataStore.edit {
+            it[AppPreferenceKeys.GRANDFATHERED_CLOCK_FACE_PACKS] = packNames
+            it[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED] = true
+        }
+    }
+
     /**
      * Clears the first-run nudge bookkeeping on sign-out so the next account on
      * this device gets its own onboarding, checklist, celebrations and feature
      * discovery instead of inheriting the previous user's. Deliberately keeps
      * genuinely device-scoped state: theme, reduce motion, app lock, device id,
      * legacy-adoption marker, and the once-per-install notification education.
+     *
+     * Purchases are kept too, and for a stronger reason than "device-scoped":
+     * Play holds them against the Google account, not the ElmTrackr one, so
+     * clearing them here would strand a paying user behind a sign-out they had no
+     * reason to connect to it. The next refresh re-reads them from Play anyway.
      */
     suspend fun resetFirstRunNudges() {
         context.appPreferencesDataStore.edit {

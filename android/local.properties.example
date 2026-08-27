@@ -10,6 +10,14 @@ supabase.anon.key=
 # Optional Sentry DSN for crash reporting. Leave blank to disable Sentry.
 # sentry.dsn=https://examplePublicKey@o0.ingest.sentry.io/0
 
+# --- One-time products (clock face packs) ---
+# Off by default: every pack stays free and no Play connection is made.
+# Set to true only once the products listed in ClockFacePackProducts exist and are
+# active in Play Console, and only for a build installed through a Play track
+# (internal testing or higher) by a licence tester — Play Billing does not answer
+# a sideloaded APK, so a local debug build shows the packs as unavailable.
+# paid.clock.face.packs=false
+
 # --- Release signing (required for Play Store uploads) ---
 # Must match the upload key registered in Play Console (App integrity → App signing).
 # Verify with: keytool -list -v -keystore <path> -alias <alias>

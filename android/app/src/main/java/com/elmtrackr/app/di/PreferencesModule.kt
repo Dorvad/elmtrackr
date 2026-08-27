@@ -4,10 +4,9 @@ import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.local.preferences.AppPreferencesStore
 import com.elmtrackr.app.data.local.preferences.ClockFacePreferences
-import com.elmtrackr.app.billing.ClockFacePackEntitlements
-import com.elmtrackr.app.billing.FreeClockFacePackEntitlements
 import com.elmtrackr.app.data.local.preferences.FeatureDiscoveryPreferences
 import com.elmtrackr.app.data.local.preferences.OnboardingPreferences
+import com.elmtrackr.app.data.local.preferences.PurchasePreferences
 import com.elmtrackr.app.data.local.preferences.SetupChecklistPreferences
 import com.elmtrackr.app.data.local.preferences.WearSyncPreferences
 import dagger.Binds
@@ -48,9 +47,7 @@ abstract class PreferencesModule {
 
     @Binds
     @Singleton
-    abstract fun bindClockFacePackEntitlements(
-        impl: FreeClockFacePackEntitlements,
-    ): ClockFacePackEntitlements
+    abstract fun bindPurchasePreferences(impl: AppPreferencesRepository): PurchasePreferences
 
     @Binds
     @Singleton

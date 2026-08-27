@@ -55,6 +55,22 @@ android {
         )
         buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
 
+        // Whether clock face packs cost money.
+        //
+        // Off until the products in ClockFacePackProducts are live in Play
+        // Console, because a build that charges for products Play has never heard
+        // of gets an empty queryProductDetails response and shows every pack as
+        // unavailable. With it off the billing code still compiles and ships; the
+        // gallery simply behaves exactly as it did through 1.2.4.
+        //
+        // Set `paid.clock.face.packs=true` in local.properties to try the purchase
+        // flow against Play's licence testers before flipping it for a release.
+        buildConfigField(
+            "boolean",
+            "PAID_CLOCK_FACE_PACKS",
+            localProps.getProperty("paid.clock.face.packs", "false").toBoolean().toString(),
+        )
+
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -264,6 +280,8 @@ dependencies {
     implementation(libs.play.app.update.ktx)
     // In-app review flow; Task results are awaited with kotlinx-coroutines-play-services.
     implementation(libs.play.review)
+    implementation(libs.play.billing)
+    implementation(libs.play.billing.ktx)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)

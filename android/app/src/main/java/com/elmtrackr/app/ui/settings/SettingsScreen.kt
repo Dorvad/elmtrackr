@@ -2,6 +2,7 @@
 
 package com.elmtrackr.app.ui.settings
 
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Box
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.R
+import com.elmtrackr.app.billing.ClockFacePackStorefront
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.UiText
@@ -182,6 +184,10 @@ fun SettingsScreen(
     }
 
     val uiState by viewModel.uiState.collectAsState()
+    // Collected here rather than inside the gallery so a price arriving from Play
+    // recomposes only the settings subtree, not the whole activity.
+    val packStorefront by viewModel.packStorefront.collectAsState()
+    val packPurchaseFeedback by viewModel.packPurchaseFeedback.collectAsState()
     LaunchedEffect(Unit) { viewModel.ensureSettingsExist() }
 
     AnimatedContent(
@@ -263,6 +269,11 @@ fun SettingsScreen(
                             onReduceMotionChange = viewModel::setReduceMotion,
                             onInstallClockFacePack = viewModel::installClockFacePack,
                             onRemoveClockFacePack = viewModel::removeClockFacePack,
+                            packStorefront = packStorefront,
+                            packPurchaseFeedback = packPurchaseFeedback,
+                            onDismissPackPurchaseFeedback = viewModel::clearPackPurchaseFeedback,
+                            onBuyClockFacePack = viewModel::purchaseClockFacePack,
+                            onBuyAllClockFacePacks = viewModel::purchaseAllClockFacePacks,
                         )
                         is SettingsUiState.Error -> ErrorState(
                             message = state.message,
@@ -299,6 +310,11 @@ private fun SettingsFormHost(
     onReduceMotionChange: (Boolean) -> Unit,
     onInstallClockFacePack: (ClockFaceGroup) -> Unit,
     onRemoveClockFacePack: (ClockFaceGroup, ClockStyle, (ClockStyle) -> Unit) -> Unit,
+    packStorefront: ClockFacePackStorefront = ClockFacePackStorefront(),
+    packPurchaseFeedback: UiText? = null,
+    onDismissPackPurchaseFeedback: () -> Unit = {},
+    onBuyClockFacePack: (Activity, ClockFaceGroup) -> Unit = { _, _ -> },
+    onBuyAllClockFacePacks: (Activity) -> Unit = {},
 ) {
     val context = LocalContext.current
     val activity = context as FragmentActivity
@@ -359,6 +375,14 @@ private fun SettingsFormHost(
             duration = if (feedback.isError) SnackbarDuration.Long else SnackbarDuration.Short,
         )
         onDismissSaveFeedback()
+    }
+    LaunchedEffect(packPurchaseFeedback) {
+        val feedback = packPurchaseFeedback ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            message = feedback.resolve(context),
+            duration = SnackbarDuration.Long,
+        )
+        onDismissPackPurchaseFeedback()
     }
     LaunchedEffect(state.passwordResetFeedback) {
         state.passwordResetFeedback ?: return@LaunchedEffect
@@ -495,8 +519,11 @@ private fun SettingsFormHost(
                     stored = state.storedClockFacePacks,
                     selected = clockStyle,
                 ),
+                storefront = packStorefront,
                 onSelect = { onPendingClockStyleChange(it) },
                 onInstallPack = onInstallClockFacePack,
+                onBuyPack = { onBuyClockFacePack(activity, it) },
+                onBuyAllPacks = { onBuyAllClockFacePacks(activity) },
                 // The callback moves the unsaved selection off a face that is going
                 // away. Without it the pack would vanish while this screen still
                 // showed one of its faces as selected.
