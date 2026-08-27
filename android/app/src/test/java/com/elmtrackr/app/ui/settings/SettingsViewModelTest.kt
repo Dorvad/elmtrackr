@@ -57,6 +57,7 @@ class SettingsViewModelTest {
         appLockPrefs,
         clockFacePrefs,
         FreeClockFacePackEntitlements(),
+        com.elmtrackr.app.fake.FakeClockFacePackStore(),
     )
 
     private fun defaultSettings() = UserSettings(
@@ -424,6 +425,7 @@ class SettingsViewModelTest {
         val vm = SettingsViewModel(
             repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs, prefs,
             FreeClockFacePackEntitlements(),
+            com.elmtrackr.app.fake.FakeClockFacePackStore(),
         )
         val states = mutableListOf<SettingsUiState>()
         val job = launch { vm.uiState.collect { states.add(it) } }
@@ -458,10 +460,12 @@ class SettingsViewModelTest {
         val entitlements = object : com.elmtrackr.app.billing.ClockFacePackEntitlements {
             override suspend fun isEntitled(pack: ClockFaceGroup) = false
             override suspend fun anyPackRequiresPurchase() = true
+            override fun observeOwned() = kotlinx.coroutines.flow.flowOf(emptySet<ClockFaceGroup>())
         }
         val vm = SettingsViewModel(
             repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
             clockFacePrefs, entitlements,
+            com.elmtrackr.app.fake.FakeClockFacePackStore(),
         )
 
         vm.installClockFacePack(ClockFaceGroup.NATURE)
@@ -478,6 +482,7 @@ class SettingsViewModelTest {
         val vm = SettingsViewModel(
             repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
             prefs, FreeClockFacePackEntitlements(),
+            com.elmtrackr.app.fake.FakeClockFacePackStore(),
         )
 
         vm.removeClockFacePack(ClockFaceGroup.NATURE, selected = ClockStyle.CLASSIC)
@@ -496,6 +501,7 @@ class SettingsViewModelTest {
         val vm = SettingsViewModel(
             repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
             prefs, FreeClockFacePackEntitlements(),
+            com.elmtrackr.app.fake.FakeClockFacePackStore(),
         )
         var resetTo: ClockStyle? = null
 
@@ -512,6 +518,7 @@ class SettingsViewModelTest {
         val vm = SettingsViewModel(
             repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
             prefs, FreeClockFacePackEntitlements(),
+            com.elmtrackr.app.fake.FakeClockFacePackStore(),
         )
 
         vm.removeClockFacePack(ClockFaceGroup.ESSENTIALS, selected = ClockStyle.CLASSIC)
@@ -520,12 +527,52 @@ class SettingsViewModelTest {
         assertEquals(setOf("NATURE"), prefs.installedClockFacePacks)
     }
 
+    // ── Buying a pack ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `a completed purchase is reported to the user`() = runTest {
+        val store = com.elmtrackr.app.fake.FakeClockFacePackStore()
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
+            clockFacePrefs, FreeClockFacePackEntitlements(), store,
+        )
+        advanceUntilIdle()
+
+        store.emit(
+            com.elmtrackr.app.billing.PackPurchaseEvent.Purchased(setOf(ClockFaceGroup.NATURE)),
+        )
+        advanceUntilIdle()
+
+        assertEquals(UiText.Res(R.string.settings_pack_purchased), vm.packPurchaseFeedback.value)
+    }
+
+    /**
+     * Backing out of Play's sheet is not a failure and gets no message. The user
+     * pressed back; the app narrating that to them is noise, and an error-shaped
+     * snackbar would suggest something went wrong.
+     */
+    @Test
+    fun `a cancelled purchase says nothing`() = runTest {
+        val store = com.elmtrackr.app.fake.FakeClockFacePackStore()
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
+            clockFacePrefs, FreeClockFacePackEntitlements(), store,
+        )
+        advanceUntilIdle()
+
+        store.emit(com.elmtrackr.app.billing.PackPurchaseEvent.Cancelled)
+        advanceUntilIdle()
+
+        assertEquals(null, vm.packPurchaseFeedback.value)
+    }
+
     @Test
     fun `stored packs reach the state`() = runTest {
         val prefs = com.elmtrackr.app.fake.FakeClockFacePreferences(initialPacks = setOf("NATURE"))
         val vm = SettingsViewModel(
             repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
             prefs, FreeClockFacePackEntitlements(),
+            com.elmtrackr.app.fake.FakeClockFacePackStore(),
         )
         val states = mutableListOf<SettingsUiState>()
         val job = launch { vm.uiState.collect { states.add(it) } }

@@ -1,5 +1,8 @@
 package com.elmtrackr.app.ui.settings
 
+import com.elmtrackr.app.billing.BillingAvailability
+import com.elmtrackr.app.billing.ClockFacePackProducts
+import com.elmtrackr.app.billing.ClockFacePackStorefront
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -119,8 +122,14 @@ class ClockFacePickerRenderTest {
                 ClockFaceGalleryScreen(
                     selected = ClockStyle.CLASSIC,
                     availablePacks = ClockFaceGroup.entries.toSet(),
+                    storefront = ClockFacePackStorefront(
+                        owned = ClockFacePackProducts.purchasablePacks.toSet(),
+                        availability = BillingAvailability.AVAILABLE,
+                    ),
                     onSelect = { chosen = it },
                     onInstallPack = {},
+                    onBuyPack = {},
+                    onBuyAllPacks = {},
                     onRemovePack = {},
                     onBack = { wentBack = true },
                 )

@@ -1,10 +1,14 @@
 package com.elmtrackr.app.ui.settings
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.R
 import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
 import com.elmtrackr.app.billing.ClockFacePackEntitlements
+import com.elmtrackr.app.billing.ClockFacePackStore
+import com.elmtrackr.app.billing.ClockFacePackStorefront
+import com.elmtrackr.app.billing.PackPurchaseEvent
 import com.elmtrackr.app.data.local.preferences.ClockFacePreferences
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
@@ -22,6 +26,7 @@ import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.security.AppLockController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -58,6 +63,7 @@ class SettingsViewModel @Inject constructor(
     private val appPreferences: AppLockPreferencesStore,
     private val clockFacePreferences: ClockFacePreferences,
     private val clockFacePackEntitlements: ClockFacePackEntitlements,
+    private val clockFacePackStore: ClockFacePackStore,
 ) : ViewModel() {
 
     private val _isSaving = MutableStateFlow(false)
@@ -67,6 +73,40 @@ class SettingsViewModel @Inject constructor(
     private val _saveFeedback = MutableStateFlow<SettingsSaveFeedback?>(null)
     private val _isDeletingAccount = MutableStateFlow(false)
     private val _accountActionFeedback = MutableStateFlow<UiText?>(null)
+    private val _packPurchaseFeedback = MutableStateFlow<UiText?>(null)
+
+    /**
+     * Prices and ownership for the gallery, straight from the store.
+     *
+     * Passed through rather than folded into [SettingsUiState]. The storefront
+     * changes on its own schedule — Play answers a price query, a purchase lands
+     * while the screen is open — and merging it into the settings state would
+     * rebuild every settings form on each of those, for one screen's benefit.
+     */
+    val packStorefront: StateFlow<ClockFacePackStorefront> = clockFacePackStore.storefront
+
+    /** One-off purchase outcome for the snackbar. Null once shown. */
+    val packPurchaseFeedback: StateFlow<UiText?> = _packPurchaseFeedback.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            clockFacePackStore.events.collect { event ->
+                _packPurchaseFeedback.value = when (event) {
+                    // Nothing to say. The user pressed back on Play's sheet and
+                    // already knows what happened; a snackbar would be the app
+                    // narrating their own tap back at them.
+                    PackPurchaseEvent.Cancelled -> null
+                    is PackPurchaseEvent.Purchased -> UiText.Res(R.string.settings_pack_purchased)
+                    PackPurchaseEvent.Pending -> UiText.Res(R.string.settings_pack_purchase_pending)
+                    PackPurchaseEvent.AlreadyOwned -> UiText.Res(R.string.settings_pack_purchase_restored)
+                    // The response code is for the log, not the user: Play has
+                    // already shown its own error, and repeating a numeric code
+                    // helps nobody holding a phone.
+                    is PackPurchaseEvent.Failed -> UiText.Res(R.string.settings_pack_purchase_failed)
+                }
+            }
+        }
+    }
 
     private data class CoreData(
         val settings: UserSettings?,
@@ -407,6 +447,26 @@ class SettingsViewModel @Inject constructor(
             clockFacePreferences.setInstalledClockFacePacks((stored - pack).map { it.name }.toSet())
             ClockFacePacks.fallbackAfterRemoving(pack, selected)?.let(onSelectionReset)
         }
+    }
+
+    /**
+     * Opens Play's purchase sheet for [pack].
+     *
+     * Takes the Activity as a parameter and keeps no reference to it: Play needs a
+     * live Activity to draw over, and a view model that held one would outlive it
+     * across a rotation.
+     */
+    fun purchaseClockFacePack(activity: Activity, pack: ClockFaceGroup) {
+        viewModelScope.launch { clockFacePackStore.launchPurchase(activity, pack) }
+    }
+
+    /** Opens Play's purchase sheet for every pack at once. */
+    fun purchaseAllClockFacePacks(activity: Activity) {
+        viewModelScope.launch { clockFacePackStore.launchAllPacksPurchase(activity) }
+    }
+
+    fun clearPackPurchaseFeedback() {
+        _packPurchaseFeedback.value = null
     }
 
     fun clearSaveFeedback() {

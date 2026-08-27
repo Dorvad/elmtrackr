@@ -22,6 +22,7 @@ import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.domain.repository.AuthRepository
+import com.elmtrackr.app.billing.ClockFacePackBillingCoordinator
 import com.elmtrackr.app.navigation.AppNavGraph
 import com.elmtrackr.app.navigation.DeepLinkRouter
 import com.elmtrackr.app.navigation.PaidProjectsNavGuard
@@ -55,6 +56,7 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var syncTrigger: SyncTrigger
     @Inject lateinit var deepLinkRouter: DeepLinkRouter
     @Inject lateinit var reviewPromptCoordinator: ReviewPromptCoordinator
+    @Inject lateinit var packBillingCoordinator: ClockFacePackBillingCoordinator
 
     val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -148,6 +150,11 @@ class MainActivity : AppCompatActivity() {
         // WorkManager's KEEP policy debounces repeated foreground transitions.
         syncTrigger.schedule()
         reviewPromptCoordinator.noteAppForegrounded()
+        // Ask Play what this account owns on every foreground. It is what makes a
+        // "Restore purchases" button unnecessary, and it is the only moment that
+        // catches a purchase the user completed in the Play app after leaving
+        // ElmTrackr. A no-op while packs are free.
+        packBillingCoordinator.onAppForegrounded()
     }
 
     override fun onResume() {

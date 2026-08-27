@@ -21,6 +21,7 @@ kotlinxSerialization = "1.7.3"
 playServicesWearable = "18.2.0"
 playAppUpdate = "2.1.0"
 playReview = "2.0.2"
+playBilling = "9.1.0"
 wearCompose = "1.5.0"
 wearTiles = "1.4.0"
 wearWatchface = "1.2.1"
@@ -81,6 +82,15 @@ play-services-wearable = { group = "com.google.android.gms", name = "play-servic
 play-app-update = { group = "com.google.android.play", name = "app-update", version.ref = "playAppUpdate" }
 play-app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "playAppUpdate" }
 play-review = { group = "com.google.android.play", name = "review", version.ref = "playReview" }
+# Play Billing 9.x, not 7.x: `ProductDetailsResponseListener` gained a
+# `QueryProductDetailsResult` parameter in 8.0, so the callback shape here is the
+# newer one. Play also enforces a floor on how old a Billing Library an update may
+# ship with, and staying near the top of the range is what keeps a routine version
+# bump from becoming a forced migration on a release deadline.
+play-billing = { group = "com.android.billingclient", name = "billing", version.ref = "playBilling" }
+# Suspend wrappers for the three async calls this app makes (product details,
+# owned purchases, acknowledge). Same artifact family, released in lockstep.
+play-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "playBilling" }
 androidx-wear-compose-material3 = { group = "androidx.wear.compose", name = "compose-material3", version.ref = "wearCompose" }
 androidx-wear-compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation", version.ref = "wearCompose" }
 androidx-wear-compose-navigation = { group = "androidx.wear.compose", name = "compose-navigation", version.ref = "wearCompose" }

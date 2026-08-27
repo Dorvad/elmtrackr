@@ -49,6 +49,7 @@ class PaidProjectsSettingsTest {
         FakeAppLockPreferencesStore(),
         com.elmtrackr.app.fake.FakeClockFacePreferences(),
         FreeClockFacePackEntitlements(),
+        com.elmtrackr.app.fake.FakeClockFacePackStore(),
     )
 
     /** An existing user: onboarding done, hours and pay already configured. */
