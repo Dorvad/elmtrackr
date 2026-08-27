@@ -96,15 +96,18 @@ on the phone. A face they had *selected* still syncs and stays usable.
 > exist, not a guaranteed click path — verify the current wording in the console
 > and in Google's own Play Billing documentation before following it literally.
 
-1. **Merchant account.** Monetisation requires a linked Google payments merchant
-   profile with bank and tax details accepted. This is the long pole — allow days,
-   not hours, and it must be complete before products can be activated. NGG
-   finance owns the tax and payout details here.
+1. **Merchant account — already in place.** Confirm only that the payments
+   profile is still active and that tax treatment for the countries being sold to
+   is settled: for digital goods Google collects and remits VAT in many
+   jurisdictions but not all, and which applies depends on the registered country.
+   Verify this in the payments profile rather than assuming.
 2. **Upload a build containing the Billing Library first.** Play only exposes
    in-app product creation after it has seen an uploaded artifact that declares
    billing. Upload a build of this branch (flag off is fine — the library and the
    `com.android.vending.BILLING` permission are present either way) to an internal
-   testing track.
+   testing track. `versionCode` 42 / wear 10042 are already set and unused, so the
+   first upload needs no bump; every upload after that does, both together
+   (`release-checklist.md`).
 3. **Create the five products** listed in §2 as one-time products, with the exact
    ids above. Give each a title and description; those strings are shown by Play
    in its own purchase sheet, not by ElmTrackr.
@@ -115,6 +118,10 @@ on the phone. A face they had *selected* still syncs and stays usable.
    charged. Testers must be signed into the Play account on the device with the
    app installed *through a Play track*: Play Billing does not answer a sideloaded
    APK, so a local `assembleDebug` build always shows packs as unavailable.
+6. **Wait before concluding anything is broken.** A newly activated product does
+   not reach `queryProductDetails` immediately — propagation takes hours, and the
+   app renders the gap as *Unavailable*, which looks exactly like a bug. Give it
+   time before debugging the code.
 
 ## 5. Pricing
 
@@ -135,8 +142,11 @@ same caution applies to these. Two structural notes that are safe to state:
 
 ## 6. Testing before release
 
-With `paid.clock.face.packs=true` in `local.properties`, on a device signed in as
-a licence tester, with the build installed from an internal testing track:
+Billing cannot be tested from a local build. The loop is: set
+`paid.clock.face.packs=true` in `local.properties` → `bundleRelease` → upload to
+internal testing → install from Play on a device signed in as a licence tester.
+Every iteration costs an upload, so plan to work through the whole list per
+build rather than one item at a time.
 
 - [ ] Every unowned pack shows a Buy button with a real price from Play.
 - [ ] Buying a pack completes, adds the pack automatically, and the button becomes
