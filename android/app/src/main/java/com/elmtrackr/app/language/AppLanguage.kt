@@ -28,6 +28,7 @@ enum class AppLanguage(val tag: String?) {
     ENGLISH("en"),
     HEBREW("he"),
     ARABIC("ar"),
+    RUSSIAN("ru"),
     ;
 
     companion object {

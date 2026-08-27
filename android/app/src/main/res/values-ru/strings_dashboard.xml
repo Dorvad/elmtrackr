@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notification permission rationale dialog -->
+    <string name="dashboard_notif_rationale_title">Держите смену под контролем</string>
+    <string name="dashboard_notif_rationale_text">ElmTrackr использует уведомления, чтобы активная смена оставалась на виду и чтобы напомнить вам до начала сверхурочных.</string>
+    <string name="dashboard_notif_rationale_continue">Продолжить</string>
+    <string name="dashboard_notif_rationale_not_now">Не сейчас</string>
+
+    <!-- Load-failure fallback -->
+    <string name="dashboard_error_message">Что-то пошло не так: %1$s</string>
+
+    <!-- Header -->
+    <string name="dashboard_greeting_morning">Доброе утро</string>
+    <string name="dashboard_greeting_afternoon">Добрый день</string>
+    <string name="dashboard_greeting_evening">Добрый вечер</string>
+    <string name="dashboard_greeting_with_name">%1$s · %2$s</string>
+    <string name="dashboard_wordmark">elmtrackr</string>
+
+    <!-- Refund reminder banner -->
+    <string name="dashboard_refund_pending_one">%1$d компенсация проезда ожидает</string>
+    <string name="dashboard_refund_pending_other">компенсаций проезда ожидает: %1$d</string>
+    <string name="dashboard_refund_banner_body">Конец месяца близко — не забудьте подать заявки на проезд.</string>
+    <string name="dashboard_refund_banner_review">Проверить компенсации →</string>
+    <string name="dashboard_refund_banner_dismiss">Скрыть напоминание о компенсациях</string>
+
+    <!-- First-run welcome card -->
+    <string name="dashboard_welcome_title">Всё готово</string>
+    <string name="dashboard_welcome_body">Одна отметка прихода — и сразу видны часы, оценка оплаты и сверхурочные.</string>
+    <string name="dashboard_welcome_button">Отметить приход</string>
+
+    <!-- Clock cards -->
+    <string name="dashboard_clock_in">Отметить приход</string>
+    <string name="dashboard_clock_out">Отметить уход</string>
+    <string name="dashboard_clock_in_accessibility">Отметить приход. Начать учёт смены.</string>
+    <string name="dashboard_clock_out_accessibility">Отметить уход. Завершить текущую смену.</string>
+    <string name="dashboard_overtime_label">сверхурочные</string>
+    <string name="dashboard_since_time">С %1$s</string>
+    <string name="dashboard_edit_start_time">Изменить время начала</string>
+    <string name="dashboard_ready_to_clock_in">Готовы отметить приход</string>
+    <string name="dashboard_clock_in_short">Приход</string>
+    <string name="dashboard_clock_out_short">Уход</string>
+    <string name="dashboard_ready">Готово</string>
+    <string name="dashboard_tap_to_start">Нажмите, чтобы начать учёт смены</string>
+
+    <!-- Expressive clock card status labels. Capitalised in English for effect;
+         Russian keeps sentence case, where the register carries the emphasis. -->
+    <string name="dashboard_clock_focus_session">Сеанс концентрации</string>
+    <string name="dashboard_clock_ready_to_focus">Готовы сосредоточиться</string>
+    <string name="dashboard_clock_on_the_clock">На часах</string>
+    <string name="dashboard_clock_make_it_count">Пусть время не пропадёт</string>
+    <string name="dashboard_clock_night_shift">Ночная смена</string>
+    <string name="dashboard_clock_standby">Ожидание</string>
+    <string name="dashboard_clock_shift_active">Смена идёт</string>
+    <string name="dashboard_clock_system_ready">Система готова</string>
+    <string name="dashboard_clock_ready_caps">Готово</string>
+    <string name="dashboard_clock_elapsed">Прошло</string>
+    <string name="dashboard_clock_workday">Рабочий день</string>
+    <string name="dashboard_clock_time_flowing">Время течёт</string>
+    <string name="dashboard_clock_in_orbit">На орбите</string>
+    <string name="dashboard_clock_tide_rising">Прилив поднимается</string>
+    <string name="dashboard_clock_growing">Растёт</string>
+    <string name="dashboard_clock_ready_to_grow">Готово расти</string>
+    <string name="dashboard_clock_in_transit">В пути</string>
+    <string name="dashboard_clock_on_platform">На платформе</string>
+    <string name="dashboard_clock_now_playing">Сейчас играет</string>
+    <string name="dashboard_clock_drop_needle">Опустите иглу</string>
+    <string name="dashboard_clock_waxing">Растущая луна</string>
+    <string name="dashboard_clock_new_moon">Новолуние</string>
+    <string name="dashboard_clock_climbing">Восхождение</string>
+    <string name="dashboard_clock_base_camp">В базовом лагере</string>
+
+    <!-- Month summary -->
+    <string name="dashboard_month_summary_title">Итоги: %1$s</string>
+    <string name="dashboard_shift_count_one">%1$d смена</string>
+    <string name="dashboard_shift_count_other">смен: %1$d</string>
+    <string name="dashboard_hours_distribution">Распределение часов</string>
+    <!-- Quoted to keep the leading space, as in res/values. -->
+    <string name="dashboard_hours_total_suffix">" ч всего"</string>
+    <string name="dashboard_hours_value">%1$s ч</string>
+    <string name="dashboard_stat_total">Всего</string>
+    <string name="dashboard_stat_regular">Обычные</string>
+    <string name="dashboard_stat_overtime">Сверхурочные</string>
+    <string name="dashboard_stat_weekend">Выходные</string>
+    <string name="dashboard_gross_pay_title">Этот месяц - оплата до вычетов</string>
+    <string name="dashboard_before_tax_suffix">" до налогов"</string>
+    <string name="dashboard_pay_holiday">Праздник</string>
+
+    <!-- Recent shifts -->
+    <string name="dashboard_recent_shifts">Последние смены</string>
+    <string name="dashboard_no_completed_shifts">Завершённых смен пока нет</string>
+    <string name="dashboard_special_day_suffix">" особый"</string>
+    <string name="dashboard_shift_time_range">%1$s - %2$s</string>
+
+    <!-- Edit start time dialog -->
+    <string name="dashboard_save">Сохранить</string>
+    <string name="dashboard_cancel">Отмена</string>
+    <!-- Getting-started checklist -->
+    <string name="dashboard_setup_title">С чего начать</string>
+    <string name="dashboard_setup_subtitle">%1$d из %2$d — узнайте, что умеет ElmTrackr</string>
+    <string name="dashboard_setup_dismiss">Скрыть список</string>
+    <string name="dashboard_setup_step_done">Выполнено</string>
+    <string name="dashboard_setup_progress_accessibility">Выполнено %1$d из %2$d шагов настройки</string>
+    <string name="dashboard_setup_shift_title">Учтите первую смену</string>
+    <string name="dashboard_setup_shift_blurb">Приход в начале, уход в конце.</string>
+    <string name="dashboard_setup_shift_body">Каждая учтённая смена превращается в оценку оплаты: обычные, сверхурочные и выходные часы считаются отдельно и по вашим реальным ставкам.</string>
+    <string name="dashboard_setup_shift_action">Отметить приход</string>
+    <string name="dashboard_setup_name_title">Укажите своё имя</string>
+    <string name="dashboard_setup_name_blurb">Для приветствия на этом экране.</string>
+    <string name="dashboard_setup_name_body">ElmTrackr здоровается с вами по имени на главном экране. Больше оно нигде не используется — поэтому мы и не спрашиваем его, пока вы не увидели приложение.</string>
+    <string name="dashboard_setup_name_action">Указать имя</string>
+    <string name="dashboard_setup_features_title">Включите нужное</string>
+    <string name="dashboard_setup_features_blurb">Компенсация проезда, аналитика, оплачиваемые проекты.</string>
+    <string name="dashboard_setup_features_body">ElmTrackr учитывает часы сразу из коробки. Включите компенсацию проезда, чтобы заявлять расходы на поездки, аналитику — чтобы видеть недельные закономерности, или оплачиваемые проекты — чтобы выставлять счета клиентам.</string>
+    <string name="dashboard_setup_features_action">Посмотреть дополнения</string>
+    <string name="dashboard_setup_lock_title">Заблокируйте приложение</string>
+    <string name="dashboard_setup_lock_blurb">Ваша оплата — за отпечатком пальца.</string>
+    <string name="dashboard_setup_lock_body">В ElmTrackr хранятся ваши часы, оплата и клиенты. Блокировка приложения запросит отпечаток пальца или код блокировки экрана, прежде чем что-либо показать.</string>
+    <string name="dashboard_setup_lock_action">Настроить блокировку</string>
+    <string name="dashboard_setup_clock_title">Настройте часы под себя</string>
+    <string name="dashboard_setup_clock_blurb">15 циферблатов на выбор.</string>
+    <string name="dashboard_setup_clock_body">Большие часы на этом экране — ваш табель. Выберите циферблат под свой вкус: от минималистичного до поднимающегося прилива.</string>
+    <string name="dashboard_setup_clock_action">Выбрать стиль</string>
+    <string name="dashboard_setup_compensation_title">Проверьте правила оплаты</string>
+    <string name="dashboard_setup_compensation_blurb">Ставки за сверхурочные, выходные и праздники.</string>
+    <string name="dashboard_setup_compensation_body">Оценка оплаты не точнее правил, на которых она построена. Проверьте пороги сверхурочных и коэффициенты ставок и сверьте их с договором или недавним расчётным листком — если что-то расходится, уточните детали у работодателя.</string>
+    <string name="dashboard_setup_compensation_action">Проверить правила оплаты</string>
+    <string name="dashboard_setup_premium_title">Добавьте надбавку</string>
+    <string name="dashboard_setup_premium_blurb">Многоразовые профили повышенных ставок.</string>
+    <string name="dashboard_setup_premium_body" formatted="false">Профиль надбавки — это именованная дополнительная ставка, например 150% за ночную работу, которую можно применить к любой смене. Создайте профиль и посмотрите, как он меняет оплату смены.</string>
+    <string name="dashboard_setup_premium_action">Настроить надбавки</string>
+    <string name="dashboard_setup_tasks_title">Создайте задачу</string>
+    <string name="dashboard_setup_tasks_blurb">Своя ставка для каждого проекта или клиента.</string>
+    <string name="dashboard_setup_tasks_body">Задачи помечают ваши смены проектом или клиентом, у каждого своя почасовая ставка — удобно, когда время делится между разными работами.</string>
+    <string name="dashboard_setup_tasks_action">Создать задачу</string>
+    <string name="dashboard_setup_widget_title">Добавьте виджет на главный экран</string>
+    <string name="dashboard_setup_widget_blurb">Отмечайте приход, не открывая приложение.</string>
+    <string name="dashboard_setup_widget_body">Виджет показывает идущую смену и отмечает приход или уход в одно нажатие прямо с главного экрана.</string>
+    <string name="dashboard_setup_widget_action">Добавить виджет</string>
+    <string name="dashboard_setup_celebration_title">Всё настроено!</string>
+    <string name="dashboard_setup_celebration_body">Вы освоили основное. Теперь ElmTrackr учитывает и оценивает ваши смены ровно так, как вы работаете.</string>
+    <string name="dashboard_start_time_future_error">Время начала не может быть в будущем.</string>
+    <string name="dashboard_month_summary_open_report">Открыть полный отчёт</string>
+    <string name="dashboard_gross_before_tax">Начислено · до налогов</string>
+</resources>

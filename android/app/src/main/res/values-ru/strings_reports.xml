@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Screen chrome -->
+    <string name="reports_title">Отчёты</string>
+    <string name="reports_subtitle">Обзор ваших показателей</string>
+    <string name="reports_tab_hours">Часы</string>
+    <string name="reports_tab_refunds">Компенсация проезда</string>
+    <string name="reports_tab_projects">Проекты</string>
+    <string name="reports_empty_title">Нет завершённых смен</string>
+    <string name="reports_empty_subtitle">Завершите несколько смен, чтобы увидеть отчёт.</string>
+
+    <!-- Stat cards -->
+    <string name="reports_hours_value">%1$s ч</string>
+    <string name="reports_all_hours_month">Все часы за месяц</string>
+    <string name="reports_pct_of_total">%1$d%% от общего</string>
+    <string name="reports_gross_pay_before_tax">Начислено · до налогов</string>
+    <string name="reports_peak_performer">Лучший результат</string>
+    <string name="reports_peak_more">Вы отработали на %1$d%% больше часов, чем %2$s. Так держать!</string>
+    <string name="reports_peak_fewer">Вы отработали на %1$d%% меньше часов, чем %2$s.</string>
+    <string name="reports_peak_same">Столько же часов, сколько %1$s.</string>
+    <string name="reports_month_over_month">По сравнению с прошлым месяцем</string>
+    <string name="reports_hours_this_month">%1$s ч в этом месяце</string>
+    <string name="reports_vs_prev">%1$s %2$s ч по сравнению с %3$s</string>
+
+    <!-- Shift insights -->
+    <string name="reports_insights_off_title">Аналитика отключена</string>
+    <string name="reports_insights_off_body">Включите аналитику в настройках → «Функции», чтобы видеть здесь ежедневные карточки и статистику смен.</string>
+    <string name="reports_shift_insights">Аналитика смен</string>
+    <string name="reports_weekend_shifts">Смены в выходные</string>
+    <string name="reports_avg_shift_length">Средняя длина смены</string>
+    <string name="reports_overtime_shifts">Смены со сверхурочными</string>
+    <string name="reports_longest_shift">Самая длинная смена</string>
+    <string name="reports_avg_pay_shift">Средняя оплата за смену</string>
+    <string name="reports_best_shift">Лучшая смена</string>
+    <string name="reports_per_shift">за смену</string>
+    <string name="reports_shift_one">смена</string>
+    <string name="reports_shift_other">смены</string>
+    <string name="reports_set_rate_unlock">задайте ставку, чтобы открыть</string>
+
+    <!-- Daily insight pager -->
+    <string name="reports_insights_of_day">Наблюдения дня</string>
+    <string name="reports_swipe_daily">листайте · меняется каждый день</string>
+    <string name="reports_index_of">%1$d из %2$d</string>
+    <string name="reports_today_dot">● сегодня</string>
+
+    <!-- Weekly / task / shift breakdown -->
+    <string name="reports_weekly_breakdown">По неделям</string>
+    <string name="reports_vs_month">против %1$s</string>
+    <string name="reports_by_task">По задачам</string>
+    <string name="reports_shift_breakdown">По сменам</string>
+    <string name="reports_week_label">Неделя %1$s</string>
+    <string name="reports_week_days">дни %1$s</string>
+    <string name="reports_task_shifts_avg">смен: %1$d · в среднем %2$s ч</string>
+    <string name="reports_ot_hours">Сверх. %1$s ч</string>
+    <string name="reports_ot_suffix">%1$s сверх.</string>
+    <string name="reports_plus_ot">+%1$s сверх.</string>
+    <string name="reports_chip_weekend">Выходной</string>
+    <string name="reports_chip_overnight">Через полночь</string>
+    <!-- Quoted to keep the leading space, as in res/values. -->
+    <string name="reports_break_suffix">" · перерыв %1$d мин"</string>
+    <string name="reports_daily_ot_after">Дневные сверхурочные после</string>
+    <string name="reports_weekly_ot_after">Недельные сверхурочные после</string>
+    <string name="reports_hours_distribution">Распределение часов</string>
+    <string name="reports_export_pdf_month">Экспорт PDF - %1$s</string>
+    <string name="reports_preparing_pdf">Готовим PDF…</string>
+
+    <!-- Refunds tab -->
+    <string name="reports_no_reimb_title">Компенсаций за поездки пока нет</string>
+    <string name="reports_no_reimb_body">Добавляйте заявки на компенсацию из любой завершённой смены при её редактировании.</string>
+    <string name="reports_export_all_receipts">Экспортировать все чеки компенсаций</string>
+    <string name="reports_preparing_reimb_pdf">Готовим PDF по компенсациям…</string>
+    <string name="reports_reminder_one">%1$d напоминание</string>
+    <string name="reports_reminder_other">напоминаний: %1$d</string>
+    <string name="reports_open_shift_submit">Откройте смену, чтобы подать заявку или отметить, что поездки не было.</string>
+    <string name="reports_reimb_history">История компенсаций</string>
+    <string name="reports_show_earlier_months">Показать ещё месяцев: %1$d</string>
+    <string name="reports_showing_months">Показано: %1$s с компенсациями за поездки.</string>
+    <string name="reports_month_count_one">%1$d месяц</string>
+    <string name="reports_month_count_other">месяцев: %1$d</string>
+    <string name="reports_total_refunded">Всего компенсировано</string>
+    <string name="reports_rides_months">поездок: %1$d - месяцев: %2$d</string>
+    <string name="reports_total_compensation">Общая компенсация</string>
+    <string name="reports_by_provider">По перевозчикам</string>
+    <string name="reports_provider_rides">%1$s - поездок: %2$d</string>
+    <string name="reports_avg_per_ride">В среднем за поездку</string>
+    <string name="reports_largest_ride">Самая дорогая поездка</string>
+    <string name="reports_submitted">Подано</string>
+    <string name="reports_pending">Ожидает</string>
+    <string name="reports_dir_to_work">На работу</string>
+    <string name="reports_dir_from_work">С работы</string>
+    <string name="reports_claim_line">%1$s - %2$s - %3$s</string>
+    <string name="reports_receipt_suffix">" - чек"</string>
+    <string name="reports_view">Открыть</string>
+    <string name="reports_all_months">Все месяцы</string>
+
+    <!-- PDF export -->
+    <string name="export_monthly_title">Месячный отчёт по сменам</string>
+    <string name="export_completed_shifts">завершённых смен: %1$d</string>
+    <string name="export_generated_by">Сформировано в ElmTrackr</string>
+    <string name="export_gross_pay">Начислено до вычетов</string>
+    <string name="export_thresholds">Пороги</string>
+    <string name="export_note">Примечание: %1$s</string>
+    <string name="export_share_csv">Экспорт CSV</string>
+    <string name="export_share_pdf">Экспорт PDF по сменам</string>
+    <string name="export_reimb_title">Отчёт по компенсации проезда</string>
+    <string name="export_claims_count">заявок: %1$d</string>
+    <string name="export_total">Итого: %1$s</string>
+    <string name="export_col_direction">Направление</string>
+    <string name="export_col_ride_date">Дата поездки</string>
+    <string name="export_col_provider">Перевозчик</string>
+    <string name="export_col_amount">Сумма</string>
+    <string name="export_shift_prefix">Смена: %1$s</string>
+    <string name="export_col_date">Дата</string>
+    <string name="export_col_time">Время</string>
+    <string name="export_col_total">Итого</string>
+    <string name="export_col_tags">Метки</string>
+    <string name="export_col_gross">Начислено</string>
+    <string name="export_col_task">Задача</string>
+    <string name="export_col_shifts">Смены</string>
+    <string name="export_col_ot">Сверх.</string>
+    <string name="export_avg">в среднем %1$s</string>
+    <string name="export_receipt_n">Чек %1$s: %2$s - %3$s</string>
+    <string name="export_share_reimb">Экспорт PDF по компенсациям</string>
+
+    <!-- Daily insight cards (** marks bold segments) -->
+    <string name="insight_fallback_title">Только начинаем</string>
+    <string name="insight_fallback_text">Учтите первые завершённые смены, чтобы открыть ежедневные наблюдения.</string>
+    <string name="insight_workdays_title">Сколько это рабочих дней</string>
+    <string name="insight_workdays_text">Ваши **%1$d ч** работы — это **%2$d полных рабочих дней по %3$s ч**. Стабильно.</string>
+    <string name="insight_movies_title">Киномарафон</string>
+    <string name="insight_movies_text">Вместо **%1$d ч** работы вы могли бы посмотреть **%2$d фильмов**. Попкорн не входит.</string>
+    <string name="insight_books_title">Книжный клуб</string>
+    <string name="insight_books_text">Ваши **%1$d ч** работы = **%2$d книг**, которые можно было прочитать от корки до корки. Звание книжного червя в ожидании.</string>
+    <string name="insight_eilat_title">Дорожное путешествие</string>
+    <string name="insight_eilat_text">Ваши часы за месяц равны **%1$d поездкам** из Тель-Авива в Эйлат. Барханы, пустынный ветер и дедлайны.</string>
+    <string name="insight_coffee_title">Кофейная математика</string>
+    <string name="insight_coffee_text">Ваши **%1$d ч** работы потребовали примерно **%2$d чашек кофе** — по 20 минут ритуала на каждую. Без кофеина не считается.</string>
+    <string name="insight_flights_title">Часы в воздухе</string>
+    <string name="insight_flights_text">**%1$d ч** работы = **%2$d прямых рейсов El Al** из Тель-Авива в Нью-Йорк. Смена часовых поясов не входит.</string>
+    <string name="insight_binge_title">Запойный просмотр</string>
+    <string name="insight_binge_text">**%1$d ч** работы = **%2$s× весь сериал Breaking Bad** (все %3$d ч). Считайте месяц продуктивным.</string>
+    <string name="insight_beach_title">Пляжный налог</string>
+    <string name="insight_beach_text_one">В этом месяце вы отработали **1 смену**. Это **1 возможный пляжный день**, отданный продуктивности. Оно того стоило?</string>
+    <string name="insight_beach_text_other">В этом месяце вы отработали **%1$d смен**. Это **%1$d возможных пляжных дней**, отданных продуктивности. Оно того стоило?</string>
+    <string name="insight_surf_title">Ловись, волна</string>
+    <string name="insight_surf_text">Средний заход на сёрфинг длится **%1$s ч**. Ваша работа за месяц = **%2$d заходов**, которые можно было поймать вместо неё.</string>
+    <string name="insight_monopoly_title">Чемпион настолок</string>
+    <string name="insight_monopoly_text">Средняя партия в «Монополию» длится **%1$d ч**. Ваша работа за месяц = **%2$d полных партий**. Вы и в жизни собирали арендную плату.</string>
+    <string name="insight_shwarma_title">Экономика шаурмы</string>
+    <string name="insight_shwarma_text">По %1$d минут на шаурму — за отработанное в этом месяце время вы могли бы съесть **%2$d шаурм**. Приятного аппетита.</string>
+    <string name="insight_pizza_title">Пиццевый фонд</string>
+    <string name="insight_pizza_text">На заработанное в этом месяце можно купить **%1$d пицц** по ₪%2$d за штуку. Это очень много кусков.</string>
+    <string name="insight_coke_title">Счётчик колы</string>
+    <string name="insight_coke_text">Это **%1$d бутылок кока-колы** по ₪%2$s за штуку. Бюджет на гидратацию открыт.</string>
+    <string name="insight_cinema_title">Бюджет на кино</string>
+    <string name="insight_cinema_text">Вашего заработка хватит на **%1$d билетов в кино** по ₪%2$d за штуку. Попкорн отдельно.</string>
+    <string name="insight_burger_title">Забег за бургером</string>
+    <string name="insight_burger_text">Это **%1$d обедов уровня «Биг Мак»** по ₪%2$d за штуку. Вот это я понимаю — сверхурочные.</string>
+    <string name="insight_netflix_title">Стопка подписок</string>
+    <string name="insight_netflix_text">Вашей оплаты хватит на **%1$d месяцев Netflix** по ₪%2$d в месяц. Времени расслабиться полно — после работы.</string>
+    <string name="insight_spotify_title">Бюджет на плейлисты</string>
+    <string name="insight_spotify_text">Это **%1$d месяцев Spotify Premium** по ₪%2$d в месяц. Добавьте саундтрек к сменам.</string>
+    <string name="insight_avocado_title">Индекс авокадо</string>
+    <string name="insight_avocado_text">Любимый фрукт Израиля: **%1$d авокадо** по ₪%2$d за штуку. Математика позднего завтрака сходится.</string>
+    <string name="insight_beer_title">Счастливый час</string>
+    <string name="insight_beer_text">Ваш заработок равен **%1$d бутылкам пива** по ₪%2$d за штуку. За день зарплаты.</string>
+    <string name="insight_eggs_title">Фонд завтрака</string>
+    <string name="insight_eggs_text">Это **%1$d упаковок яиц** по ₪%2$d за штуку. Сезон шакшуки не кончается.</string>
+    <string name="insight_bus_title">Время в дороге</string>
+    <string name="insight_bus_text">Средняя поездка на автобусе — **%1$d минут**. Вы отработали столько, что хватило бы на **%2$d поездок** через весь город.</string>
+    <string name="insight_podcast_title">Очередь подкастов</string>
+    <string name="insight_podcast_text">Обычный выпуск подкаста длится **%1$d минут**. Ваши **%2$d ч** = **%3$d выпусков**, которые можно было прослушать подряд.</string>
+    <string name="insight_laundry_title">Загрузки стирки</string>
+    <string name="insight_laundry_text">Один цикл стирки занимает около **%1$d минут**. Вы отработали столько, что хватило бы на **%2$d полных загрузок**. Носки включены.</string>
+    <string name="insight_dishes_title">Дежурство по посуде</string>
+    <string name="insight_dishes_text">Цикл посудомойки длится **%1$d минут**. Ваши часы = **%2$d безупречных циклов**. Губка не понадобится.</string>
+    <string name="insight_army_title">Часы службы</string>
+    <string name="insight_army_text">Армейская служба в Израиле у мужчин — около **%1$d ч** в сумме. Ваша работа за месяц = **%2$d%%** полной службы. Отдаём честь.</string>
+    <string name="insight_hatikva_title">Государственный гимн</string>
+    <string name="insight_hatikva_text">«Ха-Тиква» звучит **около %1$s минут**. Ваша работа за месяц = **%2$d прослушиваний** гимна. 🇮🇱</string>
+    <string name="insight_snail_title">Гонка улиток</string>
+    <string name="insight_snail_text">Садовая улитка разгоняется до **%1$s км/ч**. За ваши **%2$d ч** работы в этом месяце улитка проползла бы **%3$s км**.</string>
+    <string name="insight_iss_title">Орбитальный механик</string>
+    <string name="insight_iss_text">МКС облетает Землю каждые **%1$d минут**. Пока вы работали **%2$d ч**, она сделала **%3$d полных витков**. Есть о чём подумать.</string>
+    <string name="insight_shark_title">Спринт акулы</string>
+    <string name="insight_shark_text">Большая белая акула развивает **%1$d км/ч**. За ваши **%2$d рабочих часов** акула проплыла бы **%3$d км**. В воду лучше не заходить.</string>
+    <string name="insight_bee_title">Пчела-труженица</string>
+    <string name="insight_bee_text">Рабочая пчела собирает нектар около **%1$d ч** за всю жизнь. Ваша работа за месяц = **%2$s%%** от полной пчелиной карьеры. Бзз.</string>
+    <string name="insight_shakespeare_title">Режим Шекспира</string>
+    <string name="insight_shakespeare_text">По оценкам специалистов, Шекспир потратил **%1$s ч** на все свои произведения. За этот месяц вы прошли **%2$s%%** одного Шекспира.</string>
+    <string name="insight_earth_title">Вокруг света</string>
+    <string name="insight_earth_text">Обойти Землю по экватору со скоростью 5 км/ч заняло бы **%1$s ч**. Ваша работа за месяц — это **%2$s%%** пути вокруг планеты.</string>
+    <string name="insight_degree_title">Прогресс диплома</string>
+    <string name="insight_degree_text">Полное высшее образование требует примерно **%1$s часов** учёбы. Ваша работа за месяц = **%2$s%%** целого диплома.</string>
+    <string name="insight_guitar_title">Гитарный бог</string>
+    <string name="insight_guitar_text">Среднее гитарное соло длится **%1$d с**. Вы отработали столько, что хватило бы на **%2$d гитарных соло**. Жгите дальше.</string>
+    <string name="insight_ramen_title">Счётчик рамена</string>
+    <string name="insight_ramen_text">Рамен быстрого приготовления варится **%1$d минут**. За ваши **%2$d ч** работы можно было приготовить **%3$d порций**. Экономный образ жизни.</string>
+</resources>

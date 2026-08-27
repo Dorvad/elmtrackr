@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ElmTrackr</string>
+    <string name="tile_label">ElmTrackr — отметка</string>
+    <string name="complication_label">ElmTrackr — статус</string>
+    <string name="setup_title">Войдите на телефоне</string>
+    <string name="setup_body">Откройте ElmTrackr на сопряжённом телефоне, войдите и вернитесь сюда.</string>
+    <string name="idle_last_punch">Последняя отметка</string>
+    <string name="idle_tap_hint">Нажмите, чтобы отметить приход</string>
+    <string name="countdown_punching_in">Отмечаем приход</string>
+    <string name="countdown_punching_out">Отмечаем уход</string>
+    <string name="countdown_tap_to_cancel">Нажмите, чтобы отменить</string>
+    <!-- wear_brand is translatable="false" in res/values and omitted here. -->
+    <string name="wear_on_shift">На смене</string>
+    <string name="wear_clocked_out">Смена завершена</string>
+    <string name="wear_tap_to_stop">нажмите, чтобы остановить</string>
+    <string name="running_since">С %1$s</string>
+    <string name="punch_in">Отметить приход</string>
+    <string name="punch_out">Отметить уход</string>
+    <string name="confirmed_in">Приход отмечен</string>
+    <string name="confirmed_out">Уход отмечен</string>
+    <string name="phone_unreachable">Телефон недоступен</string>
+    <string name="punch_failed">Не удалось отметить</string>
+    <string name="wear_sync_disabled">Часы отключены в настройках телефона</string>
+    <string name="wear_refresh">Обновить</string>
+    <string name="wear_today">Сегодня %1$s</string>
+    <string name="wear_percent_of_day">%1$d%% дня</string>
+    <string name="tile_sign_in">Войти</string>
+    <string name="tile_on_phone">на телефоне</string>
+    <string name="tile_tap_punch_out">нажмите, чтобы отметить уход</string>
+    <string name="tile_tap_punch_in">нажмите, чтобы отметить приход</string>
+    <string name="wear_last_out_today">Последний уход • сегодня %1$s</string>
+    <string name="wear_last_out_yesterday">Последний уход • вчера %1$s</string>
+    <string name="wear_last_out_other">Последний уход • %1$s</string>
+    <string name="wear_comp_in">Приход</string>
+    <string name="wear_comp_out">Уход</string>
+    <string name="wear_comp_clocked_in">На смене · %1$s</string>
+</resources>

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Refund claims section -->
+    <string name="refunds_reading_receipt">Читаем текст чека…</string>
+    <string name="refunds_not_eligible">По этой смене компенсация проезда не полагается.</string>
+    <string name="refunds_ok">ОК</string>
+    <string name="refunds_claim_icon_description">Заявка на компенсацию</string>
+    <string name="refunds_direction_to_work">Поездка на работу</string>
+    <string name="refunds_direction_from_work">Поездка с работы</string>
+    <string name="refunds_no_rides_yet">Поездок пока нет</string>
+    <!-- Russian needs four CLDR categories. `one` covers 21, 31 … too, so it
+         keeps the placeholder even though the English `one` spelled out "1". -->
+    <plurals name="refunds_rides_saved">
+        <item quantity="one">Сохранена %d поездка</item>
+        <item quantity="few">Сохранено %d поездки</item>
+        <item quantity="many">Сохранено %d поездок</item>
+        <item quantity="other">Сохранено %d поездки</item>
+    </plurals>
+    <string name="refunds_add_receipt_now">Добавить чек сейчас</string>
+    <string name="refunds_add_ride">Добавить поездку</string>
+    <string name="refunds_add_another_ride">Добавить ещё поездку</string>
+    <string name="refunds_claim_summary">%1$s - %2$s</string>
+    <string name="refunds_date_at_time">%1$s в %2$s</string>
+    <string name="refunds_edit">Изменить</string>
+    <string name="refunds_view_receipt">Посмотреть чек</string>
+    <string name="refunds_delete">Удалить</string>
+    <string name="refunds_no_ride">Без поездки</string>
+    <string name="refunds_remind_later">Напомнить позже</string>
+    <string name="refunds_marked_no_ride">Отмечено: поездки не было</string>
+    <string name="refunds_undo">Отменить</string>
+    <string name="refunds_reminder_kept">Напоминание оставлено на потом</string>
+
+    <!-- Claim form dialog -->
+    <string name="refunds_form_title_add">Добавить %1$s</string>
+    <string name="refunds_form_title_edit">Изменить %1$s</string>
+    <string name="refunds_form_subtitle">Приложите чек, укажите сумму, перевозчика и время поездки для этой заявки.</string>
+    <string name="refunds_amount_label">Сумма (%1$s)</string>
+    <string name="refunds_notes_label">Заметки (необязательно)</string>
+    <string name="refunds_cancel">Отмена</string>
+    <string name="refunds_save">Сохранить</string>
+    <string name="refunds_update">Обновить</string>
+
+    <!-- Receipt photo area -->
+    <string name="refunds_receipt_photo">Фото чека</string>
+    <string name="refunds_pending_receipt_photo">Фото чека в очереди</string>
+    <string name="refunds_new_receipt_photo">Новое фото чека</string>
+    <string name="refunds_no_receipt_attached">Чек не приложен</string>
+    <string name="refunds_existing_receipt_attached">Приложен существующий чек</string>
+    <string name="refunds_receipt_attached">Чек приложен</string>
+    <string name="refunds_cloud_receipt_attached">Приложен чек из облака</string>
+    <string name="refunds_no_receipt_yet">Чек пока не приложен</string>
+    <string name="refunds_scan_receipt">Сканировать чек</string>
+    <string name="refunds_attach_receipt">Приложить чек</string>
+    <string name="refunds_use_device_camera">Использовать камеру устройства</string>
+    <string name="refunds_retake_with_camera">Переснять камерой</string>
+    <string name="refunds_remove_receipt_photo">Убрать фото чека</string>
+    <string name="refunds_remove_photo">Убрать фото</string>
+    <string name="refunds_view_cloud_receipt">Посмотреть чек в облаке</string>
+
+    <!-- Ride date/time pickers -->
+    <string name="refunds_ride_date">Дата поездки</string>
+    <string name="refunds_ride_time">Время поездки</string>
+    <string name="refunds_pick_ride_date">Выбрать дату поездки</string>
+    <string name="refunds_pick_ride_time">Выбрать время поездки</string>
+    <string name="refunds_select_time">Выбрать время</string>
+
+    <!-- Receipt review dialog -->
+    <string name="refunds_review_title">Проверьте данные чека</string>
+    <string name="refunds_review_subtitle">Сверьте распознанные данные перед сохранением. Распознавание текста может пропустить или неверно прочитать значения, особенно на выцветших или смятых чеках.</string>
+    <string name="refunds_scanned_receipt_preview">Предпросмотр отсканированного чека</string>
+    <string name="refunds_merchant_label">Продавец</string>
+    <string name="refunds_amount_only_label">Сумма</string>
+    <string name="refunds_currency_label">Валюта</string>
+    <string name="refunds_save_receipt">Сохранить чек</string>
+    <string name="refunds_confidence_ocr_failed">Не удалось распознать текст. Чек всё равно можно сохранить и ввести данные вручную.</string>
+    <string name="refunds_confidence_none">Сумма не обнаружена. Сохраните чек и введите сумму компенсации вручную.</string>
+    <string name="refunds_confidence_low">Низкая точность распознавания. Перепроверьте каждое поле перед сохранением.</string>
+    <string name="refunds_confidence_medium">Часть данных распознана. Проверьте их перед сохранением.</string>
+    <string name="refunds_confidence_high">Данные распознаны с хорошей точностью. Всё же проверьте их перед сохранением.</string>
+
+    <!-- Receipt preview dialog -->
+    <string name="refunds_receipt_title">Чек</string>
+    <string name="refunds_receipt_image">Изображение чека</string>
+    <string name="refunds_receipt_preview_failed">Не удалось загрузить предпросмотр чека. Возможно, файл был удалён.</string>
+    <string name="refunds_close">Закрыть</string>
+
+    <!-- Receipt camera -->
+    <string name="refunds_receipt_camera">Камера для чеков</string>
+    <string name="refunds_close_camera">Закрыть камеру</string>
+    <string name="refunds_captured_receipt_preview">Предпросмотр снятого чека</string>
+    <string name="refunds_capture_receipt">Снять чек</string>
+    <string name="refunds_camera_permission_title">Чтобы фотографировать чеки за поездки, нужно разрешение на камеру.</string>
+    <string name="refunds_camera_permission_body">Вы по-прежнему можете выбрать готовое изображение чека с телефона.</string>
+    <string name="refunds_allow_camera">Разрешить камеру</string>
+    <string name="refunds_not_now">Не сейчас</string>
+
+    <!-- ViewModel messages -->
+    <string name="refunds_err_load">Не удалось загрузить заявки на компенсацию</string>
+    <string name="refunds_err_scanner">Не удалось открыть сканер чеков</string>
+    <string name="refunds_err_scan_failed">Не удалось прочитать этот чек. Попробуйте снимок почётче или введите данные вручную.</string>
+    <string name="refunds_err_photo_not_saved">Фото чека не сохранено. Повторите попытку.</string>
+    <string name="refunds_err_photo_store">Не удалось сохранить фото чека. Повторите попытку.</string>
+    <string name="refunds_err_capture">Не удалось снять фото чека</string>
+    <string name="refunds_err_save_receipt_local">Не удалось сохранить чек локально</string>
+    <string name="refunds_err_amount">Введите корректную сумму компенсации</string>
+    <string name="refunds_err_photo_missing_large">Фото чека отсутствует или больше 10 МБ.</string>
+    <string name="refunds_err_save_claim">Не удалось сохранить заявку на компенсацию</string>
+    <string name="refunds_err_delete_claim">Не удалось удалить заявку на компенсацию</string>
+    <string name="refunds_err_update_status">Не удалось обновить статус компенсации</string>
+    <string name="refunds_err_no_receipt">К этой заявке не приложен чек.</string>
+    <string name="refunds_err_receipt_file_missing">Файл изображения чека отсутствует.</string>
+    <string name="refunds_err_preview_unavailable">Предпросмотр чека сейчас недоступен.</string>
+    <string name="refunds_err_image_too_large">Выберите изображение меньше 10 МБ.</string>
+    <string name="refunds_notice_receipt_saved_enter_amount">Чек сохранён локально. Введите сумму компенсации, прежде чем подавать заявку.</string>
+    <string name="refunds_notice_receipt_saved_verify">Чек сохранён локально. Проверьте данные заявки перед подачей.</string>
+    <string name="refunds_notice_saved_no_receipt">Заявка сохранена без нового чека. Загрузка чеков недоступна, приложить его можно позже.</string>
+    <string name="refunds_notice_deleted_cleanup_retry">Заявка удалена. Часть чеков будет очищена позже.</string>
+    <string name="refunds_notice_deleted_cloud_retry">Заявка удалена. Очистку чека в облаке повторим позже.</string>
+    <string name="refunds_notice_deleted_local_failed">Заявка удалена. Не удалось очистить локальный файл чека.</string>
+    <string name="refunds_delete_dialog_title">Удалить эту заявку?</string>
+    <string name="refunds_delete_dialog_text">Заявка и приложенное к ней фото чека будут удалены безвозвратно.</string>
+</resources>

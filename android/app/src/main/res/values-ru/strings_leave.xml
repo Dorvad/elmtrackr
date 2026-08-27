@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ReportEntryTypeSheet -->
+    <string name="leave_report_sheet_title">Что вы хотите отметить?</string>
+    <string name="leave_report_work">Работа</string>
+    <string name="leave_report_work_sub">Смена, которую вы отработали</string>
+    <string name="leave_report_vacation">Отпуск</string>
+    <string name="leave_report_vacation_sub">Выходной день, который вы взяли</string>
+    <string name="leave_report_sick">Больничный</string>
+    <string name="leave_report_sick_sub">День, когда вы не могли работать</string>
+
+    <!-- AbsenceFormScreen -->
+    <string name="leave_form_title_vacation">Отпуск</string>
+    <string name="leave_form_title_sick">Больничный</string>
+    <string name="leave_form_back">Назад</string>
+    <string name="leave_form_workplace">Место работы</string>
+    <string name="leave_form_when">Когда</string>
+    <string name="leave_form_length_single">Один день</string>
+    <string name="leave_form_length_range">Несколько дней</string>
+    <string name="leave_form_date">Дата</string>
+    <string name="leave_form_first_day">Первый день болезни</string>
+    <string name="leave_form_start_date">Дата начала</string>
+    <string name="leave_form_end_date">Дата окончания</string>
+    <string name="leave_form_pick_date">Выбрать: %1$s</string>
+    <string name="leave_form_duration">Продолжительность</string>
+    <string name="leave_form_full_day">Полный день</string>
+    <string name="leave_form_partial_day">Часть дня</string>
+    <string name="leave_form_amount_days">Дни</string>
+    <string name="leave_form_amount_hours">Часы</string>
+    <string name="leave_form_note">Заметка (необязательно)</string>
+    <string name="leave_form_affected_days">Дни, в которые вы бы работали</string>
+    <string name="leave_form_affected_days_help">Из вашего баланса вычитаются только те дни, в которые вы бы работали на этом месте.</string>
+    <string name="leave_form_no_pattern">ElmTrackr не знает, в какие дни вы обычно здесь работаете. Выберите дни, в которые вы бы работали.</string>
+    <string name="leave_form_no_days_selected">Выберите хотя бы один день.</string>
+    <string name="leave_form_sick_day">День болезни %1$d</string>
+    <string name="leave_form_pays_percent">оплата %1$d%%</string>
+    <string name="leave_form_estimated_pay">Оценка оплаты</string>
+    <string name="leave_form_estimated_total">Оценка итога</string>
+    <string name="leave_form_how_calculated">Как это посчитано?</string>
+    <string name="leave_form_save">Сохранить</string>
+    <string name="leave_form_delete">Удалить</string>
+    <string name="leave_form_delete_title">Удалить это отсутствие?</string>
+    <string name="leave_form_delete_body">Дни, которые оно занимает, вернутся в ваш расчётный баланс.</string>
+    <string name="leave_form_cancel">Отмена</string>
+    <string name="leave_form_saved">Отсутствие сохранено</string>
+    <string name="leave_form_deleted">Отсутствие удалено</string>
+    <string name="leave_form_no_workplace">Добавьте место работы, прежде чем отмечать отсутствие.</string>
+
+    <!-- Calculation explanation -->
+    <string name="leave_calc_title">Как это было посчитано</string>
+    <string name="leave_calc_basis_statutory">Учитываемый заработок за три месяца, делённый на 90.</string>
+    <string name="leave_calc_basis_workdays">Средняя оплата за фактически отработанный день, за три месяца.</string>
+    <string name="leave_calc_basis_scheduled">Часы, которые вы должны были отработать, по вашей почасовой ставке.</string>
+    <string name="leave_calc_basis_fixed">Стандартный рабочий день по вашей почасовой ставке.</string>
+    <string name="leave_calc_basis_manual">Сумма, которую вы ввели сами.</string>
+    <string name="leave_calc_period">Период: с %1$s по %2$s</string>
+    <string name="leave_calc_included">Учтённый заработок: %1$s</string>
+    <string name="leave_calc_divisor">Делится на: %1$s</string>
+    <string name="leave_calc_day_value">Стоимость полного дня: %1$s</string>
+    <string name="leave_calc_sick_tier">День болезни %1$d оплачивается на %2$d%%.</string>
+    <string name="leave_calc_result">Оценка оплаты: %1$s</string>
+    <string name="leave_calc_fallback">Три месяца перед этим отсутствием оказались неполными, поэтому вместо них взяты три самых полных подряд идущих месяца за прошедший год.</string>
+    <string name="leave_calc_manual_note">Вы ввели эту сумму сами, поэтому настройки места работы не использовались.</string>
+
+    <!-- Insufficient data -->
+    <string name="leave_gap_no_policy">У этого места работы ещё нет настроек отсутствий.</string>
+    <string name="leave_gap_no_wage">ElmTrackr не знает почасовой ставки для этого места работы и не может оценить этот день.</string>
+    <string name="leave_gap_no_history">Истории оплаты недостаточно, чтобы оценить этот день.</string>
+    <string name="leave_gap_no_hours">ElmTrackr не может определить, сколько вы обычно зарабатывали бы в эту дату.</string>
+    <string name="leave_gap_no_standard_day">У этого места работы не задан стандартный рабочий день, а он нужен для расчёта.</string>
+    <string name="leave_gap_no_tier">Настройки оплаты больничного на этом месте работы ничего не говорят об этом дне болезни.</string>
+    <string name="leave_gap_disabled">Этот вид отсутствия отключён в настройках этого места работы.</string>
+    <string name="leave_gap_no_manual_amount">Введите, сколько должен стоить этот день.</string>
+    <string name="leave_gap_action_amount">Ввести сумму</string>
+    <string name="leave_gap_action_hours">Ввести ожидаемые часы</string>
+    <string name="leave_gap_action_settings">Открыть настройки отсутствий</string>
+    <string name="leave_gap_saved_anyway">Этот день всё равно записан и всё равно вычитается из баланса.</string>
+
+    <!-- Conflicts -->
+    <string name="leave_conflict_duplicate">На %1$s уже отмечено отсутствие на этом месте работы.</string>
+    <string name="leave_conflict_shift">На %1$s у вас также есть рабочая смена. Проверьте, что отсутствие покрывает только пропущенные часы.</string>
+    <string name="leave_conflict_archived">Это место работы в архиве.</string>
+    <string name="leave_conflict_merge_title">Объединить в один период болезни?</string>
+    <string name="leave_conflict_merge_body">Этот период примыкает к болезни с %1$s по %2$s. Объединение продолжит счёт дней болезни, а не начнёт его заново с первого дня.</string>
+    <string name="leave_conflict_merge_confirm">Объединить</string>
+    <string name="leave_conflict_merge_keep">Оставить раздельно</string>
+
+    <!-- Balances -->
+    <string name="leave_balances_title">Балансы отсутствий</string>
+    <string name="leave_balance_official">Официальный баланс</string>
+    <string name="leave_balance_as_of">Баланс из расчётного листка на %1$s</string>
+    <string name="leave_balance_used_since">Использовано с тех пор</string>
+    <string name="leave_balance_estimated">Расчётный баланс</string>
+    <string name="leave_balance_estimated_value">~%1$s</string>
+    <string name="leave_balance_none">Баланс из расчётного листка ещё не введён</string>
+    <string name="leave_balance_none_help">Введите баланс из последнего расчётного листка, и ElmTrackr продолжит его расчёт.</string>
+    <string name="leave_balance_negative">Возможно, баланс из расчётного листка устарел или место работы разрешило отпуск авансом.</string>
+    <string name="leave_balance_accrual_note">Не включает дни, накопленные после последнего расчётного листка.</string>
+    <string name="leave_balance_update">Обновить из расчётного листка</string>
+    <string name="leave_balance_unconvertible">Записей в другой единице измерения, которые не учитываются: %1$d. Задайте стандартный рабочий день, чтобы включить их.</string>
+    <string name="leave_balance_days">%1$s дн.</string>
+    <string name="leave_balance_hours">%1$s ч</string>
+    <string name="leave_balance_type_vacation">Отпуск</string>
+    <string name="leave_balance_type_sick">Больничный</string>
+    <string name="leave_balance_form_title">Обновить балансы</string>
+    <string name="leave_balance_form_date">Дата расчётного листка</string>
+    <string name="leave_balance_form_vacation">Баланс отпуска</string>
+    <string name="leave_balance_form_sick">Баланс больничных</string>
+    <string name="leave_balance_form_unit">Единица</string>
+    <string name="leave_balance_form_label">Метка (необязательно)</string>
+    <string name="leave_balance_form_label_hint">Листок за июль</string>
+    <string name="leave_balance_form_save">Сохранить балансы</string>
+    <string name="leave_balance_form_help">Сохранение добавляет новую запись. Прежние балансы сохраняются, поэтому расчёт всегда знает, из какого листка он взят.</string>
+    <string name="leave_balance_form_one_is_enough">Заполните только тот баланс, который хотите обновить.</string>
+    <string name="leave_balance_form_nothing_entered">Введите хотя бы один баланс.</string>
+    <string name="leave_balance_history">История балансов</string>
+    <string name="leave_balance_saved">Балансы сохранены</string>
+
+    <!-- Policy settings -->
+    <string name="leave_policy_title">Отпуск и больничный</string>
+    <string name="leave_policy_sick_section">Оплата больничного</string>
+    <string name="leave_policy_vacation_section">Оплата отпуска</string>
+    <string name="leave_policy_track_sick">Учитывать больничные</string>
+    <string name="leave_policy_track_vacation">Учитывать отпуск</string>
+    <string name="leave_policy_preset_israel">Набор для Израиля</string>
+    <string name="leave_policy_preset_custom">Свои правила</string>
+    <string name="leave_policy_reset_preset">Вернуть готовый набор</string>
+    <string name="leave_policy_pay_from_day_one">Полная оплата с первого дня</string>
+    <string name="leave_policy_tier_day">День %1$d</string>
+    <string name="leave_policy_tier_days">Дни %1$d&#8211;%2$d</string>
+    <string name="leave_policy_tier_day_plus">С дня %1$d и далее</string>
+    <string name="leave_policy_tier_percent">%1$d%%</string>
+    <string name="leave_policy_basis">Рассчитывается от</string>
+    <string name="leave_policy_basis_statutory">Установленное законом среднее (Израиль)</string>
+    <string name="leave_policy_basis_workdays">Среднее за фактически отработанный день</string>
+    <string name="leave_policy_basis_scheduled">Часы, которые вы должны были отработать</string>
+    <string name="leave_policy_basis_fixed">Фиксированное число часов в день</string>
+    <string name="leave_policy_basis_manual">Сумма, которую я ввожу каждый раз</string>
+    <string name="leave_policy_fixed_daily_hours">Часов в оплачиваемом дне отсутствия</string>
+    <string name="leave_policy_standard_day">Стандартный рабочий день (часов)</string>
+    <string name="leave_policy_standard_day_help">Используется только для пересчёта между часами и днями. Если оставить пустым, ElmTrackr спросит, а не будет угадывать.</string>
+    <string name="leave_policy_balance_unit">В расчётном листке балансы указаны в</string>
+    <string name="leave_policy_less_favourable">Это меньше, чем платит стандартный израильский набор. ElmTrackr даёт только оценку — сверьтесь с расчётным листком или трудовым договором.</string>
+    <string name="leave_policy_accrual_note">ElmTrackr не добавляет накопленные дни автоматически. Введите баланс из расчётного листка, и расчёт продолжится от него.</string>
+    <string name="leave_policy_saved">Настройки отсутствий сохранены</string>
+    <string name="leave_policy_advanced">Дополнительно</string>
+
+    <!-- Workplaces -->
+    <string name="leave_workplaces_title">Места работы</string>
+    <string name="leave_workplaces_subtitle">мест работы: %1$d</string>
+    <string name="leave_workplaces_subtitle_one">1 место работы</string>
+    <string name="leave_workplace_leave_row">Отпуск и больничный</string>
+    <string name="leave_workplace_balances_row">Балансы отсутствий</string>
+    <string name="leave_workplace_add">Добавить место работы</string>
+    <string name="leave_workplace_name">Название</string>
+    <string name="leave_workplace_archived">В архиве</string>
+    <string name="leave_workplace_archive">Архивировать место работы</string>
+    <string name="leave_workplace_archive_body">История останется доступной для чтения, а прошедшие месяцы сохранят то, что в них отмечено. Новые отсутствия по нему отмечать будет нельзя.</string>
+    <string name="leave_workplace_saved">Место работы сохранено</string>
+    <string name="leave_workplace_name_required">Дайте месту работы название.</string>
+
+    <!-- Reports and history -->
+    <string name="leave_reports_section">Оплачиваемое отсутствие</string>
+    <string name="leave_reports_vacation">Отпуск</string>
+    <string name="leave_reports_sick">Больничный</string>
+    <string name="leave_reports_worked">Отработано</string>
+    <string name="leave_reports_estimated_total">Оценка итога</string>
+    <string name="leave_reports_none">В этом месяце отсутствий не отмечено</string>
+    <string name="leave_reports_days_value">%1$s дн.</string>
+    <string name="leave_reports_hours_value">%1$s ч</string>
+    <string name="leave_history_estimated">по оценке %1$s</string>
+    <string name="leave_history_needs_value">Нужно указать сумму</string>
+    <string name="leave_history_filter_all">Все</string>
+    <string name="leave_history_filter_work">Работа</string>
+    <string name="leave_history_filter_vacation">Отпуск</string>
+    <string name="leave_history_filter_sick">Больничный</string>
+
+    <!-- Disclaimers. Deliberately never "legally owed", "guaranteed" or "exact". -->
+    <string name="leave_disclaimer">ElmTrackr даёт оценку на основе настроек места работы и введённых вами данных. Фактическое право на отсутствие, его баланс и оплата могут отличаться в зависимости от трудового договора, коллективных соглашений, данных расчётного листка и применимого законодательства.</string>
+    <string name="leave_balance_disclaimer">Расчётный баланс основан на последнем введённом вами балансе и отсутствиях, отмеченных в ElmTrackr. Он не включает новые начисления и корректировки со стороны работодателя, сделанные после этой даты.</string>
+    <string name="leave_preset_disclaimer">Набор для Израиля — это предлагаемая отправная точка, а не зарплатная или юридическая консультация. Измените любую его часть под свои условия.</string>
+
+    <!-- Accessibility -->
+    <string name="leave_a11y_day_included">%1$s, учитывается</string>
+    <string name="leave_a11y_day_excluded">%1$s, не учитывается</string>
+    <string name="leave_a11y_estimate_warning">Нужны ваши данные</string>
+
+</resources>

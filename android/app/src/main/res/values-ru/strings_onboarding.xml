@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared -->
+    <string name="onboarding_brand">ELMTRACKR</string>
+    <string name="onboarding_step_counter">%1$d / %2$d</string>
+    <string name="onboarding_back">Назад</string>
+    <string name="onboarding_continue">Продолжить</string>
+    <string name="onboarding_tagline">Одна отметка прихода — и сразу видны часы, оценка оплаты и сверхурочные.</string>
+    <string name="onboarding_hours_suffix">ч</string>
+
+    <!-- Language step -->
+    <string name="onboarding_step_language">Язык</string>
+    <string name="onboarding_language_title">Выберите язык</string>
+    <string name="onboarding_language_subtitle">ElmTrackr говорит по-русски, по-английски, на иврите и по-арабски. Язык можно сменить в любой момент в настройках.</string>
+    <string name="onboarding_language_change_later">Это можно изменить позже в настройках → «Оформление».</string>
+
+    <!-- Save failure -->
+    <string name="onboarding_save_failed">Не удалось сохранить. Повторите попытку.</string>
+    <string name="onboarding_sign_in_first">Войдите, прежде чем завершать настройку</string>
+
+    <!-- App lock biometric prompt -->
+    <string name="onboarding_biometric_prompt_title">Включить блокировку приложения</string>
+    <string name="onboarding_biometric_prompt_subtitle">Подтвердите, чтобы запрашивать биометрию при открытии ElmTrackr</string>
+
+    <!-- Step titles -->
+    <string name="onboarding_step_welcome">Приветствие</string>
+    <string name="onboarding_step_region">Ваш регион</string>
+    <string name="onboarding_step_profile">Ваш профиль</string>
+    <string name="onboarding_step_pay">Настройки оплаты</string>
+    <string name="onboarding_step_work_week">Рабочая неделя</string>
+    <string name="onboarding_step_features">Функции</string>
+    <string name="onboarding_step_security">Безопасность</string>
+    <string name="onboarding_step_review">Проверка</string>
+
+    <!-- Welcome step -->
+    <string name="onboarding_welcome_title">Добро пожаловать в ElmTrackr</string>
+    <string name="onboarding_welcome_replay_title">Проверьте свои настройки</string>
+    <string name="onboarding_welcome_replay_subtitle">Обновите профиль, оплату, рабочую неделю и функции.</string>
+    <string name="onboarding_welcome_intro">Ваши часы, сверхурочные и оплата — учёт в одно нажатие, даже без сети.</string>
+    <string name="onboarding_how_it_works">Как это работает</string>
+    <string name="onboarding_how_step1_title">Отмечайте приход в начале</string>
+    <string name="onboarding_how_step1_desc">Одно нажатие на телефоне, часах или виджете главного экрана.</string>
+    <string name="onboarding_how_step2_title">ElmTrackr всё посчитает</string>
+    <string name="onboarding_how_step2_desc">Часы, перерывы, сверхурочные и надбавки считаются прямо во время работы.</string>
+    <string name="onboarding_how_step3_title">Смотрите, сколько заработали</string>
+    <string name="onboarding_how_step3_desc">Оценка оплаты в реальном времени, месячные отчёты и выгрузка для бухгалтерии в одно нажатие.</string>
+    <string name="onboarding_welcome_reassurance">Работает без сети · Шифруется на устройстве · Синхронизируется сам</string>
+    <string name="onboarding_welcome_setup_time">Настройка займёт около минуты.</string>
+    <string name="onboarding_review_setup_button">Проверить настройки</string>
+    <string name="onboarding_get_started">Начать</string>
+
+    <!-- Region step -->
+    <string name="onboarding_region_title">Где вы работаете?</string>
+    <string name="onboarding_region_subtitle">Выберите готовый набор для региона, чтобы начать с предложенными правилами оплаты. Всё можно настроить позже.</string>
+    <string name="onboarding_region_currency_timezone">Валюта: %1$s · Часовой пояс: %2$s</string>
+    <string name="onboarding_region_disclaimer">ElmTrackr даёт только оценку оплаты — это не юридическая и не зарплатная консультация.</string>
+
+    <!-- Profile step -->
+    <string name="onboarding_profile_title">Настроим под вас</string>
+    <string name="onboarding_profile_subtitle">Как к вам обращаться внутри ElmTrackr?</string>
+    <string name="onboarding_profile_name_label">Ваше имя</string>
+    <string name="onboarding_profile_name_placeholder">например, Дор</string>
+    <string name="onboarding_profile_name_error">Введите имя, чтобы продолжить</string>
+    <string name="onboarding_profile_name_helper">Оно появится на главном экране и в отчётах</string>
+    <string name="onboarding_profile_signed_in_as">Вы вошли как %1$s</string>
+
+    <!-- Pay setup step -->
+    <string name="onboarding_pay_title">Узнайте, сколько стоит ваше время</string>
+    <string name="onboarding_pay_subtitle">Укажите базовую почасовую оплату, чтобы видеть оценку начислений в реальном времени.</string>
+    <string name="onboarding_pay_hourly_salary_label">Почасовая оплата</string>
+    <string name="onboarding_pay_rate_placeholder">0.00</string>
+    <string name="onboarding_pay_rate_error">Введите положительную сумму</string>
+    <string name="onboarding_pay_rate_helper">Необязательно. Оставьте пустым, если хотите учитывать только часы.</string>
+    <string name="onboarding_pay_currency_label">Валюта</string>
+
+    <!-- Work week step -->
+    <string name="onboarding_work_week_title">Задайте рабочую неделю</string>
+    <string name="onboarding_work_week_subtitle">Выберите выходные дни и момент начала сверхурочных.</string>
+    <string name="onboarding_weekend_days_label">Выходные дни</string>
+    <string name="onboarding_weekend_days_helper">Правила оплаты выходных и праздников используют эти дни.</string>
+    <string name="onboarding_weekend_days_error">Выберите хотя бы один день</string>
+    <string name="onboarding_daily_ot_label">Дневные сверхурочные</string>
+    <string name="onboarding_weekly_ot_label">Недельные сверхурочные</string>
+    <string name="onboarding_ot_error">Дневной порог должен быть от 1 до 24 ч; недельный — не меньше дневного и не больше 168 ч.</string>
+    <string name="onboarding_timezone_label">Часовой пояс</string>
+    <string name="onboarding_timezone_helper">Задан по выбранному региону</string>
+    <string name="onboarding_hide_timezone_picker">Скрыть выбор часового пояса</string>
+    <string name="onboarding_change_timezone">Сменить часовой пояс</string>
+
+    <!-- Features step -->
+    <string name="onboarding_features_title">Что вам нужно?</string>
+    <string name="onboarding_features_subtitle">Включите функции, которые подходят вашей работе. Позже их можно изменить в настройках.</string>
+    <string name="onboarding_feature_travel_title">Компенсация проезда</string>
+    <string name="onboarding_feature_travel_desc">Добавляйте заявки на компенсацию поездок к любой завершённой смене.</string>
+    <string name="onboarding_feature_insights_title">Аналитика и наблюдения</string>
+    <string name="onboarding_feature_insights_desc">Умные сводки, недельные тренды и ежедневные подсказки.</string>
+
+    <!-- Security step -->
+    <string name="onboarding_security_title">Защитите свои данные</string>
+    <string name="onboarding_security_subtitle">При желании можно запрашивать отпечаток пальца, распознавание лица или PIN-код устройства при открытии ElmTrackr.</string>
+    <string name="onboarding_security_app_lock_title">Запрашивать биометрию при открытии</string>
+    <string name="onboarding_security_desc_available">Закрывать ставки, чеки и историю смен, когда приложение свёрнуто</string>
+    <string name="onboarding_security_desc_not_enrolled">Сначала настройте отпечаток пальца, распознавание лица или PIN-код в настройках системы</string>
+    <string name="onboarding_security_desc_unavailable">Разблокировка по биометрии или данным устройства на этом устройстве недоступна</string>
+    <string name="onboarding_security_change_later">Это можно изменить в любой момент в настройках → «Безопасность».</string>
+
+    <!-- Review step -->
+    <string name="onboarding_review_title">Готово к старту</string>
+    <string name="onboarding_review_name">Имя</string>
+    <string name="onboarding_review_region">Регион</string>
+    <string name="onboarding_review_hourly_salary">Почасовая оплата</string>
+    <string name="onboarding_review_not_set">Не задано</string>
+    <string name="onboarding_review_weekend">Выходные</string>
+    <string name="onboarding_review_optional_features">Дополнительные функции</string>
+    <string name="onboarding_review_enabled_count">включено: %1$d</string>
+    <string name="onboarding_save_and_start">Сохранить и начать учёт</string>
+
+</resources>

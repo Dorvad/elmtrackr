@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="legal_last_updated">Последнее обновление: %1$s</string>
+    <string name="legal_acceptance_title">Согласие</string>
+    <string name="legal_acceptance_body">Используя ElmTrackr, вы соглашаетесь с настоящими Условиями. Если вы с ними не согласны, не пользуйтесь приложением.</string>
+    <string name="legal_service_title">Описание сервиса</string>
+    <string name="legal_service_body">ElmTrackr — это личный учёт смен. Показатели оплаты и сверхурочных являются только оценкой и не являются налоговой, юридической или зарплатной консультацией.</string>
+    <string name="legal_account_title">Ваш аккаунт</string>
+    <string name="legal_account_body">Храните свои учётные данные в безопасности. Вы можете удалить аккаунт в любое время в настройках.</string>
+    <string name="legal_use_title">Допустимое использование</string>
+    <string name="legal_use_body">Не злоупотребляйте сервисом и не загружайте противоправные материалы. Храните только те фото чеков, на которые у вас есть право.</string>
+    <string name="legal_liability_title">Ограничение ответственности</string>
+    <string name="legal_liability_body">Приложение предоставляется «как есть». Мы не несём ответственности за решения, принятые на основании оценок или отчётов.</string>
+    <string name="legal_contact_title">Контакты</string>
+    <string name="legal_contact_body">Вопросы: %1$s</string>
+</resources>

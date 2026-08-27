@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ShiftsScreen -->
+    <string name="shifts_empty_title">В этом месяце смен нет</string>
+    <string name="shifts_empty_subtitle">Отметьте приход с главного экрана или добавьте смену вручную.</string>
+    <string name="shifts_ok">ОК</string>
+    <string name="shifts_cancel">Отмена</string>
+    <string name="shifts_select_time">Выбрать время</string>
+
+    <!-- ShiftsListUi -->
+    <string name="shifts_title">Смены</string>
+    <string name="shifts_this_week">Эта неделя</string>
+    <string name="shifts_add">Добавить</string>
+    <string name="shifts_previous_month">Предыдущий месяц</string>
+    <string name="shifts_next_month">Следующий месяц</string>
+    <string name="shifts_hours_tracked_header">Учтено часов</string>
+    <string name="shifts_est_gross_header">Оценка начислений</string>
+    <string name="shifts_hours_value">%1$s ч</string>
+    <string name="shifts_hours_value_spaced">%1$s ч</string>
+    <string name="shifts_legend_regular">Обычные</string>
+    <string name="shifts_legend_overtime">Сверхурочные</string>
+    <string name="shifts_legend_weekend">Выходные</string>
+    <string name="shifts_badge_premium">Надбавка</string>
+    <string name="shifts_badge_weekend">Выходной</string>
+    <string name="shifts_badge_ot">Сверх.</string>
+    <string name="shifts_badge_live">Идёт</string>
+    <string name="shifts_badge_now">Сейчас</string>
+    <string name="shifts_time_range">%1$s - %2$s</string>
+    <string name="shifts_break_line">перерыв %1$d мин</string>
+    <string name="shifts_on_shift">На смене</string>
+    <string name="shifts_since">С %1$s</string>
+    <string name="shifts_add_past_shift">Добавить прошедшую смену</string>
+
+    <!-- ShiftEditFormUi -->
+    <string name="shifts_discard_title">Отменить изменения?</string>
+    <!-- Russian needs four CLDR categories; 11-14 are `many`, not `few`. -->
+    <plurals name="shifts_discard_text">
+        <item quantity="one">У вас %d несохранённое изменение. Если выйти сейчас, оно пропадёт.</item>
+        <item quantity="few">У вас %d несохранённых изменения. Если выйти сейчас, они пропадут.</item>
+        <item quantity="many">У вас %d несохранённых изменений. Если выйти сейчас, они пропадут.</item>
+        <item quantity="other">У вас %d несохранённых изменения. Если выйти сейчас, они пропадут.</item>
+    </plurals>
+    <string name="shifts_discard_confirm">Отменить</string>
+    <string name="shifts_discard_keep">Продолжить правку</string>
+    <string name="shifts_delete_dialog_title">Удалить смену?</string>
+    <string name="shifts_delete_dialog_text">Эта смена будет удалена. Удаление синхронизируется при подключении к сети.</string>
+    <string name="shifts_delete">Удалить</string>
+    <string name="shifts_back">Назад</string>
+    <string name="shifts_edit_shift_title">Изменить смену</string>
+    <string name="shifts_new_shift_title">Новая смена</string>
+    <string name="shifts_estimated_pay_header">Оценка оплаты • обновляется по мере правки</string>
+    <string name="shifts_pay_bracket_line">%1$s ч %2$s - %3$s</string>
+    <string name="shifts_section_when">Когда</string>
+    <string name="shifts_section_break_premium">Перерыв и надбавка</string>
+    <string name="shifts_section_pay_task">Оплата и задача</string>
+    <string name="shifts_section_notes">Заметки</string>
+    <string name="shifts_start_label">Начало</string>
+    <string name="shifts_end_label">Окончание</string>
+    <string name="shifts_pick_date">Выбрать дату: %1$s</string>
+    <string name="shifts_pick_time">Выбрать время: %1$s</string>
+    <string name="shifts_still_on_shift">Смена ещё идёт</string>
+    <string name="shifts_active">Активна</string>
+    <string name="shifts_tap_to_set_end">Нажмите, чтобы задать окончание</string>
+    <string name="shifts_hours_paid">оплачено %1$s ч</string>
+    <string name="shifts_when_summary">%1$s работы • перерыв %2$d мин • %3$s</string>
+    <string name="shifts_unpaid_break">Неоплачиваемый перерыв</string>
+    <string name="shifts_break_minutes_value">%1$d мин</string>
+    <string name="shifts_task_label">Задача</string>
+    <string name="shifts_task_edit_hint">Измените задачу этой смены — оплата пересчитается при сохранении.</string>
+    <string name="shifts_task_none">Нет</string>
+    <string name="shifts_saved_task">Сохранённая задача: %1$s %2$s (%3$s/ч)</string>
+    <string name="shifts_notes_placeholder">Добавьте заметки об этой смене…</string>
+    <string name="shifts_travel_refund">Компенсация проезда</string>
+    <string name="shifts_travel_refund_subtitle">Добавьте заявки на компенсацию поездок по этой смене</string>
+    <string name="shifts_close">Закрыть</string>
+    <string name="shifts_claim">Заявка</string>
+    <string name="shifts_delete_shift">Удалить смену</string>
+    <string name="shifts_save">Сохранить</string>
+    <string name="shifts_unsaved_changes_one">%1$d несохранённое изменение</string>
+    <string name="shifts_unsaved_changes_other">несохранённых изменений: %1$d</string>
+
+    <!-- CompensationProfilePicker / PremiumProfilePicker -->
+    <string name="shifts_compensation_profile_label">Профиль оплаты</string>
+    <string name="shifts_add_compensation_profile">Добавить профиль</string>
+    <string name="shifts_new_compensation_profile_title">Новый профиль оплаты</string>
+    <string name="shifts_compensation_profile_name_label">Название профиля</string>
+    <string name="shifts_compensation_profile_name_placeholder">например, вторая работа, подработка по выходным</string>
+    <string name="shifts_create_profile">Создать</string>
+    <string name="shifts_premium_label">Надбавка</string>
+    <string name="shifts_no_premium">Без надбавки</string>
+    <string name="shifts_premium_applies">Применяет к этой смене ставку %1$d%%</string>
+    <string name="shifts_premium_standard">Обычная оплата, если не действуют правила выходных</string>
+
+    <!-- RideProviderGraphics -->
+    <string name="shifts_ride_provider">Перевозчик</string>
+    <string name="shifts_ride_provider_a11y">Перевозчик %1$s</string>
+    <string name="shifts_ride_provider_a11y_selected">Перевозчик %1$s, выбран</string>
+
+    <!-- ViewModel feedback and validation -->
+    <string name="shifts_feedback_added">Смена добавлена</string>
+    <string name="shifts_feedback_updated">Смена обновлена</string>
+    <string name="shifts_refund_saved_without_receipt">Заявка сохранена без чека — загрузка сейчас недоступна. Откройте заявку, чтобы приложить его позже.</string>
+    <string name="shifts_feedback_deleted">Смена удалена</string>
+    <string name="shifts_error_end_after_start">Окончание должно быть позже начала</string>
+    <string name="shifts_error_break_negative">Минуты перерыва должны быть нулём или больше</string>
+    <string name="shifts_error_break_too_long">Перерыв не может быть длиннее самой смены</string>
+    <string name="shifts_error_refund_amount">Введите корректную сумму компенсации</string>
+    <string name="shifts_error_refund_shift_missing">Смена не найдена</string>
+    <string name="shifts_error_refund_sign_in">Войдите, прежде чем сохранять заявку</string>
+    <string name="shifts_error_refund_save_failed">Не удалось сохранить заявку на компенсацию</string>
+
+    <!-- Rate section (weekend/holiday override) -->
+    <string name="shifts_section_rate">Ставка оплаты</string>
+    <string name="shifts_section_break">Перерыв</string>
+    <string name="shifts_premium_toggle">Ставка выходного или праздника</string>
+    <string name="shifts_premium_auto_on">Применяется автоматически — этот день у вас выходной</string>
+    <string name="shifts_premium_auto_off">Обычная ставка — этот день у вас не выходной</string>
+    <string name="shifts_premium_forced_off">Обычная ставка для этой смены — в обход ваших выходных дней</string>
+    <string name="shifts_premium_on_hint">Выберите надбавку для праздников и особых дней или оставьте «Нет», чтобы применилась ставка выходного</string>
+</resources>

@@ -1,9 +1,14 @@
 # Arabic localization
 
-Arabic (`res/values-ar`) is the third UI language, alongside English (`res/values`)
-and Hebrew (`res/values-iw`). This document is the terminology contract: it exists
-so the same concept does not arrive in the UI under three different Arabic words,
-which is the usual failure mode once more than one person edits the strings.
+Arabic (`res/values-ar`) is one of the app's UI languages, alongside English
+(`res/values`), Hebrew (`res/values-iw`) and Russian (`res/values-ru`). This
+document is the terminology contract: it exists so the same concept does not
+arrive in the UI under three different Arabic words, which is the usual failure
+mode once more than one person edits the strings.
+
+Its Russian counterpart is [russian-localization.md](./russian-localization.md).
+The mechanical rules below (placeholders, `translatable="false"`, product names)
+are deliberately the same in both.
 
 ## Status
 
