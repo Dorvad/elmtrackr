@@ -96,14 +96,23 @@ object Layout {
     val facePreviewHeight = 68.dp
 
     /**
-     * The same preview, four across inside a pack card.
+     * The one face a pack card leads with.
      *
-     * Shorter because four of them share a row that a single tile gives to one.
-     * Kept above the point where the drawings stop being distinguishable, which
-     * is the whole reason the strip exists: a pack nobody can see is a pack
-     * nobody buys.
+     * Tall enough to be a product shot rather than a thumbnail. Its *width* is
+     * constrained to a fraction of the card rather than filling it: the face
+     * canvases size their drawing off the shorter side, so a full-width band
+     * this short would put a small dial in the middle of a lot of nothing.
      */
-    val packPreviewHeight = 46.dp
+    val packHeroHeight = 88.dp
+
+    /**
+     * The rest of the pack, three across beneath the hero.
+     *
+     * Smaller on purpose. Four faces at one size is a filmstrip and reads as a
+     * list; one lead and three supporting reads as a set, which is what is
+     * actually being sold.
+     */
+    val packPreviewHeight = 44.dp
 
     /**
      * A colour-plus-emoji identity tile — a work profile above the clock, or the
