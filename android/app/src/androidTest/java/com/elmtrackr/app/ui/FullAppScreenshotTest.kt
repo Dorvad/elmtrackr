@@ -285,7 +285,9 @@ class FullAppScreenshotTest {
             onSelectProfile = {},
             onCreateProfile = {},
             onDeleteProfile = {},
-            onSave = { _, _, _, _, _, _, _ -> },
+            // onSave takes a single CompensationFormValues now; the seven
+            // positional fields it used to take moved inside it.
+            onSave = {},
             onDismissMessage = {},
         )
     }
