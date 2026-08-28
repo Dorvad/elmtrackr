@@ -52,4 +52,8 @@
     <string name="auth_error_no_account_to_delete">Нет аккаунта для удаления</string>
     <string name="auth_error_not_configured">Supabase не настроен</string>
     <string name="auth_error_session_check">Не удалось проверить сеанс. Повторите попытку.</string>
+    <string name="auth_google_sign_in">Войти через Google</string>
+    <string name="auth_google_sign_up">Зарегистрироваться через Google</string>
+    <string name="auth_or">или</string>
+    <string name="auth_error_google_sign_in">Не удалось продолжить через Google. Попробуйте ещё раз.</string>
 </resources>

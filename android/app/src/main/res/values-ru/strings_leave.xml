@@ -186,4 +186,5 @@
     <string name="leave_a11y_day_excluded">%1$s, не учитывается</string>
     <string name="leave_a11y_estimate_warning">Нужны ваши данные</string>
 
+    <string name="leave_form_save_failed">Не удалось сохранить это отсутствие. Попробуйте ещё раз.</string>
 </resources>

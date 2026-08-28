@@ -141,4 +141,6 @@
     <string name="dashboard_start_time_future_error">Время начала не может быть в будущем.</string>
     <string name="dashboard_month_summary_open_report">Открыть полный отчёт</string>
     <string name="dashboard_gross_before_tax">Начислено · до налогов</string>
+    <string name="dashboard_work_profile_label">Место работы</string>
+    <string name="dashboard_active_work_profile">Смена начата: %1$s</string>
 </resources>
