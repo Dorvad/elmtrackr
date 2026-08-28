@@ -524,7 +524,17 @@ class FullAppScreenshotTest {
     )
 
     private fun sampleTasks() = listOf(
-        Task("t1", "user", "Delivery", "🚚", "#5B4DF2", 55.0, false, Instant.EPOCH, Instant.EPOCH),
-        Task("t2", "user", "Support", "🎧", "#16C8D6", 48.0, false, Instant.EPOCH, Instant.EPOCH),
+        // Named rather than positional: Task gained a field between hourlyRate and
+        // isArchived, and positional args silently slid one column to the left.
+        Task(
+            id = "t1", userId = "user", name = "Delivery", icon = "🚚", color = "#5B4DF2",
+            hourlyRate = 55.0, isArchived = false,
+            createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
+        ),
+        Task(
+            id = "t2", userId = "user", name = "Support", icon = "🎧", color = "#16C8D6",
+            hourlyRate = 48.0, isArchived = false,
+            createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
+        ),
     )
 }
