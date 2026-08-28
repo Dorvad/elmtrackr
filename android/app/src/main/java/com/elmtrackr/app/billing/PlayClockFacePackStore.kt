@@ -258,8 +258,23 @@ class PlayClockFacePackStore @Inject constructor(
             price?.let { pack to it }
         }.toMap()
 
-    private fun formattedPrice(productId: String): String? =
-        products[productId]?.oneTimePurchaseOfferDetails?.formattedPrice
+    /**
+     * Play's own price string for [productId], or null if it has not answered.
+     *
+     * Reads the single-offer getter first and falls back to the list. Play's
+     * one-time products are configured as purchase options carrying offers, and
+     * the list getter is documented as populated *only* for a product with more
+     * than one offer — so a product that later gains a second offer, say an
+     * introductory price, would report no price through the singular getter while
+     * remaining perfectly buyable. That failure would surface as a Buy button with
+     * a blank price, which reads as a broken app rather than a pricing change
+     * made in the console. Checking both costs a line.
+     */
+    private fun formattedPrice(productId: String): String? {
+        val product = products[productId] ?: return null
+        return product.oneTimePurchaseOfferDetails?.formattedPrice
+            ?: product.oneTimePurchaseOfferDetailsList?.firstOrNull()?.formattedPrice
+    }
 
     /**
      * What the storefront should say about Play after a query.

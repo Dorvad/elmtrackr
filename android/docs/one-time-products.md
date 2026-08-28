@@ -134,6 +134,18 @@ native speaker of Hebrew or Arabic.
 | `clock_faces_journeys` | Journeys clock faces | Four faces for a day with a destination: Orbit, Metro, Vinyl and Summit. A one-time purchase, yours for good. |
 | `clock_faces_all_packs` | All clock face packs | All four packs at once: Progress, Atmosphere, Nature and Journeys. 16 faces, plus any pack added in future updates. |
 
+**Purchase option** — Play's newer one-time products hold one or more purchase
+options, each carrying offers. Each pack needs exactly one, of type **Buy** (not
+Rent). Its id is a console-side label: nothing in this app reads
+`purchaseOptionId`, so `buy` is a fine answer for all five. Note the id rules
+differ from the product id — hyphens are allowed, underscores are not — and treat
+it as permanent like the product id unless the console says otherwise.
+
+The app reads the price through `getOneTimePurchaseOfferDetails()` and falls back
+to the offer list, so a pack that later gains a second offer keeps showing a
+price. Adding a second offer is still a change worth testing rather than
+assuming.
+
 Tag every product `clock-faces`. Tags are for the console's own grouping and
 reporting; nothing in the app reads them.
 
