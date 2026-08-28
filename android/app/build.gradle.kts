@@ -192,7 +192,7 @@ android {
         // This matters more with the language split off: without it the base APK
         // would carry every translation AndroidX and Play Services ship — around
         // eighty locales the app has no UI for — on every device.
-        localeFilters += listOf("en", "iw", "ar")
+        localeFilters += listOf("en", "iw", "ar", "ru")
     }
 
     lint {

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared UI states -->
+    <string name="common_something_went_wrong">Что-то пошло не так</string>
+    <string name="common_try_again">Повторить</string>
+    <string name="error_network">Не удалось связаться с сервером. Проверьте подключение и повторите попытку.</string>
+    <string name="error_generic">Не удалось загрузить ваши данные. Повторите попытку.</string>
+    <!-- Shown in place of raw server or file-system exception text. The technical
+         detail goes to diagnostic logs only. -->
+    <string name="error_offline">Похоже, вы не в сети. Это завершится, как только связь восстановится.</string>
+    <string name="error_session_expired">Сеанс истёк. Войдите снова, чтобы продолжить.</string>
+    <string name="error_server">Сервер не смог это выполнить. Повторите попытку через минуту.</string>
+    <string name="error_storage_full">На этом устройстве недостаточно места, чтобы сохранить это.</string>
+    <string name="error_permission">У ElmTrackr нет разрешения на это действие.</string>
+    <string name="error_receipt_upload">Не удалось загрузить фото чека. Оно сохранено на устройстве, попробуем ещё раз.</string>
+
+    <!-- First clock-in celebration -->
+    <string name="celebration_tracking_title">Учёт пошёл!</string>
+    <string name="celebration_tracking_body">Ваши часы, оценка оплаты и сверхурочные видны на главном экране в реальном времени. Оставьте смену идти — или отметьте уход, когда закончите.</string>
+    <string name="celebration_got_it">Понятно</string>
+    <string name="a11y_app_logo">Логотип ElmTrackr</string>
+    <!-- Announced by TalkBack for collapsible cards and rows -->
+    <string name="a11y_expanded">Развёрнуто</string>
+    <string name="a11y_collapsed">Свёрнуто</string>
+    <string name="a11y_expand">Развернуть</string>
+    <string name="a11y_collapse">Свернуть</string>
+</resources>

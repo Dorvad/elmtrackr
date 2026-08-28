@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ElmTrackr</string>
+    <string name="app_lock_action_blocked">Разблокируйте ElmTrackr в приложении, чтобы выполнить это действие</string>
+    <string name="shortcut_new_shift_short">Новая смена</string>
+    <string name="shortcut_new_shift_long">Добавить смену вручную</string>
+    <string name="shortcut_clock_in_short">Отметить приход</string>
+    <string name="shortcut_clock_in_long">Отметить приход в ElmTrackr</string>
+    <string name="shortcut_clock_out_short">Отметить уход</string>
+    <string name="shortcut_clock_out_long">Отметить уход в ElmTrackr</string>
+    <string name="widget_description">Полоса 4×1 с одной кнопкой: статус, живой таймер и одна кнопка прихода и ухода.</string>
+    <string name="widget_description_minimal">Полоса прогресса 4×1: выполнение дневной нормы и круглая кнопка.</string>
+    <string name="widget_description_aurora">Высокая карточка 4×2: крупные часы и панель действий во всю ширину.</string>
+    <string name="widget_description_ring">Квадратная кнопка-кольцо 1×1 с прогрессом смены.</string>
+    <string name="widget_description_big_action">Квадратная кнопка 1×1 с максимально крупной областью нажатия.</string>
+    <string name="widget_label_classic">ElmTrackr — одна кнопка</string>
+    <string name="widget_label_minimal">ElmTrackr — прогресс</string>
+    <string name="widget_label_aurora">ElmTrackr — высокий</string>
+    <string name="widget_label_ring">ElmTrackr — кольцо</string>
+    <string name="widget_label_big_action">ElmTrackr — крупная кнопка</string>
+
+    <!-- Active shift notification -->
+    <string name="notif_active_shift_title">Приход отмечен</string>
+    <string name="notif_active_shift_text">С %1$s</string>
+    <string name="notif_clock_out_action">Отметить уход</string>
+
+    <!-- Overtime reminder notifications -->
+    <string name="notif_overtime_pre_warning_title">Сверхурочные через 30 минут</string>
+    <string name="notif_overtime_pre_warning_title_min">Сверхурочные через %1$d мин</string>
+    <string name="notif_overtime_pre_warning_text">Приход отмечен в %1$s. Не забудьте отметить уход до начала сверхурочных.</string>
+    <string name="notif_scheduled_reminder_title">Напоминание об уходе</string>
+    <string name="notif_scheduled_reminder_text">Вы всё ещё на смене с %1$s.</string>
+    <string name="notif_overtime_at_threshold_title">У вас идут сверхурочные</string>
+    <string name="notif_overtime_at_threshold_text">Приход отмечен в %1$s. Возможно, пора отметить уход.</string>
+    <string name="notif_overtime_hourly_title">Смена продолжается в сверхурочных</string>
+    <string name="notif_overtime_hourly_text">Сверхурочные идут уже %1$s. Не забудьте отметить уход.</string>
+
+    <!-- Legacy reminder strings (kept for screenshot/regression compatibility) -->
+    <string name="notif_reminder_title">Вы всё ещё на смене</string>
+    <string name="notif_reminder_text">С %1$s. Нажмите, чтобы посмотреть.</string>
+</resources>

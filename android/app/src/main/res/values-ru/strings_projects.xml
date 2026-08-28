@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Paid Projects module -->
+    <string name="projects_title">Оплачиваемые проекты</string>
+    <string name="projects_subtitle">Работа с фиксированной ценой, потраченное время и то, что вам заплатили.</string>
+    <string name="projects_empty_title">Проектов пока нет</string>
+    <string name="projects_empty_subtitle">Добавьте первый проект с фиксированной ценой, чтобы учитывать гонорар, часы и полученные платежи.</string>
+    <string name="projects_create_cta">Новый проект</string>
+    <string name="projects_footer_note">ElmTrackr не выставляет официальных счетов. Вы можете записать номер счёта, который выставили в другом месте.</string>
+
+    <!-- Feature toggle (Settings → Features) -->
+    <string name="settings_paid_projects">Оплачиваемые проекты</string>
+    <string name="settings_paid_projects_desc">Учёт проектов с фиксированной ценой, потраченного времени, платежей и вашей фактической почасовой ставки.</string>
+    <string name="settings_feature_paid_projects_short">Оплачиваемые проекты</string>
+
+    <!-- Update wizard shown once to existing users (replaces the old discovery card) -->
+    <string name="projects_wizard_title">ElmTrackr v1.2 - появились оплачиваемые проекты</string>
+    <string name="projects_wizard_page_projects_title">Учитывайте работу с фиксированной ценой</string>
+    <string name="projects_wizard_page_projects_body">Создайте проект с клиентом, согласованным гонораром и, если нужно, налогом. Гонорар, налог и итог для клиента всегда согласованы между собой.</string>
+    <string name="projects_wizard_page_time_title">Отмечайте приход по проекту</string>
+    <string name="projects_wizard_page_time_body">Учитывайте смены как проектное время. Эти часы идут в счёт гонорара по проекту и не попадают в зарплату и сверхурочные.</string>
+    <string name="projects_wizard_page_billing_title">Счета и платежи</string>
+    <string name="projects_wizard_page_billing_body">Записывайте выставленную сумму и каждый полученный платёж. Остаток, просрочка и напоминания о сроке оплаты появятся сами.</string>
+    <string name="projects_wizard_page_insights_title">Узнайте свою реальную ставку</string>
+    <string name="projects_wizard_page_insights_body">Фактическая ставка по каждому проекту, расход бюджета часов, отчёт по проектам и выгрузка CSV — чтобы понимать, сколько на самом деле приносит фиксированная цена.</string>
+    <string name="projects_wizard_page_faces_title">Ещё в v1.2: новые циферблаты</string>
+    <string name="projects_wizard_page_faces_body">«Метро», «Винил» и «Луна» пополнили часы на главном экране. Циферблат можно выбрать в любой момент в настройках → «Оформление и часы».</string>
+    <string name="projects_wizard_next">Далее</string>
+    <string name="projects_wizard_back">Назад</string>
+    <string name="projects_wizard_skip">Пропустить</string>
+    <string name="projects_wizard_activate">Включить оплачиваемые проекты</string>
+    <string name="projects_wizard_not_now">Не сейчас</string>
+    <string name="projects_wizard_footer">Необязательно. Включить или выключить это можно в любой момент в настройках → «Функции».</string>
+    <string name="projects_wizard_close_a11y">Закрыть знакомство с оплачиваемыми проектами</string>
+    <string name="projects_wizard_step_a11y">Шаг %1$d из %2$d</string>
+
+    <!-- Onboarding: the question step -->
+    <string name="onboarding_step_paid_projects">Проекты</string>
+    <string name="onboarding_paid_projects_title">Вам платят ещё и за проекты?</string>
+    <string name="onboarding_paid_projects_subtitle">Включите учёт проектов для работы с фиксированной ценой, оплачиваемого времени и контроля платежей.</string>
+    <string name="onboarding_paid_projects_yes">Да, включить оплачиваемые проекты</string>
+    <string name="onboarding_paid_projects_yes_desc">Добавит вкладку «Проекты». Выключить её можно в любой момент в настройках.</string>
+    <string name="onboarding_paid_projects_no">Не сейчас</string>
+    <string name="onboarding_paid_projects_no_desc">Оставить приложение как есть. Ничего не изменится.</string>
+
+    <!-- Onboarding: the optional project defaults step -->
+    <string name="onboarding_step_project_defaults">Настройки проектов</string>
+    <string name="onboarding_project_defaults_title">Настройки проектов по умолчанию</string>
+    <string name="onboarding_project_defaults_subtitle">Применяются к новым проектам. Всё здесь необязательно и правится позже.</string>
+    <string name="onboarding_project_defaults_country">Страна или регион</string>
+    <string name="onboarding_project_defaults_currency">Валюта по умолчанию</string>
+    <string name="onboarding_project_defaults_tax_section">Налог (необязательно)</string>
+    <string name="onboarding_project_defaults_tax_label">Название налога</string>
+    <string name="onboarding_project_defaults_tax_label_placeholder">НДС</string>
+    <string name="onboarding_project_defaults_tax_label_helper">Как налог называется в ваших документах.</string>
+    <string name="onboarding_project_defaults_tax_rate">Ставка налога (%)</string>
+    <string name="onboarding_project_defaults_tax_rate_helper">Оставьте пустым, чтобы налог остался выключенным. Ставку можно задать позже в настройках.</string>
+    <string name="onboarding_project_defaults_tax_rate_error">Введите ставку от 0 до 100 или оставьте поле пустым.</string>
+    <string name="onboarding_project_defaults_tax_exclusive">Гонорар без налога</string>
+    <string name="onboarding_project_defaults_tax_exclusive_desc">Налог добавляется сверх согласованного гонорара.</string>
+    <string name="onboarding_project_defaults_tax_inclusive">Гонорар включает налог</string>
+    <string name="onboarding_project_defaults_tax_inclusive_desc">Согласованный гонорар уже содержит налог.</string>
+    <string name="onboarding_project_defaults_skip">Пока пропустить</string>
+    <string name="onboarding_project_defaults_disclaimer">ElmTrackr не даёт налоговых консультаций и не выставляет официальных счетов. Уточните правильную ставку у бухгалтера или в налоговой службе.</string>
+
+    <!-- Onboarding review row -->
+    <string name="onboarding_review_paid_projects">Оплачиваемые проекты</string>
+    <string name="onboarding_review_paid_projects_on">Включены</string>
+    <string name="onboarding_review_paid_projects_off">Выключены</string>
+
+    <!-- Projects list -->
+    <string name="projects_search_hint">Поиск по проектам и клиентам</string>
+    <string name="projects_search_clear">Очистить поиск</string>
+    <string name="projects_create">Новый проект</string>
+    <string name="projects_add_another">Добавить проект</string>
+    <string name="projects_no_matches_title">Подходящих проектов нет</string>
+    <string name="projects_no_matches_subtitle">Попробуйте другой запрос или другой фильтр статуса.</string>
+    <string name="projects_count">проектов: %1$d</string>
+    <string name="projects_show_more">Подробнее</string>
+    <string name="projects_show_less">Короче</string>
+
+    <!-- Work status -->
+    <string name="project_status_draft">Черновик</string>
+    <string name="project_status_active">Активен</string>
+    <string name="project_status_paused">Приостановлен</string>
+    <string name="project_status_completed">Завершён</string>
+    <string name="project_status_cancelled">Отменён</string>
+    <string name="project_status_archived">В архиве</string>
+    <string name="project_filter_all">Все</string>
+
+    <!-- Billing status -->
+    <string name="project_billing_not_billed">Счёт не выставлен</string>
+    <string name="project_billing_billed">Счёт выставлен</string>
+    <string name="project_billing_partially_paid">Оплачен частично</string>
+    <string name="project_billing_paid">Оплачен</string>
+    <string name="project_billing_overdue">Просрочен</string>
+
+    <!-- Work status actions -->
+    <string name="project_action_save_draft">Сохранить как черновик</string>
+    <string name="project_action_start">Начать проект</string>
+    <string name="project_action_pause">Приостановить</string>
+    <string name="project_action_resume">Возобновить</string>
+    <string name="project_action_complete">Завершить</string>
+    <string name="project_action_cancel">Отменить проект</string>
+    <string name="project_action_archive">В архив</string>
+    <string name="project_action_unarchive">Вернуть из архива</string>
+    <string name="project_actions_title">Статус проекта</string>
+    <string name="project_actions_note">Завершение проекта не делает его оплаченным, а запись платежа не завершает его.</string>
+
+    <!-- Form -->
+    <string name="project_form_new_title">Новый проект</string>
+    <string name="project_form_edit_title">Изменить проект</string>
+    <string name="project_form_section_basics">Проект</string>
+    <string name="project_form_section_amount">Сумма</string>
+    <string name="project_form_section_tax">Налог</string>
+    <string name="project_form_section_time">Время и цели</string>
+    <string name="project_form_section_dates">Даты</string>
+    <string name="project_form_section_notes">Заметки</string>
+    <string name="project_form_name">Название проекта</string>
+    <string name="project_form_client">Имя клиента</string>
+    <string name="project_form_description">Описание</string>
+    <string name="project_form_notes">Заметки</string>
+    <string name="project_form_currency">Валюта</string>
+    <string name="project_form_currency_change">Сменить валюту</string>
+    <string name="project_form_currency_note">ElmTrackr не конвертирует валюты. Платежи по этому проекту нужно записывать в %1$s.</string>
+    <string name="project_form_currency_search">Поиск по коду валюты</string>
+    <string name="project_form_entry_mode">Какая сумма вам известна?</string>
+    <string name="project_form_entry_fee">Ваш гонорар до налога</string>
+    <string name="project_form_entry_total">Итог для клиента</string>
+    <string name="project_form_amount_fee_label">Ваш гонорар до налога</string>
+    <string name="project_form_amount_total_label">Итог для клиента</string>
+    <string name="project_form_tax_enabled">Добавить налог к этому проекту</string>
+    <string name="project_form_tax_label">Название налога</string>
+    <string name="project_form_tax_label_hint">НДС</string>
+    <string name="project_form_tax_rate">Ставка налога (%)</string>
+    <string name="project_form_tax_note">Ваши собственные название и ставка. ElmTrackr не определяет, какой налог применим, и не даёт налоговых консультаций.</string>
+    <string name="project_form_hour_budget">Бюджет часов</string>
+    <string name="project_form_target_rate">Целевая почасовая ставка</string>
+    <string name="project_form_start_date">Дата начала</string>
+    <string name="project_form_deadline">Срок сдачи</string>
+    <string name="project_form_date_none">Не задано</string>
+    <string name="project_form_date_clear">Очистить</string>
+    <string name="project_form_save">Сохранить проект</string>
+    <string name="project_form_billed_warning">По этому проекту уже записан выставленный счёт. Изменение суммы затронет только проект — счёт сохранит сумму, на которую был выставлен. Исправьте её в разделе «Счета».</string>
+    <string name="project_form_breakdown_title">Расшифровка</string>
+
+    <!-- Amounts -->
+    <string name="project_amount_base">Ваш гонорар до налога</string>
+    <string name="project_amount_tax">Налог</string>
+    <string name="project_amount_tax_named">%1$s (%2$s)</string>
+    <string name="project_amount_client_total">Итог для клиента</string>
+
+    <!-- Detail -->
+    <string name="project_detail_section_overview">Обзор</string>
+    <string name="project_detail_section_time">Время</string>
+    <string name="project_detail_section_billing">Счета</string>
+    <string name="project_detail_section_notes">Заметки</string>
+    <string name="project_detail_edit">Изменить проект</string>
+    <string name="project_detail_client">Клиент</string>
+    <string name="project_detail_work_status">Статус работы</string>
+    <string name="project_detail_currency">Валюта</string>
+    <string name="project_detail_hours_tracked">Учтено часов</string>
+    <string name="project_detail_hour_budget">Бюджет часов</string>
+    <string name="project_detail_effective_rate">Фактическая почасовая ставка</string>
+    <string name="project_detail_effective_rate_note">Ваш гонорар до налога, делённый на учтённые часы. Подоходный налог, расходы и прочие удержания при этом остаются.</string>
+    <string name="project_detail_target_rate">Целевая почасовая ставка</string>
+    <string name="project_detail_deadline">Срок сдачи</string>
+    <string name="project_detail_start_date">Дата начала</string>
+    <string name="project_detail_completed_on">Завершён</string>
+    <string name="project_detail_billing_status">Статус счёта</string>
+    <string name="project_detail_total_paid">Всего оплачено</string>
+    <string name="project_detail_outstanding">Остаток к оплате</string>
+    <string name="project_detail_credit">Записано сверх выставленной суммы</string>
+    <string name="project_detail_billing_reference">Внешний номер счёта</string>
+    <string name="project_detail_billed_on">Счёт выставлен</string>
+    <string name="project_detail_due_on">Срок оплаты</string>
+    <string name="project_detail_payments">Платежи</string>
+    <string name="project_detail_payment_count">платежей: %1$d</string>
+    <string name="project_detail_no_billing">Выставленный счёт ещё не записан.</string>
+    <string name="project_detail_billing_disclaimer">ElmTrackr не выставляет официальных счетов. Запишите номер счёта, который вы выставили в другом месте.</string>
+    <string name="project_detail_no_time_yet">По этому проекту время ещё не учитывалось.</string>
+    <string name="project_detail_time_pending">Отметьте приход и выберите этот проект, чтобы учитывать по нему время.</string>
+    <string name="project_detail_shift_count">смен: %1$d</string>
+    <string name="project_detail_budget_used">израсходовано %1$s из %2$s</string>
+    <string name="project_detail_no_description">Описания нет.</string>
+    <string name="project_detail_not_set">Не задано</string>
+    <string name="project_detail_no_rate_yet">Учтите время, чтобы это увидеть</string>
+    <string name="project_detail_cancelled_billing">Этот счёт был отменён.</string>
+
+    <!-- Delete and archive -->
+    <string name="project_delete">Удалить проект</string>
+    <string name="project_delete_confirm_title">Удалить этот проект?</string>
+    <string name="project_delete_confirm_text">В этом черновике нет ни учтённого времени, ни счетов, ни платежей, поэтому его можно удалить насовсем. Отменить это будет нельзя.</string>
+    <string name="project_delete_confirm">Удалить</string>
+    <string name="project_delete_keep">Оставить</string>
+
+    <!-- Form errors -->
+    <string name="project_error_required">Обязательное поле</string>
+    <string name="project_error_not_a_number">Введите число</string>
+    <string name="project_error_positive">Должно быть больше нуля</string>
+    <string name="project_error_tax_rate">Введите ставку от 0 до 100</string>
+    <string name="project_error_currency">Выберите валюту</string>
+    <string name="project_error_deadline">Срок сдачи не может быть раньше даты начала</string>
+
+    <!-- Project time tracking -->
+    <string name="project_time_source_title">За что это время?</string>
+    <string name="project_time_source_hourly">Почасовая работа</string>
+    <string name="project_time_source_hourly_desc">Оплачивается как зарплата. Идёт в сверхурочные и надбавки.</string>
+    <string name="project_time_source_project">Проектное время</string>
+    <string name="project_time_source_project_desc">Учитывается в счёт гонорара по проекту. Не оплачивается как зарплата и не идёт в сверхурочные.</string>
+    <string name="project_time_pick_project">Проект</string>
+    <string name="project_time_pick_project_hint">Выберите, к какому проекту относится это время.</string>
+    <string name="project_time_no_projects">Нет проекта, открытого для учёта времени. Сначала начните или возобновите проект.</string>
+    <string name="project_time_note">Заметка (необязательно)</string>
+    <string name="project_time_note_hint">Над чем вы работали. Сохранится вместе со сменой.</string>
+    <string name="project_time_client_currency">%1$s · %2$s</string>
+    <string name="project_time_shift_label">Проектное время</string>
+    <string name="project_time_shift_label_named">Проектное время · %1$s</string>
+    <string name="project_time_shift_unpaid_note">Не оплачивается как зарплата — это время идёт в счёт гонорара по проекту.</string>
+
+    <!-- Active project shift -->
+    <string name="project_active_title">Учитываем: %1$s</string>
+    <string name="project_active_current_rate">Ставка на текущий момент</string>
+    <string name="project_active_projected_rate">Ставка, если остановиться сейчас</string>
+    <string name="project_active_no_rate">Часов пока недостаточно</string>
+    <string name="project_active_budget_left">осталось %1$s бюджета</string>
+    <string name="project_active_budget_over">%1$s сверх бюджета</string>
+    <string name="project_active_target_left">осталось %1$s, прежде чем вы опуститесь ниже %2$s в час</string>
+    <string name="project_active_target_passed">Вы уже ниже своей цели в %1$s в час</string>
+    <string name="project_active_feature_off">Оплачиваемые проекты выключены, но эта смена всё ещё учитывается по проекту %1$s. Отметьте уход как обычно — она останется проектным временем, а не оплачиваемыми часами.</string>
+    <string name="project_active_feature_off_unknown">Оплачиваемые проекты выключены, но эта смена всё ещё учитывается как проектное время. Отметьте уход как обычно — оплачиваемыми часами она не станет.</string>
+
+    <!-- After a project shift -->
+    <string name="project_shift_done_title">%1$s добавлено к проекту %2$s</string>
+    <string name="project_shift_done_rate">Фактическая ставка теперь %1$s в час</string>
+    <string name="project_shift_done_no_rate">Ставки пока нет — гонорар по проекту не задан.</string>
+    <string name="project_shift_done_view">Открыть проект</string>
+    <string name="project_shift_done_dismiss">Скрыть</string>
+
+    <!-- Editing a shift -->
+    <string name="project_edit_source_title">Оплата</string>
+    <string name="project_edit_source_helper">Изменение этого пересчитает смену. Время идёт либо в зарплату, либо в проект, но не в оба сразу.</string>
+    <string name="project_edit_to_project_warning">Эта смена больше не будет оплачиваться как зарплата, а её часы уйдут из ваших сверхурочных и надбавок.</string>
+    <string name="project_edit_to_hourly_warning">Эта смена снова будет оплачиваться как зарплата, а её часы уйдут из проекта.</string>
+
+    <!-- Record billing details -->
+    <string name="project_billing_action">Отметить как выставленный</string>
+    <string name="project_billing_form_title">Записать данные счёта</string>
+    <string name="project_billing_form_subtitle">ElmTrackr не выставляет официальных счетов. Запишите выставленную сумму и номер счёта, который вы оформили в другом месте.</string>
+    <string name="project_billing_amount">Выставленная сумма (до налога)</string>
+    <string name="project_billing_amount_helper">По умолчанию берётся согласованный гонорар по проекту. Измените, если выставили другую сумму.</string>
+    <string name="project_billing_currency">Валюта</string>
+    <string name="project_billing_date">Дата счёта</string>
+    <string name="project_billing_due_date">Срок оплаты</string>
+    <string name="project_billing_due_date_helper">Необязательно. Используется для отслеживания просрочки и напоминаний.</string>
+    <string name="project_billing_reference_label">Внешний номер счёта</string>
+    <string name="project_billing_reference_helper">Номер из вашего счёта, книги квитанций или бухгалтерской программы.</string>
+    <string name="project_billing_notes">Заметки</string>
+    <string name="project_billing_save">Сохранить данные счёта</string>
+    <string name="project_billing_preview">Итог для клиента %1$s</string>
+    <string name="project_billing_error_due_before_billed">Срок оплаты не может быть раньше даты счёта</string>
+    <string name="project_billing_already_billed">По этому проекту уже есть запись о счёте.</string>
+
+    <!-- Billing correction -->
+    <string name="project_billing_correct">Исправить данные счёта</string>
+    <string name="project_billing_cancel_record">Отменить эту запись о счёте</string>
+    <string name="project_billing_cancel_confirm_title">Отменить эту запись о счёте?</string>
+    <string name="project_billing_cancel_confirm_text">Она останется видимой как отменённая, а после неё можно записать исправленные данные.</string>
+    <string name="project_billing_cancel_confirm">Отменить запись</string>
+    <string name="project_billing_cancel_keep">Оставить</string>
+    <string name="project_billing_blocked_has_payments">По этой записи о счёте уже есть платежи, поэтому заменить её нельзя. История платежей должна остаться как есть. Сначала удалите платежи, если они были записаны по ошибке.</string>
+    <string name="project_billing_blocked_cancelled">Эта запись о счёте уже отменена.</string>
+    <string name="project_billing_restore">Восстановить эту запись о счёте</string>
+
+    <!-- Record payment -->
+    <string name="project_payment_action">Записать платёж</string>
+    <string name="project_payment_form_title">Записать платёж</string>
+    <string name="project_payment_amount">Полученная сумма</string>
+    <string name="project_payment_amount_helper">Остаток к оплате — %1$s.</string>
+    <string name="project_payment_date">Дата платежа</string>
+    <string name="project_payment_method">Способ оплаты</string>
+    <string name="project_payment_reference">Номер</string>
+    <string name="project_payment_notes">Заметки</string>
+    <string name="project_payment_save">Сохранить платёж</string>
+    <string name="project_payment_method_bank_transfer">Банковский перевод</string>
+    <string name="project_payment_method_cash">Наличные</string>
+    <string name="project_payment_method_card">Карта</string>
+    <string name="project_payment_method_check">Чек</string>
+    <string name="project_payment_method_paypal">PayPal</string>
+    <string name="project_payment_method_payment_app">Платёжное приложение</string>
+    <string name="project_payment_method_other">Другое</string>
+
+    <!-- Payment errors -->
+    <string name="project_payment_error_amount">Введите сумму больше нуля</string>
+    <string name="project_payment_error_negative">Платёж не может быть отрицательным</string>
+    <string name="project_payment_error_overpayment">Это больше, чем оставшиеся %1$s. Запишите %1$s или меньше.</string>
+    <string name="project_payment_error_currency">Этот платёж в %1$s, а запись о счёте — в %2$s. ElmTrackr не конвертирует валюты.</string>
+    <string name="project_payment_error_no_record">Запишите данные счёта, прежде чем записывать платёж.</string>
+
+    <!-- Payment history -->
+    <string name="project_payment_history">История платежей</string>
+    <string name="project_payment_history_empty">Платежи пока не записаны.</string>
+    <string name="project_payment_row">%1$s · %2$s</string>
+    <string name="project_payment_delete">Удалить платёж</string>
+    <string name="project_payment_delete_confirm_title">Удалить этот платёж?</string>
+    <string name="project_payment_delete_confirm_text">Остаток к оплате и статус счёта будут пересчитаны. Отменить это будет нельзя.</string>
+    <string name="project_payment_delete_confirm">Удалить</string>
+    <string name="project_payment_delete_keep">Оставить</string>
+
+    <!-- Overdue -->
+    <string name="project_billing_overdue_days">просрочка %1$d дн.</string>
+    <string name="project_billing_overdue_one_day">просрочка 1 день</string>
+    <string name="project_billing_due_today">Срок оплаты сегодня</string>
+    <string name="project_billing_due_in_days">Срок оплаты через %1$d дн.</string>
+
+    <!-- Billing reminders -->
+    <string name="project_reminder_upcoming_title">Скоро срок оплаты: %1$s</string>
+    <string name="project_reminder_upcoming_text">К оплате %1$s, срок %2$s.</string>
+    <string name="project_reminder_due_today_title">Сегодня срок оплаты: %1$s</string>
+    <string name="project_reminder_due_today_text">К оплате %1$s.</string>
+    <string name="project_reminder_overdue_title">Просрочена оплата: %1$s</string>
+    <string name="project_reminder_overdue_text">К оплате %1$s, срок был %2$s.</string>
+    <string name="notif_channel_project_billing">Счета по проектам</string>
+    <string name="notif_channel_project_billing_desc">Напоминания о платежах по проектам, срок которых подходит или уже прошёл.</string>
+
+    <!-- Dashboard project block -->
+    <string name="project_dash_title">Проекты</string>
+    <string name="project_dash_active">активных: %1$d</string>
+    <string name="project_dash_unbilled">без счёта: %1$d</string>
+    <string name="project_dash_outstanding">Остаток к оплате</string>
+    <string name="project_dash_overdue">Просрочено</string>
+    <string name="project_dash_received">Получено по проектам</string>
+    <string name="project_dash_received_period">Этот месяц</string>
+    <string name="project_dash_tax_collected">Собрано налога</string>
+    <string name="project_dash_revenue_before_tax">Выручка по проектам до налога</string>
+    <string name="project_dash_attention">требуют внимания: %1$d</string>
+    <string name="project_dash_open">Открыть проекты</string>
+    <string name="project_dash_basis_note">Почасовой заработок — это стоимость работы, выполненной в этом месяце. Платежи по проектам — это деньги, поступившие в этом месяце. Они не складываются, потому что измеряют разное.</string>
+
+    <!-- Accounting basis labels -->
+    <string name="project_basis_hourly">Почасовой заработок</string>
+    <string name="project_basis_hourly_desc">Стоимость почасовой работы, выполненной за этот период.</string>
+    <string name="project_basis_received">Получено по проектам</string>
+    <string name="project_basis_received_desc">Платежи по проектам, поступившие за этот период.</string>
+    <string name="project_basis_work_performed">Выполненная работа</string>
+    <string name="project_basis_billed">Выставленная сумма</string>
+    <string name="project_basis_cash">Поступило денег</string>
+    <string name="project_basis_tax">Собрано налога</string>
+    <string name="project_basis_outstanding">К оплате</string>
+
+    <!-- Project health -->
+    <string name="project_health_on_track">Всё идёт по плану</string>
+    <string name="project_health_on_track_why">Ничего не требует внимания.</string>
+    <string name="project_health_near_budget">Бюджет часов на исходе</string>
+    <string name="project_health_near_budget_why">Израсходовано %1$d%% бюджета часов.</string>
+    <string name="project_health_over_budget">Бюджет часов превышен</string>
+    <string name="project_health_over_budget_why">%1$s сверх бюджета часов.</string>
+    <string name="project_health_rate_below">Фактическая ставка ниже цели</string>
+    <string name="project_health_rate_below_why">%1$s в час ниже вашей цели.</string>
+    <string name="project_health_due_soon">Скоро срок оплаты</string>
+    <string name="project_health_due_soon_why">%1$s к оплате через %2$d дн.</string>
+    <string name="project_health_overdue">Оплата просрочена</string>
+    <string name="project_health_overdue_why">%1$s просрочено на %2$d дн.</string>
+    <string name="project_health_not_billed">Завершён, но счёт не выставлен</string>
+    <string name="project_health_not_billed_why">Работа закончена, а счёт не выставлен.</string>
+
+    <!-- Project report -->
+    <string name="project_report_title">Отчёт по проектам</string>
+    <string name="project_report_empty">Под эти фильтры не подходит ни один проект.</string>
+    <string name="project_report_section_time">Проектное время</string>
+    <string name="project_report_section_value">Стоимость проектов</string>
+    <string name="project_report_section_efficiency">Эффективность выручки</string>
+    <string name="project_report_tracked_hours">Учтено часов</string>
+    <string name="project_report_active_days">Активных дней</string>
+    <string name="project_report_average">В среднем на проект</string>
+    <string name="project_report_over_budget">Часов сверх бюджета</string>
+    <string name="project_report_contracted">Базовые гонорары по договорам</string>
+    <string name="project_report_client_totals">Итоги для клиентов</string>
+    <string name="project_report_tax">Налог</string>
+    <string name="project_report_billed">Выставлено</string>
+    <string name="project_report_paid">Оплачено</string>
+    <string name="project_report_outstanding">Остаток к оплате</string>
+    <!-- The fee covers the whole engagement, so its hours must too; the label says
+         so rather than letting a monthly report imply the rate is monthly. -->
+    <string name="project_report_effective_rate_all_time">Фактическая почасовая ставка (за всё время)</string>
+    <string name="project_report_value_per_hour">Стоимость проекта в час</string>
+    <string name="project_report_efficiency_note">Стоимость проекта в час — это согласованный гонорар до налога, делённый на отработанные часы. Расходы не учитываются, поэтому это не чистая прибыль.</string>
+    <string name="project_report_currency_note">Суммы сгруппированы по валютам. ElmTrackr не конвертирует их между собой.</string>
+    <string name="project_report_export">Экспорт проектов в CSV</string>
+
+    <!-- Report filters -->
+    <string name="project_filter_title">Фильтры</string>
+    <string name="project_filter_from">С</string>
+    <string name="project_filter_to">По</string>
+    <string name="project_filter_project">Проект</string>
+    <string name="project_filter_client">Клиент</string>
+    <string name="project_filter_work_status">Статус работы</string>
+    <string name="project_filter_billing_status">Статус счёта</string>
+    <string name="project_filter_currency">Валюта</string>
+    <string name="project_filter_any">Любой</string>
+    <string name="project_filter_include_archived">Включая архив</string>
+    <string name="project_filter_clear">Сбросить фильтры</string>
+    <!-- Prompt 7: internationalisation and accessibility -->
+
+    <!-- Durations. The numeral is supplied already localised; only the unit
+         words differ per language, and a translator may reorder the parts. -->
+    <string name="project_duration_hm">%1$s ч %2$s мин</string>
+    <string name="project_duration_h">%1$s ч</string>
+    <string name="project_duration_m">%1$s мин</string>
+
+    <!-- An amount shown next to a different currency, where the symbol alone
+         does not say which currency this row is. -->
+    <string name="project_money_with_code">%1$s %2$s</string>
+    <string name="project_money_label_with_code">%1$s (%2$s)</string>
+
+    <!-- Short forms, for the bottom bar and the narrow card rows only. -->
+    <string name="project_detail_outstanding_short">К оплате</string>
+    <string name="project_amount_client_total_short">Итог клиента</string>
+
+    <!-- Glossary terms the module needed names for. -->
+    <string name="project_fee">Гонорар по проекту</string>
+    <string name="project_payment_received">Платёж получен</string>
+
+    <!-- Accessibility. Label and value are announced as one phrase, so a
+         screen reader does not read a column of numbers with no names. -->
+    <string name="project_a11y_row">%1$s: %2$s</string>
+    <string name="project_a11y_work_status">Статус проекта: %1$s</string>
+    <string name="project_a11y_billing_status">Статус счёта: %1$s</string>
+    <string name="project_a11y_days_overdue">Просрочка %1$s дн.</string>
+    <string name="project_a11y_currency">Валюта: %1$s</string>
+    <string name="project_a11y_reference">Номер %1$s</string>
+    <string name="project_a11y_budget_used">Израсходовано %1$s бюджета часов</string>
+    <string name="project_a11y_project_card">%1$s, %2$s</string>
+    <string name="project_a11y_error">Ошибка: %1$s</string>
+    <string name="nav_destination_added">%1$s добавлено в панель навигации</string>
+
+    <!-- Prompt 8: lock-screen redaction. Named the project, never the amount. -->
+    <string name="project_reminder_public_text">Срок оплаты</string>
+    <string name="project_delete_shifts_kept">Смены (%1$d, %2$s ч) сохранят свои часы и станут обычной оплачиваемой работой.</string>
+    <string name="project_delete_billing_lost">Записи о счетах и платежах по этому проекту будут удалены.</string>
+    <string name="project_delete_archive_hint">Чтобы проект остался в отчётах и не удалялся, отправьте его в архив.</string>
+</resources>

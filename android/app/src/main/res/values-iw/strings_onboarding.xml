@@ -11,7 +11,7 @@
     <!-- Language step -->
     <string name="onboarding_step_language">שפה</string>
     <string name="onboarding_language_title">באיזו שפה נוח לך?</string>
-    <string name="onboarding_language_subtitle">‏ElmTrackr מדבר עברית, אנגלית וערבית. אפשר להחליף שפה בכל שלב.</string>
+    <string name="onboarding_language_subtitle">‏ElmTrackr מדבר עברית, אנגלית, ערבית ורוסית. אפשר להחליף שפה בכל שלב.</string>
     <string name="onboarding_language_change_later">אפשר לשנות את זה בהמשך: הגדרות ← מראה ושעון.</string>
 
     <!-- Save failure -->

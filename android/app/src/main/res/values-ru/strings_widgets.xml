@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget labels resolved at render time. The English file shouts some of
+         these in capitals; Russian keeps sentence case, as Android does. -->
+    <string name="widget_clocked_in">Приход отмечен</string>
+    <string name="widget_clocked_out">Уход отмечен</string>
+    <string name="widget_punch_in">Отметить приход</string>
+    <string name="widget_punch_out">Отметить уход</string>
+    <string name="widget_tap_start_shift">нажмите, чтобы начать смену</string>
+    <string name="widget_tap_end_shift">нажмите, чтобы завершить смену</string>
+    <string name="widget_on_shift">на смене</string>
+    <string name="widget_last_punch">последняя отметка</string>
+    <string name="widget_on_shift_upper">На смене</string>
+    <string name="widget_last_punch_upper">Последняя отметка</string>
+    <string name="widget_since">с %1$s</string>
+    <string name="widget_today_short">Сегодня %1$s</string>
+    <string name="widget_tap_to_start">нажмите, чтобы начать</string>
+    <string name="widget_yesterday_short">Вчера %1$s</string>
+    <string name="widget_signed_out_hint">нажмите, чтобы войти</string>
+    <string name="widget_today_logged">Сегодня учтено %1$s</string>
+    <string name="widget_no_time_today">Сегодня время не учтено</string>
+    <string name="widget_active_sub">С %1$s · сегодня %2$s</string>
+    <string name="widget_progress_active">%1$d%% от %2$s дня · начало в %3$s</string>
+    <string name="widget_progress_idle">%1$d%% от %2$s дня · до цели %3$s</string>
+    <string name="widget_today_lower">сегодня</string>
+    <string name="widget_clock_in">Отметить приход</string>
+    <string name="widget_clock_out">Отметить уход</string>
+
+    <!-- The widget-picker preview samples are translatable="false" in
+         res/values and deliberately absent here. -->
+
+    <!-- Notification channels -->
+    <string name="notif_channel_active_shift">Активная смена</string>
+    <string name="notif_channel_active_shift_desc">Показывается, пока идёт ваша смена</string>
+    <string name="notif_channel_reminders">Напоминания</string>
+    <string name="notif_channel_reminders_desc">Напоминания о длинных сменах и другие</string>
+
+    <!-- Shortcut clock-out feedback -->
+    <string name="shortcut_feedback_clocked_out_title">Уход отмечен</string>
+    <string name="shortcut_feedback_clocked_out_body">Ваша смена завершена.</string>
+    <string name="shortcut_feedback_no_shift_title">Нет активной смены</string>
+    <string name="shortcut_feedback_no_shift_body">Нет активной смены, из которой можно отметить уход.</string>
+</resources>

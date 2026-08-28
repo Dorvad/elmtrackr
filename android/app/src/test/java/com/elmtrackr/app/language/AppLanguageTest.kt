@@ -46,7 +46,7 @@ class AppLanguageTest {
     /** SYSTEM has no tag; it must never be returned for a resolved code. */
     @Test
     fun `no code resolves to SYSTEM`() {
-        val codes = listOf("en", "he", "iw", "ar", "fr", "", null)
+        val codes = listOf("en", "he", "iw", "ar", "ru", "fr", "", null)
 
         codes.forEach { code ->
             assertEquals(

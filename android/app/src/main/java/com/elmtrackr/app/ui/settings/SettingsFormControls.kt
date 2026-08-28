@@ -311,6 +311,11 @@ internal fun LanguageChoiceList() {
                 trailingLabel = stringResource(R.string.settings_language_current)
                     .takeIf { stored == AppLanguage.SYSTEM && drawn == language },
             )
+            FilterChip(
+                selected = current == AppLanguage.RUSSIAN,
+                onClick = { AppLanguage.apply(context, AppLanguage.RUSSIAN) },
+                label = { Text("Русский") },
+            )
         }
     }
 }
