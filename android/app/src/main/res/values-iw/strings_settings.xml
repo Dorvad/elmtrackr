@@ -81,6 +81,8 @@
     <string name="settings_pack_buy_no_price">רכישה</string>
     <string name="settings_pack_unavailable">לא זמין</string>
     <string name="settings_pack_locked">%1$d עיצובים — רכישה חד־פעמית</string>
+    <string name="settings_pack_faces_count">%1$d עיצובים</string>
+    <string name="settings_pack_saving">חיסכון %1$d%%</string>
     <string name="settings_pack_unavailable_note">רכישות אינן זמינות במכשיר הזה כרגע.</string>
     <string name="settings_pack_all_title">כל החבילות</string>
     <string name="settings_pack_all_desc">כל %1$d החבילות יחד, כולל חבילות שיתווספו בעדכונים הבאים.</string>

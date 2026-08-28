@@ -63,6 +63,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.theme.Spacing
@@ -74,6 +75,7 @@ import com.elmtrackr.app.ui.design.ElmDropdownField
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.CornerRadius
+import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 
 private val SUPPORTED_CLOCK_STYLES = ClockStyle.entries
@@ -339,7 +341,11 @@ internal fun CurrencyDropdown(selected: CurrencyCode, onSelect: (CurrencyCode) -
 }
 
 @Composable
-internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
+internal fun WatchFacePreview(
+    style: ClockStyle,
+    selected: Boolean,
+    height: Dp = Layout.facePreviewHeight,
+) {
     val transition = rememberInfiniteTransition(label = "watch-${style.name}")
     val pulse by transition.animateFloat(
         initialValue = 0.35f,
@@ -361,7 +367,7 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
         else -> MaterialTheme.colorScheme.primary
     }
     Box(
-        Modifier.fillMaxWidth().height(68.dp).background(faceBackground, RoundedCornerShape(CornerRadius.Medium)),
+        Modifier.fillMaxWidth().height(height).background(faceBackground, RoundedCornerShape(CornerRadius.Medium)),
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.fillMaxSize().padding(7.dp)) {

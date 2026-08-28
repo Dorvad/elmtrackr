@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,12 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.billing.BillingAvailability
-import com.elmtrackr.app.billing.ClockFacePackProducts
 import com.elmtrackr.app.billing.ClockFacePackStorefront
 import com.elmtrackr.app.domain.model.ClockStyle
-import com.elmtrackr.app.ui.design.ElmCard
 import com.elmtrackr.app.ui.design.auroraHeading
-import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
 
 /**
@@ -85,21 +80,17 @@ internal fun ClockFaceGalleryScreen(
             )
         }
         items(ClockFaceGroup.entries, key = { it.name }) { group ->
-            val installed = group in availablePacks
-            val owned = storefront.isOwned(group)
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                ClockFaceGroupHeader(
-                    group = group,
-                    installed = installed,
-                    owned = owned,
-                    price = storefront.priceOf(group),
-                    sellable = storefront.availability == BillingAvailability.AVAILABLE,
-                    canRemove = ClockFacePacks.canRemove(group, selected),
-                    onInstall = { onInstallPack(group) },
-                    onBuy = { onBuyPack(group) },
-                    onRemove = { onRemovePack(group) },
-                )
-                if (installed) {
+            // A pack the user has is a picker: a header and four faces to choose
+            // between. A pack they do not is a product, and gets a product's
+            // shape instead — the two are different jobs and looked identical
+            // when both were a header over a grey box.
+            if (group in availablePacks) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    InstalledPackHeader(
+                        group = group,
+                        canRemove = ClockFacePacks.canRemove(group, selected),
+                        onRemove = { onRemovePack(group) },
+                    )
                     ClockFaceGrid(
                         faces = group.faces,
                         selected = selected,
@@ -108,38 +99,44 @@ internal fun ClockFaceGalleryScreen(
                             onBack()
                         },
                     )
-                } else {
-                    ClockFacePackTeaser(group = group, owned = owned)
                 }
+            } else {
+                ClockFacePackOfferCard(
+                    group = group,
+                    price = storefront.priceOf(group),
+                    owned = storefront.isOwned(group),
+                    sellable = storefront.availability == BillingAvailability.AVAILABLE,
+                    onBuy = { onBuyPack(group) },
+                    onInstall = { onInstallPack(group) },
+                )
             }
         }
-        // Offered after the packs, not before them: someone who has just read what
-        // four packs contain is in a position to judge whether all of them is a
+        // Offered after the packs, not before them: someone who has just seen what
+        // four packs look like is in a position to judge whether all of them is a
         // better deal, and someone who only wanted one should not have to scroll
         // past a bigger price to reach it.
-        if (!storefront.everythingOwned) {
+        if (storefront.offerAllPacks) {
             item {
-                AllPacksOffer(
-                    price = storefront.allPacksPrice,
-                    availability = storefront.availability,
-                    onBuy = onBuyAllPacks,
-                )
+                AllClockFacePacksCard(storefront = storefront, onBuy = onBuyAllPacks)
             }
         }
         item { Spacer(Modifier.height(88.dp)) }
     }
 }
 
+/**
+ * The name and description above an installed pack's faces, with the one action
+ * that still applies to it.
+ *
+ * Buy, add and unavailable all left with the offer card: a pack that is on the
+ * screen as a grid of choosable faces is past every one of those states, and
+ * carrying them here meant a five-branch `when` where four branches described a
+ * pack this header was never shown for.
+ */
 @Composable
-private fun ClockFaceGroupHeader(
+private fun InstalledPackHeader(
     group: ClockFaceGroup,
-    installed: Boolean,
-    owned: Boolean,
-    price: String?,
-    sellable: Boolean,
     canRemove: Boolean,
-    onInstall: () -> Unit,
-    onBuy: () -> Unit,
     onRemove: () -> Unit,
 ) {
     Row(
@@ -164,50 +161,6 @@ private fun ClockFaceGroupHeader(
             // there is nothing the user could do with it and a greyed control only
             // invites the question.
             group.isBundled -> Unit
-
-            // Owned but not added — including every pack the user already had when
-            // packs became paid. Nothing to charge for, so this is the same Add
-            // button it has always been.
-            !installed && owned -> TextButton(
-                onClick = onInstall,
-                modifier = Modifier.padding(start = Spacing.s8),
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(Spacing.s18))
-                Spacer(Modifier.size(Spacing.s4))
-                Text(stringResource(R.string.settings_pack_add), fontWeight = FontWeight.SemiBold)
-            }
-
-            // Not owned, and Play can sell it. The price comes from Play so it is
-            // the price actually charged, in the user's own currency; the button
-            // still works before it arrives rather than sitting disabled, because
-            // Play's own sheet states the price again before any money moves.
-            !installed && sellable -> TextButton(
-                onClick = onBuy,
-                modifier = Modifier.padding(start = Spacing.s8),
-            ) {
-                Icon(
-                    Icons.Filled.ShoppingCart,
-                    contentDescription = null,
-                    modifier = Modifier.size(Spacing.s18),
-                )
-                Spacer(Modifier.size(Spacing.s4))
-                Text(
-                    text = price?.let { stringResource(R.string.settings_pack_buy, it) }
-                        ?: stringResource(R.string.settings_pack_buy_no_price),
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-
-            // Not owned and not sellable here: no Play services, the Store
-            // disabled, or the product not sold in this country. Says so plainly
-            // instead of showing a Buy button that could only fail.
-            !installed -> Text(
-                stringResource(R.string.settings_pack_unavailable),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = Spacing.s8),
-            )
-
             canRemove -> TextButton(
                 onClick = onRemove,
                 modifier = Modifier.padding(start = Spacing.s8),
@@ -228,122 +181,6 @@ private fun ClockFaceGroupHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = Spacing.s8),
             )
-        }
-    }
-}
-
-/**
- * Stands in for a pack the user does not have.
- *
- * Names the faces rather than showing locked previews. A row of greyed-out tiles
- * would cost four animated canvases to render something the user cannot pick, and
- * the names are what actually help them decide.
- *
- * The line underneath is the only difference between an unowned pack and one that
- * is merely not added, so it carries the whole of "this costs money" — which is
- * why it says one-time purchase rather than anything vaguer.
- */
-@Composable
-private fun ClockFacePackTeaser(group: ClockFaceGroup, owned: Boolean) {
-    ElmCard(
-        cornerRadius = CornerRadius.Medium,
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-    ) {
-        Column(
-            Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            // map, then join: joinToString's transform is a stored function type, so
-            // a composable cannot be called from it. map is inline and can.
-            val names = group.faces.map { clockStyleDisplayName(it) }
-            Text(
-                names.joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-            )
-            Text(
-                text = if (owned) {
-                    stringResource(R.string.settings_pack_not_added, group.faces.size)
-                } else {
-                    stringResource(R.string.settings_pack_locked, group.faces.size)
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-/**
- * The everything-at-once offer.
- *
- * Sold as a product of its own rather than as a discount applied at checkout,
- * because Play has no concept of the latter for one-time products. It grants
- * packs added in later versions too — a promise the app has to keep in
- * [ClockFacePackProducts.packsGrantedBy], and the reason the wording says so
- * rather than naming a count of packs that will change.
- */
-@Composable
-private fun AllPacksOffer(
-    price: String?,
-    availability: BillingAvailability,
-    onBuy: () -> Unit,
-) {
-    ElmCard(cornerRadius = CornerRadius.Medium) {
-        Column(
-            Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Text(
-                stringResource(R.string.settings_pack_all_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.auroraHeading(),
-            )
-            Text(
-                stringResource(
-                    R.string.settings_pack_all_desc,
-                    ClockFacePackProducts.purchasablePacks.size,
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            when {
-                // Priced and sellable. The price is Play's, never the app's.
-                availability == BillingAvailability.AVAILABLE && price != null -> TextButton(
-                    onClick = onBuy,
-                ) {
-                    Icon(
-                        Icons.Filled.ShoppingCart,
-                        contentDescription = null,
-                        modifier = Modifier.size(Spacing.s18),
-                    )
-                    Spacer(Modifier.size(Spacing.s4))
-                    Text(
-                        stringResource(R.string.settings_pack_all_buy, price),
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-
-                // Play is reachable but has not answered yet. A button with no
-                // price is better than a placeholder price, which would be a
-                // number the app made up.
-                availability == BillingAvailability.AVAILABLE -> TextButton(onClick = onBuy) {
-                    Text(
-                        stringResource(R.string.settings_pack_buy_no_price),
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-
-                availability == BillingAvailability.UNAVAILABLE -> Text(
-                    stringResource(R.string.settings_pack_unavailable_note),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                // Still connecting. Nothing is claimed either way until it is known.
-                else -> Unit
-            }
         }
     }
 }

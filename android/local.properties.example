@@ -11,12 +11,14 @@ supabase.anon.key=
 # sentry.dsn=https://examplePublicKey@o0.ingest.sentry.io/0
 
 # --- One-time products (clock face packs) ---
-# Off by default: every pack stays free and no Play connection is made.
-# Set to true only once the products listed in ClockFacePackProducts exist and are
-# active in Play Console, and only for a build installed through a Play track
-# (internal testing or higher) by a licence tester — Play Billing does not answer
-# a sideloaded APK, so a local debug build shows the packs as unavailable.
-# paid.clock.face.packs=false
+# On by default: the five products in ClockFacePackProducts are live in Play
+# Console, so packs are sold.
+#
+# Set to false to go back to every pack being free and no Play connection at all.
+# Worth doing for a build that will not be installed through a Play track: Play
+# Billing does not answer a sideloaded APK, so a local debug build shows every
+# pack as unavailable rather than buyable.
+# paid.clock.face.packs=true
 
 # --- Release signing (required for Play Store uploads) ---
 # Must match the upload key registered in Play Console (App integrity → App signing).

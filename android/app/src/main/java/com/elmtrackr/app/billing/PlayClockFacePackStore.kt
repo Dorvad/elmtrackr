@@ -134,7 +134,9 @@ class PlayClockFacePackStore @Inject constructor(
         _storefront.update { current ->
             current.copy(
                 prices = pricesByPack(),
+                priceMicros = priceMicrosByPack(),
                 allPacksPrice = formattedPrice(ClockFacePackProducts.ALL_PACKS),
+                allPacksPriceMicros = priceMicros(ClockFacePackProducts.ALL_PACKS),
                 availability = availabilityAfter(details, current),
             )
         }
@@ -257,6 +259,26 @@ class PlayClockFacePackStore @Inject constructor(
             val price = ClockFacePackProducts.productId(pack)?.let(::formattedPrice)
             price?.let { pack to it }
         }.toMap()
+
+    private fun priceMicrosByPack(): Map<ClockFaceGroup, Long> =
+        ClockFacePackProducts.purchasablePacks.mapNotNull { pack ->
+            val micros = ClockFacePackProducts.productId(pack)?.let(::priceMicros)
+            micros?.let { pack to it }
+        }.toMap()
+
+    /**
+     * The raw amount behind [formattedPrice], for the bundle's saving badge.
+     *
+     * Same two offer shapes as the formatted price, and read from the same offer,
+     * so the number the badge is computed from is the number the user is shown.
+     */
+    private fun priceMicros(productId: String): Long? {
+        val product = products[productId] ?: return null
+        val offer = product.oneTimePurchaseOfferDetails
+            ?: product.oneTimePurchaseOfferDetailsList?.firstOrNull()
+            ?: return null
+        return offer.priceAmountMicros
+    }
 
     /**
      * Play's own price string for [productId], or null if it has not answered.

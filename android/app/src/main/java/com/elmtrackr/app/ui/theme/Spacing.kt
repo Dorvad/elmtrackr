@@ -87,6 +87,25 @@ object Layout {
     val minTouchTarget = 48.dp
 
     /**
+     * A clock face preview on a picker tile.
+     *
+     * Tall enough that the face reads as a face rather than a swatch — the
+     * canvas draws arcs, dials and flip cards, and below about this height they
+     * collapse into indistinguishable smudges.
+     */
+    val facePreviewHeight = 68.dp
+
+    /**
+     * The same preview, four across inside a pack card.
+     *
+     * Shorter because four of them share a row that a single tile gives to one.
+     * Kept above the point where the drawings stop being distinguishable, which
+     * is the whole reason the strip exists: a pack nobody can see is a pack
+     * nobody buys.
+     */
+    val packPreviewHeight = 46.dp
+
+    /**
      * A colour-plus-emoji identity tile — a work profile above the clock, or the
      * same profile on a shift row. Small enough to sit inside a chip without
      * setting the row's height.
