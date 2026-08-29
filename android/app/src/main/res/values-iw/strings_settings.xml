@@ -95,6 +95,8 @@
         <item quantity="other">%1$d שלך · %2$d ב־%3$d חבילות</item>
     </plurals>
     <string name="settings_face_store_count_all_owned">כל %1$d העיצובים שלך</string>
+    <string name="settings_face_store_yours_header">העיצובים שלך</string>
+    <string name="settings_face_store_packs_header">חבילות עיצובים</string>
     <string name="settings_face_store_restore">שחזור</string>
     <string name="settings_pack_included">כלול</string>
     <string name="settings_pack_new">חדש</string>

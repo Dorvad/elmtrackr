@@ -142,7 +142,8 @@ class ClockFacePickerRenderTest {
             }
         }
 
-        composeRule.onNodeWithText("Essentials").assertIsDisplayed()
+        // The bundled pack labels its tiles as an eyebrow in the owned zone.
+        composeRule.onNodeWithText("ESSENTIALS", substring = true).assertIsDisplayed()
         composeRule.onAllNodes(hasContentDescription("Distraction free", substring = true))
             .onFirst()
             .performClick()

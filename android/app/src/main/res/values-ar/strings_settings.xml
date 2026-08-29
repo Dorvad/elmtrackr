@@ -97,6 +97,8 @@
         <item quantity="other">%1$d لك · %2$d في %3$d حزمة</item>
     </plurals>
     <string name="settings_face_store_count_all_owned">كل الواجهات الـ%1$d لك</string>
+    <string name="settings_face_store_yours_header">واجهاتك</string>
+    <string name="settings_face_store_packs_header">حزم الواجهات</string>
     <string name="settings_face_store_restore">استعادة</string>
     <string name="settings_pack_included">مضمّنة</string>
     <string name="settings_pack_new">جديد</string>

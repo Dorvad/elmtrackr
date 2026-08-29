@@ -85,6 +85,13 @@ class ClockFaceStoreRenderTest {
         }
 
         composeRule.onNodeWithText("Faces").assertIsDisplayed()
+        // The two zone rules are the screen's ownership model: everything
+        // under "Your faces" is usable, everything under "Face packs" is for
+        // sale. The bundled pack's label carries "Included" as part of the
+        // eyebrow rather than a badge.
+        composeRule.onNodeWithText("YOUR FACES").assertIsDisplayed()
+        composeRule.onNodeWithText("FACE PACKS").assertIsDisplayed()
+        composeRule.onNodeWithText("ESSENTIALS · INCLUDED").assertIsDisplayed()
         // The first product makes the argument: price and verb both visible.
         composeRule.onNodeWithText("Buy").assertIsDisplayed()
         composeRule.onAllNodes(hasText("₪5.00")).onFirst().assertIsDisplayed()

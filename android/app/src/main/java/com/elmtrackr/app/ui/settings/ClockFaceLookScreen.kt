@@ -203,6 +203,8 @@ internal fun ClockFaceLookScreen(
                                     selected = false,
                                     height = Layout.faceLookHeight * LOOK_FACE_FRACTION,
                                     animate = settled,
+                                    showBackground = false,
+                                    readingStyle = MaterialTheme.typography.displaySmall,
                                 )
                             }
                             if (settled) {

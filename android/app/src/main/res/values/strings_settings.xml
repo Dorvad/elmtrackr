@@ -93,6 +93,8 @@
         <item quantity="other">%1$d yours · %2$d in %3$d packs</item>
     </plurals>
     <string name="settings_face_store_count_all_owned">All %1$d faces are yours</string>
+    <string name="settings_face_store_yours_header">Your faces</string>
+    <string name="settings_face_store_packs_header">Face packs</string>
     <string name="settings_face_store_restore">Restore</string>
     <string name="settings_pack_included">Included</string>
     <string name="settings_pack_new">New</string>

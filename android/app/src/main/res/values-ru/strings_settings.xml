@@ -96,6 +96,8 @@
         <item quantity="other">%1$d у вас · %2$d в %3$d наборах</item>
     </plurals>
     <string name="settings_face_store_count_all_owned">Все %1$d циферблатов — ваши</string>
+    <string name="settings_face_store_yours_header">Ваши циферблаты</string>
+    <string name="settings_face_store_packs_header">Наборы циферблатов</string>
     <string name="settings_face_store_restore">Восстановить</string>
     <string name="settings_pack_included">В комплекте</string>
     <string name="settings_pack_new">Новинка</string>

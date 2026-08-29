@@ -281,6 +281,8 @@ internal fun ClockFacePackCollapsedRow(
                 selected = false,
                 height = Spacing.s48,
                 animate = false,
+                showBackground = false,
+                showReading = false,
             )
         }
         Column(Modifier.weight(1f)) {
@@ -508,6 +510,8 @@ private fun PackHero(
                     selected = false,
                     height = Layout.packHeroHeight,
                     animate = settled,
+                    showBackground = false,
+                    readingStyle = MaterialTheme.typography.headlineMedium,
                 )
             }
         }
@@ -641,6 +645,8 @@ private fun VeiledFaceRow(
                         selected = false,
                         height = Layout.packPreviewHeight,
                         animate = false,
+                        showBackground = false,
+                        showReading = false,
                     )
                 }
                 Text(
@@ -728,8 +734,15 @@ private const val HERO_WIDTH_FRACTION = 0.58f
 /** Sentinel for "the full-screen look is closed". */
 private const val LOOK_CLOSED = -1
 
-/** The veil over a locked face: 30% alpha paired with [Layout.packVeilBlur]. */
-private const val VEIL_ALPHA = 0.3f
+/**
+ * The veil over a locked face, paired with [Layout.packVeilBlur].
+ *
+ * Higher than the reference's 30%: the mock's stand-in faces were solid
+ * conic fills, while the real drawings are thin strokes that a blur thins
+ * further. At this alpha the drawing still reads as behind glass without
+ * disappearing into the card.
+ */
+private const val VEIL_ALPHA = 0.45f
 
 /** The hairline border every store card wears. */
 private const val HairlineAlpha = 0.07f
