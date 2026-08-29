@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -65,6 +67,28 @@ class PlayClockFacePackStore @Inject constructor(
      */
     @Volatile
     private var products: Map<String, ProductDetails> = emptyMap()
+
+    /**
+     * Serializes every write to what the user owns.
+     *
+     * The two writers disagree by design — [refresh] replaces the cache with
+     * Play's whole answer so a refund takes effect, [grant] merges one purchase
+     * into it — and returning from Play's sheet runs both at once: the activity
+     * restarting fires the foreground refresh at the same moment Play reports
+     * the purchase.
+     *
+     * Interleaved, that loses the sale. A refresh whose query was issued a beat
+     * before the purchase reached Play's cache would replace a grant that had
+     * already landed, and the user would be left having paid for a pack the app
+     * no longer shows. It self-heals on the next foreground, which is no comfort
+     * to someone watching the thing they just bought disappear.
+     *
+     * So the lock is held across the *query*, not just the write. Either the
+     * grant lands first and the refresh then reads a Play cache that already
+     * contains it, or the refresh completes whole and the grant merges onto its
+     * result. Both orders end up correct.
+     */
+    private val ownershipMutex = Mutex()
 
     init {
         // Ownership is read from storage rather than computed at the point of
@@ -112,34 +136,40 @@ class PlayClockFacePackStore @Inject constructor(
     }
 
     override suspend fun refresh() {
-        val details = connection.queryOneTimeProducts(ClockFacePackProducts.all)
-        val purchases = connection.queryOwnedPurchases()
+        val settled = ownershipMutex.withLock {
+            val details = connection.queryOneTimeProducts(ClockFacePackProducts.all)
+            val purchases = connection.queryOwnedPurchases()
 
-        if (details != null) {
-            products = details.associateBy { it.productId }
-        }
+            if (details != null) {
+                products = details.associateBy { it.productId }
+            }
 
-        // Play answered with the account's complete purchase list, so this
-        // replaces the cache rather than adding to it — that is what makes a
-        // refund, a revoked purchase or a switched Google account take effect.
-        // A failed query leaves the cache alone instead of clearing it.
-        if (purchases != null) {
-            val settled = purchases.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-            purchasePreferences.setOwnedProductIds(
-                settled.flatMapTo(mutableSetOf()) { it.products },
-            )
-            acknowledgeAll(settled)
-        }
+            _storefront.update { current ->
+                current.copy(
+                    prices = pricesByPack(),
+                    priceMicros = priceMicrosByPack(),
+                    allPacksPrice = formattedPrice(ClockFacePackProducts.ALL_PACKS),
+                    allPacksPriceMicros = priceMicros(ClockFacePackProducts.ALL_PACKS),
+                    availability = availabilityAfter(details, current),
+                )
+            }
 
-        _storefront.update { current ->
-            current.copy(
-                prices = pricesByPack(),
-                priceMicros = priceMicrosByPack(),
-                allPacksPrice = formattedPrice(ClockFacePackProducts.ALL_PACKS),
-                allPacksPriceMicros = priceMicros(ClockFacePackProducts.ALL_PACKS),
-                availability = availabilityAfter(details, current),
-            )
+            // Play answered with the account's complete purchase list, so this
+            // replaces the cache rather than adding to it — that is what makes a
+            // refund, a revoked purchase or a switched Google account take
+            // effect. A failed query leaves the cache alone instead of clearing
+            // it.
+            purchases
+                ?.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                ?.also { purchased ->
+                    purchasePreferences.setOwnedProductIds(
+                        purchased.flatMapTo(mutableSetOf()) { it.products },
+                    )
+                }
         }
+        // Outside the lock: acknowledging is several round trips to Play and
+        // holds nothing another writer needs.
+        settled?.let { acknowledgeAll(it) }
     }
 
     override suspend fun launchPurchase(activity: Activity, pack: ClockFaceGroup) {
@@ -231,10 +261,12 @@ class PlayClockFacePackStore @Inject constructor(
         }
 
         val newIds = settled.flatMapTo(mutableSetOf()) { it.products }
-        // Merged, not replaced: this update describes one purchase, while the
-        // cache describes every purchase the account has.
-        val existing = purchasePreferences.preferences.first().ownedProductIds
-        purchasePreferences.setOwnedProductIds(existing + newIds)
+        ownershipMutex.withLock {
+            // Merged, not replaced: this update describes one purchase, while
+            // the cache describes every purchase the account has.
+            val existing = purchasePreferences.preferences.first().ownedProductIds
+            purchasePreferences.setOwnedProductIds(existing + newIds)
+        }
         acknowledgeAll(settled)
         _events.emit(
             PackPurchaseEvent.Purchased(ClockFacePackProducts.packsGrantedBy(newIds)),

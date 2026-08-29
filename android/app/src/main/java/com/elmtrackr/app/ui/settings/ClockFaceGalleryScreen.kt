@@ -23,7 +23,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
-import com.elmtrackr.app.billing.BillingAvailability
 import com.elmtrackr.app.billing.ClockFacePackStorefront
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.ui.design.auroraHeading
@@ -105,7 +104,7 @@ internal fun ClockFaceGalleryScreen(
                     group = group,
                     price = storefront.priceOf(group),
                     owned = storefront.isOwned(group),
-                    sellable = storefront.availability == BillingAvailability.AVAILABLE,
+                    availability = storefront.availability,
                     onBuy = { onBuyPack(group) },
                     onInstall = { onInstallPack(group) },
                 )

@@ -71,7 +71,7 @@ internal fun ClockFacePackOfferCard(
     group: ClockFaceGroup,
     price: String?,
     owned: Boolean,
-    sellable: Boolean,
+    availability: BillingAvailability,
     onBuy: () -> Unit,
     onInstall: () -> Unit,
 ) {
@@ -144,7 +144,12 @@ internal fun ClockFacePackOfferCard(
                 )
             }
 
-            PackAction(owned = owned, sellable = sellable, onBuy = onBuy, onInstall = onInstall)
+            PackAction(
+                owned = owned,
+                availability = availability,
+                onBuy = onBuy,
+                onInstall = onInstall,
+            )
         }
     }
 }
@@ -342,7 +347,7 @@ private fun PackBadge(
 @Composable
 private fun PackAction(
     owned: Boolean,
-    sellable: Boolean,
+    availability: BillingAvailability,
     onBuy: () -> Unit,
     onInstall: () -> Unit,
 ) {
@@ -354,18 +359,25 @@ private fun PackAction(
             Text(stringResource(R.string.settings_pack_add), fontWeight = FontWeight.SemiBold)
         }
 
-        sellable -> ElmGradientButton(onClick = onBuy) {
-            Text(stringResource(R.string.settings_pack_buy), fontWeight = FontWeight.SemiBold)
-        }
-
         // No Play billing here: a sideload, an emulator, a disabled Store, or a
         // country the product is not sold in. Says so instead of offering a
         // button that could only fail.
-        else -> Text(
+        availability == BillingAvailability.UNAVAILABLE -> Text(
             stringResource(R.string.settings_pack_unavailable_note),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        // AVAILABLE, or still connecting. A disabled Buy while Play is being
+        // asked, rather than the unavailable line: connecting takes a moment on
+        // every cold start, and telling someone purchases are unavailable for
+        // that moment is a sentence the app cannot yet know to be true.
+        else -> ElmGradientButton(
+            onClick = onBuy,
+            enabled = availability == BillingAvailability.AVAILABLE,
+        ) {
+            Text(stringResource(R.string.settings_pack_buy), fontWeight = FontWeight.SemiBold)
+        }
     }
 }
 
