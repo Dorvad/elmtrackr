@@ -199,6 +199,87 @@ class ClockFacePackBillingTest {
         assertTrue(ClockFaceGroup.JOURNEYS in available)
     }
 
+    // ── What the bundle is allowed to claim ───────────────────────────────────
+
+    private fun storefront(
+        owned: Set<ClockFaceGroup> = emptySet(),
+        packMicros: Long = 10_000_000L,
+        bundleMicros: Long? = 30_000_000L,
+    ) = ClockFacePackStorefront(
+        owned = owned,
+        priceMicros = ClockFacePackProducts.purchasablePacks.associateWith { packMicros },
+        allPacksPriceMicros = bundleMicros,
+        availability = BillingAvailability.AVAILABLE,
+    )
+
+    /** Four packs at 10 each against a bundle of 30 is a quarter off. */
+    @Test
+    fun `the saving is measured against the packs the bundle would add`() {
+        assertEquals(25, storefront().allPacksSavingPercent)
+    }
+
+    /**
+     * Someone who already owns two packs is not saving anything on those. A badge
+     * computed from the full catalogue would overstate the deal by exactly what
+     * they had already paid.
+     */
+    @Test
+    fun `owned packs are excluded from the saving`() {
+        val partly = storefront(owned = setOf(ClockFaceGroup.NATURE, ClockFaceGroup.JOURNEYS))
+
+        // Two packs left at 10 each, bundle still 30: no saving at all.
+        assertNull(partly.allPacksSavingPercent)
+    }
+
+    /**
+     * A bundle priced at or above the sum claims nothing.
+     *
+     * Equal counts as not cheaper: "save 0%" is a worse thing to print than
+     * nothing at all.
+     */
+    @Test
+    fun `no badge when the bundle is not actually cheaper`() {
+        assertNull(storefront(bundleMicros = 50_000_000L).allPacksSavingPercent)
+        assertNull(storefront(bundleMicros = 40_000_000L).allPacksSavingPercent)
+    }
+
+    /** Play has not answered yet. Nothing is claimed until it does. */
+    @Test
+    fun `no badge before prices arrive`() {
+        assertNull(storefront(bundleMicros = null).allPacksSavingPercent)
+        assertNull(
+            ClockFacePackStorefront(allPacksPriceMicros = 1L).allPacksSavingPercent,
+        )
+    }
+
+    /**
+     * One pack short, the bundle is never the right advice: it is either worse
+     * value or asks the user to pay again for what they have.
+     */
+    @Test
+    fun `the bundle is not offered when a single pack is left`() {
+        val nearlyDone = storefront(
+            owned = ClockFacePackProducts.purchasablePacks.drop(1).toSet(),
+        )
+
+        assertFalse(nearlyDone.offerAllPacks)
+        assertNull(nearlyDone.allPacksSavingPercent)
+    }
+
+    @Test
+    fun `the bundle is offered while two or more packs are unowned`() {
+        assertTrue(storefront().offerAllPacks)
+        assertTrue(storefront(owned = setOf(ClockFaceGroup.NATURE)).offerAllPacks)
+    }
+
+    @Test
+    fun `nothing is offered once everything is owned`() {
+        val done = storefront(owned = ClockFacePackProducts.purchasablePacks.toSet())
+
+        assertTrue(done.everythingOwned)
+        assertFalse(done.offerAllPacks)
+    }
+
     /** The free storefront must keep behaving exactly as the free era did. */
     @Test
     fun `with billing off every pack reads as owned`() {

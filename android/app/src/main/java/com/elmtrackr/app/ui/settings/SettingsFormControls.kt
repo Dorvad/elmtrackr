@@ -33,7 +33,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +62,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.theme.Spacing
@@ -74,6 +74,7 @@ import com.elmtrackr.app.ui.design.ElmDropdownField
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.CornerRadius
+import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 
 private val SUPPORTED_CLOCK_STYLES = ClockStyle.entries
@@ -254,6 +255,7 @@ internal fun AppLanguage.autonym(): String? = when (this) {
     AppLanguage.ENGLISH -> "English"
     AppLanguage.HEBREW -> "עברית"
     AppLanguage.ARABIC -> "العربية"
+    AppLanguage.RUSSIAN -> "Русский"
 }
 
 /**
@@ -296,7 +298,12 @@ internal fun LanguageChoiceList() {
             selected = stored == AppLanguage.SYSTEM,
             onSelect = { AppLanguage.apply(context, AppLanguage.SYSTEM) },
         )
-        listOf(AppLanguage.ENGLISH, AppLanguage.HEBREW, AppLanguage.ARABIC).forEach { language ->
+        listOf(
+            AppLanguage.ENGLISH,
+            AppLanguage.HEBREW,
+            AppLanguage.ARABIC,
+            AppLanguage.RUSSIAN,
+        ).forEach { language ->
             SettingsChoiceRow(
                 title = language.autonym().orEmpty(),
                 selected = stored == language,
@@ -308,11 +315,6 @@ internal fun LanguageChoiceList() {
                 // screen.
                 trailingLabel = stringResource(R.string.settings_language_current)
                     .takeIf { stored == AppLanguage.SYSTEM && drawn == language },
-            )
-            FilterChip(
-                selected = current == AppLanguage.RUSSIAN,
-                onClick = { AppLanguage.apply(context, AppLanguage.RUSSIAN) },
-                label = { Text("Русский") },
             )
         }
     }
@@ -344,7 +346,11 @@ internal fun CurrencyDropdown(selected: CurrencyCode, onSelect: (CurrencyCode) -
 }
 
 @Composable
-internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
+internal fun WatchFacePreview(
+    style: ClockStyle,
+    selected: Boolean,
+    height: Dp = Layout.facePreviewHeight,
+) {
     val transition = rememberInfiniteTransition(label = "watch-${style.name}")
     val pulse by transition.animateFloat(
         initialValue = 0.35f,
@@ -366,7 +372,7 @@ internal fun WatchFacePreview(style: ClockStyle, selected: Boolean) {
         else -> MaterialTheme.colorScheme.primary
     }
     Box(
-        Modifier.fillMaxWidth().height(68.dp).background(faceBackground, RoundedCornerShape(CornerRadius.Medium)),
+        Modifier.fillMaxWidth().height(height).background(faceBackground, RoundedCornerShape(CornerRadius.Medium)),
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.fillMaxSize().padding(7.dp)) {

@@ -18,6 +18,7 @@ import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -99,11 +100,35 @@ class PlayBillingConnection @Inject constructor(
      */
     suspend fun ensureConnected(): Boolean = connectMutex.withLock {
         if (client.isReady) return@withLock true
-        val result = awaitSetup()
+        val result = runCatchingBilling("startConnection") { awaitSetup() }
+            ?: return@withLock false
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.d(TAG, "Billing unavailable: ${result.responseCode} ${result.debugMessage}")
         }
         result.responseCode == BillingClient.BillingResponseCode.OK
+    }
+
+    /**
+     * Runs one Play call, turning a throw into the same null this file already
+     * uses for "could not ask".
+     *
+     * The contract at the top of this class says failure arrives as a value
+     * rather than an exception, and until this existed that was only true of the
+     * response codes. `BillingClient` still throws on its own account — a closed
+     * client, a flow launched off the main thread, a Store that dies mid-call —
+     * and the tap that reaches here is a Buy button running on `viewModelScope`,
+     * which has no exception handler and would take the process down with it.
+     *
+     * Cancellation is rethrown. It is an `Exception` in Kotlin, and swallowing it
+     * would leave a cancelled coroutine believing it should carry on.
+     */
+    private suspend fun <T> runCatchingBilling(what: String, block: suspend () -> T): T? = try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.d(TAG, "Billing call '$what' threw: ${e.message}")
+        null
     }
 
     /**
@@ -157,7 +182,8 @@ class PlayBillingConnection @Inject constructor(
                 },
             )
             .build()
-        val result = client.queryProductDetails(params)
+        val result = runCatchingBilling("queryProductDetails") { client.queryProductDetails(params) }
+            ?: return null
         if (result.billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.d(TAG, "queryProductDetails failed: ${result.billingResult.debugMessage}")
             return null
@@ -183,7 +209,8 @@ class PlayBillingConnection @Inject constructor(
         val params = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.INAPP)
             .build()
-        val result = client.queryPurchasesAsync(params)
+        val result = runCatchingBilling("queryPurchases") { client.queryPurchasesAsync(params) }
+            ?: return null
         if (result.billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.d(TAG, "queryPurchases failed: ${result.billingResult.debugMessage}")
             return null
@@ -220,12 +247,17 @@ class PlayBillingConnection @Inject constructor(
                     ?.let { setOfferToken(it) }
             }
             .build()
-        return client.launchBillingFlow(
-            activity,
-            BillingFlowParams.newBuilder()
-                .setProductDetailsParamsList(listOf(productParams))
-                .build(),
-        )
+        return runCatchingBilling("launchBillingFlow") {
+            client.launchBillingFlow(
+                activity,
+                BillingFlowParams.newBuilder()
+                    .setProductDetailsParamsList(listOf(productParams))
+                    .build(),
+            )
+        } ?: BillingResult.newBuilder()
+            .setResponseCode(BillingClient.BillingResponseCode.ERROR)
+            .setDebugMessage("launchBillingFlow threw")
+            .build()
     }
 
     /**
@@ -238,11 +270,13 @@ class PlayBillingConnection @Inject constructor(
      */
     suspend fun acknowledge(purchase: Purchase): Boolean {
         if (!ensureConnected()) return false
-        val result = client.acknowledgePurchase(
-            AcknowledgePurchaseParams.newBuilder()
-                .setPurchaseToken(purchase.purchaseToken)
-                .build(),
-        )
+        val result = runCatchingBilling("acknowledgePurchase") {
+            client.acknowledgePurchase(
+                AcknowledgePurchaseParams.newBuilder()
+                    .setPurchaseToken(purchase.purchaseToken)
+                    .build(),
+            )
+        } ?: return false
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.d(TAG, "acknowledge failed: ${result.responseCode} ${result.debugMessage}")
         }

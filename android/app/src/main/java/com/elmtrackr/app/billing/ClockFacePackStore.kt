@@ -77,17 +77,76 @@ data class ClockFacePackStorefront(
      * A missing entry means Play has not answered yet, not that the pack is free.
      */
     val prices: Map<ClockFaceGroup, String> = emptyMap(),
+    /**
+     * The same prices as raw amounts, for arithmetic the app may do but must
+     * never print.
+     *
+     * Micros because that is what Play reports and it is exact — a price in
+     * whole currency units would round, and a rounded saving is a wrong one.
+     * Formatting these back into a currency string is deliberately not done
+     * anywhere: the app would have to guess a symbol, a separator and a position
+     * that Play already knows, and the two would disagree in some locale nobody
+     * tested.
+     */
+    val priceMicros: Map<ClockFaceGroup, Long> = emptyMap(),
     /** Localized price of [ClockFacePackProducts.ALL_PACKS], or null until Play answers. */
     val allPacksPrice: String? = null,
+    /** The bundle price as a raw amount. See [priceMicros]. */
+    val allPacksPriceMicros: Long? = null,
     val availability: BillingAvailability = BillingAvailability.LOADING,
 ) {
     /** True when every sellable pack is already the user's, so nothing is left to offer. */
     val everythingOwned: Boolean
         get() = owned.containsAll(ClockFacePackProducts.purchasablePacks)
 
+    /** The packs still for sale to this user, in gallery order. */
+    val unownedPacks: List<ClockFaceGroup>
+        get() = ClockFacePackProducts.purchasablePacks.filterNot { it in owned }
+
+    /**
+     * Whether the everything-at-once offer is worth putting in front of the user.
+     *
+     * Not simply "anything left unowned". Someone one pack short is better served
+     * by buying that pack, and a bundle offered beside it is either worse value or
+     * asks them to pay twice for what they have. Below two packs the honest move
+     * is to say nothing.
+     */
+    val offerAllPacks: Boolean
+        get() = unownedPacks.size >= MIN_PACKS_FOR_BUNDLE
+
+    /**
+     * How much less the bundle costs than the packs it would actually add, as a
+     * whole percentage — or null when that cannot be said truthfully.
+     *
+     * Measured against what *this* user still needs, not against the full set.
+     * Someone who already owns two packs is not saving anything on those, and a
+     * badge computed from the catalogue price would quietly overstate the deal by
+     * exactly the amount they had already paid.
+     *
+     * Null whenever any input is missing or the bundle is not genuinely cheaper.
+     * That is the important half: mispricing the bundle in Play Console makes the
+     * badge disappear rather than making the app claim a saving that is not there.
+     */
+    val allPacksSavingPercent: Int?
+        get() {
+            val bundle = allPacksPriceMicros ?: return null
+            val packs = unownedPacks
+            if (packs.size < MIN_PACKS_FOR_BUNDLE) return null
+            val each = packs.map { priceMicros[it] }
+            if (each.any { it == null }) return null
+            val separately = each.filterNotNull().sum()
+            if (separately <= 0L || bundle >= separately) return null
+            return ((separately - bundle) * 100 / separately).toInt()
+        }
+
     fun isOwned(pack: ClockFaceGroup): Boolean = pack.isBundled || pack in owned
 
     fun priceOf(pack: ClockFaceGroup): String? = prices[pack]
+
+    private companion object {
+        /** Below this many packs left, the bundle is not the right advice. */
+        const val MIN_PACKS_FOR_BUNDLE = 2
+    }
 }
 
 /** Whether Play can sell anything on this device right now. */

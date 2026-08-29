@@ -109,11 +109,69 @@ on the phone. A face they had *selected* still syncs and stays usable.
    first upload needs no bump; every upload after that does, both together
    (`release-checklist.md`).
 3. **Create the five products** listed in §2 as one-time products, with the exact
-   ids above. Give each a title and description; those strings are shown by Play
-   in its own purchase sheet, not by ElmTrackr.
+   ids above — see §4.1 for the store copy to paste. Choose **non-consumable** if
+   the console asks: nothing in this app calls `consumeAsync`, so a consumable
+   product would describe a repeat purchase that cannot happen.
 4. **Set prices** per country and **activate** each product. An inactive product
    returns nothing from `queryProductDetails`, which the app renders as
    *Unavailable* — the same as no Play at all.
+### 4.1 Store copy
+
+The product id is the only field that cannot be changed after creation. Name,
+description, price, tags and languages are all editable later, so none of them
+is worth stalling on.
+
+Face and pack names below are taken from the app's own translation files, so
+Play's purchase sheet reads the same as the screen the user came from. The
+sentences around them were written for the store and have not been reviewed by a
+native speaker of Hebrew or Arabic.
+
+| Product id | Name (en-US) | Description (en-US) |
+|---|---|---|
+| `clock_faces_progress` | Progress clock faces | Four faces that show how far through the day you are: Aurora, Dial, Strand and Blocks. A one-time purchase, yours for good. |
+| `clock_faces_atmosphere` | Atmosphere clock faces | Four faces built on colour, glow and texture: Night, Retro, Pulse and Prism. A one-time purchase, yours for good. |
+| `clock_faces_nature` | Nature clock faces | Four faces for a day that grows, flows or fills: Sand, Tide, Sprout and Luna. A one-time purchase, yours for good. |
+| `clock_faces_journeys` | Journeys clock faces | Four faces for a day with a destination: Orbit, Metro, Vinyl and Summit. A one-time purchase, yours for good. |
+| `clock_faces_all_packs` | All clock face packs | All four packs at once: Progress, Atmosphere, Nature and Journeys. 16 faces, plus any pack added in future updates. |
+
+**Purchase option** — Play's newer one-time products hold one or more purchase
+options, each carrying offers. Each pack needs exactly one, of type **Buy** (not
+Rent). Its id is a console-side label: nothing in this app reads
+`purchaseOptionId`, so `buy` is a fine answer for all five. Note the id rules
+differ from the product id — hyphens are allowed, underscores are not — and treat
+it as permanent like the product id unless the console says otherwise.
+
+The app reads the price through `getOneTimePurchaseOfferDetails()` and falls back
+to the offer list, so a pack that later gains a second offer keeps showing a
+price. Adding a second offer is still a change worth testing rather than
+assuming.
+
+Tag every product `clock-faces`. Tags are for the console's own grouping and
+reporting; nothing in the app reads them.
+
+Hebrew (`iw`) and Arabic (`ar`) are worth adding — the app ships both, and the
+primary audience is Israeli hourly workers:
+
+| Product id | Name (he) | Description (he) |
+|---|---|---|
+| `clock_faces_progress` | עיצובי שעון: התקדמות | ארבעה עיצובים שמראים איפה אתם ביום העבודה: אורורה, חוגה, רצועה ובלוקים. רכישה חד־פעמית, נשארת אצלכם. |
+| `clock_faces_atmosphere` | עיצובי שעון: אווירה | ארבעה עיצובים של צבע, זוהר וטקסטורה: לילה, רטרו, פולס ופריזמה. רכישה חד־פעמית, נשארת אצלכם. |
+| `clock_faces_nature` | עיצובי שעון: טבע | ארבעה עיצובים ליום שגדל, זורם או מתמלא: חול, גאות, נבט ולונה. רכישה חד־פעמית, נשארת אצלכם. |
+| `clock_faces_journeys` | עיצובי שעון: מסעות | ארבעה עיצובים ליום עם יעד: אורביט, מטרו, ויניל ופסגה. רכישה חד־פעמית, נשארת אצלכם. |
+| `clock_faces_all_packs` | כל חבילות עיצובי השעון | כל ארבע החבילות יחד: התקדמות, אווירה, טבע ומסעות. 16 עיצובים, וגם כל חבילה שתתווסף בעדכונים הבאים. |
+
+| Product id | Name (ar) | Description (ar) |
+|---|---|---|
+| `clock_faces_progress` | واجهات ساعة: التقدّم | أربع واجهات تُظهر إلى أي مدى بلغت في يومك: شفق، مينا، خيط، مكعبات. شراء لمرة واحدة يبقى لك. |
+| `clock_faces_atmosphere` | واجهات ساعة: الأجواء | أربع واجهات من لون وتوهّج وملمس: ليلي، طراز قديم، نبض، منشور. شراء لمرة واحدة يبقى لك. |
+| `clock_faces_nature` | واجهات ساعة: الطبيعة | أربع واجهات ليوم ينمو أو يجري أو يمتلئ: رمل، مدّ وجزر، برعم، قمر. شراء لمرة واحدة يبقى لك. |
+| `clock_faces_journeys` | واجهات ساعة: الرحلات | أربع واجهات ليوم له وجهة: مدار، مترو، أسطوانة، قمة. شراء لمرة واحدة يبقى لك. |
+| `clock_faces_all_packs` | كل حزم واجهات الساعة | كل الحزم الأربع معًا: التقدّم، الأجواء، الطبيعة، الرحلات. 16 واجهة، بالإضافة إلى أي حزمة تُضاف في التحديثات القادمة. |
+
+If a pack's faces are ever changed in `ClockFaceCatalog`, these descriptions name
+the old ones until someone edits them. That is the cost of naming the faces, and
+it is worth paying — the names are what let a buyer tell the packs apart.
+
 5. **Add licence testers** (Setup → Licence testing) so test purchases are not
    charged. Testers must be signed into the Play account on the device with the
    app installed *through a Play track*: Play Billing does not answer a sideloaded

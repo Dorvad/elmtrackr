@@ -55,20 +55,22 @@ android {
         )
         buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
 
-        // Whether clock face packs cost money.
+        // Whether clock face packs cost money. On: the five products in
+        // ClockFacePackProducts are live in Play Console.
         //
-        // Off until the products in ClockFacePackProducts are live in Play
-        // Console, because a build that charges for products Play has never heard
-        // of gets an empty queryProductDetails response and shows every pack as
-        // unavailable. With it off the billing code still compiles and ships; the
-        // gallery simply behaves exactly as it did through 1.2.4.
+        // The default was false while they did not exist, because a build that
+        // charges for products Play has never heard of gets an empty
+        // queryProductDetails response and shows every pack as unavailable. It
+        // stays a flag rather than becoming unconditional so that turning selling
+        // off is a local.properties line rather than a revert: a product pulled
+        // from the console, or a build for a device with no Play at all, both want
+        // the free behaviour back without touching code.
         //
-        // Set `paid.clock.face.packs=true` in local.properties to try the purchase
-        // flow against Play's licence testers before flipping it for a release.
+        // Set `paid.clock.face.packs=false` in local.properties to get it.
         buildConfigField(
             "boolean",
             "PAID_CLOCK_FACE_PACKS",
-            localProps.getProperty("paid.clock.face.packs", "false").toBoolean().toString(),
+            localProps.getProperty("paid.clock.face.packs", "true").toBoolean().toString(),
         )
 
         vectorDrawables {
