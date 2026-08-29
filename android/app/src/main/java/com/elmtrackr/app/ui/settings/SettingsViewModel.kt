@@ -76,7 +76,7 @@ class SettingsViewModel @Inject constructor(
     private val _packPurchaseFeedback = MutableStateFlow<UiText?>(null)
 
     /**
-     * Prices and ownership for the gallery, straight from the store.
+     * Prices and ownership for the face store, straight from Play's storefront.
      *
      * Passed through rather than folded into [SettingsUiState]. The storefront
      * changes on its own schedule — Play answers a price query, a purchase lands
@@ -88,9 +88,24 @@ class SettingsViewModel @Inject constructor(
     /** One-off purchase outcome for the snackbar. Null once shown. */
     val packPurchaseFeedback: StateFlow<UiText?> = _packPurchaseFeedback.asStateFlow()
 
+    /**
+     * The packs a purchase just landed, for the store's inline success strip.
+     *
+     * Carried separately from [packPurchaseFeedback] because the strip needs to
+     * *name* what arrived — "Progress added" — and the snackbar text cannot.
+     * The store clears it after showing; the pack itself is already installed
+     * by the billing coordinator, so losing this state loses a confirmation,
+     * never a purchase.
+     */
+    private val _justUnlockedPacks = MutableStateFlow<Set<ClockFaceGroup>>(emptySet())
+    val justUnlockedPacks: StateFlow<Set<ClockFaceGroup>> = _justUnlockedPacks.asStateFlow()
+
     init {
         viewModelScope.launch {
             clockFacePackStore.events.collect { event ->
+                if (event is PackPurchaseEvent.Purchased) {
+                    _justUnlockedPacks.value = event.packs
+                }
                 _packPurchaseFeedback.value = when (event) {
                     // Nothing to say. The user pressed back on Play's sheet and
                     // already knows what happened; a snackbar would be the app
@@ -467,6 +482,22 @@ class SettingsViewModel @Inject constructor(
 
     fun clearPackPurchaseFeedback() {
         _packPurchaseFeedback.value = null
+    }
+
+    fun clearJustUnlockedPacks() {
+        _justUnlockedPacks.value = emptySet()
+    }
+
+    /**
+     * Re-reads what the account owns from Play, for the store's Restore action.
+     *
+     * The same refresh already runs on every foreground, so this is mostly
+     * reassurance — but reassurance is exactly what a user who just reinstalled
+     * came to the store for. The outcome lands through [packStorefront] like
+     * any other ownership change; there is no separate result to report.
+     */
+    fun restoreClockFacePacks() {
+        viewModelScope.launch { clockFacePackStore.refresh() }
     }
 
     fun clearSaveFeedback() {

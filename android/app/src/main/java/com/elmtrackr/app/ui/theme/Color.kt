@@ -54,6 +54,13 @@ val AuroraWhite       = Color(0xFFFFFFFF)
 // Dark-mode base colours
 val AuroraDarkBg         = Color(0xFF0B1020)
 val AuroraDarkSurface    = Color(0xFF151D2E)
+/**
+ * The top stop of the clock face store's pack card, fading into
+ * [AuroraDarkSurface]. A shade above the surface rather than [AuroraDarkSurfaceSub]
+ * because the card needs a *lift* against the store background, not a second
+ * surface tier — Sub is the tile fill that sits inside these cards.
+ */
+val AuroraDarkSurfaceRaised = Color(0xFF1A2338)
 val AuroraDarkSurfaceSub = Color(0xFF202A3D)
 val AuroraDarkInk        = Color(0xFFF5F3FF)
 val AuroraDarkInk2       = Color(0xFFC8D1E0)

@@ -72,7 +72,6 @@
     <string name="settings_watch_face">עיצוב השעון</string>
     <string name="settings_watch_face_hint">בחירת עיצוב מונפש לשעון במסך הבית.</string>
     <string name="settings_browse_all_faces">לעיין בכל %1$d העיצובים</string>
-    <string name="settings_all_clock_faces">כל עיצובי השעון</string>
     <string name="settings_pack_add">הוספה</string>
     <string name="settings_pack_remove">הסרה</string>
     <string name="settings_pack_in_use">בשימוש</string>
@@ -88,6 +87,28 @@
     <string name="settings_pack_purchase_pending">ממתינים לאישור התשלום. החבילה תתווסף מיד עם קבלתו.</string>
     <string name="settings_pack_purchase_restored">הרכישה הקודמת שוחזרה</string>
     <string name="settings_pack_purchase_failed">הרכישה לא הושלמה. לא בוצע חיוב.</string>
+    <string name="settings_face_store_title">עיצובים</string>
+    <plurals name="settings_face_store_count">
+        <item quantity="one">%1$d שלך · %2$d בחבילה אחת</item>
+        <item quantity="two">%1$d שלך · %2$d בשתי חבילות</item>
+        <item quantity="many">%1$d שלך · %2$d ב־%3$d חבילות</item>
+        <item quantity="other">%1$d שלך · %2$d ב־%3$d חבילות</item>
+    </plurals>
+    <string name="settings_face_store_count_all_owned">כל %1$d העיצובים שלך</string>
+    <string name="settings_face_store_restore">שחזור</string>
+    <string name="settings_pack_included">כלול</string>
+    <string name="settings_pack_new">חדש</string>
+    <string name="settings_pack_added">החבילה %1$s נוספה</string>
+    <plurals name="settings_pack_added_hint">
+        <item quantity="one">עיצוב חדש אחד. אפשר לבחור אותו עכשיו או אחר כך.</item>
+        <item quantity="two">שני עיצובים חדשים. אפשר לבחור אחד עכשיו או אחר כך.</item>
+        <item quantity="many">%1$d עיצובים חדשים. אפשר לבחור אחד עכשיו או אחר כך.</item>
+        <item quantity="other">%1$d עיצובים חדשים. אפשר לבחור אחד עכשיו או אחר כך.</item>
+    </plurals>
+    <string name="settings_pack_unlock">פתיחת %1$s · %2$s</string>
+    <string name="settings_pack_unlock_unpriced">פתיחת %1$s</string>
+    <string name="settings_pack_unlock_note">רכישה חד־פעמית. כל %1$d העיצובים, שלך לתמיד.</string>
+    <string name="settings_face_look_position">%1$s · %2$d מתוך %3$d</string>
     <string name="clock_group_essentials">בסיסיים</string>
     <string name="clock_group_essentials_desc">לראות את השעה ולהמשיך הלאה</string>
     <string name="clock_group_progress">התקדמות</string>

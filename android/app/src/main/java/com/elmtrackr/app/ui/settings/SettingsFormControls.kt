@@ -350,18 +350,26 @@ internal fun WatchFacePreview(
     style: ClockStyle,
     selected: Boolean,
     height: Dp = Layout.facePreviewHeight,
+    // The store's pager binds this to its settled page so only the face the
+    // user is looking at animates. False skips the infinite transition rather
+    // than freezing its output — an off-screen page should cost nothing.
+    animate: Boolean = true,
 ) {
-    val transition = rememberInfiniteTransition(label = "watch-${style.name}")
-    val pulse by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(if (selected) 900 else 1800),
-            RepeatMode.Reverse,
-        ),
-        label = "watch-pulse",
-    )
-    val animatedPulse = if (auroraMotionEnabled()) pulse else 1f
+    val animatedPulse = if (animate && auroraMotionEnabled()) {
+        val transition = rememberInfiniteTransition(label = "watch-${style.name}")
+        val pulse by transition.animateFloat(
+            initialValue = 0.35f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                tween(if (selected) 900 else 1800),
+                RepeatMode.Reverse,
+            ),
+            label = "watch-pulse",
+        )
+        pulse
+    } else {
+        1f
+    }
     val darkFace = style in listOf(ClockStyle.BOLD, ClockStyle.NIGHT, ClockStyle.RETRO, ClockStyle.VINYL)
     val faceBackground = if (darkFace) Color(0xFF11162A) else MaterialTheme.colorScheme.surface
     val accent = when (style) {

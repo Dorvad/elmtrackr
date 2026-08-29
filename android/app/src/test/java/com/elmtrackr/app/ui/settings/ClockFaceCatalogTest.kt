@@ -113,6 +113,38 @@ class ClockFaceCatalogTest {
         assertEquals(listOf(ClockStyle.SAND, ClockStyle.TIDE, ClockStyle.LUNA), recents)
     }
 
+    // ── The "New" ribbon ─────────────────────────────────────────────────────
+
+    /**
+     * The ribbon's whole contract: new through the minor series a pack shipped
+     * in and the one after, gone at the second, with no release checklist. A
+     * wrong claim of newness is worse than a missing ribbon, so anything the
+     * rule cannot read counts as not new.
+     */
+    @Test
+    fun `a pack is new for two minor release series and then stops`() {
+        assertTrue(ClockFaceGroup.PROGRESS.isNewIn("1.1.1"))
+        assertTrue(ClockFaceGroup.PROGRESS.isNewIn("1.2.4"))
+        assertFalse(ClockFaceGroup.PROGRESS.isNewIn("1.3.0"))
+        assertFalse(ClockFaceGroup.PROGRESS.isNewIn("2.1.0"))
+        // A downgrade below the shipping version makes no claim either.
+        assertFalse(ClockFaceGroup.PROGRESS.isNewIn("1.0.9"))
+    }
+
+    /** The launch bundle predates the ribbon and never wears it. */
+    @Test
+    fun `the bundled pack is never new`() {
+        assertFalse(ClockFaceGroup.ESSENTIALS.isNewIn("1.1.1"))
+        assertFalse(ClockFaceGroup.ESSENTIALS.isNewIn("1.2.4"))
+    }
+
+    @Test
+    fun `an unparseable version is not new`() {
+        assertFalse(ClockFaceGroup.PROGRESS.isNewIn(""))
+        assertFalse(ClockFaceGroup.PROGRESS.isNewIn("nightly"))
+        assertFalse(ClockFaceGroup.PROGRESS.isNewIn("2"))
+    }
+
     // ── Packs ────────────────────────────────────────────────────────────────
 
     /**
