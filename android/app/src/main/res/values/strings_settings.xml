@@ -72,7 +72,6 @@
     <string name="settings_watch_face">Watch face</string>
     <string name="settings_watch_face_hint">Choose an animated face for the Dashboard clock.</string>
     <string name="settings_browse_all_faces">Browse all %1$d faces</string>
-    <string name="settings_all_clock_faces">All clock faces</string>
     <string name="settings_pack_add">Add</string>
     <string name="settings_pack_remove">Remove</string>
     <string name="settings_pack_in_use">In use</string>
@@ -88,6 +87,26 @@
     <string name="settings_pack_purchase_pending">Waiting for your payment to clear. The pack is added as soon as it does.</string>
     <string name="settings_pack_purchase_restored">Your earlier purchase was restored</string>
     <string name="settings_pack_purchase_failed">The purchase did not go through. Nothing was charged.</string>
+    <string name="settings_face_store_title">Faces</string>
+    <plurals name="settings_face_store_count">
+        <item quantity="one">%1$d yours · %2$d in one pack</item>
+        <item quantity="other">%1$d yours · %2$d in %3$d packs</item>
+    </plurals>
+    <string name="settings_face_store_count_all_owned">All %1$d faces are yours</string>
+    <string name="settings_face_store_yours_header">Your faces</string>
+    <string name="settings_face_store_packs_header">Face packs</string>
+    <string name="settings_face_store_restore">Restore</string>
+    <string name="settings_pack_included">Included</string>
+    <string name="settings_pack_new">New</string>
+    <string name="settings_pack_added">%1$s added</string>
+    <plurals name="settings_pack_added_hint">
+        <item quantity="one">One new face. Pick it now or later.</item>
+        <item quantity="other">%1$d new faces. Pick one now or later.</item>
+    </plurals>
+    <string name="settings_pack_unlock">Unlock %1$s · %2$s</string>
+    <string name="settings_pack_unlock_unpriced">Unlock %1$s</string>
+    <string name="settings_pack_unlock_note">One-time purchase. All %1$d faces, yours for good.</string>
+    <string name="settings_face_look_position">%1$s · %2$d of %3$d</string>
     <string name="clock_group_essentials">Essentials</string>
     <string name="clock_group_essentials_desc">Read the time and get on with it</string>
     <string name="clock_group_progress">Progress</string>

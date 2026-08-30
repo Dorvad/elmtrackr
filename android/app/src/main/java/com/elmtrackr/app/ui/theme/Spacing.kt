@@ -96,23 +96,35 @@ object Layout {
     val facePreviewHeight = 68.dp
 
     /**
-     * The one face a pack card leads with.
+     * The one face a pack card leads with — the page height of the store's hero
+     * pager.
      *
-     * Tall enough to be a product shot rather than a thumbnail. Its *width* is
-     * constrained to a fraction of the card rather than filling it: the face
-     * canvases size their drawing off the shorter side, so a full-width band
-     * this short would put a small dial in the middle of a lot of nothing.
+     * A product shot, not a thumbnail: the hero is the whole pitch, so it gets
+     * the size a decision deserves. Its *width* is constrained to a fraction of
+     * the card rather than filling it: the face canvases size their drawing off
+     * the shorter side, so a full-width band would put a small dial in the
+     * middle of a lot of nothing.
      */
-    val packHeroHeight = 88.dp
+    val packHeroHeight = 208.dp
 
     /**
-     * The rest of the pack, three across beneath the hero.
+     * The veiled row beneath the hero — the three faces that are not currently
+     * leading.
      *
-     * Smaller on purpose. Four faces at one size is a filmstrip and reads as a
-     * list; one lead and three supporting reads as a set, which is what is
-     * actually being sold.
+     * Smaller than the hero on purpose, but larger than the old thumbnail
+     * strip: these tiles render blurred, and a drawing needs more paint to
+     * survive a blur than to survive being small.
      */
-    val packPreviewHeight = 44.dp
+    val packPreviewHeight = 54.dp
+
+    /** The face on the store's full-screen look. */
+    val faceLookHeight = 286.dp
+
+    /**
+     * Blur radius of the veil over a locked face. Paired with 30% alpha —
+     * the veil is decoration, never the only signal that a face is locked.
+     */
+    val packVeilBlur = 3.dp
 
     /**
      * A colour-plus-emoji identity tile — a work profile above the clock, or the

@@ -60,6 +60,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
@@ -350,18 +351,36 @@ internal fun WatchFacePreview(
     style: ClockStyle,
     selected: Boolean,
     height: Dp = Layout.facePreviewHeight,
+    // The store's pager binds this to its settled page so only the face the
+    // user is looking at animates. False skips the infinite transition rather
+    // than freezing its output — an off-screen page should cost nothing.
+    animate: Boolean = true,
+    // Picker tiles paint their own face plate; the store's showroom surfaces
+    // pass false so the drawing floats on the card with the glow behind it —
+    // a boxed drawing reads as a tile, a floating one as the product.
+    showBackground: Boolean = true,
+    // The sample reading is tile-sized by default; a product shot earns a
+    // larger one. Weight is still decided per face below.
+    readingStyle: TextStyle? = null,
+    // Veiled store tiles hide the reading: under a blur the text outshouts
+    // the drawing, and the drawing is the thing being teased.
+    showReading: Boolean = true,
 ) {
-    val transition = rememberInfiniteTransition(label = "watch-${style.name}")
-    val pulse by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(if (selected) 900 else 1800),
-            RepeatMode.Reverse,
-        ),
-        label = "watch-pulse",
-    )
-    val animatedPulse = if (auroraMotionEnabled()) pulse else 1f
+    val animatedPulse = if (animate && auroraMotionEnabled()) {
+        val transition = rememberInfiniteTransition(label = "watch-${style.name}")
+        val pulse by transition.animateFloat(
+            initialValue = 0.35f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                tween(if (selected) 900 else 1800),
+                RepeatMode.Reverse,
+            ),
+            label = "watch-pulse",
+        )
+        pulse
+    } else {
+        1f
+    }
     val darkFace = style in listOf(ClockStyle.BOLD, ClockStyle.NIGHT, ClockStyle.RETRO, ClockStyle.VINYL)
     val faceBackground = if (darkFace) Color(0xFF11162A) else MaterialTheme.colorScheme.surface
     val accent = when (style) {
@@ -372,7 +391,16 @@ internal fun WatchFacePreview(
         else -> MaterialTheme.colorScheme.primary
     }
     Box(
-        Modifier.fillMaxWidth().height(height).background(faceBackground, RoundedCornerShape(CornerRadius.Medium)),
+        Modifier
+            .fillMaxWidth()
+            .height(height)
+            .then(
+                if (showBackground) {
+                    Modifier.background(faceBackground, RoundedCornerShape(CornerRadius.Medium))
+                } else {
+                    Modifier
+                },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.fillMaxSize().padding(7.dp)) {
@@ -646,12 +674,14 @@ internal fun WatchFacePreview(
                 else -> Unit
             }
         }
-        Text(
-            "01:23",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = if (style == ClockStyle.MINIMAL) FontWeight.Light else FontWeight.ExtraBold,
-            color = if (darkFace) accent else MaterialTheme.colorScheme.onSurface,
-        )
+        if (showReading) {
+            Text(
+                "01:23",
+                style = readingStyle ?: MaterialTheme.typography.titleMedium,
+                fontWeight = if (style == ClockStyle.MINIMAL) FontWeight.Light else FontWeight.ExtraBold,
+                color = if (darkFace) accent else MaterialTheme.colorScheme.onSurface,
+            )
+        }
     }
 }
 

@@ -85,7 +85,7 @@ internal fun SettingsDestination.backDestination(): SettingsDestination? = when 
  * screen with unsaved changes.
  *
  * Choosing a clock face spans two of them: the appearance screen holds the
- * selection and the Save bar, and the gallery is the only place the faces outside
+ * selection and the Save bar, and the store is the only place the faces outside
  * the four quick picks can be reached. Treating that hop as an exit put a discard
  * prompt in the middle of the one edit it was meant to protect.
  */
@@ -107,7 +107,7 @@ internal fun SettingsDestination.motionOrder(): Int = when (this) {
     SettingsDestination.PREMIUM -> 4
     SettingsDestination.TASKS -> 5
     SettingsDestination.APPEARANCE -> 6
-    // Between appearance and features so the gallery slides in from the side the
+    // Between appearance and features so the store slides in from the side the
     // user came from, like every other second-level screen. Language sits beside
     // it: both are reached from the App group and both return to the hub.
     SettingsDestination.CLOCK_FACES -> 7
@@ -136,7 +136,7 @@ fun SettingsScreen(
     // The chosen-but-unsaved clock face is held here rather than in the form,
     // unlike every other field on these screens. [AnimatedContent] composes each
     // destination in its own slot, so form state does not survive a destination
-    // change — which is exactly what choosing a face requires, since the gallery
+    // change — which is exactly what choosing a face requires, since the store
     // and the Save bar are on different screens. null means no pending choice: the
     // saved face shows through.
     var pendingClockStyle by rememberSaveable { mutableStateOf<ClockStyle?>(null) }
@@ -184,10 +184,11 @@ fun SettingsScreen(
     }
 
     val uiState by viewModel.uiState.collectAsState()
-    // Collected here rather than inside the gallery so a price arriving from Play
+    // Collected here rather than inside the store so a price arriving from Play
     // recomposes only the settings subtree, not the whole activity.
     val packStorefront by viewModel.packStorefront.collectAsState()
     val packPurchaseFeedback by viewModel.packPurchaseFeedback.collectAsState()
+    val justUnlockedPacks by viewModel.justUnlockedPacks.collectAsState()
     LaunchedEffect(Unit) { viewModel.ensureSettingsExist() }
 
     AnimatedContent(
@@ -248,7 +249,7 @@ fun SettingsScreen(
                             onPendingClockStyleChange = { pendingClockStyle = it },
                             onNavigate = { navigateGuarded(it) },
                             // Back follows the destination's own parent instead of
-                            // always the hub, so the gallery returns to the
+                            // always the hub, so the store returns to the
                             // appearance screen the user opened it from — and to the
                             // Save bar that commits the face they just picked.
                             onNavigateBack = {
@@ -274,6 +275,9 @@ fun SettingsScreen(
                             onDismissPackPurchaseFeedback = viewModel::clearPackPurchaseFeedback,
                             onBuyClockFacePack = viewModel::purchaseClockFacePack,
                             onBuyAllClockFacePacks = viewModel::purchaseAllClockFacePacks,
+                            justUnlockedPacks = justUnlockedPacks,
+                            onDismissJustUnlocked = viewModel::clearJustUnlockedPacks,
+                            onRestoreClockFacePacks = viewModel::restoreClockFacePacks,
                         )
                         is SettingsUiState.Error -> ErrorState(
                             message = state.message,
@@ -315,6 +319,9 @@ private fun SettingsFormHost(
     onDismissPackPurchaseFeedback: () -> Unit = {},
     onBuyClockFacePack: (Activity, ClockFaceGroup) -> Unit = { _, _ -> },
     onBuyAllClockFacePacks: (Activity) -> Unit = {},
+    justUnlockedPacks: Set<ClockFaceGroup> = emptySet(),
+    onDismissJustUnlocked: () -> Unit = {},
+    onRestoreClockFacePacks: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val activity = context as FragmentActivity
@@ -378,10 +385,19 @@ private fun SettingsFormHost(
     }
     LaunchedEffect(packPurchaseFeedback) {
         val feedback = packPurchaseFeedback ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(
-            message = feedback.resolve(context),
-            duration = SnackbarDuration.Long,
-        )
+        // On the store, a completed purchase is announced by the inline strip
+        // and by the card itself turning into a picker — a snackbar on top of
+        // both would say the same thing a third time. Every other outcome
+        // (pending, restored, failed) has no inline shape and keeps the
+        // snackbar wherever the user is.
+        val stripCarriesIt = destination == SettingsDestination.CLOCK_FACES &&
+            feedback == UiText.Res(R.string.settings_pack_purchased)
+        if (!stripCarriesIt) {
+            snackbarHostState.showSnackbar(
+                message = feedback.resolve(context),
+                duration = SnackbarDuration.Long,
+            )
+        }
         onDismissPackPurchaseFeedback()
     }
     LaunchedEffect(state.passwordResetFeedback) {
@@ -434,7 +450,7 @@ private fun SettingsFormHost(
             currency != state.settings.currency,
             weekendDays.sorted() != state.settings.weekendDays.sorted(),
         ).count { it }
-        // The gallery counts the same edits as the appearance screen. It shares the
+        // The store counts the same edits as the appearance screen. It shares the
         // pending face, so leaving it for the hub has to raise the same prompt —
         // reporting zero here let the choice vanish without a word.
         SettingsDestination.APPEARANCE, SettingsDestination.CLOCK_FACES -> listOf(
@@ -513,13 +529,15 @@ private fun SettingsFormHost(
                 onBrowseAllFaces = { onNavigate(SettingsDestination.CLOCK_FACES) },
             )
             SettingsDestination.LANGUAGE -> LanguageDetailScreen(onBack = onNavigateBack)
-            SettingsDestination.CLOCK_FACES -> ClockFaceGalleryScreen(
+            SettingsDestination.CLOCK_FACES -> ClockFaceStoreScreen(
                 selected = clockStyle,
                 availablePacks = ClockFacePacks.available(
                     stored = state.storedClockFacePacks,
                     selected = clockStyle,
                 ),
                 storefront = packStorefront,
+                justUnlocked = justUnlockedPacks,
+                appVersion = com.elmtrackr.app.BuildConfig.VERSION_NAME,
                 onSelect = { onPendingClockStyleChange(it) },
                 onInstallPack = onInstallClockFacePack,
                 onBuyPack = { onBuyClockFacePack(activity, it) },
@@ -530,6 +548,8 @@ private fun SettingsFormHost(
                 onRemovePack = { pack ->
                     onRemoveClockFacePack(pack, clockStyle) { onPendingClockStyleChange(it) }
                 },
+                onRestore = onRestoreClockFacePacks,
+                onDismissUnlocked = onDismissJustUnlocked,
                 onBack = onNavigateBack,
             )
             SettingsDestination.FEATURES -> {

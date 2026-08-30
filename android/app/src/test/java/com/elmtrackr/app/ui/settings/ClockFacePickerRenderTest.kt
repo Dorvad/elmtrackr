@@ -110,33 +110,40 @@ class ClockFacePickerRenderTest {
     }
 
     /**
-     * Selecting from the gallery answers the question the screen was opened to
-     * ask, so it returns rather than waiting for a separate back tap.
+     * Selecting from the store answers the question the screen was opened to
+     * ask, so it returns rather than waiting for a separate back tap. The
+     * store replaces the gallery as the browse surface; the contract is the
+     * same, even though the store forces the dark theme on its own.
      */
     @Test
-    fun `the gallery reports a selection and returns`() {
+    fun `the store reports a selection and returns`() {
         var chosen: ClockStyle? = null
         var wentBack = false
         composeRule.setContent {
             ElmTrackrTheme(darkTheme = false) {
-                ClockFaceGalleryScreen(
+                ClockFaceStoreScreen(
                     selected = ClockStyle.CLASSIC,
                     availablePacks = ClockFaceGroup.entries.toSet(),
                     storefront = ClockFacePackStorefront(
                         owned = ClockFacePackProducts.purchasablePacks.toSet(),
                         availability = BillingAvailability.AVAILABLE,
                     ),
+                    justUnlocked = emptySet(),
+                    appVersion = "1.2.4",
                     onSelect = { chosen = it },
                     onInstallPack = {},
                     onBuyPack = {},
                     onBuyAllPacks = {},
                     onRemovePack = {},
+                    onRestore = {},
+                    onDismissUnlocked = {},
                     onBack = { wentBack = true },
                 )
             }
         }
 
-        composeRule.onNodeWithText("Essentials").assertIsDisplayed()
+        // The bundled pack labels its tiles as an eyebrow in the owned zone.
+        composeRule.onNodeWithText("ESSENTIALS", substring = true).assertIsDisplayed()
         composeRule.onAllNodes(hasContentDescription("Distraction free", substring = true))
             .onFirst()
             .performClick()

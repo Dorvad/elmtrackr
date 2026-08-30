@@ -71,7 +71,7 @@ import com.elmtrackr.app.ui.settings.PremiumProfilesContent
 import com.elmtrackr.app.ui.settings.PremiumProfilesUiState
 import com.elmtrackr.app.ui.settings.ProfileDetailScreen
 import com.elmtrackr.app.ui.settings.SecurityDetailScreen
-import com.elmtrackr.app.ui.settings.ClockFaceGalleryScreen
+import com.elmtrackr.app.ui.settings.ClockFaceStoreScreen
 import com.elmtrackr.app.ui.settings.SettingsDestination
 import com.elmtrackr.app.ui.settings.SettingsHub
 import com.elmtrackr.app.ui.settings.SettingsUiState
@@ -243,6 +243,48 @@ class FullAppScreenshotJvmTest {
     @Test fun settingsAppearance() = capture("17-settings-appearance") { SettingsHubScreen(SettingsDestination.APPEARANCE) }
     @Test fun settingsFeatures() = capture("18-settings-features") { SettingsHubScreen(SettingsDestination.FEATURES) }
     @Test fun settingsHelp() = capture("19-settings-help") { SettingsHubScreen(SettingsDestination.HELP) }
+
+    /**
+     * The store in its two tellable states. The shopper state is the redesign:
+     * a locked pack as a pager-hero product card with the veiled row, packs
+     * below the fold collapsed, the bundle last. The owner state shows every
+     * pack as a picker with the success strip a fresh purchase leaves.
+     */
+    @Test fun settingsFaceStore() = capture("38-settings-face-store") {
+        ClockFaceStoreScreen(
+            selected = ClockStyle.MINIMAL,
+            availablePacks = setOf(com.elmtrackr.app.ui.settings.ClockFaceGroup.ESSENTIALS),
+            storefront = com.elmtrackr.app.billing.ClockFacePackStorefront(
+                prices = com.elmtrackr.app.ui.settings.ClockFaceGroup.packs.associateWith { "₪5.00" },
+                allPacksPrice = "₪15.00",
+                availability = com.elmtrackr.app.billing.BillingAvailability.AVAILABLE,
+            ),
+            justUnlocked = emptySet(),
+            appVersion = "1.2.4",
+            onSelect = {}, onInstallPack = {}, onBuyPack = {}, onBuyAllPacks = {},
+            onRemovePack = {}, onRestore = {}, onDismissUnlocked = {}, onBack = {},
+        )
+    }
+
+    @Test fun settingsFaceStoreUnlocked() = capture("39-settings-face-store-unlocked") {
+        ClockFaceStoreScreen(
+            selected = ClockStyle.MINIMAL,
+            availablePacks = setOf(
+                com.elmtrackr.app.ui.settings.ClockFaceGroup.ESSENTIALS,
+                com.elmtrackr.app.ui.settings.ClockFaceGroup.PROGRESS,
+            ),
+            storefront = com.elmtrackr.app.billing.ClockFacePackStorefront(
+                owned = setOf(com.elmtrackr.app.ui.settings.ClockFaceGroup.PROGRESS),
+                prices = com.elmtrackr.app.ui.settings.ClockFaceGroup.packs.associateWith { "₪5.00" },
+                allPacksPrice = "₪11.00",
+                availability = com.elmtrackr.app.billing.BillingAvailability.AVAILABLE,
+            ),
+            justUnlocked = setOf(com.elmtrackr.app.ui.settings.ClockFaceGroup.PROGRESS),
+            appVersion = "1.2.4",
+            onSelect = {}, onInstallPack = {}, onBuyPack = {}, onBuyAllPacks = {},
+            onRemovePack = {}, onRestore = {}, onDismissUnlocked = {}, onBack = {},
+        )
+    }
 
     @Test fun settingsSecurity() = capture("20-settings-security") {
         SecurityDetailScreen(false, BiometricAvailability.AVAILABLE, {}, {})
@@ -505,20 +547,24 @@ class FullAppScreenshotJvmTest {
             SettingsDestination.APPEARANCE -> AppearanceDetailScreen(
                 state, ClockStyle.MINIMAL, {}, true, {}, false, {}, {}, {}, {},
             )
-            SettingsDestination.CLOCK_FACES -> ClockFaceGalleryScreen(
+            SettingsDestination.CLOCK_FACES -> ClockFaceStoreScreen(
                 selected = ClockStyle.MINIMAL,
                 availablePacks = com.elmtrackr.app.ui.settings.ClockFaceGroup.entries.toSet(),
-                // Everything owned, so the screenshot shows the gallery as a user
+                // Everything owned, so the screenshot shows the store as a user
                 // who has the packs sees it rather than a wall of Buy buttons.
                 storefront = com.elmtrackr.app.billing.ClockFacePackStorefront(
                     owned = com.elmtrackr.app.billing.ClockFacePackProducts.purchasablePacks.toSet(),
                     availability = com.elmtrackr.app.billing.BillingAvailability.AVAILABLE,
                 ),
+                justUnlocked = emptySet(),
+                appVersion = "1.2.4",
                 onSelect = {},
                 onInstallPack = {},
                 onBuyPack = {},
                 onBuyAllPacks = {},
                 onRemovePack = {},
+                onRestore = {},
+                onDismissUnlocked = {},
                 onBack = {},
             )
             SettingsDestination.FEATURES -> FeaturesDetailScreen(

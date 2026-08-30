@@ -7,7 +7,7 @@ import com.elmtrackr.app.domain.model.ClockStyle
  *
  * Twenty faces in one flat grid is a wall: nothing tells the user which ones
  * are alike, so choosing means reading every label. The groups are the browsing
- * unit — each holds at most [GROUP_SIZE] faces, which is what makes the gallery
+ * unit — each holds at most [GROUP_SIZE] faces, which is what makes the store
  * lay out as clean 2×2 blocks rather than a ragged list.
  *
  * Grouped by what the face *is*, not when it shipped. A user who liked Sand is
@@ -16,7 +16,18 @@ import com.elmtrackr.app.domain.model.ClockStyle
  * A group is also the unit a user adds or removes: only [ESSENTIALS] is bundled,
  * the rest are packs. See [ClockFacePacks] for what "installed" actually buys.
  */
-enum class ClockFaceGroup(val faces: List<ClockStyle>, val isBundled: Boolean = false) {
+enum class ClockFaceGroup(
+    val faces: List<ClockStyle>,
+    val isBundled: Boolean = false,
+    /**
+     * The app version this group first shipped in, for the store's "New"
+     * ribbon — see [isNewIn]. Null means it predates the ribbon (or is the
+     * launch bundle) and is never marked new. A version string rather than a
+     * boolean so the ribbon expires on its own instead of waiting for someone
+     * to remember to remove it.
+     */
+    val since: String? = null,
+) {
     /**
      * The defaults. Read the number, get on with the day.
      *
@@ -32,26 +43,45 @@ enum class ClockFaceGroup(val faces: List<ClockStyle>, val isBundled: Boolean = 
     /** Faces whose whole job is showing how far through the day you are. */
     PROGRESS(
         listOf(ClockStyle.AURORA, ClockStyle.DIAL, ClockStyle.STRAND, ClockStyle.BLOCKS),
+        since = "1.1.1",
     ),
 
     /** Mood first: colour, glow, grain. */
     ATMOSPHERE(
         listOf(ClockStyle.NIGHT, ClockStyle.RETRO, ClockStyle.PULSE, ClockStyle.PRISM),
+        since = "1.1.1",
     ),
 
     /** The day as something that grows, flows or fills. */
     NATURE(
         listOf(ClockStyle.SAND, ClockStyle.TIDE, ClockStyle.SPROUT, ClockStyle.LUNA),
+        since = "1.1.1",
     ),
 
     /** The day as a trip with a destination. */
     JOURNEYS(
         listOf(ClockStyle.ORBIT, ClockStyle.METRO, ClockStyle.VINYL, ClockStyle.SUMMIT),
+        since = "1.1.1",
     ),
     ;
 
+    /**
+     * Whether the store shows the "New" ribbon on this group.
+     *
+     * New while [currentVersion] is in the same minor-release series as [since]
+     * or the one after it — a pack shipped in 1.1.x stays new through 1.2.x and
+     * drops the ribbon at 1.3.0, with no release checklist involved. Anything
+     * unparseable, and a major-version jump, mean not new: a wrong claim of
+     * newness is worse than a missing ribbon.
+     */
+    fun isNewIn(currentVersion: String): Boolean {
+        val shipped = parseVersion(since ?: return false) ?: return false
+        val current = parseVersion(currentVersion) ?: return false
+        return current.first == shipped.first && current.second - shipped.second in 0..1
+    }
+
     companion object {
-        /** Faces per group, and per row-pair in the gallery. */
+        /** Faces per group, and per row-pair in the store's picker grids. */
         const val GROUP_SIZE = 4
 
         /** Always present, never removable. */
@@ -63,6 +93,14 @@ enum class ClockFaceGroup(val faces: List<ClockStyle>, val isBundled: Boolean = 
         /** The group [face] belongs to. Every face belongs to exactly one. */
         fun of(face: ClockStyle): ClockFaceGroup =
             entries.first { face in it.faces }
+
+        /** Major and minor of a `major.minor[.patch]` version, or null. */
+        private fun parseVersion(version: String): Pair<Int, Int>? {
+            val parts = version.trim().split('.')
+            val major = parts.getOrNull(0)?.toIntOrNull() ?: return null
+            val minor = parts.getOrNull(1)?.toIntOrNull() ?: return null
+            return major to minor
+        }
     }
 }
 
@@ -71,7 +109,7 @@ enum class ClockFaceGroup(val faces: List<ClockStyle>, val isBundled: Boolean = 
  *
  * **It does not save disk space.** Every face is Kotlin drawing code compiled into
  * the APK, so installing or removing a pack changes zero bytes on the device. What
- * it does is keep the gallery to what the user asked for, and put a single
+ * it does is keep the store to what the user asked for, and put a single
  * decision point in front of adding a pack — which is the seam a purchase flow
  * plugs into later. Real download-on-demand would need the faces moved into a
  * Play Feature Delivery module; that is a build-level change, not this one.
@@ -93,7 +131,7 @@ object ClockFacePacks {
         selected: ClockStyle,
     ): Set<ClockFaceGroup> = stored + ClockFaceGroup.bundled + ClockFaceGroup.of(selected)
 
-    /** Every face the user can choose from, in gallery order. */
+    /** Every face the user can choose from, in store order. */
     fun availableFaces(
         stored: Set<ClockFaceGroup>,
         selected: ClockStyle,
@@ -138,7 +176,7 @@ const val CLOCK_FACE_QUICK_PICK_COUNT = ClockFaceGroup.GROUP_SIZE
  * [current] always leads, so the screen can never fail to show what is actually
  * selected — that was the risk in showing recents alone. The rest are the user's
  * own history, which is the point: someone who rotates between three faces
- * should never have to open the gallery, while someone who set a face once and
+ * should never have to open the store, while someone who set a face once and
  * forgot about it sees a stable, sensible four.
  *
  * Padding comes from [ClockFaceGroup.ESSENTIALS] rather than the enum's

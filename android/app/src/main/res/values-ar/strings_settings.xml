@@ -72,7 +72,6 @@
     <string name="settings_watch_face">واجهة الساعة</string>
     <string name="settings_watch_face_hint">اختر واجهة متحرّكة لساعة اللوحة الرئيسية.</string>
     <string name="settings_browse_all_faces">تصفّح كل الواجهات (%1$d)</string>
-    <string name="settings_all_clock_faces">كل واجهات الساعة</string>
     <string name="settings_pack_add">إضافة</string>
     <string name="settings_pack_remove">إزالة</string>
     <string name="settings_pack_in_use">مستخدمة</string>
@@ -88,6 +87,34 @@
     <string name="settings_pack_purchase_pending">في انتظار تأكيد الدفع. ستُضاف الحزمة فور تأكيده.</string>
     <string name="settings_pack_purchase_restored">تمت استعادة عملية الشراء السابقة</string>
     <string name="settings_pack_purchase_failed">لم تكتمل عملية الشراء. لم يتم أي خصم.</string>
+    <string name="settings_face_store_title">الواجهات</string>
+    <plurals name="settings_face_store_count">
+        <item quantity="zero">%1$d لك · لا حزم أخرى</item>
+        <item quantity="one">%1$d لك · %2$d في حزمة واحدة</item>
+        <item quantity="two">%1$d لك · %2$d في حزمتين</item>
+        <item quantity="few">%1$d لك · %2$d في %3$d حزم</item>
+        <item quantity="many">%1$d لك · %2$d في %3$d حزمة</item>
+        <item quantity="other">%1$d لك · %2$d في %3$d حزمة</item>
+    </plurals>
+    <string name="settings_face_store_count_all_owned">كل الواجهات الـ%1$d لك</string>
+    <string name="settings_face_store_yours_header">واجهاتك</string>
+    <string name="settings_face_store_packs_header">حزم الواجهات</string>
+    <string name="settings_face_store_restore">استعادة</string>
+    <string name="settings_pack_included">مضمّنة</string>
+    <string name="settings_pack_new">جديد</string>
+    <string name="settings_pack_added">تمت إضافة %1$s</string>
+    <plurals name="settings_pack_added_hint">
+        <item quantity="zero">لا واجهات جديدة.</item>
+        <item quantity="one">واجهة جديدة واحدة. اخترها الآن أو لاحقًا.</item>
+        <item quantity="two">واجهتان جديدتان. اختر واحدة الآن أو لاحقًا.</item>
+        <item quantity="few">%1$d واجهات جديدة. اختر واحدة الآن أو لاحقًا.</item>
+        <item quantity="many">%1$d واجهة جديدة. اختر واحدة الآن أو لاحقًا.</item>
+        <item quantity="other">%1$d واجهة جديدة. اختر واحدة الآن أو لاحقًا.</item>
+    </plurals>
+    <string name="settings_pack_unlock">فتح %1$s · %2$s</string>
+    <string name="settings_pack_unlock_unpriced">فتح %1$s</string>
+    <string name="settings_pack_unlock_note">شراء لمرة واحدة. كل الواجهات الـ%1$d لك للأبد.</string>
+    <string name="settings_face_look_position">%1$s · %2$d من %3$d</string>
     <string name="clock_group_essentials">الأساسيات</string>
     <string name="clock_group_essentials_desc">اقرأ الوقت وامضِ في شأنك</string>
     <string name="clock_group_progress">التقدّم</string>

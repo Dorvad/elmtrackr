@@ -96,6 +96,35 @@ class DarkThemeContrastTest {
     }
 
     /**
+     * The clock face store's pairs, asserted once rather than per theme: the
+     * store forces the dark palette whatever the app is set to, so these are
+     * its colours for every user. Both grounds matter — the screen background
+     * and the raised pack card — because ink that passes on the darker of the
+     * two can still fail on the lighter.
+     */
+    @Test
+    fun `the face store inks are readable on both store surfaces`() {
+        listOf(
+            "ink" to AuroraDarkInk,
+            "secondary ink" to AuroraDarkInk2,
+            "outline (descriptions, eyebrows)" to AuroraDarkOutline,
+            "success ink (in-use pill, purchase strip)" to AuroraDarkSuccessInk,
+            "info ink (new ribbon)" to AuroraDarkInfoInk,
+        ).forEach { (name, ink) ->
+            assertContrast("store $name on the background", ink, AuroraDarkBg, 4.5)
+            assertContrast("store $name on the raised card", ink, AuroraDarkSurfaceRaised, 4.5)
+        }
+        assertContrast(
+            "store success ink on its own container",
+            AuroraDarkSuccessInk, AuroraDarkSuccessBg, 4.5,
+        )
+        assertContrast(
+            "store info ink on its own container",
+            AuroraDarkInfoInk, AuroraDarkInfoBg, 4.5,
+        )
+    }
+
+    /**
      * The overtime stat value is the number a user reads off the card, and it was
      * drawn in AuroraPeachDeep — the graphic accent used for clock rings and
      * progress arcs — while the smaller label beside it already used the ink. The
