@@ -48,6 +48,8 @@ class ClockFacePickerRenderTest {
                     selected = ClockStyle.CLASSIC,
                     recents = emptyList(),
                     availableFaces = ClockStyle.entries,
+                    availablePacks = ClockFaceGroup.entries.toSet(),
+                    appVersion = "1.3.0",
                     onSelect = {},
                     onBrowseAll = {},
                 )
@@ -60,7 +62,12 @@ class ClockFacePickerRenderTest {
             CLOCK_FACE_QUICK_PICK_COUNT,
             composeRule.onAllNodes(isSelectable()).fetchSemanticsNodes().size,
         )
-        composeRule.onNodeWithText("Browse all ${ClockStyle.entries.size} faces").assertIsDisplayed()
+        // The way into the shop is a card, not a list expander: it names the
+        // shop and, with every pack owned, says so rather than selling.
+        composeRule.onNodeWithText("FACE SHOP").assertIsDisplayed()
+        composeRule
+            .onNodeWithText("All ${ClockStyle.entries.size} faces are yours")
+            .assertIsDisplayed()
     }
 
     @Test
@@ -71,6 +78,8 @@ class ClockFacePickerRenderTest {
                     selected = ClockStyle.MINIMAL,
                     recents = emptyList(),
                     availableFaces = ClockStyle.entries,
+                    availablePacks = ClockFaceGroup.entries.toSet(),
+                    appVersion = "1.3.0",
                     onSelect = {},
                     onBrowseAll = {},
                 )
@@ -93,6 +102,8 @@ class ClockFacePickerRenderTest {
                     selected = ClockStyle.VINYL,
                     recents = listOf(ClockStyle.SPROUT, ClockStyle.METRO),
                     availableFaces = ClockStyle.entries,
+                    availablePacks = ClockFaceGroup.entries.toSet(),
+                    appVersion = "1.3.0",
                     onSelect = { chosen = it },
                     onBrowseAll = {},
                 )

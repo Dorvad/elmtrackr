@@ -71,7 +71,6 @@
     <string name="settings_currency">العملة</string>
     <string name="settings_watch_face">واجهة الساعة</string>
     <string name="settings_watch_face_hint">اختر واجهة متحرّكة لساعة اللوحة الرئيسية.</string>
-    <string name="settings_browse_all_faces">تصفّح كل الواجهات (%1$d)</string>
     <string name="settings_pack_add">إضافة</string>
     <string name="settings_pack_remove">إزالة</string>
     <string name="settings_pack_in_use">مستخدمة</string>
@@ -87,6 +86,15 @@
     <string name="settings_pack_purchase_pending">في انتظار تأكيد الدفع. ستُضاف الحزمة فور تأكيده.</string>
     <string name="settings_pack_purchase_restored">تمت استعادة عملية الشراء السابقة</string>
     <string name="settings_pack_purchase_failed">لم تكتمل عملية الشراء. لم يتم أي خصم.</string>
+    <string name="settings_face_shop_title">متجر الواجهات</string>
+    <plurals name="settings_face_shop_waiting">
+        <item quantity="zero">لا واجهات إضافية</item>
+        <item quantity="one">%1$d واجهات في حزمة أخرى</item>
+        <item quantity="two">%1$d واجهة في حزمتين</item>
+        <item quantity="few">%1$d واجهة في %2$d حزم</item>
+        <item quantity="many">%1$d واجهة في %2$d حزمة</item>
+        <item quantity="other">%1$d واجهة في %2$d حزمة</item>
+    </plurals>
     <string name="settings_face_store_title">الواجهات</string>
     <plurals name="settings_face_store_count">
         <item quantity="zero">%1$d لك · لا حزم أخرى</item>
