@@ -65,12 +65,19 @@ enum class AppLanguage(val tag: String?) {
                 ?.let { LocaleListCompat.forLanguageTags(it) }
                 ?: LocaleListCompat.getEmptyLocaleList()
             AppCompatDelegate.setApplicationLocales(localeList)
-            // Activities recreate themselves, but home-screen widgets hold
-            // stored labels (date line, last-punch text) formatted in the
-            // previous language until the next state change — rebuild them now.
+            // Activities recreate themselves, but two surfaces hold text the
+            // recreate cannot reach: home-screen widgets keep stored labels
+            // (date line, last-punch text) until the next state change, and
+            // notification channel names were registered with the system at
+            // startup. Rebuild the widgets and re-register the channels —
+            // creating a channel with an existing id updates its name and
+            // description in place.
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                 runCatching {
                     com.elmtrackr.app.widget.WidgetActions.refreshWidgets(appContext)
+                }
+                runCatching {
+                    com.elmtrackr.app.notification.NotificationChannels.createAll(appContext)
                 }
             }
         }

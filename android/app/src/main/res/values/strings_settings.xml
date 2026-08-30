@@ -71,7 +71,6 @@
     <string name="settings_currency">Currency</string>
     <string name="settings_watch_face">Watch face</string>
     <string name="settings_watch_face_hint">Choose an animated face for the Dashboard clock.</string>
-    <string name="settings_browse_all_faces">Browse all %1$d faces</string>
     <string name="settings_pack_add">Add</string>
     <string name="settings_pack_remove">Remove</string>
     <string name="settings_pack_in_use">In use</string>
@@ -87,6 +86,11 @@
     <string name="settings_pack_purchase_pending">Waiting for your payment to clear. The pack is added as soon as it does.</string>
     <string name="settings_pack_purchase_restored">Your earlier purchase was restored</string>
     <string name="settings_pack_purchase_failed">The purchase did not go through. Nothing was charged.</string>
+    <string name="settings_face_shop_title">Face shop</string>
+    <plurals name="settings_face_shop_waiting">
+        <item quantity="one">%1$d faces in one more pack</item>
+        <item quantity="other">%1$d faces in %2$d packs</item>
+    </plurals>
     <string name="settings_face_store_title">Faces</string>
     <plurals name="settings_face_store_count">
         <item quantity="one">%1$d yours · %2$d in one pack</item>
@@ -94,7 +98,14 @@
     </plurals>
     <string name="settings_face_store_count_all_owned">All %1$d faces are yours</string>
     <string name="settings_face_store_yours_header">Your faces</string>
-    <string name="settings_face_store_packs_header">Face packs</string>
+    <string name="settings_face_store_packs_header">Shop</string>
+    <plurals name="settings_face_store_teaser">
+        <item quantity="one">%1$d more face in the shop</item>
+        <item quantity="other">%1$d more faces in the shop</item>
+    </plurals>
+    <string name="settings_face_store_everything_owned">Every pack is yours. New packs will land here first.</string>
+    <string name="settings_pack_show_faces">Show the faces</string>
+    <string name="settings_pack_hide_faces">Hide the faces</string>
     <string name="settings_face_store_restore">Restore</string>
     <string name="settings_pack_included">Included</string>
     <string name="settings_pack_new">New</string>
@@ -117,6 +128,8 @@
     <string name="clock_group_nature_desc">A day that grows, flows or fills</string>
     <string name="clock_group_journeys">Journeys</string>
     <string name="clock_group_journeys_desc">A day with a destination</string>
+    <string name="clock_group_payday">Payday</string>
+    <string name="clock_group_payday_desc">The shift as what it earns</string>
     <string name="settings_selected">Selected</string>
     <string name="settings_face_classic">Progress ring</string>
     <string name="settings_face_minimal">Clean display</string>
@@ -138,6 +151,10 @@
     <string name="settings_face_vinyl">A record spinning while you work</string>
     <string name="settings_face_luna">A moon that waxes to full at eight</string>
     <string name="settings_face_summit">Your day as a climb — summit at eight</string>
+    <string name="settings_face_meter">Rolling fare meter</string>
+    <string name="settings_face_stacks">Coins stacking by the hour</string>
+    <string name="settings_face_jar">A tip jar filling with gold</string>
+    <string name="settings_face_ticker">A rising line for the day</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">No hourly rate</string>
@@ -210,7 +227,7 @@
     <string name="settings_no_matching_timezones">No matching timezones</string>
 
     <string name="settings_clock_faces">Clock faces</string>
-    <string name="settings_clock_faces_desc">14 styles for your home clock</string>
+    <string name="settings_clock_faces_desc">Styles for your home clock</string>
     <string name="settings_reduce_motion">Reduce motion</string>
     <string name="settings_reduce_motion_desc">Minimize animations across the app</string>
     <string name="settings_preview">Preview</string>

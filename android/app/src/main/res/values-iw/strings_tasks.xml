@@ -33,6 +33,9 @@
     <string name="tasks_task_label">משימה</string>
     <string name="tasks_manage">ניהול</string>
     <string name="tasks_suggested_now">מוצע עכשיו</string>
+    <string name="tasks_suggestion_usually">בדרך כלל בוחרים %1$s ב־%2$s</string>
+    <string name="tasks_suggestion_recent_shifts">לפי המשמרות האחרונות שלך סביב %1$s</string>
+    <string name="tasks_suggestion_last_used">בשימוש אחרון: %1$s</string>
     <string name="tasks_chip_suggested">✨ %1$s %2$s</string>
     <string name="tasks_chip_a11y">%1$s, %2$s לשעה</string>
     <string name="tasks_chip_a11y_suggested">%1$s, %2$s לשעה, מוצע עכשיו</string>

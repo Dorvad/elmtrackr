@@ -63,6 +63,10 @@
     <string name="clock_style_vinyl">Винил</string>
     <string name="clock_style_luna">Луна</string>
     <string name="clock_style_summit">Вершина</string>
+    <string name="clock_style_meter">Счётчик</string>
+    <string name="clock_style_stacks">Стопки</string>
+    <string name="clock_style_jar">Банка</string>
+    <string name="clock_style_ticker">Индекс</string>
 
     <!-- Currency display names -->
     <string name="currency_ils">Новый израильский шекель</string>

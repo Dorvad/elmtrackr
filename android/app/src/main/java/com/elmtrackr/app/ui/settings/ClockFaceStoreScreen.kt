@@ -1,15 +1,14 @@
 package com.elmtrackr.app.ui.settings
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.Icon
@@ -40,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -49,9 +51,11 @@ import androidx.compose.ui.text.font.FontWeight
 import com.elmtrackr.app.R
 import com.elmtrackr.app.billing.ClockFacePackStorefront
 import com.elmtrackr.app.domain.model.ClockStyle
+import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
+import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
@@ -62,35 +66,29 @@ import com.elmtrackr.app.ui.theme.auroraSemantics
 import kotlinx.coroutines.delay
 
 /**
- * The clock face store: every face the user has, and every pack they could
- * have, on one dark surface.
+ * The clock face store: what you have on one tab, what is for sale on the
+ * other.
  *
- * Replaces the gallery as the browse surface. The store forces the dark theme
- * whatever the app is set to — the faces are drawn glowing, and a showroom is
- * lit for the merchandise — which is also why its contrast pairs are asserted
- * once in `DarkThemeContrastTest` rather than per theme.
+ * Ownership was a scroll position in the previous design and readers kept
+ * losing it. It is now a *mode*, the way established stores separate a library
+ * from a storefront: **Your faces** holds every pack the user can pick from —
+ * bare grids with an eyebrow label per pack, selection returning through the
+ * appearance screen's normal unsaved-changes flow — and **Shop** holds the
+ * merchandise, every pack a product card whose price chip is always visible
+ * and is itself the buy button. Nothing in the Shop is owned; nothing in Your
+ * faces is for sale.
  *
- * The screen is two labelled zones under one title. "Your faces" holds every
- * pack the user can pick from, bare on the background with an eyebrow label
- * per pack; "Face packs" holds the merchandise, each pack a raised product
- * card. A card, on this screen, always means something for sale — that one
- * rule is what makes ownership readable at a glance. Both zones keep
- * [ClockFaceGroup.entries] order, each pack its own lazy item so only visible
- * packs compose. Below the first product card, further packs collapse to a
- * single row and expand in place — the store stays scannable at five packs
- * and beyond.
- *
- * Two rules the flow must not break, inherited from the gallery it replaces:
- * selecting a face returns (the tap answers the question the screen asks, and
- * the value lands through the appearance screen's normal unsaved-changes
- * flow), while buying does not — a purchase changes what is on this screen, so
- * the result must be visible here: the card transforms in place into a picker,
- * and the success strip above the list says what arrived.
+ * The store forces the dark theme whatever the app is set to — the faces are
+ * drawn glowing, and a showroom is lit for the merchandise — which is also why
+ * its contrast pairs are asserted once in `DarkThemeContrastTest` rather than
+ * per theme.
  *
  * Every claim about ownership, price or availability is read from
  * [storefront]. The store never decides a purchase happened — Play is the
  * record, and a screen that second-guessed it would be a screen that can hand
- * out a pack nobody paid for.
+ * out a pack nobody paid for. When a purchase lands, the pack leaves the shelf
+ * and appears under Your faces; the success strip on the Shop tab names what
+ * arrived and offers the way over.
  */
 @Composable
 internal fun ClockFaceStoreScreen(
@@ -107,13 +105,19 @@ internal fun ClockFaceStoreScreen(
     onRestore: () -> Unit,
     onDismissUnlocked: () -> Unit,
     onBack: () -> Unit,
+    // The screenshot suite opens straight onto the shelf; users always land
+    // on their own faces first.
+    startInShop: Boolean = false,
 ) {
     val installed = ClockFaceGroup.entries.filter { it in availablePacks }
-    val products = ClockFaceGroup.entries.filter { it !in availablePacks }
-    // Which below-the-fold packs the user has opened. The first product is
-    // always expanded — it is the screen's argument — and a purchased pack
-    // stops being a product, so the list never needs pruning.
-    var expandedPacks by rememberSaveable { mutableStateOf(listOf<String>()) }
+    // New arrivals lead the shelf — the one merchandising reorder the store
+    // allows itself. The sort is stable, so everything else keeps catalog
+    // order, and once the ribbon expires the shelf settles back on its own.
+    val products = ClockFaceGroup.entries
+        .filter { it !in availablePacks }
+        .sortedByDescending { it.isNewIn(appVersion) }
+    var inShop by rememberSaveable { mutableStateOf(startInShop) }
+    // Read here, not in transitionSpec: spec lambdas run outside composition.
     val motionEnabled = auroraMotionEnabled()
 
     // The success strip says what a purchase just added, then leaves on its
@@ -125,74 +129,6 @@ internal fun ClockFaceStoreScreen(
         }
     }
 
-    // One item body for a pack wherever it sits. The item is keyed on the
-    // group, so when a purchase moves a pack from the store zone into the
-    // owned zone the same item glides up and its AnimatedContent morphs the
-    // product card into the picker — the transform reads in place even though
-    // the pack crosses the section rule.
-    fun androidx.compose.foundation.lazy.LazyListScope.packStoreItem(
-        group: ClockFaceGroup,
-        kind: PackCardKind,
-        staggerIndex: Int?,
-    ) {
-        item(key = group.name) {
-            AnimatedContent(
-                targetState = kind,
-                modifier = Modifier
-                    .animateItem()
-                    .then(
-                        if (staggerIndex != null) {
-                            Modifier.auroraEnter(staggerIndex)
-                        } else {
-                            Modifier
-                        },
-                    ),
-                transitionSpec = {
-                    if (motionEnabled) {
-                        (
-                            fadeIn(tween(TRANSFORM_FADE_MILLIS)) +
-                                scaleIn(
-                                    initialScale = TRANSFORM_START_SCALE,
-                                    animationSpec = tween(
-                                        TRANSFORM_SETTLE_MILLIS,
-                                        easing = ThunkEasing,
-                                    ),
-                                )
-                            ) togetherWith fadeOut(tween(TRANSFORM_FADE_MILLIS))
-                    } else {
-                        fadeIn(tween(0)) togetherWith fadeOut(tween(0))
-                    }
-                },
-                label = "pack-card-${group.name}",
-            ) { shape ->
-                when (shape) {
-                    PackCardKind.Picker -> OwnedPackSection(
-                        group = group,
-                        selected = selected,
-                        onSelect = onSelect,
-                        onRemovePack = onRemovePack,
-                        onBack = onBack,
-                    )
-                    PackCardKind.Product -> ClockFacePackOfferCard(
-                        group = group,
-                        price = storefront.priceOf(group),
-                        owned = storefront.isOwned(group),
-                        availability = storefront.availability,
-                        isNew = group.isNewIn(appVersion),
-                        onBuy = { onBuyPack(group) },
-                        onInstall = { onInstallPack(group) },
-                    )
-                    PackCardKind.Collapsed -> ClockFacePackCollapsedRow(
-                        group = group,
-                        price = storefront.priceOf(group),
-                        owned = storefront.isOwned(group),
-                        onExpand = { expandedPacks = expandedPacks + group.name },
-                    )
-                }
-            }
-        }
-    }
-
     ElmTrackrTheme(darkTheme = true) {
         Box(
             Modifier
@@ -200,84 +136,180 @@ internal fun ClockFaceStoreScreen(
                 .background(MaterialTheme.colorScheme.background),
         ) {
             StoreGlow(Modifier.fillMaxSize())
-            LazyColumn(
-                modifier = Modifier
+            Column(
+                Modifier
                     .fillMaxSize()
                     .padding(horizontal = Layout.screenGutter),
-                verticalArrangement = Arrangement.spacedBy(Layout.cardGap),
             ) {
-                item(key = "header") {
-                    StoreHeader(
-                        availablePacks = availablePacks,
-                        onRestore = onRestore,
-                        onBack = onBack,
-                        modifier = Modifier.auroraEnter(0),
-                    )
-                }
-
-                if (justUnlocked.isNotEmpty()) {
-                    item(key = "unlocked") {
-                        PackUnlockedStrip(packs = justUnlocked)
-                    }
-                }
-
-                // The screen's one structural claim: everything above the
-                // "Face packs" rule is yours to use, everything below it is
-                // for sale. Ownership is a place on the screen, not a badge
-                // the eye has to find and interpret.
-                item(key = "yours-header") {
-                    StoreSectionHeader(
-                        label = stringResource(R.string.settings_face_store_yours_header),
-                        modifier = Modifier
-                            .animateItem()
-                            .auroraEnter(1),
-                    )
-                }
-                installed.forEachIndexed { index, group ->
-                    packStoreItem(
-                        group = group,
-                        kind = PackCardKind.Picker,
-                        staggerIndex = if (index == 0) 2 else null,
-                    )
-                }
-
-                if (products.isNotEmpty()) {
-                    item(key = "packs-header") {
-                        StoreSectionHeader(
-                            label = stringResource(R.string.settings_face_store_packs_header),
-                            modifier = Modifier
-                                .animateItem()
-                                .padding(top = Spacing.s12),
+                StoreHeader(
+                    availablePacks = availablePacks,
+                    onRestore = onRestore,
+                    onBack = onBack,
+                    modifier = Modifier.auroraEnter(0),
+                )
+                ElmSegmentedPillRow(
+                    options = listOf(
+                        stringResource(R.string.settings_face_store_yours_header),
+                        stringResource(R.string.settings_face_store_packs_header),
+                    ),
+                    selectedIndex = if (inShop) 1 else 0,
+                    onSelect = { inShop = it == 1 },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .auroraEnter(1),
+                )
+                AnimatedContent(
+                    targetState = inShop,
+                    transitionSpec = {
+                        if (motionEnabled) {
+                            fadeIn(tween(TAB_FADE_MILLIS)) togetherWith fadeOut(tween(TAB_FADE_MILLIS))
+                        } else {
+                            fadeIn(tween(0)) togetherWith fadeOut(tween(0))
+                        }
+                    },
+                    label = "store-tab",
+                ) { shop ->
+                    if (shop) {
+                        ShopTab(
+                            products = products,
+                            storefront = storefront,
+                            justUnlocked = justUnlocked,
+                            appVersion = appVersion,
+                            onBuyPack = onBuyPack,
+                            onInstallPack = onInstallPack,
+                            onBuyAllPacks = onBuyAllPacks,
+                            onOpenYourFaces = { inShop = false },
+                        )
+                    } else {
+                        YourFacesTab(
+                            installed = installed,
+                            products = products,
+                            selected = selected,
+                            onSelect = onSelect,
+                            onRemovePack = onRemovePack,
+                            onOpenShop = { inShop = true },
+                            onBack = onBack,
                         )
                     }
                 }
-                products.forEachIndexed { index, group ->
-                    packStoreItem(
-                        group = group,
-                        // The first product opens expanded — it is the zone's
-                        // argument; the rest wait as collapsed rows until asked.
-                        kind = if (index == 0 || group.name in expandedPacks) {
-                            PackCardKind.Product
-                        } else {
-                            PackCardKind.Collapsed
-                        },
-                        staggerIndex = null,
-                    )
-                }
-
-                // Offered after the packs, not before them: someone who has just
-                // seen what four packs look like can judge whether all of them is
-                // a better deal, and someone who only wanted one should not have
-                // to scroll past a bigger price to reach it.
-                if (storefront.offerAllPacks) {
-                    item(key = "bundle") {
-                        AllClockFacePacksCard(storefront = storefront, onBuy = onBuyAllPacks)
-                    }
-                }
-
-                item(key = "inset") { Spacer(Modifier.height(Layout.bottomNavInset)) }
             }
         }
+    }
+}
+
+/**
+ * Everything the user can pick from, and one quiet pointer to the shelf.
+ *
+ * Selecting a face returns immediately: the tap answers the question the
+ * screen asks, and the value still lands through the appearance screen's
+ * normal unsaved-changes flow, so nothing is committed behind the user's back.
+ */
+@Composable
+private fun YourFacesTab(
+    installed: List<ClockFaceGroup>,
+    products: List<ClockFaceGroup>,
+    selected: ClockStyle,
+    onSelect: (ClockStyle) -> Unit,
+    onRemovePack: (ClockFaceGroup) -> Unit,
+    onOpenShop: () -> Unit,
+    onBack: () -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(Layout.cardGap),
+    ) {
+        item(key = "top-gap") { Spacer(Modifier.height(Spacing.s4)) }
+        installed.forEach { group ->
+            item(key = group.name) {
+                OwnedPackSection(
+                    group = group,
+                    selected = selected,
+                    onSelect = onSelect,
+                    onRemovePack = onRemovePack,
+                    onBack = onBack,
+                    modifier = Modifier.animateItem(),
+                )
+            }
+        }
+        if (products.isNotEmpty()) {
+            item(key = "shop-teaser") {
+                ShopTeaserRow(
+                    moreFaces = products.sumOf { it.faces.size },
+                    onOpenShop = onOpenShop,
+                    modifier = Modifier.animateItem(),
+                )
+            }
+        }
+        item(key = "inset") { Spacer(Modifier.height(Layout.bottomNavInset)) }
+    }
+}
+
+/**
+ * The shelf. Product cards in catalog order, the bundle last, and — right
+ * after a purchase — the success strip leading back to Your faces. When
+ * nothing is left to sell, the shelf says so instead of standing empty.
+ */
+@Composable
+private fun ShopTab(
+    products: List<ClockFaceGroup>,
+    storefront: ClockFacePackStorefront,
+    justUnlocked: Set<ClockFaceGroup>,
+    appVersion: String,
+    onBuyPack: (ClockFaceGroup) -> Unit,
+    onInstallPack: (ClockFaceGroup) -> Unit,
+    onBuyAllPacks: () -> Unit,
+    onOpenYourFaces: () -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(Layout.cardGap),
+    ) {
+        item(key = "top-gap") { Spacer(Modifier.height(Spacing.s4)) }
+        if (justUnlocked.isNotEmpty()) {
+            item(key = "unlocked") {
+                PackUnlockedStrip(
+                    packs = justUnlocked,
+                    onOpenYourFaces = onOpenYourFaces,
+                    modifier = Modifier.animateItem(),
+                )
+            }
+        }
+        products.forEach { group ->
+            item(key = group.name) {
+                ClockFacePackOfferCard(
+                    group = group,
+                    price = storefront.priceOf(group),
+                    owned = storefront.isOwned(group),
+                    availability = storefront.availability,
+                    isNew = group.isNewIn(appVersion),
+                    onBuy = { onBuyPack(group) },
+                    onInstall = { onInstallPack(group) },
+                    modifier = Modifier.animateItem(),
+                )
+            }
+        }
+        // Offered after the packs, not before them: someone who has just
+        // seen what the packs look like can judge whether all of them is a
+        // better deal, and someone who only wanted one should not have to
+        // scroll past a bigger price to reach it.
+        if (storefront.offerAllPacks) {
+            item(key = "bundle") {
+                AllClockFacePacksCard(storefront = storefront, onBuy = onBuyAllPacks)
+            }
+        }
+        if (products.isEmpty()) {
+            item(key = "everything-owned") {
+                Text(
+                    stringResource(R.string.settings_face_store_everything_owned),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = Spacing.s24),
+                )
+            }
+        }
+        item(key = "inset") { Spacer(Modifier.height(Layout.bottomNavInset)) }
     }
 }
 
@@ -285,7 +317,7 @@ internal fun ClockFaceStoreScreen(
  * Back, restore, the store's name and what it holds.
  *
  * The subtitle counts what the user has against what is left to want — "4
- * yours · 16 in 4 packs" — and collapses to a single count once everything is
+ * yours · 20 in 5 packs" — and collapses to a single count once everything is
  * theirs, because "0 in 0 packs" is a store admitting it has nothing to sell.
  *
  * Restore re-reads ownership from Play. The refresh also runs on every
@@ -350,42 +382,7 @@ private fun StoreHeader(
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.padding(top = Spacing.s4, bottom = Spacing.s8),
-        )
-    }
-}
-
-/**
- * A section rule: a quiet tracked label with a hairline running to the edge.
- *
- * The store's clarity rests on these two rules. Everything under "Your faces"
- * is usable now; everything under "Face packs" is merchandise. Ownership is a
- * place on the screen rather than a badge, which is the difference between a
- * screen the user reads and a screen the user decodes.
- */
-@Composable
-private fun StoreSectionHeader(
-    label: String,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = MaterialTheme.typography.labelSmall.fontSize * EYEBROW_TRACKING,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.auroraHeading(),
-        )
-        Spacer(Modifier.size(Spacing.s12))
-        Box(
-            Modifier
-                .weight(1f)
-                .height(Spacing.s1)
-                .background(Color.White.copy(alpha = SectionRuleAlpha)),
+            modifier = Modifier.padding(top = Spacing.s4, bottom = Spacing.s12),
         )
     }
 }
@@ -394,15 +391,10 @@ private fun StoreSectionHeader(
  * A pack the user has: a labelled group of faces to choose between, sitting
  * directly on the store background.
  *
- * Deliberately bare. On this screen a raised card means "product for sale",
- * and holding that rule is what makes the owned zone legible — the pack label
- * is an eyebrow over the tiles it owns, "Included" is part of that label
- * rather than a badge competing with product ribbons, and the only trailing
- * controls are the two that still apply: the In-use mark, or Remove.
- *
- * Selecting a face returns immediately: the tap answers the question the
- * screen asks, and the value still lands through the appearance screen's
- * normal unsaved-changes flow, so nothing is committed behind the user's back.
+ * Deliberately bare — on this screen a raised card means "product for sale",
+ * and the two never share a tab. The pack label is an eyebrow over the tiles
+ * it owns, "Included" is part of that label, and the only trailing controls
+ * are the two that still apply: the In-use mark, or Remove.
  */
 @Composable
 private fun OwnedPackSection(
@@ -480,15 +472,57 @@ private fun OwnedPackSection(
 }
 
 /**
- * The inline confirmation a purchase leaves behind.
+ * The one line on Your faces that admits a shop exists.
  *
- * A strip in the list rather than a snackbar, so it survives the scroll the
- * new grid invites. It never picks a face for the user — they bought four, and
- * choosing one for them would undo the choice they came to make.
+ * Quiet on purpose: the picking tab is not a sales surface, but someone who
+ * came to browse should not have to discover the second tab on their own.
+ */
+@Composable
+private fun ShopTeaserRow(
+    moreFaces: Int,
+    onOpenShop: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(CornerRadius.Large)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Color.White.copy(alpha = TeaserLift))
+            .border(Spacing.s1, Color.White.copy(alpha = HairlineAlpha), shape)
+            .clickable(onClick = onOpenShop)
+            .heightIn(min = Layout.minTouchTarget)
+            .padding(horizontal = Layout.cardPadding, vertical = Spacing.s12),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            pluralStringResource(R.plurals.settings_face_store_teaser, moreFaces, moreFaces),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.size(Spacing.s20).mirrorInRtl(),
+        )
+    }
+}
+
+/**
+ * The inline confirmation a purchase leaves behind, on the shelf where the
+ * purchase happened.
+ *
+ * The pack itself has already moved to Your faces — a sold pack does not stay
+ * on sale — so the strip names what arrived and is itself the way over. It
+ * never picks a face for the user: they bought four, and choosing one for
+ * them would undo the choice they came to make.
  */
 @Composable
 private fun PackUnlockedStrip(
     packs: Set<ClockFaceGroup>,
+    onOpenYourFaces: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val names = ClockFaceGroup.entries
@@ -500,8 +534,10 @@ private fun PackUnlockedStrip(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(auroraSemantics.successContainer, shape)
+            .clip(shape)
+            .background(auroraSemantics.successContainer)
             .border(Spacing.s1, auroraSemantics.successInk.copy(alpha = .28f), shape)
+            .clickable(onClick = onOpenYourFaces)
             .padding(horizontal = Layout.cardPadding, vertical = Spacing.s12),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.s12),
@@ -532,6 +568,12 @@ private fun PackUnlockedStrip(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = auroraSemantics.successInk,
+            modifier = Modifier.size(Spacing.s20).mirrorInRtl(),
+        )
     }
 }
 
@@ -565,20 +607,16 @@ private fun StoreGlow(modifier: Modifier = Modifier) {
     }
 }
 
-/** The three shapes a pack takes on this screen. */
-private enum class PackCardKind { Picker, Product, Collapsed }
-
 /** How long the just-unlocked strip stays before dismissing itself. */
 private const val UNLOCK_STRIP_MILLIS = 6_000L
 
 /** Matches the CSS spec's 0.16em eyebrow tracking. */
 private const val EYEBROW_TRACKING = 0.16f
 
-/** The hairline that runs from a section label to the screen edge. */
-private const val SectionRuleAlpha = 0.10f
+/** The hairline border the teaser row wears. */
+private const val HairlineAlpha = 0.07f
 
-/** The spec's purchase-landing curve — cubic-bezier(.3,.8,.3,1). */
-private val ThunkEasing = CubicBezierEasing(0.3f, 0.8f, 0.3f, 1f)
-private const val TRANSFORM_FADE_MILLIS = 300
-private const val TRANSFORM_SETTLE_MILLIS = 1_050
-private const val TRANSFORM_START_SCALE = 0.96f
+/** The lift that separates the teaser row from the store background. */
+private const val TeaserLift = 0.04f
+
+private const val TAB_FADE_MILLIS = 180

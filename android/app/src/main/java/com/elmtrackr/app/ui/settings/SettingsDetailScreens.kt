@@ -676,6 +676,11 @@ internal fun AppearanceDetailScreen(
                         stored = state.storedClockFacePacks,
                         selected = clockStyle,
                     ),
+                    availablePacks = ClockFacePacks.available(
+                        stored = state.storedClockFacePacks,
+                        selected = clockStyle,
+                    ),
+                    appVersion = BuildConfig.VERSION_NAME,
                     onSelect = onClockStyleChange,
                     onBrowseAll = onBrowseAllFaces,
                 )

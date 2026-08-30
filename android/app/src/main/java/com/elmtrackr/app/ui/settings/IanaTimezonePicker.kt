@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.design.auroraExpandable
 import java.time.ZoneId
 import java.time.format.TextStyle
@@ -31,8 +32,12 @@ fun IanaTimezonePicker(
 ) {
     var expanded by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
+    // The composition's locale, not Locale.getDefault(): on Android 12 and
+    // below the default never follows the in-app language, so the zone
+    // display names stayed in the system language whatever the app was set to.
+    val locale = appLocale()
     val normalized = remember(selected) { IanaTimezones.normalize(selected) }
-    val options = remember(query, normalized) {
+    val options = remember(query, normalized, locale) {
         val pool = if (query.isBlank()) {
             IanaTimezones.displayOptions(normalized)
         } else {
@@ -40,7 +45,7 @@ fun IanaTimezonePicker(
         }
         pool.filter { zone ->
             zone.contains(query, ignoreCase = true) ||
-                zoneDisplayName(zone).contains(query, ignoreCase = true)
+                zoneDisplayName(zone, locale).contains(query, ignoreCase = true)
         }.take(60)
     }
 
@@ -50,7 +55,7 @@ fun IanaTimezonePicker(
     modifier = modifier,
   ) {
     OutlinedTextField(
-      value = if (expanded) query else zoneLabel(normalized),
+      value = if (expanded) query else zoneLabel(normalized, locale),
       onValueChange = {
         query = it
         if (!expanded) expanded = true
@@ -90,7 +95,7 @@ fun IanaTimezonePicker(
         options.forEach { zone ->
           DropdownMenuItem(
             text = {
-              Text(zoneLabel(zone))
+              Text(zoneLabel(zone, locale))
             },
             onClick = {
               onSelect(zone)
@@ -104,12 +109,12 @@ fun IanaTimezonePicker(
   }
 }
 
-private fun zoneDisplayName(zoneId: String): String =
+private fun zoneDisplayName(zoneId: String, locale: Locale): String =
     runCatching {
-        ZoneId.of(zoneId).getDisplayName(TextStyle.FULL, Locale.getDefault())
+        ZoneId.of(zoneId).getDisplayName(TextStyle.FULL, locale)
     }.getOrDefault(zoneId)
 
-private fun zoneLabel(zoneId: String): String {
-    val display = zoneDisplayName(zoneId)
+private fun zoneLabel(zoneId: String, locale: Locale): String {
+    val display = zoneDisplayName(zoneId, locale)
     return if (display == zoneId) zoneId else "$zoneId — $display"
 }

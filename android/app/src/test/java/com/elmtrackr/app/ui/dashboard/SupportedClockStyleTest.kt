@@ -39,4 +39,12 @@ class SupportedClockStyleTest {
         assertEquals(ClockStyle.LUNA, ClockStyle.fromPersisted("luna"))
         assertEquals(ClockStyle.SUMMIT, ClockStyle.fromPersisted("summit"))
     }
+
+    @Test
+    fun `the payday faces parse from their wire values`() {
+        assertEquals(ClockStyle.METER, ClockStyle.fromPersisted("meter"))
+        assertEquals(ClockStyle.STACKS, ClockStyle.fromPersisted("stacks"))
+        assertEquals(ClockStyle.JAR, ClockStyle.fromPersisted("jar"))
+        assertEquals(ClockStyle.TICKER, ClockStyle.fromPersisted("ticker"))
+    }
 }

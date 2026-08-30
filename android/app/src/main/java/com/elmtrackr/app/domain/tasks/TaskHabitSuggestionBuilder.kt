@@ -10,8 +10,28 @@ data class TaskSuggestion(
     val task: Task,
     val isHabitBased: Boolean,
     val showSuggestedNow: Boolean = false,
-    val explanation: String? = null,
+    val reason: TaskSuggestionReason? = null,
 )
+
+/**
+ * Why a task was suggested — as data, never as a rendered sentence.
+ *
+ * The suggestion is computed in a ViewModel that outlives the activity, so a
+ * sentence built here would keep the language (and the localized day name) it
+ * was born with across an in-app language switch. The UI renders the reason
+ * with string resources at composition time, which re-runs on the recreate a
+ * language change triggers.
+ */
+sealed interface TaskSuggestionReason {
+    /** The habit slot the pick matches; the UI names the day in its own language. */
+    data class UsualSlot(val at: Instant) : TaskSuggestionReason
+
+    /** A weaker habit signal: shifts scored around this slot, no standing rule. */
+    data class RecentShifts(val at: Instant) : TaskSuggestionReason
+
+    /** No habit signal yet — this is simply the task used most recently. */
+    data object LastUsed : TaskSuggestionReason
+}
 
 object TaskHabitSuggestionBuilder {
 
@@ -36,12 +56,11 @@ object TaskHabitSuggestionBuilder {
         val matchingRule = TaskDefaultRulesBuilder.ruleForInstant(defaultRules, now, zoneId)
         matchingRule?.let { rule ->
             active.firstOrNull { it.id == rule.taskId }?.let { task ->
-                val slotLabel = TaskDefaultRulesBuilder.formatSlot(now, zoneId)
                 return TaskSuggestion(
                     task = task,
                     isHabitBased = true,
                     showSuggestedNow = true,
-                    explanation = "You usually pick ${task.name} on $slotLabel",
+                    reason = TaskSuggestionReason.UsualSlot(now),
                 )
             }
         }
@@ -59,11 +78,7 @@ object TaskHabitSuggestionBuilder {
                     task = it,
                     isHabitBased = false,
                     showSuggestedNow = false,
-                    explanation = if (it.lastUsedAt != null) {
-                        "Last used ${it.name}"
-                    } else {
-                        null
-                    },
+                    reason = if (it.lastUsedAt != null) TaskSuggestionReason.LastUsed else null,
                 )
             }
         }
@@ -102,15 +117,14 @@ object TaskHabitSuggestionBuilder {
 
         return suggested?.let { task ->
             val habitBased = bestEntry != null && bestEntry.value > 0
-            val slotLabel = TaskDefaultRulesBuilder.formatSlot(now, zoneId)
             TaskSuggestion(
                 task = task,
                 isHabitBased = habitBased,
                 showSuggestedNow = habitBased,
-                explanation = if (habitBased) {
-                    "Based on your recent shifts around $slotLabel"
+                reason = if (habitBased) {
+                    TaskSuggestionReason.RecentShifts(now)
                 } else {
-                    "Last used ${task.name}"
+                    TaskSuggestionReason.LastUsed
                 },
             )
         }

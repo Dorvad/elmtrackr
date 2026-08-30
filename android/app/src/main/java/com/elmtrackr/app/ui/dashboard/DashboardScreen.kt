@@ -165,8 +165,27 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
-private val dateFormatter  = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())
-private val timeFormatter  = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+/**
+ * Locale-keyed formatters, remembered per composition.
+ *
+ * These were process-scoped vals frozen at class load with whatever
+ * `Locale.getDefault()` held at the time — the reason recent-shift dates kept
+ * their old weekday and month names after the in-app language changed. A
+ * language switch is applied by recreating the activity, and a recreate cannot
+ * re-run a top-level initializer; a `remember` keyed on the composition's
+ * locale re-evaluates exactly when the language does.
+ */
+@Composable
+private fun rememberShiftDateFormatter(): DateTimeFormatter {
+    val locale = appLocale()
+    return remember(locale) { DateTimeFormatter.ofPattern("EEE, MMM d", locale) }
+}
+
+@Composable
+private fun rememberWallTimeFormatter(): DateTimeFormatter {
+    val locale = appLocale()
+    return remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
+}
 
 private val headerGradient = Brush.linearGradient(
     colorStops = arrayOf(0f to AuroraIndigo, 0.5f to AuroraPlum, 1f to AuroraAqua),
@@ -520,7 +539,7 @@ private fun DashboardReady(
                     selectedTaskId = state.selectedTaskId,
                     suggestedTaskId = state.suggestedTaskId,
                     showSuggestedNow = state.showSuggestedNow,
-                    suggestionExplanation = state.suggestionExplanation,
+                    suggestionReason = state.suggestionReason,
                     onSelectTask = onSelectTask,
                     onManageTasks = onManageTasks,
                     modifier = Modifier
@@ -914,7 +933,11 @@ private fun DashboardClockSection(
                 SupportedClockStyle.METRO,
                 SupportedClockStyle.VINYL,
                 SupportedClockStyle.LUNA,
-                SupportedClockStyle.SUMMIT -> ExpressiveClockCard(
+                SupportedClockStyle.SUMMIT,
+                SupportedClockStyle.METER,
+                SupportedClockStyle.STACKS,
+                SupportedClockStyle.JAR,
+                SupportedClockStyle.TICKER -> ExpressiveClockCard(
                     style = renderStyle,
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
@@ -1259,11 +1282,12 @@ private fun ExpressiveClockCard(
         SupportedClockStyle.NIGHT -> Color(0xff080b25)
         SupportedClockStyle.RETRO -> Color(0xff2b2418)
         SupportedClockStyle.VINYL -> Color(0xff181530)
+        SupportedClockStyle.METER -> PaydayHousing
         else -> MaterialTheme.colorScheme.surface
     }
     val dark = style in listOf(
         SupportedClockStyle.BOLD, SupportedClockStyle.NIGHT, SupportedClockStyle.RETRO,
-        SupportedClockStyle.VINYL,
+        SupportedClockStyle.VINYL, SupportedClockStyle.METER,
     )
     val foreground = if (dark) Color.White else MaterialTheme.colorScheme.onSurface
     val faceTrack = MaterialTheme.colorScheme.surfaceVariant
@@ -1274,6 +1298,12 @@ private fun ExpressiveClockCard(
         style == SupportedClockStyle.TIDE -> AuroraAqua
         style == SupportedClockStyle.VINYL -> AuroraAqua
         style == SupportedClockStyle.SPROUT -> SproutLeafDeep
+        // Gold on Meter's dark plate; the deeper gold everywhere the accent
+        // sits on the light surface.
+        style == SupportedClockStyle.METER -> PaydayGold
+        style == SupportedClockStyle.STACKS -> PaydayGoldDeep
+        style == SupportedClockStyle.JAR -> PaydayGoldDeep
+        style == SupportedClockStyle.TICKER -> PaydayGoldDeep
         else -> AuroraIndigo
     }
 
@@ -1302,6 +1332,10 @@ private fun ExpressiveClockCard(
                     SupportedClockStyle.VINYL -> stringResource(if (running) R.string.dashboard_clock_now_playing else R.string.dashboard_clock_drop_needle)
                     SupportedClockStyle.LUNA -> stringResource(if (running) R.string.dashboard_clock_waxing else R.string.dashboard_clock_new_moon)
                     SupportedClockStyle.SUMMIT -> stringResource(if (running) R.string.dashboard_clock_climbing else R.string.dashboard_clock_base_camp)
+                    SupportedClockStyle.METER -> stringResource(if (running) R.string.dashboard_clock_on_the_meter else R.string.dashboard_clock_meter_parked)
+                    SupportedClockStyle.STACKS -> stringResource(if (running) R.string.dashboard_clock_stacking_up else R.string.dashboard_clock_ready_to_stack)
+                    SupportedClockStyle.JAR -> stringResource(if (running) R.string.dashboard_clock_jar_filling else R.string.dashboard_clock_jar_open)
+                    SupportedClockStyle.TICKER -> stringResource(if (running) R.string.dashboard_clock_trending_up else R.string.dashboard_clock_market_closed)
                     else -> ""
                 },
                 style = MaterialTheme.typography.labelSmall,
@@ -1570,6 +1604,37 @@ private fun ExpressiveClockCard(
                             foreground = foreground,
                             surface = background,
                         )
+                        SupportedClockStyle.METER -> drawMeterFace(
+                            progress = dayProgress,
+                            overtime = dayOvertime,
+                            overtimeProgress = overtimeExtension,
+                            pulse = pulse(),
+                            running = running,
+                            foreground = foreground,
+                        )
+                        SupportedClockStyle.STACKS -> drawStacksFace(
+                            progress = dayProgress,
+                            overtime = dayOvertime,
+                            overtimeProgress = overtimeExtension,
+                            pulse = pulse(),
+                            running = running,
+                            foreground = foreground,
+                        )
+                        SupportedClockStyle.JAR -> drawJarFace(
+                            progress = dayProgress,
+                            overtime = dayOvertime,
+                            pulse = pulse(),
+                            running = running,
+                            foreground = foreground,
+                        )
+                        SupportedClockStyle.TICKER -> drawTickerFace(
+                            progress = dayProgress,
+                            overtime = dayOvertime,
+                            overtimeProgress = overtimeExtension,
+                            pulse = pulse(),
+                            running = running,
+                            foreground = foreground,
+                        )
                         else -> Unit
                     }
                 }
@@ -1583,7 +1648,7 @@ private fun ExpressiveClockCard(
                         } else {
                             rememberCurrentInstant(MINUTE_MILLIS)
                                 .atZone(LocalWorkZone.current)
-                                .format(timeFormatter)
+                                .format(rememberWallTimeFormatter())
                         },
                         digitColor = accent,
                         surface = background,
@@ -1613,7 +1678,7 @@ private fun ExpressiveClockCard(
                         // reason every other time on this screen uses it.
                         rememberCurrentInstant(MINUTE_MILLIS)
                             .atZone(LocalWorkZone.current)
-                            .format(timeFormatter),
+                            .format(rememberWallTimeFormatter()),
                         style = if (style == SupportedClockStyle.BOLD) MaterialTheme.typography.displayLarge else if (style == SupportedClockStyle.FOCUS) MaterialTheme.typography.displayMedium else MaterialTheme.typography.displaySmall,
                         fontWeight = if (style == SupportedClockStyle.FOCUS) FontWeight.Light else FontWeight.Bold,
                         color = foreground,
@@ -2045,10 +2110,12 @@ private fun RecentShiftRow(
     showDivider: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val zone         = LocalWorkZone.current
-    val dateText     = shift.startTime.atZone(zone).format(dateFormatter)
-    val startText    = shift.startTime.atZone(zone).format(timeFormatter)
-    val endText      = shift.endTime?.atZone(zone)?.format(timeFormatter) ?: "-"
+    val zone          = LocalWorkZone.current
+    val dateFormatter = rememberShiftDateFormatter()
+    val timeFormatter = rememberWallTimeFormatter()
+    val dateText      = shift.startTime.atZone(zone).format(dateFormatter)
+    val startText     = shift.startTime.atZone(zone).format(timeFormatter)
+    val endText       = shift.endTime?.atZone(zone)?.format(timeFormatter) ?: "-"
     val durationText = ShiftDurationCalculator.netMinutes(shift)
         ?.let { durationText(it) } ?: "-"
 
@@ -2143,7 +2210,7 @@ private fun EditStartTimeDialog(
 
 @Composable
 private fun formatInstantTime(instant: Instant): String =
-    instant.atZone(LocalWorkZone.current).format(timeFormatter)
+    instant.atZone(LocalWorkZone.current).format(rememberWallTimeFormatter())
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

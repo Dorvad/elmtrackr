@@ -36,6 +36,7 @@ import com.elmtrackr.app.domain.repository.ShiftsRepository
 import com.elmtrackr.app.domain.repository.TasksRepository
 import com.elmtrackr.app.domain.tasks.TaskClockInHelper
 import com.elmtrackr.app.domain.tasks.TaskHabitSuggestionBuilder
+import com.elmtrackr.app.domain.tasks.TaskSuggestionReason
 import com.elmtrackr.app.domain.tasks.TaskSorting
 import com.elmtrackr.app.domain.time.WorkTimezone
 import com.elmtrackr.app.di.ComputationDispatcher
@@ -95,7 +96,7 @@ class DashboardViewModel @Inject constructor(
     private val _selectedWorkProfileId = MutableStateFlow<String?>(null)
     private val _suggestedTaskId = MutableStateFlow<String?>(null)
     private val _showSuggestedNow = MutableStateFlow(false)
-    private val _suggestionExplanation = MutableStateFlow<String?>(null)
+    private val _suggestionReason = MutableStateFlow<TaskSuggestionReason?>(null)
     private val _selectedCompensationSource = MutableStateFlow(CompensationSource.EMPLOYEE)
     private val _selectedProjectId = MutableStateFlow<String?>(null)
     private val _projectClockInNote = MutableStateFlow("")
@@ -331,7 +332,7 @@ class DashboardViewModel @Inject constructor(
                     selectedTaskId = _selectedTaskId.value,
                     suggestedTaskId = _suggestedTaskId.value,
                     showSuggestedNow = _showSuggestedNow.value,
-                    suggestionExplanation = _suggestionExplanation.value,
+                    suggestionReason = _suggestionReason.value,
                     recentShifts = raw.recentShifts,
                     displayName = currentProfile.fullName,
                     todayCompletedMinutes = todayCompletedMinutes,
@@ -392,9 +393,9 @@ class DashboardViewModel @Inject constructor(
                 else -> state
             }
         }
-        .combine(_suggestionExplanation) { state, explanation ->
+        .combine(_suggestionReason) { state, reason ->
             when (state) {
-                is DashboardUiState.Ready -> state.copy(suggestionExplanation = explanation)
+                is DashboardUiState.Ready -> state.copy(suggestionReason = reason)
                 else -> state
             }
         }
@@ -508,7 +509,7 @@ class DashboardViewModel @Inject constructor(
                     _selectedTaskId.value = null
                     _suggestedTaskId.value = null
                     _showSuggestedNow.value = false
-                    _suggestionExplanation.value = null
+                    _suggestionReason.value = null
                     return@collect
                 }
                 val current = _selectedTaskId.value
@@ -518,7 +519,7 @@ class DashboardViewModel @Inject constructor(
                         ?: TaskSorting.byRecency(tasks).firstOrNull()?.id
                     _suggestedTaskId.value = suggestion?.task?.id
                     _showSuggestedNow.value = suggestion?.showSuggestedNow == true
-                    _suggestionExplanation.value = suggestion?.explanation
+                    _suggestionReason.value = suggestion?.reason
                 }
             }
         }
@@ -527,7 +528,7 @@ class DashboardViewModel @Inject constructor(
     fun selectTask(taskId: String) {
         _selectedTaskId.value = taskId
         _showSuggestedNow.value = false
-        _suggestionExplanation.value = null
+        _suggestionReason.value = null
     }
 
     fun clockIn() {

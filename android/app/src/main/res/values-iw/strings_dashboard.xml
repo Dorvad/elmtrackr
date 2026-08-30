@@ -67,6 +67,14 @@
     <string name="dashboard_clock_ready_to_grow">מוכנים לצמוח</string>
     <string name="dashboard_clock_climbing">בטיפוס</string>
     <string name="dashboard_clock_base_camp">במחנה הבסיס</string>
+    <string name="dashboard_clock_on_the_meter">המונה פועל</string>
+    <string name="dashboard_clock_meter_parked">המונה עצור</string>
+    <string name="dashboard_clock_stacking_up">הערימה גדלה</string>
+    <string name="dashboard_clock_ready_to_stack">הערימה ממתינה</string>
+    <string name="dashboard_clock_jar_filling">הצנצנת מתמלאת</string>
+    <string name="dashboard_clock_jar_open">הצנצנת פתוחה</string>
+    <string name="dashboard_clock_trending_up">במגמת עלייה</string>
+    <string name="dashboard_clock_market_closed">השוק סגור</string>
 
     <!-- Month summary -->
     <string name="dashboard_month_summary_title">סיכום %1$s</string>
@@ -115,7 +123,7 @@
     <string name="dashboard_setup_lock_body">ElmTrackr מחזיקה את השעות, השכר והלקוחות שלכם. נעילת אפליקציה מבקשת טביעת אצבע או נעילת מסך לפני שמשהו מהם מוצג.</string>
     <string name="dashboard_setup_lock_action">הגדרת נעילה</string>
     <string name="dashboard_setup_clock_title">התאימו את השעון לסגנון שלכם</string>
-    <string name="dashboard_setup_clock_blurb">15 עיצובי שעון לבחירה.</string>
+    <string name="dashboard_setup_clock_blurb">חנות מלאה בעיצובי שעון לבחירה.</string>
     <string name="dashboard_setup_clock_body">השעון הגדול במסך הזה הוא כרטיס הנוכחות שלכם. בחרו עיצוב שמתאים לכם \u2014 מחוגה מינימליסטית ועד גאות עולה.</string>
     <string name="dashboard_setup_clock_action">בחירת עיצוב</string>
     <string name="dashboard_setup_compensation_title">הגדירו את פרופיל העבודה</string>

@@ -29,8 +29,12 @@ class ActiveShiftNotificationManager(private val context: Context) {
     private val notifManager = NotificationManagerCompat.from(context)
 
     // Strings resolve in the in-app language even on Android 12 and below,
-    // where background contexts otherwise use the system locale.
-    private val localizedContext = context.withAppLocale()
+    // where background contexts otherwise use the system locale. A getter, not
+    // a stored context: this manager lives inside an application-scoped
+    // singleton, so a context captured at construction would keep the language
+    // the process started in — the running-shift notification stayed in the
+    // previous language after a switch until the app was killed.
+    private val localizedContext: Context get() = context.withAppLocale()
 
     fun showActiveShiftNotification(shift: Shift, zone: ZoneId = ZoneId.systemDefault()) {
         if (!notifManager.areNotificationsEnabled()) return

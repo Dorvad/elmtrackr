@@ -72,7 +72,6 @@
     <string name="settings_currency">Валюта</string>
     <string name="settings_watch_face">Циферблат</string>
     <string name="settings_watch_face_hint">Выберите анимированный циферблат для часов на главном экране.</string>
-    <string name="settings_browse_all_faces">Посмотреть все циферблаты (%1$d)</string>
     <string name="settings_pack_add">Добавить</string>
     <string name="settings_pack_remove">Убрать</string>
     <string name="settings_pack_in_use">Используется</string>
@@ -88,6 +87,13 @@
     <string name="settings_pack_purchase_pending">Ожидаем подтверждения оплаты. Набор появится сразу после него.</string>
     <string name="settings_pack_purchase_restored">Предыдущая покупка восстановлена</string>
     <string name="settings_pack_purchase_failed">Покупка не завершена. Списания не было.</string>
+    <string name="settings_face_shop_title">Магазин циферблатов</string>
+    <plurals name="settings_face_shop_waiting">
+        <item quantity="one">%1$d циферблатов ещё в %2$d наборе</item>
+        <item quantity="few">%1$d циферблатов в %2$d наборах</item>
+        <item quantity="many">%1$d циферблатов в %2$d наборах</item>
+        <item quantity="other">%1$d циферблатов в %2$d наборах</item>
+    </plurals>
     <string name="settings_face_store_title">Циферблаты</string>
     <plurals name="settings_face_store_count">
         <item quantity="one">%1$d у вас · %2$d в %3$d наборе</item>
@@ -97,7 +103,16 @@
     </plurals>
     <string name="settings_face_store_count_all_owned">Все %1$d циферблатов — ваши</string>
     <string name="settings_face_store_yours_header">Ваши циферблаты</string>
-    <string name="settings_face_store_packs_header">Наборы циферблатов</string>
+    <string name="settings_face_store_packs_header">Магазин</string>
+    <plurals name="settings_face_store_teaser">
+        <item quantity="one">Ещё %1$d циферблат в магазине</item>
+        <item quantity="few">Ещё %1$d циферблата в магазине</item>
+        <item quantity="many">Ещё %1$d циферблатов в магазине</item>
+        <item quantity="other">Ещё %1$d циферблата в магазине</item>
+    </plurals>
+    <string name="settings_face_store_everything_owned">Все наборы ваши. Новые наборы появятся здесь первыми.</string>
+    <string name="settings_pack_show_faces">Показать циферблаты</string>
+    <string name="settings_pack_hide_faces">Скрыть циферблаты</string>
     <string name="settings_face_store_restore">Восстановить</string>
     <string name="settings_pack_included">В комплекте</string>
     <string name="settings_pack_new">Новинка</string>
@@ -122,6 +137,8 @@
     <string name="clock_group_nature_desc">День, который растёт, течёт или наполняется</string>
     <string name="clock_group_journeys">Путешествия</string>
     <string name="clock_group_journeys_desc">День, у которого есть пункт назначения</string>
+    <string name="clock_group_payday">Зарплата</string>
+    <string name="clock_group_payday_desc">Смена как заработок</string>
     <string name="settings_selected">Выбрано</string>
     <string name="settings_face_classic">Кольцо прогресса</string>
     <string name="settings_face_minimal">Чистый экран</string>
@@ -143,6 +160,10 @@
     <string name="settings_face_vinyl">Пластинка, вращающаяся, пока вы работаете</string>
     <string name="settings_face_luna">Луна, растущая до полной к восьми</string>
     <string name="settings_face_summit">Ваш день как восхождение — вершина на восьми</string>
+    <string name="settings_face_meter">Бегущий таксометр</string>
+    <string name="settings_face_stacks">Монеты растут с каждым часом</string>
+    <string name="settings_face_jar">Банка чаевых наполняется золотом</string>
+    <string name="settings_face_ticker">Линия дня идёт вверх</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">Ставка не задана</string>
@@ -215,7 +236,7 @@
     <string name="settings_no_matching_timezones">Подходящих часовых поясов нет</string>
 
     <string name="settings_clock_faces">Циферблаты</string>
-    <string name="settings_clock_faces_desc">14 стилей для часов на главном экране</string>
+    <string name="settings_clock_faces_desc">Стили для часов на главном экране</string>
     <string name="settings_reduce_motion">Меньше движения</string>
     <string name="settings_reduce_motion_desc">Сократить анимацию во всём приложении</string>
     <string name="settings_preview">Предпросмотр</string>

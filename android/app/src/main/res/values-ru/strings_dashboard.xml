@@ -68,6 +68,14 @@
     <string name="dashboard_clock_new_moon">Новолуние</string>
     <string name="dashboard_clock_climbing">Восхождение</string>
     <string name="dashboard_clock_base_camp">В базовом лагере</string>
+    <string name="dashboard_clock_on_the_meter">Счётчик идёт</string>
+    <string name="dashboard_clock_meter_parked">Счётчик стоит</string>
+    <string name="dashboard_clock_stacking_up">Стопки растут</string>
+    <string name="dashboard_clock_ready_to_stack">Стопки ждут</string>
+    <string name="dashboard_clock_jar_filling">Банка наполняется</string>
+    <string name="dashboard_clock_jar_open">Банка открыта</string>
+    <string name="dashboard_clock_trending_up">Идёт вверх</string>
+    <string name="dashboard_clock_market_closed">Рынок закрыт</string>
 
     <!-- Month summary -->
     <string name="dashboard_month_summary_title">Итоги: %1$s</string>
@@ -117,7 +125,7 @@
     <string name="dashboard_setup_lock_body">В ElmTrackr хранятся ваши часы, оплата и клиенты. Блокировка приложения запросит отпечаток пальца или код блокировки экрана, прежде чем что-либо показать.</string>
     <string name="dashboard_setup_lock_action">Настроить блокировку</string>
     <string name="dashboard_setup_clock_title">Настройте часы под себя</string>
-    <string name="dashboard_setup_clock_blurb">15 циферблатов на выбор.</string>
+    <string name="dashboard_setup_clock_blurb">Целый магазин циферблатов на выбор.</string>
     <string name="dashboard_setup_clock_body">Большие часы на этом экране — ваш табель. Выберите циферблат под свой вкус: от минималистичного до поднимающегося прилива.</string>
     <string name="dashboard_setup_clock_action">Выбрать стиль</string>
     <string name="dashboard_setup_compensation_title">Проверьте правила оплаты</string>

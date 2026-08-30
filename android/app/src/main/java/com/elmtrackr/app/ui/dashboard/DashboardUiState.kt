@@ -5,6 +5,7 @@ import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.Task
+import com.elmtrackr.app.domain.tasks.TaskSuggestionReason
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.model.Project
 import com.elmtrackr.app.domain.projects.ProjectClockInOption
@@ -45,7 +46,7 @@ sealed interface DashboardUiState {
         val selectedTaskId: String? = null,
         val suggestedTaskId: String? = null,
         val showSuggestedNow: Boolean = false,
-        val suggestionExplanation: String? = null,
+        val suggestionReason: TaskSuggestionReason? = null,
         val recentShifts: List<Shift> = emptyList(),
         val displayName: String? = null,
         val unresolvedRefundCount: Int = 0,

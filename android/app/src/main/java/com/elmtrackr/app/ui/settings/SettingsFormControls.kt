@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalConfiguration
@@ -72,6 +73,8 @@ import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.language.AppLanguage
 import com.elmtrackr.app.ui.design.ElmDropdownField
+import com.elmtrackr.app.ui.dashboard.PaydayGold
+import com.elmtrackr.app.ui.dashboard.PaydayGoldDeep
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.CornerRadius
@@ -113,6 +116,10 @@ internal fun clockStyleDisplayName(style: ClockStyle): String = stringResource(
         ClockStyle.VINYL -> R.string.clock_style_vinyl
         ClockStyle.LUNA -> R.string.clock_style_luna
         ClockStyle.SUMMIT -> R.string.clock_style_summit
+        ClockStyle.METER -> R.string.clock_style_meter
+        ClockStyle.STACKS -> R.string.clock_style_stacks
+        ClockStyle.JAR -> R.string.clock_style_jar
+        ClockStyle.TICKER -> R.string.clock_style_ticker
     },
 )
 
@@ -381,13 +388,17 @@ internal fun WatchFacePreview(
     } else {
         1f
     }
-    val darkFace = style in listOf(ClockStyle.BOLD, ClockStyle.NIGHT, ClockStyle.RETRO, ClockStyle.VINYL)
+    val darkFace = style in listOf(
+        ClockStyle.BOLD, ClockStyle.NIGHT, ClockStyle.RETRO, ClockStyle.VINYL, ClockStyle.METER,
+    )
     val faceBackground = if (darkFace) Color(0xFF11162A) else MaterialTheme.colorScheme.surface
     val accent = when (style) {
         ClockStyle.NIGHT, ClockStyle.TIDE, ClockStyle.VINYL -> Color(0xFF54D8E1)
         ClockStyle.RETRO -> Color(0xFFFFC857)
         ClockStyle.PRISM, ClockStyle.AURORA -> Color(0xFF9B7CFF)
         ClockStyle.SPROUT -> Color(0xFF2E9E6B)
+        ClockStyle.METER -> PaydayGold
+        ClockStyle.STACKS, ClockStyle.JAR, ClockStyle.TICKER -> PaydayGoldDeep
         else -> MaterialTheme.colorScheme.primary
     }
     Box(
@@ -671,6 +682,93 @@ internal fun WatchFacePreview(
                         drawPath(waveLine, accent.copy(alpha = .5f))
                     }
                 }
+                ClockStyle.METER -> {
+                    // Fare-meter housing with three abstract drums; the
+                    // rightmost tick drifts on the pulse like a live meter.
+                    val housingW = radius * 2.3f
+                    val housingH = radius * 1.1f
+                    val housingLeft = center.x - housingW / 2f
+                    val housingTop = center.y - housingH / 2f
+                    drawRoundRect(accent.copy(alpha = .35f), Offset(housingLeft, housingTop), Size(housingW, housingH), androidx.compose.ui.geometry.CornerRadius(8f), style = Stroke(2f))
+                    repeat(3) { i ->
+                        val winW = housingW * .24f
+                        val winLeft = housingLeft + housingW * .06f + i * housingW * .32f
+                        val winTop = housingTop + housingH * .18f
+                        val winH = housingH * .64f
+                        drawRoundRect(accent.copy(alpha = .25f), Offset(winLeft, winTop), Size(winW, winH), androidx.compose.ui.geometry.CornerRadius(4f), style = Stroke(1.5f))
+                        val tickY = winTop + winH / 2f + if (i == 2) (animatedPulse - .5f) * winH * .5f else 0f
+                        drawLine(accent, Offset(winLeft + 4f, tickY), Offset(winLeft + winW - 4f, tickY), 2f, StrokeCap.Round)
+                    }
+                    drawCircle(accent.copy(alpha = .3f + animatedPulse * .5f), 2.5f, Offset(housingLeft + housingW + 6f, housingTop + 4f))
+                }
+                ClockStyle.STACKS -> {
+                    // Three coin columns rising toward a dashed goal shelf,
+                    // one coin floating in on the pulse.
+                    val coinW = radius * .55f
+                    val coinH = radius * .16f
+                    val pitch = radius * .2f
+                    val baseY = center.y + radius * .8f
+                    val heights = intArrayOf(4, 6, 3)
+                    repeat(3) { i ->
+                        val x = center.x + (i - 1) * radius * .75f - coinW / 2f
+                        repeat(heights[i]) { c ->
+                            drawOval(accent.copy(alpha = .9f - c * .1f), Offset(x, baseY - coinH - c * pitch), Size(coinW, coinH))
+                        }
+                    }
+                    drawLine(accent.copy(alpha = .3f), Offset(center.x - radius, center.y - radius * .55f), Offset(center.x + radius, center.y - radius * .55f), 1.5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 5f)))
+                    drawOval(accent.copy(alpha = .3f + animatedPulse * .5f), Offset(center.x - coinW / 2f, baseY - coinH - 6 * pitch - animatedPulse * 4f), Size(coinW, coinH))
+                }
+                ClockStyle.JAR -> {
+                    // The tip jar: outline, a wavy gold fill, the goal line.
+                    val jarW = radius * 1.1f
+                    val jar = Path().apply {
+                        moveTo(center.x - jarW * .55f, center.y - radius)
+                        lineTo(center.x + jarW * .55f, center.y - radius)
+                        quadraticTo(center.x + jarW, center.y - radius * .55f, center.x + jarW, center.y)
+                        lineTo(center.x + jarW, center.y + radius * .7f)
+                        quadraticTo(center.x + jarW, center.y + radius, center.x, center.y + radius)
+                        quadraticTo(center.x - jarW, center.y + radius, center.x - jarW, center.y + radius * .7f)
+                        lineTo(center.x - jarW, center.y)
+                        quadraticTo(center.x - jarW, center.y - radius * .55f, center.x - jarW * .55f, center.y - radius)
+                        close()
+                    }
+                    clipPath(jar) {
+                        val level = center.y + radius * (.9f - 1.45f * .55f)
+                        val fill = Path().apply {
+                            moveTo(center.x - jarW, level)
+                            quadraticTo(center.x - jarW * .4f, level - 3f, center.x, level + 2f)
+                            quadraticTo(center.x + jarW * .5f, level + 5f, center.x + jarW, level - 1f)
+                            lineTo(center.x + jarW, center.y + radius)
+                            lineTo(center.x - jarW, center.y + radius)
+                            close()
+                        }
+                        drawPath(fill, accent.copy(alpha = .5f))
+                        drawCircle(accent.copy(alpha = .4f + animatedPulse * .4f), 2f, Offset(center.x + jarW * .3f, level + (center.y + radius - level) * .5f))
+                    }
+                    drawPath(jar, accent.copy(alpha = .35f), style = Stroke(2f))
+                    drawLine(accent.copy(alpha = .3f), Offset(center.x - jarW, center.y - radius * .35f), Offset(center.x + jarW, center.y - radius * .35f), 1.5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 5f)))
+                }
+                ClockStyle.TICKER -> {
+                    // A rising line under a dashed threshold, head dot haloed
+                    // on the pulse.
+                    drawLine(accent.copy(alpha = .3f), Offset(8f, center.y - radius * .45f), Offset(size.width - 8f, center.y - radius * .45f), 1.5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 5f)))
+                    val points = listOf(
+                        Offset(8f, size.height - 10f),
+                        Offset(size.width * .22f, size.height * .68f),
+                        Offset(size.width * .38f, size.height * .76f),
+                        Offset(size.width * .56f, size.height * .5f),
+                        Offset(size.width * .72f, size.height * .58f),
+                        Offset(size.width - 10f, center.y - radius * .55f),
+                    )
+                    val spark = Path().apply {
+                        moveTo(points.first().x, points.first().y)
+                        points.drop(1).forEach { lineTo(it.x, it.y) }
+                    }
+                    drawPath(spark, accent, style = Stroke(2.5f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                    val head = points.last()
+                    drawCircle(accent, 3f, head)
+                    drawCircle(accent.copy(alpha = (1f - animatedPulse) * .4f), 4f + animatedPulse * 4f, head, style = Stroke(1.5f))
+                }
                 else -> Unit
             }
         }
@@ -708,6 +806,10 @@ internal fun watchFaceDescription(style: ClockStyle): String = stringResource(
         ClockStyle.VINYL -> R.string.settings_face_vinyl
         ClockStyle.LUNA -> R.string.settings_face_luna
         ClockStyle.SUMMIT -> R.string.settings_face_summit
+        ClockStyle.METER -> R.string.settings_face_meter
+        ClockStyle.STACKS -> R.string.settings_face_stacks
+        ClockStyle.JAR -> R.string.settings_face_jar
+        ClockStyle.TICKER -> R.string.settings_face_ticker
     },
 )
 

@@ -60,7 +60,7 @@ object DurationText {
  * is already imported widely there; both resolve the same patterns.
  */
 @Composable
-fun durationText(minutes: Int, locale: Locale = Locale.getDefault()): String {
+fun durationText(minutes: Int, locale: Locale = appLocale()): String {
     val parts = MoneyFormat.durationParts(minutes, locale)
     return when {
         parts.hours == 0 -> stringResource(R.string.project_duration_m, parts.minutesText)

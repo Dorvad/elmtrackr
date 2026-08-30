@@ -63,6 +63,10 @@
     <string name="clock_style_vinyl">Vinyl</string>
     <string name="clock_style_luna">Luna</string>
     <string name="clock_style_summit">Summit</string>
+    <string name="clock_style_meter">Meter</string>
+    <string name="clock_style_stacks">Stacks</string>
+    <string name="clock_style_jar">Jar</string>
+    <string name="clock_style_ticker">Ticker</string>
 
     <!-- Currency display names -->
     <string name="currency_ils">Israeli New Shekel</string>

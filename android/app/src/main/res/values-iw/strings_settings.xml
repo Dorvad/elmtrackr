@@ -71,7 +71,6 @@
     <string name="settings_currency">מטבע</string>
     <string name="settings_watch_face">עיצוב השעון</string>
     <string name="settings_watch_face_hint">בחירת עיצוב מונפש לשעון במסך הבית.</string>
-    <string name="settings_browse_all_faces">לעיין בכל %1$d העיצובים</string>
     <string name="settings_pack_add">הוספה</string>
     <string name="settings_pack_remove">הסרה</string>
     <string name="settings_pack_in_use">בשימוש</string>
@@ -87,6 +86,13 @@
     <string name="settings_pack_purchase_pending">ממתינים לאישור התשלום. החבילה תתווסף מיד עם קבלתו.</string>
     <string name="settings_pack_purchase_restored">הרכישה הקודמת שוחזרה</string>
     <string name="settings_pack_purchase_failed">הרכישה לא הושלמה. לא בוצע חיוב.</string>
+    <string name="settings_face_shop_title">חנות העיצובים</string>
+    <plurals name="settings_face_shop_waiting">
+        <item quantity="one">%1$d עיצובים בחבילה אחת נוספת</item>
+        <item quantity="two">%1$d עיצובים בשתי חבילות</item>
+        <item quantity="many">%1$d עיצובים ב־%2$d חבילות</item>
+        <item quantity="other">%1$d עיצובים ב־%2$d חבילות</item>
+    </plurals>
     <string name="settings_face_store_title">עיצובים</string>
     <plurals name="settings_face_store_count">
         <item quantity="one">%1$d שלך · %2$d בחבילה אחת</item>
@@ -96,7 +102,16 @@
     </plurals>
     <string name="settings_face_store_count_all_owned">כל %1$d העיצובים שלך</string>
     <string name="settings_face_store_yours_header">העיצובים שלך</string>
-    <string name="settings_face_store_packs_header">חבילות עיצובים</string>
+    <string name="settings_face_store_packs_header">חנות</string>
+    <plurals name="settings_face_store_teaser">
+        <item quantity="one">עוד עיצוב אחד בחנות</item>
+        <item quantity="two">עוד שני עיצובים בחנות</item>
+        <item quantity="many">עוד %1$d עיצובים בחנות</item>
+        <item quantity="other">עוד %1$d עיצובים בחנות</item>
+    </plurals>
+    <string name="settings_face_store_everything_owned">כל החבילות שלך. חבילות חדשות יופיעו כאן קודם.</string>
+    <string name="settings_pack_show_faces">הצגת העיצובים</string>
+    <string name="settings_pack_hide_faces">הסתרת העיצובים</string>
     <string name="settings_face_store_restore">שחזור</string>
     <string name="settings_pack_included">כלול</string>
     <string name="settings_pack_new">חדש</string>
@@ -121,6 +136,8 @@
     <string name="clock_group_nature_desc">יום שגדל, זורם או מתמלא</string>
     <string name="clock_group_journeys">מסעות</string>
     <string name="clock_group_journeys_desc">יום עם יעד</string>
+    <string name="clock_group_payday">משכורת</string>
+    <string name="clock_group_payday_desc">המשמרת דרך מה שהיא מכניסה</string>
     <string name="settings_selected">נבחר</string>
     <string name="settings_face_classic">טבעת התקדמות</string>
     <string name="settings_face_minimal">תצוגה נקייה</string>
@@ -142,6 +159,10 @@
     <string name="settings_face_luna">ירח שמתמלא עד שעה שמינית</string>
     <string name="settings_face_sprout">צמח שגדל בכל שעה — פריחה מלאה בשעה השמינית</string>
     <string name="settings_face_summit">היום שלכם כטיפוס — פסגה בשעה השמינית</string>
+    <string name="settings_face_meter">מונה נסיעה מתקתק</string>
+    <string name="settings_face_stacks">מטבעות נערמים כל שעה</string>
+    <string name="settings_face_jar">צנצנת טיפים מתמלאת בזהב</string>
+    <string name="settings_face_ticker">קו שעולה לאורך היום</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">בלי שכר שעתי</string>
@@ -214,7 +235,7 @@
     <string name="settings_no_matching_timezones">אין אזורי זמן תואמים</string>
 
     <string name="settings_clock_faces">עיצובי שעון</string>
-    <string name="settings_clock_faces_desc">14 עיצובים לשעון במסך הבית</string>
+    <string name="settings_clock_faces_desc">עיצובים לשעון במסך הבית</string>
     <string name="settings_reduce_motion">פחות אנימציות</string>
     <string name="settings_reduce_motion_desc">צמצום אנימציות בכל האפליקציה</string>
     <string name="settings_preview">תצוגה מקדימה</string>

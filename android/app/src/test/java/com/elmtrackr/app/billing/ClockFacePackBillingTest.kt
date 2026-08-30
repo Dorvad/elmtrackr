@@ -46,6 +46,20 @@ class ClockFacePackBillingTest {
     }
 
     /**
+     * Product ids are permanent the moment the product exists in Play Console:
+     * a renamed enum constant would mint a *different* id that existing buyers
+     * do not own. Pinning the string is what turns that mistake into a test
+     * failure instead of a support queue.
+     */
+    @Test
+    fun `the payday product id is pinned for good`() {
+        assertEquals(
+            "clock_faces_payday",
+            ClockFacePackProducts.productId(ClockFaceGroup.PAYDAY),
+        )
+    }
+
+    /**
      * Play only accepts lowercase letters, digits, underscores and periods, and
      * rejects an upload rather than the product — so a bad id is found at release
      * time, on a deadline, by someone who did not write it.
@@ -212,10 +226,10 @@ class ClockFacePackBillingTest {
         availability = BillingAvailability.AVAILABLE,
     )
 
-    /** Four packs at 10 each against a bundle of 30 is a quarter off. */
+    /** Five packs at 10 each against a bundle of 30 is 40% off. */
     @Test
     fun `the saving is measured against the packs the bundle would add`() {
-        assertEquals(25, storefront().allPacksSavingPercent)
+        assertEquals(40, storefront().allPacksSavingPercent)
     }
 
     /**
@@ -227,7 +241,7 @@ class ClockFacePackBillingTest {
     fun `owned packs are excluded from the saving`() {
         val partly = storefront(owned = setOf(ClockFaceGroup.NATURE, ClockFaceGroup.JOURNEYS))
 
-        // Two packs left at 10 each, bundle still 30: no saving at all.
+        // Three packs left at 10 each, bundle still 30: break-even, no saving.
         assertNull(partly.allPacksSavingPercent)
     }
 
@@ -235,12 +249,15 @@ class ClockFacePackBillingTest {
      * A bundle priced at or above the sum claims nothing.
      *
      * Equal counts as not cheaper: "save 0%" is a worse thing to print than
-     * nothing at all.
+     * nothing at all. Five packs at 10 each put the break-even at 50; just
+     * below it the badge is a real claim again, and pinning 20% here is what
+     * keeps the arithmetic honest when the catalog grows next time.
      */
     @Test
     fun `no badge when the bundle is not actually cheaper`() {
+        assertNull(storefront(bundleMicros = 60_000_000L).allPacksSavingPercent)
         assertNull(storefront(bundleMicros = 50_000_000L).allPacksSavingPercent)
-        assertNull(storefront(bundleMicros = 40_000_000L).allPacksSavingPercent)
+        assertEquals(20, storefront(bundleMicros = 40_000_000L).allPacksSavingPercent)
     }
 
     /** Play has not answered yet. Nothing is claimed until it does. */

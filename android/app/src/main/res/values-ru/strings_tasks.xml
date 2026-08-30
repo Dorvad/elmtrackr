@@ -33,6 +33,9 @@
     <string name="tasks_task_label">Задача</string>
     <string name="tasks_manage">Управление</string>
     <string name="tasks_suggested_now">Предлагается сейчас</string>
+    <string name="tasks_suggestion_usually">Обычно вы выбираете %1$s — %2$s</string>
+    <string name="tasks_suggestion_recent_shifts">По вашим недавним сменам около %1$s</string>
+    <string name="tasks_suggestion_last_used">Последний раз: %1$s</string>
     <string name="tasks_chip_suggested">✨ %1$s %2$s</string>
     <string name="tasks_chip_a11y">%1$s, %2$s в час</string>
     <string name="tasks_chip_a11y_suggested">%1$s, %2$s в час, предлагается сейчас</string>

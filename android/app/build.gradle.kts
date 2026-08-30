@@ -36,8 +36,8 @@ android {
         // but the module invariant is wear == 10000 + this number, and Play has
         // already seen (and rejected) wear 10041. A phone 41 would need a wear
         // 10041 it cannot have, so both skip a number to keep the invariant.
-        versionCode = 42
-        versionName = "1.2.4"
+        versionCode = 43
+        versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")

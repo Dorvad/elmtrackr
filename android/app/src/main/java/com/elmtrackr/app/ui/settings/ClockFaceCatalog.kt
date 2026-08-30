@@ -63,6 +63,17 @@ enum class ClockFaceGroup(
         listOf(ClockStyle.ORBIT, ClockStyle.METRO, ClockStyle.VINYL, ClockStyle.SUMMIT),
         since = "1.1.1",
     ),
+
+    /**
+     * The shift as what it earns. Abstract on purpose: gold, coins and meters
+     * stand in for money, and no face ever prints an amount — the dashboard is
+     * glanceable in public, and the metaphor needs nothing beyond the day
+     * progress every face already reads.
+     */
+    PAYDAY(
+        listOf(ClockStyle.METER, ClockStyle.STACKS, ClockStyle.JAR, ClockStyle.TICKER),
+        since = "1.3.0",
+    ),
     ;
 
     /**

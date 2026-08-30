@@ -185,6 +185,45 @@ class FullAppScreenshotJvmTest {
         )
     }
 
+    // The Payday faces at the same 5.5-hour mark the other face captures use:
+    // enough day behind them that meters, stacks, jar and line all read
+    // mid-shift rather than empty or full.
+    @Test fun dashboardMeter() = capture("40-dashboard-meter") {
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.METER),
+                todayCompletedMinutes = 330,
+            ),
+        )
+    }
+
+    @Test fun dashboardStacks() = capture("41-dashboard-stacks") {
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.STACKS),
+                todayCompletedMinutes = 330,
+            ),
+        )
+    }
+
+    @Test fun dashboardJar() = capture("42-dashboard-jar") {
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.JAR),
+                todayCompletedMinutes = 330,
+            ),
+        )
+    }
+
+    @Test fun dashboardTicker() = capture("43-dashboard-ticker") {
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.TICKER),
+                todayCompletedMinutes = 330,
+            ),
+        )
+    }
+
     @Test fun dashboardSkeleton() = capture("09-dashboard-loading") {
         DashboardSkeleton(Modifier.fillMaxSize().padding(16.dp))
     }
@@ -260,9 +299,10 @@ class FullAppScreenshotJvmTest {
                 availability = com.elmtrackr.app.billing.BillingAvailability.AVAILABLE,
             ),
             justUnlocked = emptySet(),
-            appVersion = "1.2.4",
+            appVersion = "1.3.0",
             onSelect = {}, onInstallPack = {}, onBuyPack = {}, onBuyAllPacks = {},
             onRemovePack = {}, onRestore = {}, onDismissUnlocked = {}, onBack = {},
+            startInShop = true,
         )
     }
 
@@ -280,9 +320,10 @@ class FullAppScreenshotJvmTest {
                 availability = com.elmtrackr.app.billing.BillingAvailability.AVAILABLE,
             ),
             justUnlocked = setOf(com.elmtrackr.app.ui.settings.ClockFaceGroup.PROGRESS),
-            appVersion = "1.2.4",
+            appVersion = "1.3.0",
             onSelect = {}, onInstallPack = {}, onBuyPack = {}, onBuyAllPacks = {},
             onRemovePack = {}, onRestore = {}, onDismissUnlocked = {}, onBack = {},
+            startInShop = true,
         )
     }
 
@@ -557,7 +598,7 @@ class FullAppScreenshotJvmTest {
                     availability = com.elmtrackr.app.billing.BillingAvailability.AVAILABLE,
                 ),
                 justUnlocked = emptySet(),
-                appVersion = "1.2.4",
+                appVersion = "1.3.0",
                 onSelect = {},
                 onInstallPack = {},
                 onBuyPack = {},

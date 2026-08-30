@@ -68,6 +68,14 @@
     <string name="dashboard_clock_new_moon">محاق</string>
     <string name="dashboard_clock_climbing">في الصعود</string>
     <string name="dashboard_clock_base_camp">في المخيّم الأساسي</string>
+    <string name="dashboard_clock_on_the_meter">العدّاد يعمل</string>
+    <string name="dashboard_clock_meter_parked">العدّاد متوقف</string>
+    <string name="dashboard_clock_stacking_up">الأكوام تعلو</string>
+    <string name="dashboard_clock_ready_to_stack">جاهز للتكديس</string>
+    <string name="dashboard_clock_jar_filling">الجرة تمتلئ</string>
+    <string name="dashboard_clock_jar_open">الجرة مفتوحة</string>
+    <string name="dashboard_clock_trending_up">في صعود</string>
+    <string name="dashboard_clock_market_closed">السوق مغلق</string>
 
     <!-- Month summary -->
     <string name="dashboard_month_summary_title">ملخّص %1$s</string>
@@ -117,7 +125,7 @@
     <string name="dashboard_setup_lock_body">يحتفظ ‏ElmTrackr بساعاتك وأجرك وعملائك. وقفل التطبيق يطلب بصمة إصبعك أو قفل شاشتك قبل عرض أي منها.</string>
     <string name="dashboard_setup_lock_action">إعداد قفل التطبيق</string>
     <string name="dashboard_setup_clock_title">اجعل الساعة على ذوقك</string>
-    <string name="dashboard_setup_clock_blurb">‏15 واجهة ساعة للاختيار بينها.</string>
+    <string name="dashboard_setup_clock_blurb">متجر مليء بواجهات الساعة للاختيار بينها.</string>
     <string name="dashboard_setup_clock_body">الساعة الكبيرة على هذه الشاشة هي بطاقة دوامك. اختر واجهة تناسب ذوقك — من مينا بسيطة إلى مدّ يعلو.</string>
     <string name="dashboard_setup_clock_action">اختر نمطًا</string>
     <string name="dashboard_setup_compensation_title">أعدّ ملف عملك</string>
