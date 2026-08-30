@@ -1,7 +1,8 @@
 # One-time products: clock face packs
 
-**Status:** infrastructure merged, selling switched **off**
-**Flag:** `PAID_CLOCK_FACE_PACKS` (BuildConfig, default `false`)
+**Status:** live — packs are sold
+**Flag:** `PAID_CLOCK_FACE_PACKS` (BuildConfig, default `true`; set
+`paid.clock.face.packs=false` in `local.properties` only for Play-less local builds)
 **Scope:** `android/` only — no Supabase schema change, no web change
 
 This document covers what is in the code, what still has to be done in Play
@@ -27,9 +28,10 @@ the only code change needed once Play Console is ready.
 | `clock_faces_atmosphere` | Atmosphere pack (4 faces) | |
 | `clock_faces_nature` | Nature pack (4 faces) | |
 | `clock_faces_journeys` | Journeys pack (4 faces) | |
-| `clock_faces_all_packs` | **Every** pack, including packs added later | Sold alongside the four, not instead of them |
+| `clock_faces_payday` | Payday pack (4 faces) | Added in 1.3.0 |
+| `clock_faces_all_packs` | **Every** pack, including packs added later | Sold alongside the packs, not instead of them |
 
-All five are **one-time products**, non-consumable — bought once, owned forever,
+All six are **one-time products**, non-consumable — bought once, owned forever,
 never consumed. Essentials stays bundled with the app and is never sold.
 
 Ids are generated from the `ClockFaceGroup` enum in `ClockFacePackProducts`, so a
@@ -132,12 +134,13 @@ native speaker of Hebrew or Arabic.
 | `clock_faces_atmosphere` | Atmosphere clock faces | Four faces built on colour, glow and texture: Night, Retro, Pulse and Prism. A one-time purchase, yours for good. |
 | `clock_faces_nature` | Nature clock faces | Four faces for a day that grows, flows or fills: Sand, Tide, Sprout and Luna. A one-time purchase, yours for good. |
 | `clock_faces_journeys` | Journeys clock faces | Four faces for a day with a destination: Orbit, Metro, Vinyl and Summit. A one-time purchase, yours for good. |
-| `clock_faces_all_packs` | All clock face packs | All four packs at once: Progress, Atmosphere, Nature and Journeys. 16 faces, plus any pack added in future updates. |
+| `clock_faces_payday` | Payday clock faces | Four faces that show the shift as what it earns: Meter, Stacks, Jar and Ticker. A one-time purchase, yours for good. |
+| `clock_faces_all_packs` | All clock face packs | All five packs at once: Progress, Atmosphere, Nature, Journeys and Payday. 20 faces, plus any pack added in future updates. |
 
 **Purchase option** — Play's newer one-time products hold one or more purchase
 options, each carrying offers. Each pack needs exactly one, of type **Buy** (not
 Rent). Its id is a console-side label: nothing in this app reads
-`purchaseOptionId`, so `buy` is a fine answer for all five. Note the id rules
+`purchaseOptionId`, so `buy` is a fine answer for all six. Note the id rules
 differ from the product id — hyphens are allowed, underscores are not — and treat
 it as permanent like the product id unless the console says otherwise.
 
@@ -158,7 +161,8 @@ primary audience is Israeli hourly workers:
 | `clock_faces_atmosphere` | עיצובי שעון: אווירה | ארבעה עיצובים של צבע, זוהר וטקסטורה: לילה, רטרו, פולס ופריזמה. רכישה חד־פעמית, נשארת אצלכם. |
 | `clock_faces_nature` | עיצובי שעון: טבע | ארבעה עיצובים ליום שגדל, זורם או מתמלא: חול, גאות, נבט ולונה. רכישה חד־פעמית, נשארת אצלכם. |
 | `clock_faces_journeys` | עיצובי שעון: מסעות | ארבעה עיצובים ליום עם יעד: אורביט, מטרו, ויניל ופסגה. רכישה חד־פעמית, נשארת אצלכם. |
-| `clock_faces_all_packs` | כל חבילות עיצובי השעון | כל ארבע החבילות יחד: התקדמות, אווירה, טבע ומסעות. 16 עיצובים, וגם כל חבילה שתתווסף בעדכונים הבאים. |
+| `clock_faces_payday` | עיצובי שעון: משכורת | ארבעה עיצובים שמראים את המשמרת דרך מה שהיא מכניסה: מונה, ערימות, צנצנת ומדד. רכישה חד־פעמית, נשארת אצלכם. |
+| `clock_faces_all_packs` | כל חבילות עיצובי השעון | כל חמש החבילות יחד: התקדמות, אווירה, טבע, מסעות ומשכורת. 20 עיצובים, וגם כל חבילה שתתווסף בעדכונים הבאים. |
 
 | Product id | Name (ar) | Description (ar) |
 |---|---|---|
@@ -166,7 +170,8 @@ primary audience is Israeli hourly workers:
 | `clock_faces_atmosphere` | واجهات ساعة: الأجواء | أربع واجهات من لون وتوهّج وملمس: ليلي، طراز قديم، نبض، منشور. شراء لمرة واحدة يبقى لك. |
 | `clock_faces_nature` | واجهات ساعة: الطبيعة | أربع واجهات ليوم ينمو أو يجري أو يمتلئ: رمل، مدّ وجزر، برعم، قمر. شراء لمرة واحدة يبقى لك. |
 | `clock_faces_journeys` | واجهات ساعة: الرحلات | أربع واجهات ليوم له وجهة: مدار، مترو، أسطوانة، قمة. شراء لمرة واحدة يبقى لك. |
-| `clock_faces_all_packs` | كل حزم واجهات الساعة | كل الحزم الأربع معًا: التقدّم، الأجواء، الطبيعة، الرحلات. 16 واجهة، بالإضافة إلى أي حزمة تُضاف في التحديثات القادمة. |
+| `clock_faces_payday` | واجهات ساعة: الأجر | أربع واجهات تُظهر المناوبة بما تكسبه: عدّاد، أكوام، جرة، مؤشر. شراء لمرة واحدة يبقى لك. |
+| `clock_faces_all_packs` | كل حزم واجهات الساعة | كل الحزم الخمس معًا: التقدّم، الأجواء، الطبيعة، الرحلات، الأجر. 20 واجهة، بالإضافة إلى أي حزمة تُضاف في التحديثات القادمة. |
 
 If a pack's faces are ever changed in `ClockFaceCatalog`, these descriptions name
 the old ones until someone edits them. That is the cost of naming the faces, and

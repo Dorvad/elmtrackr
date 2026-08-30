@@ -122,6 +122,8 @@
     <string name="clock_group_nature_desc">День, который растёт, течёт или наполняется</string>
     <string name="clock_group_journeys">Путешествия</string>
     <string name="clock_group_journeys_desc">День, у которого есть пункт назначения</string>
+    <string name="clock_group_payday">Зарплата</string>
+    <string name="clock_group_payday_desc">Смена как заработок</string>
     <string name="settings_selected">Выбрано</string>
     <string name="settings_face_classic">Кольцо прогресса</string>
     <string name="settings_face_minimal">Чистый экран</string>
@@ -143,6 +145,10 @@
     <string name="settings_face_vinyl">Пластинка, вращающаяся, пока вы работаете</string>
     <string name="settings_face_luna">Луна, растущая до полной к восьми</string>
     <string name="settings_face_summit">Ваш день как восхождение — вершина на восьми</string>
+    <string name="settings_face_meter">Бегущий таксометр</string>
+    <string name="settings_face_stacks">Монеты растут с каждым часом</string>
+    <string name="settings_face_jar">Банка чаевых наполняется золотом</string>
+    <string name="settings_face_ticker">Линия дня идёт вверх</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">Ставка не задана</string>
@@ -215,7 +221,7 @@
     <string name="settings_no_matching_timezones">Подходящих часовых поясов нет</string>
 
     <string name="settings_clock_faces">Циферблаты</string>
-    <string name="settings_clock_faces_desc">14 стилей для часов на главном экране</string>
+    <string name="settings_clock_faces_desc">Стили для часов на главном экране</string>
     <string name="settings_reduce_motion">Меньше движения</string>
     <string name="settings_reduce_motion_desc">Сократить анимацию во всём приложении</string>
     <string name="settings_preview">Предпросмотр</string>

@@ -178,8 +178,26 @@ class ClockFaceCatalogTest {
     @Test
     fun `essentials is bundled and nothing else is`() {
         assertEquals(listOf(ClockFaceGroup.ESSENTIALS), ClockFaceGroup.bundled)
-        assertEquals(4, ClockFaceGroup.packs.size)
+        assertEquals(5, ClockFaceGroup.packs.size)
         assertTrue(ClockFaceGroup.packs.none { it.isBundled })
+    }
+
+    /**
+     * The Payday contract: these four faces, in this order — Meter is
+     * `faces.first()`, which makes it the store card's hero — shipped in
+     * 1.3.0, so the New ribbon runs through the 1.3.x and 1.4.x series and
+     * then retires itself.
+     */
+    @Test
+    fun `payday holds the four money faces and is new for two series`() {
+        assertEquals(
+            listOf(ClockStyle.METER, ClockStyle.STACKS, ClockStyle.JAR, ClockStyle.TICKER),
+            ClockFaceGroup.PAYDAY.faces,
+        )
+        assertTrue(ClockFaceGroup.PAYDAY.isNewIn("1.3.0"))
+        assertTrue(ClockFaceGroup.PAYDAY.isNewIn("1.4.2"))
+        assertFalse(ClockFaceGroup.PAYDAY.isNewIn("1.5.0"))
+        assertFalse(ClockFaceGroup.PAYDAY.isNewIn("2.3.0"))
     }
 
     @Test

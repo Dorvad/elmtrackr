@@ -125,6 +125,8 @@
     <string name="clock_group_nature_desc">يوم ينمو أو يجري أو يمتلئ</string>
     <string name="clock_group_journeys">الرحلات</string>
     <string name="clock_group_journeys_desc">يوم له وجهة</string>
+    <string name="clock_group_payday">الأجر</string>
+    <string name="clock_group_payday_desc">المناوبة بما تكسبه</string>
     <string name="settings_selected">محدَّدة</string>
     <string name="settings_face_classic">حلقة تقدّم</string>
     <string name="settings_face_minimal">عرض نظيف</string>
@@ -146,6 +148,10 @@
     <string name="settings_face_vinyl">أسطوانة تدور أثناء عملك</string>
     <string name="settings_face_luna">قمر يتزايد حتى يكتمل عند الثامنة</string>
     <string name="settings_face_summit">يومك كصعود — والقمة عند الثامنة</string>
+    <string name="settings_face_meter">عدّاد أجرة يتصاعد</string>
+    <string name="settings_face_stacks">عملات تتكدّس كل ساعة</string>
+    <string name="settings_face_jar">جرة بقشيش تمتلئ ذهبًا</string>
+    <string name="settings_face_ticker">خط يصعد على مدار اليوم</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">لا أجر بالساعة</string>
@@ -218,7 +224,7 @@
     <string name="settings_no_matching_timezones">لا مناطق زمنية مطابقة</string>
 
     <string name="settings_clock_faces">واجهات الساعة</string>
-    <string name="settings_clock_faces_desc">‏14 نمطًا لساعتك الرئيسية</string>
+    <string name="settings_clock_faces_desc">أنماط لساعتك الرئيسية</string>
     <string name="settings_reduce_motion">تقليل الحركة</string>
     <string name="settings_reduce_motion_desc">تقليل الرسوم المتحرّكة في التطبيق كله</string>
     <string name="settings_preview">معاينة</string>

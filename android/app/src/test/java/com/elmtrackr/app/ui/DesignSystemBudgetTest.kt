@@ -56,6 +56,7 @@ class DesignSystemBudgetTest {
      */
     private val illustrationExempt = setOf(
         "ExpressiveClockFaces.kt",
+        "PaydayClockFaces.kt",
         "RetroFlipBoard.kt",
         "RideProviderGraphics.kt",
         "PaidProjectsUpdateWizard.kt",

@@ -121,6 +121,8 @@
     <string name="clock_group_nature_desc">יום שגדל, זורם או מתמלא</string>
     <string name="clock_group_journeys">מסעות</string>
     <string name="clock_group_journeys_desc">יום עם יעד</string>
+    <string name="clock_group_payday">משכורת</string>
+    <string name="clock_group_payday_desc">המשמרת דרך מה שהיא מכניסה</string>
     <string name="settings_selected">נבחר</string>
     <string name="settings_face_classic">טבעת התקדמות</string>
     <string name="settings_face_minimal">תצוגה נקייה</string>
@@ -142,6 +144,10 @@
     <string name="settings_face_luna">ירח שמתמלא עד שעה שמינית</string>
     <string name="settings_face_sprout">צמח שגדל בכל שעה — פריחה מלאה בשעה השמינית</string>
     <string name="settings_face_summit">היום שלכם כטיפוס — פסגה בשעה השמינית</string>
+    <string name="settings_face_meter">מונה נסיעה מתקתק</string>
+    <string name="settings_face_stacks">מטבעות נערמים כל שעה</string>
+    <string name="settings_face_jar">צנצנת טיפים מתמלאת בזהב</string>
+    <string name="settings_face_ticker">קו שעולה לאורך היום</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">בלי שכר שעתי</string>
@@ -214,7 +220,7 @@
     <string name="settings_no_matching_timezones">אין אזורי זמן תואמים</string>
 
     <string name="settings_clock_faces">עיצובי שעון</string>
-    <string name="settings_clock_faces_desc">14 עיצובים לשעון במסך הבית</string>
+    <string name="settings_clock_faces_desc">עיצובים לשעון במסך הבית</string>
     <string name="settings_reduce_motion">פחות אנימציות</string>
     <string name="settings_reduce_motion_desc">צמצום אנימציות בכל האפליקציה</string>
     <string name="settings_preview">תצוגה מקדימה</string>

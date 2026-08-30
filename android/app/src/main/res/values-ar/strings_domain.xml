@@ -63,6 +63,10 @@
     <string name="clock_style_vinyl">أسطوانة</string>
     <string name="clock_style_luna">قمر</string>
     <string name="clock_style_summit">قمة</string>
+    <string name="clock_style_meter">عدّاد</string>
+    <string name="clock_style_stacks">أكوام</string>
+    <string name="clock_style_jar">جرة</string>
+    <string name="clock_style_ticker">مؤشر</string>
 
     <!-- Currency display names -->
     <string name="currency_ils">الشيكل الإسرائيلي الجديد</string>

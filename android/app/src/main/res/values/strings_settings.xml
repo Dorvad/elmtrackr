@@ -117,6 +117,8 @@
     <string name="clock_group_nature_desc">A day that grows, flows or fills</string>
     <string name="clock_group_journeys">Journeys</string>
     <string name="clock_group_journeys_desc">A day with a destination</string>
+    <string name="clock_group_payday">Payday</string>
+    <string name="clock_group_payday_desc">The shift as what it earns</string>
     <string name="settings_selected">Selected</string>
     <string name="settings_face_classic">Progress ring</string>
     <string name="settings_face_minimal">Clean display</string>
@@ -138,6 +140,10 @@
     <string name="settings_face_vinyl">A record spinning while you work</string>
     <string name="settings_face_luna">A moon that waxes to full at eight</string>
     <string name="settings_face_summit">Your day as a climb — summit at eight</string>
+    <string name="settings_face_meter">Rolling fare meter</string>
+    <string name="settings_face_stacks">Coins stacking by the hour</string>
+    <string name="settings_face_jar">A tip jar filling with gold</string>
+    <string name="settings_face_ticker">A rising line for the day</string>
 
     <!-- Hub summaries -->
     <string name="settings_summary_no_rate">No hourly rate</string>
@@ -210,7 +216,7 @@
     <string name="settings_no_matching_timezones">No matching timezones</string>
 
     <string name="settings_clock_faces">Clock faces</string>
-    <string name="settings_clock_faces_desc">14 styles for your home clock</string>
+    <string name="settings_clock_faces_desc">Styles for your home clock</string>
     <string name="settings_reduce_motion">Reduce motion</string>
     <string name="settings_reduce_motion_desc">Minimize animations across the app</string>
     <string name="settings_preview">Preview</string>

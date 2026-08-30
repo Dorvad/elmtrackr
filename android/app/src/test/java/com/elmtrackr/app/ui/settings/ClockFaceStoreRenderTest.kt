@@ -107,6 +107,13 @@ class ClockFaceStoreRenderTest {
             .onAllNodes(hasContentDescription("Night", substring = true))
             .onFirst()
             .assertIsDisplayed()
+
+        // The fifth pack proves the store scales: Payday lays out as another
+        // collapsed row, priced like the rest.
+        composeRule
+            .onAllNodes(hasContentDescription("Payday", substring = true))
+            .onFirst()
+            .assertIsDisplayed()
     }
 
     /** A veiled face is tappable, and what it opens can complete the purchase. */

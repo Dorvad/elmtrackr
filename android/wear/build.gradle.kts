@@ -29,8 +29,8 @@ android {
         // also why the phone skips from 40 to 42 rather than to 41 — 10041 is
         // burned, so the lowest phone code that still satisfies the invariant
         // is 42.
-        versionCode = 10042
-        versionName = "1.2.4"
+        versionCode = 10043
+        versionName = "1.3.0"
     }
 
     // The Play Store only delivers the watch app to a paired watch when it is

@@ -914,7 +914,11 @@ private fun DashboardClockSection(
                 SupportedClockStyle.METRO,
                 SupportedClockStyle.VINYL,
                 SupportedClockStyle.LUNA,
-                SupportedClockStyle.SUMMIT -> ExpressiveClockCard(
+                SupportedClockStyle.SUMMIT,
+                SupportedClockStyle.METER,
+                SupportedClockStyle.STACKS,
+                SupportedClockStyle.JAR,
+                SupportedClockStyle.TICKER -> ExpressiveClockCard(
                     style = renderStyle,
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
@@ -1259,11 +1263,12 @@ private fun ExpressiveClockCard(
         SupportedClockStyle.NIGHT -> Color(0xff080b25)
         SupportedClockStyle.RETRO -> Color(0xff2b2418)
         SupportedClockStyle.VINYL -> Color(0xff181530)
+        SupportedClockStyle.METER -> PaydayHousing
         else -> MaterialTheme.colorScheme.surface
     }
     val dark = style in listOf(
         SupportedClockStyle.BOLD, SupportedClockStyle.NIGHT, SupportedClockStyle.RETRO,
-        SupportedClockStyle.VINYL,
+        SupportedClockStyle.VINYL, SupportedClockStyle.METER,
     )
     val foreground = if (dark) Color.White else MaterialTheme.colorScheme.onSurface
     val faceTrack = MaterialTheme.colorScheme.surfaceVariant
@@ -1274,6 +1279,12 @@ private fun ExpressiveClockCard(
         style == SupportedClockStyle.TIDE -> AuroraAqua
         style == SupportedClockStyle.VINYL -> AuroraAqua
         style == SupportedClockStyle.SPROUT -> SproutLeafDeep
+        // Gold on Meter's dark plate; the deeper gold everywhere the accent
+        // sits on the light surface.
+        style == SupportedClockStyle.METER -> PaydayGold
+        style == SupportedClockStyle.STACKS -> PaydayGoldDeep
+        style == SupportedClockStyle.JAR -> PaydayGoldDeep
+        style == SupportedClockStyle.TICKER -> PaydayGoldDeep
         else -> AuroraIndigo
     }
 
@@ -1302,6 +1313,10 @@ private fun ExpressiveClockCard(
                     SupportedClockStyle.VINYL -> stringResource(if (running) R.string.dashboard_clock_now_playing else R.string.dashboard_clock_drop_needle)
                     SupportedClockStyle.LUNA -> stringResource(if (running) R.string.dashboard_clock_waxing else R.string.dashboard_clock_new_moon)
                     SupportedClockStyle.SUMMIT -> stringResource(if (running) R.string.dashboard_clock_climbing else R.string.dashboard_clock_base_camp)
+                    SupportedClockStyle.METER -> stringResource(if (running) R.string.dashboard_clock_on_the_meter else R.string.dashboard_clock_meter_parked)
+                    SupportedClockStyle.STACKS -> stringResource(if (running) R.string.dashboard_clock_stacking_up else R.string.dashboard_clock_ready_to_stack)
+                    SupportedClockStyle.JAR -> stringResource(if (running) R.string.dashboard_clock_jar_filling else R.string.dashboard_clock_jar_open)
+                    SupportedClockStyle.TICKER -> stringResource(if (running) R.string.dashboard_clock_trending_up else R.string.dashboard_clock_market_closed)
                     else -> ""
                 },
                 style = MaterialTheme.typography.labelSmall,
@@ -1569,6 +1584,37 @@ private fun ExpressiveClockCard(
                             running = running,
                             foreground = foreground,
                             surface = background,
+                        )
+                        SupportedClockStyle.METER -> drawMeterFace(
+                            progress = dayProgress,
+                            overtime = dayOvertime,
+                            overtimeProgress = overtimeExtension,
+                            pulse = pulse(),
+                            running = running,
+                            foreground = foreground,
+                        )
+                        SupportedClockStyle.STACKS -> drawStacksFace(
+                            progress = dayProgress,
+                            overtime = dayOvertime,
+                            overtimeProgress = overtimeExtension,
+                            pulse = pulse(),
+                            running = running,
+                            foreground = foreground,
+                        )
+                        SupportedClockStyle.JAR -> drawJarFace(
+                            progress = dayProgress,
+                            overtime = dayOvertime,
+                            pulse = pulse(),
+                            running = running,
+                            foreground = foreground,
+                        )
+                        SupportedClockStyle.TICKER -> drawTickerFace(
+                            progress = dayProgress,
+                            overtime = dayOvertime,
+                            overtimeProgress = overtimeExtension,
+                            pulse = pulse(),
+                            running = running,
+                            foreground = foreground,
                         )
                         else -> Unit
                     }

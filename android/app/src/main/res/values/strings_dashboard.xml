@@ -67,6 +67,14 @@
     <string name="dashboard_clock_new_moon">NEW MOON</string>
     <string name="dashboard_clock_climbing">CLIMBING</string>
     <string name="dashboard_clock_base_camp">AT BASE CAMP</string>
+    <string name="dashboard_clock_on_the_meter">ON THE METER</string>
+    <string name="dashboard_clock_meter_parked">METER PARKED</string>
+    <string name="dashboard_clock_stacking_up">STACKING UP</string>
+    <string name="dashboard_clock_ready_to_stack">READY TO STACK</string>
+    <string name="dashboard_clock_jar_filling">JAR FILLING</string>
+    <string name="dashboard_clock_jar_open">JAR OPEN</string>
+    <string name="dashboard_clock_trending_up">TRENDING UP</string>
+    <string name="dashboard_clock_market_closed">MARKET CLOSED</string>
 
     <!-- Month summary -->
     <string name="dashboard_month_summary_title">%1$s Summary</string>
@@ -115,7 +123,7 @@
     <string name="dashboard_setup_lock_body">ElmTrackr holds your hours, pay and clients. An app lock asks for your fingerprint or screen lock before any of it is shown.</string>
     <string name="dashboard_setup_lock_action">Set up app lock</string>
     <string name="dashboard_setup_clock_title">Make the clock yours</string>
-    <string name="dashboard_setup_clock_blurb">15 clock faces to choose from.</string>
+    <string name="dashboard_setup_clock_blurb">A store full of clock faces to choose from.</string>
     <string name="dashboard_setup_clock_body">The big clock on this screen is your punch card. Pick a face that fits your style \u2014 from a minimalist dial to a rising tide.</string>
     <string name="dashboard_setup_clock_action">Choose a style</string>
     <string name="dashboard_setup_compensation_title">Set up your work profile</string>

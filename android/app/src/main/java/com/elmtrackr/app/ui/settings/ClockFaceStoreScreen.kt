@@ -285,7 +285,7 @@ internal fun ClockFaceStoreScreen(
  * Back, restore, the store's name and what it holds.
  *
  * The subtitle counts what the user has against what is left to want — "4
- * yours · 16 in 4 packs" — and collapses to a single count once everything is
+ * yours · 20 in 5 packs" — and collapses to a single count once everything is
  * theirs, because "0 in 0 packs" is a store admitting it has nothing to sell.
  *
  * Restore re-reads ownership from Play. The refresh also runs on every
