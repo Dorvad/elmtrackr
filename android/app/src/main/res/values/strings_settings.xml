@@ -94,7 +94,14 @@
     </plurals>
     <string name="settings_face_store_count_all_owned">All %1$d faces are yours</string>
     <string name="settings_face_store_yours_header">Your faces</string>
-    <string name="settings_face_store_packs_header">Face packs</string>
+    <string name="settings_face_store_packs_header">Shop</string>
+    <plurals name="settings_face_store_teaser">
+        <item quantity="one">%1$d more face in the shop</item>
+        <item quantity="other">%1$d more faces in the shop</item>
+    </plurals>
+    <string name="settings_face_store_everything_owned">Every pack is yours. New packs will land here first.</string>
+    <string name="settings_pack_show_faces">Show the faces</string>
+    <string name="settings_pack_hide_faces">Hide the faces</string>
     <string name="settings_face_store_restore">Restore</string>
     <string name="settings_pack_included">Included</string>
     <string name="settings_pack_new">New</string>

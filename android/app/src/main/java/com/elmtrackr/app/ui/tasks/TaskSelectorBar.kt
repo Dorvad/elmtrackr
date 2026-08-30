@@ -30,6 +30,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.Task
+import com.elmtrackr.app.domain.tasks.TaskDefaultRulesBuilder
+import com.elmtrackr.app.domain.tasks.TaskSuggestionReason
+import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.auroraRowClickable
 import com.elmtrackr.app.ui.theme.CornerRadius
@@ -41,7 +44,7 @@ fun TaskSelectorBar(
     selectedTaskId: String?,
     suggestedTaskId: String?,
     showSuggestedNow: Boolean,
-    suggestionExplanation: String?,
+    suggestionReason: TaskSuggestionReason?,
     onSelectTask: (String) -> Unit,
     onManageTasks: () -> Unit,
     modifier: Modifier = Modifier,
@@ -81,7 +84,35 @@ fun TaskSelectorBar(
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
-                    suggestionExplanation?.let {
+                    // Rendered here, not in the ViewModel: the reason arrives
+                    // as data, and composition re-runs on the recreate a
+                    // language switch triggers — so the sentence and its day
+                    // name always match the language on screen.
+                    val suggestedName = tasks.firstOrNull { it.id == suggestedTaskId }?.name
+                    val explanation = when (suggestionReason) {
+                        is TaskSuggestionReason.UsualSlot -> suggestedName?.let {
+                            stringResource(
+                                R.string.tasks_suggestion_usually,
+                                it,
+                                TaskDefaultRulesBuilder.formatSlot(
+                                    suggestionReason.at,
+                                    locale = appLocale(),
+                                ),
+                            )
+                        }
+                        is TaskSuggestionReason.RecentShifts -> stringResource(
+                            R.string.tasks_suggestion_recent_shifts,
+                            TaskDefaultRulesBuilder.formatSlot(
+                                suggestionReason.at,
+                                locale = appLocale(),
+                            ),
+                        )
+                        TaskSuggestionReason.LastUsed -> suggestedName?.let {
+                            stringResource(R.string.tasks_suggestion_last_used, it)
+                        }
+                        null -> null
+                    }
+                    explanation?.let {
                         Text(
                             it,
                             style = MaterialTheme.typography.labelSmall,

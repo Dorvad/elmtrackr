@@ -97,7 +97,16 @@
     </plurals>
     <string name="settings_face_store_count_all_owned">Все %1$d циферблатов — ваши</string>
     <string name="settings_face_store_yours_header">Ваши циферблаты</string>
-    <string name="settings_face_store_packs_header">Наборы циферблатов</string>
+    <string name="settings_face_store_packs_header">Магазин</string>
+    <plurals name="settings_face_store_teaser">
+        <item quantity="one">Ещё %1$d циферблат в магазине</item>
+        <item quantity="few">Ещё %1$d циферблата в магазине</item>
+        <item quantity="many">Ещё %1$d циферблатов в магазине</item>
+        <item quantity="other">Ещё %1$d циферблата в магазине</item>
+    </plurals>
+    <string name="settings_face_store_everything_owned">Все наборы ваши. Новые наборы появятся здесь первыми.</string>
+    <string name="settings_pack_show_faces">Показать циферблаты</string>
+    <string name="settings_pack_hide_faces">Скрыть циферблаты</string>
     <string name="settings_face_store_restore">Восстановить</string>
     <string name="settings_pack_included">В комплекте</string>
     <string name="settings_pack_new">Новинка</string>

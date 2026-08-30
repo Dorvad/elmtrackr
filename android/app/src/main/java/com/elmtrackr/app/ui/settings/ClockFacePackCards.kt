@@ -1,11 +1,16 @@
 package com.elmtrackr.app.ui.settings
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,20 +26,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -47,23 +51,20 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.billing.BillingAvailability
 import com.elmtrackr.app.billing.ClockFacePackStorefront
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.ui.design.ElmGradientButton
-import com.elmtrackr.app.ui.design.ElmOutlinedButton
 import com.elmtrackr.app.ui.design.auroraAnimationSpec
 import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
-import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraDarkBg
 import com.elmtrackr.app.ui.theme.AuroraDarkSurface
@@ -77,28 +78,24 @@ import com.elmtrackr.app.ui.theme.auroraSemantics
 import kotlinx.coroutines.launch
 
 /**
- * A pack the user does not have, sold by showing it.
+ * A pack on the shop shelf.
  *
- * The previous card was a static product shot: one lead face with three
- * thumbnails under it. The store redesign turns the hero into a
- * [HorizontalPager] — swiping changes which face is crisp, and the veiled row
- * beneath re-ranks so it always shows the other three. The set is still what is
- * for sale; the pager just lets every face take a turn being the argument.
+ * Shaped the way established stores shape a product row: the name, the pitch
+ * and the **price are always visible**, and the price chip is the buy button —
+ * a shopper never has to open anything to learn what something costs. Beneath
+ * the header, a strip of the pack's four faces is the product photography:
+ * always on show, veiled because they are locked, tappable to open the
+ * full-screen look.
  *
- * Three rules carry the card:
+ * The card expands — and collapses again — from the header or the chevron,
+ * revealing the showroom: a swipeable hero pager at product-shot size, its
+ * position mirrored by a ring on the thumbnail strip. Only the settled page
+ * animates; collapsed cards run no canvases at all.
  *
- * **Only the settled page animates.** Twenty live canvases was the problem the
- * grouped gallery was built to solve, and a pager would quietly reintroduce it.
- * The canvas animation flag is bound to [PagerState.settledPage].
- *
- * **The veil is decoration.** Blur plus alpha says "locked" to sighted users;
- * the face names under the veil stay at full contrast, every veiled tile is
- * tappable (it opens the full-screen look), and the card's merged description
- * still names all four faces plus the price.
- *
- * **The price sits beside the button, not in it.** It is the other half of the
- * decision, and the button is left to say one verb. Play restates the price on
- * its own sheet before any money moves.
+ * Ownership never renders here: an owned-and-installed pack belongs to the
+ * "Your faces" tab, and the one owned state this card can show is the
+ * grandfathered "owned but not added" pack, whose chip says Add instead of a
+ * price.
  */
 @Composable
 internal fun ClockFacePackOfferCard(
@@ -117,6 +114,7 @@ internal fun ClockFacePackOfferCard(
     val countLabel = stringResource(R.string.settings_pack_faces_count, group.faces.size)
     val ownedLabel = stringResource(R.string.settings_pack_owned)
 
+    var expanded by rememberSaveable(group.name) { mutableStateOf(false) }
     val pagerState = rememberPagerState { group.faces.size }
     val scope = rememberCoroutineScope()
     // -1 = closed. The look is a detail view of this card, so it lives here:
@@ -124,98 +122,125 @@ internal fun ClockFacePackOfferCard(
     var lookPage by rememberSaveable { mutableIntStateOf(LOOK_CLOSED) }
 
     PackCardSurface(modifier = modifier) {
-        Column(
+        Row(
             Modifier
                 .fillMaxWidth()
-                // One node for what the card says. Read as four separate
-                // previews, a name, a price, a count and a description, this is
-                // seven stops for something the user makes one decision about.
-                // The veiled tiles keep their own tap actions beneath this.
-                .semantics(mergeDescendants = true) {
-                    contentDescription = listOfNotNull(
-                        name,
-                        description,
-                        countLabel,
-                        faceNames,
-                        if (owned) ownedLabel else price,
-                    ).joinToString(", ")
-                },
-            verticalArrangement = Arrangement.spacedBy(Layout.rowGap),
+                .clip(RoundedCornerShape(CornerRadius.Small))
+                .clickable(
+                    onClickLabel = stringResource(
+                        if (expanded) R.string.settings_pack_hide_faces else R.string.settings_pack_show_faces,
+                    ),
+                ) { expanded = !expanded },
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .weight(1f)
-                        .auroraHeading(),
-                )
-                if (isNew) {
-                    PackBadge(
-                        text = stringResource(R.string.settings_pack_new),
-                        container = auroraSemantics.infoContainer,
-                        contentColor = auroraSemantics.infoInk,
-                    )
-                } else if (owned) {
-                    PackBadge(ownedLabel)
-                }
-            }
-            Text(
-                description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
-
-            PackHero(
-                faces = group.faces,
-                pagerState = pagerState,
-                onOpenLook = { lookPage = it },
-            )
-            // The crisp face's name, under the hero where the veiled tiles
-            // carry theirs. The drawing shows its own sample reading; the name
-            // is the one thing it cannot say for itself.
-            Text(
-                clockStyleDisplayName(group.faces[pagerState.settledPage]),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-            PagerDots(
-                count = group.faces.size,
-                current = pagerState.settledPage,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-            VeiledFaceRow(
-                faces = group.faces,
-                leadingIndex = pagerState.settledPage,
-                onOpenLook = { lookPage = it },
-            )
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Owned packs show that instead of a price. A price beside a
-                // pack the user has already paid for reads as being asked twice.
-                if (!owned && price != null) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    // One node for what the row says — name, pitch, contents
+                    // and ownership — so a screen reader hears the product,
+                    // not five fragments. The chip and thumbnails keep their
+                    // own actions beside it.
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = listOfNotNull(
+                            name,
+                            description,
+                            countLabel,
+                            faceNames,
+                            if (owned) ownedLabel else price,
+                        ).joinToString(", ")
+                    },
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        price,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.ExtraBold,
+                        name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(end = Spacing.s12),
+                        modifier = Modifier.auroraHeading(),
                     )
+                    if (isNew) {
+                        PackBadge(
+                            text = stringResource(R.string.settings_pack_new),
+                            container = auroraSemantics.infoContainer,
+                            contentColor = auroraSemantics.infoInk,
+                        )
+                    }
                 }
-                Box(Modifier.weight(1f)) {
-                    PackAction(
-                        owned = owned,
-                        availability = availability,
-                        onBuy = onBuy,
-                        onInstall = onInstall,
-                    )
-                }
+                Text(
+                    description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
+            PackPriceChip(
+                packName = name,
+                price = price,
+                owned = owned,
+                availability = availability,
+                onBuy = onBuy,
+                onInstall = onInstall,
+            )
+            val chevronTurn by animateFloatAsState(
+                targetValue = if (expanded) 180f else 0f,
+                animationSpec = auroraAnimationSpec(CHEVRON_TURN_MILLIS),
+                label = "pack-chevron",
+            )
+            Icon(
+                Icons.Filled.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier
+                    .padding(start = Spacing.s6)
+                    .size(Spacing.s20)
+                    .graphicsLayer { rotationZ = chevronTurn },
+            )
+        }
+
+        // Billing being down is said in words, not with a button that can
+        // only fail — and it is said whether or not the card is open.
+        if (!owned && availability == BillingAvailability.UNAVAILABLE) {
+            Text(
+                stringResource(R.string.settings_pack_unavailable_note),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.s6),
+            )
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(auroraAnimationSpec(SHOWROOM_MILLIS)) +
+                fadeIn(auroraAnimationSpec(SHOWROOM_MILLIS)),
+            exit = shrinkVertically(auroraAnimationSpec(SHOWROOM_MILLIS)) +
+                fadeOut(auroraAnimationSpec(SHOWROOM_MILLIS)),
+        ) {
+            Column(Modifier.padding(top = Spacing.s8)) {
+                PackHero(
+                    faces = group.faces,
+                    pagerState = pagerState,
+                    onOpenLook = { lookPage = it },
+                )
+                // The crisp face's name, under the hero where the thumbnails
+                // carry theirs. The drawing shows its own sample reading; the
+                // name is the one thing it cannot say for itself.
+                Text(
+                    clockStyleDisplayName(group.faces[pagerState.settledPage]),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = Spacing.s4),
+                )
             }
         }
+
+        FaceThumbRow(
+            faces = group.faces,
+            ringIndex = if (expanded) pagerState.settledPage else null,
+            onOpenLook = { lookPage = it },
+            modifier = Modifier.padding(top = Spacing.s8),
+        )
     }
 
     if (lookPage != LOOK_CLOSED) {
@@ -230,6 +255,7 @@ internal fun ClockFacePackOfferCard(
                 lookPage = LOOK_CLOSED
                 // Back from the look returns to this card at the same pager
                 // index — the look is a detail view, not a step in a funnel.
+                expanded = true
                 scope.launch { pagerState.scrollToPage(settledAt) }
             },
         )
@@ -237,92 +263,69 @@ internal fun ClockFacePackOfferCard(
 }
 
 /**
- * A pack below the fold, folded.
+ * The price, as the buy button — the store convention shoppers already know.
  *
- * One face, the name, the price and a chevron in a single row. Tapping expands
- * it in place to the full product card; nothing is sold from the collapsed
- * shape. This is what keeps the store scannable at five packs — the first
- * unowned pack opens expanded and makes the argument, the rest wait their turn.
+ * One chip, three shapes: a gradient chip carrying the price when the pack is
+ * for sale (disabled while Play is still connecting, because "unavailable"
+ * is a claim the app cannot yet make), an outlined Add for a pack the user
+ * owns but has not installed, and nothing at all when billing is genuinely
+ * unavailable — the card explains that in words instead.
  */
 @Composable
-internal fun ClockFacePackCollapsedRow(
-    group: ClockFaceGroup,
+private fun PackPriceChip(
+    packName: String,
     price: String?,
     owned: Boolean,
-    onExpand: () -> Unit,
-    modifier: Modifier = Modifier,
+    availability: BillingAvailability,
+    onBuy: () -> Unit,
+    onInstall: () -> Unit,
 ) {
-    val name = clockFaceGroupName(group)
-    val description = clockFaceGroupDescription(group)
-    val ownedLabel = stringResource(R.string.settings_pack_owned)
-    val shape = RoundedCornerShape(CornerRadius.Large)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(Color.White.copy(alpha = CollapsedRowLift))
-            .border(Spacing.s1, Color.White.copy(alpha = HairlineAlpha), shape)
-            .clickable(onClick = onExpand)
-            .heightIn(min = Layout.minTouchTarget)
-            .padding(horizontal = Layout.cardPadding, vertical = Spacing.s12)
-            .semantics(mergeDescendants = true) {
-                contentDescription = listOfNotNull(
-                    name,
-                    description,
-                    if (owned) ownedLabel else price,
-                ).joinToString(", ")
-            },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.s12),
-    ) {
-        Box(Modifier.width(Spacing.s48).clearAndSetSemantics { }) {
-            WatchFacePreview(
-                style = group.faces.first(),
-                selected = false,
-                height = Spacing.s48,
-                animate = false,
-                showBackground = false,
-                showReading = false,
-            )
-        }
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+    when {
+        owned -> Box(
+            Modifier
+                .padding(start = Spacing.s8)
+                .clip(RoundedCornerShape(CornerRadius.Button))
+                .border(
+                    Spacing.s1,
+                    MaterialTheme.colorScheme.primary,
+                    RoundedCornerShape(CornerRadius.Button),
                 )
-                val trailing = if (owned) ownedLabel else price
-                if (trailing != null) {
-                    Text(
-                        trailing,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = Spacing.s8),
-                    )
-                }
-            }
+                .clickable(role = Role.Button, onClick = onInstall)
+                .heightIn(min = Spacing.s32 + Spacing.s4)
+                .padding(horizontal = Spacing.s14, vertical = Spacing.s8),
+            contentAlignment = Alignment.Center,
+        ) {
             Text(
-                description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                stringResource(R.string.settings_pack_add),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(Spacing.s20).mirrorInRtl(),
-        )
+
+        availability == BillingAvailability.UNAVAILABLE -> Unit
+
+        else -> ElmGradientButton(
+            onClick = onBuy,
+            compact = true,
+            enabled = availability == BillingAvailability.AVAILABLE && price != null,
+            accessibilityLabel = if (price != null) {
+                stringResource(R.string.settings_pack_unlock, packName, price)
+            } else {
+                stringResource(R.string.settings_pack_buy)
+            },
+            modifier = Modifier.padding(start = Spacing.s8),
+        ) {
+            Text(
+                price ?: stringResource(R.string.settings_pack_buy),
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }
 
 /**
- * The everything-at-once offer, last on the screen.
+ * The everything-at-once offer, last on the shelf.
  *
  * The one card making a different kind of claim: every other card sells a pack,
  * this one sells the decision not to choose. It wears a low-alpha wash of the
@@ -439,10 +442,6 @@ internal fun AllClockFacePacksCard(
 
 /**
  * The store's card surface: a raised near-navy gradient with a hairline border.
- *
- * Shared by the product cards and the installed-pack pickers so a purchase can
- * transform one into the other without the container appearing to change — the
- * contents crossfade, the card stays.
  */
 @Composable
 internal fun PackCardSurface(
@@ -471,8 +470,8 @@ internal fun PackCardSurface(
  *
  * Silenced for screen readers: the drawing carries nothing a blind user can
  * act on, and the card's merged description already names every face. The
- * pager keeps its own scroll semantics, so TalkBack can still move between
- * pages; tapping the crisp face opens the full-screen look.
+ * pager keeps its own scroll semantics, and the thumbnail strip is the
+ * labelled, tappable route to each face's full-screen look.
  */
 @Composable
 private fun PackHero(
@@ -499,7 +498,7 @@ private fun PackHero(
                 Modifier
                     .fillMaxWidth(HERO_WIDTH_FRACTION)
                     // Silenced before the click so TalkBack sees neither an
-                    // unlabelled button nor the drawing: the veiled tiles are
+                    // unlabelled button nor the drawing: the thumbnails are
                     // the accessible route to the look, and the card's merged
                     // description already names this face.
                     .clearAndSetSemantics { }
@@ -560,73 +559,45 @@ private fun BreathingGlow(modifier: Modifier = Modifier) {
 }
 
 /**
- * Page indicators. The settled dot stretches into a pill; the others stay dots.
+ * The pack's contents as product photography: all four faces, always visible,
+ * veiled because they are locked, each tappable to open the full-screen look.
  *
- * Indicators, not controls: at this size a tap target would be a lie, and the
- * pager beneath them is the actual control. The width change is the only thing
- * that should move on a swipe.
+ * When the showroom above is open, a ring marks the face the hero pager is
+ * settled on — the thumbnail strip doubles as the pager's indicator, which is
+ * why the card has no separate dots. The veil is blur plus alpha on the
+ * drawing only; the names beneath stay at full contrast, because the veil
+ * says "locked" to sighted users and must never be the only signal.
  */
 @Composable
-private fun PagerDots(
-    count: Int,
-    current: Int,
+private fun FaceThumbRow(
+    faces: List<ClockStyle>,
+    ringIndex: Int?,
+    onOpenLook: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.clearAndSetSemantics { },
-        horizontalArrangement = Arrangement.spacedBy(Layout.inlineGap),
-    ) {
-        repeat(count) { index ->
-            val active = index == current
-            val width by animateDpAsState(
-                targetValue = if (active) DOT_ACTIVE_WIDTH else DOT_SIZE,
-                animationSpec = auroraAnimationSpec(DOT_SETTLE_MILLIS),
-                label = "pack-pager-dot",
-            )
-            Box(
-                Modifier
-                    .width(width)
-                    .height(DOT_SIZE)
-                    .background(
-                        if (active) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            Color.White.copy(alpha = .22f)
-                        },
-                        CircleShape,
-                    ),
-            )
-        }
-    }
-}
-
-/**
- * The three faces that are not currently leading, veiled.
- *
- * Re-ranks against [leadingIndex] so the row always shows the *other* three.
- * The veil is blur plus alpha on the drawing only — the names beneath stay at
- * full contrast, because the veil says "locked" to sighted users and must
- * never be the only signal. Every tile is tappable and opens the full-screen
- * look at that face.
- */
-@Composable
-private fun VeiledFaceRow(
-    faces: List<ClockStyle>,
-    leadingIndex: Int,
-    onOpenLook: (Int) -> Unit,
-) {
-    Row(
-        Modifier.fillMaxWidth(),
+        modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Layout.inlineGap),
     ) {
         faces.forEachIndexed { index, face ->
-            if (index == leadingIndex) return@forEachIndexed
             val name = clockStyleDisplayName(face)
+            val ringed = index == ringIndex
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(CornerRadius.Medium))
-                    .clickable { onOpenLook(index) }
+                    .then(
+                        if (ringed) {
+                            Modifier.border(
+                                Spacing.s1,
+                                MaterialTheme.colorScheme.primary.copy(alpha = .55f),
+                                RoundedCornerShape(CornerRadius.Medium),
+                            )
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .clickable(role = Role.Button) { onOpenLook(index) }
                     .heightIn(min = Layout.minTouchTarget)
                     .padding(vertical = Spacing.s4)
                     .semantics(mergeDescendants = true) { contentDescription = name },
@@ -681,49 +652,6 @@ internal fun PackBadge(
 }
 
 /**
- * Buy, add, or say why neither is on offer.
- *
- * One verb, no price: the price is already the largest thing beside it, and
- * Play states it again on its own sheet before any money moves.
- */
-@Composable
-internal fun PackAction(
-    owned: Boolean,
-    availability: BillingAvailability,
-    onBuy: () -> Unit,
-    onInstall: () -> Unit,
-) {
-    when {
-        // Owned already — including every pack the user had when packs became
-        // paid. Outlined rather than the gradient: adding something you own is
-        // not the decision this screen is built around.
-        owned -> ElmOutlinedButton(onClick = onInstall) {
-            Text(stringResource(R.string.settings_pack_add), fontWeight = FontWeight.SemiBold)
-        }
-
-        // No Play billing here: a sideload, an emulator, a disabled Store, or a
-        // country the product is not sold in. Says so instead of offering a
-        // button that could only fail.
-        availability == BillingAvailability.UNAVAILABLE -> Text(
-            stringResource(R.string.settings_pack_unavailable_note),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        // AVAILABLE, or still connecting. A disabled Buy while Play is being
-        // asked, rather than the unavailable line: connecting takes a moment on
-        // every cold start, and telling someone purchases are unavailable for
-        // that moment is a sentence the app cannot yet know to be true.
-        else -> ElmGradientButton(
-            onClick = onBuy,
-            enabled = availability == BillingAvailability.AVAILABLE,
-        ) {
-            Text(stringResource(R.string.settings_pack_buy), fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-/**
  * How much of the card's width the hero face takes.
  *
  * Around this fraction the hero's box lands near the aspect the face canvases
@@ -747,15 +675,11 @@ private const val VEIL_ALPHA = 0.45f
 /** The hairline border every store card wears. */
 private const val HairlineAlpha = 0.07f
 
-/** The lift that separates a collapsed pack row from the store background. */
-private const val CollapsedRowLift = 0.04f
-
 private const val GLOW_BREATHE_MILLIS = 4_500
 private const val GLOW_MIN_SCALE = 0.85f
 private const val GLOW_MAX_SCALE = 1.1f
 private const val GLOW_MIN_ALPHA = 0.55f
 private const val GLOW_MAX_ALPHA = 1f
 
-private const val DOT_SETTLE_MILLIS = 200
-private val DOT_SIZE = 5.dp
-private val DOT_ACTIVE_WIDTH = 22.dp
+private const val CHEVRON_TURN_MILLIS = 200
+private const val SHOWROOM_MILLIS = 250

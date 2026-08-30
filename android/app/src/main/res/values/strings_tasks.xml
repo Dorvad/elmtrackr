@@ -33,6 +33,9 @@
     <string name="tasks_task_label">Task</string>
     <string name="tasks_manage">Manage</string>
     <string name="tasks_suggested_now">Suggested now</string>
+    <string name="tasks_suggestion_usually">You usually pick %1$s on %2$s</string>
+    <string name="tasks_suggestion_recent_shifts">Based on your recent shifts around %1$s</string>
+    <string name="tasks_suggestion_last_used">Last used %1$s</string>
     <string name="tasks_chip_suggested">✨ %1$s %2$s</string>
     <string name="tasks_chip_a11y">%1$s, %2$s per hour</string>
     <string name="tasks_chip_a11y_suggested">%1$s, %2$s per hour, suggested now</string>

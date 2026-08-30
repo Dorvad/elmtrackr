@@ -96,7 +96,16 @@
     </plurals>
     <string name="settings_face_store_count_all_owned">כל %1$d העיצובים שלך</string>
     <string name="settings_face_store_yours_header">העיצובים שלך</string>
-    <string name="settings_face_store_packs_header">חבילות עיצובים</string>
+    <string name="settings_face_store_packs_header">חנות</string>
+    <plurals name="settings_face_store_teaser">
+        <item quantity="one">עוד עיצוב אחד בחנות</item>
+        <item quantity="two">עוד שני עיצובים בחנות</item>
+        <item quantity="many">עוד %1$d עיצובים בחנות</item>
+        <item quantity="other">עוד %1$d עיצובים בחנות</item>
+    </plurals>
+    <string name="settings_face_store_everything_owned">כל החבילות שלך. חבילות חדשות יופיעו כאן קודם.</string>
+    <string name="settings_pack_show_faces">הצגת העיצובים</string>
+    <string name="settings_pack_hide_faces">הסתרת העיצובים</string>
     <string name="settings_face_store_restore">שחזור</string>
     <string name="settings_pack_included">כלול</string>
     <string name="settings_pack_new">חדש</string>

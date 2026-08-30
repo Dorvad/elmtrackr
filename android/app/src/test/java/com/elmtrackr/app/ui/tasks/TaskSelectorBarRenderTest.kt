@@ -61,7 +61,7 @@ class TaskSelectorBarRenderTest {
                         selectedTaskId = null,
                         suggestedTaskId = null,
                         showSuggestedNow = false,
-                        suggestionExplanation = null,
+                        suggestionReason = null,
                         onSelectTask = {},
                         onManageTasks = {},
                     )
@@ -140,7 +140,7 @@ class TaskSelectorBarRenderTest {
                         selectedTaskId = "t2",
                         suggestedTaskId = null,
                         showSuggestedNow = false,
-                        suggestionExplanation = null,
+                        suggestionReason = null,
                         onSelectTask = {},
                         onManageTasks = {},
                     )

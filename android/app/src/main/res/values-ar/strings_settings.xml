@@ -98,7 +98,18 @@
     </plurals>
     <string name="settings_face_store_count_all_owned">كل الواجهات الـ%1$d لك</string>
     <string name="settings_face_store_yours_header">واجهاتك</string>
-    <string name="settings_face_store_packs_header">حزم الواجهات</string>
+    <string name="settings_face_store_packs_header">المتجر</string>
+    <plurals name="settings_face_store_teaser">
+        <item quantity="zero">لا واجهات إضافية في المتجر</item>
+        <item quantity="one">واجهة إضافية واحدة في المتجر</item>
+        <item quantity="two">واجهتان إضافيتان في المتجر</item>
+        <item quantity="few">%1$d واجهات إضافية في المتجر</item>
+        <item quantity="many">%1$d واجهة إضافية في المتجر</item>
+        <item quantity="other">%1$d واجهة إضافية في المتجر</item>
+    </plurals>
+    <string name="settings_face_store_everything_owned">كل الحزم ملكك. الحزم الجديدة ستظهر هنا أولًا.</string>
+    <string name="settings_pack_show_faces">إظهار الواجهات</string>
+    <string name="settings_pack_hide_faces">إخفاء الواجهات</string>
     <string name="settings_face_store_restore">استعادة</string>
     <string name="settings_pack_included">مضمّنة</string>
     <string name="settings_pack_new">جديد</string>

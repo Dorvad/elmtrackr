@@ -299,9 +299,10 @@ class FullAppScreenshotJvmTest {
                 availability = com.elmtrackr.app.billing.BillingAvailability.AVAILABLE,
             ),
             justUnlocked = emptySet(),
-            appVersion = "1.2.4",
+            appVersion = "1.3.0",
             onSelect = {}, onInstallPack = {}, onBuyPack = {}, onBuyAllPacks = {},
             onRemovePack = {}, onRestore = {}, onDismissUnlocked = {}, onBack = {},
+            startInShop = true,
         )
     }
 
@@ -319,9 +320,10 @@ class FullAppScreenshotJvmTest {
                 availability = com.elmtrackr.app.billing.BillingAvailability.AVAILABLE,
             ),
             justUnlocked = setOf(com.elmtrackr.app.ui.settings.ClockFaceGroup.PROGRESS),
-            appVersion = "1.2.4",
+            appVersion = "1.3.0",
             onSelect = {}, onInstallPack = {}, onBuyPack = {}, onBuyAllPacks = {},
             onRemovePack = {}, onRestore = {}, onDismissUnlocked = {}, onBack = {},
+            startInShop = true,
         )
     }
 
@@ -596,7 +598,7 @@ class FullAppScreenshotJvmTest {
                     availability = com.elmtrackr.app.billing.BillingAvailability.AVAILABLE,
                 ),
                 justUnlocked = emptySet(),
-                appVersion = "1.2.4",
+                appVersion = "1.3.0",
                 onSelect = {},
                 onInstallPack = {},
                 onBuyPack = {},

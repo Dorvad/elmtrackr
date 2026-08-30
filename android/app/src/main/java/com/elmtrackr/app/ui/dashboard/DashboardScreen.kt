@@ -165,8 +165,27 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
-private val dateFormatter  = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())
-private val timeFormatter  = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+/**
+ * Locale-keyed formatters, remembered per composition.
+ *
+ * These were process-scoped vals frozen at class load with whatever
+ * `Locale.getDefault()` held at the time — the reason recent-shift dates kept
+ * their old weekday and month names after the in-app language changed. A
+ * language switch is applied by recreating the activity, and a recreate cannot
+ * re-run a top-level initializer; a `remember` keyed on the composition's
+ * locale re-evaluates exactly when the language does.
+ */
+@Composable
+private fun rememberShiftDateFormatter(): DateTimeFormatter {
+    val locale = appLocale()
+    return remember(locale) { DateTimeFormatter.ofPattern("EEE, MMM d", locale) }
+}
+
+@Composable
+private fun rememberWallTimeFormatter(): DateTimeFormatter {
+    val locale = appLocale()
+    return remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
+}
 
 private val headerGradient = Brush.linearGradient(
     colorStops = arrayOf(0f to AuroraIndigo, 0.5f to AuroraPlum, 1f to AuroraAqua),
@@ -520,7 +539,7 @@ private fun DashboardReady(
                     selectedTaskId = state.selectedTaskId,
                     suggestedTaskId = state.suggestedTaskId,
                     showSuggestedNow = state.showSuggestedNow,
-                    suggestionExplanation = state.suggestionExplanation,
+                    suggestionReason = state.suggestionReason,
                     onSelectTask = onSelectTask,
                     onManageTasks = onManageTasks,
                     modifier = Modifier
@@ -1629,7 +1648,7 @@ private fun ExpressiveClockCard(
                         } else {
                             rememberCurrentInstant(MINUTE_MILLIS)
                                 .atZone(LocalWorkZone.current)
-                                .format(timeFormatter)
+                                .format(rememberWallTimeFormatter())
                         },
                         digitColor = accent,
                         surface = background,
@@ -1659,7 +1678,7 @@ private fun ExpressiveClockCard(
                         // reason every other time on this screen uses it.
                         rememberCurrentInstant(MINUTE_MILLIS)
                             .atZone(LocalWorkZone.current)
-                            .format(timeFormatter),
+                            .format(rememberWallTimeFormatter()),
                         style = if (style == SupportedClockStyle.BOLD) MaterialTheme.typography.displayLarge else if (style == SupportedClockStyle.FOCUS) MaterialTheme.typography.displayMedium else MaterialTheme.typography.displaySmall,
                         fontWeight = if (style == SupportedClockStyle.FOCUS) FontWeight.Light else FontWeight.Bold,
                         color = foreground,
@@ -2091,10 +2110,12 @@ private fun RecentShiftRow(
     showDivider: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val zone         = LocalWorkZone.current
-    val dateText     = shift.startTime.atZone(zone).format(dateFormatter)
-    val startText    = shift.startTime.atZone(zone).format(timeFormatter)
-    val endText      = shift.endTime?.atZone(zone)?.format(timeFormatter) ?: "-"
+    val zone          = LocalWorkZone.current
+    val dateFormatter = rememberShiftDateFormatter()
+    val timeFormatter = rememberWallTimeFormatter()
+    val dateText      = shift.startTime.atZone(zone).format(dateFormatter)
+    val startText     = shift.startTime.atZone(zone).format(timeFormatter)
+    val endText       = shift.endTime?.atZone(zone)?.format(timeFormatter) ?: "-"
     val durationText = ShiftDurationCalculator.netMinutes(shift)
         ?.let { durationText(it) } ?: "-"
 
@@ -2189,7 +2210,7 @@ private fun EditStartTimeDialog(
 
 @Composable
 private fun formatInstantTime(instant: Instant): String =
-    instant.atZone(LocalWorkZone.current).format(timeFormatter)
+    instant.atZone(LocalWorkZone.current).format(rememberWallTimeFormatter())
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

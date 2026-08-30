@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.settings
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
@@ -22,17 +23,18 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The clock face store: the dark browse surface that replaced the gallery.
+ * The clock face store: a library tab and a shop tab under one title.
  *
  * These are behaviour renders, not screenshots. What they pin down is the
- * store's contract: a locked pack is a product with a price and one verb, a
- * veiled face is tappable and opens the full-screen look, packs below the fold
- * collapse to a row until asked, and a purchase is confirmed inline by the
- * success strip rather than by navigation.
+ * store's contract: ownership is a tab, never a badge to decode; every pack
+ * on the shelf shows its price at all times and the chip is the buy button;
+ * cards open **and close**; a face thumbnail opens the full-screen look; and
+ * a purchase is confirmed by the strip on the shelf, with the pack itself
+ * arriving under Your faces.
  *
  * The tall viewport is deliberate: it composes every lazy item, so the tests
- * reach the collapsed rows and the bundle without having to disambiguate the
- * list's scroll node from the four pagers that also scroll.
+ * reach every card without having to disambiguate the list's scroll node from
+ * the pagers that also scroll.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33], qualifiers = "w411dp-h2400dp", application = ScreenshotTestApplication::class)
@@ -46,6 +48,7 @@ class ClockFaceStoreRenderTest {
         availablePacks: Set<ClockFaceGroup>,
         storefront: ClockFacePackStorefront,
         justUnlocked: Set<ClockFaceGroup> = emptySet(),
+        startInShop: Boolean = false,
         onBuyPack: (ClockFaceGroup) -> Unit = {},
     ) {
         ClockFaceStoreScreen(
@@ -62,78 +65,75 @@ class ClockFaceStoreRenderTest {
             onRestore = {},
             onDismissUnlocked = {},
             onBack = {},
+            startInShop = startInShop,
         )
     }
 
+    private fun freshInstallStorefront() = ClockFacePackStorefront(
+        prices = ClockFaceGroup.packs.associateWith { "₪5.00" },
+        availability = BillingAvailability.AVAILABLE,
+    )
+
     /**
-     * Fresh install: Essentials is a picker, the first locked pack is the full
-     * product card with the price beside a Buy button, and the packs below the
-     * fold are collapsed rows that expand in place when asked.
+     * Fresh install: the user lands on Your faces, where Essentials is a
+     * picker and one quiet row admits the shop exists. Switching tabs puts
+     * every pack on the shelf, priced, and a card's header toggles its
+     * showroom open and closed again.
      */
     @Test
-    fun `a locked pack is a product and later packs collapse`() {
+    fun `the shop is a tab where every pack is priced and cards toggle`() {
         composeRule.setContent {
             ElmTrackrTheme(darkTheme = false) {
                 Store(
                     availablePacks = setOf(ClockFaceGroup.ESSENTIALS),
-                    storefront = ClockFacePackStorefront(
-                        prices = ClockFaceGroup.packs.associateWith { "₪5.00" },
-                        availability = BillingAvailability.AVAILABLE,
-                    ),
+                    storefront = freshInstallStorefront(),
                 )
             }
         }
 
+        // The library first: the bundled pack's tiles under its eyebrow.
         composeRule.onNodeWithText("Faces").assertIsDisplayed()
-        // The two zone rules are the screen's ownership model: everything
-        // under "Your faces" is usable, everything under "Face packs" is for
-        // sale. The bundled pack's label carries "Included" as part of the
-        // eyebrow rather than a badge.
-        composeRule.onNodeWithText("YOUR FACES").assertIsDisplayed()
-        composeRule.onNodeWithText("FACE PACKS").assertIsDisplayed()
         composeRule.onNodeWithText("ESSENTIALS · INCLUDED").assertIsDisplayed()
-        // The first product makes the argument: price and verb both visible.
-        composeRule.onNodeWithText("Buy").assertIsDisplayed()
-        composeRule.onAllNodes(hasText("₪5.00")).onFirst().assertIsDisplayed()
+        composeRule.onNodeWithText("₪5.00").assertDoesNotExist()
 
-        // Atmosphere is below the first product, so it is a collapsed row —
-        // one merged node, no face names in its description yet. Tapping it
-        // expands the full card in place, whose description names the faces.
-        composeRule
-            .onAllNodes(hasContentDescription("Atmosphere", substring = true))
-            .onFirst()
-            .performClick()
-        composeRule
-            .onAllNodes(hasContentDescription("Night", substring = true))
-            .onFirst()
-            .assertIsDisplayed()
-
-        // The fifth pack proves the store scales: Payday lays out as another
-        // collapsed row, priced like the rest.
+        composeRule.onNodeWithText("Shop").performClick()
+        // Five packs on the shelf, each with its price chip always visible.
+        composeRule.onAllNodes(hasText("₪5.00")).assertCountEquals(ClockFaceGroup.packs.size)
         composeRule
             .onAllNodes(hasContentDescription("Payday", substring = true))
             .onFirst()
             .assertIsDisplayed()
+
+        // Collapsed, a pack's face name appears once (its thumbnail). Opening
+        // the showroom adds the hero caption; closing removes it again.
+        composeRule.onAllNodes(hasText("Aurora")).assertCountEquals(1)
+        composeRule
+            .onAllNodes(hasContentDescription("Progress", substring = true))
+            .onFirst()
+            .performClick()
+        composeRule.onAllNodes(hasText("Aurora")).assertCountEquals(2)
+        composeRule
+            .onAllNodes(hasContentDescription("Progress", substring = true))
+            .onFirst()
+            .performClick()
+        composeRule.onAllNodes(hasText("Aurora")).assertCountEquals(1)
     }
 
-    /** A veiled face is tappable, and what it opens can complete the purchase. */
+    /** A face thumbnail is tappable, and what it opens can complete the purchase. */
     @Test
-    fun `tapping a veiled face opens the full-screen look with the unlock action`() {
+    fun `tapping a face thumbnail opens the full-screen look with the unlock action`() {
         var bought: ClockFaceGroup? = null
         composeRule.setContent {
             ElmTrackrTheme(darkTheme = false) {
                 Store(
                     availablePacks = setOf(ClockFaceGroup.ESSENTIALS),
-                    storefront = ClockFacePackStorefront(
-                        prices = ClockFaceGroup.packs.associateWith { "₪5.00" },
-                        availability = BillingAvailability.AVAILABLE,
-                    ),
+                    storefront = freshInstallStorefront(),
+                    startInShop = true,
                     onBuyPack = { bought = it },
                 )
             }
         }
 
-        // Progress leads the products; Dial is one of its veiled tiles.
         composeRule.onNodeWithContentDescription("Dial").performClick()
         composeRule.onNodeWithText("Unlock Progress · ₪5.00").assertIsDisplayed()
 
@@ -142,11 +142,11 @@ class ClockFaceStoreRenderTest {
     }
 
     /**
-     * The success strip is the purchase confirmation: inline, named, and above
-     * a pack that is now a picker rather than a product.
+     * The success strip is the purchase confirmation: inline on the shelf,
+     * named, and itself the way over to the pack's new home on Your faces.
      */
     @Test
-    fun `a just-unlocked pack shows the inline strip and a picker`() {
+    fun `a just-unlocked pack shows the strip on the shelf and lands under your faces`() {
         composeRule.setContent {
             ElmTrackrTheme(darkTheme = false) {
                 Store(
@@ -157,13 +157,14 @@ class ClockFaceStoreRenderTest {
                         availability = BillingAvailability.AVAILABLE,
                     ),
                     justUnlocked = setOf(ClockFaceGroup.PROGRESS),
+                    startInShop = true,
                 )
             }
         }
 
         composeRule.onNodeWithText("Progress added").assertIsDisplayed()
-        // The pack renders as a picker now: its faces are selectable tiles
-        // carrying the face description, not a product card.
+        // The strip leads back to the library, where the pack is a picker now.
+        composeRule.onNodeWithText("Progress added").performClick()
         composeRule
             .onAllNodes(hasContentDescription("Gradient ring", substring = true))
             .onFirst()
@@ -180,6 +181,7 @@ class ClockFaceStoreRenderTest {
                     storefront = ClockFacePackStorefront(
                         availability = BillingAvailability.UNAVAILABLE,
                     ),
+                    startInShop = true,
                 )
             }
         }
