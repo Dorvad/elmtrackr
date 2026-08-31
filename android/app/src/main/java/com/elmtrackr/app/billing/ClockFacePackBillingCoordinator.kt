@@ -1,6 +1,7 @@
 package com.elmtrackr.app.billing
 
 import com.elmtrackr.app.data.local.preferences.ClockFacePreferences
+import com.elmtrackr.app.monitoring.CrashReporting
 import com.elmtrackr.app.di.ApplicationScope
 import com.elmtrackr.app.ui.settings.ClockFaceGroup
 import com.elmtrackr.app.ui.settings.ClockFacePacks
@@ -53,8 +54,15 @@ class ClockFacePackBillingCoordinator @Inject constructor(
             // Ordered, not merely sequential: the free-era grant has to be on
             // disk before ownership is recomputed, or the first frame after an
             // update would show a user's own packs as locked.
-            grandfathering.seedIfNeeded()
-            store.refresh()
+            //
+            // Independently guarded, though. These are two different systems —
+            // local storage and Play — and a failure in the first used to skip
+            // the second entirely, leaving ownership as whatever was last
+            // cached with nothing retrying until the next foreground.
+            runCatching { grandfathering.seedIfNeeded() }
+                .onFailure(CrashReporting::report)
+            runCatching { store.refresh() }
+                .onFailure(CrashReporting::report)
         }
     }
 

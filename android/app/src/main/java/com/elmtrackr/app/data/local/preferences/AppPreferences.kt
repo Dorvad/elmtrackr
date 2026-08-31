@@ -10,6 +10,10 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.elmtrackr.app.monitoring.CrashReporting
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.retryWhen
+import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -155,8 +159,32 @@ class AppPreferencesRepository(private val context: Context) :
     PurchasePreferences,
     WearSyncPreferences {
 
+    /**
+     * Every stored preference, re-read on each write.
+     *
+     * Retried rather than caught. `MainActivity` collects this to decide the
+     * theme and — through `AppLockGate` — whether the app is locked, and it
+     * deliberately treats "no value yet" as *unknown* rather than "lock off".
+     * That is the right call for security and it makes this flow load-bearing
+     * for the whole UI: if the collection ends, nothing downstream ever gets a
+     * value and the app sits on its loading screen for good.
+     *
+     * A corrupt file is already handled where the store is declared, but a
+     * transient read failure — IO pressure, a device mid-restore — used to end
+     * the flow permanently. Retrying keeps the app trying to boot instead of
+     * dying quietly, and deliberately does *not* substitute defaults: emitting
+     * `appLockEnabled = false` because a read failed would unlock a locked app,
+     * which is not a trade this file gets to make.
+     */
     override val preferences: Flow<AppPreferenceValues> =
-        context.appPreferencesDataStore.data.map { prefs ->
+        context.appPreferencesDataStore.data
+            .retryWhen { cause, attempt ->
+                if (cause !is IOException) return@retryWhen false
+                CrashReporting.report(cause)
+                delay(PREFERENCES_RETRY_DELAY_MILLIS * (attempt + 1).coerceAtMost(PREFERENCES_RETRY_BACKOFF_CAP))
+                true
+            }
+            .map { prefs ->
             AppPreferenceValues(
                 selectedTheme = prefs[AppPreferenceKeys.SELECTED_THEME] ?: "system",
                 onboardingCompleted = prefs[AppPreferenceKeys.ONBOARDING_COMPLETED] ?: false,
@@ -190,6 +218,14 @@ class AppPreferencesRepository(private val context: Context) :
                     prefs[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED] ?: false,
             )
         }
+
+    private companion object {
+        /** First retry delay after a failed preferences read; grows per attempt. */
+        const val PREFERENCES_RETRY_DELAY_MILLIS = 200L
+
+        /** Where the linear backoff stops growing, so retries stay responsive. */
+        const val PREFERENCES_RETRY_BACKOFF_CAP = 10L
+    }
 
     suspend fun setSelectedTheme(theme: String) {
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.SELECTED_THEME] = theme }

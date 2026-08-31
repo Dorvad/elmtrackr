@@ -28,13 +28,24 @@ class ActiveShiftNotificationManager(private val context: Context) {
 
     private val notifManager = NotificationManagerCompat.from(context)
 
-    // Strings resolve in the in-app language even on Android 12 and below,
-    // where background contexts otherwise use the system locale. A getter, not
-    // a stored context: this manager lives inside an application-scoped
-    // singleton, so a context captured at construction would keep the language
-    // the process started in — the running-shift notification stayed in the
-    // previous language after a switch until the app was killed.
-    private val localizedContext: Context get() = context.withAppLocale()
+    /**
+     * A context whose strings resolve in the in-app language, resolved fresh
+     * per notification.
+     *
+     * A function rather than a stored context because this manager lives inside
+     * an application-scoped singleton: a context captured at construction keeps
+     * the language the process started in, which is how the running-shift
+     * notification used to stay in the previous language after a switch until
+     * the app was killed.
+     *
+     * A function rather than a `get()` property for the opposite reason — each
+     * read costs a preferences lookup and, on Android 12 and below, a new
+     * configuration context. As a property it was read three times per post on
+     * a notification that updates while a shift runs. Callers take one snapshot
+     * and use it for the whole notification, which is both cheaper and more
+     * consistent: every string in one notification comes from one language.
+     */
+    private fun localizedContext(): Context = context.withAppLocale()
 
     fun showActiveShiftNotification(shift: Shift, zone: ZoneId = ZoneId.systemDefault()) {
         if (!notifManager.areNotificationsEnabled()) return
@@ -58,17 +69,18 @@ class ActiveShiftNotificationManager(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        val localized = localizedContext()
         val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_ACTIVE_SHIFT)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(localizedContext.getString(R.string.notif_active_shift_title))
-            .setContentText(localizedContext.getString(R.string.notif_active_shift_text, formatStartTime(shift.startTime, zone)))
+            .setContentTitle(localized.getString(R.string.notif_active_shift_title))
+            .setContentText(localized.getString(R.string.notif_active_shift_text, formatStartTime(shift.startTime, zone)))
             .setContentIntent(tapIntent)
             .setOngoing(true)
             .setAutoCancel(false)
             .setWhen(shift.startTime.toEpochMilli())
             .setUsesChronometer(true)   // counts up by default — no setChronometerCountsDown needed
             .setShowWhen(true)
-            .addAction(0, localizedContext.getString(R.string.notif_clock_out_action), clockOutPendingIntent)
+            .addAction(0, localized.getString(R.string.notif_clock_out_action), clockOutPendingIntent)
             .build()
 
         @Suppress("MissingPermission")
@@ -137,15 +149,16 @@ class ActiveShiftNotificationManager(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        val localized = localizedContext()
         val contentText = when (textArg) {
-            is Long -> localizedContext.getString(textRes, textArg)
-            is String -> localizedContext.getString(textRes, textArg)
-            else -> localizedContext.getString(textRes, textArg)
+            is Long -> localized.getString(textRes, textArg)
+            is String -> localized.getString(textRes, textArg)
+            else -> localized.getString(textRes, textArg)
         }
 
         val contentTitle = when (titleArg) {
-            null -> localizedContext.getString(titleRes)
-            else -> localizedContext.getString(titleRes, titleArg)
+            null -> localized.getString(titleRes)
+            else -> localized.getString(titleRes, titleArg)
         }
 
         val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_REMINDERS)
@@ -154,7 +167,7 @@ class ActiveShiftNotificationManager(private val context: Context) {
             .setContentText(contentText)
             .setContentIntent(tapIntent)
             .setAutoCancel(true)
-            .addAction(0, localizedContext.getString(R.string.notif_clock_out_action), clockOutPendingIntent)
+            .addAction(0, localized.getString(R.string.notif_clock_out_action), clockOutPendingIntent)
             .build()
 
         @Suppress("MissingPermission")
