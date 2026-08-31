@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean
@@ -100,8 +101,23 @@ class PlayBillingConnection @Inject constructor(
      */
     suspend fun ensureConnected(): Boolean = connectMutex.withLock {
         if (client.isReady) return@withLock true
-        val result = runCatchingBilling("startConnection") { awaitSetup() }
-            ?: return@withLock false
+        // Bounded, because Play is not guaranteed to call back at all. A
+        // Store that is disabled, mid-update or wedged can leave
+        // startConnection silent, and awaitSetup suspends until it answers:
+        // that stalled this call while it held connectMutex, and stalled
+        // PlayClockFacePackStore.refresh while it held the ownership mutex.
+        // The visible costs were a storefront stuck on LOADING — prices that
+        // never arrive, a Buy button permanently disabled — and, worse, a
+        // purchase whose grant could not take the mutex and so was never
+        // applied to a pack the user had paid for.
+        //
+        // withTimeoutOrNull rather than withTimeout on purpose: it reports the
+        // deadline as the same null this file already uses for "could not
+        // ask", instead of a TimeoutCancellationException that every caller
+        // would have to be careful to catch ahead of ordinary cancellation.
+        val result = runCatchingBilling("startConnection") {
+            withTimeoutOrNull(SETUP_TIMEOUT_MILLIS) { awaitSetup() }
+        } ?: return@withLock false
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.d(TAG, "Billing unavailable: ${result.responseCode} ${result.debugMessage}")
         }
@@ -285,6 +301,16 @@ class PlayBillingConnection @Inject constructor(
 
     private companion object {
         const val TAG = "Billing"
+
+        /**
+         * How long to wait for Play to answer `startConnection`.
+         *
+         * Generous for a service bind on a cold, busy device, and finite
+         * because "no answer" is a state Play can genuinely stay in. Nothing
+         * user-facing waits on this — the storefront renders LOADING meanwhile
+         * — so the only cost of the wait is a later first price.
+         */
+        const val SETUP_TIMEOUT_MILLIS = 20_000L
     }
 }
 
