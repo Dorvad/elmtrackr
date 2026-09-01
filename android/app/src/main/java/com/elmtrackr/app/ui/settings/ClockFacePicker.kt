@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -44,9 +46,11 @@ import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.ui.design.auroraRowClickable
 import com.elmtrackr.app.ui.design.mirrorInRtl
+import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraDarkBg
 import com.elmtrackr.app.ui.theme.AuroraDarkSurfaceRaised
 import com.elmtrackr.app.ui.theme.AuroraIndigo
+import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import com.elmtrackr.app.ui.theme.Layout
@@ -100,27 +104,25 @@ internal fun ClockFaceQuickPicker(
 }
 
 /**
- * The way into the face shop — a lit window rather than a button.
+ * The way into the face shop: a lit window with the merchandise in it, and a
+ * button that says where it leads.
  *
- * What stood here was an outlined "Browse all 8 faces", which is the shape of a
- * list expander: it promised more of the same rows, said nothing about a shop,
- * and its number counted what the user already owned — the least interesting
- * fact available. Nobody taps a control to see what they already have.
+ * What stood here before was an outlined "Browse all 8 faces", which is the
+ * shape of a list expander: it promised more of the same rows and said nothing
+ * about a shop. So the card shows the shop instead of describing it. It
+ * borrows the store's own dark surface and glow, which on this light screen
+ * reads as a doorway to somewhere else, and it leads with what is *not* the
+ * user's yet — "16 faces in 4 packs" — over one real, live-rendered lead face
+ * per locked pack, so the pitch is the drawings rather than a sentence about
+ * them. The call to action at the foot is drawn as the primary button, even
+ * though the whole card is the control: the previous card asked people to
+ * infer that a dark rectangle with a chevron was tappable, and a shop door
+ * should not need inferring.
  *
- * So the card shows the shop instead of describing it. It borrows the store's
- * own dark surface and glow, which on this light screen reads as a doorway to
- * somewhere else and lands the user somewhere that looks like where they
- * tapped. It leads with what is *not* theirs yet — "16 faces in 4 packs" — and
- * carries the merchandise itself: one lead face per locked pack, drawn crisp,
- * so the pitch is the drawings rather than a sentence about them. The shelf
- * veils a locked face because that is where the buy decision is made; a shop
- * window that hid its goods would only be a worse button. A pack shipped in
- * the last two releases raises the New pill here, so the shop advertises
- * itself on the screen people actually open.
- *
- * Once everything is owned there is nothing to sell, and the card stops
- * selling: it names the collection and stays as the way in to browse, re-pick
- * and remove packs.
+ * A pack shipped in the last two releases raises the New pill here, so the
+ * shop advertises itself on the screen people actually open. Once everything
+ * is owned there is nothing to sell, and the card stops selling: it names the
+ * collection and stays as the way in to browse, re-pick and remove packs.
  */
 @Composable
 internal fun ClockFaceShopCard(
@@ -134,14 +136,26 @@ internal fun ClockFaceShopCard(
     val ownedFaces = ClockFaceGroup.entries.filter { it in availablePacks }.sumOf { it.faces.size }
     // One lead face per pack, so the strip shows breadth — four different packs
     // — rather than four faces from the same one. New arrivals lead, exactly as
-    // they lead the shelf: a card that raises the New pill for Payday and then
-    // shows four older packs advertises one thing and displays another.
+    // they lead the shelf.
     val teaser = (if (lockedPacks.isEmpty()) ClockFaceGroup.entries.filter { it in availablePacks } else lockedPacks)
         .sortedByDescending { it.isNewIn(appVersion) }
         .map { it.faces.first() }
         .take(TEASER_FACES)
     val locked = lockedPacks.isNotEmpty()
     val shape = RoundedCornerShape(CornerRadius.Large)
+    val tileShape = RoundedCornerShape(CornerRadius.Small)
+    val title = stringResource(R.string.settings_face_shop_title)
+    val headline = if (locked) {
+        pluralStringResource(
+            R.plurals.settings_face_shop_waiting,
+            lockedPacks.size,
+            lockedFaces,
+            lockedPacks.size,
+        )
+    } else {
+        stringResource(R.string.settings_face_store_count_all_owned, ownedFaces)
+    }
+    val open = stringResource(R.string.settings_face_shop_open)
 
     // The store forces the dark arm whatever the app is set to; this window
     // into it does the same, so the two surfaces are the same place.
@@ -153,13 +167,17 @@ internal fun ClockFaceShopCard(
                 .background(Brush.verticalGradient(listOf(AuroraDarkSurfaceRaised, AuroraDarkBg)))
                 .border(Spacing.s1, Color.White.copy(alpha = WINDOW_HAIRLINE), shape)
                 .auroraRowClickable(onClick = onOpenShop)
-                .semantics(mergeDescendants = true) { role = Role.Button },
+                // One button: what it is, what is in it, where it goes.
+                .semantics(mergeDescendants = true) {
+                    role = Role.Button
+                    contentDescription = listOf(title, headline, open).joinToString(", ")
+                },
         ) {
             ShopWindowGlow(Modifier.matchParentSize())
             Column(Modifier.padding(Layout.cardPadding)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        stringResource(R.string.settings_face_shop_title).uppercase(),
+                        title.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = MaterialTheme.typography.labelSmall.fontSize * EYEBROW_TRACKING,
@@ -172,64 +190,89 @@ internal fun ClockFaceShopCard(
                             contentColor = auroraSemantics.infoInk,
                         )
                     }
-                    Spacer(Modifier.weight(1f))
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(Spacing.s24).mirrorInRtl(),
-                    )
                 }
                 Text(
-                    if (locked) {
-                        pluralStringResource(
-                            R.plurals.settings_face_shop_waiting,
-                            lockedPacks.size,
-                            lockedFaces,
-                            lockedPacks.size,
-                        )
-                    } else {
-                        stringResource(R.string.settings_face_store_count_all_owned, ownedFaces)
-                    },
+                    headline,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = Spacing.s2),
+                    modifier = Modifier.padding(top = Spacing.s6),
                 )
+                if (locked) {
+                    Text(
+                        stringResource(R.string.settings_face_shop_pitch),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.s2),
+                    )
+                }
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(top = Spacing.s12),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.s16),
+                        .padding(top = Spacing.s14),
+                    horizontalArrangement = Arrangement.spacedBy(Layout.inlineGap),
                 ) {
                     teaser.forEach { face ->
-                        // Weighted rather than fixed: four fixed thumbnails plus
-                        // their gaps overran the card on a narrow screen and the
-                        // last face was clipped. Sharing the row cannot overflow,
-                        // and the canvases centre their drawing in whatever width
-                        // they are given.
-                        Box(
-                            Modifier
+                        // Equal tiles at the thumbnails' proportions: the real
+                        // face on its plate, as a still.
+                        WatchFacePreview(
+                            style = face,
+                            modifier = Modifier
                                 .weight(1f)
-                                .height(Layout.packPreviewHeight)
+                                .aspectRatio(THUMB_ASPECT)
+                                .border(Spacing.s1, Color.White.copy(alpha = WINDOW_HAIRLINE), tileShape)
                                 .clearAndSetSemantics { },
-                        ) {
-                            WatchFacePreview(
-                                style = face,
-                                selected = false,
-                                height = Layout.packPreviewHeight,
-                                animate = false,
-                                showBackground = false,
-                                showReading = false,
-                            )
-                        }
+                            animate = false,
+                            shape = tileShape,
+                            plate = MaterialTheme.colorScheme.surfaceVariant,
+                        )
                     }
                 }
+                ShopCallToAction(label = open, modifier = Modifier.padding(top = Spacing.s14))
             }
         }
     }
 }
+
+/**
+ * The card's call to action, drawn as the primary button. Decorative on
+ * purpose: the card is the control, and a second clickable inside it would be
+ * a second button for TalkBack that does the same thing.
+ */
+@Composable
+private fun ShopCallToAction(label: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .heightIn(min = Spacing.s48)
+            .background(ShopButtonGradient, RoundedCornerShape(CornerRadius.Button))
+            .padding(horizontal = Spacing.s16, vertical = Spacing.s12)
+            .clearAndSetSemantics { },
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+        )
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier
+                .padding(start = Spacing.s4)
+                .size(Spacing.s20)
+                .mirrorInRtl(),
+        )
+    }
+}
+
+/** The brand gradient the primary button wears. */
+private val ShopButtonGradient = Brush.linearGradient(
+    colorStops = arrayOf(0f to AuroraIndigo, 0.42f to AuroraPlum, 1f to AuroraAqua),
+)
 
 /** The store's own glow, scaled to a card — the window is lit from inside. */
 @Composable
@@ -337,7 +380,7 @@ private fun ClockFaceTile(
                 Modifier.fillMaxWidth().padding(10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                WatchFacePreview(face, isSelected)
+                WatchFacePreview(face, Modifier.height(Layout.facePreviewHeight))
                 Spacer(Modifier.height(6.dp))
                 Text(
                     name,

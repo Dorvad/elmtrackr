@@ -82,6 +82,11 @@
     <string name="settings_pack_all_title">כל החבילות</string>
     <string name="settings_pack_all_desc">כל %1$d החבילות יחד, כולל חבילות שיתווספו בעדכונים הבאים.</string>
     <string name="settings_pack_all_buy">רכישת כל החבילות</string>
+    <string name="settings_pack_all_buy_priced">רכישת כל החבילות · %1$s</string>
+    <string name="settings_pack_unlock_price">פתיחה ב-%1$s</string>
+    <string name="settings_face_shop_open">פתיחת החנות</string>
+    <string name="settings_face_shop_pitch">כל עיצוב מוצג בתצוגה חיה. פותחים את החבילות שאוהבים, בתשלום חד-פעמי.</string>
+    <string name="settings_pack_preview_face">תצוגת %1$s במסך מלא</string>
     <string name="settings_pack_purchased">החבילה נוספה</string>
     <string name="settings_pack_purchase_pending">ממתינים לאישור התשלום. החבילה תתווסף מיד עם קבלתו.</string>
     <string name="settings_pack_purchase_restored">הרכישה הקודמת שוחזרה</string>
@@ -110,8 +115,6 @@
         <item quantity="other">עוד %1$d עיצובים בחנות</item>
     </plurals>
     <string name="settings_face_store_everything_owned">כל החבילות שלך. חבילות חדשות יופיעו כאן קודם.</string>
-    <string name="settings_pack_show_faces">הצגת העיצובים</string>
-    <string name="settings_pack_hide_faces">הסתרת העיצובים</string>
     <string name="settings_face_store_restore">שחזור</string>
     <string name="settings_pack_included">כלול</string>
     <string name="settings_pack_new">חדש</string>

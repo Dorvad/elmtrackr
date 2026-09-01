@@ -18,8 +18,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,9 +37,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,17 +51,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.view.WindowCompat
 import com.elmtrackr.app.R
 import com.elmtrackr.app.billing.ClockFacePackStorefront
 import com.elmtrackr.app.domain.model.ClockStyle
+import com.elmtrackr.app.ui.common.findActivity
 import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.design.mirrorInRtl
+import com.elmtrackr.app.ui.layout.PhoneContentMaxWidth
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
@@ -81,7 +91,12 @@ import kotlinx.coroutines.delay
  * The store forces the dark theme whatever the app is set to — the faces are
  * drawn glowing, and a showroom is lit for the merchandise — which is also why
  * its contrast pairs are asserted once in `DarkThemeContrastTest` rather than
- * per theme.
+ * per theme. It is also drawn edge to edge: the settings host hands it the
+ * whole window (see `SettingsScreen`'s immersive flag), it paints its own
+ * background under both system bars and pads for them itself, and it sets the
+ * bars' icons light for as long as it is up. A dark shop with a strip of the
+ * light app showing above it and the bottom bar below was a shop with the
+ * street visible through the roof.
  *
  * Every claim about ownership, price or availability is read from
  * [storefront]. The store never decides a purchase happened — Play is the
@@ -119,6 +134,15 @@ internal fun ClockFaceStoreScreen(
     var inShop by rememberSaveable { mutableStateOf(startInShop) }
     // Read here, not in transitionSpec: spec lambdas run outside composition.
     val motionEnabled = auroraMotionEnabled()
+    // The full-screen look, hoisted above the tabs so it can cover the whole
+    // store, and the page each card's hero should return to when it closes.
+    var look by remember { mutableStateOf<Pair<ClockFaceGroup, Int>?>(null) }
+    val heroPages = remember { mutableStateMapOf<ClockFaceGroup, Int>() }
+    // A pack bought from inside its own look has nothing left to look at.
+    LaunchedEffect(availablePacks) {
+        if (look?.first in availablePacks) look = null
+    }
+    StoreSystemBars()
 
     // The success strip says what a purchase just added, then leaves on its
     // own. Six seconds is enough to read; anything longer is a banner.
@@ -138,7 +162,10 @@ internal fun ClockFaceStoreScreen(
             StoreGlow(Modifier.fillMaxSize())
             Column(
                 Modifier
+                    .widthIn(max = PhoneContentMaxWidth)
                     .fillMaxSize()
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
                     .padding(horizontal = Layout.screenGutter),
             ) {
                 StoreHeader(
@@ -175,9 +202,11 @@ internal fun ClockFaceStoreScreen(
                             storefront = storefront,
                             justUnlocked = justUnlocked,
                             appVersion = appVersion,
+                            heroPages = heroPages,
                             onBuyPack = onBuyPack,
                             onInstallPack = onInstallPack,
                             onBuyAllPacks = onBuyAllPacks,
+                            onOpenLook = { group, page -> look = group to page },
                             onOpenYourFaces = { inShop = false },
                         )
                     } else {
@@ -193,6 +222,43 @@ internal fun ClockFaceStoreScreen(
                     }
                 }
             }
+            look?.let { (group, page) ->
+                ClockFaceLookScreen(
+                    group = group,
+                    initialPage = page,
+                    price = storefront.priceOf(group),
+                    owned = storefront.isOwned(group),
+                    availability = storefront.availability,
+                    onBuy = { onBuyPack(group) },
+                    onClose = { settledAt ->
+                        heroPages[group] = settledAt
+                        look = null
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Light status and navigation bar icons while the store is up, whatever the
+ * app's theme: the store is always dark, and dark icons over it vanish. The
+ * previous appearance goes back on the way out.
+ */
+@Composable
+private fun StoreSystemBars() {
+    val view = LocalView.current
+    DisposableEffect(view) {
+        val window = view.context.findActivity()?.window
+            ?: return@DisposableEffect onDispose { }
+        val controller = WindowCompat.getInsetsController(window, view)
+        val lightStatus = controller.isAppearanceLightStatusBars
+        val lightNavigation = controller.isAppearanceLightNavigationBars
+        controller.isAppearanceLightStatusBars = false
+        controller.isAppearanceLightNavigationBars = false
+        onDispose {
+            controller.isAppearanceLightStatusBars = lightStatus
+            controller.isAppearanceLightNavigationBars = lightNavigation
         }
     }
 }
@@ -240,7 +306,8 @@ private fun YourFacesTab(
                 )
             }
         }
-        item(key = "inset") { Spacer(Modifier.height(Layout.bottomNavInset)) }
+        // Under the navigation bar, plus a breath: the store draws edge to edge.
+        item(key = "inset") { Spacer(Modifier.navigationBarsPadding().height(Spacing.s24)) }
     }
 }
 
@@ -248,6 +315,9 @@ private fun YourFacesTab(
  * The shelf. Product cards in catalog order, the bundle last, and — right
  * after a purchase — the success strip leading back to Your faces. When
  * nothing is left to sell, the shelf says so instead of standing empty.
+ *
+ * [heroPages] carries, per pack, the page the full-screen look was closed on,
+ * so a card's hero lands back on the face that was being looked at.
  */
 @Composable
 private fun ShopTab(
@@ -255,9 +325,11 @@ private fun ShopTab(
     storefront: ClockFacePackStorefront,
     justUnlocked: Set<ClockFaceGroup>,
     appVersion: String,
+    heroPages: Map<ClockFaceGroup, Int>,
     onBuyPack: (ClockFaceGroup) -> Unit,
     onInstallPack: (ClockFaceGroup) -> Unit,
     onBuyAllPacks: () -> Unit,
+    onOpenLook: (ClockFaceGroup, Int) -> Unit,
     onOpenYourFaces: () -> Unit,
 ) {
     LazyColumn(
@@ -282,8 +354,10 @@ private fun ShopTab(
                     owned = storefront.isOwned(group),
                     availability = storefront.availability,
                     isNew = group.isNewIn(appVersion),
+                    heroPage = heroPages[group],
                     onBuy = { onBuyPack(group) },
                     onInstall = { onInstallPack(group) },
+                    onOpenLook = { page -> onOpenLook(group, page) },
                     modifier = Modifier.animateItem(),
                 )
             }
@@ -309,7 +383,8 @@ private fun ShopTab(
                 )
             }
         }
-        item(key = "inset") { Spacer(Modifier.height(Layout.bottomNavInset)) }
+        // Under the navigation bar, plus a breath: the store draws edge to edge.
+        item(key = "inset") { Spacer(Modifier.navigationBarsPadding().height(Spacing.s24)) }
     }
 }
 

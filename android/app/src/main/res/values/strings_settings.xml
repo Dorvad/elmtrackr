@@ -82,6 +82,11 @@
     <string name="settings_pack_all_title">Every pack</string>
     <string name="settings_pack_all_desc">All %1$d packs at once, including packs added in future updates.</string>
     <string name="settings_pack_all_buy">Buy every pack</string>
+    <string name="settings_pack_all_buy_priced">Buy every pack · %1$s</string>
+    <string name="settings_pack_unlock_price">Unlock for %1$s</string>
+    <string name="settings_face_shop_open">Open the shop</string>
+    <string name="settings_face_shop_pitch">Every face previewed live. Unlock the packs you like, once.</string>
+    <string name="settings_pack_preview_face">Preview %1$s full screen</string>
     <string name="settings_pack_purchased">Pack added</string>
     <string name="settings_pack_purchase_pending">Waiting for your payment to clear. The pack is added as soon as it does.</string>
     <string name="settings_pack_purchase_restored">Your earlier purchase was restored</string>
@@ -104,8 +109,6 @@
         <item quantity="other">%1$d more faces in the shop</item>
     </plurals>
     <string name="settings_face_store_everything_owned">Every pack is yours. New packs will land here first.</string>
-    <string name="settings_pack_show_faces">Show the faces</string>
-    <string name="settings_pack_hide_faces">Hide the faces</string>
     <string name="settings_face_store_restore">Restore</string>
     <string name="settings_pack_included">Included</string>
     <string name="settings_pack_new">New</string>

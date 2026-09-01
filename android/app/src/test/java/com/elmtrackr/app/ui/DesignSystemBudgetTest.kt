@@ -24,11 +24,11 @@ class DesignSystemBudgetTest {
     // ── Budgets ───────────────────────────────────────────────────────────────
     // Lower these in the same commit that removes violations. Never raise them.
 
-    private val maxRawDp = 1034
+    private val maxRawDp = 845
     // Dropped from 115 when the illustration files came out of this count. What
     // remains is genuine theme drift on real screens, which is what the ratchet
     // is for; the brand and dial pigments it used to carry could never go down.
-    private val maxRawColor = 55
+    private val maxRawColor = 27
     private val maxRawTextField = 37
     private val maxRawCard = 38
     private val maxUngatedAnimatorCheck = 0
@@ -55,6 +55,7 @@ class DesignSystemBudgetTest {
      * real layout drift hides behind the exemption.
      */
     private val illustrationExempt = setOf(
+        "ClockFaceCanvas.kt",
         "ExpressiveClockFaces.kt",
         "PaydayClockFaces.kt",
         "RetroFlipBoard.kt",
