@@ -27,17 +27,18 @@ import org.robolectric.annotation.Config
  *
  * These are behaviour renders, not screenshots. What they pin down is the
  * store's contract: ownership is a tab, never a badge to decode; every pack
- * on the shelf shows its price at all times and the chip is the buy button;
- * cards open **and close**; a face thumbnail opens the full-screen look; and
- * a purchase is confirmed by the strip on the shelf, with the pack itself
- * arriving under Your faces.
+ * on the shelf shows its price at all times, in the button; every card's
+ * showroom is open, a thumbnail brings its face into the hero and the hero
+ * opens the full-screen look; and a purchase is confirmed by the strip on the
+ * shelf, with the pack itself arriving under Your faces.
  *
- * The tall viewport is deliberate: it composes every lazy item, so the tests
+ * The tall viewport is deliberate: it composes every lazy item — five open
+ * showrooms and the bundle, now — so the tests
  * reach every card without having to disambiguate the list's scroll node from
  * the pagers that also scroll.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33], qualifiers = "w411dp-h2400dp", application = ScreenshotTestApplication::class)
+@Config(sdk = [33], qualifiers = "w411dp-h4400dp", application = ScreenshotTestApplication::class)
 class ClockFaceStoreRenderTest {
 
     @get:Rule
@@ -77,11 +78,11 @@ class ClockFaceStoreRenderTest {
     /**
      * Fresh install: the user lands on Your faces, where Essentials is a
      * picker and one quiet row admits the shop exists. Switching tabs puts
-     * every pack on the shelf, priced, and a card's header toggles its
-     * showroom open and closed again.
+     * every pack on the shelf, priced, each showroom open on the pack's lead
+     * face, and a thumbnail swaps the hero to the face it names.
      */
     @Test
-    fun `the shop is a tab where every pack is priced and cards toggle`() {
+    fun `the shop is a tab where every pack is priced and thumbnails drive the hero`() {
         composeRule.setContent {
             ElmTrackrTheme(darkTheme = false) {
                 Store(
@@ -97,31 +98,25 @@ class ClockFaceStoreRenderTest {
         composeRule.onNodeWithText("₪5.00").assertDoesNotExist()
 
         composeRule.onNodeWithText("Shop").performClick()
-        // Five packs on the shelf, each with its price chip always visible.
-        composeRule.onAllNodes(hasText("₪5.00")).assertCountEquals(ClockFaceGroup.packs.size)
+        // Five packs on the shelf, each with its price in its button.
+        composeRule
+            .onAllNodes(hasText("₪5.00", substring = true))
+            .assertCountEquals(ClockFaceGroup.packs.size)
         composeRule
             .onAllNodes(hasContentDescription("Payday", substring = true))
             .onFirst()
             .assertIsDisplayed()
 
-        // Collapsed, a pack's face name appears once (its thumbnail). Opening
-        // the showroom adds the hero caption; closing removes it again.
-        composeRule.onAllNodes(hasText("Aurora")).assertCountEquals(1)
-        composeRule
-            .onAllNodes(hasContentDescription("Progress", substring = true))
-            .onFirst()
-            .performClick()
-        composeRule.onAllNodes(hasText("Aurora")).assertCountEquals(2)
-        composeRule
-            .onAllNodes(hasContentDescription("Progress", substring = true))
-            .onFirst()
-            .performClick()
-        composeRule.onAllNodes(hasText("Aurora")).assertCountEquals(1)
+        // The Progress card's hero leads with Aurora; tapping the Dial
+        // thumbnail brings Dial into the hero instead.
+        composeRule.onNodeWithContentDescription("Preview Aurora full screen").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Dial").performClick()
+        composeRule.onNodeWithContentDescription("Preview Dial full screen").assertIsDisplayed()
     }
 
-    /** A face thumbnail is tappable, and what it opens can complete the purchase. */
+    /** The hero is tappable, and what it opens can complete the purchase. */
     @Test
-    fun `tapping a face thumbnail opens the full-screen look with the unlock action`() {
+    fun `tapping a hero opens the full-screen look with the unlock action`() {
         var bought: ClockFaceGroup? = null
         composeRule.setContent {
             ElmTrackrTheme(darkTheme = false) {
@@ -135,6 +130,7 @@ class ClockFaceStoreRenderTest {
         }
 
         composeRule.onNodeWithContentDescription("Dial").performClick()
+        composeRule.onNodeWithContentDescription("Preview Dial full screen").performClick()
         composeRule.onNodeWithText("Unlock Progress · ₪5.00").assertIsDisplayed()
 
         composeRule.onNodeWithText("Unlock Progress · ₪5.00").performClick()

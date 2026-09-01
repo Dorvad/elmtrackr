@@ -6,9 +6,11 @@ import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextButton
@@ -19,6 +21,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -128,6 +131,8 @@ fun SettingsScreen(
     onReplayOnboarding: () -> Unit = {},
     pendingLaunch: SettingsLaunchRequest? = null,
     onPendingLaunchConsumed: () -> Unit = {},
+    // Raised while a destination wants the whole window — see [MainScaffold].
+    onImmersiveChanged: (Boolean) -> Unit = {},
 ) {
     var destination by rememberSaveable { mutableStateOf(SettingsDestination.HUB) }
     val motionEnabled = auroraMotionEnabled()
@@ -140,6 +145,14 @@ fun SettingsScreen(
     // and the Save bar are on different screens. null means no pending choice: the
     // saved face shows through.
     var pendingClockStyle by rememberSaveable { mutableStateOf<ClockStyle?>(null) }
+
+    // The store is drawn edge to edge, dark, with the app's chrome out of the
+    // way: a lit shop with the bottom bar and a strip of light background
+    // showing above it was a shop with the street visible through the roof.
+    // Dropped again on the way out, and when this whole tab leaves.
+    val immersive = destination == SettingsDestination.CLOCK_FACES
+    LaunchedEffect(immersive) { onImmersiveChanged(immersive) }
+    DisposableEffect(Unit) { onDispose { onImmersiveChanged(false) } }
 
     // Leaving a detail screen with unsaved edits requires an explicit choice.
     fun navigateGuarded(target: SettingsDestination) {
@@ -220,7 +233,7 @@ fun SettingsScreen(
             SettingsDestination.SYNC_DETAILS -> {
                 SyncDetailsScreen(onBack = { destination = SettingsDestination.HELP })
             }
-            else -> AuroraListScreen {
+            else -> SettingsDestinationShell(fullBleed = dest == SettingsDestination.CLOCK_FACES) {
                 AuroraStateCrossfade(
                     targetState = uiState,
                     modifier = Modifier.fillMaxSize(),
@@ -287,6 +300,23 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * The shell around a settings destination: the app's list screen for every
+ * screen but the store, which paints its own background under the system bars
+ * and pads for them itself.
+ */
+@Composable
+private fun SettingsDestinationShell(
+    fullBleed: Boolean,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    if (fullBleed) {
+        Box(Modifier.fillMaxSize(), content = content)
+    } else {
+        AuroraListScreen(content = content)
     }
 }
 
@@ -598,9 +628,16 @@ private fun SettingsFormHost(
             else -> Unit
         }
 
+        // The store draws under the navigation bar, so anything anchored to the
+        // bottom edge there has to step over it.
+        val bottomInset = if (destination == SettingsDestination.CLOCK_FACES) {
+            Modifier.navigationBarsPadding()
+        } else {
+            Modifier
+        }
         SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier = Modifier.align(Alignment.BottomCenter).then(bottomInset),
         )
 
         if (unsavedCount > 0) {
@@ -608,7 +645,7 @@ private fun SettingsFormHost(
                 unsavedCount = unsavedCount,
                 isSaving = state.isSaving,
                 onSave = saveAction,
-                modifier = Modifier.align(Alignment.BottomCenter),
+                modifier = Modifier.align(Alignment.BottomCenter).then(bottomInset),
             )
         }
     }

@@ -82,6 +82,11 @@
     <string name="settings_pack_all_title">كل الحزم</string>
     <string name="settings_pack_all_desc">كل الحزم الـ%1$d معًا، بما فيها الحزم التي تُضاف في التحديثات القادمة.</string>
     <string name="settings_pack_all_buy">شراء كل الحزم</string>
+    <string name="settings_pack_all_buy_priced">شراء كل الحزم · %1$s</string>
+    <string name="settings_pack_unlock_price">فتح مقابل %1$s</string>
+    <string name="settings_face_shop_open">افتح المتجر</string>
+    <string name="settings_face_shop_pitch">كل واجهة تُعرض مباشرةً. افتح الحزم التي تعجبك بدفعة واحدة.</string>
+    <string name="settings_pack_preview_face">عرض %1$s بملء الشاشة</string>
     <string name="settings_pack_purchased">تمت إضافة الحزمة</string>
     <string name="settings_pack_purchase_pending">في انتظار تأكيد الدفع. ستُضاف الحزمة فور تأكيده.</string>
     <string name="settings_pack_purchase_restored">تمت استعادة عملية الشراء السابقة</string>
@@ -116,8 +121,6 @@
         <item quantity="other">%1$d واجهة إضافية في المتجر</item>
     </plurals>
     <string name="settings_face_store_everything_owned">كل الحزم ملكك. الحزم الجديدة ستظهر هنا أولًا.</string>
-    <string name="settings_pack_show_faces">إظهار الواجهات</string>
-    <string name="settings_pack_hide_faces">إخفاء الواجهات</string>
     <string name="settings_face_store_restore">استعادة</string>
     <string name="settings_pack_included">مضمّنة</string>
     <string name="settings_pack_new">جديد</string>

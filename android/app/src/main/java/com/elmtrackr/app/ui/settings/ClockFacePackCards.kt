@@ -1,16 +1,10 @@
 package com.elmtrackr.app.ui.settings
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,32 +14,23 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -57,12 +42,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import com.elmtrackr.app.R
 import com.elmtrackr.app.billing.BillingAvailability
 import com.elmtrackr.app.billing.ClockFacePackStorefront
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.ui.design.ElmGradientButton
-import com.elmtrackr.app.ui.design.auroraAnimationSpec
+import com.elmtrackr.app.ui.design.ElmOutlinedButton
 import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.theme.AuroraAqua
@@ -78,24 +64,26 @@ import com.elmtrackr.app.ui.theme.auroraSemantics
 import kotlinx.coroutines.launch
 
 /**
- * A pack on the shop shelf.
+ * A pack on the shop shelf, shaped like a product card and nothing else.
  *
- * Shaped the way established stores shape a product row: the name, the pitch
- * and the **price are always visible**, and the price chip is the buy button —
- * a shopper never has to open anything to learn what something costs. Beneath
- * the header, a strip of the pack's four faces is the product photography:
- * always on show, veiled because they are locked, tappable to open the
- * full-screen look.
+ * Every card has the same four parts in the same order, so the shelf lines up:
+ * the **showroom** on top — one face at the dashboard's own proportions,
+ * swipeable, live — with the pack's four faces as a thumbnail strip beneath
+ * it; the **name and pitch**; and the **price, as a full-width button** at the
+ * bottom. The previous card put the price in a chip beside the title and hid
+ * the hero behind an expander, which left five cards whose buy buttons sat at
+ * five different heights and whose product shots were mostly closed. A shop
+ * shows its goods.
  *
- * The card expands — and collapses again — from the header or the chevron,
- * revealing the showroom: a swipeable hero pager at product-shot size, its
- * position mirrored by a ring on the thumbnail strip. Only the settled page
- * animates; collapsed cards run no canvases at all.
+ * Only the settled hero page animates; the thumbnails are stills. Tapping a
+ * thumbnail brings that face into the hero; tapping the hero opens the
+ * full-screen look. [heroPage] is how the look hands the pager back the page
+ * it was closed on.
  *
  * Ownership never renders here: an owned-and-installed pack belongs to the
  * "Your faces" tab, and the one owned state this card can show is the
- * grandfathered "owned but not added" pack, whose chip says Add instead of a
- * price.
+ * grandfathered "owned but not added" pack, whose button says Add instead of
+ * carrying a price.
  */
 @Composable
 internal fun ClockFacePackOfferCard(
@@ -104,239 +92,157 @@ internal fun ClockFacePackOfferCard(
     owned: Boolean,
     availability: BillingAvailability,
     isNew: Boolean,
+    heroPage: Int?,
     onBuy: () -> Unit,
     onInstall: () -> Unit,
+    onOpenLook: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val name = clockFaceGroupName(group)
     val description = clockFaceGroupDescription(group)
-    val faceNames = group.faces.map { clockStyleDisplayName(it) }.joinToString(" · ")
     val countLabel = stringResource(R.string.settings_pack_faces_count, group.faces.size)
     val ownedLabel = stringResource(R.string.settings_pack_owned)
 
-    var expanded by rememberSaveable(group.name) { mutableStateOf(false) }
     val pagerState = rememberPagerState { group.faces.size }
     val scope = rememberCoroutineScope()
-    // -1 = closed. The look is a detail view of this card, so it lives here:
-    // closing it can then return the hero pager to whichever face was looked at.
-    var lookPage by rememberSaveable { mutableIntStateOf(LOOK_CLOSED) }
-
-    PackCardSurface(modifier = modifier) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(CornerRadius.Small))
-                .clickable(
-                    onClickLabel = stringResource(
-                        if (expanded) R.string.settings_pack_hide_faces else R.string.settings_pack_show_faces,
-                    ),
-                ) { expanded = !expanded },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
-                Modifier
-                    .weight(1f)
-                    // One node for what the row says — name, pitch, contents
-                    // and ownership — so a screen reader hears the product,
-                    // not five fragments. The chip and thumbnails keep their
-                    // own actions beside it.
-                    .semantics(mergeDescendants = true) {
-                        contentDescription = listOfNotNull(
-                            name,
-                            description,
-                            countLabel,
-                            faceNames,
-                            if (owned) ownedLabel else price,
-                        ).joinToString(", ")
-                    },
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.auroraHeading(),
-                    )
-                    if (isNew) {
-                        PackBadge(
-                            text = stringResource(R.string.settings_pack_new),
-                            container = auroraSemantics.infoContainer,
-                            contentColor = auroraSemantics.infoInk,
-                        )
-                    }
-                }
-                Text(
-                    description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            }
-            PackPriceChip(
-                packName = name,
-                price = price,
-                owned = owned,
-                availability = availability,
-                onBuy = onBuy,
-                onInstall = onInstall,
-            )
-            val chevronTurn by animateFloatAsState(
-                targetValue = if (expanded) 180f else 0f,
-                animationSpec = auroraAnimationSpec(CHEVRON_TURN_MILLIS),
-                label = "pack-chevron",
-            )
-            Icon(
-                Icons.Filled.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier
-                    .padding(start = Spacing.s6)
-                    .size(Spacing.s20)
-                    .graphicsLayer { rotationZ = chevronTurn },
-            )
-        }
-
-        // Billing being down is said in words, not with a button that can
-        // only fail — and it is said whether or not the card is open.
-        if (!owned && availability == BillingAvailability.UNAVAILABLE) {
-            Text(
-                stringResource(R.string.settings_pack_unavailable_note),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.s6),
-            )
-        }
-
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(auroraAnimationSpec(SHOWROOM_MILLIS)) +
-                fadeIn(auroraAnimationSpec(SHOWROOM_MILLIS)),
-            exit = shrinkVertically(auroraAnimationSpec(SHOWROOM_MILLIS)) +
-                fadeOut(auroraAnimationSpec(SHOWROOM_MILLIS)),
-        ) {
-            Column(Modifier.padding(top = Spacing.s8)) {
-                PackHero(
-                    faces = group.faces,
-                    pagerState = pagerState,
-                    onOpenLook = { lookPage = it },
-                )
-                // The crisp face's name, under the hero where the thumbnails
-                // carry theirs. The drawing shows its own sample reading; the
-                // name is the one thing it cannot say for itself.
-                Text(
-                    clockStyleDisplayName(group.faces[pagerState.settledPage]),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(top = Spacing.s4),
-                )
-            }
-        }
-
-        FaceThumbRow(
-            faces = group.faces,
-            ringIndex = if (expanded) pagerState.settledPage else null,
-            onOpenLook = { lookPage = it },
-            modifier = Modifier.padding(top = Spacing.s8),
-        )
+    LaunchedEffect(heroPage) {
+        if (heroPage != null && heroPage != pagerState.currentPage) pagerState.scrollToPage(heroPage)
     }
 
-    if (lookPage != LOOK_CLOSED) {
-        ClockFaceLookScreen(
-            group = group,
-            initialPage = lookPage,
+    PackCardSurface(modifier = modifier) {
+        PackShowroom(
+            faces = group.faces,
+            pagerState = pagerState,
+            onOpenLook = onOpenLook,
+            onPickFace = { scope.launch { pagerState.animateScrollToPage(it) } },
+        )
+
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = Layout.rowGap + Spacing.s4)
+                // One node for what the card says — name, pitch, contents and
+                // price — so a screen reader hears the product, not fragments.
+                // The hero, the thumbnails and the button keep their own actions.
+                .semantics(mergeDescendants = true) {
+                    contentDescription = listOfNotNull(
+                        name,
+                        description,
+                        countLabel,
+                        if (owned) ownedLabel else price,
+                    ).joinToString(", ")
+                },
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .weight(1f)
+                        .auroraHeading(),
+                )
+                if (isNew) {
+                    PackBadge(
+                        text = stringResource(R.string.settings_pack_new),
+                        container = auroraSemantics.infoContainer,
+                        contentColor = auroraSemantics.infoInk,
+                    )
+                }
+                PackBadge(text = countLabel)
+            }
+            Text(
+                description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.s2),
+            )
+        }
+
+        PackAction(
+            packName = name,
             price = price,
             owned = owned,
             availability = availability,
             onBuy = onBuy,
-            onClose = { settledAt ->
-                lookPage = LOOK_CLOSED
-                // Back from the look returns to this card at the same pager
-                // index — the look is a detail view, not a step in a funnel.
-                expanded = true
-                scope.launch { pagerState.scrollToPage(settledAt) }
-            },
+            onInstall = onInstall,
+            modifier = Modifier.padding(top = Layout.rowGap + Spacing.s6),
         )
     }
 }
 
 /**
- * The price, as the buy button — the store convention shoppers already know.
+ * The price, as the button — one full-width action at the foot of every card,
+ * so the shelf's buttons form a single column.
  *
- * One chip, three shapes: a gradient chip carrying the price when the pack is
- * for sale (disabled while Play is still connecting, because "unavailable"
- * is a claim the app cannot yet make), an outlined Add for a pack the user
- * owns but has not installed, and nothing at all when billing is genuinely
- * unavailable — the card explains that in words instead.
+ * Three shapes: the gradient carrying the price when the pack is for sale
+ * (disabled while Play is still connecting, because "unavailable" is a claim
+ * the app cannot yet make), an outlined Add for a pack the user owns but has
+ * not installed, and a sentence when billing is genuinely unavailable — a
+ * button that can only fail is worse than an explanation.
  */
 @Composable
-private fun PackPriceChip(
+private fun PackAction(
     packName: String,
     price: String?,
     owned: Boolean,
     availability: BillingAvailability,
     onBuy: () -> Unit,
     onInstall: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    when {
-        owned -> Box(
-            Modifier
-                .padding(start = Spacing.s8)
-                .clip(RoundedCornerShape(CornerRadius.Button))
-                .border(
-                    Spacing.s1,
-                    MaterialTheme.colorScheme.primary,
-                    RoundedCornerShape(CornerRadius.Button),
+    Box(modifier.fillMaxWidth()) {
+        when {
+            owned -> ElmOutlinedButton(onClick = onInstall) {
+                Text(stringResource(R.string.settings_pack_add), fontWeight = FontWeight.SemiBold)
+            }
+
+            availability == BillingAvailability.UNAVAILABLE -> Text(
+                stringResource(R.string.settings_pack_unavailable_note),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Spacing.s12),
+            )
+
+            else -> ElmGradientButton(
+                onClick = onBuy,
+                enabled = availability == BillingAvailability.AVAILABLE && price != null,
+                accessibilityLabel = if (price != null) {
+                    stringResource(R.string.settings_pack_unlock, packName, price)
+                } else {
+                    stringResource(R.string.settings_pack_unlock_unpriced, packName)
+                },
+            ) {
+                Text(
+                    if (price != null) {
+                        stringResource(R.string.settings_pack_unlock_price, price)
+                    } else {
+                        stringResource(R.string.settings_pack_buy)
+                    },
+                    fontWeight = FontWeight.SemiBold,
                 )
-                .clickable(role = Role.Button, onClick = onInstall)
-                .heightIn(min = Spacing.s32 + Spacing.s4)
-                .padding(horizontal = Spacing.s14, vertical = Spacing.s8),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                stringResource(R.string.settings_pack_add),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-
-        availability == BillingAvailability.UNAVAILABLE -> Unit
-
-        else -> ElmGradientButton(
-            onClick = onBuy,
-            compact = true,
-            enabled = availability == BillingAvailability.AVAILABLE && price != null,
-            accessibilityLabel = if (price != null) {
-                stringResource(R.string.settings_pack_unlock, packName, price)
-            } else {
-                stringResource(R.string.settings_pack_buy)
-            },
-            modifier = Modifier.padding(start = Spacing.s8),
-        ) {
-            Text(
-                price ?: stringResource(R.string.settings_pack_buy),
-                fontWeight = FontWeight.SemiBold,
-            )
+            }
         }
     }
 }
 
 /**
- * The everything-at-once offer, last on the shelf.
+ * The everything-at-once offer, last on the shelf — built to the same plan as
+ * the pack cards so it reads as the fifth product rather than a footnote: a
+ * mosaic of the packs' lead faces where the showroom would be, the name and
+ * pitch, the price in the button.
  *
- * The one card making a different kind of claim: every other card sells a pack,
- * this one sells the decision not to choose. It wears a low-alpha wash of the
- * brand gradient — a tint, not the gradient itself, which stays reserved for
- * the button — and the largest price on the screen.
- *
- * The saving badge is absent unless [ClockFacePackStorefront.allPacksSavingPercent]
- * says the bundle is genuinely cheaper for *this* user. A pricing mistake in
- * Play Console removes the claim rather than inventing one, which is also why
- * there is no struck-through "was" price: the app never formats currency
- * itself, so the only honest numbers are the ones Play hands over.
+ * The one card making a different kind of claim, so it wears a low-alpha wash
+ * of the brand gradient — a tint, not the gradient itself, which stays
+ * reserved for the button. The saving badge is absent unless
+ * [ClockFacePackStorefront.allPacksSavingPercent] says the bundle is genuinely
+ * cheaper for *this* user: a pricing mistake in Play Console removes the claim
+ * rather than inventing one, and the app never formats currency itself, so
+ * the only honest numbers are the ones Play hands over.
  *
  * Shown only when at least two packs are unowned — see
  * [ClockFacePackStorefront.offerAllPacks].
@@ -351,109 +257,113 @@ internal fun AllClockFacePacksCard(
     val faceCount = storefront.unownedPacks.sumOf { it.faces.size }
     val countLabel = stringResource(R.string.settings_pack_faces_count, faceCount)
     val saving = storefront.allPacksSavingPercent
-    val shape = RoundedCornerShape(CornerRadius.Large)
+    val price = storefront.allPacksPrice
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        AuroraIndigo.copy(alpha = .22f),
-                        AuroraPlum.copy(alpha = .16f),
-                        AuroraAqua.copy(alpha = .14f),
-                    ),
-                ),
-            )
-            .border(Spacing.s1, Color.White.copy(alpha = .10f), shape)
-            .padding(Layout.cardPadding),
-        verticalArrangement = Arrangement.spacedBy(Layout.rowGap),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                stringResource(R.string.settings_pack_all_title),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .weight(1f)
-                    .auroraHeading(),
-            )
-            // Absent unless the arithmetic supports it. A pricing mistake in
-            // Play Console removes the badge rather than making the app claim
-            // a discount nobody is getting.
-            if (saving != null) {
-                PackBadge(
-                    text = stringResource(R.string.settings_pack_saving, saving),
-                    container = AuroraAqua,
-                    contentColor = AuroraDarkBg,
-                )
-            }
-        }
+    PackCardSurface(modifier = modifier, tinted = true) {
+        PackMosaic(faces = storefront.unownedPacks.map { it.faces.first() }.take(MOSAIC_FACES))
 
-        Text(
-            stringResource(R.string.settings_pack_all_desc, storefront.unownedPacks.size),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            packNames,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        Row(verticalAlignment = Alignment.Bottom) {
-            storefront.allPacksPrice?.let { price ->
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = Layout.rowGap + Spacing.s4)
+                .semantics(mergeDescendants = true) {},
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    price,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.ExtraBold,
+                    stringResource(R.string.settings_pack_all_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .weight(1f)
+                        .auroraHeading(),
                 )
+                if (saving != null) {
+                    PackBadge(
+                        text = stringResource(R.string.settings_pack_saving, saving),
+                        container = AuroraAqua,
+                        contentColor = AuroraDarkBg,
+                    )
+                }
+                PackBadge(text = countLabel)
             }
-            Spacer(Modifier.weight(1f))
             Text(
-                countLabel,
-                style = MaterialTheme.typography.labelSmall,
+                stringResource(R.string.settings_pack_all_desc, storefront.unownedPacks.size),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = Spacing.s8),
+                modifier = Modifier.padding(top = Spacing.s2),
+            )
+            Text(
+                packNames,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(top = Spacing.s4),
             )
         }
 
-        when (storefront.availability) {
-            BillingAvailability.AVAILABLE -> ElmGradientButton(onClick = onBuy) {
-                Text(
-                    stringResource(R.string.settings_pack_all_buy),
-                    fontWeight = FontWeight.SemiBold,
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = Layout.rowGap + Spacing.s6),
+        ) {
+            when (storefront.availability) {
+                BillingAvailability.UNAVAILABLE -> Text(
+                    stringResource(R.string.settings_pack_unavailable_note),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = Spacing.s12),
                 )
+                // Disabled while Play is still connecting: the button keeps
+                // the card's shape, and claims nothing until the price is known.
+                else -> ElmGradientButton(
+                    onClick = onBuy,
+                    enabled = storefront.availability == BillingAvailability.AVAILABLE && price != null,
+                ) {
+                    Text(
+                        if (price != null) {
+                            stringResource(R.string.settings_pack_all_buy_priced, price)
+                        } else {
+                            stringResource(R.string.settings_pack_all_buy)
+                        },
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
-            // Still connecting. Nothing is claimed either way until it is known.
-            BillingAvailability.LOADING -> Unit
-            BillingAvailability.UNAVAILABLE -> Text(
-                stringResource(R.string.settings_pack_unavailable_note),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
 
 /**
- * The store's card surface: a raised near-navy gradient with a hairline border.
+ * The store's card surface: a raised near-navy gradient with a hairline
+ * border, or the brand-tinted wash the bundle wears.
  */
 @Composable
 internal fun PackCardSurface(
     modifier: Modifier = Modifier,
+    tinted: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(CornerRadius.Large)
+    val fill = if (tinted) {
+        Brush.linearGradient(
+            listOf(
+                AuroraIndigo.copy(alpha = .22f),
+                AuroraPlum.copy(alpha = .16f),
+                AuroraAqua.copy(alpha = .14f),
+            ),
+        )
+    } else {
+        Brush.verticalGradient(listOf(AuroraDarkSurfaceRaised, AuroraDarkSurface))
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(Brush.verticalGradient(listOf(AuroraDarkSurfaceRaised, AuroraDarkSurface)))
+            .background(fill)
             .border(Spacing.s1, Color.White.copy(alpha = HairlineAlpha), shape)
             .padding(Layout.cardPadding),
         content = content,
@@ -461,57 +371,92 @@ internal fun PackCardSurface(
 }
 
 /**
- * The hero pager: one face at product-shot size, a breathing glow behind it.
+ * The showroom: a hero pager at the dashboard face box's proportions, and the
+ * pack's faces as a strip of stills beneath it.
  *
- * Pages compose their canvases static except the settled one — swiping between
- * four live infinite animations is exactly the cost the store exists to avoid.
- * The glow, too, breathes only behind the settled page, and holds its middle
- * value when motion is reduced.
- *
- * Silenced for screen readers: the drawing carries nothing a blind user can
- * act on, and the card's merged description already names every face. The
- * pager keeps its own scroll semantics, and the thumbnail strip is the
- * labelled, tappable route to each face's full-screen look.
+ * The strip is also the pager's indicator — a ring marks the face the hero is
+ * settled on — which is why the card has no separate dots. Tapping a
+ * thumbnail brings its face into the hero; tapping the hero opens the
+ * full-screen look. Only the settled hero page animates, and the glow
+ * breathes only behind it.
  */
 @Composable
-private fun PackHero(
+private fun PackShowroom(
     faces: List<ClockStyle>,
     pagerState: PagerState,
     onOpenLook: (Int) -> Unit,
+    onPickFace: (Int) -> Unit,
 ) {
+    val heroShape = RoundedCornerShape(CornerRadius.Medium)
     HorizontalPager(
         state = pagerState,
         modifier = Modifier.fillMaxWidth(),
+        pageSpacing = Layout.rowGap,
     ) { page ->
         val face = faces[page]
         val settled = pagerState.settledPage == page
+        val previewLabel = stringResource(R.string.settings_pack_preview_face, clockStyleDisplayName(face))
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(Layout.packHeroHeight),
-            contentAlignment = Alignment.Center,
+                .aspectRatio(ClockFaceAspect),
         ) {
             if (settled) {
                 BreathingGlow(Modifier.fillMaxSize())
             }
-            Box(
-                Modifier
-                    .fillMaxWidth(HERO_WIDTH_FRACTION)
-                    // Silenced before the click so TalkBack sees neither an
-                    // unlabelled button nor the drawing: the thumbnails are
-                    // the accessible route to the look, and the card's merged
-                    // description already names this face.
-                    .clearAndSetSemantics { }
-                    .clickable { onOpenLook(page) },
+            WatchFacePreview(
+                style = face,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(heroShape)
+                    .clickable(role = Role.Button, onClickLabel = previewLabel) { onOpenLook(page) }
+                    // The drawing and its sample reading say nothing a screen
+                    // reader can use; the hero is one button, named for its face.
+                    .clearAndSetSemantics { contentDescription = previewLabel },
+                animate = settled,
+                shape = heroShape,
+                plate = MaterialTheme.colorScheme.surfaceVariant,
+            )
+        }
+    }
+    FaceThumbRow(
+        faces = faces,
+        ringIndex = pagerState.settledPage,
+        onPickFace = onPickFace,
+        modifier = Modifier.padding(top = Layout.rowGap),
+    )
+}
+
+/**
+ * The bundle's stand-in for a showroom: the lead face of each unowned pack, two
+ * to a row, every tile the same shape as a hero.
+ */
+@Composable
+private fun PackMosaic(faces: List<ClockStyle>) {
+    val tileShape = RoundedCornerShape(CornerRadius.Small)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics { },
+        verticalArrangement = Arrangement.spacedBy(Layout.inlineGap),
+    ) {
+        faces.chunked(MOSAIC_COLUMNS).forEach { row ->
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Layout.inlineGap),
             ) {
-                WatchFacePreview(
-                    style = face,
-                    selected = false,
-                    height = Layout.packHeroHeight,
-                    animate = settled,
-                    showBackground = false,
-                    readingStyle = MaterialTheme.typography.headlineMedium,
-                )
+                row.forEach { face ->
+                    WatchFacePreview(
+                        style = face,
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(ClockFaceAspect),
+                        animate = false,
+                        shape = tileShape,
+                        plate = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                }
+                repeat(MOSAIC_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
@@ -559,22 +504,19 @@ private fun BreathingGlow(modifier: Modifier = Modifier) {
 }
 
 /**
- * The pack's contents as product photography: all four faces, always visible,
- * veiled because they are locked, each tappable to open the full-screen look.
- *
- * When the showroom above is open, a ring marks the face the hero pager is
- * settled on — the thumbnail strip doubles as the pager's indicator, which is
- * why the card has no separate dots. The veil is blur plus alpha on the
- * drawing only; the names beneath stay at full contrast, because the veil
- * says "locked" to sighted users and must never be the only signal.
+ * The pack's four faces as a strip of equal tiles, each a still of the real
+ * face on its plate — sample reading included, because for Minimal and Retro
+ * the reading *is* the face — named beneath. The ring marks the hero's
+ * settled page.
  */
 @Composable
 private fun FaceThumbRow(
     faces: List<ClockStyle>,
-    ringIndex: Int?,
-    onOpenLook: (Int) -> Unit,
+    ringIndex: Int,
+    onPickFace: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val tileShape = RoundedCornerShape(CornerRadius.Small)
     Row(
         modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Layout.inlineGap),
@@ -585,47 +527,44 @@ private fun FaceThumbRow(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(CornerRadius.Medium))
-                    .then(
-                        if (ringed) {
-                            Modifier.border(
-                                Spacing.s1,
-                                MaterialTheme.colorScheme.primary.copy(alpha = .55f),
-                                RoundedCornerShape(CornerRadius.Medium),
-                            )
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .clickable(role = Role.Button) { onOpenLook(index) }
+                    .clip(RoundedCornerShape(CornerRadius.Small))
+                    .clickable(role = Role.Button) { onPickFace(index) }
                     .heightIn(min = Layout.minTouchTarget)
-                    .padding(vertical = Spacing.s4)
                     .semantics(mergeDescendants = true) { contentDescription = name },
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Layout.inlineGap),
+                verticalArrangement = Arrangement.spacedBy(Spacing.s4),
             ) {
-                Box(
-                    Modifier
+                WatchFacePreview(
+                    style = face,
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .blur(Layout.packVeilBlur)
-                        .alpha(VEIL_ALPHA)
+                        .aspectRatio(THUMB_ASPECT)
+                        .border(
+                            width = if (ringed) Spacing.s2 else Spacing.s1,
+                            color = if (ringed) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                Color.White.copy(alpha = HairlineAlpha)
+                            },
+                            shape = tileShape,
+                        )
                         .clearAndSetSemantics { },
-                ) {
-                    WatchFacePreview(
-                        style = face,
-                        selected = false,
-                        height = Layout.packPreviewHeight,
-                        animate = false,
-                        showBackground = false,
-                        showReading = false,
-                    )
-                }
+                    animate = false,
+                    shape = tileShape,
+                    plate = MaterialTheme.colorScheme.surfaceVariant,
+                )
                 Text(
                     name,
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (ringed) FontWeight.Bold else FontWeight.Medium,
+                    color = if (ringed) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -644,6 +583,7 @@ internal fun PackBadge(
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Bold,
         color = contentColor,
+        maxLines = 1,
         modifier = Modifier
             .padding(start = Spacing.s8)
             .background(container, RoundedCornerShape(CornerRadius.Chip))
@@ -652,34 +592,20 @@ internal fun PackBadge(
 }
 
 /**
- * How much of the card's width the hero face takes.
- *
- * Around this fraction the hero's box lands near the aspect the face canvases
- * were drawn for; much wider and the drawing strands itself in the middle.
+ * The thumbnails' shape: squarer than a hero, because four across a card
+ * leaves each about 70dp wide, and a face box that wide at the hero's 16:9
+ * would be too short to read.
  */
-private const val HERO_WIDTH_FRACTION = 0.58f
-
-/** Sentinel for "the full-screen look is closed". */
-private const val LOOK_CLOSED = -1
-
-/**
- * The veil over a locked face, paired with [Layout.packVeilBlur].
- *
- * Higher than the reference's 30%: the mock's stand-in faces were solid
- * conic fills, while the real drawings are thin strokes that a blur thins
- * further. At this alpha the drawing still reads as behind glass without
- * disappearing into the card.
- */
-private const val VEIL_ALPHA = 0.45f
+internal const val THUMB_ASPECT = 1.45f
 
 /** The hairline border every store card wears. */
-private const val HairlineAlpha = 0.07f
+private const val HairlineAlpha = 0.08f
+
+private const val MOSAIC_FACES = 4
+private const val MOSAIC_COLUMNS = 2
 
 private const val GLOW_BREATHE_MILLIS = 4_500
 private const val GLOW_MIN_SCALE = 0.85f
 private const val GLOW_MAX_SCALE = 1.1f
 private const val GLOW_MIN_ALPHA = 0.55f
 private const val GLOW_MAX_ALPHA = 1f
-
-private const val CHEVRON_TURN_MILLIS = 200
-private const val SHOWROOM_MILLIS = 250

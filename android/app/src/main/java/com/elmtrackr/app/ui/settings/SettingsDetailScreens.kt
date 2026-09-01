@@ -12,6 +12,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -650,7 +651,15 @@ internal fun AppearanceDetailScreen(
                                     .padding(16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                WatchFacePreview(style, selected = true)
+                                // The face at the dashboard's own proportions,
+                                // live: this is the one place the choice is
+                                // previewed before it is saved.
+                                WatchFacePreview(
+                                    style,
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(ClockFaceAspect),
+                                )
                                 Spacer(Modifier.height(8.dp))
                                 Text(
                                     clockStyleDisplayName(style),

@@ -126,6 +126,11 @@ fun MainScaffold(
     val currentRoute      = navBackStackEntry?.destination?.route
     val authState         by authViewModel.uiState.collectAsState()
     var hideNavChrome     by rememberSaveable { mutableStateOf(false) }
+    // A destination drawn edge to edge — the face store — takes the whole
+    // window: no bottom bar, no rail, and none of the Scaffold's inset padding,
+    // which it handles itself. Plain remember: the screen that asked for it
+    // asks again after a restore, and a stale true would hide the bar for good.
+    var immersive         by remember { mutableStateOf(false) }
     val isTablet          = isTabletLayout()
     // Read once: the transition factories are plain functions running outside
     // composition and cannot observe LocalReduceMotion for themselves.
@@ -193,7 +198,7 @@ fun MainScaffold(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background),
         ) {
-            if (!hideNavChrome) {
+            if (!hideNavChrome && !immersive) {
                 ElmSideNavigation(
                     currentRoute = highlightedRoute,
                     onNavigate = navigateToTab,
@@ -231,6 +236,7 @@ fun MainScaffold(
                     onPendingEditConsumed = { pendingShiftEditId = null },
                     onPendingEditSet = { pendingShiftEditId = it },
                     onFormVisibilityChanged = { hideNavChrome = it },
+                    onImmersiveChanged = { immersive = it },
                     onReplayOnboarding = { replayOnboarding = true },
                     pendingSettingsLaunch = pendingSettingsLaunch,
                     onPendingSettingsLaunchConsumed = { pendingSettingsLaunch = null },
@@ -253,7 +259,7 @@ fun MainScaffold(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (!hideNavChrome) {
+            if (!hideNavChrome && !immersive) {
             ElmBottomNav(
                 currentRoute = highlightedRoute,
                 onNavigate   = navigateToTab,
@@ -265,7 +271,7 @@ fun MainScaffold(
         NavHost(
             navController    = navController,
             startDestination = BottomNavItem.DASHBOARD.route,
-            modifier         = Modifier.padding(innerPadding),
+            modifier         = if (immersive) Modifier else Modifier.padding(innerPadding),
             enterTransition = {
                 val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
                 navEnterTransition(forward, motionEnabled)
@@ -291,6 +297,7 @@ fun MainScaffold(
                 onPendingEditConsumed = { pendingShiftEditId = null },
                 onPendingEditSet = { pendingShiftEditId = it },
                 onFormVisibilityChanged = { hideNavChrome = it },
+                onImmersiveChanged = { immersive = it },
                 onReplayOnboarding = { replayOnboarding = true },
                 pendingSettingsLaunch = pendingSettingsLaunch,
                 onPendingSettingsLaunchConsumed = { pendingSettingsLaunch = null },
@@ -317,6 +324,7 @@ private fun NavGraphBuilder.mainNavGraph(
     onPendingEditConsumed: () -> Unit,
     onPendingEditSet: (String) -> Unit,
     onFormVisibilityChanged: (Boolean) -> Unit,
+    onImmersiveChanged: (Boolean) -> Unit,
     onReplayOnboarding: () -> Unit,
     pendingSettingsLaunch: String?,
     onPendingSettingsLaunchConsumed: () -> Unit,
@@ -391,6 +399,7 @@ private fun NavGraphBuilder.mainNavGraph(
                 SettingsLaunchRequest.entries.firstOrNull { it.name == name }
             },
             onPendingLaunchConsumed = onPendingSettingsLaunchConsumed,
+            onImmersiveChanged = onImmersiveChanged,
         )
     }
 }

@@ -91,9 +91,9 @@ internal fun flipElapsedText(elapsedSeconds: Long): String {
 // Card pigments: darker than the face's own amber-brown so the board reads as
 // hardware mounted on it, with the upper half a shade brighter — flap displays
 // catch the light on top.
-private val FlipCardTop = Color(0xFF261F13)
-private val FlipCardBottom = Color(0xFF1C160C)
-private val FlipSeam = Color(0xFF0E0B06)
+internal val FlipCardTop = Color(0xFF261F13)
+internal val FlipCardBottom = Color(0xFF1C160C)
+internal val FlipSeam = Color(0xFF0E0B06)
 
 private val CellWidth = 33.dp
 private val CellHeight = 56.dp
