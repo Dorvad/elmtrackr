@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.retryWhen
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /**
@@ -29,6 +31,30 @@ import kotlinx.coroutines.flow.map
 val Context.appPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "app_preferences",
     corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+)
+
+/**
+ * What the user owns, kept apart from everything else — and deliberately with no
+ * corruption handler.
+ *
+ * The handler on `app_preferences` above is right for what that file holds: values
+ * that are re-derived or re-settable, where a corrupt file must not become a
+ * launch crash loop. It became wrong for entitlements the moment they moved in
+ * beside them. `grandfathered_clock_face_packs` records packs granted for free at
+ * the paid-packs switch, and it exists **nowhere else** — not in Play, which never
+ * sold them, and not in Supabase, deliberately. Wiping it on corruption revoked
+ * them permanently, and `seedIfNeeded` then re-derived the grant from
+ * `installed_clock_face_packs`, which the same wipe had just emptied — so the app
+ * would go on to offer the user their own packs for sale.
+ *
+ * Without a handler a corrupt file surfaces as an IOException on read instead. The
+ * callers below catch it and answer with empty values for this launch, so a
+ * corrupt entitlements file is a bad session rather than a permanent loss: Play
+ * purchases return on the next foreground refresh, and the grandfathered set is
+ * still on disk to be recovered rather than overwritten with nothing.
+ */
+val Context.entitlementsDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "entitlements",
 )
 
 object AppPreferenceKeys {
@@ -176,6 +202,41 @@ class AppPreferencesRepository(private val context: Context) :
      * `appLockEnabled = false` because a read failed would unlock a locked app,
      * which is not a trade this file gets to make.
      */
+    /**
+     * The entitlement values, or empty ones if the file cannot be read.
+     *
+     * No `retryWhen` and no crash-report here, unlike the main store: a corrupt
+     * entitlements file must not stall the flow the UI collects, and answering
+     * empty for this launch is recoverable — Play restores purchases on the next
+     * foreground refresh, and the grandfathered set stays on disk rather than
+     * being overwritten with nothing.
+     */
+    private val entitlements: Flow<EntitlementValues> =
+        context.entitlementsDataStore.data
+            .catch { cause ->
+                if (cause !is IOException) throw cause
+                CrashReporting.report(cause)
+                emit(emptyPreferences())
+            }
+            .map { prefs ->
+                EntitlementValues(
+                    installedClockFacePacks =
+                        prefs[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] ?: emptySet(),
+                    ownedProductIds = prefs[AppPreferenceKeys.OWNED_PRODUCT_IDS] ?: emptySet(),
+                    grandfatheredClockFacePacks =
+                        prefs[AppPreferenceKeys.GRANDFATHERED_CLOCK_FACE_PACKS] ?: emptySet(),
+                    clockFacePacksGrandfathered =
+                        prefs[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED] ?: false,
+                )
+            }
+
+    private data class EntitlementValues(
+        val installedClockFacePacks: Set<String>,
+        val ownedProductIds: Set<String>,
+        val grandfatheredClockFacePacks: Set<String>,
+        val clockFacePacksGrandfathered: Boolean,
+    )
+
     override val preferences: Flow<AppPreferenceValues> =
         context.appPreferencesDataStore.data
             .retryWhen { cause, attempt ->
@@ -209,15 +270,27 @@ class AppPreferencesRepository(private val context: Context) :
                         .map { it.trim() }
                         .filter { it.isNotEmpty() }
                         .toList(),
-                installedClockFacePacks =
-                    prefs[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] ?: emptySet(),
-                ownedProductIds = prefs[AppPreferenceKeys.OWNED_PRODUCT_IDS] ?: emptySet(),
-                grandfatheredClockFacePacks =
-                    prefs[AppPreferenceKeys.GRANDFATHERED_CLOCK_FACE_PACKS] ?: emptySet(),
-                clockFacePacksGrandfathered =
-                    prefs[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED] ?: false,
+                // Filled from the entitlements store by the combine below; the
+                // values here are placeholders so the shape stays one data class.
+                installedClockFacePacks = emptySet(),
+                ownedProductIds = emptySet(),
+                grandfatheredClockFacePacks = emptySet(),
+                clockFacePacksGrandfathered = false,
             )
         }
+            // Entitlements come from their own store, which has no
+            // wipe-on-corruption handler: a corrupt preferences file must not be
+            // able to revoke packs the user was granted for free, because that
+            // grant exists nowhere else — not in Play, which never sold them, and
+            // not in Supabase, deliberately.
+            .combine(entitlements) { values, owned ->
+                values.copy(
+                    installedClockFacePacks = owned.installedClockFacePacks,
+                    ownedProductIds = owned.ownedProductIds,
+                    grandfatheredClockFacePacks = owned.grandfatheredClockFacePacks,
+                    clockFacePacksGrandfathered = owned.clockFacePacksGrandfathered,
+                )
+            }
 
     private companion object {
         /** First retry delay after a failed preferences read; grows per attempt. */
@@ -306,13 +379,13 @@ class AppPreferencesRepository(private val context: Context) :
     }
 
     override suspend fun setInstalledClockFacePacks(packNames: Set<String>) {
-        context.appPreferencesDataStore.edit {
+        context.entitlementsDataStore.edit {
             it[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] = packNames
         }
     }
 
     override suspend fun setOwnedProductIds(productIds: Set<String>) {
-        context.appPreferencesDataStore.edit {
+        context.entitlementsDataStore.edit {
             it[AppPreferenceKeys.OWNED_PRODUCT_IDS] = productIds
         }
     }
@@ -325,9 +398,49 @@ class AppPreferencesRepository(private val context: Context) :
      * the seed that would have restored them already spent.
      */
     override suspend fun setGrandfatheredClockFacePacks(packNames: Set<String>) {
-        context.appPreferencesDataStore.edit {
+        context.entitlementsDataStore.edit {
             it[AppPreferenceKeys.GRANDFATHERED_CLOCK_FACE_PACKS] = packNames
             it[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED] = true
+        }
+    }
+
+    /**
+     * Moves an existing install's entitlements into their own store, once.
+     *
+     * Runs before anything reads them. Without it the split would look exactly
+     * like the corruption it exists to prevent: an upgrading user's packs would
+     * read as empty on first launch, `seedIfNeeded` would find its marker gone and
+     * re-derive the grant from an equally empty installed set, and the app would
+     * offer to sell them packs they already had.
+     *
+     * Keyed on the marker being absent from the new store *and* present in the
+     * old, so it neither re-runs nor fires on a fresh install. The old keys are
+     * deliberately left in place: this is cheap, and a rollback to a build that
+     * still reads them finds them intact.
+     */
+    suspend fun migrateEntitlementsIfNeeded() {
+        val already = context.entitlementsDataStore.data.first()
+        if (already[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED] != null) return
+        val old = context.appPreferencesDataStore.data.first()
+        if (old[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED] == null &&
+            old[AppPreferenceKeys.OWNED_PRODUCT_IDS] == null &&
+            old[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] == null
+        ) {
+            return
+        }
+        context.entitlementsDataStore.edit { new ->
+            old[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS]?.let {
+                new[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] = it
+            }
+            old[AppPreferenceKeys.OWNED_PRODUCT_IDS]?.let {
+                new[AppPreferenceKeys.OWNED_PRODUCT_IDS] = it
+            }
+            old[AppPreferenceKeys.GRANDFATHERED_CLOCK_FACE_PACKS]?.let {
+                new[AppPreferenceKeys.GRANDFATHERED_CLOCK_FACE_PACKS] = it
+            }
+            old[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED]?.let {
+                new[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED] = it
+            }
         }
     }
 
