@@ -608,6 +608,17 @@ class SyncRepositoryImpl @Inject constructor(
         var drainedFully = true
         val seenRemoteIds = mutableSetOf<String>()
         var pagesFetched = 0
+        // Held in memory and written once, after the loop, instead of once per page.
+        // Every page used to cost a DataStore edit — a durable fsync on the same file
+        // the app reads at startup — and a fifteen-entity sync every fifteen minutes
+        // paid at least fifteen of them.
+        //
+        // Safe because a cursor is a resume hint, not state: an interrupted pull simply
+        // re-fetches from the last written cursor, and applyRow upserts, so the rows
+        // arrive again with the same result. The cost of losing an unwritten cursor is
+        // repeated work on the next run; the cost of the old behaviour was paid on
+        // every run.
+        var pendingCursor: Long? = null
 
         while (true) {
             val batch = fetchPage(syncCursorStore.sinceIso(cursor), offsetWithinCursor)
@@ -618,7 +629,7 @@ class SyncRepositoryImpl @Inject constructor(
                 // this entity, so remote hard-deletes made before the next pull are never
                 // tombstoned locally. Acceptable: keeping local data beats deleting it.
                 if (isFullSync && cursor == null) {
-                    syncCursorStore.setLastPulledAt(userId, entity, 0L)
+                    pendingCursor = 0L
                 }
                 break
             }
@@ -644,7 +655,7 @@ class SyncRepositoryImpl @Inject constructor(
             }
             val previousCursor = cursor
             cursor = maxEpoch
-            syncCursorStore.setLastPulledAt(userId, entity, holdEpoch?.coerceAtMost(cursor) ?: cursor)
+            pendingCursor = holdEpoch?.coerceAtMost(cursor) ?: cursor
             if (batch.size < PULL_PAGE_SIZE) break
 
             offsetWithinCursor = if (cursor == previousCursor) {
@@ -667,6 +678,8 @@ class SyncRepositoryImpl @Inject constructor(
                 break
             }
         }
+
+        pendingCursor?.let { syncCursorStore.setLastPulledAt(userId, entity, it) }
 
         return PullOutcome(seenRemoteIds = seenRemoteIds, isFullSync = isFullSync, drainedFully = drainedFully)
     }

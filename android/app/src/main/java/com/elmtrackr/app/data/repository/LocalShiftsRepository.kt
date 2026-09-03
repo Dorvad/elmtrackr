@@ -1,5 +1,6 @@
 package com.elmtrackr.app.data.repository
 
+import com.elmtrackr.app.data.local.TransactionRunner
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.entity.ShiftEntity
@@ -36,6 +37,7 @@ class LocalShiftsRepository @Inject constructor(
     // row, and going through the repository would couple two repositories for a
     // lookup.
     private val compensationProfileDao: CompensationProfileDao,
+    private val transactionRunner: TransactionRunner,
 ) : ShiftsRepository {
 
     // clockIn is check-then-insert; without this a double tap could create
@@ -162,13 +164,21 @@ class LocalShiftsRepository @Inject constructor(
 
     override suspend fun deleteShift(localId: String) {
         val now = Instant.now().toEpochMilli()
-        refundsRepository.deleteClaimsForShift(localId)
-        shiftDao.softDeleteShift(
-            localId = localId,
-            deletedAt = now,
-            syncStatus = SyncStatus.PENDING_DELETE,
-            updatedAt = now,
-        )
+        // Both writes or neither. Deleting the claims and then failing to mark the
+        // shift left travel claims tombstoned against a shift the user can still see,
+        // and the next sync pushed those deletes — losing receipts for a shift that
+        // was never deleted, with nothing on screen to say so.
+        transactionRunner.inTransaction {
+            refundsRepository.deleteClaimsForShift(localId)
+            shiftDao.softDeleteShift(
+                localId = localId,
+                deletedAt = now,
+                syncStatus = SyncStatus.PENDING_DELETE,
+                updatedAt = now,
+            )
+        }
+        // Outside the transaction: scheduling work is not part of the write, and a
+        // WorkManager failure must not roll back a delete the user asked for.
         syncTrigger.schedule()
     }
 

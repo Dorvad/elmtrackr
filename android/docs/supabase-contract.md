@@ -416,7 +416,9 @@ Incremental pull uses `updated_at >= lastPulledAt` per entity (see `SyncCursorSt
 
 Local `PENDING_*` rows always win over remote until pushed.
 
-`delete_own_account` removes absence allocations, absence events, leave balance snapshots, leave policies, tasks, shifts, refund claims, compensation profiles, workplaces, user settings, profiles, and refund-receipt storage objects.
+`delete_own_account` removes absence allocations, absence events, leave balance snapshots, leave policies, tasks, shifts, refund claims, project payments, project billing records, projects, premium profiles, compensation profiles, workplaces, user settings, profiles, and refund-receipt storage objects — then the `auth.users` row.
+
+The three project tables and `premium_profiles` were restored to the function by `20260903010000_restore_account_deletion_tables.sql`. A `create or replace` in the leave migration had dropped the project deletes, and `premium_profiles` had never been named. Nothing leaked — all four cascade from `auth.users`, which the function deletes last — but the rule here is that account deletion names every table it removes, so a cascade someone later changes to `on delete set null` cannot silently stop covering one.
 
 ### `deleted_at` and `client_updated_at`
 
