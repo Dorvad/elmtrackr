@@ -7,6 +7,7 @@ import com.elmtrackr.app.domain.WeekendRules
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.PayBracket
+import com.elmtrackr.app.domain.model.PayCategory
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.ResolvedCompensation
 import com.elmtrackr.app.domain.model.Shift
@@ -46,6 +47,8 @@ object IsraeliCompensationEngine {
         val isDailyOvertime: Boolean,
         val isWeeklyOvertime: Boolean,
         val bucket: OvertimeBucket,
+        /** Which money total these minutes belong to. Never derived from [label]. */
+        val category: PayCategory,
     )
 
     fun getWeeklyRegularMinutesBeforeShift(
@@ -94,6 +97,7 @@ object IsraeliCompensationEngine {
                     isDailyOvertime = false,
                     isWeeklyOvertime = false,
                     bucket = OvertimeBucket.REGULAR,
+                    category = PayCategory.PREMIUM,
                 ),
             )
         }
@@ -260,6 +264,12 @@ object IsraeliCompensationEngine {
                 isDailyOvertime = false,
                 isWeeklyOvertime = false,
                 bucket = OvertimeBucket.REGULAR,
+                category = payCategory(
+                    isWeeklyRest = isWeeklyRest,
+                    bucket = OvertimeBucket.REGULAR,
+                    isDailyOvertime = false,
+                    isWeeklyOvertime = false,
+                ),
             )
         }
         return mergeAdjacentSegments(rawSegments)
@@ -366,6 +376,12 @@ object IsraeliCompensationEngine {
                 isDailyOvertime = isDailyOt && otMult > 1.0 + 1e-9,
                 isWeeklyOvertime = isWeeklyOt && otMult > 1.0 + 1e-9,
                 bucket = bucket,
+                category = payCategory(
+                    isWeeklyRest = isWeeklyRest,
+                    bucket = bucket,
+                    isDailyOvertime = isDailyOt && otMult > 1.0 + 1e-9,
+                    isWeeklyOvertime = isWeeklyOt && otMult > 1.0 + 1e-9,
+                ),
             )
 
             dailyMinutesInDay++
@@ -551,6 +567,28 @@ object IsraeliCompensationEngine {
         val minuteInWeek = rules.weeklyStandardMinutes + weeklyOtMinutesInWeek + 1
         return PayrollCalculator.overtimeTierMultiplier(minuteInWeek, rules.weeklyOvertimeTiers)
             .takeIf { it > 1.0 } ?: rules.weeklyOvertimeTiers.minBy { it.afterMinutes }.multiplier
+    }
+
+    /**
+     * The typed counterpart of [payLabel], deciding the same thing from the same
+     * inputs. They are written next to each other on purpose: a change to one that
+     * is not mirrored in the other is what would put a bracket's words and its
+     * money in different categories.
+     */
+    internal fun payCategory(
+        isWeeklyRest: Boolean,
+        bucket: OvertimeBucket,
+        isDailyOvertime: Boolean,
+        isWeeklyOvertime: Boolean,
+    ): PayCategory = when {
+        isWeeklyRest && bucket == OvertimeBucket.REGULAR -> PayCategory.WEEKLY_REST
+        isWeeklyRest -> PayCategory.WEEKLY_REST_OVERTIME
+        // A REGULAR bucket means the combined multiplier never rose above 1.0, so
+        // neither overtime flag can be set here; the order is safe.
+        bucket == OvertimeBucket.REGULAR -> PayCategory.REGULAR
+        isWeeklyOvertime -> PayCategory.WEEKLY_OVERTIME
+        isDailyOvertime -> PayCategory.DAILY_OVERTIME
+        else -> PayCategory.OVERTIME
     }
 
     internal fun payLabel(
