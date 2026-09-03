@@ -10,6 +10,40 @@ import java.time.ZoneOffset
 
 class OvernightShiftDetectorTest {
 
+    /**
+     * The day split must sum to the shift, exactly.
+     *
+     * Each segment used to be rounded on its own, so two halves of an odd-length
+     * shift both rounded up and the split reported a minute the shift did not
+     * have. The report adds these up beside a total computed another way, so a
+     * per-shift drift of one minute is a figure that visibly fails to reconcile.
+     */
+    @Test
+    fun `day segments always sum to the shift's net minutes`() {
+        val zone = java.time.ZoneId.of("Asia/Jerusalem")
+        // Odd lengths, and starts placed so midnight falls at an awkward fraction.
+        listOf(601, 599, 483, 1_439, 7, 1).forEach { minutes ->
+            listOf("2024-01-08T21:00:00Z", "2024-01-08T23:59:00Z", "2024-01-08T12:00:00Z")
+                .forEach { start ->
+                    val s = Shift(
+                        id = "s", userId = "u",
+                        startTime = Instant.parse(start),
+                        endTime = Instant.parse(start).plusSeconds(minutes * 60L),
+                    )
+                    val net = ShiftDurationCalculator.netMinutes(s) ?: 0
+                    val segments = OvernightShiftDetector.splitShiftByDay(s, zone)
+
+                    assertEquals(
+                        "$minutes min from $start must split exactly",
+                        net,
+                        segments.sumOf { it.minutes },
+                    )
+                    assertTrue("no negative segment", segments.all { it.minutes >= 0 })
+                }
+        }
+    }
+
+
     // These cases were written against the old UTC default, which was removed so callers
     // must pass the work zone explicitly. Kept as UTC here to preserve their intent.
     private fun OvernightShiftDetector.isOvernightUtc(shift: com.elmtrackr.app.domain.model.Shift) =
