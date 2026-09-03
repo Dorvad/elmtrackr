@@ -83,9 +83,22 @@ screen after the link is opened.
 ### Behavior when credentials are missing
 
 When `local.properties` is absent (or the keys are blank) — the common case on CI
-and fresh checkouts — the app builds and runs normally. The **Account** tab shows
-a "Auth not configured" message instead of a sign-in form. All local shift
-tracking continues to work without authentication.
+and fresh checkouts — the app builds and runs, and the auth screen shows an
+"Auth not configured" message instead of a sign-in form.
+
+**It does not, however, track shifts.** An earlier version of this section claimed
+"all local shift tracking continues to work without authentication"; that is not
+true and never was. `CurrentUserProvider` resolves the user from
+`lastActiveUserId`, which is written only by `SupabaseAuthRepository` on a
+successful sign-in. With nobody signed in there is no user id, so `clockIn`
+returns null, the Wear punch answers `not_signed_in`, and `AppShellViewModel`
+routes to the auth screen rather than the dashboard.
+
+An unconfigured build is therefore good for compiling, running unit tests and
+inspecting the auth screen — not for exercising the app. Anything that records a
+shift needs Supabase credentials and a signed-in account. Giving the app a
+device-local identity so it can work without one is a real product change, not a
+configuration flag; see `docs/wear-play-submission-runbook.md` §2.
 
 ---
 
