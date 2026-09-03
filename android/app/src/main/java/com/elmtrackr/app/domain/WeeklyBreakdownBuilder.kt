@@ -41,6 +41,14 @@ object WeeklyBreakdownBuilder {
      * @param prevMonthShifts Completed shifts for the previous month —
      *                        used to compute the per-week delta in the UI.
      */
+    /**
+     * @param payContextShifts the pay weeks the reported [shifts] belong to. Both
+     *   the per-bucket overtime and the per-bucket pay are computed against it, so
+     *   a week straddling the 1st is not measured from zero — and so the buckets
+     *   sum to the same monthly gross the screen shows above them. Defaults to
+     *   [shifts] plus [prevMonthShifts], which is the widest window a caller
+     *   already has to hand.
+     */
     fun groupByWeek(
         shifts: List<Shift>,
         settings: UserSettings? = null,
@@ -48,6 +56,7 @@ object WeeklyBreakdownBuilder {
         premiumProfiles: List<PremiumProfile> = emptyList(),
         prevMonthShifts: List<Shift> = emptyList(),
         zoneOverride: java.time.ZoneId? = null,
+        payContextShifts: List<Shift> = shifts + prevMonthShifts,
     ): List<WeeklyTotals> {
         // Employee-paid only. Each bucket reports overtime minutes and pay, both of
         // which are employee-compensation figures; project time is paid by the
@@ -55,6 +64,7 @@ object WeeklyBreakdownBuilder {
         // previous month too so the delta compares like with like.
         @Suppress("NAME_SHADOWING") val shifts = shifts.employeePaidOnly()
         @Suppress("NAME_SHADOWING") val prevMonthShifts = prevMonthShifts.employeePaidOnly()
+        val payContext = payContextShifts.employeePaidOnly().ifEmpty { shifts }
         val hasPay = settings?.let { s ->
             (s.hourlyRate ?: 0.0) > 0.0 ||
                 profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
@@ -79,12 +89,22 @@ object WeeklyBreakdownBuilder {
             b.shiftList += shift
             b.totalMin += mins
             if (settings != null) {
-                val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
-                val threshold = resolved.rules.dailyStandardMinutes
-                b.overtimeMin += maxOf(0, mins - threshold)
+                // Read from the shared classifier rather than measured here against
+                // the raw daily standard. This was the fourth site of the same
+                // defect — the August fix named three and missed this one, which
+                // feeds the Hours breakdown card and the PDF's weekly section — so
+                // a weekly-only profile like US federal reported overtime per
+                // bucket that no pay figure ever paid, and a night or pre-rest
+                // shift reported none that it did.
+                b.overtimeMin += MonthlyReportBuilder.buildShiftBreakdown(
+                    shift, settings, profiles, premiumProfiles, payContext,
+                ).overtimeMinutes
                 if (hasPay) {
+                    // Same context as the monthly gross above the card, so the
+                    // buckets add up to it. Passing only the month meant a week
+                    // straddling the 1st was priced without its own prior minutes.
                     b.pay += PayrollCalculator.calculateShiftPayInContext(
-                        shift, shifts, settings, profiles, premiumProfiles,
+                        shift, payContext, settings, profiles, premiumProfiles,
                     )?.totalGross ?: 0.0
                 }
             }

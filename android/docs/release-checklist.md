@@ -77,6 +77,32 @@ leaked, Google can issue a new one. This is your safety net; do not opt out.
 
 ---
 
+## 1.5 Confirm what is actually in review **[manual — 2 minutes, do it every time]**
+
+A rejection names a **version code**. Before changing any code in response to
+one, confirm that the artifact being reviewed is the artifact you think it is.
+
+Between July and September 2026 three rounds of Wear fixes were written against
+rejections of version code **10041**. The repository never built a 10041 — it
+went 10012 → 10042 → 10043 — so every fix landed in a build that was never
+uploaded, while the listing still carried the rejected one. Weeks were spent
+fixing code no reviewer ever saw.
+
+Check, in this order:
+
+1. **App bundle explorer** — search the version codes you believe you shipped.
+   If an artifact is not listed here, Google does not have it.
+2. **The release under review** — open its artifact list. This is what is being
+   reviewed, whatever is in your repo.
+3. **Both form factors.** A phone-only release leaves the previous watch
+   artifact in place. If the watch artifact is not in the release, the watch
+   listing keeps whatever it had — including a rejected build.
+
+If a rejected artifact is still present: new release, newest artifacts only,
+rejected one set to **Not included**, roll out.
+
+---
+
 ## 2. Release-build QA (R8) — run before every upload
 
 The release build is minified by R8; test **it**, not the debug build.

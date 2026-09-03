@@ -24,6 +24,13 @@ sealed interface ReportsUiState {
         val weeklyTotals: List<WeeklyTotals>,
         val paySummary: PayrollCalculator.MonthlyPaySummary? = null,
         val rawShifts: List<Shift> = emptyList(),
+        /**
+         * The pay weeks [rawShifts] belong to — the month plus the tail of the week
+         * containing the 1st. Only [rawShifts] is displayed; this is what weekly
+         * overtime accumulates over, and every figure derived on this screen has to
+         * use it or two figures on one screen disagree.
+         */
+        val payContextShifts: List<Shift> = emptyList(),
         val settings: UserSettings? = null,
         val profiles: List<CompensationProfile> = emptyList(),
         val premiumProfiles: List<PremiumProfile> = emptyList(),

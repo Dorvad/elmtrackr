@@ -77,6 +77,13 @@ object DailyInsightsBuilder {
         totalMinutes: Int,
         profiles: List<CompensationProfile> = emptyList(),
         premiumProfiles: List<PremiumProfile> = emptyList(),
+        /**
+         * The pay weeks [completedShifts] belong to. The insight cards quote a
+         * month's gross, and without this they computed a *second*, context-free
+         * one beside the figure on the card above them — so the two could differ
+         * for any month whose first week straddles the 1st.
+         */
+        contextShifts: List<Shift> = completedShifts,
     ): List<DailyInsight> {
         val fallback = DailyInsight(
             icon  = "✨",
@@ -89,7 +96,9 @@ object DailyInsightsBuilder {
         val employeeShifts = completedShifts.employeePaidOnly()
         if (employeeShifts.isEmpty() || totalMinutes == 0) return listOf(fallback)
 
-        val pool = buildPool(employeeShifts, settings, totalMinutes, profiles, premiumProfiles)
+        val pool = buildPool(
+            employeeShifts, settings, totalMinutes, profiles, premiumProfiles, contextShifts,
+        )
         if (pool.isEmpty()) return listOf(fallback)
 
         val dayIndex = (Instant.now().toEpochMilli() / 86_400_000).toInt()
@@ -103,11 +112,12 @@ object DailyInsightsBuilder {
         totalMinutes: Int,
         profiles: List<CompensationProfile>,
         premiumProfiles: List<PremiumProfile>,
+        contextShifts: List<Shift>,
     ): List<DailyInsight> {
         val totalHours = totalMinutes / 60.0
         val hoursInt = totalHours.roundToInt()
         val shiftCount = shifts.size
-        val totalGross = PayrollCalculator.sumMonthlyPay(shifts, settings, profiles, premiumProfiles).totalGross
+        val totalGross = PayrollCalculator.sumMonthlyPay(shifts, settings, profiles, premiumProfiles, contextShifts).totalGross
 
         val pool = mutableListOf<DailyInsight>()
 

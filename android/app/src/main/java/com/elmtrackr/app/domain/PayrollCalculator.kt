@@ -205,69 +205,17 @@ object PayrollCalculator {
         isSeventhConsecutiveWorkday: Boolean = false,
     ): ShiftPayBreakdown? {
         val hourlyRate = resolved.baseHourlyRate?.takeIf { it > 0 } ?: return null
-        val net = payableNetMinutes(shift, resolved.rules)?.takeIf { it > 0 } ?: return null
+        val plan = genericPlan(
+            shift, resolved, settings, priorWeekMinutes, premiumProfiles,
+            isSeventhConsecutiveWorkday,
+        ) ?: return null
+        val net = plan.net
+        val tiers = plan.tiers
+        val isSpecial = plan.isSpecial
+        val shiftPremium = plan.shiftPremium
 
         val ratePerMinute = hourlyRate / 60.0
         val zone = WorkTimezone.zoneFor(resolved, settings)
-        val startDateStr = shift.startTime.atZone(zone).toLocalDate().toString()
-        val weekendDays = resolved.rules.weekendDays
-        val startOnWeekend = resolved.rules.weekendEnabled &&
-            WeekendRules.isWeekendDate(startDateStr, weekendDays)
-        val shiftPremium = if (shift.forceRegularRate) {
-            null
-        } else {
-            shift.premiumProfileId?.let { id ->
-                premiumProfiles.firstOrNull { it.id == id || it.remoteId == id }
-            }
-        }
-        val isHoliday = shiftPremium != null ||
-            (resolved.rules.holidayEnabled &&
-                resolved.rules.holidayManualSpecialDayEnabled &&
-                shift.isSpecialDay && !shift.forceRegularRate)
-        // Weekend minutes are counted per local day, the way the report counts them.
-        // Deciding the whole shift from its start date paid a Friday 23:00 → Saturday
-        // 07:00 shift entirely at the weekday rate and a Saturday 23:00 → Sunday 07:00
-        // shift entirely at the weekend rate, while the report split both
-        // proportionally — so the report's weekend hours and the payroll's weekend
-        // money described different halves of the same shift.
-        val weekendMinutes = genericWeekendMinutes(shift, resolved, zone, net, isHoliday)
-        val isSpecial = isHoliday || startOnWeekend
-
-        // A shift that sits entirely on one side of the boundary keeps its existing
-        // path exactly; only a genuinely mixed shift is split, which is the case that
-        // was wrong. Holidays stay all-or-nothing: a holiday is a property of the
-        // shift, declared by the user, not of each local day it touches.
-        val tiers = if (weekendMinutes in 1 until net && !isHoliday) {
-            val weekdayMinutes = net - weekendMinutes
-            // The weekday portion runs the ordinary ladder over its own minutes only —
-            // "overtime is computed from the weekday-only portion" is the report's
-            // stated invariant, and this is what makes the two agree.
-            buildTiers(
-                resolved = resolved,
-                isSpecial = false,
-                isHoliday = false,
-                startOnWeekend = false,
-                net = weekdayMinutes,
-                priorWeekMinutes = priorWeekMinutes,
-                shiftPremium = null,
-                shift = shift,
-                zone = zone,
-                isSeventhConsecutiveWorkday = isSeventhConsecutiveWorkday,
-            ).capTo(weekdayMinutes) + weekendTier(resolved, weekendMinutes)
-        } else {
-            buildTiers(
-                resolved = resolved,
-                isSpecial = isSpecial,
-                isHoliday = isHoliday,
-                startOnWeekend = startOnWeekend,
-                net = net,
-                priorWeekMinutes = priorWeekMinutes,
-                shiftPremium = shiftPremium,
-                shift = shift,
-                zone = zone,
-                isSeventhConsecutiveWorkday = isSeventhConsecutiveWorkday,
-            )
-        }
         val brackets = mutableListOf<PayBracket>()
         var remaining = net
         var regularGross = 0.0
@@ -329,6 +277,96 @@ object PayrollCalculator {
             currencyCode = resolved.currencyCode,
             disclaimer = COMPENSATION_ESTIMATE_NOTE,
         )
+    }
+
+    /**
+     * What the generic engine decides about a shift *before* any money is applied:
+     * how many minutes are payable, the tier ladder they run through, and whether
+     * the shift counts as special.
+     *
+     * Split out of [calculateGenericShiftPay] so the same decision can answer two
+     * questions. Pay needs an hourly rate; **hours do not**, and the monthly report
+     * has to classify minutes for a profile that has no rate set at all. Before
+     * this, the report classified them itself — with a whole-day weekend test and
+     * the raw daily standard — and disagreed with the money for exactly the shifts
+     * where it matters.
+     */
+    internal data class GenericPlan(
+        val net: Int,
+        val tiers: List<Tier>,
+        val isSpecial: Boolean,
+        val shiftPremium: PremiumProfile?,
+    )
+
+    internal fun genericPlan(
+        shift: Shift,
+        resolved: ResolvedCompensation,
+        settings: UserSettings,
+        priorWeekMinutes: Int,
+        premiumProfiles: List<PremiumProfile>,
+        isSeventhConsecutiveWorkday: Boolean = false,
+    ): GenericPlan? {
+        val net = payableNetMinutes(shift, resolved.rules)?.takeIf { it > 0 } ?: return null
+        val zone = WorkTimezone.zoneFor(resolved, settings)
+        val startDateStr = shift.startTime.atZone(zone).toLocalDate().toString()
+        val startOnWeekend = resolved.rules.weekendEnabled &&
+            WeekendRules.isWeekendDate(startDateStr, resolved.rules.weekendDays)
+        val shiftPremium = if (shift.forceRegularRate) {
+            null
+        } else {
+            shift.premiumProfileId?.let { id ->
+                premiumProfiles.firstOrNull { it.id == id || it.remoteId == id }
+            }
+        }
+        val isHoliday = shiftPremium != null ||
+            (resolved.rules.holidayEnabled &&
+                resolved.rules.holidayManualSpecialDayEnabled &&
+                shift.isSpecialDay && !shift.forceRegularRate)
+        // Weekend minutes are counted per local day. Deciding the whole shift from
+        // its start date paid a Friday 23:00 → Saturday 07:00 shift entirely at the
+        // weekday rate and a Saturday 23:00 → Sunday 07:00 shift entirely at the
+        // weekend rate, while the report split both proportionally — so the report's
+        // weekend hours and the payroll's weekend money described different halves of
+        // the same shift.
+        val weekendMinutes = genericWeekendMinutes(shift, resolved, zone, net, isHoliday)
+        val isSpecial = isHoliday || startOnWeekend
+
+        // A shift that sits entirely on one side of the boundary keeps its existing
+        // path exactly; only a genuinely mixed shift is split. Holidays stay
+        // all-or-nothing: a holiday is a property of the shift, declared by the user,
+        // not of each local day it touches.
+        val tiers = if (weekendMinutes in 1 until net && !isHoliday) {
+            val weekdayMinutes = net - weekendMinutes
+            // The weekday portion runs the ordinary ladder over its own minutes only —
+            // "overtime is computed from the weekday-only portion" is the report's
+            // stated invariant, and this is what makes the two agree.
+            buildTiers(
+                resolved = resolved,
+                isSpecial = false,
+                isHoliday = false,
+                startOnWeekend = false,
+                net = weekdayMinutes,
+                priorWeekMinutes = priorWeekMinutes,
+                shiftPremium = null,
+                shift = shift,
+                zone = zone,
+                isSeventhConsecutiveWorkday = isSeventhConsecutiveWorkday,
+            ).capTo(weekdayMinutes) + weekendTier(resolved, weekendMinutes)
+        } else {
+            buildTiers(
+                resolved = resolved,
+                isSpecial = isSpecial,
+                isHoliday = isHoliday,
+                startOnWeekend = startOnWeekend,
+                net = net,
+                priorWeekMinutes = priorWeekMinutes,
+                shiftPremium = shiftPremium,
+                shift = shift,
+                zone = zone,
+                isSeventhConsecutiveWorkday = isSeventhConsecutiveWorkday,
+            )
+        }
+        return GenericPlan(net, tiers, isSpecial, shiftPremium)
     }
 
     fun calculateShiftPayInContext(
@@ -511,7 +549,15 @@ object PayrollCalculator {
         var holidayGross = 0.0
         var nightGross = 0.0
         var deductionsGross = 0.0
-        var currencyCode = "USD"
+        // Gross per currency, rather than one running total and one label.
+        //
+        // A profile carries its own currencyCode, so a month worked across two
+        // jobs in two currencies was summed into a single number and then stamped
+        // with whichever shift the fold happened to visit last — an amount that is
+        // not a quantity of anything. The rest of the money layer refuses this
+        // structurally (`Money.requireSameCurrency`, `MoneyByCurrency`); the wage
+        // path did not.
+        val grossByCurrency = mutableMapOf<String, Double>()
         // Fixed deductions are charged once per period, not per shift. Keyed by profile so
         // a month spanning two profiles charges each of their fees once.
         val fixedDeductionsByProfile = mutableMapOf<String, Double>()
@@ -536,7 +582,8 @@ object PayrollCalculator {
             nightGross += bd.nightGross
             deductionsGross += bd.deductionsGross
             specialGross += bd.weekendGross + bd.holidayGross
-            currencyCode = bd.currencyCode
+            grossByCurrency[bd.currencyCode] =
+                (grossByCurrency[bd.currencyCode] ?: 0.0) + bd.totalGross
             fixedPeriodDeduction(resolved.rules).takeIf { it != 0.0 }?.let { fixed ->
                 fixedDeductionsByProfile[resolved.profileId ?: PERIOD_DEDUCTION_FALLBACK_KEY] = fixed
             }
@@ -551,7 +598,14 @@ object PayrollCalculator {
             // each floored at 0 while deductions kept accumulating, so the summary could
             // report totalGross - deductionsGross != netGross.
             netGross = maxOf(0.0, totalGross - deductionsGross),
-            currencyCode = currencyCode,
+            // The single currency when exactly one was priced; null when none was
+            // (an empty month) or when several were. Null is what every display
+            // site already handles — each one reads
+            // `paySummary?.currencyCode ?: settings.displayCurrencyCode()` — so a
+            // month with a rate but no shifts yet stops showing "$" to a user
+            // whose settings say ILS, which is what the old "USD" default did.
+            currencyCode = grossByCurrency.keys.singleOrNull(),
+            grossByCurrency = grossByCurrency.toMap(),
         )
     }
 
@@ -1036,6 +1090,15 @@ object PayrollCalculator {
         val nightGross: Double = 0.0,
         val deductionsGross: Double = 0.0,
         val netGross: Double = totalGross,
-        val currencyCode: String = "USD",
+        /**
+         * The currency every figure above is in, or null when that question has no
+         * single answer — an empty month, or one worked in more than one currency.
+         *
+         * Nullable rather than defaulted so a caller cannot render a made-up
+         * currency. [grossByCurrency] is the honest breakdown when this is null.
+         */
+        val currencyCode: String? = null,
+        /** Gross per currency. Sums to [totalGross] only when there is one. */
+        val grossByCurrency: Map<String, Double> = emptyMap(),
     )
 }

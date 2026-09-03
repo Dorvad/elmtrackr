@@ -16,6 +16,12 @@ object TaskMonthlyReportBuilder {
         tasks: List<Task> = emptyList(),
         profiles: List<CompensationProfile> = emptyList(),
         premiumProfiles: List<PremiumProfile> = emptyList(),
+        /**
+         * The pay weeks these shifts belong to. Per-task overtime comes from the
+         * shared classifier, which attributes weekly overtime through this window,
+         * so passing only the month restarts a straddling week from zero.
+         */
+        contextShifts: List<Shift> = shifts,
     ): List<TaskMonthlyBreakdown> {
         // Employee-paid only: this groups task hours with their pay and overtime
         // split. A project shift may also carry a task, but its hours are paid by
@@ -27,7 +33,9 @@ object TaskMonthlyReportBuilder {
         val breakdownCache = mutableMapOf<String, ShiftBreakdown>()
         fun breakdownFor(shift: Shift): ShiftBreakdown =
             breakdownCache.getOrPut(shift.id) {
-                MonthlyReportBuilder.buildShiftBreakdown(shift, settings, profiles)
+                MonthlyReportBuilder.buildShiftBreakdown(
+                    shift, settings, profiles, premiumProfiles, contextShifts,
+                )
             }
 
         val grouped = completed.groupBy { shift ->

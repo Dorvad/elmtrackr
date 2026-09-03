@@ -24,13 +24,17 @@ android {
         // applicationId — so the wear module keeps its own range:
         // 10000 + the phone :app versionCode. Bump both together.
         //
-        // 10042: the artifact Play rejected in August was 10041, and Play
-        // refuses any upload at or below a code it has already seen. That is
-        // also why the phone skips from 40 to 42 rather than to 41 — 10041 is
-        // burned, so the lowest phone code that still satisfies the invariant
-        // is 42.
-        versionCode = 10043
-        versionName = "1.3.0"
+        // 10052 = 10000 + the phone's 52. Play refuses any code at or below one
+        // it has already seen, and 10041 is burned by the August rejection.
+        //
+        // 10042 and 10043 both exist in this repository's history and both carry
+        // the launch-crash fixes; neither was ever uploaded, so Google has only
+        // ever reviewed 10041. Whatever ships next must be built from the same
+        // commit as its phone counterpart — the two share :wear-sync, so a watch
+        // built from a different tree than the phone it talks to is a wire
+        // mismatch waiting to happen.
+        versionCode = 10052
+        versionName = "1.3.1"
     }
 
     // The Play Store only delivers the watch app to a paired watch when it is
@@ -92,6 +96,11 @@ android {
         }
     }
 
+    testOptions {
+        // Robolectric needs the merged resources to inflate the watch theme.
+        unitTests.isIncludeAndroidResources = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -147,4 +156,13 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Robolectric, so the launch path is exercised on the JVM in CI.
+    //
+    // Play rejected this module twice for "does not install or launch without
+    // crashing" and the crash was never reproduced, because nothing ran the
+    // Application, the tile service or the complication provider anywhere. An
+    // emulator is the real test; this is the part of it that can run on every
+    // commit.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }

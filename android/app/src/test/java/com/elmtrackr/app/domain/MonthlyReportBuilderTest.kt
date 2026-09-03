@@ -2,6 +2,7 @@ package com.elmtrackr.app.domain
 
 import com.elmtrackr.app.domain.compensation.RegionPresets
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PayBucket
 import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -57,16 +58,35 @@ class MonthlyReportBuilderTest {
 
     // ── Test 4: weekend shift ─────────────────────────────────────────────────
 
+    /**
+     * A Friday day shift is not weekend work, and never was in the money.
+     *
+     * This asserted 480 weekend minutes, because the report classified weekend
+     * minutes with the whole-day `WeekendRules.isWeekendDate`. The pay engine has
+     * always used `isWeeklyRestAt`, which honours the Israeli preset's
+     * `weeklyRestStartTime` of 17:00 — and these settings resolve to that preset,
+     * because `legacySettingsToResolved` copies it whenever no region is chosen.
+     *
+     * So the same shift was paid as seven hours of ordinary time plus an hour of
+     * overtime and reported as eight hours of weekend work. It now reports what it
+     * pays: the pre-rest daily standard is 420 minutes, so 420 regular and 60 of
+     * daily overtime, and not one weekend minute — the shift ends exactly as rest
+     * begins.
+     *
+     * `segments` still marks both as a calendar weekend day, which is what it is
+     * for: an overnight shift's day split for the UI. Nothing derives money from
+     * it any more.
+     */
     @Test
-    fun `buildShiftBreakdown - Friday shift is all weekend minutes`() {
-        // 2024-01-05 = Friday; weekend days = [5,6]
+    fun `buildShiftBreakdown - a Friday day shift is ordinary time, not weekend`() {
+        // 2024-01-05 = Friday, 09:00-17:00 UTC, entirely before the 17:00 boundary.
         val s = shift("s1", "2024-01-05T09:00:00Z", "2024-01-05T17:00:00Z")
         val bd = MonthlyReportBuilder.buildShiftBreakdown(s, settings)
         assertEquals(480, bd.totalMinutes)
-        assertEquals(480, bd.weekendMinutes)
-        assertEquals(0,   bd.regularMinutes)
-        assertEquals(0,   bd.overtimeMinutes)
-        assertTrue(bd.segments.all { it.isWeekend })
+        assertEquals(0,   bd.weekendMinutes)
+        assertEquals(420, bd.regularMinutes)
+        assertEquals(60,  bd.overtimeMinutes)
+        assertTrue("the calendar flag is unchanged", bd.segments.all { it.isWeekend })
     }
 
     @Test
@@ -150,16 +170,19 @@ class MonthlyReportBuilderTest {
     }
 
     @Test
-    fun `buildMonthlyReport - weekend + weekday in same month`() {
+    fun `buildMonthlyReport - a Friday day shift adds no weekend minutes`() {
         val shifts = listOf(
-            shift("s1", "2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z"),  // Mon, 480 regular
-            shift("s2", "2024-01-05T09:00:00Z", "2024-01-05T17:00:00Z"),  // Fri, 480 weekend
+            shift("s1", "2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z"),  // Mon: 480 regular
+            // Friday, but wholly before the 17:00 rest boundary — so 420 regular
+            // plus 60 of overtime against the shorter pre-rest standard, which is
+            // what the pay engine has always charged for it.
+            shift("s2", "2024-01-05T09:00:00Z", "2024-01-05T17:00:00Z"),
         )
         val report = MonthlyReportBuilder.buildMonthlyReport(2024, 1, shifts, settings)
         assertEquals(960, report.totalMinutes)
-        assertEquals(480, report.weekendMinutes)
-        assertEquals(480, report.regularMinutes)
-        assertEquals(0,   report.overtimeMinutes)
+        assertEquals(0,   report.weekendMinutes)
+        assertEquals(900, report.regularMinutes)
+        assertEquals(60,  report.overtimeMinutes)
     }
 
     @Test
@@ -325,7 +348,98 @@ class MonthlyReportBuilderTest {
         val report = MonthlyReportBuilder.buildMonthlyReport(2024, 1, shifts, jerusalem)
 
         assertEquals(2880, report.totalMinutes)
-        assertEquals(0, report.overtimeMinutes)
+        // 300, not 0, and the weekly threshold is not why.
+        //
+        // 22:30Z is 00:30 in Jerusalem, so five of these six shifts run 00:30-08:30
+        // local and put 330 minutes inside the 22:00-06:00 night window. Two hours
+        // is enough to make the whole workday a night workday under the Israeli
+        // preset, which shortens the daily standard to 420 — so each of those five
+        // shifts earns 60 minutes of daily overtime, and always has been paid for
+        // it. The report used the raw standard and reported none.
+        //
+        // The point the test was written to make still holds: no *weekly* overtime,
+        // because neither pay week reaches 2400 minutes.
+        assertEquals(300, report.overtimeMinutes)
+    }
+
+    // ── The invariant this all exists for ────────────────────────────────────
+
+    /**
+     * Reported hours and paid brackets must describe the same shift.
+     *
+     * This is the assertion the whole wave was for. Every defect it replaces was
+     * the same shape — the report classifying minutes with one rule while the
+     * money used another — so the guard is not "these numbers are 420 and 60" but
+     * "whatever they are, the two sides agree".
+     *
+     * Run across every shipped preset and over the cases that used to diverge: a
+     * Friday either side of the rest boundary, a night shift, an overnight shift,
+     * and a plain weekday.
+     */
+    private fun assertHoursMatchMoney(
+        label: String,
+        shift: Shift,
+        profile: CompensationProfile,
+        context: List<Shift> = listOf(shift),
+    ) {
+        val settings = settingsFor(profile)
+        val profiles = listOf(profile)
+        val bd = MonthlyReportBuilder.buildShiftBreakdown(shift, settings, profiles, emptyList(), context)
+        val pay = PayrollCalculator.calculateShiftPayInContext(shift, context, settings, profiles)
+            ?: return  // no rate configured for this preset; nothing to compare
+
+        val paidOvertime = pay.brackets
+            .filter { it.category.bucket == PayBucket.OVERTIME }
+            .sumOf { it.minutes }
+        val paidSpecial = pay.brackets
+            .filter { it.category.bucket == PayBucket.WEEKEND || it.category.bucket == PayBucket.HOLIDAY }
+            .sumOf { it.minutes }
+        val paidRegular = pay.brackets
+            .filter { it.category.bucket == PayBucket.REGULAR }
+            .sumOf { it.minutes }
+
+        assertEquals("$label: overtime minutes", paidOvertime, bd.overtimeMinutes)
+        assertEquals("$label: weekend/holiday minutes", paidSpecial, bd.weekendMinutes)
+        assertEquals("$label: regular minutes", paidRegular, bd.regularMinutes)
+        assertEquals(
+            "$label: the parts must sum to the total",
+            bd.totalMinutes,
+            bd.regularMinutes + bd.overtimeMinutes + bd.weekendMinutes,
+        )
+    }
+
+    @Test
+    fun `reported hours match paid brackets across every preset`() {
+        val cases = listOf(
+            "weekday 8h" to shift("s1", "2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z"),
+            "weekday 10h" to shift("s2", "2024-01-08T08:00:00Z", "2024-01-08T18:00:00Z"),
+            "Friday before rest" to shift("s3", "2024-01-05T09:00:00Z", "2024-01-05T17:00:00Z"),
+            "Friday across rest" to shift("s4", "2024-01-05T14:00:00Z", "2024-01-05T20:00:00Z"),
+            "Saturday" to shift("s5", "2024-01-06T09:00:00Z", "2024-01-06T17:00:00Z"),
+            "overnight into Saturday" to shift("s6", "2024-01-05T22:00:00Z", "2024-01-06T06:00:00Z"),
+            "night shift" to shift("s7", "2024-01-03T22:00:00Z", "2024-01-04T06:00:00Z"),
+        )
+
+        listOf(RegionCode.IL, RegionCode.US, RegionCode.US_CA, RegionCode.GB, RegionCode.EU)
+            .forEach { region ->
+                val p = presetProfile(region, "p-$region")
+                cases.forEach { (name, s) -> assertHoursMatchMoney("$region / $name", s, p) }
+            }
+    }
+
+    @Test
+    fun `reported hours match paid brackets for a week that straddles the month`() {
+        val p = presetProfile(RegionCode.US, "p-us-straddle")
+        // Sun 28 Jan starts the pay week; the reported shift is on 1 Feb, with four
+        // January days of context. Weekly overtime is only attributable with them.
+        val january = (28..31).map { d ->
+            shift("jan$d", "2024-01-${d}T08:00:00Z", "2024-01-${d}T18:00:00Z")
+        }
+        val february = shift("feb1", "2024-02-01T08:00:00Z", "2024-02-01T18:00:00Z")
+
+        assertHoursMatchMoney(
+            "US / straddling week", february, p, context = january + february,
+        )
     }
 
     // ── Thresholds agree with the pay path ───────────────────────────────────
@@ -491,8 +605,14 @@ class MonthlyReportBuilderTest {
 
         assertEquals(2880, report.totalMinutes)
         assertEquals(480, report.overtimeMinutes)
-        // Every per-shift breakdown stays at zero: no single day crossed a daily ladder.
-        assertTrue(report.shifts.all { it.overtimeMinutes == 0 })
+        // The per-shift breakdowns are no longer all zero, and that is the point of
+        // the change rather than a side effect. Weekly overtime is attributed to the
+        // shifts that actually crossed the threshold — the last day and a half of
+        // the week — instead of existing only as a month-level figure no row could
+        // account for. The money has always been attributed this way, which is why
+        // the rows and the money could disagree before.
+        assertEquals(480, report.shifts.sumOf { it.overtimeMinutes })
+        assertTrue("early shifts in the week are still all regular", report.shifts.any { it.overtimeMinutes == 0 })
     }
 
     /** The UK preset ships with overtime switched off entirely. */

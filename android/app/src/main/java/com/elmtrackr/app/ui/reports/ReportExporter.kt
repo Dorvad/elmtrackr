@@ -168,10 +168,16 @@ object ReportExporter {
 
         state.settings?.let { settings ->
             ensureSpace(42f)
+            val otRules = com.elmtrackr.app.domain.compensation.CompensationResolver
+                .defaultRules(settings, state.profiles)
             canvas.drawText(res.getString(R.string.export_thresholds), margin, y, heading)
             y += 14f
             canvas.drawText(
-                "${res.getString(R.string.reports_daily_ot_after)} ${DurationText.format(res, settings.dailyOvertimeThresholdMinutes)}   ${res.getString(R.string.reports_weekly_ot_after)} ${DurationText.format(res, settings.weeklyOvertimeThresholdMinutes)}",
+                // Resolved through the default profile, like every figure in this
+                // document. The settings fields default to 480/2400 while the
+                // Israeli preset standards are 516/2520, so the PDF used to print a
+                // threshold none of its own numbers had used.
+                "${res.getString(R.string.reports_daily_ot_after)} ${DurationText.format(res, otRules.dailyStandardMinutes)}   ${res.getString(R.string.reports_weekly_ot_after)} ${DurationText.format(res, otRules.weeklyStandardMinutes)}",
                 margin,
                 y,
                 muted,
@@ -185,9 +191,18 @@ object ReportExporter {
         drawShiftHeader(canvas, margin, y, heading, fill, res)
         y += 18f
 
+        // The same pay-week window the header's monthly gross was built from.
+        // Pricing each row against the month alone let the rows sum to less than
+        // the total printed at the top of the same document — the one a user hands
+        // to payroll.
+        val payContext = state.payContextShifts.ifEmpty { state.rawShifts }
         state.rawShifts.sortedByDescending { it.startTime }.forEach { shift ->
             ensureSpace(38f)
-            val breakdown = state.settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it, state.profiles) }
+            val breakdown = state.settings?.let {
+                MonthlyReportBuilder.buildShiftBreakdown(
+                    shift, it, state.profiles, state.premiumProfiles, payContext,
+                )
+            }
             // Gate on either rate source, matching ReportsViewModel and
             // WeeklyBreakdownBuilder. Checking only the legacy settings rate printed "-"
             // in every Gross cell for users who configure rates on compensation profiles,
@@ -197,7 +212,7 @@ object ReportExporter {
                     state.profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
                 if (!hasRate) null else {
                     com.elmtrackr.app.domain.PayrollCalculator.calculateShiftPayInContext(
-                        shift, state.rawShifts, settings, state.profiles, state.premiumProfiles,
+                        shift, payContext, settings, state.profiles, state.premiumProfiles,
                     )
                 }
             }

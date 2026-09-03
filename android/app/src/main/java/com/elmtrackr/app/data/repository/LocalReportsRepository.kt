@@ -45,16 +45,31 @@ class LocalReportsRepository @Inject constructor(
             val settings = settingsEntity?.toDomain() ?: return@flatMapLatest flowOf(null)
             val zone = WorkTimezone.zoneFor(settings)
             val (from, to) = WorkTimezone.monthRangeEpochMillis(year, month, zone)
+            // Queried wider than the month, and reported narrower.
+            //
+            // Weekly overtime accumulates over a pay week, so a week straddling the
+            // 1st needs the minutes worked on its far side. Without them the report
+            // restarted every month's first partial week at zero and under-counted
+            // overtime — and because this repository is what the Reports screen
+            // renders, while the dashboard passes its own context, the two screens
+            // disagreed about the same month. The ViewModel had a context-aware
+            // fallback, but it sat behind `?:` and never ran.
+            val (contextFrom, _) = WorkTimezone.payContextRangeEpochMillis(
+                year, month, zone, MonthlyReportBuilder.defaultWeekStartDay(settings),
+            )
             combine(
-                shiftDao.observeShiftsByDateRange(userId, from, to),
+                shiftDao.observeShiftsByDateRange(userId, contextFrom, to),
                 compensationProfileDao.observeProfiles(userId),
             ) { entities, profileEntities ->
+                val context = entities.map { it.toDomain() }
+                val month0 = context.filter { it.startTime.toEpochMilli() in from until to }
                 MonthlyReportBuilder.buildMonthlyReport(
                     year = year,
                     month = month,
-                    shifts = entities.map { it.toDomain() },
+                    shifts = month0,
                     settings = settings,
                     profiles = profileEntities.map { it.toDomain() },
+                    contextShifts = context,
                 )
             }
         }

@@ -808,6 +808,67 @@ class PayrollCalculatorTest {
 
     // ── Israeli weekly rest + overtime ────────────────────────────────────────
 
+    // ── The pay summary's currency ────────────────────────────────────────────
+
+    /**
+     * An empty month must not name a currency it invented.
+     *
+     * `currencyCode` used to default to "USD" and was only overwritten by a shift
+     * the fold visited. A month with an hourly rate but no shifts yet therefore
+     * reported USD, and every display site prefers the summary's currency over the
+     * user's settings — so an Israeli user opening a fresh month saw "$".
+     */
+    @Test
+    fun `an empty month names no currency`() {
+        val summary = PayrollCalculator.sumMonthlyPay(emptyList(), defaultSettings)
+
+        assertNull(summary.currencyCode)
+        assertTrue(summary.grossByCurrency.isEmpty())
+        assertNear(0.0, summary.totalGross)
+    }
+
+    @Test
+    fun `a single-currency month names that currency`() {
+        val p = profile(RegionCode.US, rate = 60.0).copy(currencyCode = "ILS")
+        val summary = PayrollCalculator.sumMonthlyPay(
+            listOf(shift("2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z")),
+            settingsWithProfile(p),
+            listOf(p),
+        )
+
+        assertEquals("ILS", summary.currencyCode)
+        assertEquals(setOf("ILS"), summary.grossByCurrency.keys)
+        assertNear(summary.totalGross, summary.grossByCurrency.getValue("ILS"))
+    }
+
+    /**
+     * Two jobs in two currencies are not one number.
+     *
+     * The fold summed both into `totalGross` and stamped the result with whichever
+     * shift it visited last, which is order-dependent and describes no real amount.
+     * The label is now null and the breakdown is per currency; `totalGross` is left
+     * as it was so no caller changes behaviour, but a renderer can now tell that
+     * adding them up would be wrong.
+     */
+    @Test
+    fun `a month worked in two currencies names neither`() {
+        val ils = profile(RegionCode.US, rate = 60.0, id = "p-ils").copy(currencyCode = "ILS")
+        val usd = profile(RegionCode.US, rate = 60.0, id = "p-usd").copy(currencyCode = "USD")
+        val shifts = listOf(
+            shift("2024-01-08T09:00:00Z", "2024-01-08T17:00:00Z", id = "s-ils")
+                .copy(compensationProfileId = ils.id),
+            shift("2024-01-09T09:00:00Z", "2024-01-09T17:00:00Z", id = "s-usd")
+                .copy(compensationProfileId = usd.id),
+        )
+
+        val summary = PayrollCalculator.sumMonthlyPay(
+            shifts, settingsWithProfile(ils), listOf(ils, usd),
+        )
+
+        assertNull("no single currency describes this month", summary.currencyCode)
+        assertEquals(setOf("ILS", "USD"), summary.grossByCurrency.keys)
+    }
+
     private fun ilProfile(rate: Double = 58.0) = profile(
         RegionCode.IL,
         rate = rate,
