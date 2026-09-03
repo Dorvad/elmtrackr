@@ -19,6 +19,14 @@ data class RemoteCompensationProfileRow(
     @SerialName("effective_until") val effectiveUntil: String? = null,
     @SerialName("is_default") val isDefault: Boolean,
     @SerialName("is_archived") val isArchived: Boolean,
+    /**
+     * The job this profile pays for. Every profile owns exactly one workplace,
+     * created with it, so leave entitlement outlives a wage change.
+     *
+     * Nullable and defaulted: the column is never backfilled, so NULL genuinely
+     * means a profile written before workplaces existed.
+     */
+    @SerialName("workplace_id") val workplaceId: String? = null,
     /** Visual identity. Absent on rows written by a client predating the columns. */
     val color: String? = null,
     val icon: String? = null,
@@ -50,6 +58,7 @@ data class RemoteCompensationProfileInsert(
     @SerialName("effective_until") val effectiveUntil: String? = null,
     @SerialName("is_default") val isDefault: Boolean,
     @SerialName("is_archived") val isArchived: Boolean,
+    @SerialName("workplace_id") val workplaceId: String? = null,
     /** Visual identity. Absent on rows written by a client predating the columns. */
     val color: String? = null,
     val icon: String? = null,
@@ -69,6 +78,7 @@ data class RemoteCompensationProfileUpdate(
     @SerialName("effective_until") val effectiveUntil: String? = null,
     @SerialName("is_default") val isDefault: Boolean,
     @SerialName("is_archived") val isArchived: Boolean,
+    @SerialName("workplace_id") val workplaceId: String? = null,
     /** Visual identity. Absent on rows written by a client predating the columns. */
     val color: String? = null,
     val icon: String? = null,

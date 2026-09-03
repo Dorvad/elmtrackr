@@ -802,6 +802,7 @@ class SyncRepositoryImpl @Inject constructor(
                     compensationProfileRemoteId = idMapper.profileLocalToRemote(shift.compensationProfileId),
                     premiumProfileRemoteId = idMapper.premiumProfileLocalToRemote(shift.premiumProfileId),
                     taskRemoteId = idMapper.taskLocalToRemote(shift.taskId),
+                    workplaceRemoteId = idMapper.workplaceLocalToRemote(shift.workplaceId),
                 ),
             )
             markShiftSynced(shift, remote.id, syncedAt)
@@ -824,6 +825,7 @@ class SyncRepositoryImpl @Inject constructor(
                 compensationProfileRemoteId = idMapper.profileLocalToRemote(shift.compensationProfileId),
                 premiumProfileRemoteId = idMapper.premiumProfileLocalToRemote(shift.premiumProfileId),
                 taskRemoteId = idMapper.taskLocalToRemote(shift.taskId),
+                workplaceRemoteId = idMapper.workplaceLocalToRemote(shift.workplaceId),
             ),
         )
         if (applied == null) {
@@ -858,6 +860,7 @@ class SyncRepositoryImpl @Inject constructor(
                 compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
                 premiumProfileLocalId = idMapper.premiumProfileRemoteToLocal(remote.premiumProfileId),
                 taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
+                workplaceLocalId = idMapper.workplaceRemoteToLocal(remote.workplaceId),
                 syncStatus = SyncStatus.SYNCED,
                 preserveLocal = shift,
             ),
@@ -884,6 +887,7 @@ class SyncRepositoryImpl @Inject constructor(
                     compensationProfileRemoteId = idMapper.profileLocalToRemote(shift.compensationProfileId),
                     premiumProfileRemoteId = idMapper.premiumProfileLocalToRemote(shift.premiumProfileId),
                     taskRemoteId = idMapper.taskLocalToRemote(shift.taskId),
+                    workplaceRemoteId = idMapper.workplaceLocalToRemote(shift.workplaceId),
                 ),
             )
             // A delete is an edit, and it loses to a newer one like any other.
@@ -985,6 +989,7 @@ class SyncRepositoryImpl @Inject constructor(
                         compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
                         premiumProfileLocalId = idMapper.premiumProfileRemoteToLocal(remote.premiumProfileId),
                         taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
+                        workplaceLocalId = idMapper.workplaceRemoteToLocal(remote.workplaceId),
                         syncStatus = SyncStatus.SYNCED,
                         // The project link and compensation source live only
                         // locally; a pull must not erase them.
@@ -1005,6 +1010,7 @@ class SyncRepositoryImpl @Inject constructor(
                             compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
                             premiumProfileLocalId = idMapper.premiumProfileRemoteToLocal(remote.premiumProfileId),
                             taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
+                            workplaceLocalId = idMapper.workplaceRemoteToLocal(remote.workplaceId),
                             syncStatus = SyncStatus.SYNCED,
                             preserveLocal = existingByStartTime,
                         ),
@@ -1047,6 +1053,7 @@ class SyncRepositoryImpl @Inject constructor(
                 compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
                 premiumProfileLocalId = idMapper.premiumProfileRemoteToLocal(remote.premiumProfileId),
                 taskLocalId = idMapper.taskRemoteToLocal(remote.taskId),
+                workplaceLocalId = idMapper.workplaceRemoteToLocal(remote.workplaceId),
             ),
         )
         return true
@@ -1564,7 +1571,7 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushCompensationProfileCreate(profile: CompensationProfileEntity, syncedAt: Long) {
         val remoteId = try {
-            compensationRemote.insert(profile.toRemoteInsert()).id
+            compensationRemote.insert(profile.toRemoteInsert(idMapper.workplaceLocalToRemote(profile.workplaceId))).id
         } catch (e: Exception) {
             // The insert carries the client-generated id, so a retry after a lost
             // response collides with the row it already created — adopt that row
@@ -1580,7 +1587,7 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushCompensationProfileUpdate(profile: CompensationProfileEntity, syncedAt: Long) {
         val remoteId = profile.remoteId ?: error("Missing remoteId for profile ${profile.localId}")
-        if (compensationRemote.update(remoteId, profile.toRemoteUpdate()) == null) {
+        if (compensationRemote.update(remoteId, profile.toRemoteUpdate(idMapper.workplaceLocalToRemote(profile.workplaceId))) == null) {
             adoptNewerRemoteCompensationProfile(profile, remoteId, syncedAt)
             return
         }
@@ -1594,7 +1601,13 @@ class SyncRepositoryImpl @Inject constructor(
         syncedAt: Long,
     ) {
         val remote = compensationRemote.findById(remoteId) ?: return
-        compensationProfileDao.upsert(remote.toLocalEntity(existingLocalId = profile.localId))
+        compensationProfileDao.upsert(
+            remote.toLocalEntity(
+                existingLocalId = profile.localId,
+                workplaceLocalId = idMapper.workplaceRemoteToLocal(remote.workplaceId),
+                preserveLocal = profile,
+            ),
+        )
         compensationProfileDao.updateSyncState(
             profile.localId, SyncStatus.SYNCED, remoteId, syncedAt, null,
         )
@@ -1615,7 +1628,7 @@ class SyncRepositoryImpl @Inject constructor(
     /** Tombstone, not DELETE — see [pushTaskDelete]. */
     private suspend fun pushCompensationProfileDelete(profile: CompensationProfileEntity, syncedAt: Long) {
         val remoteId = profile.remoteId
-        if (remoteId != null && compensationRemote.update(remoteId, profile.toRemoteUpdate()) == null) {
+        if (remoteId != null && compensationRemote.update(remoteId, profile.toRemoteUpdate(idMapper.workplaceLocalToRemote(profile.workplaceId))) == null) {
             adoptNewerRemoteCompensationProfile(profile, remoteId, syncedAt)
             return
         }
@@ -1640,13 +1653,23 @@ class SyncRepositoryImpl @Inject constructor(
             ownerOf = { it.userId },
         ) { remote ->
             val existing = compensationProfileDao.getByRemoteId(remote.id)
+            val workplaceLocalId = idMapper.workplaceRemoteToLocal(remote.workplaceId)
             when {
                 existing == null && remote.deletedAt != null -> Unit
-                existing == null -> compensationProfileDao.insert(remote.toLocalEntity())
+                existing == null -> compensationProfileDao.insert(
+                    remote.toLocalEntity(workplaceLocalId = workplaceLocalId),
+                )
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
                 isoToEpoch(remote.updatedAt) > existing.updatedAt ->
                     compensationProfileDao.upsert(
-                        remote.toLocalEntity(existingLocalId = existing.localId),
+                        remote.toLocalEntity(
+                            existingLocalId = existing.localId,
+                            workplaceLocalId = workplaceLocalId,
+                            // Keeps the profile's workplace when the remote link
+                            // has not been pulled yet; without it a pull would
+                            // strip the leave entitlement hanging off it.
+                            preserveLocal = existing,
+                        ),
                     )
             }
             true

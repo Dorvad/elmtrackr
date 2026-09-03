@@ -20,7 +20,11 @@ import kotlinx.serialization.Serializable
  * lack the newer optional fields), so bumping the version never strands a
  * user's existing backup files.
  */
-const val BACKUP_FORMAT_VERSION = 7
+// 8: shifts carry workplaceId, and the five workplace/leave tables are exported.
+// Before 8 a backup silently dropped a shift's job link, and carried no leave at
+// all — while the Supabase contract named the backup as the mitigation for
+// exactly that data.
+const val BACKUP_FORMAT_VERSION = 8
 
 /** Version 1 predates full-fidelity rows and cannot be restored safely. */
 const val MIN_SUPPORTED_BACKUP_FORMAT_VERSION = 2
@@ -88,6 +92,14 @@ data class ShiftBackupRow(
      * those backups had.
      */
     val compensationSource: String? = null,
+    /**
+     * The job this shift was worked at.
+     *
+     * Absent from the format until version 8, so a shift restored from an older
+     * backup carries null — which is the same thing every row written before
+     * workplaces existed carries, and is read as "not assigned yet".
+     */
+    val workplaceId: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,
@@ -316,7 +328,7 @@ internal fun ShiftEntity.toBackupRow() = ShiftBackupRow(
     taskNameSnapshot = taskNameSnapshot, taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
     projectId = projectId, projectNameSnapshot = projectNameSnapshot,
-    compensationSource = compensationSource, createdAt = createdAt,
+    compensationSource = compensationSource, workplaceId = workplaceId, createdAt = createdAt,
     updatedAt = updatedAt, deletedAt = deletedAt, syncStatus = syncStatus.name,
     lastSyncedAt = lastSyncedAt,
 )
@@ -336,6 +348,7 @@ internal fun ShiftBackupRow.toEntity(userId: String) = ShiftEntity(
     // someone's pay. An absent value stays absent: NULL already means EMPLOYEE,
     // and writing one in would differ from what the exporter wrote out.
     compensationSource = compensationSource?.let { CompensationSource.fromPersisted(it).name },
+    workplaceId = workplaceId,
     createdAt = createdAt,
     updatedAt = updatedAt, deletedAt = deletedAt,
     syncStatus = syncStatusFromBackup(syncStatus), lastSyncError = null, lastSyncedAt = lastSyncedAt,

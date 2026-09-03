@@ -18,6 +18,7 @@ fun ShiftEntity.toRemoteInsert(
     compensationProfileRemoteId: String? = null,
     premiumProfileRemoteId: String? = null,
     taskRemoteId: String? = null,
+    workplaceRemoteId: String? = null,
 ): RemoteShiftInsert = RemoteShiftInsert(
     userId = userId,
     startTime = epochToIso(startTime),
@@ -34,6 +35,7 @@ fun ShiftEntity.toRemoteInsert(
     taskNameSnapshot = taskNameSnapshot,
     taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
+    workplaceId = workplaceRemoteId,
     clientUpdatedAt = epochToIso(updatedAt),
 )
 
@@ -46,6 +48,7 @@ fun ShiftEntity.toRemoteUpdate(
     compensationProfileRemoteId: String? = null,
     premiumProfileRemoteId: String? = null,
     taskRemoteId: String? = null,
+    workplaceRemoteId: String? = null,
 ): RemoteShiftUpdate = RemoteShiftUpdate(
     startTime = epochToIso(startTime),
     endTime = endTime?.let(::epochToIso),
@@ -61,6 +64,7 @@ fun ShiftEntity.toRemoteUpdate(
     taskNameSnapshot = taskNameSnapshot,
     taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
+    workplaceId = workplaceRemoteId,
     deletedAt = deletedAt?.let(::epochToIso),
     clientUpdatedAt = epochToIso(updatedAt),
 )
@@ -80,6 +84,7 @@ fun RemoteShiftRow.toLocalEntity(
     compensationProfileLocalId: String? = compensationProfileId,
     premiumProfileLocalId: String? = premiumProfileId,
     taskLocalId: String? = taskId,
+    workplaceLocalId: String? = null,
     syncStatus: SyncStatus = SyncStatus.SYNCED,
     preserveLocal: ShiftEntity? = null,
 ): ShiftEntity {
@@ -106,6 +111,17 @@ fun RemoteShiftRow.toLocalEntity(
         projectId = preserveLocal?.projectId,
         projectNameSnapshot = preserveLocal?.projectNameSnapshot,
         compensationSource = preserveLocal?.compensationSource,
+        // The translated remote link, falling back to whatever the local row
+        // already held.
+        //
+        // The fallback is not redundant. `workplace_id` travels as a *remote* id
+        // while the entity holds a *local* one, so a shift whose workplace has not
+        // been pulled yet resolves to null — and before this field existed at all,
+        // every pull rebuilt the entity without it and silently reset the value
+        // that clock-in had stamped. `LocalLeaveRepository` reads a null workplace
+        // as matching every workplace, so the damage was an absence counted
+        // against the wrong job's leave.
+        workplaceId = workplaceLocalId ?: preserveLocal?.workplaceId,
         createdAt = created,
         updatedAt = updated,
         // Carries the cloud tombstone through to the local row. Without this a

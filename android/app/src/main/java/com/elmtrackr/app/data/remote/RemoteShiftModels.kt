@@ -22,6 +22,15 @@ data class RemoteShiftRow(
     @SerialName("task_name_snapshot") val taskNameSnapshot: String? = null,
     @SerialName("task_icon_snapshot") val taskIconSnapshot: String? = null,
     @SerialName("task_hourly_rate_snapshot") val taskHourlyRateSnapshot: Double? = null,
+    /**
+     * The job this shift was worked at.
+     *
+     * Nullable and defaulted for two separate reasons: the column is never
+     * backfilled, so NULL legitimately means "written before workplaces existed",
+     * and decoding has to survive a database that predates
+     * `20260811000000_workplaces_and_leave.sql`.
+     */
+    @SerialName("workplace_id") val workplaceId: String? = null,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String,
     /** Set when the row is a tombstone; the shift was deleted on some device. */
@@ -51,6 +60,7 @@ data class RemoteShiftInsert(
     @SerialName("task_name_snapshot") val taskNameSnapshot: String? = null,
     @SerialName("task_icon_snapshot") val taskIconSnapshot: String? = null,
     @SerialName("task_hourly_rate_snapshot") val taskHourlyRateSnapshot: Double? = null,
+    @SerialName("workplace_id") val workplaceId: String? = null,
     @SerialName("client_updated_at") val clientUpdatedAt: String,
 )
 
@@ -70,6 +80,7 @@ data class RemoteShiftUpdate(
     @SerialName("task_name_snapshot") val taskNameSnapshot: String? = null,
     @SerialName("task_icon_snapshot") val taskIconSnapshot: String? = null,
     @SerialName("task_hourly_rate_snapshot") val taskHourlyRateSnapshot: Double? = null,
+    @SerialName("workplace_id") val workplaceId: String? = null,
     /** Non-null makes this update a tombstone. See SupabaseShiftsDataSource.update. */
     @SerialName("deleted_at") val deletedAt: String? = null,
     /**

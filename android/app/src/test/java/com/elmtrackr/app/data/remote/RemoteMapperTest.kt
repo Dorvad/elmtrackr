@@ -8,6 +8,72 @@ import org.junit.Test
 
 class RemoteMapperTest {
 
+    // ── The job link ──────────────────────────────────────────────────────────
+    // These are the tests whose absence let the defect ship: `workplace_id` was
+    // never on the wire, and nothing asserted it survived a pull, so every pull
+    // rebuilt the entity without it and silently reset what clock-in had stamped.
+    // `LocalLeaveRepository` reads a null workplace as matching every workplace,
+    // so the damage was an absence counted against the wrong job's leave.
+
+    @Test
+    fun `the job link survives a pull`() {
+        val remote = shiftRow(workplaceId = "wp-remote")
+
+        val local = remote.toLocalEntity(
+            existingLocalId = "local-1",
+            workplaceLocalId = "wp-local",
+        )
+
+        assertEquals("wp-local", local.workplaceId)
+    }
+
+    @Test
+    fun `a pull keeps the local job link when the remote one has not landed yet`() {
+        // The link travels as a remote id while the entity holds a local one, so a
+        // shift pulled before its workplace resolves to null. The local value has
+        // to survive that, or the round trip destroys it.
+        val existing = shiftRow(workplaceId = "wp-remote")
+            .toLocalEntity(existingLocalId = "local-1", workplaceLocalId = "wp-local")
+
+        val reapplied = shiftRow(workplaceId = "wp-remote").toLocalEntity(
+            existingLocalId = "local-1",
+            workplaceLocalId = null,
+            preserveLocal = existing,
+        )
+
+        assertEquals("wp-local", reapplied.workplaceId)
+    }
+
+    @Test
+    fun `the job link is pushed as the remote id`() {
+        val local = shiftRow().toLocalEntity(existingLocalId = "local-1")
+            .copy(workplaceId = "wp-local")
+
+        assertEquals("wp-remote", local.toRemoteInsert(workplaceRemoteId = "wp-remote").workplaceId)
+        assertEquals("wp-remote", local.toRemoteUpdate(workplaceRemoteId = "wp-remote").workplaceId)
+    }
+
+    @Test
+    fun `a shift with no job pushes and pulls null`() {
+        // NULL is never backfilled and means "not assigned yet", so it has to stay
+        // NULL rather than become a guess.
+        val local = shiftRow().toLocalEntity(existingLocalId = "local-1")
+
+        assertNull(local.workplaceId)
+        assertNull(local.toRemoteInsert().workplaceId)
+    }
+
+    private fun shiftRow(workplaceId: String? = null) = RemoteShiftRow(
+        id = "remote-1",
+        userId = "user-1",
+        startTime = "2024-06-01T08:00:00Z",
+        endTime = "2024-06-01T16:00:00Z",
+        breakMinutes = 30,
+        workplaceId = workplaceId,
+        createdAt = "2024-06-01T08:00:00Z",
+        updatedAt = "2024-06-01T16:00:00Z",
+    )
+
     @Test
     fun `round trip maps shift fields and timestamps`() {
         val remote = RemoteShiftRow(
