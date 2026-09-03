@@ -196,6 +196,59 @@ object IsraeliCompensationEngine {
         return state
     }
 
+    /**
+     * Classifies every shift in one pay week in a single forward pass.
+     *
+     * [weekStateBeforeShift] re-derives the week from scratch for each shift, so
+     * classifying a week of *n* shifts classifies the first shift *n* times, the
+     * second *n-1* times, and so on — and each of those classifications walks its
+     * shift a minute at a time. A month is the same shape again per week. The
+     * accumulated state is the only thing each shift needs from the ones before
+     * it, and it is already computed in order, so carrying it forward does the
+     * same work once.
+     *
+     * Deliberately not a memo. A cache keyed on everything `classifyShiftSegments`
+     * reads — the shift's times, break, flags, the resolved rules, the zone, the
+     * premium profiles and both counters — is a key an omission silently corrupts,
+     * and an incomplete key in a payroll cache is a wrong-pay bug. A forward pass
+     * has no key to get wrong.
+     *
+     * `IsraeliCompensationEngineTest` asserts this returns exactly what the
+     * per-shift path returns, for every fixture in that file.
+     *
+     * @return each shift's segments, keyed by shift id. Shifts with no payable
+     *   minutes are absent, as they are from the per-shift path.
+     */
+    internal fun classifyWeek(
+        shiftsInWeek: List<Shift>,
+        zone: ZoneId,
+        settings: UserSettings,
+        profiles: List<CompensationProfile>,
+        premiumProfiles: List<PremiumProfile>,
+    ): Map<String, List<ClassifiedPaySegment>> {
+        val ordered = shiftsInWeek
+            .filter { it.endTime != null }
+            .sortedBy { it.startTime }
+        if (ordered.isEmpty()) return emptyMap()
+
+        val out = LinkedHashMap<String, List<ClassifiedPaySegment>>(ordered.size)
+        var state = WeekPayState()
+        for (shift in ordered) {
+            val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+            val segments = classifyShiftSegments(
+                shift = shift,
+                weeklyRegularMinutesBefore = state.weeklyRegularMinutes,
+                weeklyOvertimeMinutesBefore = state.weeklyOvertimeMinutes,
+                resolved = resolved,
+                zone = zone,
+                premiumProfiles = premiumProfiles,
+            )
+            if (segments.isNotEmpty()) out[shift.id] = segments
+            state = advanceWeekState(state, segments)
+        }
+        return out
+    }
+
     internal fun advanceWeekState(
         state: WeekPayState,
         segments: List<ClassifiedPaySegment>,

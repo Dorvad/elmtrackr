@@ -517,6 +517,77 @@ class IsraeliCompensationEngineTest {
         assertEquals("daily overtime is not weekly overtime", 30, state.weeklyOvertimeMinutes)
     }
 
+    // ── The forward pass ─────────────────────────────────────────────────────
+
+    /**
+     * `classifyWeek` must return exactly what the per-shift path returns.
+     *
+     * That equivalence is the entire safety argument for it. `weekStateBeforeShift`
+     * re-derives the week from scratch for every shift, so a week of n shifts
+     * classifies the first one n times — each walk being minute by minute. The
+     * forward pass does the same work once by carrying the accumulated state,
+     * which is the only thing a shift needs from the ones before it.
+     *
+     * Asserted over a week that actually exercises the accumulation: five ordinary
+     * days that cross the 2,520-minute weekly standard, so the later shifts are
+     * classified differently from the earlier ones and a pass that lost the state
+     * would visibly disagree.
+     */
+    @Test
+    fun `the forward pass agrees with the per-shift path`() {
+        val p = ilProfile()
+        val settings = settingsFor(p)
+        val week = listOf(
+            "2024-01-07", "2024-01-08", "2024-01-09", "2024-01-10", "2024-01-11",
+        ).mapIndexed { i, d ->
+            // 09:00–18:00 Jerusalem: 540 minutes each, so the week passes 2,520
+            // during the fifth shift.
+            shift("${d}T07:00:00Z", "${d}T16:00:00Z", id = "s$i")
+        }
+
+        val batch = IsraeliCompensationEngine.classifyWeek(week, zone, settings, listOf(p), emptyList())
+
+        assertEquals("every shift is classified", week.size, batch.size)
+        week.forEach { s ->
+            val resolved = CompensationResolver.resolveShiftCompensation(s, settings, listOf(p))
+            val state = IsraeliCompensationEngine.weekStateBeforeShift(
+                s, week, resolved, zone, settings, listOf(p), emptyList(),
+            )
+            val oneAtATime = IsraeliCompensationEngine.classifyShiftSegments(
+                shift = s,
+                weeklyRegularMinutesBefore = state.weeklyRegularMinutes,
+                weeklyOvertimeMinutesBefore = state.weeklyOvertimeMinutes,
+                resolved = resolved,
+                zone = zone,
+            )
+            assertEquals("shift ${s.id}", oneAtATime, batch[s.id])
+        }
+    }
+
+    @Test
+    fun `the forward pass carries weekly overtime into the later shifts`() {
+        // Guards the equivalence test above from passing vacuously: if the state
+        // were not carried, every shift would classify as pure regular time and the
+        // two paths would agree on the wrong answer.
+        val p = ilProfile()
+        val week = listOf(
+            "2024-01-07", "2024-01-08", "2024-01-09", "2024-01-10", "2024-01-11",
+        ).mapIndexed { i, d -> shift("${d}T07:00:00Z", "${d}T16:00:00Z", id = "s$i") }
+
+        val batch = IsraeliCompensationEngine.classifyWeek(
+            week, zone, settingsFor(p), listOf(p), emptyList(),
+        )
+
+        assertTrue(
+            "the last shift of the week must carry weekly overtime",
+            batch.getValue("s4").any { it.isWeeklyOvertime },
+        )
+        assertTrue(
+            "the first must not",
+            batch.getValue("s0").none { it.isWeeklyOvertime },
+        )
+    }
+
     @Test
     fun `an active shift classifies to nothing`() {
         val p = ilProfile()

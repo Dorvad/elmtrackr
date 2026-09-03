@@ -1,5 +1,6 @@
 package com.elmtrackr.app.domain.compensation
 
+import com.elmtrackr.app.domain.PayWeekMinutes
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.employeePaidOnly
 import com.elmtrackr.app.domain.model.CompensationProfile
@@ -107,6 +108,82 @@ object ShiftClassifier {
             workedMinutes = worked,
             byCategory = byCategory,
         )
+    }
+
+    /**
+     * Classifies a whole month in one pass, rather than a month's worth of
+     * from-scratch week rebuilds.
+     *
+     * [classify] answers for one shift, and to do that the Israeli engine derives
+     * the shift's pay week from scratch — classifying every earlier shift of that
+     * week, minute by minute, to accumulate the state. Calling it per shift for a
+     * month therefore reclassifies the first shift of each week once per later
+     * shift in it. Here the week is walked once and every shift takes its answer
+     * from that walk.
+     *
+     * The arithmetic is unchanged: `IsraeliCompensationEngine.classifyWeek` is
+     * asserted to return exactly what the per-shift path returns.
+     *
+     * @return a classification per reported shift, keyed by id. Shifts that
+     *   classify to nothing — active ones, project time — are absent, exactly as
+     *   [classify] returns null for them.
+     */
+    fun classifyMonth(
+        shifts: List<Shift>,
+        contextShifts: List<Shift>,
+        settings: UserSettings,
+        profiles: List<CompensationProfile> = emptyList(),
+        premiumProfiles: List<PremiumProfile> = emptyList(),
+    ): Map<String, ShiftClassification> {
+        val reported = shifts.employeePaidOnly().filter { it.endTime != null }
+        if (reported.isEmpty()) return emptyMap()
+        val context = contextShifts.employeePaidOnly().filter { it.endTime != null }
+            .ifEmpty { reported }
+
+        val out = HashMap<String, ShiftClassification>(reported.size)
+        val reportedIds = reported.mapTo(HashSet()) { it.id }
+
+        // Grouped by resolved region first: only the Israeli engine has a week to
+        // walk. A generic-engine shift resolves its own prior minutes and gains
+        // nothing from batching, so it keeps the single-shift path.
+        val israeli = context.filter {
+            CompensationResolver.resolveShiftCompensation(it, settings, profiles)
+                .regionCode == RegionCode.IL
+        }
+        val israeliIds = israeli.mapTo(HashSet()) { it.id }
+
+        israeli
+            .groupBy { shift ->
+                val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
+                val zone = WorkTimezone.zoneFor(resolved, settings)
+                zone to PayWeekMinutes.weekStart(shift, zone, resolved.rules.weekStartDay)
+            }
+            .forEach { (key, weekShifts) ->
+                val (zone, _) = key
+                val classified = IsraeliCompensationEngine.classifyWeek(
+                    weekShifts, zone, settings, profiles, premiumProfiles,
+                )
+                weekShifts.filter { it.id in reportedIds }.forEach { shift ->
+                    val segments = classified[shift.id] ?: return@forEach
+                    val worked = PayrollCalculator.payableNetMinutes(
+                        shift,
+                        CompensationResolver.resolveShiftCompensation(shift, settings, profiles).rules,
+                    ) ?: return@forEach
+                    val byCategory = segments.groupingBy { it.category }
+                        .fold(0) { acc, seg -> acc + seg.minutes }
+                    out[shift.id] = ShiftClassification(
+                        payableMinutes = byCategory.values.sum(),
+                        workedMinutes = worked,
+                        byCategory = byCategory,
+                    )
+                }
+            }
+
+        reported.filterNot { it.id in israeliIds }.forEach { shift ->
+            classify(shift, context, settings, profiles, premiumProfiles)
+                ?.let { out[shift.id] = it }
+        }
+        return out
     }
 
     private fun israeliCategories(
