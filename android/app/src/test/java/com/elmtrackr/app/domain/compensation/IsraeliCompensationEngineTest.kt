@@ -3,6 +3,7 @@ package com.elmtrackr.app.domain.compensation
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CompensationRules
+import com.elmtrackr.app.domain.model.PayCategory
 import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.RoundingRules
 import com.elmtrackr.app.domain.model.Shift
@@ -453,14 +454,17 @@ class IsraeliCompensationEngineTest {
             minutes = 100, multiplier = 1.0, label = "100% — Regular",
             isWeeklyRest = false, isDailyOvertime = false, isWeeklyOvertime = false,
             bucket = IsraeliCompensationEngine.OvertimeBucket.REGULAR,
+            category = PayCategory.REGULAR,
         )
         val weeklyOt = regular.copy(
             minutes = 30, multiplier = 1.25, isWeeklyOvertime = true,
             bucket = IsraeliCompensationEngine.OvertimeBucket.OT_FIRST_TWO,
+            category = PayCategory.WEEKLY_OVERTIME,
         )
         val dailyOt = regular.copy(
             minutes = 40, multiplier = 1.25, isDailyOvertime = true,
             bucket = IsraeliCompensationEngine.OvertimeBucket.OT_FIRST_TWO,
+            category = PayCategory.DAILY_OVERTIME,
         )
 
         val state = IsraeliCompensationEngine.advanceWeekState(

@@ -7,6 +7,8 @@ import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.PayBracket
+import com.elmtrackr.app.domain.model.PayBucket
+import com.elmtrackr.app.domain.model.PayCategory
 import com.elmtrackr.app.domain.model.paysDailyOvertime
 import com.elmtrackr.app.domain.model.ResolvedCompensation
 import com.elmtrackr.app.domain.model.RegionCode
@@ -27,7 +29,12 @@ import kotlin.math.min
  */
 object PayrollCalculator {
 
-    internal data class Tier(val label: String, val capMinutes: Int, val rate: Double)
+    internal data class Tier(
+        val label: String,
+        val capMinutes: Int,
+        val rate: Double,
+        val category: PayCategory,
+    )
 
     fun calculateShiftPay(
         shift: Shift,
@@ -143,20 +150,15 @@ object PayrollCalculator {
             val amount = segment.minutes * ratePerMinute * blendedRate
             val nightPremium =
                 segment.minutes * ratePerMinute * nightFraction * (nightRate - segment.multiplier)
-            when {
-                segment.label.contains("Premium", ignoreCase = true) -> holidayGross += amount - nightPremium
-                segment.isWeeklyRest && segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
-                    weekendGross += amount - nightPremium
-                segment.isWeeklyRest && segment.bucket != IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
-                    overtimeGross += amount - nightPremium
-                segment.isWeeklyOvertime -> overtimeGross += amount - nightPremium
-                segment.isDailyOvertime -> overtimeGross += amount - nightPremium
-                segment.bucket == IsraeliCompensationEngine.OvertimeBucket.REGULAR ->
-                    regularGross += amount - nightPremium
-                else -> overtimeGross += amount - nightPremium
+            val net = amount - nightPremium
+            when (segment.category.bucket) {
+                PayBucket.REGULAR -> regularGross += net
+                PayBucket.OVERTIME -> overtimeGross += net
+                PayBucket.WEEKEND -> weekendGross += net
+                PayBucket.HOLIDAY -> holidayGross += net
             }
             nightGross += nightPremium
-            PayBracket(segment.label, segment.minutes, blendedRate, amount)
+            PayBracket(segment.label, segment.minutes, blendedRate, amount, segment.category)
         }
 
         val isSpecial = segments.any { it.isWeeklyRest } ||
@@ -290,16 +292,19 @@ object PayrollCalculator {
             val blendedRate = tier.rate + nightFraction * (nightRate - tier.rate)
             val amount = mins * ratePerMinute * blendedRate
             val nightPremium = mins * ratePerMinute * nightFraction * (nightRate - tier.rate)
-            brackets += PayBracket(tier.label, mins, blendedRate, amount)
+            brackets += PayBracket(tier.label, mins, blendedRate, amount, tier.category)
 
-            when {
-                tier.label.contains("Premium", ignoreCase = true) -> holidayGross += amount - nightPremium
-                tier.label.contains("overtime", ignoreCase = true) -> overtimeGross += amount - nightPremium
-                tier.label.contains("Holiday", ignoreCase = true) -> holidayGross += amount - nightPremium
-                tier.label.contains("Weekly rest", ignoreCase = true) -> weekendGross += amount - nightPremium
-                tier.label.contains("Weekend", ignoreCase = true) -> weekendGross += amount - nightPremium
-                tier.label.contains("Overtime", ignoreCase = true) -> overtimeGross += amount - nightPremium
-                else -> regularGross += amount - nightPremium
+            // Was a six-way substring match on the English label, whose fifth and
+            // sixth branches differed only in case and so could never both be
+            // reached — `contains("overtime", ignoreCase = true)` had already
+            // matched anything `contains("Overtime", ignoreCase = true)` would.
+            // That dead branch is the kind of thing string matching hides.
+            val net = amount - nightPremium
+            when (tier.category.bucket) {
+                PayBucket.REGULAR -> regularGross += net
+                PayBucket.OVERTIME -> overtimeGross += net
+                PayBucket.WEEKEND -> weekendGross += net
+                PayBucket.HOLIDAY -> holidayGross += net
             }
             nightGross += nightPremium
             remaining -= mins
@@ -609,12 +614,11 @@ object PayrollCalculator {
     /** The weekend portion of a mixed shift: one flat tier, labelled so it lands in `weekendGross`. */
     private fun weekendTier(resolved: ResolvedCompensation, minutes: Int): List<Tier> {
         val multiplier = resolved.rules.weekendMultiplier
-        val label = if (multiplier > 1.0) {
-            "${(multiplier * 100).toInt()}% — Weekend"
-        } else {
-            "100% — Regular"
-        }
-        return listOf(Tier(label, minutes, multiplier))
+        val premium = multiplier > 1.0
+        val label = if (premium) "${(multiplier * 100).toInt()}% — Weekend" else "100% — Regular"
+        return listOf(
+            Tier(label, minutes, multiplier, if (premium) PayCategory.WEEKEND else PayCategory.REGULAR),
+        )
     }
 
     private fun buildTiers(
@@ -632,7 +636,9 @@ object PayrollCalculator {
         val rules = resolved.rules
         shiftPremium?.let {
             val pct = (it.multiplier * 100).toInt()
-            return listOf(Tier("$pct% — Premium (${it.name})", Int.MAX_VALUE, it.multiplier))
+            return listOf(
+                Tier("$pct% — Premium (${it.name})", Int.MAX_VALUE, it.multiplier, PayCategory.PREMIUM),
+            )
         }
 
         if (!isSpecial && isSeventhConsecutiveWorkday && rules.overtimeEnabled &&
@@ -648,8 +654,9 @@ object PayrollCalculator {
                 dailyTiersOverride = rules.seventhDayTiers,
             )
             return segments.map { (minutes, rate) ->
-                val label = if (rate <= 1.0 + 1e-9) "100% — Regular" else "${(rate * 100).toInt()}% — Overtime"
-                Tier(label, minutes, rate)
+                val regular = rate <= 1.0 + 1e-9
+                val label = if (regular) "100% — Regular" else "${(rate * 100).toInt()}% — Overtime"
+                Tier(label, minutes, rate, if (regular) PayCategory.REGULAR else PayCategory.SEVENTH_DAY)
             }
         }
 
@@ -662,7 +669,7 @@ object PayrollCalculator {
                 rules.holidayEnabled -> rules.holidayMultiplier
                 else -> rules.weekendMultiplier
             }
-            val restKind = if (isHoliday && !startOnWeekend) "Holiday" else "Weekly rest"
+            val restKind = if (isHoliday && !startOnWeekend) HOLIDAY_REST_KIND else WEEKLY_REST_KIND
             val dailyStandard = if (shift != null && zone != null) {
                 effectiveDailyStandardMinutes(rules, shift, zone)
             } else {
@@ -680,15 +687,29 @@ object PayrollCalculator {
 
         if (isSpecial) {
             if (rules.holidayEnabled) {
-                return listOf(Tier("${(rules.holidayMultiplier * 100).toInt()}% — Holiday", Int.MAX_VALUE, rules.holidayMultiplier))
+                return listOf(
+                    Tier(
+                        "${(rules.holidayMultiplier * 100).toInt()}% — Holiday",
+                        Int.MAX_VALUE,
+                        rules.holidayMultiplier,
+                        PayCategory.HOLIDAY,
+                    ),
+                )
             }
             if (rules.weekendEnabled) {
-                return listOf(Tier("${(rules.weekendMultiplier * 100).toInt()}% — Weekend", Int.MAX_VALUE, rules.weekendMultiplier))
+                return listOf(
+                    Tier(
+                        "${(rules.weekendMultiplier * 100).toInt()}% — Weekend",
+                        Int.MAX_VALUE,
+                        rules.weekendMultiplier,
+                        PayCategory.WEEKEND,
+                    ),
+                )
             }
         }
 
         if (!rules.overtimeEnabled || shiftPremium?.premiumType == PremiumType.EXCLUDED_FROM_REGULAR_RATE) {
-            return listOf(Tier("100% — Regular", Int.MAX_VALUE, 1.0))
+            return listOf(Tier("100% — Regular", Int.MAX_VALUE, 1.0, PayCategory.REGULAR))
         }
 
         val otBaseMultiplier = shiftPremium?.let {
@@ -709,14 +730,35 @@ object PayrollCalculator {
             buildCombinedRateSegments(resolved, net, priorWeekMinutes, dailyStandard)
         }
         if (segments.isEmpty()) {
-            return listOf(Tier("100% — Regular", Int.MAX_VALUE, 1.0))
+            return listOf(Tier("100% — Regular", Int.MAX_VALUE, 1.0, PayCategory.REGULAR))
         }
 
         return segments.map { (minutes, rate) ->
-            val label = if (rate <= 1.0 + 1e-9) "100% — Regular" else "${(rate * 100).toInt()}% — Overtime"
-            Tier(label, minutes, rate)
+            val regular = rate <= 1.0 + 1e-9
+            val label = if (regular) "100% — Regular" else "${(rate * 100).toInt()}% — Overtime"
+            Tier(label, minutes, rate, if (regular) PayCategory.REGULAR else PayCategory.OVERTIME)
         }
     }
+
+    /**
+     * The category for a rest-or-holiday tier.
+     *
+     * [restKind] is the word that goes in the label, and it is the one place the
+     * generic engine still decides a category from a string. It is safe because
+     * the string is produced two lines above by [buildTiers] rather than parsed
+     * from anything, and it is confined here so localising the label cannot reach
+     * it.
+     */
+    private fun restCategory(restKind: String, overtime: Boolean): PayCategory =
+        when {
+            restKind == HOLIDAY_REST_KIND && overtime -> PayCategory.HOLIDAY_OVERTIME
+            restKind == HOLIDAY_REST_KIND -> PayCategory.HOLIDAY
+            overtime -> PayCategory.WEEKLY_REST_OVERTIME
+            else -> PayCategory.WEEKLY_REST
+        }
+
+    private const val HOLIDAY_REST_KIND = "Holiday"
+    private const val WEEKLY_REST_KIND = "Weekly rest"
 
     /**
      * Maps daily/weekly overtime segments onto a weekly-rest or holiday base rate.
@@ -734,7 +776,12 @@ object PayrollCalculator {
         val segments = buildCombinedRateSegments(resolved, net, priorWeekMinutes, dailyStandard)
         if (segments.isEmpty()) {
             return listOf(
-                Tier("${(restBase * 100).toInt()}% — $restKind regular", Int.MAX_VALUE, restBase),
+                Tier(
+                    "${(restBase * 100).toInt()}% — $restKind regular",
+                    Int.MAX_VALUE,
+                    restBase,
+                    restCategory(restKind, overtime = false),
+                ),
             )
         }
         return segments.map { (minutes, otRate) ->
@@ -745,7 +792,7 @@ object PayrollCalculator {
             } else {
                 "${(rate * 100).toInt()}% — $restKind regular"
             }
-            Tier(label, minutes, rate)
+            Tier(label, minutes, rate, restCategory(restKind, isOvertime))
         }
     }
 
