@@ -596,6 +596,46 @@ class ProjectReportTest {
         }
     }
 
+    /**
+     * The TOTAL row and each project's row must agree about what is late.
+     *
+     * `ProjectPeriodTotalsBuilder.today` defaults to the end of the period, and
+     * the report-wide call omitted it while the per-project calls passed it. So
+     * viewing the current month, an invoice falling due later that month was
+     * counted in the TOTAL row's overdue figure — while the project's own badge,
+     * which reads `ProjectBillingStatus` and does use today, called it merely
+     * billed. One screen answering "is this late" two ways.
+     *
+     * The rows themselves carry no overdue figure (only billed / received /
+     * outstanding), so the total is the only place this shows.
+     *
+     * Here today is 29 July and the period runs to the 31st, so an invoice due on
+     * the 30th is not yet late.
+     */
+    @Test
+    fun `an invoice due later this period is overdue in neither the rows nor the total`() {
+        val result = report(
+            projects = listOf(project("p1")),
+            records = listOf(record("r1", "p1", dueOn = LocalDate.of(2026, 7, 30))),
+        )
+
+        assertTrue("the TOTAL row must not call it late", result.totals.overdue.isEmpty)
+        assertFalse(
+            "it is still outstanding, just not late",
+            result.totals.outstanding.isEmpty,
+        )
+    }
+
+    @Test
+    fun `an invoice already past its due date is overdue in the total`() {
+        val result = report(
+            projects = listOf(project("p1")),
+            records = listOf(record("r1", "p1", dueOn = LocalDate.of(2026, 7, 10))),
+        )
+
+        assertFalse(result.totals.overdue.isEmpty)
+    }
+
     /** The project screens have no period, so they see no period figures. */
     @Test
     fun `insights built without a period carry no period figures`() {

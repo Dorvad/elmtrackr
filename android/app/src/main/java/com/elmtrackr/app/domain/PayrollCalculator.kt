@@ -549,7 +549,15 @@ object PayrollCalculator {
         var holidayGross = 0.0
         var nightGross = 0.0
         var deductionsGross = 0.0
-        var currencyCode = "USD"
+        // Gross per currency, rather than one running total and one label.
+        //
+        // A profile carries its own currencyCode, so a month worked across two
+        // jobs in two currencies was summed into a single number and then stamped
+        // with whichever shift the fold happened to visit last — an amount that is
+        // not a quantity of anything. The rest of the money layer refuses this
+        // structurally (`Money.requireSameCurrency`, `MoneyByCurrency`); the wage
+        // path did not.
+        val grossByCurrency = mutableMapOf<String, Double>()
         // Fixed deductions are charged once per period, not per shift. Keyed by profile so
         // a month spanning two profiles charges each of their fees once.
         val fixedDeductionsByProfile = mutableMapOf<String, Double>()
@@ -574,7 +582,8 @@ object PayrollCalculator {
             nightGross += bd.nightGross
             deductionsGross += bd.deductionsGross
             specialGross += bd.weekendGross + bd.holidayGross
-            currencyCode = bd.currencyCode
+            grossByCurrency[bd.currencyCode] =
+                (grossByCurrency[bd.currencyCode] ?: 0.0) + bd.totalGross
             fixedPeriodDeduction(resolved.rules).takeIf { it != 0.0 }?.let { fixed ->
                 fixedDeductionsByProfile[resolved.profileId ?: PERIOD_DEDUCTION_FALLBACK_KEY] = fixed
             }
@@ -589,7 +598,14 @@ object PayrollCalculator {
             // each floored at 0 while deductions kept accumulating, so the summary could
             // report totalGross - deductionsGross != netGross.
             netGross = maxOf(0.0, totalGross - deductionsGross),
-            currencyCode = currencyCode,
+            // The single currency when exactly one was priced; null when none was
+            // (an empty month) or when several were. Null is what every display
+            // site already handles — each one reads
+            // `paySummary?.currencyCode ?: settings.displayCurrencyCode()` — so a
+            // month with a rate but no shifts yet stops showing "$" to a user
+            // whose settings say ILS, which is what the old "USD" default did.
+            currencyCode = grossByCurrency.keys.singleOrNull(),
+            grossByCurrency = grossByCurrency.toMap(),
         )
     }
 
@@ -1074,6 +1090,15 @@ object PayrollCalculator {
         val nightGross: Double = 0.0,
         val deductionsGross: Double = 0.0,
         val netGross: Double = totalGross,
-        val currencyCode: String = "USD",
+        /**
+         * The currency every figure above is in, or null when that question has no
+         * single answer — an empty month, or one worked in more than one currency.
+         *
+         * Nullable rather than defaulted so a caller cannot render a made-up
+         * currency. [grossByCurrency] is the honest breakdown when this is null.
+         */
+        val currencyCode: String? = null,
+        /** Gross per currency. Sums to [totalGross] only when there is one. */
+        val grossByCurrency: Map<String, Double> = emptyMap(),
     )
 }

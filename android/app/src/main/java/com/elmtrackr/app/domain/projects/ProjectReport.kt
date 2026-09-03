@@ -122,6 +122,12 @@ object ProjectReportBuilder {
             activeDays = activeDays,
             from = from,
             to = to,
+            // Passed here too, not only per project above. Omitting it falls back
+            // to `today = to`, so viewing the current month put every invoice due
+            // later in the month into the TOTAL row's overdue figure — while each
+            // project's own row, which did pass `today`, correctly said it was
+            // merely billed. One report, two answers to "is this late".
+            today = today,
         )
 
         val trackedMinutes = scopedMinutes.values.sum()
