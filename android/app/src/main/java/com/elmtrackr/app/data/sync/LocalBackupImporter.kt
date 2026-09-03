@@ -6,6 +6,7 @@ import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.dao.TaskDao
 import com.elmtrackr.app.data.local.entity.SyncStatus
+import com.elmtrackr.app.domain.model.AbsenceType
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
@@ -19,6 +20,11 @@ data class BackupImportSummary(
     val importedProjects: Int = 0,
     val importedProjectBillingRecords: Int = 0,
     val importedProjectPayments: Int = 0,
+    val importedWorkplaces: Int = 0,
+    val importedLeavePolicies: Int = 0,
+    val importedAbsenceEvents: Int = 0,
+    val importedAbsenceAllocations: Int = 0,
+    val importedLeaveBalanceSnapshots: Int = 0,
     val importedSettings: Int = 0,
     val skipped: Int = 0,
 ) {
@@ -26,7 +32,9 @@ data class BackupImportSummary(
         get() = importedTasks + importedShifts + importedRefundClaims +
             importedCompensationProfiles + importedPremiumProfiles +
             importedReceipts + importedProjects + importedProjectBillingRecords +
-            importedProjectPayments + importedSettings
+            importedProjectPayments + importedWorkplaces + importedLeavePolicies +
+            importedAbsenceEvents + importedAbsenceAllocations +
+            importedLeaveBalanceSnapshots + importedSettings
 }
 
 class BackupImportException(message: String) : Exception(message)
@@ -58,6 +66,11 @@ object LocalBackupImporter {
         projectDao: com.elmtrackr.app.data.local.dao.ProjectDao,
         projectBillingRecordDao: com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao,
         projectPaymentDao: com.elmtrackr.app.data.local.dao.ProjectPaymentDao,
+        workplaceDao: com.elmtrackr.app.data.local.dao.WorkplaceDao,
+        leavePolicyDao: com.elmtrackr.app.data.local.dao.LeavePolicyDao,
+        absenceEventDao: com.elmtrackr.app.data.local.dao.AbsenceEventDao,
+        absenceAllocationDao: com.elmtrackr.app.data.local.dao.AbsenceAllocationDao,
+        leaveBalanceSnapshotDao: com.elmtrackr.app.data.local.dao.LeaveBalanceSnapshotDao,
     ): BackupImportSummary {
         val document = try {
             json.decodeFromString<LocalBackupDocument>(rawJson)
@@ -200,6 +213,80 @@ object LocalBackupImporter {
             importedProjectPayments++
         }
 
+        // ── Workplaces and leave ──────────────────────────────────────────────
+        // Parents before children, the same order the sync pipeline pushes them:
+        // workplaces, then the policies and balances hanging off them, then absence
+        // events, then the allocations that reference both. A child whose parent is
+        // missing is skipped rather than written, so a truncated or hand-edited
+        // backup cannot leave an allocation pointing at nothing.
+        var importedWorkplaces = 0
+        for (row in document.workplaces) {
+            if (row.deletedAt != null) continue
+            if (workplaceDao.getByLocalId(row.localId) != null) {
+                skipped++
+                continue
+            }
+            workplaceDao.upsert(row.toEntity(currentUserId).adopt(sameUser))
+            importedWorkplaces++
+        }
+
+        var importedLeavePolicies = 0
+        for (row in document.leavePolicies) {
+            if (row.deletedAt != null) continue
+            if (leavePolicyDao.getByLocalId(row.localId) != null ||
+                workplaceDao.getByLocalId(row.workplaceLocalId) == null
+            ) {
+                skipped++
+                continue
+            }
+            leavePolicyDao.upsert(row.toEntity(currentUserId).adopt(sameUser))
+            importedLeavePolicies++
+        }
+
+        var importedLeaveBalances = 0
+        for (row in document.leaveBalanceSnapshots) {
+            if (row.deletedAt != null) continue
+            if (leaveBalanceSnapshotDao.getByLocalId(row.localId) != null ||
+                workplaceDao.getByLocalId(row.workplaceLocalId) == null
+            ) {
+                skipped++
+                continue
+            }
+            leaveBalanceSnapshotDao.upsert(row.toEntity(currentUserId).adopt(sameUser))
+            importedLeaveBalances++
+        }
+
+        var importedAbsenceEvents = 0
+        for (row in document.absenceEvents) {
+            if (row.deletedAt != null) continue
+            // AbsenceType is the one enum with no fallback: guessing between sick
+            // and vacation would put a day against the wrong balance and price it
+            // under the wrong policy, which is worse than dropping a row this build
+            // cannot read.
+            if (AbsenceType.fromPersisted(row.type) == null ||
+                absenceEventDao.getByLocalId(row.localId) != null
+            ) {
+                skipped++
+                continue
+            }
+            absenceEventDao.upsert(row.toEntity(currentUserId).adopt(sameUser))
+            importedAbsenceEvents++
+        }
+
+        var importedAbsenceAllocations = 0
+        for (row in document.absenceAllocations) {
+            if (row.deletedAt != null) continue
+            if (absenceAllocationDao.getByLocalId(row.localId) != null ||
+                absenceEventDao.getByLocalId(row.absenceEventLocalId) == null ||
+                workplaceDao.getByLocalId(row.workplaceLocalId) == null
+            ) {
+                skipped++
+                continue
+            }
+            absenceAllocationDao.upsert(row.toEntity(currentUserId).adopt(sameUser))
+            importedAbsenceAllocations++
+        }
+
         var importedSettings = 0
         // user_settings has a unique userId index; never clobber existing settings.
         if (settingsDao.getSettings(currentUserId) == null) {
@@ -223,10 +310,30 @@ object LocalBackupImporter {
             importedProjects = importedProjects,
             importedProjectBillingRecords = importedBillingRecords,
             importedProjectPayments = importedProjectPayments,
+            importedWorkplaces = importedWorkplaces,
+            importedLeavePolicies = importedLeavePolicies,
+            importedAbsenceEvents = importedAbsenceEvents,
+            importedAbsenceAllocations = importedAbsenceAllocations,
+            importedLeaveBalanceSnapshots = importedLeaveBalances,
             importedSettings = importedSettings,
             skipped = skipped,
         )
     }
+
+    private fun com.elmtrackr.app.data.local.entity.WorkplaceEntity.adopt(sameUser: Boolean) =
+        if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
+
+    private fun com.elmtrackr.app.data.local.entity.LeavePolicyEntity.adopt(sameUser: Boolean) =
+        if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
+
+    private fun com.elmtrackr.app.data.local.entity.AbsenceEventEntity.adopt(sameUser: Boolean) =
+        if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
+
+    private fun com.elmtrackr.app.data.local.entity.AbsenceAllocationEntity.adopt(sameUser: Boolean) =
+        if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
+
+    private fun com.elmtrackr.app.data.local.entity.LeaveBalanceSnapshotEntity.adopt(sameUser: Boolean) =
+        if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)
 
     private fun com.elmtrackr.app.data.local.entity.TaskEntity.adopt(sameUser: Boolean) =
         if (sameUser) this else copy(remoteId = null, lastSyncedAt = null, syncStatus = SyncStatus.PENDING_CREATE)

@@ -244,6 +244,11 @@ class SyncRepositoryImpl @Inject constructor(
             projectDao = projectDao,
             projectBillingRecordDao = projectBillingRecordDao,
             projectPaymentDao = projectPaymentDao,
+            workplaceDao = workplaceDao,
+            leavePolicyDao = leavePolicyDao,
+            absenceEventDao = absenceEventDao,
+            absenceAllocationDao = absenceAllocationDao,
+            leaveBalanceSnapshotDao = leaveBalanceSnapshotDao,
             appVersion = com.elmtrackr.app.BuildConfig.VERSION_NAME,
         )
     }
@@ -274,6 +279,11 @@ class SyncRepositoryImpl @Inject constructor(
                 projectDao = projectDao,
                 projectBillingRecordDao = projectBillingRecordDao,
                 projectPaymentDao = projectPaymentDao,
+                workplaceDao = workplaceDao,
+                leavePolicyDao = leavePolicyDao,
+                absenceEventDao = absenceEventDao,
+                absenceAllocationDao = absenceAllocationDao,
+                leaveBalanceSnapshotDao = leaveBalanceSnapshotDao,
             )
         }
     }
@@ -1067,9 +1077,24 @@ class SyncRepositoryImpl @Inject constructor(
                     // start time is free again — the unique index ignores
                     // tombstones — so let the create push on its own.
                     if (remote.deletedAt == null) {
+                        // PENDING_UPDATE, not SYNCED.
+                        //
+                        // The two rows are the same shift — one clock-in recorded on
+                        // two devices, or a create whose response was lost — so the
+                        // remote id is right to adopt. Calling it SYNCED was not:
+                        // this row still holds local values the server has never
+                        // seen, typically the endTime, break and notes added after
+                        // the clock-in, and nothing would ever push them. They were
+                        // only overwritten if the remote copy happened to be newer;
+                        // if it was older the two stayed different indefinitely,
+                        // which is the one outcome the rest of this pipeline exists
+                        // to prevent.
+                        //
+                        // Pending with a remote id retries as an update, which is
+                        // what "local pending always wins" means everywhere else.
                         shiftDao.updateSyncState(
                             existingByStartTime.localId,
-                            SyncStatus.SYNCED,
+                            SyncStatus.PENDING_UPDATE,
                             remote.id,
                             isoToEpoch(remote.updatedAt),
                             null,

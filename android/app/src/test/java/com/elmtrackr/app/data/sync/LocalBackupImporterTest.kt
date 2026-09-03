@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LocalBackupImporterTest {
@@ -103,7 +104,9 @@ class LocalBackupImporterTest {
         receiptDao.insert(receipt(userId = userId))
         return LocalBackupExporter.export(
             userId, taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao,
-            projectDao, billingDao, paymentDao, "1.0",
+            projectDao, billingDao, paymentDao,
+            workplaceDao, leavePolicyDao, absenceEventDao, allocationDao, balanceDao,
+            "1.0",
         )
     }
 
@@ -114,6 +117,16 @@ class LocalBackupImporterTest {
     private val taskDao2 = FakeTaskDao()
     private val premiumDao2 = FakePremiumProfileDao()
     private val receiptDao2 = FakeReceiptDao()
+    private val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+    private val leavePolicyDao = com.elmtrackr.app.fake.FakeLeavePolicyDao()
+    private val absenceEventDao = com.elmtrackr.app.fake.FakeAbsenceEventDao()
+    private val allocationDao = com.elmtrackr.app.fake.FakeAbsenceAllocationDao()
+    private val balanceDao = com.elmtrackr.app.fake.FakeLeaveBalanceSnapshotDao()
+    private val workplaceDao2 = com.elmtrackr.app.fake.FakeWorkplaceDao()
+    private val leavePolicyDao2 = com.elmtrackr.app.fake.FakeLeavePolicyDao()
+    private val absenceEventDao2 = com.elmtrackr.app.fake.FakeAbsenceEventDao()
+    private val allocationDao2 = com.elmtrackr.app.fake.FakeAbsenceAllocationDao()
+    private val balanceDao2 = com.elmtrackr.app.fake.FakeLeaveBalanceSnapshotDao()
     private val projectDao = com.elmtrackr.app.fake.FakeProjectDao()
     private val billingDao = com.elmtrackr.app.fake.FakeProjectBillingRecordDao()
     private val paymentDao = com.elmtrackr.app.fake.FakeProjectPaymentDao()
@@ -125,7 +138,110 @@ class LocalBackupImporterTest {
         LocalBackupImporter.import(
             json, userId, taskDao2, shiftDao2, claimDao2, settingsDao2, profileDao2, premiumDao2, receiptDao2,
             projectDao2, billingDao2, paymentDao2,
+            workplaceDao2, leavePolicyDao2, absenceEventDao2, allocationDao2, balanceDao2,
         )
+
+    // ── Workplaces and leave (format 8) ──────────────────────────────────────
+
+    /**
+     * Leave was absent from every backup before format 8.
+     *
+     * `supabase-contract.md` names the local backup as the mitigation for leave
+     * being device-local, and it did not carry any: a reinstall lost reported
+     * absences and entered balances even for a user who had dutifully exported
+     * one. Sick leave is the most sensitive data this app stores.
+     */
+    @Test
+    fun `export then import round-trips workplaces and leave`() = runTest {
+        workplaceDao.upsert(workplace("u1"))
+        leavePolicyDao.upsert(leavePolicy("u1"))
+        balanceDao.upsert(balance("u1"))
+        absenceEventDao.upsert(absenceEvent("u1"))
+        allocationDao.upsert(allocation("u1"))
+
+        val summary = importInto2(exportSeeded("u1"), "u1")
+
+        assertEquals(1, summary.importedWorkplaces)
+        assertEquals(1, summary.importedLeavePolicies)
+        assertEquals(1, summary.importedAbsenceEvents)
+        assertEquals(1, summary.importedAbsenceAllocations)
+        assertEquals(1, summary.importedLeaveBalanceSnapshots)
+
+        assertNotNull(workplaceDao2.getByLocalId("wp-1"))
+        assertNotNull(absenceEventDao2.getByLocalId("ev-1"))
+        val restored = allocationDao2.getByLocalId("alloc-1")
+        assertNotNull(restored)
+        assertEquals("wp-1", restored!!.workplaceLocalId)
+        assertEquals("ev-1", restored.absenceEventLocalId)
+    }
+
+    @Test
+    fun `an allocation whose parents are missing is skipped, not written`() = runTest {
+        // A truncated or hand-edited backup must not leave an allocation pointing
+        // at nothing. Parents before children is the same order the sync pipeline
+        // pushes them in, and for the same reason.
+        absenceEventDao.upsert(absenceEvent("u1"))
+        allocationDao.upsert(allocation("u1"))
+        // The workplace the allocation references is deliberately never exported.
+
+        val summary = importInto2(exportSeeded("u1"), "u1")
+
+        assertEquals(0, summary.importedAbsenceAllocations)
+        assertNull(allocationDao2.getByLocalId("alloc-1"))
+        assertTrue("the skip must be counted, not silent", summary.skipped > 0)
+    }
+
+    @Test
+    fun `a shift keeps the job it was worked at across a backup`() = runTest {
+        // Format 8 also carries shifts.workplaceId. Before it, a restore silently
+        // detached every shift from its job, and a null workplace is read as
+        // matching every workplace when leave is estimated.
+        shiftDao.insertShift(shift(userId = "u1").copy(localId = "s-wp", workplaceId = "wp-1"))
+
+        importInto2(exportSeeded("u1"), "u1")
+
+        assertEquals("wp-1", shiftDao2.getShiftById("s-wp")?.workplaceId)
+    }
+
+    private fun workplace(userId: String) = com.elmtrackr.app.data.local.entity.WorkplaceEntity(
+        localId = "wp-1", remoteId = null, userId = userId, name = "Main job",
+        regionCode = "IL", currencyCode = "ILS", timezone = "Asia/Jerusalem",
+        employmentStartDate = null, isDefault = true, isArchived = false,
+        createdAt = 1, updatedAt = 2, deletedAt = null,
+        syncStatus = SyncStatus.SYNCED, lastSyncError = null, lastSyncedAt = null,
+    )
+
+    private fun leavePolicy(userId: String) = com.elmtrackr.app.data.local.entity.LeavePolicyEntity(
+        localId = "pol-1", remoteId = null, userId = userId, workplaceLocalId = "wp-1",
+        regionCode = "IL", rulesJson = "{}", effectiveFrom = 1, effectiveUntil = null,
+        isActive = true, createdAt = 1, updatedAt = 2, deletedAt = null,
+        syncStatus = SyncStatus.SYNCED, lastSyncError = null, lastSyncedAt = null,
+    )
+
+    private fun absenceEvent(userId: String) = com.elmtrackr.app.data.local.entity.AbsenceEventEntity(
+        localId = "ev-1", remoteId = null, userId = userId, type = "SICK",
+        startDate = 20000, endDate = 20001, notes = null,
+        createdAt = 1, updatedAt = 2, deletedAt = null,
+        syncStatus = SyncStatus.SYNCED, lastSyncError = null, lastSyncedAt = null,
+    )
+
+    private fun allocation(userId: String) = com.elmtrackr.app.data.local.entity.AbsenceAllocationEntity(
+        localId = "alloc-1", remoteId = null, userId = userId,
+        absenceEventLocalId = "ev-1", workplaceLocalId = "wp-1",
+        affectedDate = 20000, entitlementUnits = 1.0, unit = "DAYS",
+        expectedWorkMinutes = 480, policySnapshotJson = null,
+        calculationSnapshotJson = null, estimatedGrossPay = 500.0,
+        createdAt = 1, updatedAt = 2, deletedAt = null,
+        syncStatus = SyncStatus.SYNCED, lastSyncError = null, lastSyncedAt = null,
+    )
+
+    private fun balance(userId: String) = com.elmtrackr.app.data.local.entity.LeaveBalanceSnapshotEntity(
+        localId = "bal-1", remoteId = null, userId = userId, workplaceLocalId = "wp-1",
+        balanceType = "SICK", balance = 12.5, unit = "DAYS", asOfDate = 20000,
+        source = "PAYSLIP", label = null, notes = null,
+        createdAt = 1, updatedAt = 2, deletedAt = null,
+        syncStatus = SyncStatus.SYNCED, lastSyncError = null, lastSyncedAt = null,
+    )
 
     @Test
     fun `export then import round-trips all entities for the same user`() = runTest {
@@ -162,7 +278,9 @@ class LocalBackupImporterTest {
         )
         val json = LocalBackupExporter.export(
             "u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao,
-            projectDao, billingDao, paymentDao, "1.0",
+            projectDao, billingDao, paymentDao,
+            workplaceDao, leavePolicyDao, absenceEventDao, allocationDao, balanceDao,
+            "1.0",
         )
 
         importInto2(json, "u1")
@@ -308,7 +426,9 @@ class LocalBackupImporterTest {
         )
         val json = LocalBackupExporter.export(
             "u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao,
-            projectDao, billingDao, paymentDao, "1.0",
+            projectDao, billingDao, paymentDao,
+            workplaceDao, leavePolicyDao, absenceEventDao, allocationDao, balanceDao,
+            "1.0",
         )
 
         importInto2(json, "u1")
@@ -427,7 +547,9 @@ class LocalBackupImporterTest {
         claimDao.insertClaim(claim(localId = "orphan-claim").copy(shiftLocalId = "missing-shift"))
         val json = LocalBackupExporter.export(
             "u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao,
-            projectDao, billingDao, paymentDao, "1.0",
+            projectDao, billingDao, paymentDao,
+            workplaceDao, leavePolicyDao, absenceEventDao, allocationDao, balanceDao,
+            "1.0",
         )
 
         val summary = importInto2(json, "u1")
@@ -443,7 +565,9 @@ class LocalBackupImporterTest {
         receiptDao.insert(receipt())
         val json = LocalBackupExporter.export(
             "u1", taskDao, shiftDao, claimDao, settingsDao, profileDao, premiumDao, receiptDao,
-            projectDao, billingDao, paymentDao, "1.0",
+            projectDao, billingDao, paymentDao,
+            workplaceDao, leavePolicyDao, absenceEventDao, allocationDao, balanceDao,
+            "1.0",
         )
 
         val summary = importInto2(json, "u1")
