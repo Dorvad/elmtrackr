@@ -122,7 +122,17 @@ class ProjectTimePayrollIsolationTest {
         val employeeOnly = MonthlyReportBuilder.buildMonthlyReport(2026, 7, employeeShifts(), settings)
         val mixed = MonthlyReportBuilder.buildMonthlyReport(2026, 7, employeeShifts() + projectShifts(), settings)
 
-        assertEquals(0, employeeOnly.overtimeMinutes)
+        // 60, not 0, and project time is not the reason.
+        //
+        // The five employee shifts run Mon-Fri 09:00-17:00 Jerusalem, and the
+        // Israeli preset shortens the daily standard to 420 minutes on the day
+        // before weekly rest. So the Friday shift earns an hour of overtime, which
+        // the pay engine has always charged and the report used to omit because it
+        // measured against the raw standard.
+        //
+        // What this test exists to prove is the line below: adding project hours
+        // changes nothing.
+        assertEquals(60, employeeOnly.overtimeMinutes)
         assertEquals(employeeOnly.overtimeMinutes, mixed.overtimeMinutes)
         assertEquals(employeeOnly.totalMinutes, mixed.totalMinutes)
         assertEquals(employeeOnly.regularMinutes, mixed.regularMinutes)
