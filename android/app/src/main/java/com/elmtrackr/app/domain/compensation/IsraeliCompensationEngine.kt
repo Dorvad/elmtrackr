@@ -14,6 +14,7 @@ import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.ShiftPayBreakdown
 import com.elmtrackr.app.domain.model.StackingPolicy
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.time.WallClockTime
 import com.elmtrackr.app.domain.time.WorkTimezone
 import com.elmtrackr.app.domain.time.ZoneMinutes
 import com.elmtrackr.app.domain.toJsDay
@@ -243,7 +244,11 @@ object IsraeliCompensationEngine {
         val breakRatio = net / ((endMs - startMs) / 60_000.0).coerceAtLeast(1.0)
 
         val rawSegments = mutableListOf<ClassifiedPaySegment>()
-        forEachPayableMinute(startMs, net, breakRatio, zone) { _, jsDay, minuteOfDay ->
+        forEachPayableMinute(
+            startMs, net, breakRatio, zone,
+            // The shift's final wall-clock minute; see forEachPayableMinute.
+            lastWorkedMs = (endMs - 60_000L).coerceAtLeast(startMs),
+        ) { _, jsDay, minuteOfDay ->
             val isWeeklyRest = isWeeklyRestAt(jsDay, minuteOfDay, rules, manualHoliday)
             val multiplier = if (isWeeklyRest) {
                 restBaseFor(jsDay, minuteOfDay, rules, manualHoliday)
@@ -309,7 +314,21 @@ object IsraeliCompensationEngine {
         val startMs = shift.startTime.toEpochMilli()
         val endMs = shift.endTime?.toEpochMilli() ?: return emptyList()
         val grossMinutes = ((endMs - startMs) / 60_000.0).coerceAtLeast(1.0)
-        val breakRatio = net / grossMinutes
+        // Clamped at 1.0, so payable minutes are never mapped onto a *compressed*
+        // wall clock.
+        //
+        // `payableNetMinutes` can exceed the gross: rounding up, or a
+        // minimum-shift floor topping a short call-out up to a guaranteed minimum.
+        // With net > gross the ratio rose above 1 and minute *i* landed at
+        // `start + i/ratio`, squeezing every payable minute into a fraction of the
+        // real shift — so a ten-minute call-out topped up to four hours had its
+        // 240 minutes spread across ten minutes of clock, and half of them
+        // classified as weekly rest because they "fell" after 17:00.
+        //
+        // At 1.0 the topped-up minutes continue past the end of the shift at
+        // ordinary speed instead, which is what a guaranteed minimum is: time the
+        // employer pays for beyond the time worked.
+        val breakRatio = (net / grossMinutes).coerceAtMost(1.0)
 
         var weeklyRegularAccum = weeklyRegularMinutesBefore
         var weeklyOtAccum = weeklyOvertimeMinutesBefore
@@ -324,9 +343,34 @@ object IsraeliCompensationEngine {
 
         val rawSegments = mutableListOf<ClassifiedPaySegment>()
 
-        forEachPayableMinute(startMs, net, breakRatio, zone) { _, jsDay, minuteOfDay ->
+        // The workday standard is resolved once, from the shift's first payable
+        // minute, rather than re-decided for every minute.
+        //
+        // A standard is a property of the workday, and this engine already treats a
+        // shift as one workday even across local midnight — the comment above says
+        // so. Deciding it per minute meant a Thursday 20:00 → Friday 10:00 shift
+        // began on the 516-minute standard and dropped to the 420-minute
+        // day-before-rest one at midnight, so overtime started 96 minutes earlier
+        // than the shift's own workday implied. On the shipped Israeli preset this
+        // was masked, because any midnight-crossing shift starting before 22:00
+        // already has two hours of night and the night branch is checked first; it
+        // surfaced with night pay switched off or the window edited.
+        val firstMinute = firstPayableMinute(startMs, zone)
+        val shiftDailyStandard = dailyStandardAt(
+            firstMinute.jsDay,
+            firstMinute.minuteOfDay,
+            rules,
+            isWeeklyRest = isWeeklyRestAt(firstMinute.jsDay, firstMinute.minuteOfDay, rules, manualHoliday),
+            isNightShift = isNightShift,
+        )
+
+        forEachPayableMinute(
+            startMs, net, breakRatio, zone,
+            // The shift's final wall-clock minute; see forEachPayableMinute.
+            lastWorkedMs = (endMs - 60_000L).coerceAtLeast(startMs),
+        ) { _, jsDay, minuteOfDay ->
             val isWeeklyRest = isWeeklyRestAt(jsDay, minuteOfDay, rules, manualHoliday)
-            val dailyStandard = dailyStandardAt(jsDay, minuteOfDay, rules, isWeeklyRest, isNightShift)
+            val dailyStandard = shiftDailyStandard
             val isDailyOt = dailyMinutesInDay >= dailyStandard
             val isWeeklyOt = weeklyRegularAccum >= rules.weeklyStandardMinutes
 
@@ -418,20 +462,43 @@ object IsraeliCompensationEngine {
      * @param breakRatio payable minutes per wall-clock minute, so minute *i* of pay
      *   maps onto the same instant it did before: `start + (i / breakRatio)` minutes.
      */
+    private data class LocalMinute(val jsDay: Int, val minuteOfDay: Int)
+
+    /** The local day and minute-of-day the shift's first payable minute falls on. */
+    private fun firstPayableMinute(startMs: Long, zone: ZoneId): LocalMinute {
+        val zdt = Instant.ofEpochMilli(startMs).atZone(zone)
+        return LocalMinute(zdt.dayOfWeek.toJsDay(), timeToMinutes(zdt))
+    }
+
+    /**
+     * @param lastWorkedMs the shift's final wall-clock minute. Payable minutes past
+     *   it — the ones a rounding-up rule or a minimum-shift floor added — are
+     *   classified as that minute was, rather than as whatever the clock would have
+     *   said had the person kept working.
+     *
+     *   That distinction is the point. A ten-minute Friday call-out at 16:55 topped
+     *   up to a four-hour minimum would otherwise have its guaranteed minutes run
+     *   to 20:55 and collect a Shabbat premium for time nobody worked. A guarantee
+     *   pays for time not worked; it should not also invent the rate that time
+     *   would have attracted.
+     */
     private inline fun forEachPayableMinute(
         startMs: Long,
         net: Int,
         breakRatio: Double,
         zone: ZoneId,
+        lastWorkedMs: Long,
         action: (index: Int, jsDay: Int, minuteOfDay: Int) -> Unit,
     ) {
         if (net <= 0) return
-        val lastInstantMs = startMs + (((net - 1) / breakRatio) * 60_000).toLong()
+        val lastInstantMs =
+            minOf(startMs + (((net - 1) / breakRatio) * 60_000).toLong(), lastWorkedMs)
 
         if (ZoneMinutes.hasFixedOffset(zone, startMs, lastInstantMs)) {
             val offsetSeconds = ZoneMinutes.offsetSecondsAt(zone, startMs)
             for (index in 0 until net) {
-                val instantMs = startMs + ((index / breakRatio) * 60_000).toLong()
+                val instantMs =
+                    minOf(startMs + ((index / breakRatio) * 60_000).toLong(), lastWorkedMs)
                 action(
                     index,
                     ZoneMinutes.jsDayOfWeek(instantMs, offsetSeconds),
@@ -440,7 +507,8 @@ object IsraeliCompensationEngine {
             }
         } else {
             for (index in 0 until net) {
-                val instantMs = startMs + ((index / breakRatio) * 60_000).toLong()
+                val instantMs =
+                    minOf(startMs + ((index / breakRatio) * 60_000).toLong(), lastWorkedMs)
                 val zdt = Instant.ofEpochMilli(instantMs).atZone(zone)
                 action(index, zdt.dayOfWeek.toJsDay(), timeToMinutes(zdt))
             }
@@ -483,9 +551,12 @@ object IsraeliCompensationEngine {
         if (manualHoliday && rules.holidayEnabled) return true
         if (!rules.weekendEnabled) return false
         if (jsDay !in rules.weekendDays) return false
-        val restStart = rules.weeklyRestStartTime
-        if (jsDay == 5 && restStart != null) {
-            return minuteOfDay >= parseTimeToMinutes(restStart)
+        // An unreadable rest-start time falls back to treating the whole day as
+        // rest, which is what a weekend day with no configured boundary already
+        // means. Erring the other way would pay Shabbat at the weekday rate.
+        val restStart = WallClockTime.parseMinutesOfDayOrNull(rules.weeklyRestStartTime)
+        if (jsDay == 5 && rules.weeklyRestStartTime != null && restStart != null) {
+            return minuteOfDay >= restStart
         }
         return true
     }
@@ -522,15 +593,21 @@ object IsraeliCompensationEngine {
         if (rules.dayBeforeRestDailyStandardMinutes == null) return false
         if (5 !in rules.weekendDays) return false
         if (jsDay != 5) return false
-        val restStart = rules.weeklyRestStartTime ?: return true
-        return minuteOfDay < parseTimeToMinutes(restStart)
+        // Unreadable means the boundary is unknown, so the whole of the day
+        // before rest keeps the shortened standard — the same direction the rest
+        // check above falls back in, so the two cannot disagree about one minute.
+        val restStart = WallClockTime.parseMinutesOfDayOrNull(rules.weeklyRestStartTime)
+            ?: return true
+        return minuteOfDay < restStart
     }
 
     internal fun isNightAt(zdt: ZonedDateTime, rules: CompensationRules): Boolean {
         if (!rules.nightEnabled) return false
         val current = timeToMinutes(zdt)
-        val start = parseTimeToMinutes(rules.nightStartTime)
-        val end = parseTimeToMinutes(rules.nightEndTime)
+        val start = WallClockTime.parseMinutesOfDayOrNull(rules.nightStartTime)
+            ?: DEFAULT_NIGHT_START_MINUTES
+        val end = WallClockTime.parseMinutesOfDayOrNull(rules.nightEndTime)
+            ?: DEFAULT_NIGHT_END_MINUTES
         return if (start > end) current >= start || current < end else current in start until end
     }
 
@@ -619,8 +696,7 @@ object IsraeliCompensationEngine {
 
     private fun timeToMinutes(zdt: ZonedDateTime): Int = zdt.hour * 60 + zdt.minute
 
-    private fun parseTimeToMinutes(time: String): Int {
-        val parts = time.split(":")
-        return parts[0].toInt() * 60 + (parts.getOrNull(1)?.toInt() ?: 0)
-    }
+    /** 22:00 and 06:00, the shipped night window and the fallback for a bad one. */
+    private const val DEFAULT_NIGHT_START_MINUTES = 22 * 60
+    private const val DEFAULT_NIGHT_END_MINUTES = 6 * 60
 }

@@ -218,18 +218,23 @@ class IsraeliCompensationEngineTest {
     }
 
     /**
-     * Recording a break can push a shift *out* of night classification.
+     * A recorded break no longer changes whether a shift is night work.
      *
-     * `countNightMinutes` scales the wall-clock night minutes by the break ratio
-     * before the >= 120-minute test, but the break's position is not recorded, so
-     * the scaling is arbitrary. Below, a 60-minute break takes the count from 130
-     * to 115 and the daily standard from 420 back to 516 — which removes 130
-     * minutes of overtime, far more than the break itself is worth.
+     * `countNightMinutes` used to scale the wall-clock night minutes by the break
+     * ratio *before* the >= 120-minute test. That test asks a question about the
+     * clock — did at least two hours of this shift fall between 22:00 and 06:00 —
+     * and the break's position is not recorded, so scaling it first was arbitrary
+     * and had a sharp edge: this shift has 130 wall-clock night minutes, a
+     * 60-minute break took the count to 115, and dropping below the threshold cost
+     * the shortened 420-minute night standard and every overtime minute it
+     * produced. Recording an hour's break removed an hour and a half of pay.
      *
-     * Pinned as-is. The behaviour is questionable and is a Wave D decision.
+     * The classification now reads the clock and the premium still reads the paid
+     * share, which are two different questions. Both shifts below are night work;
+     * the break costs its own 60 minutes and nothing more.
      */
     @Test
-    fun `a recorded break can remove night classification and its overtime`() {
+    fun `a recorded break does not change whether a shift is night work`() {
         val p = ilProfile()
         // Tue 2 Jan 2024 15:00 → Wed 00:10 Jerusalem: 550 gross, 130 wall-clock
         // minutes inside the night window.
@@ -237,10 +242,12 @@ class IsraeliCompensationEngineTest {
         val withBreak = shift("2024-01-02T13:00:00Z", "2024-01-02T22:10:00Z", break_ = 60)
 
         assertEquals("420@1.0 | 120@1.25 | 10@1.5", classify(noBreak, p).shape())
-        assertEquals("490@1.0", classify(withBreak, p).shape())
+        // Still measured against the night standard, so still 420 regular — the
+        // break takes its 60 minutes off the overtime tail, where they were worked.
+        assertEquals("420@1.0 | 70@1.25", classify(withBreak, p).shape())
 
         assertEquals(585.00, pay(noBreak, p)!!.totalGross, 0.01)
-        assertEquals(490.00, pay(withBreak, p)!!.totalGross, 0.01)
+        assertEquals(507.50, pay(withBreak, p)!!.totalGross, 0.01)
     }
 
     /**
@@ -418,17 +425,27 @@ class IsraeliCompensationEngineTest {
     }
 
     /**
-     * Rounding and the minimum-shift floor can make payable minutes exceed the
-     * wall clock, and the classifier then maps those minutes onto a compressed
-     * slice of the day.
+     * A minimum-shift top-up is paid, but it does not invent a premium.
      *
-     * Here a ten-minute call-out is topped up to a four-hour minimum, and the
-     * classifier spreads 240 payable minutes across ten minutes of wall clock —
-     * so half of them land after 17:00 and are paid at the rest rate. Pinned as
-     * the current behaviour; the clamp is a Wave D change.
+     * Rounding and the minimum-shift floor can make payable minutes exceed the
+     * wall clock. The classifier used to map them onto a *compressed* clock —
+     * `start + i/ratio` with a ratio above 1 — so a ten-minute call-out topped up
+     * to four hours had its 240 payable minutes squeezed into ten minutes of real
+     * time, and half of them "fell" after 17:00 and collected the rest premium.
+     *
+     * Two changes fix it. The ratio is clamped at 1.0, so payable minutes advance
+     * at ordinary speed; and each mapped instant is clamped to the shift's last
+     * worked minute, so minutes beyond the shift take that minute's
+     * classification rather than whatever the clock would have said had the
+     * person kept working. A guarantee pays for time not worked; it should not
+     * also price it as though it had been.
+     *
+     * Here the ten worked minutes straddle the boundary — 16:55–16:59 ordinary,
+     * 17:00–17:04 rest — so the guarantee inherits the rest rate legitimately,
+     * because the shift really did run into rest.
      */
     @Test
-    fun `a minimum-shift top-up is classified across a compressed wall clock`() {
+    fun `a minimum-shift top-up takes the last worked minute's classification`() {
         val p = ilProfile(
             rules = RegionPresets.forRegion(RegionCode.IL).rules.copy(
                 rounding = RoundingRules(enabled = true, incrementMinutes = 15, direction = "up"),
@@ -442,8 +459,32 @@ class IsraeliCompensationEngineTest {
         val segments = classify(s, p)
 
         assertEquals(240, segments.sumOf { it.minutes })
-        assertEquals("120@1.0 | 120@1.5", segments.shape())
-        assertEquals(300.00, pay(s, p)!!.totalGross, 0.01)
+        assertEquals("5@1.0 | 235@1.5", segments.shape())
+    }
+
+    /**
+     * The same guarantee on a shift that never reaches rest stays ordinary time.
+     *
+     * This is the case the clamp exists for. Under the old compressed mapping the
+     * top-up minutes ran on past 17:00 and collected a Shabbat premium for a
+     * call-out that finished at 16:10.
+     */
+    @Test
+    fun `a top-up on a shift that ends before rest earns no rest premium`() {
+        val p = ilProfile(
+            rules = RegionPresets.forRegion(RegionCode.IL).rules.copy(
+                minimumShiftMinutes = 240,
+            ),
+            id = "il-minimum-early",
+        )
+        // Fri 5 Jan 2024, 16:00–16:10 Jerusalem: wholly before the boundary.
+        val s = shift("2024-01-05T14:00:00Z", "2024-01-05T14:10:00Z")
+
+        val segments = classify(s, p)
+
+        assertEquals(240, segments.sumOf { it.minutes })
+        assertEquals("240@1.0", segments.shape())
+        assertTrue("nothing here is weekly rest", segments.none { it.isWeeklyRest })
     }
 
     // ── Week state ────────────────────────────────────────────────────────────

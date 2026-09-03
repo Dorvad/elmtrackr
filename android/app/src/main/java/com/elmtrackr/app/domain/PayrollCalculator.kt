@@ -19,6 +19,7 @@ import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.PremiumType
 import com.elmtrackr.app.domain.premium.PremiumStacking
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.time.WallClockTime
 import com.elmtrackr.app.domain.time.WorkTimezone
 import com.elmtrackr.app.domain.time.ZoneMinutes
 import kotlin.math.min
@@ -853,6 +854,10 @@ object PayrollCalculator {
     /** Minimum minutes inside the night window for a shift to count as night work. */
     internal const val NIGHT_SHIFT_MIN_NIGHT_MINUTES = 120
 
+    /** 22:00 and 06:00, the shipped night window and the fallback for a bad one. */
+    private const val DEFAULT_NIGHT_START_MINUTES = 22 * 60
+    private const val DEFAULT_NIGHT_END_MINUTES = 6 * 60
+
     internal fun effectiveDailyStandardMinutes(
         rules: CompensationRules,
         shift: Shift,
@@ -880,6 +885,8 @@ object PayrollCalculator {
         }
         val net = ShiftDurationCalculator.netMinutes(shift) ?: return false
         if (net <= 0) return false
+        // Wall-clock, not break-scaled: this asks whether the shift *fell* across
+        // the night window, which is a question about the clock.
         val nightMinutes = countNightMinutes(shift, rules.nightStartTime, rules.nightEndTime, zone)
         return nightMinutes >= NIGHT_SHIFT_MIN_NIGHT_MINUTES
     }
@@ -1005,7 +1012,9 @@ object PayrollCalculator {
         val nightMinutes = if (rules.nightApplyTo == "entire_shift") {
             net
         } else {
-            countNightMinutes(shift, rules.nightStartTime, rules.nightEndTime, zone)
+            // Scaled, because this is a share of *paid* minutes and `net` below is
+            // already net of the break.
+            paidNightMinutes(shift, rules.nightStartTime, rules.nightEndTime, zone)
         }
         if (nightMinutes <= 0) return 0.0
         return (nightMinutes.toDouble() / net).coerceIn(0.0, 1.0)
@@ -1028,8 +1037,17 @@ object PayrollCalculator {
     }
 
     /**
-     * Minutes of the shift that fall inside the night window, scaled down by the
-     * break the same way the rest of the shift is.
+     * Wall-clock minutes of the shift inside the night window, unscaled.
+     *
+     * This is the figure the "is this a night shift" test needs, and it used to be
+     * the break-scaled one. That test asks a question about the clock — did at
+     * least two hours of this shift fall between 22:00 and 06:00 — and the break's
+     * position is not recorded, so scaling the count by the break ratio before
+     * answering it was arbitrary. It also had a sharp edge: a shift with 130
+     * wall-clock night minutes and a 60-minute break counted 115, dropped below
+     * the 120-minute threshold, and lost the shortened night standard along with
+     * every overtime minute that standard produced — far more than the break
+     * itself was worth.
      *
      * Walked a minute at a time because the window is a local wall-clock range, so a
      * shift crossing midnight or a DST change cannot be measured by subtracting two
@@ -1046,8 +1064,8 @@ object PayrollCalculator {
         zone: java.time.ZoneId,
     ): Int {
         val end = shift.endTime ?: return 0
-        val ns = parseTimeToMinutes(nightStart)
-        val ne = parseTimeToMinutes(nightEnd)
+        val ns = parseTimeToMinutes(nightStart, DEFAULT_NIGHT_START_MINUTES)
+        val ne = parseTimeToMinutes(nightEnd, DEFAULT_NIGHT_END_MINUTES)
         val startMs = shift.startTime.toEpochMilli()
         val endMs = end.toEpochMilli()
         if (endMs <= startMs) return 0
@@ -1068,17 +1086,41 @@ object PayrollCalculator {
             if (inNight) nightMs += step
             t += step
         }
-        val grossMinutes = (endMs - startMs) / 60_000.0
-        val netRatio = if (grossMinutes > 0) {
-            maxOf(0.0, grossMinutes - shift.breakMinutes) / grossMinutes
-        } else 1.0
-        return (nightMs / 60_000.0 * netRatio).toInt()
+        return (nightMs / 60_000L).toInt()
     }
 
-    private fun parseTimeToMinutes(time: String): Int {
-        val parts = time.split(":")
-        return parts[0].toInt() * 60 + (parts.getOrNull(1)?.toInt() ?: 0)
+    /**
+     * The night minutes a *premium* is paid on: the wall-clock count above,
+     * reduced in the same proportion as the rest of the shift's paid time.
+     *
+     * Kept scaled, unlike the classification test. Here the question is how much
+     * of the paid time was at night, and the paid time is already net of the
+     * break — so counting unscaled night minutes against a net denominator would
+     * pay a night premium on minutes the shift is not paid for at all.
+     */
+    private fun paidNightMinutes(
+        shift: Shift,
+        nightStart: String,
+        nightEnd: String,
+        zone: java.time.ZoneId,
+    ): Int {
+        val end = shift.endTime ?: return 0
+        val grossMinutes = (end.toEpochMilli() - shift.startTime.toEpochMilli()) / 60_000.0
+        if (grossMinutes <= 0) return 0
+        val ratio = maxOf(0.0, grossMinutes - shift.breakMinutes) / grossMinutes
+        return (countNightMinutes(shift, nightStart, nightEnd, zone) * ratio).toInt()
     }
+
+    /**
+     * The night window's ends, falling back to the preset defaults.
+     *
+     * A malformed value used to throw from inside the pay calculation. 22:00 and
+     * 06:00 are the shipped defaults, so a profile whose window cannot be read is
+     * measured against the ordinary night rather than crashing the report it
+     * appears in.
+     */
+    private fun parseTimeToMinutes(time: String, fallbackMinutes: Int): Int =
+        WallClockTime.parseMinutesOfDayOrNull(time) ?: fallbackMinutes
 
     data class MonthlyPaySummary(
         val totalGross: Double,
