@@ -96,6 +96,11 @@ android {
         }
     }
 
+    testOptions {
+        // Robolectric needs the merged resources to inflate the watch theme.
+        unitTests.isIncludeAndroidResources = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -151,4 +156,13 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Robolectric, so the launch path is exercised on the JVM in CI.
+    //
+    // Play rejected this module twice for "does not install or launch without
+    // crashing" and the crash was never reproduced, because nothing ran the
+    // Application, the tile service or the complication provider anywhere. An
+    // emulator is the real test; this is the part of it that can run on every
+    // commit.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }
