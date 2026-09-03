@@ -2,6 +2,7 @@ package com.elmtrackr.app.domain.compensation
 
 import com.elmtrackr.app.domain.WeekendRules
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.CompensationRules
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.CompensationSnapshot
 import com.elmtrackr.app.domain.model.OvertimeTier
@@ -38,6 +39,28 @@ object CompensationResolver {
         stackingPolicy = profile.stackingPolicy,
         fromSnapshot = false,
     )
+
+    /**
+     * The rules a screen should quote when it has no single shift in hand.
+     *
+     * A "daily overtime after 8:00" footnote read `settings.dailyOvertimeThresholdMinutes`,
+     * whose default is 480, while every hour and money figure beside it resolved
+     * thresholds per shift through a profile — 516 on the Israeli preset. So the
+     * report stated a threshold none of its own numbers used, and for a
+     * multi-profile user at least one job's threshold was wrong whatever it said.
+     *
+     * The default profile, else the first, else the legacy settings mirror.
+     */
+    fun defaultRules(
+        settings: UserSettings,
+        profiles: List<CompensationProfile> = emptyList(),
+    ): CompensationRules {
+        val active = profiles.filterNot { it.isArchived }
+        val profile = active.firstOrNull { it.id == settings.defaultCompensationProfileId }
+            ?: active.firstOrNull { it.isDefault }
+            ?: active.firstOrNull()
+        return profile?.rules ?: legacySettingsToResolved(settings).rules
+    }
 
     fun legacySettingsToResolved(settings: UserSettings): ResolvedCompensation {
         val regionCode = settings.regionCode ?: RegionCode.IL

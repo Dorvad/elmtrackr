@@ -332,6 +332,7 @@ class ReportsViewModel @Inject constructor(
                                             safeReport.totalMinutes,
                                             profiles,
                                             premiumProfiles,
+                                            contextShifts = payContext,
                                         )
                                     }
                                     ?: emptyList()
@@ -341,6 +342,7 @@ class ReportsViewModel @Inject constructor(
                                     tasks = tasks.filter { !it.isArchived },
                                     profiles = profiles,
                                     premiumProfiles = premiumProfiles,
+                                    contextShifts = payContext,
                                 )
                                 ReportsUiState.Ready(
                                     year = year,
@@ -352,9 +354,11 @@ class ReportsViewModel @Inject constructor(
                                         profiles = profiles,
                                         premiumProfiles = premiumProfiles,
                                         prevMonthShifts = prevCompleted,
+                                        payContextShifts = payContext,
                                     ),
                                     paySummary = paySummary,
                                     rawShifts = completedShifts,
+                                    payContextShifts = payContext,
                                     settings = settings,
                                     profiles = profiles,
                                     premiumProfiles = premiumProfiles,
@@ -460,12 +464,20 @@ class ReportsViewModel @Inject constructor(
         // resolve overtime thresholds through the same profiles the on-screen report
         // used, or the export disagrees with the screen it was exported from.
         profiles: List<CompensationProfile> = emptyList(),
+        // The pay weeks the exported month belongs to. The TOTAL row is built from
+        // the same builder the screen uses, so without this the export could report
+        // less overtime than the screen it was exported from — on the document a
+        // user hands to payroll.
+        contextShifts: List<Shift> = shifts,
         year: Int = selectedYearMonth.value.first,
         month: Int = selectedYearMonth.value.second,
     ): String {
         val reportSettings = settings ?: UserSettings(id = "export", userId = "export")
         val completed = shifts.filter { it.isCompleted }.sortedByDescending { it.startTime }
-        val breakdowns = completed.map { MonthlyReportBuilder.buildShiftBreakdown(it, reportSettings, profiles) }
+        val payContext = contextShifts.filter { it.isCompleted }.ifEmpty { completed }
+        val breakdowns = completed.map {
+            MonthlyReportBuilder.buildShiftBreakdown(it, reportSettings, profiles, emptyList(), payContext)
+        }
         val lines = mutableListOf(
             "Date,Start Time,End Time,Break (min),Total Hours,Regular Hours,Overtime Hours,Weekend Hours,Overnight,Notes",
         )
@@ -490,7 +502,9 @@ class ReportsViewModel @Inject constructor(
         // applies max(daily, weekly) overtime per week. Summing the per-shift
         // rows counts daily overtime only, so a month whose overtime was
         // weekly-threshold-driven exported 0.00 while the screen showed hours.
-        val report = MonthlyReportBuilder.buildMonthlyReport(year, month, completed, reportSettings, profiles)
+        val report = MonthlyReportBuilder.buildMonthlyReport(
+            year, month, completed, reportSettings, profiles, contextShifts = payContext,
+        )
         lines += listOf(
             "TOTAL - $year-${month.toString().padStart(2, '0')}", "", "", "",
             HoursFormatter.csv(report.totalMinutes),

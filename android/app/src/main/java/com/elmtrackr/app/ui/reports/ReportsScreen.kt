@@ -304,11 +304,16 @@ fun ReportsScreen(
                                         ReportExporter.shareCsv(
                                             context,
                                             viewModel.buildCsvContent(
-                                                state.rawShifts,
-                                                state.settings,
-                                                state.profiles,
-                                                state.year,
-                                                state.month,
+                                                shifts = state.rawShifts,
+                                                settings = state.settings,
+                                                profiles = state.profiles,
+                                                // The same pay-week window the screen
+                                                // used, so the export's TOTAL row cannot
+                                                // report less overtime than the report it
+                                                // was exported from.
+                                                contextShifts = state.payContextShifts,
+                                                year = state.year,
+                                                month = state.month,
                                             ),
                                             viewModel.csvFilename(state.year, state.month),
                                         )
@@ -1022,7 +1027,7 @@ internal fun HoursReport(
     // ── OT thresholds footnote (web: inline with hairline divider) ────────────
     state.settings?.let { settings ->
         Spacer(Modifier.height(12.dp))
-        OtThresholdFootnote(settings)
+        OtThresholdFootnote(settings, state.profiles)
 
         // ── Shift breakdown ───────────────────────────────────────────────────
         Spacer(Modifier.height(18.dp))
@@ -1506,7 +1511,12 @@ private fun ShiftReportRow(
     // per-row calls sat outside that.
     val rowPay = remember(shift, settings, profiles, allShifts, premiumProfiles, zone) {
         ShiftReportRowPay(
-            breakdown = MonthlyReportBuilder.buildShiftBreakdown(shift, settings, profiles),
+            // `allShifts` here is the pay-week window the screen was built with, the
+            // same one the row's pay is priced against below — so the row's hours
+            // and its money describe the same week.
+            breakdown = MonthlyReportBuilder.buildShiftBreakdown(
+                shift, settings, profiles, premiumProfiles, allShifts,
+            ),
             weekend = CompensationResolver.isWeekendShift(shift, settings, profiles),
             overnight = OvernightShiftDetector.isOvernight(shift, zone),
             pay = PayrollCalculator.calculateShiftPayInContext(
@@ -1912,9 +1922,19 @@ private fun RefundMonthCard(
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
 @Composable
-private fun OtThresholdFootnote(settings: UserSettings) {
-    val daily = durationText(settings.dailyOvertimeThresholdMinutes)
-    val weekly = durationText(settings.weeklyOvertimeThresholdMinutes)
+private fun OtThresholdFootnote(
+    settings: UserSettings,
+    profiles: List<CompensationProfile> = emptyList(),
+) {
+    // Resolved, not read off the settings fields. Those default to 480/2400 while
+    // every figure on this screen resolves its thresholds through a profile — 516
+    // and 2520 on the Israeli preset — so the footnote used to state a threshold
+    // none of the numbers above it used.
+    val rules = remember(settings, profiles) {
+        CompensationResolver.defaultRules(settings, profiles)
+    }
+    val daily = durationText(rules.dailyStandardMinutes)
+    val weekly = durationText(rules.weeklyStandardMinutes)
     ReportCard {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth < 340.dp) {
