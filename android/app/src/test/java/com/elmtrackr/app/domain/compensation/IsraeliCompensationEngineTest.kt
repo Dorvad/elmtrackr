@@ -376,15 +376,30 @@ class IsraeliCompensationEngineTest {
         assertBuckets(pay(s, p)!!, weekend = 720.0)
     }
 
+    /**
+     * `forceRegularRate` overrides the calendar, not just the special-day flag.
+     *
+     * The override is applied in [CompensationResolver], which clears
+     * `weekendEnabled` and `holidayEnabled` on the resolved rules before the
+     * classifier ever runs — "paid at the regular rate no matter what the calendar
+     * or flags say". So a Saturday marked as a holiday and forced regular pays
+     * neither the rest premium nor the holiday one, and the minutes are not weekly
+     * rest at all.
+     *
+     * Worth pinning because the flag reads like it only cancels the manual holiday.
+     * It does not: it also cancels Shabbat.
+     */
     @Test
-    fun `forceRegularRate strips both the holiday and the rest premium`() {
+    fun `forceRegularRate pays a rest day at the plain regular rate`() {
         val p = ilProfile()
         val s = shift("2024-01-06T07:00:00Z", "2024-01-06T15:00:00Z", special = true)
             .copy(forceRegularRate = true)
 
-        // Saturday is still a calendar rest day, so the rest rate still applies;
-        // what forceRegularRate removes is the manual-holiday claim on top of it.
-        assertEquals("480@1.5", classify(s, p).shape())
+        val segments = classify(s, p)
+
+        assertEquals("480@1.0", segments.shape())
+        assertTrue("the calendar rest day is overridden too", segments.none { it.isWeeklyRest })
+        assertBuckets(pay(s, p)!!, regular = 480.0)
     }
 
     @Test
