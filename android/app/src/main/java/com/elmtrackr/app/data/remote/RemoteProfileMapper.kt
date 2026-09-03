@@ -5,6 +5,7 @@ import com.elmtrackr.app.data.local.entity.SyncStatus
 
 fun ProfileEntity.toRemoteUpdate(): RemoteProfileUpdate = RemoteProfileUpdate(
     fullName = fullName,
+    clientUpdatedAt = epochToIso(updatedAt),
 )
 
 fun RemoteProfileRow.toLocalEntity(

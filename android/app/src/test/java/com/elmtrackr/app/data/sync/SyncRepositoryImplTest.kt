@@ -1935,7 +1935,15 @@ class SyncRepositoryImplTest {
             emptyList()
         override suspend fun upsert(settings: RemoteUserSettingsUpsert): RemoteUserSettingsRow =
             error("not used")
-        override suspend fun update(remoteId: String, settings: RemoteUserSettingsUpdate) = Unit
+        // null is not "did nothing" — it is the conflict signal, meaning the
+        // server holds a newer edit. This source has no rows at all, so a push
+        // against it is always a conflict and the row is left pending. Tests that
+        // need a settings push to *succeed* must supply a source that returns a
+        // row.
+        override suspend fun update(
+            remoteId: String,
+            settings: RemoteUserSettingsUpdate,
+        ): RemoteUserSettingsRow? = null
     }
 
     private class EmptyRemoteCompensationProfileDataSource : RemoteCompensationProfileDataSource {

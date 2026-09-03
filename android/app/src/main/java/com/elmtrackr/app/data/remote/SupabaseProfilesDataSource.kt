@@ -15,15 +15,22 @@ class SupabaseProfilesDataSource(
             limit(limit.toLong())
         }.decodeList<RemoteProfileRow>()
 
-    override suspend fun update(userId: String, profile: RemoteProfileUpdate): RemoteProfileRow =
+    override suspend fun update(userId: String, profile: RemoteProfileUpdate): RemoteProfileRow? =
         client.from(TABLE).update(profile) {
-            filter { eq(COLUMN_ID, userId) }
             select()
-        }.decodeSingle<RemoteProfileRow>()
+            filter {
+                eq(COLUMN_ID, userId)
+                // Same edit-version guard as every other table. decodeList, not
+                // decodeSingle: a rejected write returns no rows, and decodeSingle
+                // would throw on that rather than reporting the conflict.
+                lte(COLUMN_CLIENT_UPDATED_AT, profile.clientUpdatedAt)
+            }
+        }.decodeList<RemoteProfileRow>().firstOrNull()
 
     private companion object {
         const val TABLE = "profiles"
         const val COLUMN_ID = "id"
         const val COLUMN_UPDATED_AT = "updated_at"
+        const val COLUMN_CLIENT_UPDATED_AT = "client_updated_at"
     }
 }

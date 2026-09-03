@@ -2357,8 +2357,47 @@ class SyncRepositoryImpl @Inject constructor(
         syncedAt: Long,
     ) {
         val remoteId = settings.remoteId ?: error("Missing remoteId for settings ${settings.localId}")
-        settingsRemote.update(remoteId, settings.toRemoteUpdate(profileRemoteId))
+        // Null means the server holds a newer edit, so this push is a conflict and
+        // the remote copy wins.
+        //
+        // This is the table where getting it wrong costs the most. user_settings
+        // holds the overtime thresholds, the hourly rate, weekend days, currency,
+        // region and all six feature flags — so a device that had been offline
+        // used to overwrite the server with its stale copy, and the pull that runs
+        // after the push in the same pass then carried those values back to the
+        // device that had the newer ones. Both converged on the old settings,
+        // silently, and every pay figure recomputed against them.
+        if (settingsRemote.update(remoteId, settings.toRemoteUpdate(profileRemoteId)) == null) {
+            adoptNewerRemoteUserSettings(settings, remoteId, syncedAt)
+            return
+        }
         markUserSettingsSynced(settings, remoteId, syncedAt)
+    }
+
+    /**
+     * Takes the server's settings after a rejected push.
+     *
+     * `preserveLocal` keeps the Paid Projects defaults, which have no columns on
+     * the server and would otherwise be dropped by the rebuild — the same reason
+     * `pullUserSettings` passes it. Left pending when the row cannot be fetched,
+     * so it is retried rather than marked synced against something never read.
+     */
+    private suspend fun adoptNewerRemoteUserSettings(
+        settings: UserSettingsEntity,
+        remoteId: String,
+        syncedAt: Long,
+    ) {
+        val remote = settingsRemote.fetchUpdatedSince(null, PULL_PAGE_SIZE)
+            .firstOrNull { it.id == remoteId } ?: return
+        settingsDao.upsertSettings(
+            remote.toLocalEntity(
+                existingLocalId = settings.localId,
+                defaultCompensationProfileLocalId =
+                    idMapper.profileRemoteToLocal(remote.defaultCompensationProfileId),
+                syncStatus = SyncStatus.SYNCED,
+                preserveLocal = settings,
+            ).copy(lastSyncedAt = syncedAt),
+        )
     }
 
     // See markShiftSynced: a mid-push edit must keep the row pending.
@@ -2433,7 +2472,35 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushProfileUpdate(profile: ProfileEntity, syncedAt: Long) {
         val remoteId = profile.remoteId ?: profile.userId
+        // Null means the server holds a newer edit than this one, so the remote
+        // copy wins — the same rule the pull side applies, which is what keeps the
+        // two directions agreeing. Before the filter existed this write always
+        // landed, so a device that had been offline could overwrite a display name
+        // changed more recently elsewhere.
         val remote = profilesRemote.update(remoteId, profile.toRemoteUpdate())
+            ?: adoptNewerRemoteProfile(profile, remoteId, syncedAt).let { return }
+        profileDao.upsertProfile(
+            remote.toLocalEntity(
+                existingLocalId = profile.localId,
+                syncStatus = SyncStatus.SYNCED,
+            ).copy(lastSyncedAt = syncedAt),
+        )
+    }
+
+    /**
+     * Takes the server's copy after a rejected profile push.
+     *
+     * Left pending when it cannot be fetched, so the row is retried rather than
+     * being marked synced against something never read — the same shape as
+     * [adoptNewerRemoteTask].
+     */
+    private suspend fun adoptNewerRemoteProfile(
+        profile: ProfileEntity,
+        remoteId: String,
+        syncedAt: Long,
+    ) {
+        val remote = profilesRemote.fetchUpdatedSince(null, 1)
+            .firstOrNull { it.id == remoteId } ?: return
         profileDao.upsertProfile(
             remote.toLocalEntity(
                 existingLocalId = profile.localId,
