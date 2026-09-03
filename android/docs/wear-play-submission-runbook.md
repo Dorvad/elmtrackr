@@ -88,24 +88,63 @@ observe.
 
 ## 2. The fix you chose: make the watch standalone
 
-The strongest version of this is not just flipping the flag. **The phone app
-already works with no account at all** — `android/README.md` states that all
-local shift tracking continues without authentication. The watch app does not:
-with no signed-in phone it shows a setup screen and can do nothing.
+The strongest version is not just flipping the flag, and there is a prerequisite
+that has to be stated plainly because it is bigger than the watch.
 
-**Make the watch match the phone.** A watch that can track a shift locally, with
-no account and no phone, is one a reviewer can install, tap **PUNCH IN** on, and
-see work in about four seconds — with no credentials, no pairing and no setup.
-That removes WO-P5 from the review entirely, because the app is no longer
-non-standalone.
+### The app cannot currently be used without an account — including on the phone
 
-It is also the better product. An hourly worker who leaves their phone in a
+`android/README.md` says "all local shift tracking continues to work without
+authentication". **The code does not support that claim.** `CurrentUserProvider`
+resolves the user from `lastActiveUserId`, and that preference is written in
+exactly one place — `SupabaseAuthRepository` on a successful sign-in — and cleared
+on sign-out. There is no anonymous or device-local identity. So with nobody signed
+in:
+
+- `ClockInActions.clockInHeadless` returns null,
+- `WearActions.clockIn` answers `not_signed_in`,
+- and the shell routes to the auth screen rather than the dashboard.
+
+Two consequences, both important:
+
+1. **The README is wrong and should be corrected**, because it is the sentence
+   that makes this look easier than it is.
+2. **A Play reviewer must sign in.** There is no build configuration or offline
+   mode that avoids it. Your App Access credentials are therefore load-bearing on
+   every single review — phone *and* watch — which is why the July credential
+   rejection was so damaging.
+
+### What "standalone" therefore requires
+
+A watch that works with no phone still needs an identity to attach shifts to.
+There are two honest routes:
+
+**Route A — anonymous local identity (recommended).** Give the app a device-local
+user id when nobody has signed in, so shifts can be recorded and later claimed by
+an account. This makes the README's claim true, lets a reviewer install and punch
+in with no setup at all, and is the only route that removes credentials from the
+critical path. It is a product change affecting the phone as well as the watch,
+and it needs a defined migration for "sign in later and adopt these shifts" —
+`LegacyDataAdopter` already does adoption of exactly this shape and is the model
+to follow.
+
+**Route B — sign in on the watch.** Keep accounts mandatory and add Google
+Sign-In on the watch via Credential Manager (the phone gained Google Sign-In in
+August, `f95db2e`, so Supabase already accepts the ID token). This satisfies
+**WO-P6**, which forbids a password field on the watch. It removes the *phone*
+dependency but not the *account* dependency, so a reviewer still has to sign in —
+just on the watch instead of the phone.
+
+Route A is the one that ends the rejection cycle. Route B is smaller but leaves
+you dependent on the reviewer completing a sign-in.
+
+Either way it is the better product: an hourly worker who leaves their phone in a
 locker is precisely the person a wrist punch-clock is for.
 
 ### What that requires
 
 | Piece | Why | Size |
 |---|---|---|
+| An identity that exists without sign-in (Route A) | Nothing can be recorded without one — see above | L |
 | Local shift state on the watch (DataStore or Room) | A punch must survive with no phone in range | M |
 | Local punch path that does not call the phone | Today `punchIn()` returns `phone_unreachable` and shows a failure | M |
 | Reconciliation when a phone reappears | Two devices can now both hold an open shift; `RunningShiftResolver` on the phone already implements exactly this rule (earliest open shift wins, merge, tombstone the rest) and is a pure function, so the watch can reuse it | M |
