@@ -32,6 +32,49 @@ object RemoteSyncErrors {
         }
 
     /**
+     * A failure a later attempt could plausibly get past on its own.
+     *
+     * Everything that was not a missing table, an expired session or a unique
+     * violation used to be recorded on the row as FAILED, and FAILED is
+     * deliberately excluded from the immediate retry path by
+     * `hasRetryablePendingWork` — so a clock-out pushed on a flaky connection was
+     * not retried until the fifteen-minute periodic run, and sat in the "unsynced
+     * changes" count until then. A dropped connection is not a rejection.
+     *
+     * Matched on message and class name rather than on ktor's or supabase-kt's
+     * exception types, like [isAuthExpired] above and for the same reason: the
+     * hierarchy is theirs to change.
+     *
+     * Deliberately narrow. Anything not recognised here still becomes FAILED,
+     * because treating an unknown rejection as retryable is how a row that can
+     * never succeed becomes an endless loop — the failure mode the August sync
+     * work existed to close.
+     */
+    fun isTransient(error: Throwable): Boolean =
+        generateSequence(error) { it.cause }.take(4).any { e ->
+            val className = e::class.simpleName.orEmpty()
+            val message = e.message.orEmpty()
+            className.contains("SocketTimeout", ignoreCase = true) ||
+                className.contains("ConnectTimeout", ignoreCase = true) ||
+                className.contains("HttpRequestTimeout", ignoreCase = true) ||
+                className.contains("UnknownHost", ignoreCase = true) ||
+                className.contains("ConnectException", ignoreCase = true) ||
+                className.contains("SSLException", ignoreCase = true) ||
+                className.contains("IOException", ignoreCase = true) ||
+                message.contains("timeout", ignoreCase = true) ||
+                message.contains("Unable to resolve host", ignoreCase = true) ||
+                message.contains("Connection reset", ignoreCase = true) ||
+                message.contains("Software caused connection abort", ignoreCase = true) ||
+                // 429 and 5xx: the server is asking for later, not saying no.
+                message.contains("Too Many Requests", ignoreCase = true) ||
+                message.contains("Bad Gateway", ignoreCase = true) ||
+                message.contains("Service Unavailable", ignoreCase = true) ||
+                message.contains("Gateway Timeout", ignoreCase = true) ||
+                Regex("\\b5\\d\\d\\b").containsMatchIn(message) ||
+                message.contains("429", ignoreCase = true)
+        }
+
+    /**
      * A foreign-key violation: the row points at a parent the server does not have.
      *
      * This is a **hold**, not a failure. It happens when a child is pushed before

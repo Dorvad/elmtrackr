@@ -524,6 +524,31 @@ class SyncRepositoryImpl @Inject constructor(
         )
     }
 
+    /**
+     * Whether the server's copy is newer than the one this device holds.
+     *
+     * Compares the remote timestamp against [existingLastSyncedAt] — the server's
+     * own timestamp for the version we hold — rather than against
+     * [existingUpdatedAt], which is `Instant.now()` on *this device* when the row
+     * was last edited here. The old comparison put a server clock next to a device
+     * clock with no skew guard: a phone running an hour slow treated every remote
+     * row as newer and lost each of its own synced edits on the next pull, and one
+     * running fast never accepted a remote update at all. Both silently.
+     *
+     * Every caller reaches this only for a SYNCED row, so `lastSyncedAt` is set and
+     * is exactly the server timestamp of the copy held here. The fallback to the
+     * device value covers a row that has somehow never recorded one, which keeps
+     * the previous behaviour rather than treating it as never-newer.
+     *
+     * This does not fix a wrong device clock — nothing here can — but it removes
+     * the clock from the comparison.
+     */
+    private fun isRemoteNewer(
+        remoteUpdatedAtIso: String,
+        existingLastSyncedAt: Long?,
+        existingUpdatedAt: Long,
+    ): Boolean = isoToEpoch(remoteUpdatedAtIso) > (existingLastSyncedAt ?: existingUpdatedAt)
+
     private data class PullOutcome(
         val seenRemoteIds: Set<String>,
         val isFullSync: Boolean,
@@ -777,7 +802,7 @@ class SyncRepositoryImpl @Inject constructor(
                         remote.toLocalEntity(compensationProfileLocalId = profileLocalId),
                     )
                     existing.syncStatus != SyncStatus.SYNCED -> Unit
-                    isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                    isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                         taskDao.upsert(
                             remote.toLocalEntity(
                                 existingLocalId = existing.localId,
@@ -951,9 +976,14 @@ class SyncRepositoryImpl @Inject constructor(
      * rejection, and FAILED rows are deliberately excluded from the immediate
      * retry path by `hasRetryablePendingWork`, which left the row stuck at
      * fifteen-minute intervals and permanently in the "unsynced changes" count.
+     *
+     * The same applies to a dropped connection or a 5xx, for the same reason: the
+     * row is fine and the next attempt will probably carry it. Both leave the row
+     * PENDING_*, which keeps it in the immediate retry path instead of parking it
+     * until the periodic run.
      */
     private fun shouldHoldForParent(error: Throwable): Boolean =
-        RemoteSyncErrors.isForeignKeyViolation(error)
+        RemoteSyncErrors.isForeignKeyViolation(error) || RemoteSyncErrors.isTransient(error)
 
     private suspend fun markShiftFailed(shift: ShiftEntity, error: Throwable) {
         shiftDao.updateSyncState(
@@ -1028,7 +1058,7 @@ class SyncRepositoryImpl @Inject constructor(
         val existing = shiftDao.getShiftByRemoteId(remote.id)
         if (existing != null) {
             if (existing.syncStatus != SyncStatus.SYNCED) return true
-            val remoteNewer = isoToEpoch(remote.updatedAt) > existing.updatedAt
+            val remoteNewer = isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt)
             // Heal links dropped by the old pull order, which materialised
             // shifts before their tasks existed locally.
             if (!remoteNewer && existing.deletedAt == null && existing.taskId == null && remote.taskId != null) {
@@ -1209,7 +1239,7 @@ class SyncRepositoryImpl @Inject constructor(
                 existing == null && remote.deletedAt != null -> Unit
                 existing == null -> projectDao.upsert(remote.toLocalEntity())
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     projectDao.upsert(remote.toLocalEntity(existingLocalId = existing.localId))
             }
             true
@@ -1313,7 +1343,7 @@ class SyncRepositoryImpl @Inject constructor(
                 existing == null ->
                     projectBillingRecordDao.upsert(remote.toLocalEntity(projectLocalId = projectLocalId))
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     projectBillingRecordDao.upsert(
                         remote.toLocalEntity(
                             projectLocalId = projectLocalId,
@@ -1429,7 +1459,7 @@ class SyncRepositoryImpl @Inject constructor(
                         ),
                     )
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     projectPaymentDao.upsert(
                         remote.toLocalEntity(
                             projectLocalId = projectLocalId,
@@ -1602,7 +1632,7 @@ class SyncRepositoryImpl @Inject constructor(
                 existing == null ->
                     refundClaimDao.insertClaim(remote.toLocalEntity(shiftLocalId = shiftLocalId))
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     refundClaimDao.upsertClaim(
                         remote.toLocalEntity(
                             shiftLocalId = shiftLocalId,
@@ -1729,7 +1759,7 @@ class SyncRepositoryImpl @Inject constructor(
                     remote.toLocalEntity(workplaceLocalId = workplaceLocalId),
                 )
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     compensationProfileDao.upsert(
                         remote.toLocalEntity(
                             existingLocalId = existing.localId,
@@ -1850,7 +1880,7 @@ class SyncRepositoryImpl @Inject constructor(
                 existing == null && remote.deletedAt != null -> Unit
                 existing == null -> premiumProfileDao.insert(remote.toLocalEntity())
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     premiumProfileDao.upsert(
                         remote.toLocalEntity(existingLocalId = existing.localId),
                     )
@@ -1958,7 +1988,7 @@ class SyncRepositoryImpl @Inject constructor(
                 existing == null && remote.deletedAt != null -> Unit
                 existing == null -> workplaceDao.upsert(remote.toLocalEntity())
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     workplaceDao.upsert(remote.toLocalEntity(existingLocalId = existing.localId))
             }
             true
@@ -2051,7 +2081,7 @@ class SyncRepositoryImpl @Inject constructor(
                 existing == null && remote.deletedAt != null -> Unit
                 existing == null -> leavePolicyDao.upsert(remote.toLocalEntity(workplaceLocalId))
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     leavePolicyDao.upsert(
                         remote.toLocalEntity(workplaceLocalId, existingLocalId = existing.localId),
                     )
@@ -2139,7 +2169,7 @@ class SyncRepositoryImpl @Inject constructor(
                 existing == null && remote.deletedAt != null -> Unit
                 existing == null -> leaveBalanceSnapshotDao.upsert(remote.toLocalEntity(workplaceLocalId))
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     leaveBalanceSnapshotDao.upsert(
                         remote.toLocalEntity(workplaceLocalId, existingLocalId = existing.localId),
                     )
@@ -2221,7 +2251,7 @@ class SyncRepositoryImpl @Inject constructor(
                 existing == null && remote.deletedAt != null -> Unit
                 existing == null -> absenceEventDao.upsert(remote.toLocalEntity())
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     absenceEventDao.upsert(remote.toLocalEntity(existingLocalId = existing.localId))
             }
             true
@@ -2322,7 +2352,7 @@ class SyncRepositoryImpl @Inject constructor(
                     remote.toLocalEntity(eventLocalId, workplaceLocalId),
                 )
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     absenceAllocationDao.upsert(
                         remote.toLocalEntity(eventLocalId, workplaceLocalId, existingLocalId = existing.localId),
                     )
@@ -2440,7 +2470,7 @@ class SyncRepositoryImpl @Inject constructor(
                         remote.toLocalEntity(defaultCompensationProfileLocalId = profileLocalId),
                     )
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     settingsDao.upsertSettings(
                         remote.toLocalEntity(
                             existingLocalId = existing.localId,
@@ -2534,7 +2564,7 @@ class SyncRepositoryImpl @Inject constructor(
                 existing == null ->
                     profileDao.upsertProfile(remote.toLocalEntity())
                 existing.syncStatus != SyncStatus.SYNCED -> Unit
-                isoToEpoch(remote.updatedAt) > existing.updatedAt ->
+                isRemoteNewer(remote.updatedAt, existing.lastSyncedAt, existing.updatedAt) ->
                     profileDao.upsertProfile(
                         remote.toLocalEntity(existingLocalId = existing.localId),
                     )
