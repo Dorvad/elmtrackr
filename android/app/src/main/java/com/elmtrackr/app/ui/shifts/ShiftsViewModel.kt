@@ -25,6 +25,9 @@ import com.elmtrackr.app.domain.repository.TasksRepository
 import com.elmtrackr.app.domain.tasks.TaskHabitSuggestionBuilder
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.time.WorkTimezone
+import com.elmtrackr.app.di.ComputationDispatcher
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +40,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -60,6 +64,11 @@ class ShiftsViewModel @Inject constructor(
     private val refundsRepository: RefundsRepository,
     private val refundReceiptStorage: RefundReceiptStorage?,
     private val projectsRepository: ProjectsRepository,
+    // Injected so tests can run the payroll transform on their own scheduler; production
+    // keeps it off the main thread (see flowOn below). Same convention as
+    // DashboardViewModel, which already had the list-building work moved across.
+    @ComputationDispatcher
+    private val computationDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
     private val _formTarget = MutableStateFlow<ShiftFormNavState?>(null)
@@ -187,9 +196,18 @@ class ShiftsViewModel @Inject constructor(
                                         premiumProfiles = premiumProfiles,
                                         tasks = tasks,
                                         payContextShifts = contextShifts,
+                                        payFacts = buildShiftsPayFacts(
+                                            shifts = shifts,
+                                            activeShift = activeShift,
+                                            settings = settings,
+                                            profiles = profiles,
+                                            premiumProfiles = premiumProfiles,
+                                            zone = zone,
+                                            payContextShifts = contextShifts,
+                                        ),
                                     )
                                 }
-                            }.collect { emit(it) }
+                            }.flowOn(computationDispatcher).collect { emit(it) }
                         }
                     }
                 }

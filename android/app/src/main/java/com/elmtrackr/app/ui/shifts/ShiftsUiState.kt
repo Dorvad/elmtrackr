@@ -29,6 +29,13 @@ sealed interface ShiftsUiState {
          * query.
          */
         val payContextShifts: List<Shift> = emptyList(),
+        /**
+         * Money and pay classification for every row and week card, computed on
+         * [com.elmtrackr.app.di.ComputationDispatcher] rather than in the composition.
+         * Null means the screen works it out itself, which is what previews and the
+         * older tests do.
+         */
+        val payFacts: ShiftsPayFacts? = null,
     ) : ShiftsUiState
 
     data class Error(val message: String) : ShiftsUiState

@@ -23,6 +23,11 @@ jobs:
   build:
     name: Build & test debug APK
     runs-on: ubuntu-latest
+    # Without a cap a hung Gradle task or a stalled dependency download holds a
+    # runner for the account-wide six-hour default before anyone is told the job
+    # is stuck. These are sized well above the observed run times, so they fire
+    # only on a genuine hang.
+    timeout-minutes: 45
 
     env:
       # Suppress the Gradle daemon in CI — each run is a fresh container.
@@ -200,6 +205,9 @@ jobs:
     name: Room migration & DAO tests (API 30)
     runs-on: ubuntu-latest
     needs: build
+    # Higher than the others: this one boots an emulator, and an emulator that
+    # fails to come up hangs rather than exiting.
+    timeout-minutes: 60
 
     env:
       GRADLE_OPTS: "-Dorg.gradle.daemon=false -Xmx4g -Dfile.encoding=UTF-8"
@@ -256,6 +264,7 @@ jobs:
     name: Build release AAB
     runs-on: ubuntu-latest
     needs: build
+    timeout-minutes: 45
 
     env:
       GRADLE_OPTS: "-Dorg.gradle.daemon=false -Xmx4g -Dfile.encoding=UTF-8"

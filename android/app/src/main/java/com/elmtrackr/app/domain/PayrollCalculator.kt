@@ -563,10 +563,14 @@ object PayrollCalculator {
         // a month spanning two profiles charges each of their fees once.
         val fixedDeductionsByProfile = mutableMapOf<String, Double>()
 
-        PayWeekMinutes.forEachWithPriorWeekMinutes(shifts, { shift ->
-            val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
-            WorkTimezone.zoneFor(resolved, settings)
-        }) { shift, _ ->
+        // Chronological, keyed on nothing but the start time. The previous pass grouped
+        // by ISO week to hand each shift a running week total that this fold then threw
+        // away (`{ shift, _ -> }`), and resolved a compensation profile for every shift
+        // purely to pick the zone that the discarded grouping needed — two resolves per
+        // shift where one does. Grouping never reordered anything either: the groups were
+        // built from an already-chronological list, so they came out in week order with
+        // each week in start order, which is the same sequence as sorting once here.
+        for (shift in shifts.filter { it.endTime != null }.sortedBy { it.startTime }) {
             val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
             val bd = if (resolved.regionCode == RegionCode.IL) {
                 IsraeliCompensationEngine.calculateIsraeliShiftPay(
@@ -574,7 +578,7 @@ object PayrollCalculator {
                 )
             } else {
                 calculateShiftPayInContext(shift, context, settings, profiles, premiumProfiles)
-            } ?: return@forEachWithPriorWeekMinutes
+            } ?: continue
             totalGross += bd.totalGross
             regularGross += bd.regularGross
             overtimeGross += bd.overtimeGross
@@ -953,6 +957,29 @@ object PayrollCalculator {
         return segments
     }
 
+    /**
+     * Rate for the [minuteInShift]-th minute of a shift under the daily ladder.
+     *
+     * **The standard is the trigger; the first tier's rate applies from it.** When a
+     * custom ladder's first tier starts later than [dailyStandard] — say standard 480
+     * with a first tier at `afterMinutes = 540` — minutes 481..540 fall in a gap that
+     * no tier claims, and the last line pays them at the lowest tier's rate rather than
+     * 1.0. That is deliberate, and the alternative was considered and rejected:
+     *
+     * - Every shipped preset sets the first tier's `afterMinutes` **equal to** the
+     *   standard (`RegionPresets.kt`), and [effectiveDailyOvertimeTiers] shifts the whole
+     *   ladder by the same delta when a night or day-before-rest standard moves it, so
+     *   the gap is empty in every configuration the app ships. Only a hand-built ladder
+     *   opens it.
+     * - Paying 1.0 through the gap would break the invariant the reports depend on: the
+     *   daily standard is what [com.elmtrackr.app.domain.compensation.ShiftClassifier]
+     *   and [MonthlyReportBuilder] use to call a minute overtime, so an hour reported as
+     *   overtime would be paid at straight time. Hours and money would disagree again —
+     *   exactly the defect class Wave B closed.
+     *
+     * Someone who wants those minutes at straight time is describing a longer standard,
+     * and should raise `dailyStandardMinutes` to where the tier starts.
+     */
     internal fun dailyMultiplier(
         minuteInShift: Int,
         rules: CompensationRules,
@@ -966,6 +993,11 @@ object PayrollCalculator {
         return dailyTiers.minBy { it.afterMinutes }.multiplier
     }
 
+    /**
+     * Rate for the [minuteInWeek]-th minute of a pay week under the weekly ladder.
+     * Same gap rule as [dailyMultiplier], for the same reason: the weekly standard is
+     * the trigger, and the lowest tier's rate applies from it.
+     */
     internal fun weeklyMultiplier(minuteInWeek: Int, rules: CompensationRules): Double {
         if (rules.weeklyOvertimeTiers.isEmpty()) return 1.0
         if (minuteInWeek <= rules.weeklyStandardMinutes) return 1.0
