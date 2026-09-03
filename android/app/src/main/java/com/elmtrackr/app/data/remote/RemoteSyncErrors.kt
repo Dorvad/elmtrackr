@@ -31,6 +31,23 @@ object RemoteSyncErrors {
                 message.contains("Invalid Refresh Token", ignoreCase = true)
         }
 
+    /**
+     * A foreign-key violation: the row points at a parent the server does not have.
+     *
+     * This is a **hold**, not a failure. It happens when a child is pushed before
+     * its parent has a remote id — a task scoped to a profile that has not synced,
+     * a shift carrying a workplace that has not — and the next run, once the
+     * parent has landed, succeeds unchanged. Recording it as FAILED instead took
+     * the row out of the immediate retry path (`hasRetryablePendingWork` excludes
+     * FAILED, deliberately) and left it stuck at fifteen-minute intervals and
+     * permanently in the "unsynced changes" count.
+     */
+    fun isForeignKeyViolation(error: Throwable): Boolean {
+        val message = messageOf(error)
+        return message.contains("23503", ignoreCase = true) ||
+            message.contains("violates foreign key constraint", ignoreCase = true)
+    }
+
     fun isUniqueViolation(error: Throwable): Boolean {
         val message = messageOf(error)
         return message.contains("23505", ignoreCase = true) ||

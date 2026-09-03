@@ -657,14 +657,19 @@ class SyncRepositoryImpl @Inject constructor(
                     suspendTasksRemoteSync(userId, warnings)
                     return
                 }
-                markTaskFailed(task, error)
+                if (!shouldHoldForParent(error)) markTaskFailed(task, error)
             }
         }
     }
 
     private suspend fun pushTaskCreate(task: TaskEntity, syncedAt: Long) {
         val remoteId = try {
-            tasksRemote.insert(task.toRemoteInsert()).id
+            tasksRemote.insert(
+                task.toRemoteInsert(
+                    compensationProfileRemoteId =
+                        idMapper.profileLocalToRemote(task.compensationProfileId),
+                ),
+            ).id
         } catch (e: Exception) {
             // The insert carries the client-generated id; a retry after a lost
             // response collides with the row it already created — adopt it.
@@ -675,7 +680,10 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushTaskUpdate(task: TaskEntity, syncedAt: Long) {
         val remoteId = task.remoteId ?: error("Missing remoteId for task ${task.localId}")
-        if (tasksRemote.update(remoteId, task.toRemoteUpdate()) == null) {
+        val update = task.toRemoteUpdate(
+            compensationProfileRemoteId = idMapper.profileLocalToRemote(task.compensationProfileId),
+        )
+        if (tasksRemote.update(remoteId, update) == null) {
             adoptNewerRemoteTask(task, remoteId, syncedAt)
             return
         }
@@ -690,7 +698,13 @@ class SyncRepositoryImpl @Inject constructor(
      */
     private suspend fun adoptNewerRemoteTask(task: TaskEntity, remoteId: String, syncedAt: Long) {
         val remote = tasksRemote.findById(remoteId) ?: return
-        taskDao.upsert(remote.toLocalEntity(existingLocalId = task.localId))
+        taskDao.upsert(
+            remote.toLocalEntity(
+                existingLocalId = task.localId,
+                compensationProfileLocalId = idMapper.profileRemoteToLocal(remote.compensationProfileId),
+                preserveLocal = task,
+            ),
+        )
         taskDao.updateSyncState(task.localId, SyncStatus.SYNCED, remoteId, syncedAt, null)
     }
 
@@ -714,7 +728,10 @@ class SyncRepositoryImpl @Inject constructor(
      */
     private suspend fun pushTaskDelete(task: TaskEntity, syncedAt: Long) {
         val remoteId = task.remoteId
-        if (remoteId != null && tasksRemote.update(remoteId, task.toRemoteUpdate()) == null) {
+        val deleteUpdate = task.toRemoteUpdate(
+            compensationProfileRemoteId = idMapper.profileLocalToRemote(task.compensationProfileId),
+        )
+        if (remoteId != null && tasksRemote.update(remoteId, deleteUpdate) == null) {
             // See pushShiftDelete: a rejected tombstone must not be recorded as sent.
             adoptNewerRemoteTask(task, remoteId, syncedAt)
             return
@@ -740,14 +757,27 @@ class SyncRepositoryImpl @Inject constructor(
                 ownerOf = { it.userId },
             ) { remote ->
                 val existing = taskDao.getByRemoteId(remote.id)
+                val profileLocalId =
+                    idMapper.profileRemoteToLocal(remote.compensationProfileId)
                 when {
                     // Nothing to delete, and materialising a hidden row would put a
                     // permanent invisible record into every reinstall.
                     existing == null && remote.deletedAt != null -> Unit
-                    existing == null -> taskDao.upsert(remote.toLocalEntity())
+                    existing == null -> taskDao.upsert(
+                        remote.toLocalEntity(compensationProfileLocalId = profileLocalId),
+                    )
                     existing.syncStatus != SyncStatus.SYNCED -> Unit
                     isoToEpoch(remote.updatedAt) > existing.updatedAt ->
-                        taskDao.upsert(remote.toLocalEntity(existingLocalId = existing.localId))
+                        taskDao.upsert(
+                            remote.toLocalEntity(
+                                existingLocalId = existing.localId,
+                                compensationProfileLocalId = profileLocalId,
+                                // Keeps the task's scope when the profile has not
+                                // been pulled yet, instead of dropping it back to
+                                // the default job.
+                                preserveLocal = existing,
+                            ),
+                        )
                 }
                 true
             }
@@ -784,7 +814,7 @@ class SyncRepositoryImpl @Inject constructor(
                     shift.remoteId == null -> pushShiftCreate(shift, now)
                     else -> pushShiftUpdate(shift, now)
                 }
-            }.onFailure { markShiftFailed(shift, it) }
+            }.onFailure { if (!shouldHoldForParent(it)) markShiftFailed(shift, it) }
         }
     }
 
@@ -900,6 +930,20 @@ class SyncRepositoryImpl @Inject constructor(
         }
         shiftDao.updateSyncState(shift.localId, SyncStatus.SYNCED, shift.remoteId, syncedAt, null)
     }
+
+    /**
+     * Whether this failure should leave the row pending instead of marking it failed.
+     *
+     * A foreign-key violation means the parent has not reached the server yet — a
+     * task scoped to a profile that has not synced, a shift carrying a workplace
+     * that has not. The next run, once the parent has landed, succeeds unchanged,
+     * so recording it as FAILED is wrong twice over: it is not a permanent
+     * rejection, and FAILED rows are deliberately excluded from the immediate
+     * retry path by `hasRetryablePendingWork`, which left the row stuck at
+     * fifteen-minute intervals and permanently in the "unsynced changes" count.
+     */
+    private fun shouldHoldForParent(error: Throwable): Boolean =
+        RemoteSyncErrors.isForeignKeyViolation(error)
 
     private suspend fun markShiftFailed(shift: ShiftEntity, error: Throwable) {
         shiftDao.updateSyncState(
