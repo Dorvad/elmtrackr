@@ -74,6 +74,34 @@ enum class ClockFaceGroup(
         listOf(ClockStyle.METER, ClockStyle.STACKS, ClockStyle.JAR, ClockStyle.TICKER),
         since = "1.3.0",
     ),
+
+    /**
+     * The shift as numbers, for people who want the numbers.
+     *
+     * The one pack whose faces print figures. Every other face is a metaphor —
+     * [PAYDAY]'s KDoc above says so explicitly, and that rule still holds for
+     * Payday: gold and meters stand in for money and no Payday face prints an
+     * amount, because the dashboard is glanceable in public.
+     *
+     * These four are the deliberate exception, and it is a choice of *notation*
+     * rather than decoration: the same shift in four formats — aligned telemetry
+     * rows, a time series against the target, an analog gauge, and a grid of
+     * five-minute cells. Someone who picks this pack is asking to see the
+     * numbers, and a pack that then hid them would be pointless.
+     *
+     * The consequence is real and worth naming: a Readout or Sparkline face
+     * shows earnings on screen, so this pack trades the public glanceability the
+     * rest of the catalogue protects. That is the user's call, made by choosing
+     * the pack — which is why it is a pack of its own and not a change to the
+     * shared faces.
+     *
+     * All four are [drawsOwnReading], so the composed centre readout is
+     * suppressed for them; they would otherwise print the elapsed time twice.
+     */
+    NERDS(
+        listOf(ClockStyle.READOUT, ClockStyle.SPARKLINE, ClockStyle.GAUGE, ClockStyle.MATRIX),
+        since = "1.4.0",
+    ),
     ;
 
     /**

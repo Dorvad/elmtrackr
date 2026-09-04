@@ -50,8 +50,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -341,6 +344,7 @@ class DashboardViewModel @Inject constructor(
                         RefundPolicy.countUnresolved(raw.monthShifts, zone)
                     } else 0,
                     paySummary = paySummary,
+                    premiumProfiles = raw.premiumProfiles,
                 ) as DashboardUiState
                 }
             }
@@ -478,6 +482,71 @@ class DashboardViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = DashboardUiState.Loading,
     )
+
+    /**
+     * What today has earned so far, priced by the payroll engine.
+     *
+     * Exists for the Stats-for-nerds faces, which are the only faces that print an
+     * amount. A separate flow from [uiState] on purpose: the sole time-varying input is
+     * the running shift's end time, so this reprices one shift a minute instead of
+     * rebuilding the whole dashboard state on a ticker.
+     *
+     * **A minute, not a second.** These faces print `HH:MM` beside the money, so minute
+     * cadence is the resolution the reader actually sees. Repricing per second would put
+     * a payroll walk on the frame budget sixty times a minute to move a digit nobody
+     * reads that closely.
+     *
+     * **The running shift is priced as if it ended now.** `PayrollCalculator` will not
+     * price an open shift — correctly, since it has no duration yet — so a copy is closed
+     * at the current instant. That is the only way to get a live figure that still
+     * respects rounding, auto-deducted breaks, the minimum-shift floor, overtime tiers
+     * and night premiums. `hours × rate` would be quicker and would print a different
+     * number on the clock face than the pay card directly beneath it shows, which is
+     * exactly the divergence Waves B–E existed to remove.
+     *
+     * Null means "no rate configured", which the faces render as an absent figure rather
+     * than as zero earnings.
+     */
+    val todayEarnings: StateFlow<Double?> = combine(
+        uiState,
+        minuteTicks(),
+    ) { state, _ -> state }
+        .map { state ->
+            val ready = state as? DashboardUiState.Ready ?: return@map null
+            val settings = ready.settings
+            val hasRate = (settings.hourlyRate ?: 0.0) > 0.0 ||
+                ready.profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
+            if (!hasRate) return@map null
+            val zone = WorkTimezone.zoneFor(settings)
+            val today = LocalDate.now(zone)
+            val closedNow = ready.activeShift
+                ?.takeIf { it.isEmployeePaid }
+                ?.takeIf { it.startTime.atZone(zone).toLocalDate() == today }
+                ?.copy(endTime = Instant.now())
+            val completedToday = ready.recentShifts
+                .filter { it.isEmployeePaid && it.endTime != null }
+                .filter { it.startTime.atZone(zone).toLocalDate() == today }
+            val priced = completedToday + listOfNotNull(closedNow)
+            if (priced.isEmpty()) return@map 0.0
+            PayrollCalculator.sumMonthlyPay(
+                priced, settings, ready.profiles, ready.premiumProfiles,
+                // Today is its own context. A weekly tier needs the week, but this figure
+                // answers "what has today earned"; folding the week in would attribute
+                // earlier days' overtime to today.
+                contextShifts = priced,
+            ).totalGross
+        }
+        .catch { emit(null) }
+        .flowOn(computationDispatcher)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Emits at once, then every minute. See [todayEarnings]. */
+    private fun minuteTicks(): Flow<Unit> = flow {
+        while (true) {
+            emit(Unit)
+            delay(60_000)
+        }
+    }
 
     init {
         viewModelScope.launch {

@@ -22,6 +22,10 @@ import org.junit.Test
  */
 class ClockFacePackBillingTest {
 
+    /** One pack's price in micros. The unit is arbitrary; the ratios are the test. */
+    private val PACK_MICROS = 10_000_000L
+
+
     // ── Catalog ───────────────────────────────────────────────────────────────
 
     /**
@@ -215,9 +219,19 @@ class ClockFacePackBillingTest {
 
     // ── What the bundle is allowed to claim ───────────────────────────────────
 
+    /**
+     * What the packs [owned] does not cover would cost bought separately.
+     *
+     * The bundle badge is a comparison against this, so every boundary in these tests is
+     * expressed relative to it instead of as a figure that silently encodes how many
+     * packs the catalogue happens to hold.
+     */
+    private fun breakEvenMicros(owned: Set<ClockFaceGroup> = emptySet()): Long =
+        ClockFacePackProducts.purchasablePacks.count { it !in owned } * PACK_MICROS
+
     private fun storefront(
         owned: Set<ClockFaceGroup> = emptySet(),
-        packMicros: Long = 10_000_000L,
+        packMicros: Long = PACK_MICROS,
         bundleMicros: Long? = 30_000_000L,
     ) = ClockFacePackStorefront(
         owned = owned,
@@ -226,10 +240,20 @@ class ClockFacePackBillingTest {
         availability = BillingAvailability.AVAILABLE,
     )
 
-    /** Five packs at 10 each against a bundle of 30 is 40% off. */
+    /**
+     * Every unowned pack at [PACK_MICROS] each, against a bundle at half the total, is
+     * 50% off.
+     *
+     * Derived from the catalogue rather than written as a literal. The previous version
+     * asserted 40 because five packs at 10 against a bundle of 30 is 40% — true, and it
+     * failed the moment a sixth pack shipped. The rule under test is
+     * `1 - bundle / sum(unowned)`, which has nothing to say about how many packs exist.
+     */
     @Test
     fun `the saving is measured against the packs the bundle would add`() {
-        assertEquals(40, storefront().allPacksSavingPercent)
+        val total = breakEvenMicros()
+        assertEquals(50, storefront(bundleMicros = total / 2).allPacksSavingPercent)
+        assertEquals(25, storefront(bundleMicros = total * 3 / 4).allPacksSavingPercent)
     }
 
     /**
@@ -239,25 +263,33 @@ class ClockFacePackBillingTest {
      */
     @Test
     fun `owned packs are excluded from the saving`() {
-        val partly = storefront(owned = setOf(ClockFaceGroup.NATURE, ClockFaceGroup.JOURNEYS))
-
-        // Three packs left at 10 each, bundle still 30: break-even, no saving.
-        assertNull(partly.allPacksSavingPercent)
+        val owned = setOf(ClockFaceGroup.NATURE, ClockFaceGroup.JOURNEYS)
+        // Priced exactly at what the remaining packs cost: break-even, so no claim.
+        val breakEven = breakEvenMicros(owned)
+        assertNull(storefront(owned = owned, bundleMicros = breakEven).allPacksSavingPercent)
+        // And a bundle that ignores the two already paid for would look like a deal
+        // against the full catalogue while being break-even against what is left.
+        assertNull(storefront(owned = owned, bundleMicros = breakEvenMicros()).allPacksSavingPercent)
     }
 
     /**
      * A bundle priced at or above the sum claims nothing.
      *
-     * Equal counts as not cheaper: "save 0%" is a worse thing to print than
-     * nothing at all. Five packs at 10 each put the break-even at 50; just
-     * below it the badge is a real claim again, and pinning 20% here is what
-     * keeps the arithmetic honest when the catalog grows next time.
+     * Equal counts as not cheaper: "save 0%" is a worse thing to print than nothing at
+     * all. The boundary is stated relative to the break-even total, so it stays a
+     * statement about the rule as the catalogue grows.
      */
     @Test
     fun `no badge when the bundle is not actually cheaper`() {
-        assertNull(storefront(bundleMicros = 60_000_000L).allPacksSavingPercent)
-        assertNull(storefront(bundleMicros = 50_000_000L).allPacksSavingPercent)
-        assertEquals(20, storefront(bundleMicros = 40_000_000L).allPacksSavingPercent)
+        val breakEven = breakEvenMicros()
+        assertNull("above the total", storefront(bundleMicros = breakEven + PACK_MICROS).allPacksSavingPercent)
+        assertNull("exactly the total", storefront(bundleMicros = breakEven).allPacksSavingPercent)
+        assertEquals(
+            "a micro under the total is a real, if tiny, saving",
+            0,
+            storefront(bundleMicros = breakEven - 1L).allPacksSavingPercent,
+        )
+        assertEquals(20, storefront(bundleMicros = breakEven * 4 / 5).allPacksSavingPercent)
     }
 
     /** Play has not answered yet. Nothing is claimed until it does. */

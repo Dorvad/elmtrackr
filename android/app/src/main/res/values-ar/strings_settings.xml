@@ -521,4 +521,12 @@
     <string name="settings_region_replace_confirm">استبدال القواعد</string>
     <string name="settings_discard_profile_title">تجاهل تغييراتك؟</string>
     <string name="settings_discard_profile_body">لملف العمل هذا تغييرات غير محفوظة.</string>
+    <string name="clock_group_nerds">إحصاءات للمهتمّين</string>
+    <string name="clock_group_nerds_desc">الأرقام وراء المناوبة</string>
+    <string name="settings_face_readout">أربعة أسطر من البيانات الحيّة</string>
+    <string name="settings_face_sparkline">رسم بياني للأرباح أثناء العمل</string>
+    <string name="settings_face_gauge">مؤشّر مقابل ساعاتك الثماني</string>
+    <string name="settings_face_matrix">صف لكل ساعة، وخلية لكل خمس دقائق</string>
+    <string name="dashboard_face_rate_per_hour">%1$s/س</string>
+    <string name="dashboard_face_target_amount">الهدف %1$s</string>
 </resources>

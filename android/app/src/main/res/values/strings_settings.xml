@@ -494,4 +494,12 @@
     <string name="settings_region_replace_confirm">Replace rules</string>
     <string name="settings_discard_profile_title">Discard your changes?</string>
     <string name="settings_discard_profile_body">This work profile has unsaved changes.</string>
+    <string name="clock_group_nerds">Stats for nerds</string>
+    <string name="clock_group_nerds_desc">The numbers behind the shift</string>
+    <string name="settings_face_readout">Four lines of live telemetry</string>
+    <string name="settings_face_sparkline">Earnings plotted as you work</string>
+    <string name="settings_face_gauge">A needle against your eight hours</string>
+    <string name="settings_face_matrix">One row per hour, one cell per five minutes</string>
+    <string name="dashboard_face_rate_per_hour">%1$s/h</string>
+    <string name="dashboard_face_target_amount">%1$s target</string>
 </resources>

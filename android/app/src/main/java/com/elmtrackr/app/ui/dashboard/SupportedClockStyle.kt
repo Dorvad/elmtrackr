@@ -6,6 +6,7 @@ enum class SupportedClockStyle {
     CLASSIC, MINIMAL, FOCUS, BOLD, NIGHT, RETRO, AURORA, PULSE, DIAL, STRAND, PRISM,
     SAND, BLOCKS, ORBIT, TIDE, SPROUT, METRO, VINYL, LUNA, SUMMIT,
     METER, STACKS, JAR, TICKER,
+    READOUT, SPARKLINE, GAUGE, MATRIX,
 }
 
 fun ClockStyle.toSupportedOrDefault(): SupportedClockStyle = when (this) {
@@ -33,4 +34,8 @@ fun ClockStyle.toSupportedOrDefault(): SupportedClockStyle = when (this) {
     ClockStyle.STACKS  -> SupportedClockStyle.STACKS
     ClockStyle.JAR     -> SupportedClockStyle.JAR
     ClockStyle.TICKER  -> SupportedClockStyle.TICKER
+    ClockStyle.READOUT   -> SupportedClockStyle.READOUT
+    ClockStyle.SPARKLINE -> SupportedClockStyle.SPARKLINE
+    ClockStyle.GAUGE     -> SupportedClockStyle.GAUGE
+    ClockStyle.MATRIX    -> SupportedClockStyle.MATRIX
 }

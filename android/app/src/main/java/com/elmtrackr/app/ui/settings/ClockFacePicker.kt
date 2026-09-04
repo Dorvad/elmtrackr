@@ -425,6 +425,7 @@ internal fun clockFaceGroupName(group: ClockFaceGroup): String = stringResource(
         ClockFaceGroup.NATURE -> R.string.clock_group_nature
         ClockFaceGroup.JOURNEYS -> R.string.clock_group_journeys
         ClockFaceGroup.PAYDAY -> R.string.clock_group_payday
+        ClockFaceGroup.NERDS -> R.string.clock_group_nerds
     },
 )
 
@@ -437,6 +438,7 @@ internal fun clockFaceGroupDescription(group: ClockFaceGroup): String = stringRe
         ClockFaceGroup.NATURE -> R.string.clock_group_nature_desc
         ClockFaceGroup.JOURNEYS -> R.string.clock_group_journeys_desc
         ClockFaceGroup.PAYDAY -> R.string.clock_group_payday_desc
+        ClockFaceGroup.NERDS -> R.string.clock_group_nerds_desc
     },
 )
 

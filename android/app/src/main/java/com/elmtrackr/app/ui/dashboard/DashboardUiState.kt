@@ -58,6 +58,13 @@ sealed interface DashboardUiState {
         val todayCompletedMinutes: Int = 0,
         val paySummary: PayrollCalculator.MonthlyPaySummary? = null,
         /**
+         * Premium profiles, kept on the state so a consumer outside the main transform
+         * can price a shift with the same inputs the pay summary used. Added for the
+         * Stats-for-nerds faces' live earnings; omitting them there would have priced a
+         * shift without its premiums and printed a figure the pay card contradicts.
+         */
+        val premiumProfiles: List<com.elmtrackr.app.domain.model.PremiumProfile> = emptyList(),
+        /**
          * Clockable projects. Empty when Paid Projects is disabled, which is what
          * hides the compensation-source selector entirely.
          */

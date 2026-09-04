@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
@@ -50,6 +51,15 @@ internal data class ClockFaceScene(
     val vinylProgress: Float,
     /** Vinyl's disc rotation, in degrees. */
     val vinylSpinDegrees: Float,
+    /**
+     * The figures the [drawsOwnReading] faces print, or null for every other face.
+     *
+     * Nullable rather than defaulted so a caller that renders a Stats-for-nerds face
+     * without supplying figures fails visibly (the face draws its frame and no numbers)
+     * instead of quietly printing a plausible-looking zero. Every face that does not
+     * read it ignores it entirely.
+     */
+    val telemetry: ClockFaceTelemetry? = null,
 )
 
 /** The colours a face is drawn with. */
@@ -60,6 +70,16 @@ internal class ClockFacePalette(
     val track: Color,
     /** The plate the face sits on; Metro and Summit paint their stations with it. */
     val plate: Color,
+    /**
+     * How the Stats-for-nerds faces lay out their text, or null for the rest.
+     *
+     * Nullable because a [TextMeasurer] can only be obtained in composition
+     * (`rememberTextMeasurer()`), and the twenty-four faces that draw no text should not
+     * have to acquire one. A [drawsOwnReading] face with no measurer draws its frame and
+     * omits its figures rather than crashing — a preview that cannot measure text is a
+     * visual gap, not a reason to take the screen down.
+     */
+    val textMeasurer: TextMeasurer? = null,
 )
 
 // The plates of the faces that bring their own darkness, and Retro's amber.
@@ -69,10 +89,36 @@ private val RetroPlate = Color(0xff2b2418)
 private val VinylPlate = Color(0xff181530)
 private val RetroAmber = Color(0xffffc857)
 
+// Stats-for-nerds plates. Readout is a terminal; Gauge borrows the dark
+// surface so the dial reads as an instrument rather than a card.
+private val TerminalPlate = Color(0xff10141f)
+private val GaugePlate = Color(0xff151d2e)
+
 /** The faces whose plate is dark whatever the theme does. */
 internal fun SupportedClockStyle.hasDarkPlate(): Boolean = when (this) {
     SupportedClockStyle.BOLD, SupportedClockStyle.NIGHT, SupportedClockStyle.RETRO,
-    SupportedClockStyle.VINYL, SupportedClockStyle.METER -> true
+    SupportedClockStyle.VINYL, SupportedClockStyle.METER,
+    SupportedClockStyle.READOUT, SupportedClockStyle.GAUGE -> true
+    else -> false
+}
+
+/**
+ * The faces that print their own numerals, so the composed centre readout is
+ * suppressed for them.
+ *
+ * Every other face is a drawing with the elapsed time laid over it by the
+ * dashboard. These four *are* readouts — Readout prints four aligned rows,
+ * Sparkline a headline figure, Gauge a centred time inside the dial, Matrix a
+ * cell count and a footer. Compositing the shared display on top would print
+ * the elapsed time twice, in two type scales, overlapping.
+ *
+ * A property of the face rather than a branch in the dashboard, so a new face
+ * declares its own answer and the store's preview gets the same treatment for
+ * free.
+ */
+internal fun SupportedClockStyle.drawsOwnReading(): Boolean = when (this) {
+    SupportedClockStyle.READOUT, SupportedClockStyle.SPARKLINE,
+    SupportedClockStyle.GAUGE, SupportedClockStyle.MATRIX -> true
     else -> false
 }
 
@@ -87,6 +133,8 @@ internal fun clockFacePlate(style: SupportedClockStyle, surface: Color): Color =
     SupportedClockStyle.RETRO -> RetroPlate
     SupportedClockStyle.VINYL -> VinylPlate
     SupportedClockStyle.METER -> PaydayHousing
+    SupportedClockStyle.READOUT -> TerminalPlate
+    SupportedClockStyle.GAUGE -> GaugePlate
     else -> surface
 }
 
@@ -112,6 +160,10 @@ internal fun clockFaceAccent(style: SupportedClockStyle, overtime: Boolean): Col
     style == SupportedClockStyle.STACKS -> PaydayGoldDeep
     style == SupportedClockStyle.JAR -> PaydayGoldDeep
     style == SupportedClockStyle.TICKER -> PaydayGoldDeep
+    // Aqua on the terminal plate, peach on the gauge — the gauge's redline is
+    // peach too, so the needle and the overtime band share one ink.
+    style == SupportedClockStyle.READOUT -> AuroraAqua
+    style == SupportedClockStyle.GAUGE -> AuroraPeach
     else -> AuroraIndigo
 }
 
@@ -432,6 +484,21 @@ internal fun DrawScope.drawClockFace(
             foreground = foreground,
         )
         SupportedClockStyle.CLASSIC -> drawClassicRing(progress, accent, faceTrack)
+        // The Stats-for-nerds four. Each needs figures and a measurer; without either
+        // there is nothing to draw, and drawing a zeroed readout would be worse than
+        // drawing none.
+        SupportedClockStyle.READOUT -> withTelemetry(scene, palette) { telemetry, measurer ->
+            drawReadoutFace(telemetry, pulse, running, accent, measurer)
+        }
+        SupportedClockStyle.SPARKLINE -> withTelemetry(scene, palette) { telemetry, measurer ->
+            drawSparklineFace(telemetry, pulse, running, foreground, measurer)
+        }
+        SupportedClockStyle.GAUGE -> withTelemetry(scene, palette) { telemetry, measurer ->
+            drawGaugeFace(telemetry, pulse, running, accent, measurer)
+        }
+        SupportedClockStyle.MATRIX -> withTelemetry(scene, palette) { telemetry, measurer ->
+            drawMatrixFace(telemetry, pulse, running, foreground, accent, measurer)
+        }
         else -> Unit
     }
 }
@@ -610,4 +677,20 @@ private fun DrawScope.drawSproutFace(
             drawCircle(SproutFirefly.copy(alpha = (1f - phase) * 0.5f), 1.8.dp.toPx(), Offset(fx, fy))
         }
     }
+}
+
+/**
+ * Runs [draw] only when the scene carries both figures and a measurer.
+ *
+ * Both are nullable for reasons the properties document, and every Stats-for-nerds face
+ * needs both, so the check lives in one place instead of four.
+ */
+private inline fun DrawScope.withTelemetry(
+    scene: ClockFaceScene,
+    palette: ClockFacePalette,
+    draw: DrawScope.(ClockFaceTelemetry, TextMeasurer) -> Unit,
+) {
+    val telemetry = scene.telemetry ?: return
+    val measurer = palette.textMeasurer ?: return
+    draw(telemetry, measurer)
 }

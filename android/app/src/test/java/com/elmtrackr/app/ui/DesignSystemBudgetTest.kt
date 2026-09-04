@@ -76,6 +76,11 @@ class DesignSystemBudgetTest {
         "ClockFaceCanvas.kt",
         "ExpressiveClockFaces.kt",
         "PaydayClockFaces.kt",
+        // Same reason as its three siblings above: this file is only drawing. A clock
+        // face is pixel geometry on the renderer's 176dp reference box, so its dp
+        // literals are the drawing itself rather than layout that could take a Spacing
+        // token, and its inks are face pigments rather than theme roles.
+        "NerdClockFaces.kt",
         "RetroFlipBoard.kt",
         "RideProviderGraphics.kt",
         "PaidProjectsUpdateWizard.kt",
