@@ -230,6 +230,7 @@ internal fun ClockFaceStoreScreen(
                     owned = storefront.isOwned(group),
                     availability = storefront.availability,
                     onBuy = { onBuyPack(group) },
+                    onInstall = { onInstallPack(group) },
                     onClose = { settledAt ->
                         heroPages[group] = settledAt
                         look = null

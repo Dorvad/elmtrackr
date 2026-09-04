@@ -38,7 +38,7 @@ import com.elmtrackr.app.ui.common.DurationText
 import com.elmtrackr.app.language.withAppLocale
 
 private val Indigo = Color(0xFF5B4DF2)
-private val Aqua = Color(0xFF22D3EE)
+private val Aqua = Color(0xFF16C8D6)
 
 /**
  * Responsive breakpoints. Each widget declares its subset via

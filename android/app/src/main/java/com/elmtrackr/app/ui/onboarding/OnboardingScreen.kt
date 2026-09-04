@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.elmtrackr.app.ui.theme.CornerRadius
@@ -258,6 +259,7 @@ fun OnboardingScreen(
                 Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
+                    .imePadding()
                     .verticalScroll(scrollState)
                     .padding(horizontal = Spacing.screenH, vertical = Spacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally,

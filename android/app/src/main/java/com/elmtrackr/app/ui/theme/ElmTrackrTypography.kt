@@ -22,6 +22,23 @@ private val BodyFontFamily = FontFamily(
     Font(R.font.hanken_grotesk, FontWeight.Bold),
 )
 
+/**
+ * Digits that hold their column.
+ *
+ * `tnum` makes every digit the same advance width. Without it the dashboard's
+ * per-second timer visibly jitters as the glyphs change — a `1` is narrower than a `0`
+ * in both of these fonts, so `1:11:11` and `0:00:00` are different widths and the whole
+ * readout shifts sideways once a second. The same applies to a right-aligned money or
+ * hours column, where proportional digits stop the decimal points lining up down a
+ * report.
+ *
+ * Applied only to the styles that carry numbers: the display sizes (the timer and the
+ * big money figures) and the two body styles that fill table cells. Prose does not want
+ * it — tabular figures are wider and read worse in a sentence, which is why the fonts
+ * default to proportional.
+ */
+private const val TabularNumerals = "tnum"
+
 val ElmTrackrTypography = Typography(
     // ── Display ─────────────────────────────────────────────────────────────
     displayLarge = TextStyle(
@@ -30,6 +47,7 @@ val ElmTrackrTypography = Typography(
         fontSize = 48.sp,
         lineHeight = 56.sp,
         letterSpacing = (-0.25).sp,
+        fontFeatureSettings = TabularNumerals,
     ),
     displayMedium = TextStyle(
         fontFamily = DisplayFontFamily,
@@ -37,6 +55,7 @@ val ElmTrackrTypography = Typography(
         fontSize = 45.sp,
         lineHeight = 52.sp,
         letterSpacing = 0.sp,
+        fontFeatureSettings = TabularNumerals,
     ),
     displaySmall = TextStyle(
         fontFamily = DisplayFontFamily,
@@ -44,6 +63,7 @@ val ElmTrackrTypography = Typography(
         fontSize = 36.sp,
         lineHeight = 44.sp,
         letterSpacing = 0.sp,
+        fontFeatureSettings = TabularNumerals,
     ),
     // ── Headline ────────────────────────────────────────────────────────────
     headlineLarge = TextStyle(

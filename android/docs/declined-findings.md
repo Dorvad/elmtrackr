@@ -423,3 +423,52 @@ Material component's internal animation at full length. A second scheme returnin
 for all six specs, selected by the same gate, extends the preference to every Material
 component at once — no per-component work and no way to forget one. That is a real
 accessibility gap, and it stays open until `MotionScheme` is public.
+
+---
+
+## Wave G: U8 (touch targets) is not a runtime defect
+
+The audit reported `ElmGradientButton(compact = true)` as "36dp minimum at 8 sites, below
+the documented 48dp floor and outside `TouchTargetRenderTest`". The first two clauses are
+true of the source and the third was the real gap; the conclusion was not.
+
+`heightIn(min = 36.dp)` is a floor on the *declared* minimum, and the composable it is
+applied to is a Material 3 `Button`, which enforces the 48dp minimum interactive size
+itself. A test written to fail — `assertHeightIsAtLeast(48.dp)` on a compact button —
+passes as-is. So there was nothing to fix, only something to pin, and the test now does
+that: if someone ever disables the enforcement, or replaces the `Button` with a bare
+`Box`, it fails.
+
+Worth recording because the finding reads like a defect and the fix ("grow the target
+with `sizeIn`") would have made things worse: `sizeIn(minHeight = 48.dp)` grows the
+*painted* gradient too, since the background brush is applied in the same modifier chain.
+The button would have gone from correct-looking-and-correct to visibly taller.
+
+## Wave G: the widget's remaining colour drift is enumerated, not fixed
+
+`WidgetColorParityTest` now exists (modelled on the watch's, which is why the watch has
+not drifted). It caught the reported `#22D3EE` — the brand tertiary at the wrong value in
+fourteen places across the ring arcs, the progress fill and the active status dot, where
+the phone and the watch both use `#16C8D6`. That is fixed.
+
+It also caught six values that are **not** in the Aurora palette and are not obviously
+mistakes:
+
+| Value | Nearest token |
+|---|---|
+| `#7C6BFF` | a lighter indigo; `AuroraIndigo` is `5B4DF2` |
+| `#5C4EE5` | a hair off `AuroraIndigo` |
+| `#3D2CC0` | a hair off `AuroraIndigoDeep` (`4133C8`) |
+| `#5CF0A0` | a success green; the watch uses `34D399` |
+| `#181A38` | a hair off `AuroraNavy` (`181530`) |
+| `#171D33` | a hair off `AuroraDarkSurface` (`151D2E`) |
+
+Each sits a few points from a real token, which means someone either hand-tuned a gradient
+stop for the widget's own rendering — Glance cannot use a Compose `Brush`, so the widget
+builds gradients as drawables — or copied a value that has since moved. Mapping them onto
+the nearest token changes what the widget looks like; adding them to `Color.kt` invents
+brand colours. Both are design decisions, not something the test that found them should
+guess at.
+
+They are listed in the test's `KNOWN_DRIFT` set, so the drift is bounded and anything
+*new* still fails. Resolve each with a design call and delete the entry.

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +58,14 @@ fun AuroraScreen(
                     modifier = modifier
                         .then(if (isTablet) Modifier.fillMaxWidth() else Modifier.widthIn(max = PhoneContentMaxWidth).fillMaxWidth())
                         .statusBarsPadding()
+                        // Before verticalScroll on purpose: this insets the scroll
+                        // viewport, so a field under the keyboard can be scrolled to.
+                        // After it, the keyboard would pad the scrolling content instead
+                        // and the last field would still sit behind the IME. The window
+                        // itself is never resized — enableEdgeToEdge() opts out of that —
+                        // so this is the only thing standing between a low field and the
+                        // keyboard.
+                        .imePadding()
                         .then(
                             if (scrollable) Modifier.verticalScroll(scrollState)
                             else Modifier,

@@ -58,6 +58,20 @@ class TouchTargetRenderTest {
     }
 
     @Test
+    fun `a compact gradient button is at least 48dp tall`() {
+        // ElmGradientButton(compact = true) declared heightIn(min = 36.dp), twelve below
+        // the floor this file exists to enforce, at eight call sites and outside every
+        // assertion here. Same fix as the others: the target grows, the paint does not.
+        composeRule.setContent {
+            ElmTrackrTheme(darkTheme = false) {
+                ElmGradientButton(onClick = {}, compact = true) { Text("Add") }
+            }
+        }
+
+        composeRule.onNodeWithText("Add").assertHeightIsAtLeast(minimum)
+    }
+
+    @Test
     fun `choice chips are at least 48dp tall`() {
         composeRule.setContent {
             ElmTrackrTheme(darkTheme = false) {
