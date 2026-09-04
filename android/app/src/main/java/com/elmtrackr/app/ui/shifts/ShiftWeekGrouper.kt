@@ -53,6 +53,10 @@ object ShiftWeekGrouper {
         locale: Locale = Locale.getDefault(),
         weekStartDay: Int = resolveWeekStartDay(settings, profiles),
         payContextShifts: List<Shift> = shifts,
+        // Week totals precomputed away from the composition, keyed by week start. Null
+        // keeps the original in-line sumMonthlyPay per week, which is what every test
+        // and preview relies on.
+        weekPay: Map<LocalDate, Double?>? = null,
     ): List<ShiftWeekSection> {
         val weekLabelFmt = DateTimeFormatter.ofPattern("MMM d", locale)
         val displayShifts = buildList {
@@ -75,21 +79,20 @@ object ShiftWeekGrouper {
                 val weekEnd = weekStart.plusDays(6)
                 val sorted = weekShifts.sortedByDescending { it.startTime }
                 val completed = sorted.filter { it.isCompleted }
-                val totalMinutes = sorted.sumOf { shift ->
-                    if (shift.isActive) {
-                        ((java.time.Instant.now().toEpochMilli() - shift.startTime.toEpochMilli()) / 60_000)
-                            .toInt()
-                            .coerceAtLeast(0)
-                    } else {
-                        ShiftDurationCalculator.netMinutes(shift) ?: 0
-                    }
-                }
-                val pay = settings?.let { s ->
-                    completed.takeIf { it.isNotEmpty() }?.let {
-                        PayrollCalculator.sumMonthlyPay(
-                            it, s, profiles, premiumProfiles,
-                            contextShifts = payContextShifts.ifEmpty { it },
-                        ).totalGross
+                // Net of break for a running shift too — see TodayMinutes. This
+                // added the running shift gross while counting finished ones net,
+                // so a week total dropped when a shift with a break ended.
+                val totalMinutes = sorted.sumOf { com.elmtrackr.app.domain.TodayMinutes.netMinutes(it) }
+                val pay = if (weekPay != null) {
+                    weekPay[weekStart]
+                } else {
+                    settings?.let { s ->
+                        completed.takeIf { it.isNotEmpty() }?.let {
+                            PayrollCalculator.sumMonthlyPay(
+                                it, s, profiles, premiumProfiles,
+                                contextShifts = payContextShifts.ifEmpty { it },
+                            ).totalGross
+                        }
                     }
                 }
                 val isCurrentWeek = !today.isBefore(weekStart) && !today.isAfter(weekEnd)

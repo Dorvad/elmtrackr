@@ -20,12 +20,17 @@ import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.time.Clock
 
 @Singleton
 class LocalCompensationProfilesRepository @Inject constructor(
     private val profileDao: CompensationProfileDao,
     private val settingsRepository: SettingsRepository,
     private val syncTrigger: SyncTrigger,
+    // Default rather than a Hilt binding: same convention as PhotoFileManager. Row
+    // timestamps decide sync conflicts, so a test that cannot fix "now" cannot assert
+    // which of two edits wins.
+    private val clock: Clock = Clock.systemUTC(),
 ) : CompensationProfilesRepository {
 
     private val migrationMutex = Mutex()
@@ -40,7 +45,7 @@ class LocalCompensationProfilesRepository @Inject constructor(
         profileDao.getById(userId, profileId).toDomainOrNull { it.toDomain() }
 
     override suspend fun upsertProfile(profile: CompensationProfile): CompensationProfile {
-        val now = System.currentTimeMillis()
+        val now = clock.millis()
         val profileId = profile.id.ifBlank { UUID.randomUUID().toString() }
         val existing = profileDao.getById(profile.userId, profileId)
             ?: profile.remoteId?.let { profileDao.getByRemoteId(it) }
@@ -63,7 +68,7 @@ class LocalCompensationProfilesRepository @Inject constructor(
         val existing = profileDao.getById(userId, profileId)
             ?: profileDao.getByRemoteId(profileId)?.takeIf { it.userId == userId }
             ?: return
-        val now = System.currentTimeMillis()
+        val now = clock.millis()
         profileDao.insert(
             existing.copy(
                 isArchived = true,
@@ -124,7 +129,7 @@ class LocalCompensationProfilesRepository @Inject constructor(
     private suspend fun archiveDuplicateProfiles(userId: String) {
         val active = profileDao.getByUser(userId).filter { !it.isArchived && it.deletedAt == null }
         if (active.size < 2) return
-        val now = System.currentTimeMillis()
+        val now = clock.millis()
         val keeperByArchivedId = mutableMapOf<String, String>()
         active
             .groupBy {

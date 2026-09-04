@@ -31,6 +31,7 @@ class ClockFacePackBillingCoordinator @Inject constructor(
     private val grandfathering: ClockFacePackGrandfathering,
     private val store: ClockFacePackStore,
     private val clockFacePreferences: ClockFacePreferences,
+    private val appPreferences: com.elmtrackr.app.data.local.preferences.AppPreferencesRepository,
     @ApplicationScope private val scope: CoroutineScope,
 ) {
 
@@ -59,6 +60,15 @@ class ClockFacePackBillingCoordinator @Inject constructor(
             // local storage and Play — and a failure in the first used to skip
             // the second entirely, leaving ownership as whatever was last
             // cached with nothing retrying until the next foreground.
+            // Before the seed, and that order is load-bearing. Entitlements moved
+            // to their own DataStore so a corrupt app_preferences file cannot
+            // revoke the free-era grant; on the first launch after that change an
+            // upgrading user's packs live only in the old file. Seeding first would
+            // read an empty new store, find the marker absent, re-derive the grant
+            // from an equally empty installed set, and offer the user their own
+            // packs for sale — the exact loss the split exists to prevent.
+            runCatching { appPreferences.migrateEntitlementsIfNeeded() }
+                .onFailure(CrashReporting::report)
             runCatching { grandfathering.seedIfNeeded() }
                 .onFailure(CrashReporting::report)
             runCatching { store.refresh() }

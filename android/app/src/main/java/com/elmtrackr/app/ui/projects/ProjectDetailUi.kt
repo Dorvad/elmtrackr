@@ -44,6 +44,7 @@ import com.elmtrackr.app.ui.settings.SettingsDetailHeader
 import com.elmtrackr.app.ui.theme.AuroraPeachDeep
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
+import com.elmtrackr.app.ui.common.appLocale
 
 /**
  * Read-only view of one project: Overview, Time, Billing and Notes, plus the
@@ -125,7 +126,7 @@ fun ProjectDetailScreen(
                             stringResource(
                                 R.string.project_delete_shifts_kept,
                                 summary.time.shiftCount,
-                                HoursFormatter.decimal(summary.time.trackedMinutes),
+                                HoursFormatter.decimal(summary.time.trackedMinutes, appLocale()),
                             ),
                             style = MaterialTheme.typography.bodySmall,
                         )

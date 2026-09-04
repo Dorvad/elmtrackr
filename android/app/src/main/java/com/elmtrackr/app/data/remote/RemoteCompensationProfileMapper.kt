@@ -10,7 +10,9 @@ import java.util.UUID
 
 private val profileJson = Json { ignoreUnknownKeys = true }
 
-fun CompensationProfileEntity.toRemoteInsert(): RemoteCompensationProfileInsert =
+fun CompensationProfileEntity.toRemoteInsert(
+    workplaceRemoteId: String? = null,
+): RemoteCompensationProfileInsert =
     RemoteCompensationProfileInsert(
         id = localId,
         userId = userId,
@@ -25,12 +27,15 @@ fun CompensationProfileEntity.toRemoteInsert(): RemoteCompensationProfileInsert 
         effectiveUntil = effectiveUntil?.let(::epochToIso),
         isDefault = isDefault,
         isArchived = isArchived,
+        workplaceId = workplaceRemoteId,
         color = color,
         icon = icon,
         clientUpdatedAt = epochToIso(updatedAt),
     )
 
-fun CompensationProfileEntity.toRemoteUpdate(): RemoteCompensationProfileUpdate =
+fun CompensationProfileEntity.toRemoteUpdate(
+    workplaceRemoteId: String? = null,
+): RemoteCompensationProfileUpdate =
     RemoteCompensationProfileUpdate(
         name = name,
         regionCode = regionToWire(regionCode),
@@ -43,6 +48,7 @@ fun CompensationProfileEntity.toRemoteUpdate(): RemoteCompensationProfileUpdate 
         effectiveUntil = effectiveUntil?.let(::epochToIso),
         isDefault = isDefault,
         isArchived = isArchived,
+        workplaceId = workplaceRemoteId,
         color = color,
         icon = icon,
         deletedAt = deletedAt?.let(::epochToIso),
@@ -51,7 +57,9 @@ fun CompensationProfileEntity.toRemoteUpdate(): RemoteCompensationProfileUpdate 
 
 fun RemoteCompensationProfileRow.toLocalEntity(
     existingLocalId: String? = null,
+    workplaceLocalId: String? = null,
     syncStatus: SyncStatus = SyncStatus.SYNCED,
+    preserveLocal: CompensationProfileEntity? = null,
 ): CompensationProfileEntity {
     val created = isoToEpoch(createdAt)
     val updated = isoToEpoch(updatedAt)
@@ -72,6 +80,14 @@ fun RemoteCompensationProfileRow.toLocalEntity(
         isArchived = isArchived,
         color = color,
         icon = icon,
+        // The translated remote link, falling back to what the local row held.
+        //
+        // Without the fallback a pull whose workplace has not landed yet — the link
+        // travels as a *remote* id while the entity holds a *local* one — would
+        // reset the profile's workplace to null, taking its leave entitlement and
+        // payslip balances with it. Before the column travelled at all, every pull
+        // did exactly that.
+        workplaceId = workplaceLocalId ?: preserveLocal?.workplaceId,
         createdAt = created,
         updatedAt = updated,
         // An explicit tombstone wins; the archived fallback is kept so profiles

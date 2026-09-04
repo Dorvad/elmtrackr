@@ -70,6 +70,7 @@ import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
 import com.elmtrackr.app.domain.money.MoneyFormat
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.imePadding
 import com.elmtrackr.app.ui.common.WorkProfileIdentity
 import com.elmtrackr.app.ui.common.WorkProfileTile
 import com.elmtrackr.app.ui.common.parseIdentityColor
@@ -206,6 +207,7 @@ internal fun CompensationSettingsContent(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxSize()
+            .imePadding()
             .padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {

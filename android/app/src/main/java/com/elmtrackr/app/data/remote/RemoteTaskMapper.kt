@@ -4,34 +4,59 @@ import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.TaskEntity
 import java.util.UUID
 
-fun TaskEntity.toRemoteInsert(): RemoteTaskInsert = RemoteTaskInsert(
+/**
+ * @param compensationProfileRemoteId the *remote* id of the profile this task is
+ *   scoped to.
+ *
+ * It has to be translated, and was not. `tasks.compensation_profile_id` is a real
+ * foreign key, and local and remote profile ids coincide only for profiles this
+ * device created — a profile *pulled* from another device gets a fresh random
+ * local id. So a task scoped to a pulled profile pushed an id no row on the
+ * server had, was rejected 23503, and stayed FAILED forever: retried every
+ * fifteen minutes and counted in "unsynced changes" for good.
+ */
+fun TaskEntity.toRemoteInsert(
+    compensationProfileRemoteId: String? = null,
+): RemoteTaskInsert = RemoteTaskInsert(
     id = localId,
     userId = userId,
     name = name,
     icon = icon,
     color = color,
     hourlyRate = hourlyRate,
-    compensationProfileId = compensationProfileId,
+    compensationProfileId = compensationProfileRemoteId,
     isArchived = isArchived,
     lastUsedAt = lastUsedAt?.let(::epochToIso),
     clientUpdatedAt = epochToIso(updatedAt),
 )
 
-fun TaskEntity.toRemoteUpdate(): RemoteTaskUpdate = RemoteTaskUpdate(
+fun TaskEntity.toRemoteUpdate(
+    compensationProfileRemoteId: String? = null,
+): RemoteTaskUpdate = RemoteTaskUpdate(
     name = name,
     icon = icon,
     color = color,
     hourlyRate = hourlyRate,
-    compensationProfileId = compensationProfileId,
+    compensationProfileId = compensationProfileRemoteId,
     isArchived = isArchived,
     lastUsedAt = lastUsedAt?.let(::epochToIso),
     deletedAt = deletedAt?.let(::epochToIso),
     clientUpdatedAt = epochToIso(updatedAt),
 )
 
+/**
+ * @param compensationProfileLocalId the profile id translated back to this
+ *   device's own. Writing the remote id straight into the local column matched no
+ *   local profile, so the task silently reverted to the default one — the mirror
+ *   image of the push defect.
+ * @param preserveLocal keeps the existing scope when the profile has not been
+ *   pulled yet, rather than dropping it.
+ */
 fun RemoteTaskRow.toLocalEntity(
     existingLocalId: String? = null,
+    compensationProfileLocalId: String? = null,
     syncStatus: SyncStatus = SyncStatus.SYNCED,
+    preserveLocal: TaskEntity? = null,
 ): TaskEntity {
     val created = isoToEpoch(createdAt)
     val updated = isoToEpoch(updatedAt)
@@ -43,7 +68,7 @@ fun RemoteTaskRow.toLocalEntity(
         icon = icon,
         color = color,
         hourlyRate = hourlyRate,
-        compensationProfileId = compensationProfileId,
+        compensationProfileId = compensationProfileLocalId ?: preserveLocal?.compensationProfileId,
         isArchived = isArchived,
         lastUsedAt = lastUsedAt?.let(::isoToEpoch),
         createdAt = created,

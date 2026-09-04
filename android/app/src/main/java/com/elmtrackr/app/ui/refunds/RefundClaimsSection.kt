@@ -394,7 +394,7 @@ private fun RefundClaimEntry(
             stringResource(
                 R.string.refunds_claim_summary,
                 claim.provider.name.lowercase().replaceFirstChar { it.uppercase() },
-                MoneyFormatter.format(claim.amount, currency),
+                MoneyFormatter.format(claim.amount, currency, appLocale()),
             ),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.ExtraBold,

@@ -83,6 +83,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -190,6 +191,7 @@ fun DashboardScreen(
     val showCelebration by viewModel.showFirstClockInCelebration.collectAsState()
     val projectShiftSummary by viewModel.projectShiftSummary.collectAsState()
     val setupChecklist by viewModel.setupChecklist.collectAsState()
+    val todayEarnings by viewModel.todayEarnings.collectAsState()
     // Plain remember: restoring the overlay after a tab switch stranded users
     // inside task management when they came back to the dashboard.
     var showTasks by remember { mutableStateOf(false) }
@@ -237,6 +239,7 @@ fun DashboardScreen(
                     when (state) {
                         is DashboardUiState.Loading -> DashboardSkeleton()
                         is DashboardUiState.Ready -> DashboardReady(
+                            todayEarnings = todayEarnings,
                             state = state,
                             onClockIn = viewModel::clockIn,
                             onClockOut = viewModel::clockOut,
@@ -304,6 +307,13 @@ private fun DashboardReady(
     onSelectClockInProject: (String) -> Unit = {},
     onProjectNoteChange: (String) -> Unit = {},
     projectShiftSummary: DashboardViewModel.ProjectShiftSummary? = null,
+    /**
+     * Engine-priced earnings for today, for the Stats-for-nerds faces.
+     *
+     * A parameter rather than a second `collectAsState` in here, so the preview and the
+     * render tests can drive it directly and the minute-cadence flow is collected once.
+     */
+    todayEarnings: Double? = null,
     onDismissProjectShiftSummary: () -> Unit = {},
     onViewProject: () -> Unit = {},
     showFirstClockInCelebration: Boolean,
@@ -606,6 +616,20 @@ private fun DashboardReady(
                     onClockIn = handleClockIn,
                     onClockOut = handleClockOut,
                     onEditStartTime = { showEditDialog = true },
+                    // Only the Stats-for-nerds faces read these; every other face
+                    // ignores them. Collected here rather than inside the section so
+                    // the minute-cadence reprice does not re-run per face change.
+                    todayEarnings = todayEarnings,
+                    hourlyRate = state.settings?.let { settings ->
+                        // The profile's rate when the selected profile sets one, the
+                        // account rate otherwise — the same precedence the pay engine
+                        // resolves, so the label names the rate the money was priced at.
+                        val profile = state.profiles.firstOrNull { it.isDefault }
+                            ?: state.profiles.firstOrNull()
+                        profile?.baseHourlyRate?.takeIf { it > 0.0 } ?: settings.hourlyRate
+                    },
+                    currencyCode = state.paySummary?.currencyCode
+                        ?: state.settings?.displayCurrencyCode().orEmpty(),
                 )
             }
 
@@ -864,8 +888,47 @@ private fun DashboardClockSection(
     onClockIn: () -> Unit,
     onClockOut: () -> Unit,
     onEditStartTime: () -> Unit,
+    /** Engine-priced earnings for today, or null when no rate is configured. */
+    todayEarnings: Double? = null,
+    /** The hourly rate the Readout and Sparkline label their figures with. */
+    hourlyRate: Double? = null,
+    currencyCode: String = "",
 ) {
     val elapsedSeconds = rememberElapsedUnits(activeShift?.startTime)
+    val locale = appLocale()
+    val goalMinutes = dailyOtMinutes.takeIf { it > 0 } ?: DEFAULT_FACE_GOAL_MINUTES
+    val elapsedMinutes = (
+        todayBaseMinutes + if (activeStartedToday) (elapsedSeconds / 60).toInt() else 0
+        ).coerceAtLeast(0)
+
+    // Built only for the faces that print figures. Every string is formatted here and
+    // the renderer only measures and draws it — see ClockFaceTelemetry for why the money
+    // must not be worked out further down.
+    val clockFaceTelemetry = if (!clockStyle.drawsOwnReading() || todayEarnings == null) {
+        null
+    } else {
+        val rate = hourlyRate ?: 0.0
+        // The rate is the earned-per-hour figure the face labels its curve with. Shown
+        // as configured rather than derived from the earnings, because a shift with a
+        // minimum-shift floor or a rounding rule has an effective rate that is not the
+        // contracted one, and the label names the contract.
+        val targetEarned = rate * (goalMinutes / 60.0)
+        ClockFaceTelemetry(
+            elapsedMinutes = elapsedMinutes,
+            goalMinutes = goalMinutes,
+            earnedText = MoneyFormatter.format(todayEarnings, currencyCode, locale),
+            rateText = stringResource(
+                R.string.dashboard_face_rate_per_hour,
+                MoneyFormatter.format(rate, currencyCode, locale),
+            ),
+            targetEarnedText = stringResource(
+                R.string.dashboard_face_target_amount,
+                MoneyFormatter.format(targetEarned, currencyCode, locale),
+            ),
+            earned = todayEarnings,
+            targetEarned = targetEarned,
+        )
+    }
 
     Box(modifier = Modifier.fillMaxWidth().auroraEnter(index = 1)) {
         AnimatedContent(
@@ -921,7 +984,11 @@ private fun DashboardClockSection(
                 SupportedClockStyle.METER,
                 SupportedClockStyle.STACKS,
                 SupportedClockStyle.JAR,
-                SupportedClockStyle.TICKER -> ExpressiveClockCard(
+                SupportedClockStyle.TICKER,
+                SupportedClockStyle.READOUT,
+                SupportedClockStyle.SPARKLINE,
+                SupportedClockStyle.GAUGE,
+                SupportedClockStyle.MATRIX -> ExpressiveClockCard(
                     style = renderStyle,
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
@@ -931,6 +998,7 @@ private fun DashboardClockSection(
                     onClockIn = onClockIn,
                     onClockOut = onClockOut,
                     onEditStartTime = onEditStartTime,
+                    telemetry = clockFaceTelemetry,
                 )
             }
         }
@@ -1233,8 +1301,20 @@ private fun ExpressiveClockCard(
     onClockIn: () -> Unit,
     onClockOut: () -> Unit,
     onEditStartTime: () -> Unit,
+    /**
+     * The figures the Stats-for-nerds faces print, or null for every other face.
+     *
+     * Null is not "no earnings": a face that draws its own readout and receives no
+     * figures draws its frame and omits them, which is the honest rendering of "this
+     * device has no rate configured".
+     */
+    telemetry: ClockFaceTelemetry? = null,
 ) {
     val running = activeShift != null
+    // Only the faces that draw text need one, and it can only be obtained in
+    // composition — so it is acquired here and handed to the renderer through the
+    // palette rather than created per frame inside the Canvas.
+    val textMeasurer = rememberTextMeasurer()
     val clockInContentDescription = stringResource(R.string.dashboard_clock_in_accessibility)
     val clockOutContentDescription = stringResource(R.string.dashboard_clock_out_accessibility)
     val daySeconds = todayBaseMinutes * 60L + if (activeStartedToday) elapsedSeconds else 0L
@@ -1316,17 +1396,23 @@ private fun ExpressiveClockCard(
                             growthHours = (daySeconds / 3600f).coerceIn(0f, 8f),
                             vinylProgress = vinylProgress,
                             vinylSpinDegrees = vinylSpin,
+                            telemetry = telemetry,
                         ),
                         palette = ClockFacePalette(
                             accent = accent,
                             foreground = foreground,
                             track = faceTrack,
                             plate = background,
+                            textMeasurer = textMeasurer,
                         ),
                         pulse = pulse(),
                     )
                 }
-                if (style == SupportedClockStyle.RETRO) {
+                if (style.drawsOwnReading()) {
+                    // Nothing: this face printed its own figures inside the canvas.
+                    // Compositing the shared display over it would draw the elapsed
+                    // time twice, in two type scales, overlapping.
+                } else if (style == SupportedClockStyle.RETRO) {
                     // The split-flap board is this face's readout, in both
                     // states the text branches below cover: elapsed time on a
                     // running shift, the wall clock while idle.
@@ -1515,7 +1601,7 @@ internal fun MonthSummaryCard(
                 Text(
                     text = stringResource(
                         R.string.dashboard_hours_value,
-                        HoursFormatter.decimal(report?.totalMinutes ?: 0),
+                        HoursFormatter.decimal(report?.totalMinutes ?: 0, appLocale()),
                     ),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
@@ -1531,7 +1617,7 @@ internal fun MonthSummaryCard(
             if (paySummary != null && paySummary.totalGross > 0.0) {
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = MoneyFormatter.format(paySummary.totalGross, currencyCode),
+                        text = MoneyFormatter.format(paySummary.totalGross, currencyCode, appLocale()),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary,
@@ -1779,5 +1865,11 @@ private fun DashboardError(message: String) {
     }
 }
 
-
-
+/**
+ * The goal a Stats-for-nerds face scales against when none is configured.
+ *
+ * Eight hours, matching `UserSettings.DEFAULT_DAILY_OT_MINUTES`. A face needs a
+ * denominator to draw a gauge or a grid against, and zero would render an empty
+ * instrument rather than an eight-hour one.
+ */
+private const val DEFAULT_FACE_GOAL_MINUTES = 480

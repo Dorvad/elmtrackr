@@ -18,11 +18,13 @@ import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.time.Clock
 
 @Singleton
 class LocalPremiumProfilesRepository @Inject constructor(
     private val premiumProfileDao: PremiumProfileDao,
     private val syncTrigger: SyncTrigger,
+    private val clock: Clock = Clock.systemUTC(),
 ) : PremiumProfilesRepository {
 
     private val ensureMutex = Mutex()
@@ -38,7 +40,7 @@ class LocalPremiumProfilesRepository @Inject constructor(
             ?: premiumProfileDao.getByRemoteId(profileId)?.takeIf { it.userId == userId }?.toDomain()
 
     override suspend fun upsertProfile(profile: PremiumProfile): PremiumProfile {
-        val now = System.currentTimeMillis()
+        val now = clock.millis()
         val profileId = profile.id.ifBlank { UUID.randomUUID().toString() }
         val existing = premiumProfileDao.getById(profile.userId, profileId)
             ?: profile.remoteId?.let { premiumProfileDao.getByRemoteId(it) }
@@ -62,7 +64,7 @@ class LocalPremiumProfilesRepository @Inject constructor(
             ?: premiumProfileDao.getByRemoteId(profileId)?.takeIf { it.userId == userId }
             ?: return
         if (existing.isDefault) return
-        val now = System.currentTimeMillis()
+        val now = clock.millis()
         premiumProfileDao.insert(
             existing.copy(
                 isArchived = true,

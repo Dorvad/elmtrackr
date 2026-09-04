@@ -131,9 +131,18 @@ class ClockFaceStoreRenderTest {
 
         composeRule.onNodeWithContentDescription("Dial").performClick()
         composeRule.onNodeWithContentDescription("Preview Dial full screen").performClick()
-        composeRule.onNodeWithText("Unlock Progress · ₪5.00").assertIsDisplayed()
+        // "Unlock %1$s · %2$s" now interpolates the pack name and the price through
+        // BidiText.isolateAll, so the rendered label carries U+2068/U+2069 around each
+        // and no longer equals the source string. Matched on the price substring, which
+        // is contiguous inside its own isolate — rather than pasting invisible characters
+        // into the test, which is how the next reader "fixes" the isolation back out.
+        // Both fragments, because the price alone appears on every priced card. Each is
+        // contiguous inside its own isolate, so a substring match finds them on the one
+        // node that carries the whole label.
+        val unlock = hasText("Progress", substring = true) and hasText("₪5.00", substring = true)
+        composeRule.onNode(unlock).assertIsDisplayed()
 
-        composeRule.onNodeWithText("Unlock Progress · ₪5.00").performClick()
+        composeRule.onNode(unlock).performClick()
         assertEquals(ClockFaceGroup.PROGRESS, bought)
     }
 

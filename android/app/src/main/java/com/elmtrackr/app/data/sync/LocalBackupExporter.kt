@@ -36,6 +36,11 @@ object LocalBackupExporter {
         projectDao: com.elmtrackr.app.data.local.dao.ProjectDao,
         projectBillingRecordDao: com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao,
         projectPaymentDao: com.elmtrackr.app.data.local.dao.ProjectPaymentDao,
+        workplaceDao: com.elmtrackr.app.data.local.dao.WorkplaceDao,
+        leavePolicyDao: com.elmtrackr.app.data.local.dao.LeavePolicyDao,
+        absenceEventDao: com.elmtrackr.app.data.local.dao.AbsenceEventDao,
+        absenceAllocationDao: com.elmtrackr.app.data.local.dao.AbsenceAllocationDao,
+        leaveBalanceSnapshotDao: com.elmtrackr.app.data.local.dao.LeaveBalanceSnapshotDao,
         appVersion: String,
     ): String {
         val backup = LocalBackupDocument(
@@ -54,6 +59,14 @@ object LocalBackupExporter {
             projectBillingRecords = projectBillingRecordDao.getAllForUser(userId)
                 .map { it.toBackupRow() },
             projectPayments = projectPaymentDao.getAllForUser(userId).map { it.toBackupRow() },
+            // Archived workplaces included: a workplace is archived rather than
+            // deleted, and its absences and balances still point at it. Exporting
+            // only the live ones would restore leave whose job had vanished.
+            workplaces = workplaceDao.getAllIncludingArchived(userId).map { it.toBackupRow() },
+            leavePolicies = leavePolicyDao.getAllForUser(userId).map { it.toBackupRow() },
+            absenceEvents = absenceEventDao.getAllForUser(userId).map { it.toBackupRow() },
+            absenceAllocations = absenceAllocationDao.getAllForUser(userId).map { it.toBackupRow() },
+            leaveBalanceSnapshots = leaveBalanceSnapshotDao.getAllForUser(userId).map { it.toBackupRow() },
         )
         return json.encodeToString(backup)
     }

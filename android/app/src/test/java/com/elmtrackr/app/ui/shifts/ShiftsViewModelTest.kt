@@ -62,6 +62,11 @@ class ShiftsViewModelTest {
         refundsRepo,
         receiptStorage,
         com.elmtrackr.app.fake.FakeProjectsRepository(),
+        // The payroll transform runs on this dispatcher (flowOn). Left at
+        // Dispatchers.Default it escapes runTest's virtual clock and the state
+        // never advances past Loading — the same reason DashboardViewModelTest
+        // passes the rule's dispatcher.
+        computationDispatcher = mainDispatcherRule.dispatcher,
     )
 
     private fun seedSettings(userId: String = "u1") {

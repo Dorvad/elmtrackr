@@ -1,6 +1,7 @@
 package com.elmtrackr.app.widget
 
 import com.elmtrackr.app.domain.ShiftDurationCalculator
+import com.elmtrackr.app.domain.TodayMinutes
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.time.WorkTimezone
 import java.time.Instant
@@ -73,16 +74,13 @@ object WidgetStateMapper {
         zone: ZoneId,
         today: LocalDate,
     ): Int {
-        val completed = todayShifts
-            .filter { it.isCompleted && it.startTime.atZone(zone).toLocalDate() == today }
-            .sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
-        val active = activeShift?.takeIf { it.isActive }?.let { shift ->
-            if (shift.startTime.atZone(zone).toLocalDate() == today) {
-                ShiftDurationCalculator.elapsedMinutes(shift) ?: 0
-            } else {
-                0
-            }
-        } ?: 0
-        return completed + active
+        // One definition, shared with the Shifts screen's week cards — see
+        // TodayMinutes. This counted completed shifts net of break and added the
+        // running shift *gross*, so a shift with a break recorded on it counted
+        // more while running than it did once it ended, and the ring stepped
+        // backwards at clock-out.
+        val counted = (todayShifts.filter { it.isCompleted } + listOfNotNull(activeShift))
+            .distinctBy { it.id }
+        return TodayMinutes.forDay(counted, zone, today)
     }
 }

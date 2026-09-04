@@ -128,7 +128,7 @@ object ReportExporter {
         drawMetric(canvas, res.getString(R.string.dashboard_stat_overtime), DurationText.format(res, state.report.overtimeMinutes), margin + 155f, y, body, muted)
         drawMetric(canvas, res.getString(R.string.dashboard_stat_weekend), DurationText.format(res, state.report.weekendMinutes), margin + 294f, y, body, muted)
         state.paySummary?.let { pay ->
-            drawMetric(canvas, res.getString(R.string.export_gross_pay), MoneyFormatter.format(pay.totalGross, currency), pageWidth - margin - 116f, y, body, muted)
+            drawMetric(canvas, res.getString(R.string.export_gross_pay), MoneyFormatter.format(pay.totalGross, currency, res.exportLocale()), pageWidth - margin - 116f, y, body, muted)
         }
         y += 28f
         drawDistributionBar(canvas, margin + 16f, y, pageWidth - margin * 2 - 32f, state.report.totalMinutes, state.report.regularMinutes, state.report.overtimeMinutes, state.report.weekendMinutes, accent, peach, plum)
@@ -138,10 +138,10 @@ object ReportExporter {
             ensureSpace(70f)
             canvas.drawText(res.getString(R.string.reports_gross_pay_before_tax), margin, y, heading)
             y += 17f
-            drawMetric(canvas, res.getString(R.string.dashboard_stat_regular), MoneyFormatter.format(pay.regularGross, currency), margin, y, body, muted)
-            drawMetric(canvas, res.getString(R.string.dashboard_stat_overtime), MoneyFormatter.format(pay.overtimeGross, currency), margin + 150f, y, body, muted)
-            drawMetric(canvas, res.getString(R.string.dashboard_pay_holiday), MoneyFormatter.format(pay.specialGross, currency), margin + 300f, y, body, muted)
-            drawMetric(canvas, res.getString(R.string.export_col_total), MoneyFormatter.format(pay.totalGross, currency), pageWidth - margin - 95f, y, body, muted)
+            drawMetric(canvas, res.getString(R.string.dashboard_stat_regular), MoneyFormatter.format(pay.regularGross, currency, res.exportLocale()), margin, y, body, muted)
+            drawMetric(canvas, res.getString(R.string.dashboard_stat_overtime), MoneyFormatter.format(pay.overtimeGross, currency, res.exportLocale()), margin + 150f, y, body, muted)
+            drawMetric(canvas, res.getString(R.string.dashboard_pay_holiday), MoneyFormatter.format(pay.specialGross, currency, res.exportLocale()), margin + 300f, y, body, muted)
+            drawMetric(canvas, res.getString(R.string.export_col_total), MoneyFormatter.format(pay.totalGross, currency, res.exportLocale()), pageWidth - margin - 95f, y, body, muted)
             y += 30f
         }
 
@@ -232,7 +232,7 @@ object ReportExporter {
             canvas.drawText(breakdown?.totalMinutes?.let { DurationText.format(res, it) } ?: "-", margin + 230f, y, body)
             canvas.drawText(tags.ifBlank { "-" }, margin + 300f, y, muted)
             canvas.drawText(
-                pay?.let { MoneyFormatter.format(it.totalGross, currency) } ?: "-",
+                pay?.let { MoneyFormatter.format(it.totalGross, currency, res.exportLocale()) } ?: "-",
                 pageWidth - margin,
                 y,
                 body.apply { textAlign = Paint.Align.RIGHT },
@@ -371,7 +371,7 @@ object ReportExporter {
         canvas.drawText(periodLabel, margin, y, body)
         val total = rows.sumOf { it.claim.amount }
         canvas.drawText(res.getString(R.string.export_claims_count, rows.size), margin, y + 20f, heading)
-        canvas.drawText(res.getString(R.string.export_total, MoneyFormatter.format(total, currency)), pageWidth - margin - 130f, y + 20f, heading)
+        canvas.drawText(res.getString(R.string.export_total, MoneyFormatter.format(total, currency, res.exportLocale())), pageWidth - margin - 130f, y + 20f, heading)
         y += 50f
         canvas.drawText(res.getString(R.string.export_col_direction), margin, y, heading)
         canvas.drawText(res.getString(R.string.export_col_ride_date), 105f, y, heading)
@@ -393,7 +393,7 @@ object ReportExporter {
             canvas.drawText(direction, margin, y, body)
             canvas.drawText(dateFormat.format(row.claim.rideAt), 105f, y, body)
             canvas.drawText(row.claim.provider.name.lowercase().replaceFirstChar(Char::uppercase), 280f, y, body)
-            canvas.drawText(MoneyFormatter.format(row.claim.amount, currency), 475f, y, body)
+            canvas.drawText(MoneyFormatter.format(row.claim.amount, currency, res.exportLocale()), 475f, y, body)
             y += 14f
             val detail = buildString {
                 append(res.getString(R.string.export_shift_prefix, dateFormat.format(row.shift.startTime)))
@@ -420,7 +420,7 @@ object ReportExporter {
                 val receiptPage = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
                 val receiptCanvas = receiptPage.canvas
                 receiptCanvas.drawText(
-                    res.getString(R.string.export_receipt_n, receiptIndex.toString(), row.claim.provider.name, MoneyFormatter.format(row.claim.amount, currency)),
+                    res.getString(R.string.export_receipt_n, receiptIndex.toString(), row.claim.provider.name, MoneyFormatter.format(row.claim.amount, currency, res.exportLocale())),
                     margin,
                     margin,
                     heading,
@@ -555,7 +555,7 @@ object ReportExporter {
             muted,
         )
         canvas.drawText(
-            task.totalPay?.let { MoneyFormatter.format(it, currency) } ?: "-",
+            task.totalPay?.let { MoneyFormatter.format(it, currency, res.exportLocale()) } ?: "-",
             pageWidth - margin,
             y,
             body.apply { textAlign = Paint.Align.RIGHT },
@@ -577,3 +577,16 @@ object ReportExporter {
     private const val AuroraPdfPlum = 0xff8B5CF6.toInt()
     private const val AuroraPdfPeach = 0xffFF9E7D.toInt()
 }
+
+/**
+ * The locale this export is being written in.
+ *
+ * Taken from the same locale-corrected [Context] the export pulls its strings from
+ * (`context.withAppLocale()`), not from [java.util.Locale.getDefault]: a PDF whose
+ * labels are Hebrew and whose amounts are formatted for the device language would be
+ * half-translated. On API 33+ `withAppLocale` returns the context unchanged because the
+ * platform has already applied the per-app locale, so this reads the right value either
+ * way.
+ */
+private fun Context.exportLocale(): java.util.Locale =
+    resources.configuration.locales[0] ?: java.util.Locale.getDefault()

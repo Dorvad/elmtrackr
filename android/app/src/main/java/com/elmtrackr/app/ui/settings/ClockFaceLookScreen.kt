@@ -62,6 +62,7 @@ import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.Spacing
+import com.elmtrackr.app.domain.text.BidiText
 
 /**
  * The full-screen look: one face, as close to the dashboard's presentation as
@@ -90,6 +91,7 @@ internal fun ClockFaceLookScreen(
     owned: Boolean,
     availability: BillingAvailability,
     onBuy: () -> Unit,
+    onInstall: () -> Unit,
     onClose: (settledAt: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -230,6 +232,7 @@ internal fun ClockFaceLookScreen(
                     owned = owned,
                     availability = availability,
                     onBuy = onBuy,
+                    onInstall = onInstall,
                 )
                 Text(
                     stringResource(R.string.settings_pack_unlock_note, group.faces.size),
@@ -259,9 +262,15 @@ private fun LookAction(
     owned: Boolean,
     availability: BillingAvailability,
     onBuy: () -> Unit,
+    onInstall: () -> Unit,
 ) {
     when {
-        owned -> ElmOutlinedButton(onClick = onBuy) {
+        // onInstall, not onBuy. This branch is reachable whenever the pack is owned
+        // but not yet added — the grandfathered state the billing layer documents —
+        // and it wired a button labelled "Add" to a Play purchase sheet. The card at
+        // ClockFacePackCards.kt:197 has always called onInstall here; only this screen
+        // did not, because it never took the callback.
+        owned -> ElmOutlinedButton(onClick = onInstall) {
             Text(stringResource(R.string.settings_pack_add), fontWeight = FontWeight.SemiBold)
         }
         availability == BillingAvailability.UNAVAILABLE -> Text(
@@ -277,9 +286,12 @@ private fun LookAction(
         ) {
             Text(
                 if (price != null) {
-                    stringResource(R.string.settings_pack_unlock, packName, price)
+                    stringResource(
+                        R.string.settings_pack_unlock,
+                        *BidiText.isolateAll(packName, price),
+                    )
                 } else {
-                    stringResource(R.string.settings_pack_unlock_unpriced, packName)
+                    stringResource(R.string.settings_pack_unlock_unpriced, BidiText.isolate(packName))
                 },
                 fontWeight = FontWeight.SemiBold,
             )

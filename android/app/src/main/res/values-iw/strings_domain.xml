@@ -84,4 +84,8 @@
     <string name="sync_entity_refund_claims">בקשות החזר</string>
     <string name="sync_entity_settings">הגדרות</string>
     <string name="sync_entity_pay_profiles">פרופילי עבודה</string>
+    <string name="clock_style_readout">קריאה</string>
+    <string name="clock_style_sparkline">גרף</string>
+    <string name="clock_style_gauge">מחוג</string>
+    <string name="clock_style_matrix">מטריצה</string>
 </resources>

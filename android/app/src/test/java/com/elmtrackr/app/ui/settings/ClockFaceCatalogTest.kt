@@ -178,8 +178,13 @@ class ClockFaceCatalogTest {
     @Test
     fun `essentials is bundled and nothing else is`() {
         assertEquals(listOf(ClockFaceGroup.ESSENTIALS), ClockFaceGroup.bundled)
-        assertEquals(5, ClockFaceGroup.packs.size)
+        // Stated as a partition rather than a count. The literal 5 here failed the
+        // moment a seventh group shipped, which is a test breaking on the change it was
+        // meant to be indifferent to: what matters is that bundled and purchasable
+        // together account for every group exactly once.
+        assertEquals(ClockFaceGroup.entries.size, ClockFaceGroup.bundled.size + ClockFaceGroup.packs.size)
         assertTrue(ClockFaceGroup.packs.none { it.isBundled })
+        assertTrue(ClockFaceGroup.bundled.all { it.isBundled })
     }
 
     /**
@@ -280,4 +285,30 @@ class ClockFaceCatalogTest {
         assertEquals(ClockStyle.VINYL, picks.first())
         assertEquals(CLOCK_FACE_QUICK_PICK_COUNT, picks.size)
     }
+    /**
+     * The Stats-for-nerds contract: these four faces, in this order — Readout is
+     * `faces.first()`, which makes it the pack's hero in the picker — shipped in 1.4.0,
+     * so the New ribbon runs through 1.4.x and 1.5.x and then retires itself.
+     *
+     * Purchasable, never bundled. These are the only faces in the app that print an
+     * amount, and a user who has not chosen this pack must never find earnings on their
+     * dashboard.
+     */
+    @Test
+    fun `stats for nerds holds the four notation faces and is purchasable`() {
+        assertEquals(
+            listOf(
+                com.elmtrackr.app.domain.model.ClockStyle.READOUT,
+                com.elmtrackr.app.domain.model.ClockStyle.SPARKLINE,
+                com.elmtrackr.app.domain.model.ClockStyle.GAUGE,
+                com.elmtrackr.app.domain.model.ClockStyle.MATRIX,
+            ),
+            ClockFaceGroup.NERDS.faces,
+        )
+        assertTrue(ClockFaceGroup.NERDS in ClockFaceGroup.packs)
+        assertTrue(ClockFaceGroup.NERDS.isNewIn("1.4.3"))
+        assertTrue(ClockFaceGroup.NERDS.isNewIn("1.5.0"))
+        assertTrue(!ClockFaceGroup.NERDS.isNewIn("1.6.0"))
+    }
+
 }

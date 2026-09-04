@@ -21,16 +21,27 @@ class SupabaseUserSettingsDataSource(
             select()
         }.decodeSingle<RemoteUserSettingsRow>()
 
-    override suspend fun update(remoteId: String, settings: RemoteUserSettingsUpdate) {
+    override suspend fun update(
+        remoteId: String,
+        settings: RemoteUserSettingsUpdate,
+    ): RemoteUserSettingsRow? =
         client.from(TABLE).update(settings) {
-            filter { eq(COLUMN_ID, remoteId) }
-        }
-    }
+            select()
+            filter {
+                eq(COLUMN_ID, remoteId)
+                // The edit-version guard, exactly as SupabaseShiftsDataSource does
+                // it: a write carrying an older edit than the stored one matches no
+                // row, decodes to null, and the caller adopts the remote copy
+                // instead of overwriting it.
+                lte(COLUMN_CLIENT_UPDATED_AT, settings.clientUpdatedAt)
+            }
+        }.decodeList<RemoteUserSettingsRow>().firstOrNull()
 
     private companion object {
         const val TABLE = "user_settings"
         const val COLUMN_ID = "id"
         const val COLUMN_USER_ID = "user_id"
         const val COLUMN_UPDATED_AT = "updated_at"
+        const val COLUMN_CLIENT_UPDATED_AT = "client_updated_at"
     }
 }

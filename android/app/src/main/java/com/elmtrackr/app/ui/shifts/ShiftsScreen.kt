@@ -275,6 +275,7 @@ private fun ShiftsListContent(
         state.profiles,
         state.premiumProfiles,
         state.payContextShifts,
+        state.payFacts,
         itemsZone,
         itemsLocale,
     ) {
@@ -288,6 +289,7 @@ private fun ShiftsListContent(
             zone = itemsZone,
             locale = itemsLocale,
             payContextShifts = state.payContextShifts,
+            payFacts = state.payFacts,
         )
     }
 

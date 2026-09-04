@@ -1,9 +1,9 @@
 package com.elmtrackr.app.ui.shifts
 
-import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.compensation.CompensationResolver
+import com.elmtrackr.app.domain.compensation.ShiftClassifier
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
@@ -35,35 +35,57 @@ internal fun buildShiftRowDisplay(
     // shift on the wrong date near midnight. Every caller already passes one.
     zone: ZoneId,
     locale: Locale = Locale.getDefault(),
+    // Supplied by ShiftsViewModel, which computes it off the main thread. When absent
+    // (tests, previews, any caller with nothing precomputed) the payroll walks happen
+    // here, exactly as they always did.
+    facts: ShiftPayFacts? = null,
 ): ShiftRowDisplayModel {
     val rowWeekdayFmt = DateTimeFormatter.ofPattern("EEE", locale)
     val zdt = shift.startTime.atZone(zone)
-    // Weekend and overtime are pay classifications. Project time is paid by the
-    // project's fee, so neither badge applies to it — and its pay is already null
-    // because PayrollCalculator refuses project shifts.
-    val weekend = shift.isEmployeePaid &&
-        settings?.let { CompensationResolver.isWeekendShift(shift, it, profiles) } == true
-    val breakdown = settings?.let { MonthlyReportBuilder.buildShiftBreakdown(shift, it, profiles) }
-    val hasOt = shift.isEmployeePaid &&
-        (breakdown?.overtimeMinutes ?: 0) > 0 && !shift.isSpecialDay && !weekend
-    val pay = settings?.let {
-        PayrollCalculator.calculateShiftPayInContext(
-            shift,
-            allShiftsForPay.ifEmpty { listOf(shift) },
-            it,
-            profiles,
-            premiumProfiles,
-        )
-    }
+    val resolved = facts ?: computeShiftPayFacts(
+        shift, settings, profiles, allShiftsForPay, premiumProfiles,
+    )
     return ShiftRowDisplayModel(
         weekday = zdt.format(rowWeekdayFmt).uppercase(locale),
         dayNumber = zdt.dayOfMonth.toString(),
         startText = zdt.format(rowTimeFmt),
         endText = shift.endTime?.atZone(zone)?.format(rowTimeFmt) ?: "",
+        netMinutes = resolved.netMinutes,
+        weekend = resolved.weekend,
+        hasOt = resolved.hasOt,
+        payGross = resolved.payGross,
+    )
+}
+
+/**
+ * The fallback path for a single row with no precomputed facts. Keeps the badge rule
+ * in one place; [buildShiftsPayFacts] is the batched equivalent the list uses.
+ */
+private fun computeShiftPayFacts(
+    shift: Shift,
+    settings: UserSettings?,
+    profiles: List<CompensationProfile>,
+    allShiftsForPay: List<Shift>,
+    premiumProfiles: List<PremiumProfile>,
+): ShiftPayFacts {
+    // Weekend and overtime are pay classifications. Project time is paid by the
+    // project's fee, so neither badge applies to it — and its pay is already null
+    // because PayrollCalculator refuses project shifts.
+    val weekend = shift.isEmployeePaid &&
+        settings?.let { CompensationResolver.isWeekendShift(shift, it, profiles) } == true
+    val context = allShiftsForPay.ifEmpty { listOf(shift) }
+    val overtimeMinutes = settings?.let {
+        ShiftClassifier.classify(shift, context, it, profiles, premiumProfiles)?.overtimeMinutes
+    } ?: 0
+    return ShiftPayFacts(
         netMinutes = ShiftDurationCalculator.netMinutes(shift) ?: 0,
         weekend = weekend,
-        hasOt = hasOt,
-        payGross = pay?.totalGross,
+        hasOt = shift.isEmployeePaid && overtimeMinutes > 0 && !shift.isSpecialDay && !weekend,
+        payGross = settings?.let {
+            PayrollCalculator.calculateShiftPayInContext(
+                shift, context, it, profiles, premiumProfiles,
+            )
+        }?.totalGross,
     )
 }
 
@@ -101,6 +123,9 @@ internal fun buildShiftsLazyListItems(
     zone: ZoneId,
     locale: Locale = Locale.getDefault(),
     payContextShifts: List<Shift> = shifts,
+    // Precomputed off the main thread by ShiftsViewModel. Null means "work it out
+    // here", which is what every test and preview does.
+    payFacts: ShiftsPayFacts? = null,
 ): List<ShiftsLazyListItem> {
     val payContext = payContextShifts.ifEmpty { shifts }
     val sections = ShiftWeekGrouper.groupByWeek(
@@ -113,6 +138,7 @@ internal fun buildShiftsLazyListItems(
         zone = zone,
         locale = locale,
         payContextShifts = payContext,
+        weekPay = payFacts?.weekPay,
     )
     return buildList {
         sections.forEach { section ->
@@ -124,7 +150,12 @@ internal fun buildShiftsLazyListItems(
                         display = if (shift.isActive) {
                             null
                         } else {
-                            buildShiftRowDisplay(shift, settings, profiles, payContext, premiumProfiles, zone = zone, locale = locale)
+                            buildShiftRowDisplay(
+                                shift, settings, profiles, payContext, premiumProfiles,
+                                zone = zone,
+                                locale = locale,
+                                facts = payFacts?.perShift?.get(shift.id),
+                            )
                         },
                         isLastInSection = index == section.shifts.lastIndex,
                     ),

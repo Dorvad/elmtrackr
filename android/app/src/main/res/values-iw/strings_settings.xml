@@ -501,4 +501,12 @@
     <string name="settings_region_replace_confirm">להחליף כללים</string>
     <string name="settings_discard_profile_title">לבטל את השינויים?</string>
     <string name="settings_discard_profile_body">לפרופיל העבודה הזה יש שינויים שלא נשמרו.</string>
+    <string name="clock_group_nerds">סטטיסטיקה לחנונים</string>
+    <string name="clock_group_nerds_desc">המספרים שמאחורי המשמרת</string>
+    <string name="settings_face_readout">ארבע שורות של נתונים חיים</string>
+    <string name="settings_face_sparkline">הרווחים משורטטים בזמן העבודה</string>
+    <string name="settings_face_gauge">מחוג מול שמונה השעות שלך</string>
+    <string name="settings_face_matrix">שורה לכל שעה, תא לכל חמש דקות</string>
+    <string name="dashboard_face_rate_per_hour">%1$s לשעה</string>
+    <string name="dashboard_face_target_amount">יעד %1$s</string>
 </resources>

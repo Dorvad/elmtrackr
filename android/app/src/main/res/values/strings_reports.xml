@@ -195,4 +195,8 @@
     <string name="insight_guitar_text">An average guitar solo lasts **%1$ds**. You worked long enough for **%2$d guitar solos**. Shred on.</string>
     <string name="insight_ramen_title">Ramen Counter</string>
     <string name="insight_ramen_text">Instant ramen takes **%1$d minutes**. In your **%2$dh** of work, you could have made **%3$d bowls**. Budget living.</string>
+    <!-- Shown when an export could not be written or shared. The exporter can fail on
+         a full disk, a revoked storage permission, or a device with no app that accepts
+         the file; before this the failure was silent. -->
+    <string name="reports_export_failed">Could not export. Check your free storage and try again.</string>
 </resources>

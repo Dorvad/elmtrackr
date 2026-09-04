@@ -37,7 +37,23 @@ object CoroutineModule {
                 },
         )
 
+    /**
+     * Payroll aggregation.
+     *
+     * `Dispatchers.Default` on purpose, and a cap was considered and rejected. The
+     * audit listed "bare Dispatchers.Default" as hygiene, but Default is already bounded
+     * to the core count, and the work that runs here is a handful of short transforms —
+     * Dashboard, Shifts, Reports — not a fan-out. A `limitedParallelism` view would add
+     * queueing those three screens do not have today, to fix a contention nobody has
+     * measured. Measure first; if a cap is ever warranted it belongs here, behind that
+     * measurement.
+     *
+     * `@Singleton` so every injection shares one dispatcher. It matters the moment this
+     * ever becomes a `limitedParallelism` view, where a per-injection instance would be
+     * a separate limit and quietly undo the cap.
+     */
     @Provides
+    @Singleton
     @ComputationDispatcher
     fun provideComputationDispatcher(): CoroutineDispatcher = Dispatchers.Default
 }

@@ -72,4 +72,11 @@ data class RemoteUserSettingsUpdate(
     @SerialName("features_clock_styles") val featuresClockStyles: Boolean,
     @SerialName("features_overtime_reminders") val featuresOvertimeReminders: Boolean = true,
     @SerialName("clock_style") val clockStyle: String,
+    /**
+     * The device's edit time, and the guard the write is filtered on. Without it
+     * a device that had been offline overwrote the server unconditionally, and the
+     * pull in the same pass carried those stale settings back to the device that
+     * had the newer ones — both converging on the old values, silently.
+     */
+    @SerialName("client_updated_at") val clientUpdatedAt: String,
 )

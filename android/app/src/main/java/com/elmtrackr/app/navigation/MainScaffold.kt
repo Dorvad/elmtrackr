@@ -29,6 +29,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -92,6 +95,7 @@ import com.elmtrackr.app.ui.design.auroraPressScale
 import com.elmtrackr.app.ui.layout.PhoneContentMaxWidth
 import com.elmtrackr.app.ui.layout.isTabletLayout
 import com.elmtrackr.app.ui.navigation.ElmSideNavigation
+import com.elmtrackr.app.ui.design.LocalAppSnackbarHostState
 
 private val navGradient = Brush.linearGradient(
     colorStops = arrayOf(0f to AuroraIndigo, 0.42f to AuroraPlum, 1f to AuroraAqua),
@@ -256,8 +260,16 @@ fun MainScaffold(
         return
     }
 
+    val appSnackbarHostState = remember { SnackbarHostState() }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        // One host for the whole shell. Dashboard, Reports and Projects had none, so a
+        // transient failure on the three most-used screens could only be a full-screen
+        // takeover — "could not refresh" replacing a month of data the user could still
+        // read. Hosting it here rather than per screen also means a message survives a
+        // tab change, where a per-screen host died with the composable that posted it.
+        snackbarHost = { SnackbarHost(appSnackbarHostState) },
         bottomBar = {
             if (!hideNavChrome && !immersive) {
             ElmBottomNav(
@@ -268,6 +280,7 @@ fun MainScaffold(
             }
         },
     ) { innerPadding ->
+        CompositionLocalProvider(LocalAppSnackbarHostState provides appSnackbarHostState) {
         NavHost(
             navController    = navController,
             startDestination = BottomNavItem.DASHBOARD.route,
@@ -312,6 +325,7 @@ fun MainScaffold(
                     navigateToTab(BottomNavItem.REPORTS.route)
                 },
             )
+        }
         }
     }
 }

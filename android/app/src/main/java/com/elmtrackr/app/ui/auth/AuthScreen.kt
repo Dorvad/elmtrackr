@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -295,6 +296,7 @@ internal fun SignedOutContent(
             modifier            = Modifier
                 .widthIn(max = 480.dp)
                 .fillMaxWidth()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 48.dp)
                 .auroraEnter(),
@@ -520,6 +522,7 @@ private fun PasswordRecoveryContent(
             modifier = Modifier
                 .widthIn(max = 480.dp)
                 .fillMaxWidth()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 48.dp)
                 .auroraEnter(),

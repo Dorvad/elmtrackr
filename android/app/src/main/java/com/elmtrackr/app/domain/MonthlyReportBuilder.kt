@@ -57,6 +57,13 @@ object MonthlyReportBuilder {
         profiles: List<CompensationProfile> = emptyList(),
         premiumProfiles: List<PremiumProfile> = emptyList(),
         contextShifts: List<Shift> = listOf(shift),
+        /**
+         * A classification already computed for this shift, when the caller has
+         * one. [buildMonthlyReport] classifies the whole month in a single pass and
+         * passes each result in here, which is what stops the month re-deriving
+         * every pay week once per shift.
+         */
+        classification: ShiftClassifier.ShiftClassification? = null,
     ): ShiftBreakdown {
         val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
         val zone = WorkTimezone.zoneFor(resolved, settings)
@@ -70,9 +77,10 @@ object MonthlyReportBuilder {
             WeekendRules.annotateWeekendSegments(rawSegments, resolved.rules.weekendDays)
         }
 
-        val classification = ShiftClassifier.classify(
+        val resolvedClassification = classification ?: ShiftClassifier.classify(
             shift, contextShifts, settings, profiles, premiumProfiles,
-        ) ?: return ShiftBreakdown(
+        )
+        resolvedClassification ?: return ShiftBreakdown(
             // Project time and active shifts classify to nothing: project hours are
             // paid by the project's fee, so a regular/overtime/weekend split of them
             // would be a pay classification of money that is not wages. The hours
@@ -85,13 +93,13 @@ object MonthlyReportBuilder {
         )
 
         return ShiftBreakdown(
-            totalMinutes = classification.payableMinutes,
-            regularMinutes = classification.regularMinutes,
-            overtimeMinutes = classification.overtimeMinutes,
+            totalMinutes = resolvedClassification.payableMinutes,
+            regularMinutes = resolvedClassification.regularMinutes,
+            overtimeMinutes = resolvedClassification.overtimeMinutes,
             // Weekend and holiday together, mirroring `specialGross`, which is
             // `weekendGross + holidayGross`. Keeping the same pairing is what lets
             // the hours and the money be compared directly.
-            weekendMinutes = classification.specialMinutes,
+            weekendMinutes = resolvedClassification.specialMinutes,
             segments = segments,
         )
     }
@@ -130,8 +138,21 @@ object MonthlyReportBuilder {
         val context = contextShifts.employeePaidOnly().filter { it.isCompleted }
             .ifEmpty { completed }
 
-        val breakdowns = completed.map {
-            buildShiftBreakdown(it, settings, profiles, premiumProfiles, context)
+        // One pass over the month rather than one from-scratch week rebuild per
+        // shift. `buildShiftBreakdown` answers for a single shift, and to do that
+        // the Israeli engine reclassifies every earlier shift of that shift's pay
+        // week — so calling it per shift reclassified the first shift of each week
+        // once per later shift in it, each walk minute by minute. Same arithmetic:
+        // `classifyWeek` is asserted to return exactly what the per-shift path
+        // returns.
+        val classifications = ShiftClassifier.classifyMonth(
+            completed, context, settings, profiles, premiumProfiles,
+        )
+        val breakdowns = completed.map { shift ->
+            buildShiftBreakdown(
+                shift, settings, profiles, premiumProfiles, context,
+                classification = classifications[shift.id],
+            )
         }
 
         return MonthlyReport(

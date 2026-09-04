@@ -12,7 +12,7 @@
             <shape android:shape="rectangle">
                 <gradient
                     android:startColor="#7C6BFF"
-                    android:endColor="#22D3EE"
+                    android:endColor="#16C8D6"
                     android:angle="0"
                     android:type="linear" />
                 <corners android:radius="14dp" />

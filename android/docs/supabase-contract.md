@@ -189,13 +189,16 @@ request, so validating would evaluate the predicate with no session.
 leave is the most sensitive data this app stores, so account deletion names them
 explicitly rather than relying on the `auth.users` cascade.
 
-**Client-side sync is not wired yet.** The tables, RLS and account deletion are
-in place, and the Room entities carry the full `remoteId` / `syncStatus` /
-`deletedAt` / `lastSyncedAt` block, but `SyncRepositoryImpl` has no push or pull
-step for them and there is no `data/remote/RemoteLeave*`. Leave is therefore
-device-local until that is added — the same order Paid Projects shipped in (Room
-v16 first, cloud sync in a later change). Until then a reinstall loses reported
-leave and entered balances unless the user exported a local backup.
+**Client-side sync is wired.** `SyncRepositoryImpl` pushes and pulls all five
+tables in the order the foreign keys require, and `data/remote/RemoteLeave*`
+exists. This paragraph said the opposite for a while: it was written when the
+tables shipped ahead of the pipeline and was not updated when the pipeline
+landed. "All five are synced", above, is the accurate sentence.
+
+The local backup carries them too, as of format 8. It did not before, which meant
+the mitigation this section used to name — export a backup — was not one: a
+reinstall lost reported leave and entered balances whether or not the user had
+exported anything.
 
 ---
 
@@ -397,8 +400,7 @@ Push and pull phases run in order:
 
 0. **workplaces → leave policies / balance snapshots → absence events → absence
    allocations** (real foreign keys; workplaces also before shifts and
-   compensation profiles, which carry a workplace link). *Not yet implemented —
-   see "Client-side sync is not wired yet" above.*
+   compensation profiles, which carry a workplace link).
 1. **tasks** (before shifts — shifts may reference task IDs)  
 2. **projects → project billing records → project payments** (real foreign keys;
    also before shifts, which carry a project link)  
@@ -414,7 +416,9 @@ Incremental pull uses `updated_at >= lastPulledAt` per entity (see `SyncCursorSt
 
 Local `PENDING_*` rows always win over remote until pushed.
 
-`delete_own_account` removes absence allocations, absence events, leave balance snapshots, leave policies, tasks, shifts, refund claims, compensation profiles, workplaces, user settings, profiles, and refund-receipt storage objects.
+`delete_own_account` removes absence allocations, absence events, leave balance snapshots, leave policies, tasks, shifts, refund claims, project payments, project billing records, projects, premium profiles, compensation profiles, workplaces, user settings, profiles, and refund-receipt storage objects — then the `auth.users` row.
+
+The three project tables and `premium_profiles` were restored to the function by `20260903010000_restore_account_deletion_tables.sql`. A `create or replace` in the leave migration had dropped the project deletes, and `premium_profiles` had never been named. Nothing leaked — all four cascade from `auth.users`, which the function deletes last — but the rule here is that account deletion names every table it removes, so a cascade someone later changes to `on delete set null` cannot silently stop covering one.
 
 ### `deleted_at` and `client_updated_at`
 
@@ -437,7 +441,16 @@ tombstones for rows a device has never held are ignored rather than materialised
 **`client_updated_at` is the edit-version guard.** Every update is filtered
 `client_updated_at <= <the value being written>` and asks for the row back, so a
 write carrying an older edit than the stored one matches nothing and returns no
-row. The client reads that as a conflict and adopts the remote copy instead of
+row.
+
+> This said "every update" while `user_settings` and `profiles` had no such
+> column: the migration above lists five tables and those two are not among them.
+> The claim is what stopped anyone noticing. `20260903000000_settings_profiles_row_versions.sql`
+> adds the column to both and their data sources now filter on it, so the sentence
+> is true as of that migration — **which must be applied before shipping an app
+> build that filters on it.** The column is `not null default now()`, so an
+> un-migrated server keeps working with older clients, but a new client against
+> one would filter on a column that does not exist. The client reads that as a conflict and adopts the remote copy instead of
 overwriting it — the newer edit wins, which is the same rule the pull side
 applies, so the two directions agree. Both `RemoteXUpdate.clientUpdatedAt` and
 the local entity's `updatedAt` are the same value; nothing else has to be stored.

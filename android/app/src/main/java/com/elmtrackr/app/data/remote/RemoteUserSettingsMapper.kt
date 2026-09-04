@@ -49,6 +49,7 @@ fun UserSettingsEntity.toRemoteUpdate(
     featuresClockStyles = featuresClockStyles,
     featuresOvertimeReminders = featuresOvertimeReminders,
     clockStyle = clockStyleToWire(clockStyle),
+    clientUpdatedAt = epochToIso(updatedAt),
 )
 
 /**

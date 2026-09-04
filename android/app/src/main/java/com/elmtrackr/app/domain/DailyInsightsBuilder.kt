@@ -208,7 +208,11 @@ object DailyInsightsBuilder {
         val cokes = if (totalGross > 0) (totalGross / COCA_COLA_ILS).roundToInt() else 0
         if (cokes > 0) card(
             "🥤", R.string.insight_coke_title, R.string.insight_coke_text,
-            InsightColor.ROSE, cokes, "%.2f".format(java.util.Locale.US, COCA_COLA_ILS),
+            // The one card whose divisor is not a whole number, so it arrives as a
+            // pre-formatted string where its siblings pass an Int. It reads inside a
+            // translated sentence, so it follows the same locale policy as every other
+            // number on screen rather than staying pinned to Locale.US.
+            InsightColor.ROSE, cokes, formatPrice(COCA_COLA_ILS),
         )
 
         val movieTickets = if (totalGross > 0) (totalGross / MOVIE_TICKET_ILS).roundToInt() else 0
@@ -349,4 +353,11 @@ object DailyInsightsBuilder {
     }
 
     private fun Int.toLocaleString(): String = NumberFormat.getNumberInstance().format(this)
+
+    private fun formatPrice(amount: Double): String =
+        java.text.NumberFormat.getNumberInstance(FormattingPolicy.display()).apply {
+            minimumFractionDigits = 2
+            maximumFractionDigits = 2
+        }.format(amount)
+
 }

@@ -61,6 +61,7 @@ import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.Spacing
 import com.elmtrackr.app.ui.theme.auroraSemantics
+import com.elmtrackr.app.domain.text.BidiText
 import kotlinx.coroutines.launch
 
 /**
@@ -212,14 +213,17 @@ private fun PackAction(
                 onClick = onBuy,
                 enabled = availability == BillingAvailability.AVAILABLE && price != null,
                 accessibilityLabel = if (price != null) {
-                    stringResource(R.string.settings_pack_unlock, packName, price)
+                    stringResource(
+                        R.string.settings_pack_unlock,
+                        *BidiText.isolateAll(packName, price),
+                    )
                 } else {
-                    stringResource(R.string.settings_pack_unlock_unpriced, packName)
+                    stringResource(R.string.settings_pack_unlock_unpriced, BidiText.isolate(packName))
                 },
             ) {
                 Text(
                     if (price != null) {
-                        stringResource(R.string.settings_pack_unlock_price, price)
+                        stringResource(R.string.settings_pack_unlock_price, BidiText.isolate(price))
                     } else {
                         stringResource(R.string.settings_pack_buy)
                     },

@@ -36,6 +36,15 @@ object OvernightShiftDetector {
 
         val segments = mutableListOf<DaySegment>()
         var cursorMs = startMs
+        // Allocated cumulatively so the segments sum to exactly [totalNet].
+        //
+        // Each segment used to be rounded on its own — `(totalNet * proportion)
+        // .roundToInt()` — so two halves of a 601-minute shift both rounded up to
+        // 301 and the day split reported one minute more than the shift had. Small,
+        // but it is a per-overnight-shift error in a figure that is supposed to
+        // reconcile with the total beside it.
+        var allocated = 0
+        var elapsedMs = 0L
 
         while (cursorMs < endMs) {
             val cursorDate = Instant.ofEpochMilli(cursorMs).atZone(zone).toLocalDate()
@@ -45,15 +54,22 @@ object OvernightShiftDetector {
                 .toEpochMilli()
 
             val segEndMs = minOf(nextMidnightMs, endMs)
-            val proportion = if (totalGrossMs > 0) {
-                (segEndMs - cursorMs).toDouble() / totalGrossMs
+            elapsedMs += segEndMs - cursorMs
+            // Round the running total, not the slice: the difference between one
+            // rounded cumulative figure and the last is what this segment gets, so
+            // rounding error is carried forward rather than repeated. The final
+            // segment takes whatever remains, which is what makes the sum exact.
+            val cumulative = if (totalGrossMs > 0) {
+                (totalNet * (elapsedMs / totalGrossMs)).roundToInt()
             } else {
-                0.0
+                0
             }
+            val minutes = if (segEndMs >= endMs) totalNet - allocated else cumulative - allocated
+            allocated += minutes
 
             segments += DaySegment(
                 date = cursorDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
-                minutes = (totalNet * proportion).roundToInt(),
+                minutes = minutes,
                 isWeekend = false,
             )
             cursorMs = segEndMs

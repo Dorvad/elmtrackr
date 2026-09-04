@@ -55,6 +55,12 @@ import com.elmtrackr.app.ui.dashboard.toSupportedOrDefault
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Layout
+import com.elmtrackr.app.domain.MoneyFormatter
+import com.elmtrackr.app.ui.common.appLocale
+import com.elmtrackr.app.ui.dashboard.ClockFaceTelemetry
+import com.elmtrackr.app.ui.dashboard.drawsOwnReading
+import com.elmtrackr.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * The dashboard face box's proportions — what every preview box should be
@@ -105,6 +111,9 @@ internal fun WatchFacePreview(
     val spin = previewPhase(motion && face == SupportedClockStyle.VINYL, SPIN_MILLIS, 360f, "face-preview-spin")
 
     val scheme = MaterialTheme.colorScheme
+    // Declared before the palette, which now carries it: the Stats-for-nerds faces draw
+    // their own text and need a measurer at draw time.
+    val textMeasurer = rememberTextMeasurer()
     val foreground = if (face.hasDarkPlate()) Color.White else scheme.onSurface
     // A lifted plate takes the next tone up for its track, so a ring or a rail
     // stays visible on it.
@@ -113,11 +122,12 @@ internal fun WatchFacePreview(
         foreground = foreground,
         track = if (plate != null) scheme.outlineVariant else scheme.surfaceVariant,
         plate = clockFacePlate(face, plate ?: scheme.surface),
+        textMeasurer = textMeasurer,
     )
     // One scope per preview, reused every frame: it only carries the virtual
     // size and the canvas it is handed.
+    val previewTelemetry = rememberPreviewTelemetry()
     val drawScope = remember { CanvasDrawScope() }
-    val textMeasurer = rememberTextMeasurer()
 
     val plateModifier = when {
         !showBackground -> Modifier
@@ -145,7 +155,10 @@ internal fun WatchFacePreview(
                 drawScope.draw(this, layoutDirection, canvas, virtual) {
                     drawClockFace(
                         style = face,
-                        scene = PREVIEW_SCENE.copy(vinylSpinDegrees = spin.value),
+                        scene = PREVIEW_SCENE.copy(
+                            vinylSpinDegrees = spin.value,
+                            telemetry = previewTelemetry,
+                        ),
                         palette = palette,
                         pulse = pulse.value,
                     )
@@ -156,7 +169,7 @@ internal fun WatchFacePreview(
                 canvas.restore()
             }
         }
-        if (showReading && face != SupportedClockStyle.RETRO) {
+        if (showReading && face != SupportedClockStyle.RETRO && !face.drawsOwnReading()) {
             Text(
                 PREVIEW_READING,
                 style = readingStyle ?: previewReadingStyle(face, ratio),
@@ -286,6 +299,45 @@ private val PREVIEW_SCENE = ClockFaceScene(
 
 /** The reading the staged shift shows: 62% of eight hours. */
 private const val PREVIEW_READING = "04:58"
+
+/**
+ * The figures a Stats-for-nerds tile prints.
+ *
+ * The amounts are the design reference's fixture rather than the user's own earnings: a
+ * store tile is a sample of a face, and pricing a real shift for every tile in a grid
+ * would put a payroll walk behind a scroll. The currency is still the user's, because a
+ * tile showing dollars to someone paid in shekels advertises the wrong product.
+ */
+@Composable
+private fun rememberPreviewTelemetry(): ClockFaceTelemetry {
+    val locale = appLocale()
+    val currency = LocalPreviewCurrencyCode.current
+    val earned = 74.5
+    val rate = 15.0
+    val target = 120.0
+    val earnedText = MoneyFormatter.format(earned, currency, locale)
+    val rateText = stringResource(
+        R.string.dashboard_face_rate_per_hour,
+        MoneyFormatter.format(rate, currency, locale),
+    )
+    val targetText = stringResource(
+        R.string.dashboard_face_target_amount,
+        MoneyFormatter.format(target, currency, locale),
+    )
+    return remember(earnedText, rateText, targetText) {
+        ClockFaceTelemetry.preview(earnedText, rateText, targetText, earned, target)
+    }
+}
+
+/**
+ * The currency a preview tile formats its sample figures in.
+ *
+ * A composition local because the preview is called from several screens and threading a
+ * currency through each would touch call sites that have no interest in money. Defaults
+ * to the empty string, which `MoneyFormatter` renders as a bare localised number — the
+ * right answer when nothing has told the preview what the user is paid in.
+ */
+val LocalPreviewCurrencyCode = androidx.compose.runtime.compositionLocalOf { "" }
 
 /** The dashboard clock faces' shared phase. */
 private const val PULSE_MILLIS = 1_800

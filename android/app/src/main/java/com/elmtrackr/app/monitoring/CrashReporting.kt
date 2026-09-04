@@ -54,6 +54,19 @@ object CrashReporting {
         runCatching { Sentry.captureException(throwable) }
     }
 
+    /**
+     * Rewrites the free-text fields of [event] in place. Stack frames are left alone —
+     * they carry no user data and are what makes the report worth sending.
+     */
+    private fun scrub(event: io.sentry.SentryEvent) {
+        event.message?.let { message ->
+            message.formatted = SensitiveTextScrubber.scrub(message.formatted)
+            message.message = SensitiveTextScrubber.scrub(message.message)
+        }
+        event.exceptions?.forEach { it.value = SensitiveTextScrubber.scrub(it.value) }
+        event.breadcrumbs?.forEach { it.message = SensitiveTextScrubber.scrub(it.message) }
+    }
+
     private fun start(context: Context) {
         SentryAndroid.init(context) { options ->
             options.dsn = BuildConfig.SENTRY_DSN
@@ -63,6 +76,14 @@ object CrashReporting {
             options.tracesSampleRate = 0.0
             options.isAttachStacktrace = true
             options.isEnableAutoSessionTracking = true
+            // Last gate before an event leaves the device. See SensitiveTextScrubber
+            // for what it removes and why. Wrapped in runCatching because a throw here
+            // happens inside the SDK's own send path: losing a report is a bad
+            // outcome, losing the process while reporting a crash is a worse one.
+            options.setBeforeSend { event, _ ->
+                runCatching { scrub(event) }
+                event
+            }
         }
     }
 }

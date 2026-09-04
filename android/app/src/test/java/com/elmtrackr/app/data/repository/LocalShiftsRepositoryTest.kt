@@ -1,5 +1,6 @@
 package com.elmtrackr.app.data.repository
 
+import com.elmtrackr.app.data.local.DirectTransactionRunner
 import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
@@ -21,7 +22,7 @@ class LocalShiftsRepositoryTest {
     fun `clockIn returns existing active shift instead of creating duplicate`() = runTest {
         val dao = InMemoryShiftDao()
         dao.insertShift(shiftEntity(localId = "active-1", startTime = 1_000L))
-        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao())
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
 
         val shift = repository.clockIn(
             userId = "u1",
@@ -39,7 +40,7 @@ class LocalShiftsRepositoryTest {
     @Test
     fun `clockIn creates shift with compensation profile when no active shift exists`() = runTest {
         val dao = InMemoryShiftDao()
-        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao())
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
 
         val shift = repository.clockIn(
             userId = "u1",
@@ -70,7 +71,7 @@ class LocalShiftsRepositoryTest {
         val dao = InMemoryShiftDao()
         val profileDao = FakeCompensationProfileDao()
         profileDao.insert(compensationProfileEntity(localId = "profile-1", workplaceId = "wp-1"))
-        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), profileDao)
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), profileDao, DirectTransactionRunner)
 
         repository.clockIn(userId = "u1", compensationProfileId = "profile-1")
 
@@ -81,7 +82,7 @@ class LocalShiftsRepositoryTest {
     @Test
     fun `clockIn without a profile leaves the workplace unset`() = runTest {
         val dao = InMemoryShiftDao()
-        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao())
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
 
         repository.clockIn(userId = "u1", compensationProfileId = null)
 
@@ -150,7 +151,7 @@ class LocalShiftsRepositoryTest {
     fun `getShiftById hides soft-deleted shifts from the domain layer`() = runTest {
         val dao = InMemoryShiftDao()
         dao.insertShift(shiftEntity(localId = "gone", startTime = 1_000L, deletedAt = 2_000L))
-        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao())
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
 
         assertEquals(null, repository.getShiftById("gone"))
     }
@@ -159,7 +160,7 @@ class LocalShiftsRepositoryTest {
     fun `clockOut refuses a soft-deleted shift instead of resurrecting it`() = runTest {
         val dao = InMemoryShiftDao()
         dao.insertShift(shiftEntity(localId = "gone", startTime = 1_000L, deletedAt = 2_000L))
-        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao())
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
 
         val result = runCatching { repository.clockOut("gone") }
 

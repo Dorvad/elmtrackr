@@ -1,6 +1,11 @@
 package com.elmtrackr.app.data.sync
 
+import com.elmtrackr.app.data.local.entity.AbsenceAllocationEntity
+import com.elmtrackr.app.data.local.entity.AbsenceEventEntity
 import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
+import com.elmtrackr.app.data.local.entity.LeaveBalanceSnapshotEntity
+import com.elmtrackr.app.data.local.entity.LeavePolicyEntity
+import com.elmtrackr.app.data.local.entity.WorkplaceEntity
 import com.elmtrackr.app.data.local.entity.ProjectBillingRecordEntity
 import com.elmtrackr.app.data.local.entity.ProjectEntity
 import com.elmtrackr.app.data.local.entity.ProjectPaymentEntity
@@ -10,6 +15,9 @@ import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.entity.TaskEntity
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
 import com.elmtrackr.app.domain.model.CompensationSource
+import com.elmtrackr.app.domain.model.LeaveBalanceSource
+import com.elmtrackr.app.domain.model.LeaveBalanceUnit
+import com.elmtrackr.app.domain.model.RegionCode
 import kotlinx.serialization.Serializable
 
 /**
@@ -20,7 +28,11 @@ import kotlinx.serialization.Serializable
  * lack the newer optional fields), so bumping the version never strands a
  * user's existing backup files.
  */
-const val BACKUP_FORMAT_VERSION = 7
+// 8: shifts carry workplaceId, and the five workplace/leave tables are exported.
+// Before 8 a backup silently dropped a shift's job link, and carried no leave at
+// all — while the Supabase contract named the backup as the mitigation for
+// exactly that data.
+const val BACKUP_FORMAT_VERSION = 8
 
 /** Version 1 predates full-fidelity rows and cannot be restored safely. */
 const val MIN_SUPPORTED_BACKUP_FORMAT_VERSION = 2
@@ -41,6 +53,104 @@ data class LocalBackupDocument(
     val projects: List<ProjectBackupRow> = emptyList(),
     val projectBillingRecords: List<ProjectBillingRecordBackupRow> = emptyList(),
     val projectPayments: List<ProjectPaymentBackupRow> = emptyList(),
+    // Format 8. Absent from every earlier backup, which is why a reinstall lost
+    // reported leave and entered balances even for a user who had exported one —
+    // while `supabase-contract.md` named the backup as the mitigation for exactly
+    // this data. Sick leave is the most sensitive thing this app stores.
+    val workplaces: List<WorkplaceBackupRow> = emptyList(),
+    val leavePolicies: List<LeavePolicyBackupRow> = emptyList(),
+    val absenceEvents: List<AbsenceEventBackupRow> = emptyList(),
+    val absenceAllocations: List<AbsenceAllocationBackupRow> = emptyList(),
+    val leaveBalanceSnapshots: List<LeaveBalanceSnapshotBackupRow> = emptyList(),
+)
+
+@Serializable
+data class WorkplaceBackupRow(
+    val localId: String,
+    val remoteId: String? = null,
+    val name: String,
+    val regionCode: String,
+    val currencyCode: String,
+    val timezone: String,
+    val employmentStartDate: Long? = null,
+    val isDefault: Boolean = false,
+    val isArchived: Boolean = false,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+    val syncStatus: String,
+    val lastSyncedAt: Long? = null,
+)
+
+@Serializable
+data class LeavePolicyBackupRow(
+    val localId: String,
+    val remoteId: String? = null,
+    val workplaceLocalId: String,
+    val regionCode: String,
+    val rulesJson: String,
+    val effectiveFrom: Long,
+    val effectiveUntil: Long? = null,
+    val isActive: Boolean = true,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+    val syncStatus: String,
+    val lastSyncedAt: Long? = null,
+)
+
+@Serializable
+data class AbsenceEventBackupRow(
+    val localId: String,
+    val remoteId: String? = null,
+    val type: String,
+    val startDate: Long,
+    val endDate: Long,
+    val notes: String? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+    val syncStatus: String,
+    val lastSyncedAt: Long? = null,
+)
+
+@Serializable
+data class AbsenceAllocationBackupRow(
+    val localId: String,
+    val remoteId: String? = null,
+    val absenceEventLocalId: String,
+    val workplaceLocalId: String,
+    val affectedDate: Long,
+    val entitlementUnits: Double,
+    val unit: String,
+    val expectedWorkMinutes: Int? = null,
+    val policySnapshotJson: String? = null,
+    val calculationSnapshotJson: String? = null,
+    val estimatedGrossPay: Double = 0.0,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+    val syncStatus: String,
+    val lastSyncedAt: Long? = null,
+)
+
+@Serializable
+data class LeaveBalanceSnapshotBackupRow(
+    val localId: String,
+    val remoteId: String? = null,
+    val workplaceLocalId: String,
+    val balanceType: String,
+    val balance: Double,
+    val unit: String,
+    val asOfDate: Long,
+    val source: String,
+    val label: String? = null,
+    val notes: String? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+    val syncStatus: String,
+    val lastSyncedAt: Long? = null,
 )
 
 @Serializable
@@ -88,6 +198,14 @@ data class ShiftBackupRow(
      * those backups had.
      */
     val compensationSource: String? = null,
+    /**
+     * The job this shift was worked at.
+     *
+     * Absent from the format until version 8, so a shift restored from an older
+     * backup carries null — which is the same thing every row written before
+     * workplaces existed carries, and is read as "not assigned yet".
+     */
+    val workplaceId: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,
@@ -316,7 +434,7 @@ internal fun ShiftEntity.toBackupRow() = ShiftBackupRow(
     taskNameSnapshot = taskNameSnapshot, taskIconSnapshot = taskIconSnapshot,
     taskHourlyRateSnapshot = taskHourlyRateSnapshot,
     projectId = projectId, projectNameSnapshot = projectNameSnapshot,
-    compensationSource = compensationSource, createdAt = createdAt,
+    compensationSource = compensationSource, workplaceId = workplaceId, createdAt = createdAt,
     updatedAt = updatedAt, deletedAt = deletedAt, syncStatus = syncStatus.name,
     lastSyncedAt = lastSyncedAt,
 )
@@ -336,6 +454,7 @@ internal fun ShiftBackupRow.toEntity(userId: String) = ShiftEntity(
     // someone's pay. An absent value stays absent: NULL already means EMPLOYEE,
     // and writing one in would differ from what the exporter wrote out.
     compensationSource = compensationSource?.let { CompensationSource.fromPersisted(it).name },
+    workplaceId = workplaceId,
     createdAt = createdAt,
     updatedAt = updatedAt, deletedAt = deletedAt,
     syncStatus = syncStatusFromBackup(syncStatus), lastSyncError = null, lastSyncedAt = lastSyncedAt,
@@ -516,3 +635,105 @@ internal fun ProjectPaymentBackupRow.toEntity(userId: String) = ProjectPaymentEn
 /** Zero rather than a throw, so one bad amount cannot fail a whole restore. */
 private fun decimalFromBackup(value: String): java.math.BigDecimal =
     runCatching { java.math.BigDecimal(value.trim()) }.getOrDefault(java.math.BigDecimal.ZERO)
+
+// ── Workplaces and leave (format 8) ──────────────────────────────────────────
+// The enum-backed string columns go back through `fromPersisted`, never
+// `valueOf`: a hand-edited or future-version backup must not crash the import.
+// AbsenceType has no fallback by design — guessing between sick and vacation
+// would price a day under the wrong policy — so a row whose type is
+// unrecognisable is skipped by the importer rather than materialised wrongly.
+
+internal fun WorkplaceEntity.toBackupRow() = WorkplaceBackupRow(
+    localId = localId, remoteId = remoteId, name = name, regionCode = regionCode,
+    currencyCode = currencyCode, timezone = timezone,
+    employmentStartDate = employmentStartDate, isDefault = isDefault,
+    isArchived = isArchived, createdAt = createdAt, updatedAt = updatedAt,
+    deletedAt = deletedAt, syncStatus = syncStatus.name, lastSyncedAt = lastSyncedAt,
+)
+
+internal fun WorkplaceBackupRow.toEntity(userId: String) = WorkplaceEntity(
+    localId = localId, remoteId = remoteId, userId = userId, name = name,
+    regionCode = RegionCode.fromPersisted(regionCode).name,
+    currencyCode = currencyCode, timezone = timezone,
+    employmentStartDate = employmentStartDate, isDefault = isDefault,
+    isArchived = isArchived, createdAt = createdAt, updatedAt = updatedAt,
+    deletedAt = deletedAt, syncStatus = syncStatusFromBackup(syncStatus),
+    lastSyncError = null, lastSyncedAt = lastSyncedAt,
+)
+
+internal fun LeavePolicyEntity.toBackupRow() = LeavePolicyBackupRow(
+    localId = localId, remoteId = remoteId, workplaceLocalId = workplaceLocalId,
+    regionCode = regionCode, rulesJson = rulesJson, effectiveFrom = effectiveFrom,
+    effectiveUntil = effectiveUntil, isActive = isActive, createdAt = createdAt,
+    updatedAt = updatedAt, deletedAt = deletedAt, syncStatus = syncStatus.name,
+    lastSyncedAt = lastSyncedAt,
+)
+
+internal fun LeavePolicyBackupRow.toEntity(userId: String) = LeavePolicyEntity(
+    localId = localId, remoteId = remoteId, userId = userId,
+    workplaceLocalId = workplaceLocalId,
+    regionCode = RegionCode.fromPersisted(regionCode).name,
+    rulesJson = rulesJson, effectiveFrom = effectiveFrom,
+    effectiveUntil = effectiveUntil, isActive = isActive, createdAt = createdAt,
+    updatedAt = updatedAt, deletedAt = deletedAt,
+    syncStatus = syncStatusFromBackup(syncStatus), lastSyncError = null,
+    lastSyncedAt = lastSyncedAt,
+)
+
+internal fun AbsenceEventEntity.toBackupRow() = AbsenceEventBackupRow(
+    localId = localId, remoteId = remoteId, type = type, startDate = startDate,
+    endDate = endDate, notes = notes, createdAt = createdAt, updatedAt = updatedAt,
+    deletedAt = deletedAt, syncStatus = syncStatus.name, lastSyncedAt = lastSyncedAt,
+)
+
+internal fun AbsenceEventBackupRow.toEntity(userId: String) = AbsenceEventEntity(
+    localId = localId, remoteId = remoteId, userId = userId, type = type,
+    startDate = startDate, endDate = endDate, notes = notes, createdAt = createdAt,
+    updatedAt = updatedAt, deletedAt = deletedAt,
+    syncStatus = syncStatusFromBackup(syncStatus), lastSyncError = null,
+    lastSyncedAt = lastSyncedAt,
+)
+
+internal fun AbsenceAllocationEntity.toBackupRow() = AbsenceAllocationBackupRow(
+    localId = localId, remoteId = remoteId,
+    absenceEventLocalId = absenceEventLocalId, workplaceLocalId = workplaceLocalId,
+    affectedDate = affectedDate, entitlementUnits = entitlementUnits, unit = unit,
+    expectedWorkMinutes = expectedWorkMinutes,
+    policySnapshotJson = policySnapshotJson,
+    calculationSnapshotJson = calculationSnapshotJson,
+    estimatedGrossPay = estimatedGrossPay, createdAt = createdAt,
+    updatedAt = updatedAt, deletedAt = deletedAt, syncStatus = syncStatus.name,
+    lastSyncedAt = lastSyncedAt,
+)
+
+internal fun AbsenceAllocationBackupRow.toEntity(userId: String) = AbsenceAllocationEntity(
+    localId = localId, remoteId = remoteId, userId = userId,
+    absenceEventLocalId = absenceEventLocalId, workplaceLocalId = workplaceLocalId,
+    affectedDate = affectedDate, entitlementUnits = entitlementUnits,
+    unit = LeaveBalanceUnit.fromPersisted(unit).name,
+    expectedWorkMinutes = expectedWorkMinutes,
+    policySnapshotJson = policySnapshotJson,
+    calculationSnapshotJson = calculationSnapshotJson,
+    estimatedGrossPay = estimatedGrossPay, createdAt = createdAt,
+    updatedAt = updatedAt, deletedAt = deletedAt,
+    syncStatus = syncStatusFromBackup(syncStatus), lastSyncError = null,
+    lastSyncedAt = lastSyncedAt,
+)
+
+internal fun LeaveBalanceSnapshotEntity.toBackupRow() = LeaveBalanceSnapshotBackupRow(
+    localId = localId, remoteId = remoteId, workplaceLocalId = workplaceLocalId,
+    balanceType = balanceType, balance = balance, unit = unit, asOfDate = asOfDate,
+    source = source, label = label, notes = notes, createdAt = createdAt,
+    updatedAt = updatedAt, deletedAt = deletedAt, syncStatus = syncStatus.name,
+    lastSyncedAt = lastSyncedAt,
+)
+
+internal fun LeaveBalanceSnapshotBackupRow.toEntity(userId: String) = LeaveBalanceSnapshotEntity(
+    localId = localId, remoteId = remoteId, userId = userId,
+    workplaceLocalId = workplaceLocalId, balanceType = balanceType,
+    balance = balance, unit = LeaveBalanceUnit.fromPersisted(unit).name,
+    asOfDate = asOfDate, source = LeaveBalanceSource.fromPersisted(source).name,
+    label = label, notes = notes, createdAt = createdAt, updatedAt = updatedAt,
+    deletedAt = deletedAt, syncStatus = syncStatusFromBackup(syncStatus),
+    lastSyncError = null, lastSyncedAt = lastSyncedAt,
+)

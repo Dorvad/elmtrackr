@@ -13,6 +13,7 @@ import com.elmtrackr.app.domain.model.UserSettings
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
+import com.elmtrackr.app.domain.time.WallClockTime
 
 object CompensationRulesCodec {
 
@@ -105,7 +106,13 @@ object CompensationRulesCodec {
             seventhDayTiers = decodeTiers(overtime.optJSONArray("seventhDayTiers")),
             weekendEnabled = weekend.optBoolean("enabled", true),
             weekendMultiplier = weekend.optDouble("multiplier", 1.5),
-            weeklyRestStartTime = weekend.optString("restStartTime").takeIf { it.isNotBlank() },
+            // Validated on the way in, so an unreadable value becomes "no boundary
+            // configured" here rather than reaching the pay engines and throwing
+            // from inside a calculation. The engines still have their own
+            // fallbacks; a stored value that never parses should not need them on
+            // every shift.
+            weeklyRestStartTime = weekend.optString("restStartTime")
+                .takeIf { WallClockTime.isValid(it) },
             dayBeforeRestDailyStandardMinutes = weekend.optNullableInt("dayBeforeRestDailyStandardMinutes"),
             weekendStacking = weekend.optString("stacking", "highest_only").toStackingPolicy(),
             holidayEnabled = holiday.optBoolean("enabled", true),
@@ -115,8 +122,10 @@ object CompensationRulesCodec {
             holidayStacking = holiday.optString("stacking", "highest_only").toStackingPolicy(),
             nightEnabled = night.optBoolean("enabled", false),
             nightDailyStandardMinutes = night.optNullableInt("dailyStandardMinutes"),
-            nightStartTime = night.optString("startTime", "22:00"),
-            nightEndTime = night.optString("endTime", "06:00"),
+            nightStartTime = night.optString("startTime", "22:00")
+                .takeIf { WallClockTime.isValid(it) } ?: "22:00",
+            nightEndTime = night.optString("endTime", "06:00")
+                .takeIf { WallClockTime.isValid(it) } ?: "06:00",
             nightMultiplier = night.optDouble("multiplier", 1.25),
             nightApplyTo = night.optString("applyTo", "minutes_inside_window"),
             nightStacking = night.optString("stacking", "highest_only").toStackingPolicy(),
