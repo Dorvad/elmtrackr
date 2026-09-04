@@ -102,6 +102,7 @@ import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.Spacing
 import java.util.TimeZone
+import com.elmtrackr.app.ui.common.appLocale
 
 /** 516 → "8.6", 2520 → "42" — matches what the hours text fields accept. */
 private fun minutesToHoursText(minutes: Int): String =
@@ -624,7 +625,7 @@ internal fun ReviewStep(
         SetupCard {
             ReviewRow(stringResource(R.string.onboarding_review_name), displayName)
             ReviewRow(stringResource(R.string.onboarding_review_region), regionLabel)
-            ReviewRow(stringResource(R.string.onboarding_review_hourly_salary), hourlyRate?.let { MoneyFormatter.format(it, currency) } ?: stringResource(R.string.onboarding_review_not_set))
+            ReviewRow(stringResource(R.string.onboarding_review_hourly_salary), hourlyRate?.let { MoneyFormatter.format(it, currency, appLocale()) } ?: stringResource(R.string.onboarding_review_not_set))
             ReviewRow(stringResource(R.string.onboarding_review_weekend), weekendDays.joinToString(", ") { dayLabels[it] })
             ReviewRow(
                 stringResource(R.string.onboarding_review_paid_projects),

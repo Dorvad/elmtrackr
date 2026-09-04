@@ -28,6 +28,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import com.elmtrackr.app.ui.common.appLocale
 
 /**
  * A calendar-date picker.
@@ -125,7 +126,7 @@ fun CalculationExplanationDialog(
                             Text(
                                 text = stringResource(
                                     R.string.leave_calc_included,
-                                    MoneyFormatter.format(gross, currencyCode),
+                                    MoneyFormatter.format(gross, currencyCode, appLocale()),
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = auroraSecondaryText(),
@@ -151,7 +152,7 @@ fun CalculationExplanationDialog(
                         Text(
                             text = stringResource(
                                 R.string.leave_calc_result,
-                                MoneyFormatter.format(snapshot.estimatedGrossPay, currencyCode),
+                                MoneyFormatter.format(snapshot.estimatedGrossPay, currencyCode, appLocale()),
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold,

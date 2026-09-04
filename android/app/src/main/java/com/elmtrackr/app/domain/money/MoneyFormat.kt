@@ -23,15 +23,56 @@ object MoneyFormat {
     fun format(money: Money, locale: Locale = Locale.getDefault()): String {
         val currency = runCatching { Currency.getInstance(money.currencyCode) }.getOrNull()
             ?: return formatWithoutCurrencyData(money, locale)
-        val formatter = NumberFormat.getCurrencyInstance(locale).apply {
-            this.currency = currency
-            val digits = money.fractionDigits
+        return currencyFormatter(currency, money.fractionDigits, locale).format(money.amount)
+    }
+
+    /**
+     * The same rendering for an amount held as a `Double`.
+     *
+     * Exists so [com.elmtrackr.app.domain.MoneyFormatter] — 37 call sites that pass a
+     * `Double` from the payroll layer — can produce byte-identical output without each
+     * one allocating a [Money] and its [java.math.BigDecimal] on every recomposition.
+     * The scale comes from [CurrencyScales], the same source [Money.of] uses, so the two
+     * entry points cannot disagree about how many digits a currency has.
+     *
+     * A `Double` is the wrong type to hold money in and the right type to have arrived
+     * from the pay engine, which computes in `Double` throughout. Nothing here does
+     * arithmetic on it; it is formatted and discarded.
+     */
+    fun formatAmount(
+        amount: Double,
+        currencyCode: String,
+        locale: Locale = Locale.getDefault(),
+    ): String {
+        val code = CurrencyScales.normalize(currencyCode)
+        val digits = CurrencyScales.digitsFor(code)
+        val currency = runCatching { Currency.getInstance(code) }.getOrNull()
+            ?: return String.format(
+                locale,
+                "%s %s",
+                BidiText.isolate(code),
+                numberFormatter(digits, locale).format(amount),
+            )
+        return currencyFormatter(currency, digits, locale).format(amount)
+    }
+
+    private fun currencyFormatter(
+        currency: Currency,
+        digits: Int,
+        locale: Locale,
+    ): NumberFormat = NumberFormat.getCurrencyInstance(locale).apply {
+        this.currency = currency
+        minimumFractionDigits = digits
+        maximumFractionDigits = digits
+        roundingMode = MoneyPolicy.DISPLAY_ROUNDING
+    }
+
+    private fun numberFormatter(digits: Int, locale: Locale): NumberFormat =
+        NumberFormat.getNumberInstance(locale).apply {
             minimumFractionDigits = digits
             maximumFractionDigits = digits
             roundingMode = MoneyPolicy.DISPLAY_ROUNDING
         }
-        return formatter.format(money.amount)
-    }
 
     /**
      * A code the platform has no currency data for. The number is still
@@ -54,11 +95,7 @@ object MoneyFormat {
      * currency is not in question.
      */
     fun formatNumber(money: Money, locale: Locale = Locale.getDefault()): String =
-        NumberFormat.getNumberInstance(locale).apply {
-            minimumFractionDigits = money.fractionDigits
-            maximumFractionDigits = money.fractionDigits
-            roundingMode = MoneyPolicy.DISPLAY_ROUNDING
-        }.format(money.amount)
+        numberFormatter(money.fractionDigits, locale).format(money.amount)
 
     /**
      * True when this amount's symbol does not identify its currency on its own.

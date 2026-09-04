@@ -688,16 +688,16 @@ private fun LivePayPreviewCard(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                MoneyFormatter.format(previewPay.totalGross, currency),
+                MoneyFormatter.format(previewPay.totalGross, currency, appLocale()),
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
                 modifier = Modifier.padding(vertical = Spacing.sm),
             )
             previewPay.brackets.forEach { bracket ->
-                val hours = HoursFormatter.decimal(bracket.minutes)
+                val hours = HoursFormatter.decimal(bracket.minutes, appLocale())
                 Text(
-                    stringResource(R.string.shifts_pay_bracket_line, hours, bracket.label, MoneyFormatter.format(bracket.amount, currency)),
+                    stringResource(R.string.shifts_pay_bracket_line, hours, bracket.label, MoneyFormatter.format(bracket.amount, currency, appLocale())),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.9f),
                 )
@@ -953,7 +953,7 @@ private fun WhenSummaryFooter(
             modifier = Modifier.size(14.dp),
         )
         val worked = workedMinutes?.let { durationText(it) } ?: "-"
-        val paid = paidMinutes?.let { stringResource(R.string.shifts_hours_paid, HoursFormatter.decimal(it)) } ?: "-"
+        val paid = paidMinutes?.let { stringResource(R.string.shifts_hours_paid, HoursFormatter.decimal(it, appLocale())) } ?: "-"
         Text(
             stringResource(R.string.shifts_when_summary, worked, breakMinutes, paid),
             style = MaterialTheme.typography.labelSmall,

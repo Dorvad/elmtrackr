@@ -301,7 +301,7 @@ internal fun ShiftsHeroSummaryCard(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            MoneyFormatter.format(it, currency),
+                            MoneyFormatter.format(it, currency, appLocale()),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.ExtraBold,
                         )
@@ -327,7 +327,7 @@ internal fun ShiftsHeroSummaryCard(
 private fun HeroHoursTracked(completedMinutes: Int, activeShift: Shift?) {
     if (activeShift == null) {
         Text(
-            stringResource(R.string.shifts_hours_value, HoursFormatter.decimal(completedMinutes)),
+            stringResource(R.string.shifts_hours_value, HoursFormatter.decimal(completedMinutes, appLocale())),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
         )
@@ -337,7 +337,7 @@ private fun HeroHoursTracked(completedMinutes: Int, activeShift: Shift?) {
     // second was sixty times the work for one visible change.
     val activeMinutes = rememberElapsedUnits(activeShift.startTime, unitMillis = 60_000L)
     Text(
-        stringResource(R.string.shifts_hours_value, HoursFormatter.decimal(completedMinutes + activeMinutes.toInt())),
+        stringResource(R.string.shifts_hours_value, HoursFormatter.decimal(completedMinutes + activeMinutes.toInt(), appLocale())),
         style = MaterialTheme.typography.headlineMedium,
         fontWeight = FontWeight.ExtraBold,
     )
@@ -469,13 +469,13 @@ internal fun ShiftsWeekSectionHeader(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
-                    stringResource(R.string.shifts_hours_value, HoursFormatter.decimal(section.totalMinutes)),
+                    stringResource(R.string.shifts_hours_value, HoursFormatter.decimal(section.totalMinutes, appLocale())),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 section.pay?.let {
                     Text(
-                        MoneyFormatter.format(it, currency),
+                        MoneyFormatter.format(it, currency, appLocale()),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -559,7 +559,7 @@ internal fun ShiftRow(
                     .padding(horizontal = Spacing.sm),
             ) {
                 Text(
-                    stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(rowDisplay.netMinutes)),
+                    stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(rowDisplay.netMinutes, appLocale())),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -623,7 +623,7 @@ internal fun ShiftRow(
             Column(horizontalAlignment = Alignment.End) {
                 rowDisplay.payGross?.let {
                     Text(
-                        MoneyFormatter.format(it, CurrencyCode.from(settings?.displayCurrencyCode())),
+                        MoneyFormatter.format(it, CurrencyCode.from(settings?.displayCurrencyCode()), appLocale()),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,

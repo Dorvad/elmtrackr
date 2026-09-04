@@ -1515,7 +1515,7 @@ internal fun MonthSummaryCard(
                 Text(
                     text = stringResource(
                         R.string.dashboard_hours_value,
-                        HoursFormatter.decimal(report?.totalMinutes ?: 0),
+                        HoursFormatter.decimal(report?.totalMinutes ?: 0, appLocale()),
                     ),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
@@ -1531,7 +1531,7 @@ internal fun MonthSummaryCard(
             if (paySummary != null && paySummary.totalGross > 0.0) {
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = MoneyFormatter.format(paySummary.totalGross, currencyCode),
+                        text = MoneyFormatter.format(paySummary.totalGross, currencyCode, appLocale()),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary,

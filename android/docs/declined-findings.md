@@ -293,3 +293,32 @@ looks exactly like a widget that is working until someone opens their home scree
 Narrow it in a change of its own, with a release build installed and each surface
 exercised: widget refresh, a notification action, a clock-out from the watch, and a sync
 round trip. Do not fold it into an unrelated wave.
+
+---
+
+## Wave E scope: clock-style durations stay ASCII
+
+Wave E moved every *decimal* number a user reads onto CLDR — money and hours. It
+deliberately did not touch the `H:MM` timers, which are still `String.format(Locale.US,
+"%d:%02d", …)`:
+
+- `widget/WidgetShiftState.kt:49,54`
+- `wear-sync/…/WearDisplayMath.kt:15,17,25,32`
+- `ui/settings/ReminderRulesEditor.kt:527` (a time of day, `%02d:%02d`)
+
+These are a different formatting category from `8.5` hours: a running clock, drawn in a
+digital-readout style, where the convention is ASCII digits and a colon in every language
+— the same reason a stopwatch face is not localised. An Arabic reader may still prefer
+Arabic-Indic digits there; that is a legitimate open question and a product decision, not
+a defect, and it is the kind of change that wants a screenshot review rather than a
+grep-and-replace.
+
+It also has a testing cost the money path did not: the widget and tile have
+colour-parity tests but nothing asserting their digits, and the Wear timer string feeds
+`WearDisplayMath`, whose tests assert exact literals. Changing it means writing those
+tests first.
+
+`domain/receipt/ReceiptParser.kt`'s `lowercase(Locale.US)` / `uppercase(Locale.US)` calls
+are correct as they stand — that is locale-invariant case folding for keyword matching,
+not display, and localising it would break receipt parsing on a Turkish device (the
+dotless-i problem).

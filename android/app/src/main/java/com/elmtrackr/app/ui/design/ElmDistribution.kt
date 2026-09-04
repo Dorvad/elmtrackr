@@ -27,6 +27,7 @@ import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeach
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.Spacing
+import com.elmtrackr.app.ui.common.appLocale
 
 /**
  * The regular / overtime / weekend hours split.
@@ -112,7 +113,7 @@ private fun SegmentLegendRow(label: String, minutes: Int, color: Color, percent:
             Text("$percent%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(
-            stringResource(R.string.reports_hours_value, HoursFormatter.decimal(minutes)),
+            stringResource(R.string.reports_hours_value, HoursFormatter.decimal(minutes, appLocale())),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,

@@ -68,6 +68,7 @@ import com.elmtrackr.app.ui.theme.auroraSemantics
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import com.elmtrackr.app.ui.common.appLocale
 
 /**
  * Reporting a vacation or a sick period.
@@ -286,7 +287,7 @@ private fun AbsenceFormContent(
                         // settings and history the user gave us, not a payroll figure.
                         text = stringResource(
                             R.string.leave_history_estimated,
-                            MoneyFormatter.format(state.estimatedTotal, state.currencyCode),
+                            MoneyFormatter.format(state.estimatedTotal, state.currencyCode, appLocale()),
                         ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
@@ -517,7 +518,7 @@ private fun DayRow(
             }
             when {
                 day.estimatedGross != null -> Text(
-                    text = MoneyFormatter.format(day.estimatedGross, currencyCode),
+                    text = MoneyFormatter.format(day.estimatedGross, currencyCode, appLocale()),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
