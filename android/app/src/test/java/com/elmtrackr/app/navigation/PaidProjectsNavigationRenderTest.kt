@@ -5,6 +5,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -93,7 +94,7 @@ class PaidProjectsNavigationRenderTest {
     @Test
     fun `disabling while projects is selected drops the tab and highlights the dashboard`() {
         composeRule.setContent {
-            var enabled by mutableStateOf(true)
+            var enabled by remember { mutableStateOf(true) }
             ElmTrackrTheme {
                 ElmBottomNav(
                     currentRoute = PaidProjectsNavGuard.highlightedRoute(

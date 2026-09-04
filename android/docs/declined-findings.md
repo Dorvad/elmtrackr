@@ -257,12 +257,33 @@ Verified against Google Maven before making the change, not assumed:
 - Both versions depend on `com.google.crypto.tink:tink-android:1.8.0`, so the on-disk
   keyset is written and read by the same crypto library across the change.
 
+**Correction to the above, found during Wave F.** The claim that the API is "not
+deprecated" was wrong, and wrong because of how it was checked: `javap` prints
+class-level attributes *after* the member list, and the check only read the header. The
+Kotlin compiler surfaced it as soon as warnings were read rather than only errors.
+
+What is actually true, verified by comparing both artifacts:
+
+- `EncryptedSharedPreferences` and `MasterKey` each carry a **class-level** `@Deprecated`
+  in `1.1.0`. Neither does in `1.1.0-alpha06`. So stabilising and deprecating happened in
+  the same release, and the bump introduced 11 deprecation warnings.
+- The `create(Context, String, MasterKey, …)` overload the app calls is still not
+  *individually* deprecated — that part of the earlier check holds. The deprecated
+  overload is the older `create(String, String, Context, …)`, which this app does not use.
+
+The bump stands anyway, and the reasoning is in `DatabasePassphraseStore`'s KDoc: a
+deprecated stable release beats an alpha for the component holding the database key, and
+moving off the library is a keyset migration with a one-way failure mode, not a dependency
+swap. The warnings are suppressed at the class with that explanation attached, rather than
+left to be silenced later by someone without the context.
+
 **Still owed, and it cannot be done off a device:** install a build on `1.1.0-alpha06`,
 record a shift so the database is written, then upgrade in place to the `1.1.0` build and
 confirm the app opens the existing database. That is the one failure mode the version
-comparison above cannot rule out, and it is unrecoverable if wrong — which is why
+comparison cannot rule out, and it is unrecoverable if wrong — which is why
 `DatabasePassphraseStore` now throws `DatabasePassphraseUnreadableException` rather than
-minting a replacement key over an existing database.
+minting a replacement key over an existing database. The replacement API to migrate *to*
+needs checking against current AndroidX docs; the artifact names none.
 
 ## Capping ComputationDispatcher's parallelism — considered, rejected
 
@@ -322,3 +343,83 @@ tests first.
 are correct as they stand — that is locale-invariant case folding for keyword matching,
 not display, and localising it would break receipt parsing on a Turkish device (the
 dotless-i problem).
+
+---
+
+## Wave F: M3 Expressive is not on stable material3 yet
+
+Decision 3 was recorded as "bump the Compose BOM for M3 Expressive — verified target
+`composeBom = 2026.08.00`, which pins **material3 1.4.0**, the stable release carrying M3
+Expressive." Two parts of that turned out to be wrong, and both were caught only by
+building against it.
+
+### The target BOM does not build on this project
+
+`compose-bom 2026.08.00` pins Compose **1.12.0**, whose AAR metadata declares
+`minCompileSdk=37` and `minAndroidGradlePluginVersion=9.1.0`. This project is on
+`compileSdk 36` and AGP `9.0.0`, so `checkDebugAarMetadata` fails with 22 issues before
+anything compiles. The earlier verification checked that the BOM existed and which
+material3 it pinned — it never checked the AAR metadata, which is where that requirement
+lives.
+
+Compose 1.12.0 is the version that raised the bar. Everything through **1.11.4** declares
+`minCompileSdk=35` / AGP `8.6.0`:
+
+| Compose | minCompileSdk | min AGP |
+|---|---|---|
+| 1.10.2 – 1.11.4 | 35 | 8.6.0 |
+| 1.12.0 | **37** | **9.1.0** |
+
+Every BOM from `2026.01.01` to `2026.06.01` pins material3 **1.4.0** — the same stable
+material3 the decision was about — with Compose 1.10.x/1.11.x. **`2026.06.01` is
+therefore the correct target**: identical material3, newest Compose that does not force an
+AGP and compileSdk migration. That is what shipped.
+
+Moving to 1.12.0 later means AGP 9.0.0 → 9.1.0+ (lint reports 9.4.0 as available) and
+compileSdk 36 → 37, which also needs SDK platform 37 in CI. Worth doing as its own change,
+with the Robolectric cap re-checked at the same time.
+
+### material3 1.4.0 carries the expressive *theme*, not the expressive *components*
+
+Verified by inspecting the 1.4.0 artifact:
+
+- `LoadingIndicator`, `ButtonGroup` and shape morphing **do not exist**. Only internal
+  token tables ship (`tokens/LoadingIndicatorTokens`, `tokens/ButtonGroupSmallTokens`),
+  which is AndroidX landing the token data ahead of the components.
+- `MotionScheme` and the `MaterialTheme(colorScheme, motionScheme, …)` overload exist but
+  are **`internal`**. `javap` shows them as JVM-public because Kotlin `internal` is
+  recorded in `@Metadata`, which `javap` does not decode; the Kotlin compiler rejects
+  them outright.
+
+Both are public in the **1.5.0-alpha** line (1.5.0-alpha27 at the time of writing).
+material3 1.4.0 is the newest stable.
+
+So Wave F steps 2 and 3 are not blocked on effort — they are blocked on there being no
+stable release to do them against, which is precisely the condition decision 3 was trying
+to satisfy. Adopting an alpha material3 for visual polish, on an app whose last Wear
+submission was already rejected once, is not a trade worth making. Revisit when
+material3 1.5.0 is stable.
+
+### When it is revisited, the dependency runs Aurora → Material
+
+Written down because the analysis is easy to get backwards and was implemented backwards
+once before being reverted.
+
+Do **not** take Material's motion as the source for `AuroraMotion`. Material's default
+scheme is spring-based; Aurora's identity is three named cubic-bezier curves and fixed
+durations, and `AuroraEaseOut` (`0.16, 1, 0.3, 1`) is a deliberate signature. Replacing it
+with springs re-times every animation in the app — a visual rewrite dressed as a
+dependency upgrade, and the opposite of "Aurora keeps its identity".
+
+Instead, implement `MotionScheme` **from** Aurora's curves and hand it to `MaterialTheme`,
+so Material's components animate in Aurora's language. Nothing is lost: `tween` is a
+`FiniteAnimationSpec`, so a duration plus an easing expresses everything the interface
+asks for. Map spatial specs (position, size) to `AuroraEaseOut` and effects specs (alpha,
+colour) to `AuroraSoftEase` — a line Aurora already draws.
+
+**The prize is the reduce-motion gate.** Today `auroraMotionEnabled()` covers Aurora's own
+modifiers and nothing else, so a user who asks the system for less motion still gets every
+Material component's internal animation at full length. A second scheme returning `snap()`
+for all six specs, selected by the same gate, extends the preference to every Material
+component at once — no per-component work and no way to forget one. That is a real
+accessibility gap, and it stays open until `MotionScheme` is public.

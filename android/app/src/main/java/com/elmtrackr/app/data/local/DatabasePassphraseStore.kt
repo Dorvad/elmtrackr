@@ -37,7 +37,34 @@ class DatabasePassphraseUnreadableException(
 
 /**
  * Stores the SQLCipher passphrase in Android Keystore-backed encrypted prefs.
+ *
+ * ### `EncryptedSharedPreferences` is deprecated, and this still uses it
+ *
+ * `androidx.security:security-crypto` 1.1.0 stabilised and deprecated the API in the
+ * same release: `EncryptedSharedPreferences` and `MasterKey` both carry a class-level
+ * `@Deprecated` (verified in the 1.1.0 artifact; `1.1.0-alpha06`, which this app used
+ * until recently, does not). The `create` overload called below is not itself marked,
+ * but the class it lives on is, so every call here warns.
+ *
+ * Staying on it is deliberate and is the lesser risk of the two available:
+ *
+ * - The alternative is not "use the replacement" — it is "rewrite the store". This file
+ *   holds the only key that can open the user's database. Any replacement has to read
+ *   the *existing* Tink keyset written by this library, or every shift, claim and
+ *   project on the device becomes unopenable. That is a migration with a one-way failure
+ *   mode, not a dependency swap.
+ * - Deprecated is not removed. 1.1.0 is a stable release and the API works; the previous
+ *   pin was an alpha, which is the worse place for the component guarding the database
+ *   key.
+ *
+ * **What is owed**: check the current AndroidX guidance for the recommended replacement
+ * — this file does not name one, because the artifact's `@Deprecated` carries no message
+ * and inventing one here would be worse than leaving the question open — then plan the
+ * keyset migration with an on-device upgrade test. [DatabasePassphraseUnreadableException]
+ * exists partly for that day: it is what stops a failed migration from silently minting
+ * a fresh key over an encrypted database.
  */
+@Suppress("DEPRECATION")
 class DatabasePassphraseStore(context: Context) {
 
     private val appContext = context.applicationContext

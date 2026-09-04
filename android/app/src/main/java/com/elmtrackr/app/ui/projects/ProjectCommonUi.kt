@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -38,10 +37,17 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import com.elmtrackr.app.ui.common.appLocale
 
-/** The UI locale, so money and dates format the way the user reads them. */
+/**
+ * The UI locale, so money and dates format the way the user reads them.
+ *
+ * Delegates to [appLocale] rather than repeating the lookup: two copies is how one of
+ * them ends up reading non-observable state, which is what Compose's NonObservableLocale
+ * check caught here.
+ */
 @Composable
-fun rememberProjectLocale(): Locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
+fun rememberProjectLocale(): Locale = appLocale()
 
 @Composable
 fun Money.formatted(): String = MoneyFormat.format(this, rememberProjectLocale())
