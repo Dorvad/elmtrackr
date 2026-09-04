@@ -62,6 +62,7 @@ import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.Spacing
+import com.elmtrackr.app.domain.text.BidiText
 
 /**
  * The full-screen look: one face, as close to the dashboard's presentation as
@@ -285,9 +286,12 @@ private fun LookAction(
         ) {
             Text(
                 if (price != null) {
-                    stringResource(R.string.settings_pack_unlock, packName, price)
+                    stringResource(
+                        R.string.settings_pack_unlock,
+                        *BidiText.isolateAll(packName, price),
+                    )
                 } else {
-                    stringResource(R.string.settings_pack_unlock_unpriced, packName)
+                    stringResource(R.string.settings_pack_unlock_unpriced, BidiText.isolate(packName))
                 },
                 fontWeight = FontWeight.SemiBold,
             )

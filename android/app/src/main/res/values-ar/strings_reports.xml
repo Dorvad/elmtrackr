@@ -196,4 +196,5 @@
     <string name="insight_guitar_text">منفردة الغيتار تدوم في المتوسط **%1$d ث**. وقد عملت ما يكفي لـ**%2$d منفردة غيتار**. واصل العزف.</string>
     <string name="insight_ramen_title">عدّاد الرامن</string>
     <string name="insight_ramen_text">الرامن السريع يستغرق **%1$d دقيقة**. وفي **%2$d س** من عملك، كان يمكنك تحضير **%3$d وعاء**. عيش اقتصادي.</string>
+    <string name="reports_export_failed">تعذّر التصدير. تحقّق من المساحة المتوفّرة وأعد المحاولة.</string>
 </resources>

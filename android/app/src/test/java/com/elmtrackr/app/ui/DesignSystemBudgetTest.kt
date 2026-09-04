@@ -31,6 +31,24 @@ class DesignSystemBudgetTest {
     private val maxRawColor = 27
     private val maxRawTextField = 37
     private val maxRawCard = 38
+    /**
+     * `navigation/` and `widget/` were outside every budget above, which scans `ui/`
+     * only. Both draw real UI: `MainScaffold` is the app shell and `WidgetLayouts` is
+     * the home-screen surface. The result was predictable — the widget accumulated 150
+     * raw dp and 40 raw sp with nothing to stop it, and the widget palette drift that
+     * `WidgetColorParityTest` now catches sat in the same blind spot.
+     *
+     * Recorded at today's counts, same ratchet rule as the rest: down only. Deliberately
+     * separate budgets rather than folded into the `ui/` numbers, because these two have
+     * different constraints — Glance cannot use `Spacing.*` tokens or a Compose `Brush`,
+     * so some of the widget's literals are structural and the ratchet there will move
+     * more slowly than in `ui/`.
+     */
+    private val maxNavigationRawDp = 12
+    private val maxNavigationRawSp = 2
+    private val maxWidgetRawDp = 150
+    private val maxWidgetRawSp = 40
+
     private val maxUngatedAnimatorCheck = 0
 
     /**
@@ -65,6 +83,8 @@ class DesignSystemBudgetTest {
     )
 
     private val uiRoot: File by lazy { resolve("src/main/java/com/elmtrackr/app/ui") }
+    private val navigationRoot: File by lazy { resolve("src/main/java/com/elmtrackr/app/navigation") }
+    private val widgetRoot: File by lazy { resolve("src/main/java/com/elmtrackr/app/widget") }
     private val appRoot: File by lazy { resolve("src/main/java/com/elmtrackr/app") }
 
     @Test
@@ -74,6 +94,34 @@ class DesignSystemBudgetTest {
             .sumOf { file -> RAW_DP.findAll(file.readText()).count { it.value != "0.dp" } }
 
         assertWithinBudget("raw dp literals", count, maxRawDp, "Spacing.sN / Layout.*")
+    }
+
+    @Test
+    fun `navigation raw dp literals stay within budget`() {
+        val count = navigationRoot.kotlinFiles()
+            .sumOf { f -> RAW_DP.findAll(f.readText()).count { it.value != "0.dp" } }
+        assertWithinBudget("navigation raw dp", count, maxNavigationRawDp, "Spacing.sN / Layout.*")
+    }
+
+    @Test
+    fun `navigation raw sp literals stay within budget`() {
+        val count = navigationRoot.kotlinFiles().sumOf { RAW_SP.findAll(it.readText()).count() }
+        assertWithinBudget("navigation raw sp", count, maxNavigationRawSp, "a typography token")
+    }
+
+    @Test
+    fun `widget raw dp literals stay within budget`() {
+        // Glance has no access to Spacing.*, so this budget will fall slowly. It exists
+        // to stop it rising, which is what happened while nothing measured it.
+        val count = widgetRoot.kotlinFiles()
+            .sumOf { f -> RAW_DP.findAll(f.readText()).count { it.value != "0.dp" } }
+        assertWithinBudget("widget raw dp", count, maxWidgetRawDp, "a shared dimension")
+    }
+
+    @Test
+    fun `widget raw sp literals stay within budget`() {
+        val count = widgetRoot.kotlinFiles().sumOf { RAW_SP.findAll(it.readText()).count() }
+        assertWithinBudget("widget raw sp", count, maxWidgetRawSp, "a shared text size")
     }
 
     @Test
@@ -200,6 +248,7 @@ class DesignSystemBudgetTest {
 
     private companion object {
         val RAW_DP = Regex("""\b\d+(\.\d+)?\.dp\b""")
+        val RAW_SP = Regex("""\b\d+(\.\d+)?\.sp\b""")
         val RAW_COLOR = Regex("""\bColor\(0x""")
         val RAW_TEXT_FIELD = Regex("""(^|[^A-Za-z])(OutlinedTextField|TextField)\(""", RegexOption.MULTILINE)
         val ANIMATES = Regex(

@@ -120,6 +120,8 @@ import kotlinx.coroutines.launch
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.design.auroraPressScale
+import com.elmtrackr.app.ui.design.LocalAppSnackbarHostState
+import com.elmtrackr.app.ui.design.showAppMessage
 import com.elmtrackr.app.ui.refunds.ReceiptPreviewDialog
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraAquaDeep
@@ -163,6 +165,8 @@ fun ReportsScreen(
     val ready = uiState as? ReportsUiState.Ready
     var activeTab by rememberSaveable { mutableStateOf(ReportTab.HOURS) }
     val scope = rememberCoroutineScope()
+    val appSnackbar = LocalAppSnackbarHostState.current
+    val exportFailed = stringResource(R.string.reports_export_failed)
     var receiptPreviewUrl by rememberSaveable { mutableStateOf<String?>(null) }
     val refundsEnabled = ready?.featuresTravelRefunds == true
 
@@ -280,12 +284,13 @@ fun ReportsScreen(
                                 report = projectReport,
                                 onExportCsv = {
                                     scope.launch {
-                                        ReportExporter.shareCsv(
-                                            context,
-                                            viewModel.buildProjectCsv(projectReport),
-                                            viewModel.projectCsvFilename(projectReport),
-                                        )
-                                        viewModel.onReportExported()
+                                        runExport(appSnackbar, exportFailed, viewModel::onReportExported) {
+                                            ReportExporter.shareCsv(
+                                                context,
+                                                viewModel.buildProjectCsv(projectReport),
+                                                viewModel.projectCsvFilename(projectReport),
+                                            )
+                                        }
                                     }
                                 },
                             )
@@ -301,6 +306,7 @@ fun ReportsScreen(
                                 canGoNext = canGoNext,
                                 onExportCsv = {
                                     scope.launch {
+                                        runExport(appSnackbar, exportFailed, viewModel::onReportExported) {
                                         ReportExporter.shareCsv(
                                             context,
                                             viewModel.buildCsvContent(
@@ -317,13 +323,14 @@ fun ReportsScreen(
                                             ),
                                             viewModel.csvFilename(state.year, state.month),
                                         )
-                                        viewModel.onReportExported()
+                                        }
                                     }
                                 },
                                 onExportPdf = {
                                     scope.launch {
-                                        ReportExporter.shareShiftPdf(context, state)
-                                        viewModel.onReportExported()
+                                        runExport(appSnackbar, exportFailed, viewModel::onReportExported) {
+                                            ReportExporter.shareShiftPdf(context, state)
+                                        }
                                     }
                                 },
                             )
@@ -1628,6 +1635,8 @@ private fun RefundReview(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val appSnackbar = LocalAppSnackbarHostState.current
+    val exportFailed = stringResource(R.string.reports_export_failed)
     val activeShiftIds = remember(state.allShifts) { state.allShifts.map { it.id }.toSet() }
     val claims = remember(state.refundClaims, activeShiftIds) {
         state.refundClaims.filter { it.shiftId in activeShiftIds }
@@ -1677,6 +1686,11 @@ private fun RefundReview(
                                 ?.let { ReportExporter.loadReceipt(context, it) }
                         }
                         viewModel.onReportExported()
+                    } catch (e: Exception) {
+                        // finally already clears the spinner; without this the user saw
+                        // it stop with no file and no reason.
+                        com.elmtrackr.app.monitoring.CrashReporting.report(e)
+                        appSnackbar.showAppMessage(exportFailed)
                     } finally { exportingAll = false }
                 }
             },
@@ -1761,6 +1775,9 @@ private fun RefundReview(
                                 ?.let { ReportExporter.loadReceipt(context, it) }
                         }
                         viewModel.onReportExported()
+                    } catch (e: Exception) {
+                        com.elmtrackr.app.monitoring.CrashReporting.report(e)
+                        appSnackbar.showAppMessage(exportFailed)
                     } finally { onDone() }
                 }
             },
@@ -2163,3 +2180,30 @@ private fun refundStatus(action: RefundAction?): String = stringResource(
 
 private fun Month.displayName(locale: Locale): String =
     getDisplayName(JavaTextStyle.FULL_STANDALONE, locale).replaceFirstChar { it.uppercase(locale) }
+
+/**
+ * Runs an export and says so when it fails.
+ *
+ * The five export call sites each did `scope.launch { ReportExporter.share…() }` with no
+ * `catch`. Those are suspend functions that write a file and hand it to another app, so
+ * they throw on a full disk, on revoked storage access, and on a device with nothing
+ * registered for the MIME type. The launched coroutine took the exception and the user
+ * saw a tap that did nothing — no file, no error, no way to tell which.
+ *
+ * The snackbar comes from [LocalAppSnackbarHostState], hosted once in `MainScaffold`.
+ * Reports had no host of its own, which is why the only alternative used to be
+ * escalating to the full-screen error state and losing the report behind it.
+ */
+private suspend fun runExport(
+    snackbarHostState: androidx.compose.material3.SnackbarHostState?,
+    failureMessage: String,
+    onSuccess: () -> Unit = {},
+    export: suspend () -> Unit,
+) {
+    runCatching { export() }
+        .onSuccess { onSuccess() }
+        .onFailure {
+            com.elmtrackr.app.monitoring.CrashReporting.report(it)
+            snackbarHostState.showAppMessage(failureMessage)
+        }
+}

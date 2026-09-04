@@ -472,3 +472,67 @@ guess at.
 
 They are listed in the test's `KNOWN_DRIFT` set, so the drift is bounded and anything
 *new* still fails. Resolve each with a design call and delete the entry.
+
+---
+
+## Wave G: the light theme's `outline` fails AA as text (measured)
+
+`SecondaryInkContrastTest` was added for the three cases the existing contrast suite did
+not measure — disabled labels, supporting text, and `outline` used as a text colour. Two
+of the three are fine. The third is a real accessibility defect, and here are the numbers:
+
+| Pair | Ratio | Verdict |
+|---|---|---|
+| light `outline` (`AuroraFaint` `#8A84B4`) on `#FFFFFF` | **3.48:1** | border ✓ (needs 3:1), **body text ✗** (needs 4.5:1) |
+| dark `outline` (`AuroraDarkOutline` `#A4B0C3`) on `#151D2E` | 7.68:1 | ✓ both |
+| light `onSurfaceVariant` on `#FFFFFF` | 6.17:1 | ✓ |
+| dark `onSurfaceVariant` on `#151D2E` | 10.95:1 | ✓ |
+
+`outline` is a *border* role, and 3.48:1 is correct for one (WCAG 1.4.11 asks 3:1 for a
+non-text boundary). It is also used to colour text or an icon tint at **29 sites**, plus
+the `auroraFaintText()` helper whose entire purpose is faint text. In light mode those
+text sites render body copy at 3.48:1, which fails WCAG 1.4.3 AA.
+
+Not fixed here, because every available fix is a design decision:
+
+1. **Darken `AuroraFaint`.** The honest reading — a palette whose faint-text token cannot
+   carry body text needs a darker token. But it is a brand colour, and picking a
+   replacement means choosing a value that clears 4.5:1 while still reading as a tier
+   below `AuroraInk2` (`#615C8A`, 6.17:1). That is a call for whoever owns the palette.
+2. **Point `auroraFaintText()` at `onSurfaceVariant`.** One line, and it collapses a
+   deliberate three-tier text hierarchy into two — faint would become identical to
+   secondary.
+3. **Reclassify the 29 sites.** Some are icon tints, where 3:1 is the right bar and
+   nothing is wrong. Separating them needs reading each one, and the ones that are text
+   still need a colour from (1) or (2).
+
+The test asserts 3:1 in both themes, so a value that is unreadable at *any* size would
+fail, and its KDoc explains why it stops short of 4.5:1: asserting the bar the code
+cannot meet would just leave a red build with no decision attached.
+
+## Wave G: four items deferred, with reasons
+
+**U4/U5 — `AuroraScreenHeader` on the four primary tabs, and Reports/Onboarding/Settings
+onto `ElmCard`.** Blocked on a design-system gap, not effort: `AuroraScreenHeader`
+requires `onBack` and `backContentDescription`, and the four primary tabs have no back
+affordance. Adopting it there means first designing a no-back variant, which is a change
+to the component rather than adoption of it. The plan itself asks for "one screen per
+commit with a before/after review", and a review is exactly what is not available in this
+environment. Four title scales for one role is real drift and worth closing — with eyes on
+each screen.
+
+**U7 — retire `EmptyState` in favour of `ElmEmptyState`, and one `ElmSkeleton` for four
+bespoke loaders.** Adding an action slot to `ElmEmptyState` is additive and safe; deleting
+the other family and replacing four hand-built skeletons changes what four screens look
+like while loading, which is the same visual-review problem.
+
+**U9 — migrate 17 `BackHandler`s to `PredictiveBackHandler`.** The finding is right: the
+manifest sets `enableOnBackInvokedCallback=true`, and an enabled `BackHandler` suppresses
+the system's back preview, so the app opts in and draws nothing. But `PredictiveBackHandler`
+is a progress-driven suspend API — it hands you a `Flow<BackEventCompat>` so you can
+animate the gesture. Migrating without designing that animation per screen replaces "no
+preview" with "a preview that does not move", which is not obviously better. This is
+design work with a code deliverable, not a mechanical rename.
+
+**U14 — `core-splashscreen`.** Mechanical to add and it changes what every cold start
+looks like. Same reason as the others.
