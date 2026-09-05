@@ -9,6 +9,7 @@ import com.elmtrackr.app.billing.ClockFacePackEntitlements
 import com.elmtrackr.app.billing.ClockFacePackStore
 import com.elmtrackr.app.billing.ClockFacePackStorefront
 import com.elmtrackr.app.billing.PackPurchaseEvent
+import com.elmtrackr.app.billing.PackRestoreResult
 import com.elmtrackr.app.data.local.preferences.ClockFacePreferences
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.domain.compensation.CompensationResolver
@@ -89,6 +90,18 @@ class SettingsViewModel @Inject constructor(
     val packPurchaseFeedback: StateFlow<UiText?> = _packPurchaseFeedback.asStateFlow()
 
     /**
+     * Whether a restore is in flight, so the button can say so.
+     *
+     * Play's connection is allowed twenty seconds before it is given up on, and
+     * a tap that shows nothing for that long reads as a dead control — the user
+     * taps again, and again. Its own flow rather than part of [SettingsUiState]
+     * for the same reason [packStorefront] is: one screen needs it, and every
+     * settings form would otherwise rebuild twice per tap.
+     */
+    private val _isRestoringPacks = MutableStateFlow(false)
+    val isRestoringPacks: StateFlow<Boolean> = _isRestoringPacks.asStateFlow()
+
+    /**
      * The packs a purchase just landed, for the store's inline success strip.
      *
      * Carried separately from [packPurchaseFeedback] because the strip needs to
@@ -103,8 +116,13 @@ class SettingsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             clockFacePackStore.events.collect { event ->
-                if (event is PackPurchaseEvent.Purchased) {
-                    _justUnlockedPacks.value = event.packs
+                // A restore names its packs on the same strip a purchase does.
+                // Someone who has just reinstalled needs to be told *which* packs
+                // came back, and the snackbar cannot say it.
+                when (event) {
+                    is PackPurchaseEvent.Purchased -> _justUnlockedPacks.value = event.packs
+                    is PackPurchaseEvent.Restored -> _justUnlockedPacks.value = event.packs
+                    else -> Unit
                 }
                 _packPurchaseFeedback.value = when (event) {
                     // Nothing to say. The user pressed back on Play's sheet and
@@ -114,6 +132,7 @@ class SettingsViewModel @Inject constructor(
                     is PackPurchaseEvent.Purchased -> UiText.Res(R.string.settings_pack_purchased)
                     PackPurchaseEvent.Pending -> UiText.Res(R.string.settings_pack_purchase_pending)
                     PackPurchaseEvent.AlreadyOwned -> UiText.Res(R.string.settings_pack_purchase_restored)
+                    is PackPurchaseEvent.Restored -> UiText.Res(R.string.settings_pack_purchase_restored)
                     // The response code is for the log, not the user: Play has
                     // already shown its own error, and repeating a numeric code
                     // helps nobody holding a phone.
@@ -491,13 +510,38 @@ class SettingsViewModel @Inject constructor(
     /**
      * Re-reads what the account owns from Play, for the store's Restore action.
      *
-     * The same refresh already runs on every foreground, so this is mostly
-     * reassurance — but reassurance is exactly what a user who just reinstalled
-     * came to the store for. The outcome lands through [packStorefront] like
-     * any other ownership change; there is no separate result to report.
+     * The same refresh already runs on every foreground, so the usual answer is
+     * that nothing was missing — and saying so is the point. A button that does
+     * its job silently is indistinguishable from a button that is broken, which
+     * is what a user who has just reinstalled and cannot find their pack will
+     * conclude. Every outcome gets a sentence.
+     *
+     * [PackRestoreResult.Restored] is deliberately not one of them: the store
+     * already reports that through [packPurchaseFeedback] and the unlock strip
+     * when the restore event lands, and two messages for one tap would talk over
+     * each other.
      */
     fun restoreClockFacePacks() {
-        viewModelScope.launch { clockFacePackStore.refresh() }
+        // Set before the launch, not inside it: two taps in the same frame both
+        // reach this function before either coroutine body runs on a dispatcher
+        // that queues, and the second would start a query of its own.
+        if (_isRestoringPacks.value) return
+        _isRestoringPacks.value = true
+        viewModelScope.launch {
+            try {
+                when (clockFacePackStore.refresh()) {
+                    is PackRestoreResult.Restored -> Unit
+                    PackRestoreResult.NothingRestored ->
+                        _packPurchaseFeedback.value =
+                            UiText.Res(R.string.settings_pack_restore_nothing)
+                    PackRestoreResult.Unavailable ->
+                        _packPurchaseFeedback.value =
+                            UiText.Res(R.string.settings_pack_restore_unavailable)
+                }
+            } finally {
+                _isRestoringPacks.value = false
+            }
+        }
     }
 
     fun clearSaveFeedback() {

@@ -6,7 +6,9 @@ import com.elmtrackr.app.billing.ClockFacePackProducts
 import com.elmtrackr.app.billing.ClockFacePackStore
 import com.elmtrackr.app.billing.ClockFacePackStorefront
 import com.elmtrackr.app.billing.PackPurchaseEvent
+import com.elmtrackr.app.billing.PackRestoreResult
 import com.elmtrackr.app.ui.settings.ClockFaceGroup
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,6 +43,15 @@ class FakeClockFacePackStore(
     var refreshCount: Int = 0
         private set
 
+    /** What the next [refresh] answers. Set by a test about the Restore button. */
+    var refreshResult: PackRestoreResult = PackRestoreResult.NothingRestored
+
+    /**
+     * When set, [refresh] waits on it before answering — for a test that needs
+     * to see the store while a restore is still in flight.
+     */
+    var refreshGate: CompletableDeferred<Unit>? = null
+
     override suspend fun launchPurchase(activity: Activity, pack: ClockFaceGroup) {
         purchaseRequests = purchaseRequests + pack
     }
@@ -49,8 +60,10 @@ class FakeClockFacePackStore(
         allPacksPurchaseRequests++
     }
 
-    override suspend fun refresh() {
+    override suspend fun refresh(): PackRestoreResult {
+        refreshGate?.await()
         refreshCount++
+        return refreshResult
     }
 
     suspend fun emit(event: PackPurchaseEvent) {

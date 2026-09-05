@@ -147,6 +147,92 @@ class ClockFacePackBillingTest {
         assertEquals(setOf(ClockFaceGroup.NATURE), seed)
     }
 
+    // ── Restoring ─────────────────────────────────────────────────────────────
+
+    /**
+     * The reinstall case, and the reason this rule exists.
+     *
+     * `one-time-products.md` §6 promises it in as many words: *uninstall and
+     * reinstall — packs come back with no restore button pressed*. A fresh
+     * install knows nothing, so everything Play reports is new to it and every
+     * pack is restored — which is what
+     * [ClockFacePackBillingCoordinator] then installs.
+     */
+    @Test
+    fun `a device that knows nothing restores everything Play reports`() {
+        val restored = ClockFacePackOwnership.restoredBy(
+            reportedProductIds = listOf(ClockFacePackProducts.productId(ClockFaceGroup.PAYDAY)!!),
+            cachedProductIds = emptySet(),
+        )
+
+        assertEquals(setOf(ClockFaceGroup.PAYDAY), restored)
+    }
+
+    /**
+     * The half that stops the rule becoming a nuisance.
+     *
+     * A refresh runs on every foreground. If it reported everything the account
+     * owns rather than what is new, a pack the user deliberately removed would
+     * be pushed back onto their list the next time the app started, and no
+     * amount of removing it would make it stay gone.
+     */
+    @Test
+    fun `a pack the device already knew about is not restored again`() {
+        val payday = ClockFacePackProducts.productId(ClockFaceGroup.PAYDAY)!!
+
+        val restored = ClockFacePackOwnership.restoredBy(
+            reportedProductIds = listOf(payday),
+            cachedProductIds = listOf(payday),
+        )
+
+        assertEquals(emptySet<ClockFaceGroup>(), restored)
+    }
+
+    /**
+     * Bought one pack, then bought everything. Only the packs the bundle
+     * actually adds are restored — the one already owned is not new.
+     */
+    @Test
+    fun `the bundle restores what it adds and not what was already owned`() {
+        val restored = ClockFacePackOwnership.restoredBy(
+            reportedProductIds = listOf(ClockFacePackProducts.ALL_PACKS),
+            cachedProductIds = listOf(ClockFacePackProducts.productId(ClockFaceGroup.NATURE)!!),
+        )
+
+        assertEquals(
+            ClockFacePackProducts.purchasablePacks.toSet() - ClockFaceGroup.NATURE,
+            restored,
+        )
+    }
+
+    /**
+     * A refund is a removal, not a restore. Play stops reporting the id, the
+     * cache is replaced with Play's answer, and nothing is handed back.
+     */
+    @Test
+    fun `a purchase Play no longer reports restores nothing`() {
+        val restored = ClockFacePackOwnership.restoredBy(
+            reportedProductIds = emptySet(),
+            cachedProductIds = listOf(ClockFacePackProducts.productId(ClockFaceGroup.PAYDAY)!!),
+        )
+
+        assertEquals(emptySet<ClockFaceGroup>(), restored)
+    }
+
+    /** An id this build does not sell must not restore a pack, or block one. */
+    @Test
+    fun `an unknown reported id restores nothing and blocks nothing`() {
+        val restored = ClockFacePackOwnership.restoredBy(
+            reportedProductIds = listOf(
+                "clock_faces_atlantis",
+                ClockFacePackProducts.productId(ClockFaceGroup.PAYDAY)!!,
+            ),
+            cachedProductIds = emptySet(),
+        )
+
+        assertEquals(setOf(ClockFaceGroup.PAYDAY), restored)
+    }
+
     // ── Grandfathering ────────────────────────────────────────────────────────
 
     @Test

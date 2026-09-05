@@ -64,7 +64,7 @@ Supporting pieces:
 | `ClockFacePackProducts` | Product ids and what each grants. Pure Kotlin. |
 | `ClockFacePackOwnership` | Purchases ∪ free-era grant → owned packs. Pure Kotlin. |
 | `ClockFacePackGrandfathering` | One-time seed of the free-era grant. |
-| `ClockFacePackBillingCoordinator` | Foreground refresh; installs a pack after purchase. |
+| `ClockFacePackBillingCoordinator` | Foreground refresh; installs a pack after a purchase **and after a restore**. |
 | `PurchasePreferences` | Device-local cache of Play's answer. Never the record. |
 | `di/BillingModule` | Binds the Play or the free implementation off the flag. |
 
@@ -78,6 +78,12 @@ Two rules the design turns on:
    `ClockFacePacks.available()` still adds the group holding the selected face
    regardless of ownership, so nobody's dashboard stops drawing. There is a test
    that fails if that ever gets wired to ownership.
+3. **A restore adds the pack, not just the entitlement.** Play reporting a
+   purchase this device did not know about is the same decision as a purchase,
+   arriving late, so `ClockFacePackBillingCoordinator` installs it — see §6's
+   *uninstall and reinstall* case. Only what is *new to the device* is added
+   (`ClockFacePackOwnership.restoredBy`), which is what keeps a pack the user
+   deliberately removed from being pushed back on at the next foreground.
 
 ### Existing users keep their packs
 
@@ -217,7 +223,14 @@ build rather than one item at a time.
 - [ ] Backing out of Play's sheet shows nothing — no error snackbar.
 - [ ] Force-stopping mid-purchase and reopening still grants the pack (the
       foreground refresh in `MainActivity.onStart` picks it up).
-- [ ] Uninstall and reinstall: packs come back with no restore button pressed.
+- [ ] Uninstall and reinstall: packs come back with no restore button pressed —
+      under **Your faces**, selectable, not on the shop shelf behind an Add
+      button. This is the case that regressed once; `ClockFacePackRestoreTest`
+      now covers the rule underneath it.
+- [ ] Restore with nothing missing says so instead of appearing to do nothing,
+      and says something different again with Play unreachable (aeroplane mode).
+- [ ] Remove a pack you own, background and foreground the app: it stays
+      removed. A restore must not undo a removal.
 - [ ] A device with the Play Store disabled shows *Unavailable*, not a Buy button
       that fails.
 - [ ] A user who had packs installed before the flag flip keeps them, can remove
@@ -226,8 +239,10 @@ build rather than one item at a time.
       markets use slow payment methods.
 
 Automated coverage lives in `ClockFacePackBillingTest` — the catalog, the
-ownership union and the grandfathering seed. The Play client itself is not unit
-tested; it is thin by design so that the parts worth testing are the pure ones.
+ownership union, the restore difference and the grandfathering seed — and in
+`ClockFacePackRestoreTest`, which covers what a restored purchase actually gets
+the user. The Play client itself is not unit tested; it is thin by design so that
+the parts worth testing are the pure ones.
 
 ## 7. Release sequence
 
