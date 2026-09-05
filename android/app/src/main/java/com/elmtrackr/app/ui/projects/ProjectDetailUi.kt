@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -216,9 +217,17 @@ fun ProjectDetailScreen(
                     value = formattedMinutes(summary.time.trackedMinutes),
                     emphasis = true,
                 )
+                // The count of shifts those hours came from. It used to repeat the
+                // hours as its value, under a label that already read "3 shifts" —
+                // so the card stated the same figure twice and never said how many
+                // shifts there were.
                 ProjectInfoRow(
-                    label = stringResource(R.string.project_detail_shift_count, summary.time.shiftCount),
-                    value = formattedMinutes(summary.time.trackedMinutes),
+                    label = stringResource(R.string.project_detail_shifts),
+                    value = pluralStringResource(
+                        R.plurals.project_detail_shift_count,
+                        summary.time.shiftCount,
+                        summary.time.shiftCount,
+                    ),
                 )
                 project.hourBudgetMinutes?.let { budget ->
                     ProjectInfoRow(
@@ -311,9 +320,14 @@ fun ProjectDetailScreen(
                 }
                 // How late, or how long until due. Days only, from the work
                 // timezone's today, so it cannot read a day out.
+                //
+                // Labelled as the status rather than "Due" a second time: the row
+                // above already carries that label and the date, so two "Due"
+                // rows read as one fact stated twice rather than a date and how
+                // far away it is.
                 dueStatusText(summary.billing)?.let { text ->
                     ProjectInfoRow(
-                        label = stringResource(R.string.project_detail_due_on),
+                        label = stringResource(R.string.project_detail_due_status),
                         value = text,
                         valueColor = if (summary.billing.isOverdue) {
                             MaterialTheme.colorScheme.error

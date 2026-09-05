@@ -174,13 +174,20 @@
     <string name="project_detail_billing_reference">אסמכתת חיוב חיצונית</string>
     <string name="project_detail_billed_on">תאריך החיוב</string>
     <string name="project_detail_due_on">מועד לתשלום</string>
+    <string name="project_detail_due_status">מצב</string>
     <string name="project_detail_payments">תשלומים</string>
     <string name="project_detail_payment_count">%1$d תשלומים</string>
     <string name="project_detail_no_billing">עוד לא תועדה דרישת חיוב.</string>
     <string name="project_detail_billing_disclaimer">ElmTrackr אינו מפיק חשבוניות רשמיות. תעדו אסמכתא מהחשבונית שהפקתם במקום אחר.</string>
     <string name="project_detail_no_time_yet">עוד לא נרשמו שעות לפרויקט הזה.</string>
     <string name="project_detail_time_pending">התחילו משמרת ובחרו את הפרויקט הזה כדי לרשום לו שעות.</string>
-    <string name="project_detail_shift_count">%1$d משמרות</string>
+    <string name="project_detail_shifts">משמרות</string>
+    <plurals name="project_detail_shift_count">
+        <item quantity="one">משמרת אחת</item>
+        <item quantity="two">שתי משמרות</item>
+        <item quantity="many">%1$d משמרות</item>
+        <item quantity="other">%1$d משמרות</item>
+    </plurals>
     <string name="project_detail_budget_used">%1$s מתוך %2$s נוצלו</string>
     <string name="project_detail_no_description">אין תיאור.</string>
     <string name="project_detail_not_set">לא הוגדר</string>
@@ -429,4 +436,34 @@
     <string name="project_delete_shifts_kept">%1$d משמרות (%2$s שע׳) שומרות על השעות והופכות לעבודה בשכר רגיל.</string>
     <string name="project_delete_billing_lost">רשומות החיוב והתשלומים של הפרויקט יימחקו.</string>
     <string name="project_delete_archive_hint">כדי לשמור את הפרויקט בדוחות בלי למחוק אותו, אפשר להעביר אותו לארכיון.</string>
+
+    <!-- Projects tab guide -->
+    <string name="projects_guide_step">שלב %1$d מתוך %2$d</string>
+    <string name="projects_guide_skip">דילוג</string>
+    <string name="projects_guide_back">חזרה</string>
+    <string name="projects_guide_next">הבא</string>
+    <string name="projects_guide_done">סיום</string>
+    <string name="projects_guide_create">יצירת הפרויקט הראשון</string>
+    <string name="projects_guide_footer">אפשר לפתוח את המדריך שוב בכל עת מראש רשימת הפרויקטים.</string>
+    <string name="projects_guide_open">איך פרויקטים עובדים</string>
+
+    <string name="projects_guide_setup_title">מתחילים במחיר שסוכם</string>
+    <string name="projects_guide_setup_body">פרויקט הוא עבודה אחת במחיר קבוע: הלקוח, שכר הטרחה שסוכם, ומס אם אתם גובים. הזינו את הסכום לפני מס או את הסכום שהלקוח משלם — ElmTrackr מחשב את השניים האחרים ושומר על התאמה ביניהם.</string>
+    <string name="projects_guide_setup_note">אין המרת מטבעות. פרויקט מתומחר, מחויב ומשולם במטבע אחד.</string>
+    <string name="projects_guide_setup_a11y">כרטיס פרויקט מתמלא: הלקוח, אחריו הסכום שסוכם, מעליו המס, ומתחת הסכום ללקוח — הסכום והמס זה לצד זה.</string>
+
+    <string name="projects_guide_track_title">מדווחים בדיוק כרגיל</string>
+    <string name="projects_guide_track_body">שעות פרויקט אינן טיימר נפרד. במסך הראשי עוברים מ״עבודה שעתית״ ל״זמן פרויקט״, בוחרים את הפרויקט ומתחילים משמרת. השעות נרשמות לפרויקט בסיום המשמרת.</string>
+    <string name="projects_guide_track_note">זמן פרויקט לעולם אינו נספר בשכר או בשעות נוספות, ועבודה שעתית לעולם אינה נספרת לפרויקט.</string>
+    <string name="projects_guide_track_a11y">המתג במסך הראשי עובר מ״עבודה שעתית״ ל״זמן פרויקט״, תווית פרויקט נדלקת, משמרת רצה והשעות ממלאות את הפרויקט.</string>
+
+    <string name="projects_guide_rate_title">רואים כמה המחיר באמת משלם</string>
+    <string name="projects_guide_rate_body">התעריף האפקטיבי הוא הסכום לפני מס חלקי כל השעות שנרשמו לפרויקט. הסכום קבוע, ולכן ככל שהעבודה נמשכת התעריף יורד. הוא מופיע אחרי שנרשמו שעות.</string>
+    <string name="projects_guide_rate_note">אפשר להגדיר תקציב שעות ולראות כמה ממנו נוצל. זהו סכום ברוטו: מס הכנסה והוצאות עוד יורדים ממנו.</string>
+    <string name="projects_guide_rate_a11y">פס של סכום קבוע מעל שורת שעות שממשיכה לגדול, בעוד הסמן שמתחת יורד לאורך הסקאלה.</string>
+
+    <string name="projects_guide_billing_title">מחייבים, ואז עוקבים אחרי התשלומים</string>
+    <string name="projects_guide_billing_body">כששולחים חשבונית, מסמנים את הפרויקט כמחויב. זה מקבע את מה שחויב, כך שעריכה מאוחרת של הפרויקט לא תשנה חשבונית שכבר נשלחה. רושמים כל תשלום והיתרה לתשלום מתעדכנת לבד.</string>
+    <string name="projects_guide_billing_note">אחרי מועד התשלום הפרויקט מסומן כבפיגור ואפשר לקבל תזכורת. ElmTrackr אינו מפיק חשבוניות — אפשר לרשום אסמכתה שהופקה במקום אחר.</string>
+    <string name="projects_guide_billing_a11y">סכום מחויב ננעל במקומו, שני תשלומים נכנסים, פס היתרה מתכווץ עם כל אחד, ואז הופך לכתום כשמועד התשלום חולף.</string>
 </resources>

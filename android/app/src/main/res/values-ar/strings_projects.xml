@@ -174,13 +174,22 @@
     <string name="project_detail_billing_reference">مرجع فاتورة خارجي</string>
     <string name="project_detail_billed_on">أُرسلت الفاتورة في</string>
     <string name="project_detail_due_on">تاريخ السداد</string>
+    <string name="project_detail_due_status">الحالة</string>
     <string name="project_detail_payments">المدفوعات</string>
     <string name="project_detail_payment_count">%1$d مدفوعات</string>
     <string name="project_detail_no_billing">لم يُسجَّل طلب فاتورة بعد.</string>
     <string name="project_detail_billing_disclaimer">لا يُنشئ ‏ElmTrackr فواتير رسمية. سجّل مرجعًا من الفاتورة التي أصدرتها في مكان آخر.</string>
     <string name="project_detail_no_time_yet">لم يُتتبَّع وقت على هذا المشروع بعد.</string>
     <string name="project_detail_time_pending">سجّل الحضور واختر هذا المشروع لتتبّع الوقت عليه.</string>
-    <string name="project_detail_shift_count">%1$d مناوبات</string>
+    <string name="project_detail_shifts">المناوبات</string>
+    <plurals name="project_detail_shift_count">
+        <item quantity="zero">لا مناوبات</item>
+        <item quantity="one">مناوبة واحدة</item>
+        <item quantity="two">مناوبتان</item>
+        <item quantity="few">%1$d مناوبات</item>
+        <item quantity="many">%1$d مناوبة</item>
+        <item quantity="other">%1$d مناوبة</item>
+    </plurals>
     <string name="project_detail_budget_used">استُخدم %1$s من %2$s</string>
     <string name="project_detail_no_description">لا وصف.</string>
     <string name="project_detail_not_set">غير محدَّد</string>
@@ -439,4 +448,34 @@
     <string name="project_delete_shifts_kept">‏%1$d مناوبات (‏%2$s س) تحتفظ بساعاتها وتصبح عملًا مدفوعًا عاديًا.</string>
     <string name="project_delete_billing_lost">تُحذف سجلات الفواتير والمدفوعات الخاصة بهذا المشروع.</string>
     <string name="project_delete_archive_hint">للإبقاء على المشروع في التقارير دون حذفه، أرشِفه بدلًا من ذلك.</string>
+
+    <!-- Projects tab guide -->
+    <string name="projects_guide_step">الخطوة %1$d من %2$d</string>
+    <string name="projects_guide_skip">تخطٍ</string>
+    <string name="projects_guide_back">رجوع</string>
+    <string name="projects_guide_next">التالي</string>
+    <string name="projects_guide_done">تم</string>
+    <string name="projects_guide_create">أنشئ مشروعك الأول</string>
+    <string name="projects_guide_footer">يمكنك فتح هذا الدليل مجددًا في أي وقت من أعلى قائمة المشاريع.</string>
+    <string name="projects_guide_open">كيف تعمل المشاريع</string>
+
+    <string name="projects_guide_setup_title">ابدأ بالسعر المتفق عليه</string>
+    <string name="projects_guide_setup_body">المشروع عمل واحد بسعر ثابت: العميل، والأتعاب المتفق عليها، والضريبة إن كنت تحصّلها. أدخل أتعابك قبل الضريبة أو الإجمالي الذي يدفعه العميل — ويحسب ElmTrackr القيمتين الأخريين ويبقيها متطابقة.</string>
+    <string name="projects_guide_setup_note">لا يجري تحويل العملات. يُسعَّر المشروع ويُفوتر ويُدفع بعملة واحدة.</string>
+    <string name="projects_guide_setup_a11y">بطاقة مشروع تُملأ: العميل، ثم الأتعاب المتفق عليها، ثم الضريبة فوقها، ثم إجمالي العميل تحتها — الأتعاب والضريبة معًا.</string>
+
+    <string name="projects_guide_track_title">سجّل الدخول كالمعتاد تمامًا</string>
+    <string name="projects_guide_track_body">ساعات المشروع ليست مؤقتًا منفصلًا. في الشاشة الرئيسية بدّل من «عمل بالساعة» إلى «وقت مشروع»، واختر المشروع، وابدأ الوردية. تُضاف الساعات إلى المشروع عند انتهاء الوردية.</string>
+    <string name="projects_guide_track_note">وقت المشروع لا يُحتسب أبدًا ضمن أجرك أو ساعاتك الإضافية، والعمل بالساعة لا يُحتسب أبدًا لمشروع.</string>
+    <string name="projects_guide_track_a11y">مفتاح الشاشة الرئيسية ينتقل من «عمل بالساعة» إلى «وقت مشروع»، وتُضاء بطاقة مشروع، وتعمل وردية وتملأ ساعاتها المشروع.</string>
+
+    <string name="projects_guide_rate_title">اعرف ما يدفعه السعر فعلًا</string>
+    <string name="projects_guide_rate_body">أجرك الفعلي هو الأتعاب قبل الضريبة مقسومة على كل ساعة سُجّلت في المشروع. الأتعاب ثابتة، فكلما طال العمل انخفض الأجر. يظهر بعد تسجيل بعض الوقت.</string>
+    <string name="projects_guide_rate_note">حدّد ميزانية ساعات ليظهر شريط يبيّن ما استُهلك منها. الرقم إجمالي: ضريبة الدخل والمصروفات ما زالت تُخصم منه.</string>
+    <string name="projects_guide_rate_a11y">شريط أتعاب ثابت فوق صف ساعات يستمر في النمو، بينما ينزلق المؤشر أسفله على تدرّجه.</string>
+
+    <string name="projects_guide_billing_title">فوتِر، ثم تابع ما يصل</string>
+    <string name="projects_guide_billing_body">عند إصدار الفاتورة، ضع المشروع كمُفوتَر. هذا يثبّت ما جرت فوترته، فلا يستطيع تعديل لاحق للمشروع أن يغيّر فاتورة أرسلتها. سجّل كل دفعة ويتبعها الرصيد المستحق تلقائيًا.</string>
+    <string name="projects_guide_billing_note">بعد تاريخ الاستحقاق يوسم المشروع كمتأخر ويمكنه تذكيرك. لا يصدر ElmTrackr فواتير — سجّل المرجع الذي أصدرته في مكان آخر.</string>
+    <string name="projects_guide_billing_a11y">مبلغ مفوتَر يثبت في مكانه، ودفعتان تصلان، وشريط المستحق ينكمش مع كل منهما، ثم يتحول إلى البرتقالي عند تجاوز تاريخ الاستحقاق.</string>
 </resources>

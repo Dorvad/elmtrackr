@@ -2,6 +2,7 @@ package com.elmtrackr.app.ui.projects
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.data.local.preferences.FeatureDiscoveryPreferences
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.model.Project
 import com.elmtrackr.app.domain.model.UserSettings
@@ -40,6 +41,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -54,6 +56,7 @@ class ProjectsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val shiftsRepository: ShiftsRepository,
     private val currentUserProvider: CurrentUserProvider,
+    private val featureDiscovery: FeatureDiscoveryPreferences,
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
@@ -141,6 +144,43 @@ class ProjectsViewModel @Inject constructor(
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = ProjectsUiState.Loading,
             )
+
+    /** Set while the user has asked to see the guide again after finishing it. */
+    private val guideRequested = MutableStateFlow(false)
+
+    /**
+     * Whether the tab should show the guide instead of the list.
+     *
+     * Two inputs, because "never seen it" and "asked for it again" both mean
+     * show it and only one of them is worth remembering. Starts false rather
+     * than true: the stored flag arrives a frame later, and a guide that flashes
+     * up in front of a user who finished it last week is worse than one that
+     * appears a frame late for a user who has not.
+     */
+    val showGuide: StateFlow<Boolean> = combine(
+        featureDiscovery.preferences.map { it.projectsGuideSeen },
+        guideRequested,
+    ) { seen, requested -> requested || !seen }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = false,
+        )
+
+    fun openGuide() { guideRequested.value = true }
+
+    /**
+     * Closes the guide and stops it opening itself again.
+     *
+     * Marks it seen on every close, skip included. A user who skipped has made a
+     * decision about it, and re-asking on the next visit would turn the guide
+     * into something to be dismissed rather than read. The header keeps a way
+     * back to it.
+     */
+    fun closeGuide() {
+        guideRequested.value = false
+        viewModelScope.launch { featureDiscovery.setProjectsGuideSeen(true) }
+    }
 
     /** Billing records for one project, for the detail screen. */
     fun billingRecordsFor(projectId: String): Flow<List<com.elmtrackr.app.domain.model.ProjectBillingRecord>> =

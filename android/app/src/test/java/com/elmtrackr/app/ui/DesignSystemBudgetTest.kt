@@ -84,6 +84,11 @@ class DesignSystemBudgetTest {
         "RetroFlipBoard.kt",
         "RideProviderGraphics.kt",
         "PaidProjectsUpdateWizard.kt",
+        // The Projects guide's four demos, and only those. The guide screen
+        // itself stays in the budget — the drawings were split into this file
+        // rather than exempting the screen around them, which is what the
+        // paragraph above asks for.
+        "ProjectsGuideArt.kt",
         "WearWatchGraphic.kt",
     )
 

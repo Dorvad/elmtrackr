@@ -44,7 +44,9 @@ class ProjectsViewModelTest {
     private val shiftsRepo = FakeShiftsRepository()
     private val userProvider = FakeCurrentUserProvider("u1")
 
-    private fun buildVm() = ProjectsViewModel(projectsRepo, settingsRepo, shiftsRepo, userProvider)
+    private val discovery = com.elmtrackr.app.fake.FakeFeatureDiscoveryPreferences()
+
+    private fun buildVm() = ProjectsViewModel(projectsRepo, settingsRepo, shiftsRepo, userProvider, discovery)
 
     private fun settings(paidProjects: Boolean = true) = UserSettings(
         id = "s1",
@@ -499,6 +501,74 @@ class ProjectsViewModelTest {
         val summary = ready(vm).summary("p1")!!
         assertEquals(40 * 60, summary.time.trackedMinutes)
         assertEquals(Money.of("250.00", "ILS"), summary.effectiveHourlyRate)
+    }
+
+    // ── The guide ─────────────────────────────────────────────────────────────
+
+    /**
+     * Collects [ProjectsViewModel.showGuide] so its WhileSubscribed flow runs,
+     * and answers with what it settles on.
+     */
+    private suspend fun kotlinx.coroutines.test.TestScope.guideShowing(
+        vm: ProjectsViewModel,
+    ): Boolean {
+        val seen = mutableListOf<Boolean>()
+        val job = launch { vm.showGuide.collect { seen.add(it) } }
+        advanceUntilIdle()
+        job.cancel()
+        return seen.last()
+    }
+
+    @Test
+    fun `the guide opens the first time the tab is`() = runTest {
+        settingsRepo.setSettings(settings())
+
+        assertTrue(guideShowing(buildVm()))
+    }
+
+    @Test
+    fun `closing the guide keeps it closed on the next visit`() = runTest {
+        settingsRepo.setSettings(settings())
+        val vm = buildVm()
+
+        vm.closeGuide()
+        advanceUntilIdle()
+
+        assertTrue(discovery.projectsGuideSeen)
+        assertFalse(guideShowing(vm))
+        // And on a fresh view model, which is what a second visit to the tab is.
+        assertFalse(guideShowing(buildVm()))
+    }
+
+    /**
+     * Skipping is a decision, not a deferral. Re-offering it on the next visit
+     * would turn the guide into something to be dismissed rather than read —
+     * which is why the list header keeps a way back to it.
+     */
+    @Test
+    fun `the guide can be reopened after it has been finished`() = runTest {
+        settingsRepo.setSettings(settings())
+        val vm = buildVm()
+        vm.closeGuide()
+        advanceUntilIdle()
+
+        vm.openGuide()
+
+        assertTrue(guideShowing(vm))
+    }
+
+    @Test
+    fun `closing a reopened guide closes it again`() = runTest {
+        settingsRepo.setSettings(settings())
+        val vm = buildVm()
+        vm.closeGuide()
+        advanceUntilIdle()
+        vm.openGuide()
+
+        vm.closeGuide()
+        advanceUntilIdle()
+
+        assertFalse(guideShowing(vm))
     }
 
     @Test

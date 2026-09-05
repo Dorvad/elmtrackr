@@ -119,4 +119,32 @@ object Layout {
      * setting the row's height.
      */
     val identityTile = Spacing.s24
+
+    /**
+     * The panel a teaching demo is drawn in, on the Projects guide.
+     *
+     * Larger than the update wizard's banner, because these demos are the
+     * explanation rather than a garnish on it: the clock-in sequence has a mode
+     * switch, a chip, a running shift and a filling bank to get through, and
+     * below about this height they stop being separable.
+     */
+    /**
+     * An icon sitting inline with a label — a chevron on an expander, the mark
+     * beside a text button.
+     *
+     * Smaller than [minTouchTarget] on purpose: this is the paint, and the row
+     * or button around it supplies the target.
+     */
+    val inlineIcon = 18.dp
+
+    val guideDemoHeight = 180.dp
+
+    /**
+     * The footprint the guide reserves for a page, demo and text together.
+     *
+     * Fixed at the tallest page rather than wrapped to each: the pages are read
+     * by tapping Next repeatedly, and a button that moves between taps is a
+     * button people mis-hit.
+     */
+    val guidePageMinHeight = 400.dp
 }

@@ -12,17 +12,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,6 +39,7 @@ import com.elmtrackr.app.domain.projects.ProjectBillingCorrection
 import com.elmtrackr.app.domain.projects.ProjectBillingFormInput
 import com.elmtrackr.app.domain.projects.ProjectPaymentFormInput
 import kotlinx.coroutines.launch
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +59,7 @@ import com.elmtrackr.app.ui.design.ElmDashedButton
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.design.auroraSubScreenTransition
+import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.Spacing
 
 /** Where inside the Projects tab the user is. */
@@ -76,6 +81,7 @@ fun ProjectsScreen(
     onFormVisibilityChanged: (Boolean) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
+    val showGuide by viewModel.showGuide.collectAsState()
     val motionEnabled = auroraMotionEnabled()
 
     var destination by rememberSaveable { mutableStateOf(ProjectsDestination.LIST) }
@@ -100,11 +106,15 @@ fun ProjectsScreen(
             selectedProjectId = null
         }
     }
-    LaunchedEffect(destination) {
-        onFormVisibilityChanged(destination != ProjectsDestination.LIST)
+    LaunchedEffect(destination, showGuide) {
+        onFormVisibilityChanged(showGuide || destination != ProjectsDestination.LIST)
     }
 
-    BackHandler(enabled = destination != ProjectsDestination.LIST) {
+    // Back out of the guide before back leaves the tab, and treat that as having
+    // read it: a user who backs out has made the same decision as one who skips.
+    BackHandler(enabled = showGuide) { viewModel.closeGuide() }
+
+    BackHandler(enabled = !showGuide && destination != ProjectsDestination.LIST) {
         destination = when (destination) {
             ProjectsDestination.FORM ->
                 if (editingProjectId != null) ProjectsDestination.DETAIL else ProjectsDestination.LIST
@@ -142,7 +152,18 @@ fun ProjectsScreen(
                     message = current.message,
                     onRetry = viewModel::retry,
                 )
-                is ProjectsUiState.Ready -> AnimatedContent(
+                is ProjectsUiState.Ready -> if (showGuide) {
+                    ProjectsGuide(
+                        onFinish = viewModel::closeGuide,
+                        // Straight into the form the last page just described,
+                        // so the guide ends on the thing it was teaching rather
+                        // than on a list the user still has to find a button in.
+                        onCreateProject = {
+                            editingProjectId = null
+                            destination = ProjectsDestination.FORM
+                        },
+                    )
+                } else AnimatedContent(
                     targetState = destination,
                     transitionSpec = {
                         auroraSubScreenTransition(targetState.ordinal > initialState.ordinal, motionEnabled)
@@ -154,6 +175,7 @@ fun ProjectsScreen(
                             state = current,
                             onQueryChange = viewModel::onQueryChange,
                             onFilterChange = viewModel::onFilterChange,
+                            onOpenGuide = viewModel::openGuide,
                             onCreate = {
                                 editingProjectId = null
                                 destination = ProjectsDestination.FORM
@@ -317,6 +339,7 @@ internal fun ProjectsList(
     onFilterChange: (ProjectStatusFilter) -> Unit,
     onCreate: () -> Unit,
     onOpen: (String) -> Unit,
+    onOpenGuide: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenH),
@@ -325,16 +348,35 @@ internal fun ProjectsList(
         item {
             Column {
                 Spacer(Modifier.height(Spacing.md))
-                Text(
-                    text = stringResource(R.string.projects_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.ExtraBold,
-                )
-                Text(
-                    text = stringResource(R.string.projects_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(verticalAlignment = Alignment.Top) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.projects_title),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                        )
+                        Text(
+                            text = stringResource(R.string.projects_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    // The guide shows itself once and is then only ever reached
+                    // from here. Without this it would be a one-shot explanation
+                    // of a screen people come back to for months.
+                    TextButton(onClick = onOpenGuide) {
+                        Icon(
+                            Icons.Outlined.HelpOutline,
+                            contentDescription = null,
+                            modifier = Modifier.height(Layout.inlineIcon),
+                        )
+                        Spacer(Modifier.width(Spacing.xs))
+                        Text(
+                            text = stringResource(R.string.projects_guide_open),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                }
             }
         }
 

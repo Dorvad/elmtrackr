@@ -174,13 +174,18 @@
     <string name="project_detail_billing_reference">External billing reference</string>
     <string name="project_detail_billed_on">Billed on</string>
     <string name="project_detail_due_on">Due</string>
+    <string name="project_detail_due_status">Status</string>
     <string name="project_detail_payments">Payments</string>
     <string name="project_detail_payment_count">%1$d payments</string>
     <string name="project_detail_no_billing">No billing request recorded yet.</string>
     <string name="project_detail_billing_disclaimer">ElmTrackr does not create official invoices. Record a reference from the invoice you issued elsewhere.</string>
     <string name="project_detail_no_time_yet">No time tracked against this project yet.</string>
     <string name="project_detail_time_pending">Clock in and pick this project to track time against it.</string>
-    <string name="project_detail_shift_count">%1$d shifts</string>
+    <string name="project_detail_shifts">Shifts</string>
+    <plurals name="project_detail_shift_count">
+        <item quantity="one">%1$d shift</item>
+        <item quantity="other">%1$d shifts</item>
+    </plurals>
     <string name="project_detail_budget_used">%1$s of %2$s used</string>
     <string name="project_detail_no_description">No description.</string>
     <string name="project_detail_not_set">Not set</string>
@@ -439,4 +444,34 @@
     <string name="project_delete_shifts_kept">%1$d shifts (%2$s h) keep their hours and become regular paid work.</string>
     <string name="project_delete_billing_lost">Billing records and payments for this project are deleted.</string>
     <string name="project_delete_archive_hint">To keep the project in reports without deleting it, archive it instead.</string>
+
+    <!-- Projects tab guide: shown once on first open, reachable again from the list header. -->
+    <string name="projects_guide_step">Step %1$d of %2$d</string>
+    <string name="projects_guide_skip">Skip</string>
+    <string name="projects_guide_back">Back</string>
+    <string name="projects_guide_next">Next</string>
+    <string name="projects_guide_done">Done</string>
+    <string name="projects_guide_create">Create your first project</string>
+    <string name="projects_guide_footer">You can reopen this guide any time from the top of the projects list.</string>
+    <string name="projects_guide_open">How projects work</string>
+
+    <string name="projects_guide_setup_title">Start with the price you agreed</string>
+    <string name="projects_guide_setup_body">A project is one fixed-price job: the client, the fee you agreed, and tax if you charge it. Enter your fee before tax or the total the client pays — ElmTrackr works out the other two and keeps all three in step.</string>
+    <string name="projects_guide_setup_note">Currencies are never converted. A project is priced, billed and paid in one currency.</string>
+    <string name="projects_guide_setup_a11y">A project card filling in: the client, then the agreed fee, then tax stacked on top of it, then the client total below — the fee and the tax laid end to end.</string>
+
+    <string name="projects_guide_track_title">Clock in the way you always do</string>
+    <string name="projects_guide_track_body">Project hours are not a separate timer. On the dashboard, switch from Hourly work to Project time, pick the project, and clock in. The hours land on the project when you clock out.</string>
+    <string name="projects_guide_track_note">Project time never counts toward your wages or overtime, and hourly work never counts toward a project.</string>
+    <string name="projects_guide_track_a11y">The dashboard toggle sliding from Hourly work to Project time, a project chip lighting up, a shift running, and its hours filling the project.</string>
+
+    <string name="projects_guide_rate_title">See what the price really pays</string>
+    <string name="projects_guide_rate_body">Your effective rate is the fee before tax divided by every hour tracked on the project. The fee does not move, so the longer the job takes, the lower the rate goes. It appears once you have logged some time.</string>
+    <string name="projects_guide_rate_note">Set an hour budget and a bar shows how much of it you have spent. It is gross: income tax and expenses still come out.</string>
+    <string name="projects_guide_rate_a11y">A fixed fee bar above a row of hours that keeps growing, while the rate marker below slides down its scale.</string>
+
+    <string name="projects_guide_billing_title">Bill it, then track what lands</string>
+    <string name="projects_guide_billing_body">When you invoice, mark the project as billed. That freezes what was billed, so editing the project later cannot restate an invoice you already sent. Record each payment and the outstanding balance follows.</string>
+    <string name="projects_guide_billing_note">Past its due date a project is flagged overdue and can remind you. ElmTrackr does not issue invoices — record the reference you issued elsewhere.</string>
+    <string name="projects_guide_billing_a11y">A billed amount locking in place, two payments arriving, the outstanding bar shrinking with each, then turning orange once the due date passes.</string>
 </resources>

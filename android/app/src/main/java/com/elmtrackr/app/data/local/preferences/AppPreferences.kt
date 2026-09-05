@@ -74,6 +74,16 @@ object AppPreferenceKeys {
     val PAID_PROJECTS_DISCOVERY_DISMISSED =
         booleanPreferencesKey("paid_projects_discovery_dismissed")
 
+    /**
+     * Whether the Projects tab's how-to guide has been shown once.
+     *
+     * Its own key rather than a reuse of the announcement above: the two answer
+     * different questions ("do you want this module?" against "here is how it
+     * works"), and a user who took the module from the announcement would
+     * otherwise never be shown how to use it.
+     */
+    val PROJECTS_GUIDE_SEEN = booleanPreferencesKey("projects_guide_seen")
+
     val WEAR_SYNC_ENABLED = booleanPreferencesKey("wear_sync_enabled")
 
     /**
@@ -159,6 +169,8 @@ data class AppPreferenceValues(
     val setupChecklistVisitedSteps: Set<String> = emptySet(),
     val setupChecklistCelebrated: Boolean = false,
     val paidProjectsDiscoveryDismissed: Boolean = false,
+    /** Whether the Projects tab's how-to guide has been shown. */
+    val projectsGuideSeen: Boolean = false,
     /** Raw `YYYY-MM`, or null if the reminder was never dismissed. Parsed by the domain layer. */
     val refundReminderDismissedMonth: String? = null,
     /** Raw face names, newest first. Resolved to the enum by the UI layer. */
@@ -261,6 +273,7 @@ class AppPreferencesRepository(private val context: Context) :
                 setupChecklistCelebrated = prefs[AppPreferenceKeys.SETUP_CHECKLIST_CELEBRATED] ?: false,
                 paidProjectsDiscoveryDismissed =
                     prefs[AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED] ?: false,
+                projectsGuideSeen = prefs[AppPreferenceKeys.PROJECTS_GUIDE_SEEN] ?: false,
                 wearSyncEnabled = prefs[AppPreferenceKeys.WEAR_SYNC_ENABLED] ?: true,
                 refundReminderDismissedMonth =
                     prefs[AppPreferenceKeys.REFUND_REMINDER_DISMISSED_MONTH],
@@ -360,6 +373,10 @@ class AppPreferencesRepository(private val context: Context) :
         context.appPreferencesDataStore.edit {
             it[AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED] = dismissed
         }
+    }
+
+    override suspend fun setProjectsGuideSeen(seen: Boolean) {
+        context.appPreferencesDataStore.edit { it[AppPreferenceKeys.PROJECTS_GUIDE_SEEN] = seen }
     }
 
     override suspend fun setWearSyncEnabled(enabled: Boolean) {
@@ -465,6 +482,9 @@ class AppPreferencesRepository(private val context: Context) :
             it.remove(AppPreferenceKeys.SETUP_CHECKLIST_VISITED_STEPS)
             it.remove(AppPreferenceKeys.SETUP_CHECKLIST_CELEBRATED)
             it.remove(AppPreferenceKeys.PAID_PROJECTS_DISCOVERY_DISMISSED)
+            // The guide is per-person, not per-device: the next account on this
+            // phone has not seen how projects work just because the last one did.
+            it.remove(AppPreferenceKeys.PROJECTS_GUIDE_SEEN)
             // Added when the two changes met: the refund reminder is a per-user
             // nudge dismissal like the others above, so leaving it would silence a
             // new account's reminder for whatever month the previous user dismissed.
