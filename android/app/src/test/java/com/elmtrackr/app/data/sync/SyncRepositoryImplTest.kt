@@ -714,6 +714,86 @@ class SyncRepositoryImplTest {
     }
 
     /**
+     * An expired access token is a "come back later", not a rejection.
+     *
+     * The token ages out on its own schedule, so the request that discovers it is
+     * whichever one happens to be next — and clocking out schedules a sync, which
+     * makes the end of a shift a common moment to find out. Parking the row as
+     * FAILED took it out of the immediate retry path for fifteen minutes and left
+     * "unsynced changes" on screen until then, for a row that was never wrong.
+     */
+    @Test
+    fun `a push rejected for an expired session stays pending, not failed`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = object : RemoteShiftDataSource by FakeRemoteShiftDataSource() {
+            override suspend fun insert(shift: RemoteShiftInsert): RemoteShiftRow =
+                throw IllegalStateException("PGRST301: JWT expired")
+        }
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        dao.insertShift(shiftEntity(localId = "local-1", syncStatus = SyncStatus.PENDING_CREATE))
+        repository.syncAll("user-1")
+
+        assertEquals(SyncStatus.PENDING_CREATE, dao.getShiftById("local-1")!!.syncStatus)
+        // And still worth retrying at once, rather than waiting for the periodic run.
+        assertTrue(repository.hasRetryablePendingWork("user-1"))
+    }
+
+    /**
+     * The same rule, on a table that never had it. Shifts and tasks held a
+     * transient failure; projects, payments, workplaces, leave rows, settings and
+     * profiles all marked FAILED on any error at all — so one flaky request
+     * parked an edit for fifteen minutes.
+     */
+    @Test
+    fun `a project push interrupted by a dropped connection stays pending`() = runTest {
+        val projectDao = com.elmtrackr.app.fake.FakeProjectDao()
+        val remote = object : EmptyRemoteProjectDataSource() {
+            override suspend fun insert(
+                project: com.elmtrackr.app.data.remote.RemoteProjectInsert,
+            ): com.elmtrackr.app.data.remote.RemoteProjectRow =
+                throw java.io.IOException("Software caused connection abort")
+        }
+        val repository = createRepository(projectDao = projectDao, remoteProjects = remote)
+
+        projectDao.upsert(projectEntity("p-1"))
+        repository.syncAll("user-1")
+
+        assertEquals(SyncStatus.PENDING_CREATE, projectDao.getByLocalId("p-1")!!.syncStatus)
+    }
+
+    private fun projectEntity(localId: String) = com.elmtrackr.app.data.local.entity.ProjectEntity(
+        localId = localId,
+        remoteId = null,
+        userId = "user-1",
+        name = "Website rebuild",
+        clientName = null,
+        clientId = null,
+        description = null,
+        workStatus = "ACTIVE",
+        currencyCode = "USD",
+        baseFee = java.math.BigDecimal("1000.00"),
+        taxLabel = null,
+        taxRatePercent = java.math.BigDecimal.ZERO,
+        taxMode = "NONE",
+        taxAmount = java.math.BigDecimal.ZERO,
+        clientTotal = java.math.BigDecimal("1000.00"),
+        hourBudgetMinutes = null,
+        targetHourlyRate = null,
+        startDate = null,
+        deadline = null,
+        completionDate = null,
+        notes = null,
+        createdAt = 0L,
+        updatedAt = 0L,
+        archivedAt = null,
+        deletedAt = null,
+        syncStatus = SyncStatus.PENDING_CREATE,
+        lastSyncError = null,
+        lastSyncedAt = null,
+    )
+
+    /**
      * The loop guard. `hasPendingWork` stays true for a permanently failing row,
      * and SyncWorker used it to decide whether to enqueue another immediate run —
      * an unbounded chain, because each follow-up starts at runAttemptCount 0.
@@ -1332,6 +1412,8 @@ class SyncRepositoryImplTest {
         receiptDao: com.elmtrackr.app.data.local.dao.ReceiptDao = com.elmtrackr.app.fake.FakeReceiptDao(),
         refundReceiptStorage: com.elmtrackr.app.domain.repository.RefundReceiptStorage? = null,
         receiptFileReader: com.elmtrackr.app.domain.repository.ReceiptFileReader? = null,
+        projectDao: com.elmtrackr.app.data.local.dao.ProjectDao =
+            com.elmtrackr.app.fake.FakeProjectDao(),
         remoteProjects: com.elmtrackr.app.data.remote.RemoteProjectDataSource =
             EmptyRemoteProjectDataSource(),
         remoteBillingRecords: com.elmtrackr.app.data.remote.RemoteProjectBillingRecordDataSource =
@@ -1367,7 +1449,7 @@ class SyncRepositoryImplTest {
         compensationProfileDao = EmptyCompensationProfileDao(),
         premiumProfileDao = EmptyPremiumProfileDao(),
         receiptDao = receiptDao,
-        projectDao = com.elmtrackr.app.fake.FakeProjectDao(),
+        projectDao = projectDao,
         projectBillingRecordDao = com.elmtrackr.app.fake.FakeProjectBillingRecordDao(),
         projectPaymentDao = com.elmtrackr.app.fake.FakeProjectPaymentDao(),
         taskDao = taskDao,
@@ -1976,7 +2058,7 @@ class SyncRepositoryImplTest {
         ): RemotePremiumProfileRow? = null
     }
 
-    private class EmptyRemoteProjectDataSource : com.elmtrackr.app.data.remote.RemoteProjectDataSource {
+    private open class EmptyRemoteProjectDataSource : com.elmtrackr.app.data.remote.RemoteProjectDataSource {
         override suspend fun fetchUpdatedSince(
             sinceIso: String?,
             limit: Int,

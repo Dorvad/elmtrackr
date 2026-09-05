@@ -6,6 +6,8 @@ import com.elmtrackr.app.data.auth.AuthCallbackPayload
 import com.elmtrackr.app.data.auth.AuthErrorMapper
 import com.elmtrackr.app.data.auth.AuthOperation
 import com.elmtrackr.app.data.auth.AuthSessionCoordinator
+import com.elmtrackr.app.data.auth.SessionPresence
+import com.elmtrackr.app.data.auth.presence
 import com.elmtrackr.app.data.local.dao.ProfileDao
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.mapper.toDomain
@@ -40,6 +42,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -121,7 +124,40 @@ class SupabaseAuthRepository @Inject constructor(
                             )
                         }
                     }
-                    else -> flowOf(null)
+                    /**
+                     * Not a sign-out. supabase-kt reports this when it could
+                     * not *reach* the auth server to refresh — a network error
+                     * or a 5xx — and it says so in its own logs: "Couldn't
+                     * reach Supabase … Retrying in …". The session is still on
+                     * the device and the library is already retrying. A refresh
+                     * the server *rejects* is a different branch entirely, and
+                     * that one clears the session and arrives here as
+                     * [SessionStatus.NotAuthenticated].
+                     *
+                     * Emitting null here was the bug behind "it logged me out
+                     * when I ended a shift". Clocking out schedules a sync, the
+                     * sync is the request that discovers the access token has
+                     * expired, and the end of a shift is exactly when someone
+                     * walks out of the building and off the wifi — so the
+                     * refresh fails on the network, the profile goes null, and
+                     * `AppShellViewModel` sends a signed-in user to the login
+                     * screen with their session intact.
+                     *
+                     * Serving the retained user instead costs nothing: this is
+                     * a local-first app, every other reader already resolves
+                     * the user through [CurrentUserProvider]'s
+                     * `lastActiveUserId`, and the data was on the device
+                     * already. When the retry succeeds the Authenticated branch
+                     * takes over again; if the token really is dead, the
+                     * NotAuthenticated branch below still signs them out.
+                     */
+                    else -> when (status.presence()) {
+                        SessionPresence.RETAINED -> retainedProfile()
+                        SessionPresence.SIGNED_OUT -> flowOf(null)
+                        // Handled by the branch above; the session carries the
+                        // user there and this arm has nothing to read it from.
+                        SessionPresence.SIGNED_IN -> flowOf(null)
+                    }
                 }
             }
             .shareIn(
@@ -134,9 +170,44 @@ class SupabaseAuthRepository @Inject constructor(
             )
     }
 
+    /**
+     * The user the last authenticated session named, from local storage.
+     *
+     * Used while the session is in [SessionStatus.RefreshFailure] — see the
+     * branch above. `lastActiveUserId` is written in the Authenticated branch and
+     * cleared only by [signOut], so it names a session the user has not ended.
+     * Null when there is nothing to fall back to, which correctly reads as signed
+     * out.
+     */
+    private fun retainedProfile(): Flow<Profile?> = flow {
+        val retainedId = appPrefs.preferences.first().lastActiveUserId
+        if (retainedId == null) {
+            emit(null)
+            return@flow
+        }
+        emitAll(profileDao.observeProfile(retainedId).map { it?.toDomain() })
+    }
+
+    /**
+     * The signed-in profile, tolerating a session that is mid-retry.
+     *
+     * `currentUserOrNull()` reads the session status, so it answers null during a
+     * [SessionStatus.RefreshFailure] just as the flow above did. That matters
+     * more here than it looks: `DashboardViewModel.clockOut` opens with
+     * `getCurrentProfile()?.id ?: return`, so a failed token refresh did not only
+     * show the login screen — it made the Clock out button do nothing at all,
+     * silently, while the shift kept running. The widget and Wear paths were
+     * unaffected because they resolve the user through [CurrentUserProvider],
+     * which has always read `lastActiveUserId`.
+     */
     override suspend fun getCurrentProfile(): Profile? {
-        val authProfile = client?.auth?.currentUserOrNull()?.toProfile() ?: return null
-        return profileDao.getProfile(authProfile.id)?.toDomain() ?: authProfile
+        val c = client ?: return null
+        c.auth.currentUserOrNull()?.toProfile()?.let { authProfile ->
+            return profileDao.getProfile(authProfile.id)?.toDomain() ?: authProfile
+        }
+        if (c.auth.sessionStatus.value.presence() != SessionPresence.RETAINED) return null
+        val retainedId = appPrefs.preferences.first().lastActiveUserId ?: return null
+        return profileDao.getProfile(retainedId)?.toDomain()
     }
 
     override suspend fun saveProfile(profile: Profile, userId: String) {
