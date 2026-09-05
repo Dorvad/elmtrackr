@@ -108,7 +108,7 @@ class ReceiptParser(
             val strong = containsAny(canonLine, STRONG_TOTAL_KEYWORDS)
             val adjacent = !strong && hasAdjacentTotalContext(lines, index)
             val weak = containsAny(canonLine, WEAK_TOTAL_KEYWORDS)
-            val negative = containsAny(canonLine, NEGATIVE_KEYWORDS)
+            val negative = isNegativeLine(canonLine)
             val currencyHint = hasCurrencyHint(line)
 
             AMOUNT_PATTERN.findAll(line).forEach { match ->
@@ -165,6 +165,37 @@ class ReceiptParser(
         }
 
         return AmountExtraction(best.value, currency, best.nearTotal)
+    }
+
+    /**
+     * Whether this line's numbers are known *not* to be the receipt total.
+     *
+     * The tax rule is the whole reason this is a function rather than one
+     * `containsAny`. An Israeli receipt states the tax three times:
+     *
+     * ```
+     * סה"כ לפני מע"מ   100.00
+     * מע"מ 18%          18.00
+     * סה"כ כולל מע"מ   118.00
+     * ```
+     *
+     * and the last of those is the number the user actually paid — the most
+     * common way an Israeli total is written. Matching a bare "מע"מ" anywhere on
+     * the line penalised it as if it were the tax line, so the correct total
+     * scored barely above noise and, worse, came back with
+     * `amountNearTotalKeyword = false`: it was still often picked by the
+     * largest-amount tie-break, but at LOW confidence, and it lost every
+     * arbitration against the Latin pass in [ReceiptParseResultMerger].
+     *
+     * So a tax mention is read with its qualifier. "כולל מע"מ" (including) is a
+     * total; "לפני מע"מ" (before) is a subtotal and is penalised even though the
+     * line also says סה"כ; a bare tax line is penalised as before.
+     */
+    private fun isNegativeLine(canonLine: String): Boolean {
+        if (containsAny(canonLine, TAX_EXCLUSIVE_PHRASES)) return true
+        if (containsAny(canonLine, NEGATIVE_KEYWORDS)) return true
+        val mentionsTax = containsAny(canonLine, TAX_KEYWORDS)
+        return mentionsTax && !containsAny(canonLine, TAX_INCLUSIVE_PHRASES)
     }
 
     private fun hasCurrencyHint(line: String): Boolean {
@@ -253,10 +284,13 @@ class ReceiptParser(
         pendingCurrency?.let { return it }
 
         val joined = lines.joinToString("\n")
+        // The shekel word is matched as a whole token, not a substring: "שח"
+        // appears inside ordinary Hebrew words — משחק, שחור, משחקייה — and any
+        // of them used to declare the receipt priced in shekels.
+        val shekelWord = joined.split(Regex("[^\\p{L}]+")).any { it in SHEKEL_WORDS }
         return when {
             joined.contains('₪') || joined.contains("ILS", ignoreCase = true) ||
-                joined.contains("NIS", ignoreCase = true) || joined.contains("ש\"ח") ||
-                joined.contains("שח") -> "ILS"
+                joined.contains("NIS", ignoreCase = true) || shekelWord -> "ILS"
             joined.contains('$') || joined.contains("USD", ignoreCase = true) -> "USD"
             joined.contains('€') || joined.contains("EUR", ignoreCase = true) -> "EUR"
             joined.contains('£') || joined.contains("GBP", ignoreCase = true) -> "GBP"
@@ -265,7 +299,21 @@ class ReceiptParser(
     }
 
     companion object {
-        const val VERSION = "1.1.0"
+        const val VERSION = "1.2.0"
+
+        /**
+         * Hebrew final letters, mapped to the base form they are confused with.
+         *
+         * Declared first because [canonical] reads it and the keyword lists below
+         * fold themselves through [canonical] as they initialise.
+         */
+        private val HEBREW_FINAL_FORMS = mapOf(
+            'ך' to 'כ',
+            'ם' to 'מ',
+            'ן' to 'נ',
+            'ף' to 'פ',
+            'ץ' to 'צ',
+        )
 
         private const val MIN_REASONABLE_AMOUNT = 0.01
         private const val MAX_REASONABLE_AMOUNT = 50_000.0
@@ -285,14 +333,33 @@ class ReceiptParser(
             else -> ReceiptParseConfidence.NONE
         }
 
-        /** Lowercased, quote-stripped form used for keyword matching (OCR mangles quotes in סה"כ). */
+        /**
+         * Lowercased, quote-stripped, final-form-folded text for keyword matching.
+         *
+         * Quotes go because OCR mangles the gershayim in `סה"כ` every way there
+         * is — ASCII quote, curly quote, U+05F4, or dropped entirely.
+         *
+         * Final letters fold to their base form because the five Hebrew finals
+         * are the single most common confusion an OCR engine makes on receipt
+         * type: `ך` for `כ`, `ם` for `מ`, and so on. `סה"ך` is not a word, but it
+         * is what Tesseract reads off a faded thermal print often enough to
+         * matter — and before this, that one glyph meant the total label was not
+         * found at all and the amount was returned unlabelled at LOW confidence.
+         * Folding costs nothing: no keyword here is distinguished by a final
+         * form.
+         */
         private fun canonical(line: String): String =
-            line.lowercase(Locale.US).replace(Regex("[\"'`’‘]"), "")
+            line.lowercase(Locale.US)
+                .replace(Regex("[\"'`’‘]"), "")
+                .map { HEBREW_FINAL_FORMS[it] ?: it }
+                .joinToString("")
+
 
         private fun containsAny(canonLine: String, keywords: List<String>): Boolean =
             keywords.any { canonLine.contains(it) }
 
-        // Stored in canonical form: lowercase, quotes stripped.
+        // Written as they are printed; stored canonical — lowercased, quotes
+        // stripped, Hebrew final letters folded. See [canonical].
         private val STRONG_TOTAL_KEYWORDS = listOf(
             "סהכ",
             "סה כ",
@@ -300,20 +367,56 @@ class ReceiptParser(
             "סך כל",
             "לתשלום",
             "סכום לחיוב",
+            "סכום החיוב",
             "לחיוב",
+            "סכום כולל",
             "שולם",
             "total",
             "grand total",
             "balance due",
             "amount due",
+            "amount payable",
+            "total due",
             "to pay",
-        )
+        ).map(::canonical)
+
+        /** A tax mention, which only says something once its qualifier is read. */
+        private val TAX_KEYWORDS = listOf("מע\"מ", "vat").map(::canonical)
+
+        /** Qualifiers that make a tax line the total. */
+        private val TAX_INCLUSIVE_PHRASES = listOf(
+            "כולל מע\"מ",
+            "כולל מע מ",
+            "כולל מעמ",
+            "incl vat",
+            "incl. vat",
+            "including vat",
+            "inc vat",
+            "with vat",
+        ).map(::canonical)
+
+        /**
+         * Qualifiers that make the line a pre-tax subtotal, penalised even when
+         * it also carries a total label — `סה"כ לפני מע"מ` is a real receipt line
+         * and it is not what the user paid.
+         */
+        private val TAX_EXCLUSIVE_PHRASES = listOf(
+            "לפני מע\"מ",
+            "לפני מעמ",
+            "לא כולל מע\"מ",
+            "before vat",
+            "excl vat",
+            "excl. vat",
+            "excluding vat",
+            "ex vat",
+            "net of vat",
+        ).map(::canonical)
 
         private val WEAK_TOTAL_KEYWORDS = listOf(
             "amount",
             "sum",
             "סכום",
-        )
+        ).map(::canonical)
 
         // Lines whose numbers are known NOT to be the receipt total.
         private val NEGATIVE_KEYWORDS = listOf(
@@ -321,8 +424,6 @@ class ReceiptParser(
             "sub-total",
             "סכום ביניים",
             "ביניים",
-            "מעמ",
-            "vat",
             "עודף",
             "מזומן",
             "החזר",
@@ -331,7 +432,10 @@ class ReceiptParser(
             "cash",
             "discount",
             "tip",
-        )
+        ).map(::canonical)
+
+        /** Whole-word forms of "shekel" as receipts print them, quotes already stripped. */
+        private val SHEKEL_WORDS = setOf("שח", "שקל", "שקלים", "שהח").map(::canonical).toSet()
 
         private val DATE_KEYWORDS = listOf(
             "date",
@@ -341,8 +445,25 @@ class ReceiptParser(
             "שעה",
         )
 
+        /**
+         * One money amount, with an optional currency mark on either side.
+         *
+         * The comma-grouped alternative takes `+`, not `*`, and that one
+         * character is the difference between reading a receipt and misreading
+         * it. Alternation is ordered: with `*` the grouped branch matched a bare
+         * `5310.00` as its first three digits and the engine accepted it without
+         * ever trying the plain branch, so **every total of a thousand or more
+         * written without a thousands separator was truncated to a tenth of
+         * itself** — 5310.00 read as 531, 4500.00 as 450, 12345.67 as 123 — with
+         * the decimals silently dropped. Israeli thermal printers commonly omit
+         * the separator, so this hit exactly the large receipts worth claiming.
+         * Requiring a real comma group sends those to the plain branch instead.
+         *
+         * The trailing guard stops a partial match being accepted where the
+         * number runs on past two decimal places.
+         */
         private val AMOUNT_PATTERN = Regex(
-            """(?<![\d.])(?:₪|ILS|NIS|\$|€|£)?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\s*(?:₪|ILS|NIS|\$|€|£)?""",
+            """(?<![\d.])(?:₪|ILS|NIS|\$|€|£)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?!\d)\s*(?:₪|ILS|NIS|\$|€|£)?""",
             RegexOption.IGNORE_CASE,
         )
 

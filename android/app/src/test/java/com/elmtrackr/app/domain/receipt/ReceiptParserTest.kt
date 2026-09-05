@@ -202,6 +202,168 @@ class ReceiptParserTest {
         assertEquals("ILS", result.currency)
     }
 
+    // ── Amounts of a thousand and up ──────────────────────────────────────────
+
+    /**
+     * The worst of the lot, and it was one character of regex.
+     *
+     * `AMOUNT_PATTERN` offered a comma-grouped branch before a plain one, and the
+     * grouped branch allowed *zero* groups — so on a bare `5310.00` it matched
+     * `531` and the engine accepted it without ever trying the plain branch.
+     * Every total of a thousand or more written without a thousands separator was
+     * read as roughly a tenth of itself, decimals discarded, with no sign that
+     * anything had gone wrong. Israeli thermal printers routinely omit the
+     * separator, so this hit precisely the large receipts worth claiming.
+     */
+    @Test
+    fun `a four figure total without a thousands separator is read whole`() {
+        val text = """
+            מוסך מרכזי
+            סה"כ לתשלום 5310.00 ₪
+        """.trimIndent()
+
+        val result = parser.parse(text)
+
+        assertEquals(5310.0, result.amount!!, 0.001)
+    }
+
+    @Test
+    fun `a five figure total is read whole`() {
+        val result = parser.parse("""
+            סוכנות נסיעות
+            לתשלום 12345.67
+        """.trimIndent())
+
+        assertEquals(12345.67, result.amount!!, 0.001)
+    }
+
+    /** The grouped form still parses; the branch was narrowed, not removed. */
+    @Test
+    fun `a total written with a thousands separator still parses`() {
+        val result = parser.parse("""
+            חנות רהיטים
+            סה"כ לתשלום 1,250.50
+        """.trimIndent())
+
+        assertEquals(1250.5, result.amount!!, 0.001)
+    }
+
+    // ── Tax lines ─────────────────────────────────────────────────────────────
+
+    /**
+     * The most common shape an Israeli total takes, and the parser used to
+     * penalise it.
+     *
+     * `סה"כ כולל מע"מ` carries a tax word, so a bare "מע"מ" match scored it as if
+     * it were the tax line: it survived on the largest-amount tie-break but came
+     * back at LOW confidence with `amountNearTotalKeyword = false`, which is what
+     * the merger arbitrates on — so it lost to any English "total" the Latin pass
+     * happened to find.
+     */
+    @Test
+    fun `a total stated as including vat is the total`() {
+        val text = """
+            סופר פארם
+            סה"כ לפני מע"מ 100.00
+            מע"מ 18% 18.00
+            סה"כ כולל מע"מ 118.00
+        """.trimIndent()
+
+        val result = parser.parse(text)
+
+        assertEquals(118.0, result.amount!!, 0.001)
+        assertTrue(result.amountNearTotalKeyword)
+    }
+
+    /**
+     * And the pre-tax line is still not the total, even though it also says
+     * סה"כ. Here the item costs more than the tax-exclusive subtotal is worth
+     * confusing it with, so the largest-amount tie-break cannot rescue the
+     * answer — only reading the qualifier does.
+     */
+    @Test
+    fun `the pre-tax subtotal loses to the tax-inclusive total`() {
+        val text = """
+            אלקטרוניקה
+            מקרר 4500.00
+            סה"כ לפני מע"מ 4500.00
+            מע"מ 18% 810.00
+            סה"כ כולל מע"מ 5310.00
+        """.trimIndent()
+
+        val result = parser.parse(text)
+
+        assertEquals(5310.0, result.amount!!, 0.001)
+        assertTrue(result.amountNearTotalKeyword)
+    }
+
+    // ── Hebrew the way OCR actually reads it ──────────────────────────────────
+
+    /**
+     * `ך` for `כ` is the commonest thing an OCR engine does to Hebrew receipt
+     * type, and before the final forms were folded it meant the total label was
+     * not found at all.
+     */
+    @Test
+    fun `a total label misread with a final kaf is still a total label`() {
+        val result = parser.parse("""
+            פיצריה
+            סה"ך 88.00
+        """.trimIndent())
+
+        assertEquals(88.0, result.amount!!, 0.001)
+        assertTrue(result.amountNearTotalKeyword)
+    }
+
+    @Test
+    fun `a vat line misread with a final mem is still discounted`() {
+        val result = parser.parse("""
+            מרכול
+            מע"ם 18% 12.00
+            סה"כ 78.00
+        """.trimIndent())
+
+        assertEquals(78.0, result.amount!!, 0.001)
+    }
+
+    @Test
+    fun `sum-including and charge-amount labels are recognised as totals`() {
+        listOf(
+            "בית קפה\nסכום כולל 47.00" to 47.0,
+            "חניון העיר\nסכום החיוב 32.00" to 32.0,
+            "מוסך\nיתרה לתשלום 250.00" to 250.0,
+        ).forEach { (text, expected) ->
+            val result = parser.parse(text)
+            assertEquals(text, expected, result.amount!!, 0.001)
+            assertTrue(text, result.amountNearTotalKeyword)
+        }
+    }
+
+    /**
+     * "שח" sits inside ordinary Hebrew words — משחק, שחור, משחקייה — and was
+     * matched as a substring, so a shop with one in its name declared every
+     * receipt priced in shekels whatever it actually said.
+     */
+    @Test
+    fun `a merchant name containing the shekel letters is not a currency`() {
+        val result = parser.parse("""
+            משחקיית הילדים
+            Total 45.00
+        """.trimIndent())
+
+        assertNull(result.currency)
+    }
+
+    @Test
+    fun `the shekel word as a whole token is still a currency`() {
+        val result = parser.parse("""
+            חנות הספרים
+            לתשלום 55 שח
+        """.trimIndent())
+
+        assertEquals("ILS", result.currency)
+    }
+
     @Test
     fun `parse receipt without amount still extracts merchant and date`() {
         val text = """
