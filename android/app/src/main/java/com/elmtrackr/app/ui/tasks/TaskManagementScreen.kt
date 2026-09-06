@@ -173,6 +173,9 @@ internal fun TaskManagementContent(
                         AuroraHaptics.destructive(haptic)
                         onDelete(candidate.id)
                         deleteCandidate = null
+                        // The task is gone; the editor behind the dialog cannot
+                        // stay open on it.
+                        editingId = null
                     },
                 ) { Text(stringResource(R.string.tasks_delete), color = MaterialTheme.colorScheme.error) }
             },
@@ -200,6 +203,16 @@ internal fun TaskManagementContent(
                     onArchive(id)
                     editingId = null
                 }
+            },
+            // Delete used to exist only inside the Archived card — which is
+            // collapsed, and which does not appear at all until something has
+            // been archived. So removing a task meant opening it, archiving it,
+            // closing, finding a card that had just appeared, expanding it, and
+            // deleting from there. Anyone who did not guess that chain concluded
+            // tasks cannot be deleted, and they were right in every way that
+            // matters.
+            onDelete = editingId?.let { id ->
+                { state.tasks.firstOrNull { it.id == id }?.let { deleteCandidate = it } }
             },
         )
     }
@@ -478,6 +491,7 @@ private fun TaskEditorSheet(
     onDismiss: () -> Unit,
     onSave: (name: String, icon: String, color: String?, rate: Double) -> Unit,
     onArchive: (() -> Unit)?,
+    onDelete: (() -> Unit)? = null,
 ) {
     var name by remember(task?.id) { mutableStateOf(task?.name.orEmpty()) }
     var icon by remember(task?.id) { mutableStateOf(task?.icon ?: TASK_EMOJI_OPTIONS.first()) }
@@ -566,11 +580,22 @@ private fun TaskEditorSheet(
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.tasks_save), fontWeight = FontWeight.SemiBold) }
-            // The reversible path: archiving lives in the editor, not on the row.
+            // Both ways out of a task, in the order they should be reached for.
+            // Archiving is reversible and keeps the task on old shifts, so it
+            // leads and is the neutral one; deleting is neither, so it sits
+            // below in the error colour and behind a confirmation.
             onArchive?.let {
                 TextButton(onClick = it, modifier = Modifier.fillMaxWidth().padding(top = Spacing.s4)) {
                     Text(
                         stringResource(R.string.tasks_archive_task),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+            onDelete?.let {
+                TextButton(onClick = it, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        stringResource(R.string.tasks_delete),
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.SemiBold,
                     )
