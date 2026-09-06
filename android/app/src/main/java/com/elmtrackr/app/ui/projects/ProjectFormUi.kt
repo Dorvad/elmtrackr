@@ -8,14 +8,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -44,8 +49,10 @@ import com.elmtrackr.app.domain.projects.ProjectFormInput
 import com.elmtrackr.app.domain.projects.ProjectFormValidator
 import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.design.ElmGradientButton
+import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
 import com.elmtrackr.app.ui.settings.SettingsDetailHeader
 import com.elmtrackr.app.ui.theme.CornerRadius
+import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.Spacing
 import java.time.LocalDate
 import java.util.Currency
@@ -187,26 +194,26 @@ fun ProjectFormScreen(
             }
         }
 
+        // Everything about the money, in one card and in the order the questions
+        // come: what currency, which figure you know, the figure, whether tax is
+        // added, and what that comes to. Tax used to be a card of its own — a
+        // whole white box for one switch, sitting below the amount it changes
+        // and above the breakdown that depends on it.
         item {
             ProjectSectionCard(stringResource(R.string.project_form_section_amount)) {
-                ProjectInfoRow(
+                ProjectPickerRow(
                     label = stringResource(R.string.project_form_currency),
                     value = currencyCode,
-                    emphasis = true,
-                )
-                OutlinedButton(
+                    placeholder = "",
                     onClick = { showCurrencyPicker = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(stringResource(R.string.project_form_currency_change)) }
-                errorFor(ProjectFormField.CURRENCY)?.let {
-                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-                }
-                Spacer(Modifier.height(Spacing.xs))
+                    error = errorFor(ProjectFormField.CURRENCY),
+                )
                 ProjectNoteText(
                     stringResource(
                         R.string.project_form_currency_note,
                         BidiText.isolate(currencyCode),
                     ),
+                    modifier = Modifier.padding(horizontal = Spacing.sm),
                 )
 
                 Spacer(Modifier.height(Spacing.md))
@@ -216,80 +223,46 @@ fun ProjectFormScreen(
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.height(Spacing.xs))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    ProjectAmountEntryMode.entries.forEach { mode ->
-                        val selected = mode.name == entryModeName
-                        Card(
-                            onClick = { entryModeName = mode.name },
-                            modifier = Modifier.weight(1f).then(
-                                if (selected) {
-                                    Modifier.border(
-                                        2.dp,
-                                        MaterialTheme.colorScheme.primary,
-                                        RoundedCornerShape(CornerRadius.Medium),
-                                    )
-                                } else {
-                                    Modifier
-                                },
-                            ),
-                            shape = RoundedCornerShape(CornerRadius.Medium),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (selected) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                },
-                            ),
-                        ) {
-                            Text(
-                                text = stringResource(
-                                    if (mode == ProjectAmountEntryMode.FEE_BEFORE_TAX) {
-                                        R.string.project_form_entry_fee
-                                    } else {
-                                        R.string.project_form_entry_total
-                                    },
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(12.dp),
-                            )
-                        }
-                    }
-                }
+                // The house segmented control rather than two bordered cards.
+                // The cards were the size of buttons for a choice between two
+                // words, and the selected one repeated, verbatim, the label of
+                // the field directly beneath it.
+                val modes = ProjectAmountEntryMode.entries
+                ElmSegmentedPillRow(
+                    options = modes.map { mode ->
+                        stringResource(
+                            if (mode == ProjectAmountEntryMode.FEE_BEFORE_TAX) {
+                                R.string.project_form_entry_fee
+                            } else {
+                                R.string.project_form_entry_total
+                            },
+                        )
+                    },
+                    selectedIndex = modes.indexOfFirst { it.name == entryModeName }.coerceAtLeast(0),
+                    onSelect = { entryModeName = modes[it].name },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
                 Spacer(Modifier.height(Spacing.sm))
+                // Labelled by its currency, not by the mode: the control above
+                // already says which amount this is, and the breakdown below
+                // names both in full.
                 ProjectTextField(
                     value = amountText,
                     onValueChange = { amountText = it.decimalOnly() },
                     label = stringResource(
-                        if (input.entryMode == ProjectAmountEntryMode.CLIENT_TOTAL) {
-                            R.string.project_form_amount_total_label
-                        } else {
-                            R.string.project_form_amount_fee_label
-                        },
+                        R.string.project_form_amount_in,
+                        BidiText.isolate(currencyCode),
                     ),
                     error = errorFor(ProjectFormField.AMOUNT),
                     keyboardType = KeyboardType.Decimal,
                 )
 
-                input.feePreview()?.let { fee ->
-                    Spacer(Modifier.height(Spacing.md))
-                    Text(
-                        stringResource(R.string.project_form_breakdown_title),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    ProjectFeeBreakdown(fee)
-                }
-            }
-        }
-
-        item {
-            ProjectSectionCard(stringResource(R.string.project_form_section_tax)) {
+                Spacer(Modifier.height(Spacing.xs))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         stringResource(R.string.project_form_tax_enabled),
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
                     Switch(checked = taxEnabled, onCheckedChange = { taxEnabled = it })
@@ -298,48 +271,64 @@ fun ProjectFormScreen(
                 // rate fields stay out of the way entirely.
                 if (taxEnabled) {
                     Spacer(Modifier.height(Spacing.sm))
-                    ProjectTextField(
-                        value = taxLabel,
-                        onValueChange = { taxLabel = it },
-                        label = stringResource(R.string.project_form_tax_label),
-                        placeholder = stringResource(R.string.project_form_tax_label_hint),
-                    )
-                    Spacer(Modifier.height(Spacing.sm))
-                    ProjectTextField(
-                        value = taxRateText,
-                        onValueChange = { taxRateText = it.decimalOnly() },
-                        label = stringResource(R.string.project_form_tax_rate),
-                        error = errorFor(ProjectFormField.TAX_RATE),
-                        keyboardType = KeyboardType.Decimal,
-                    )
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        ProjectTextField(
+                            value = taxLabel,
+                            onValueChange = { taxLabel = it },
+                            label = stringResource(R.string.project_form_tax_label),
+                            placeholder = stringResource(R.string.project_form_tax_label_hint),
+                            modifier = Modifier.weight(1.4f),
+                        )
+                        ProjectTextField(
+                            value = taxRateText,
+                            onValueChange = { taxRateText = it.decimalOnly() },
+                            label = stringResource(R.string.project_form_tax_rate),
+                            error = errorFor(ProjectFormField.TAX_RATE),
+                            keyboardType = KeyboardType.Decimal,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                     Spacer(Modifier.height(Spacing.xs))
                     ProjectNoteText(stringResource(R.string.project_form_tax_note))
+                }
+
+                // No heading. Three labelled amounts directly under the field
+                // that produces them do not need a word above them saying they
+                // are a breakdown.
+                input.feePreview()?.let { fee ->
+                    Spacer(Modifier.height(Spacing.sm))
+                    ProjectFeeBreakdown(fee)
                 }
             }
         }
 
         item {
             ProjectSectionCard(stringResource(R.string.project_form_section_time)) {
-                ProjectTextField(
-                    value = hourBudgetText,
-                    onValueChange = { hourBudgetText = it.decimalOnly() },
-                    label = stringResource(R.string.project_form_hour_budget),
-                    error = errorFor(ProjectFormField.HOUR_BUDGET),
-                    keyboardType = KeyboardType.Decimal,
-                )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    ProjectTextField(
+                        value = hourBudgetText,
+                        onValueChange = { hourBudgetText = it.decimalOnly() },
+                        label = stringResource(R.string.project_form_hour_budget),
+                        error = errorFor(ProjectFormField.HOUR_BUDGET),
+                        keyboardType = KeyboardType.Decimal,
+                        modifier = Modifier.weight(1f),
+                    )
+                    ProjectTextField(
+                        value = targetRateText,
+                        onValueChange = { targetRateText = it.decimalOnly() },
+                        label = stringResource(R.string.project_form_target_rate),
+                        error = errorFor(ProjectFormField.TARGET_RATE),
+                        keyboardType = KeyboardType.Decimal,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 Spacer(Modifier.height(Spacing.sm))
-                ProjectTextField(
-                    value = targetRateText,
-                    onValueChange = { targetRateText = it.decimalOnly() },
-                    label = stringResource(R.string.project_form_target_rate),
-                    error = errorFor(ProjectFormField.TARGET_RATE),
-                    keyboardType = KeyboardType.Decimal,
-                )
-            }
-        }
-
-        item {
-            ProjectSectionCard(stringResource(R.string.project_form_section_dates)) {
                 ProjectDateRow(
                     label = stringResource(R.string.project_form_start_date),
                     date = input.startDate,
@@ -386,6 +375,7 @@ internal fun ProjectTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
+    modifier: Modifier = Modifier,
     error: String? = null,
     placeholder: String? = null,
     singleLine: Boolean = true,
@@ -394,7 +384,7 @@ internal fun ProjectTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         label = { Text(label) },
         placeholder = placeholder?.let { { Text(it) } },
         supportingText = error?.let { { Text(it) } },
@@ -405,8 +395,13 @@ internal fun ProjectTextField(
 }
 
 /**
- * Date row with a plain picker dialog and a clear action, so an optional date
- * can be removed as easily as it is set.
+ * One date, as a row that is itself the control.
+ *
+ * It used to print its own label twice — once beside the value and again as the
+ * text button that opened the picker — so a blank form read "Start date / Not
+ * set … Start date", and the only thing that looked tappable was the copy that
+ * said nothing about what tapping would do. Now the row opens the picker and
+ * Clear appears only once there is something to clear.
  */
 @Composable
 internal fun ProjectDateRow(
@@ -426,29 +421,31 @@ internal fun ProjectDateRow(
             onDismiss = { showPicker = false },
         )
     }
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                text = date?.formattedMedium() ?: stringResource(R.string.project_form_date_none),
-                style = MaterialTheme.typography.bodySmall,
-                color = if (error != null) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            )
-            error?.let {
-                Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+    ProjectPickerRow(
+        label = label,
+        value = date?.formattedMedium(),
+        placeholder = stringResource(R.string.project_form_date_none),
+        onClick = { showPicker = true },
+        error = error,
+        trailing = if (date == null) {
+            null
+        } else {
+            {
+                val clearLabel = stringResource(R.string.project_form_date_clear_a11y, label)
+                IconButton(
+                    onClick = { onChange(null) },
+                    modifier = Modifier.size(Layout.minTouchTarget),
+                ) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = clearLabel,
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(Layout.inlineIcon),
+                    )
+                }
             }
-        }
-        TextButton(onClick = { showPicker = true }) { Text(label) }
-        if (date != null) {
-            TextButton(onClick = { onChange(null) }) {
-                Text(stringResource(R.string.project_form_date_clear))
-            }
-        }
-    }
+        },
+    )
 }
 
 /** Searchable ISO 4217 picker; the app's own currencies float to the top. */
@@ -498,7 +495,10 @@ internal fun CurrencyPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.project_form_date_clear)) }
+            // Was the *date* clear string, so the currency picker's only button
+            // read "Clear" — which sounds like it empties the field it is
+            // attached to rather than closing the dialog.
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.project_form_cancel)) }
         },
     )
 }

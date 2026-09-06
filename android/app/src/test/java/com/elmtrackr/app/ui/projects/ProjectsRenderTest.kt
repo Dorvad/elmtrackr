@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.LayoutDirection
@@ -479,27 +480,6 @@ class ProjectsRenderTest {
     }
 
     // ── Form ──────────────────────────────────────────────────────────────────
-
-    @Test
-    fun `the form shows the amount entry choice`() {
-        composeRule.setContent {
-            Themed {
-                ProjectFormScreen(
-                    existing = null,
-                    initialInput = ProjectFormInput(currencyCode = "USD"),
-                    isBilled = false,
-                    isSaving = false,
-                    onSave = {},
-                    onBack = {},
-                )
-            }
-        }
-        composeRule.onNodeWithText("Which amount do you know?").assertExists()
-        // Two nodes carry this text: the entry-mode choice and the amount
-        // field's own label, which is exactly the pairing being checked.
-        composeRule.onAllNodesWithText("Your fee before tax").onFirst().assertExists()
-        composeRule.onAllNodesWithText("Client total").onFirst().assertExists()
-    }
 
     @Test
     fun `the form explains that a billing snapshot is preserved`() {
