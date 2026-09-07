@@ -66,7 +66,9 @@ class PaidProjectsJourneyTest {
     }
     private val userProvider = FakeCurrentUserProvider("u1")
 
-    private fun buildVm() = ProjectsViewModel(projectsRepo, settingsRepo, shiftsRepo, userProvider)
+    private val discovery = com.elmtrackr.app.fake.FakeFeatureDiscoveryPreferences()
+
+    private fun buildVm() = ProjectsViewModel(projectsRepo, settingsRepo, shiftsRepo, userProvider, discovery)
 
     private fun settings(
         paidProjects: Boolean,

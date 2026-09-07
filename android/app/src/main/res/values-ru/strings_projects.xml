@@ -111,38 +111,35 @@
     <string name="project_form_new_title">Новый проект</string>
     <string name="project_form_edit_title">Изменить проект</string>
     <string name="project_form_section_basics">Проект</string>
-    <string name="project_form_section_amount">Сумма</string>
-    <string name="project_form_section_tax">Налог</string>
-    <string name="project_form_section_time">Время и цели</string>
-    <string name="project_form_section_dates">Даты</string>
+    <string name="project_form_section_amount">Цена</string>
+    <string name="project_form_section_time">Сроки и даты</string>
     <string name="project_form_section_notes">Заметки</string>
     <string name="project_form_name">Название проекта</string>
     <string name="project_form_client">Имя клиента</string>
     <string name="project_form_description">Описание</string>
     <string name="project_form_notes">Заметки</string>
     <string name="project_form_currency">Валюта</string>
-    <string name="project_form_currency_change">Сменить валюту</string>
+    <string name="project_form_amount_in">Сумма в %1$s</string>
+    <string name="project_form_cancel">Закрыть</string>
     <string name="project_form_currency_note">ElmTrackr не конвертирует валюты. Платежи по этому проекту нужно записывать в %1$s.</string>
     <string name="project_form_currency_search">Поиск по коду валюты</string>
     <string name="project_form_entry_mode">Какая сумма вам известна?</string>
-    <string name="project_form_entry_fee">Ваш гонорар до налога</string>
-    <string name="project_form_entry_total">Итог для клиента</string>
-    <string name="project_form_amount_fee_label">Ваш гонорар до налога</string>
-    <string name="project_form_amount_total_label">Итог для клиента</string>
+    <string name="project_form_entry_fee">Гонорар без налога</string>
+    <string name="project_form_entry_total">Итого клиенту</string>
     <string name="project_form_tax_enabled">Добавить налог к этому проекту</string>
     <string name="project_form_tax_label">Название налога</string>
     <string name="project_form_tax_label_hint">НДС</string>
     <string name="project_form_tax_rate">Ставка налога (%)</string>
     <string name="project_form_tax_note">Ваши собственные название и ставка. ElmTrackr не определяет, какой налог применим, и не даёт налоговых консультаций.</string>
     <string name="project_form_hour_budget">Бюджет часов</string>
-    <string name="project_form_target_rate">Целевая почасовая ставка</string>
+    <string name="project_form_target_rate">Целевая ставка</string>
     <string name="project_form_start_date">Дата начала</string>
     <string name="project_form_deadline">Срок сдачи</string>
     <string name="project_form_date_none">Не задано</string>
     <string name="project_form_date_clear">Очистить</string>
+    <string name="project_form_date_clear_a11y">Очистить: %1$s</string>
     <string name="project_form_save">Сохранить проект</string>
     <string name="project_form_billed_warning">По этому проекту уже записан выставленный счёт. Изменение суммы затронет только проект — счёт сохранит сумму, на которую был выставлен. Исправьте её в разделе «Счета».</string>
-    <string name="project_form_breakdown_title">Расшифровка</string>
 
     <!-- Amounts -->
     <string name="project_amount_base">Ваш гонорар до налога</string>
@@ -174,13 +171,20 @@
     <string name="project_detail_billing_reference">Внешний номер счёта</string>
     <string name="project_detail_billed_on">Счёт выставлен</string>
     <string name="project_detail_due_on">Срок оплаты</string>
+    <string name="project_detail_due_status">Статус</string>
     <string name="project_detail_payments">Платежи</string>
     <string name="project_detail_payment_count">платежей: %1$d</string>
     <string name="project_detail_no_billing">Выставленный счёт ещё не записан.</string>
     <string name="project_detail_billing_disclaimer">ElmTrackr не выставляет официальных счетов. Запишите номер счёта, который вы выставили в другом месте.</string>
     <string name="project_detail_no_time_yet">По этому проекту время ещё не учитывалось.</string>
     <string name="project_detail_time_pending">Отметьте приход и выберите этот проект, чтобы учитывать по нему время.</string>
-    <string name="project_detail_shift_count">смен: %1$d</string>
+    <string name="project_detail_shifts">Смены</string>
+    <plurals name="project_detail_shift_count">
+        <item quantity="one">%1$d смена</item>
+        <item quantity="few">%1$d смены</item>
+        <item quantity="many">%1$d смен</item>
+        <item quantity="other">%1$d смены</item>
+    </plurals>
     <string name="project_detail_budget_used">израсходовано %1$s из %2$s</string>
     <string name="project_detail_no_description">Описания нет.</string>
     <string name="project_detail_not_set">Не задано</string>
@@ -439,4 +443,34 @@
     <string name="project_delete_shifts_kept">Смены (%1$d, %2$s ч) сохранят свои часы и станут обычной оплачиваемой работой.</string>
     <string name="project_delete_billing_lost">Записи о счетах и платежах по этому проекту будут удалены.</string>
     <string name="project_delete_archive_hint">Чтобы проект остался в отчётах и не удалялся, отправьте его в архив.</string>
+
+    <!-- Projects tab guide -->
+    <string name="projects_guide_step">Шаг %1$d из %2$d</string>
+    <string name="projects_guide_skip">Пропустить</string>
+    <string name="projects_guide_back">Назад</string>
+    <string name="projects_guide_next">Далее</string>
+    <string name="projects_guide_done">Готово</string>
+    <string name="projects_guide_create">Создать первый проект</string>
+    <string name="projects_guide_footer">Это руководство можно открыть заново вверху списка проектов.</string>
+    <string name="projects_guide_open">Как работают проекты</string>
+
+    <string name="projects_guide_setup_title">Начните с согласованной цены</string>
+    <string name="projects_guide_setup_body">Проект — это одна работа с фиксированной ценой: клиент, согласованный гонорар и налог, если вы его берёте. Введите гонорар без налога или сумму, которую платит клиент, — ElmTrackr рассчитает остальные две и не даст им разойтись.</string>
+    <string name="projects_guide_setup_note">Валюты не конвертируются. Проект оценивается, выставляется и оплачивается в одной валюте.</string>
+    <string name="projects_guide_setup_a11y">Карточка проекта заполняется: клиент, затем согласованный гонорар, сверху налог, ниже — сумма клиента, равная гонорару и налогу вместе.</string>
+
+    <string name="projects_guide_track_title">Отмечайтесь как обычно</string>
+    <string name="projects_guide_track_body">Часы проекта — не отдельный таймер. На главном экране переключитесь с «Почасовой работы» на «Время проекта», выберите проект и начните смену. Часы попадут в проект после её завершения.</string>
+    <string name="projects_guide_track_note">Время проекта никогда не идёт в зарплату и переработки, а почасовая работа никогда не идёт в проект.</string>
+    <string name="projects_guide_track_a11y">Переключатель на главном экране сдвигается с «Почасовой работы» на «Время проекта», загорается чип проекта, идёт смена, и её часы наполняют проект.</string>
+
+    <string name="projects_guide_rate_title">Узнайте, сколько цена платит на деле</string>
+    <string name="projects_guide_rate_body">Фактическая ставка — это гонорар без налога, делённый на все часы проекта. Гонорар не меняется, поэтому чем дольше работа, тем ниже ставка. Она появляется, когда накопятся часы.</string>
+    <string name="projects_guide_rate_note">Задайте бюджет часов — полоса покажет, сколько из него израсходовано. Это до вычетов: подоходный налог и расходы ещё впереди.</string>
+    <string name="projects_guide_rate_a11y">Полоса фиксированного гонорара над растущим рядом часов, а маркер под ними скользит вниз по шкале.</string>
+
+    <string name="projects_guide_billing_title">Выставьте счёт и следите за оплатой</string>
+    <string name="projects_guide_billing_body">Выставив счёт, отметьте проект как выставленный. Это фиксирует выставленную сумму, поэтому позднейшая правка проекта не изменит уже отправленный счёт. Записывайте каждый платёж — остаток пересчитается сам.</string>
+    <string name="projects_guide_billing_note">После срока оплаты проект помечается как просроченный и может напомнить о себе. ElmTrackr не выпускает счета — запишите номер счёта, выставленного в другом месте.</string>
+    <string name="projects_guide_billing_a11y">Выставленная сумма фиксируется, приходят два платежа, полоса остатка уменьшается с каждым, а затем становится оранжевой, когда проходит срок оплаты.</string>
 </resources>

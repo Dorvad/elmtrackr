@@ -41,5 +41,9 @@ class FreeClockFacePackStore @Inject constructor() : ClockFacePackStore {
 
     override suspend fun launchAllPacksPurchase(activity: Activity) = Unit
 
-    override suspend fun refresh() = Unit
+    /**
+     * Nothing to restore: every pack is already owned and no Play account is
+     * consulted, so a restore here has nothing it could recover.
+     */
+    override suspend fun refresh(): PackRestoreResult = PackRestoreResult.NothingRestored
 }

@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.projects
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,14 +8,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -31,7 +38,10 @@ import com.elmtrackr.app.domain.money.MoneyFormat
 import com.elmtrackr.app.domain.money.ProjectFee
 import com.elmtrackr.app.domain.projects.ProjectBillingStatus
 import com.elmtrackr.app.domain.text.BidiText
+import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.ui.design.ElmCard
+import com.elmtrackr.app.ui.theme.CornerRadius
+import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -280,6 +290,85 @@ fun ProjectSectionCard(
 
 /** Alias so callers do not need to import ColumnScope explicitly. */
 typealias ColumnScopeAlias = androidx.compose.foundation.layout.ColumnScope
+
+/**
+ * A field whose value is chosen from a dialog rather than typed: label on the
+ * left, current value on the right, the whole row the control.
+ *
+ * Replaces two shapes the form used to carry. The currency was a read-only row
+ * followed by a full-width "Change currency" button — four stacked elements for
+ * one rarely-touched field. Each date was a label, its value, *and a text button
+ * repeating the same label*, so "Start date" appeared twice in one row and the
+ * thing to tap was the copy that did not look like a value.
+ *
+ * One tap target for the whole row, which is also the larger one, and the value
+ * reads where every other value on these screens reads — see [ProjectInfoRow],
+ * whose proportions this deliberately matches.
+ *
+ * @param trailing an extra action beside the chevron. Used for "Clear" on an
+ *   optional date, which needs to be as easy to undo as it was to set.
+ */
+@Composable
+fun ProjectPickerRow(
+    label: String,
+    value: String?,
+    onClick: () -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    error: String? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    val shown = value ?: placeholder
+    val spoken = stringResource(R.string.project_a11y_row, label, shown)
+    Column(modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(CornerRadius.Small))
+                .clickable(onClick = onClick)
+                .heightIn(min = Layout.minTouchTarget)
+                .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                .semantics(mergeDescendants = true) { contentDescription = spoken },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = shown,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (value != null) FontWeight.Bold else FontWeight.Normal,
+                color = when {
+                    error != null -> MaterialTheme.colorScheme.error
+                    value != null -> MaterialTheme.colorScheme.onSurface
+                    else -> MaterialTheme.colorScheme.outline
+                },
+                textAlign = TextAlign.End,
+            )
+            // Inside the row, before the chevron: a Clear on its own line below
+            // reads as a second control rather than as part of this one, and
+            // costs a line of height per date.
+            trailing?.invoke()
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(Layout.inlineIcon).mirrorInRtl(),
+            )
+        }
+        error?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(start = Spacing.sm),
+            )
+        }
+    }
+}
 
 @Composable
 fun ProjectNoteText(text: String, modifier: Modifier = Modifier) {

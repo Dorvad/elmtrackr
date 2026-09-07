@@ -111,38 +111,35 @@
     <string name="project_form_new_title">مشروع جديد</string>
     <string name="project_form_edit_title">تعديل المشروع</string>
     <string name="project_form_section_basics">المشروع</string>
-    <string name="project_form_section_amount">المبلغ</string>
-    <string name="project_form_section_tax">الضريبة</string>
-    <string name="project_form_section_time">الوقت والأهداف</string>
-    <string name="project_form_section_dates">التواريخ</string>
+    <string name="project_form_section_amount">السعر</string>
+    <string name="project_form_section_time">الوقت والتواريخ</string>
     <string name="project_form_section_notes">ملاحظات</string>
     <string name="project_form_name">اسم المشروع</string>
     <string name="project_form_client">اسم العميل</string>
     <string name="project_form_description">الوصف</string>
     <string name="project_form_notes">ملاحظات</string>
     <string name="project_form_currency">العملة</string>
-    <string name="project_form_currency_change">تغيير العملة</string>
+    <string name="project_form_amount_in">المبلغ بـ%1$s</string>
+    <string name="project_form_cancel">إغلاق</string>
     <string name="project_form_currency_note">لا يحوّل ‏ElmTrackr بين العملات. ويجب تسجيل مدفوعات هذا المشروع بعملة %1$s.</string>
     <string name="project_form_currency_search">ابحث برمز العملة</string>
     <string name="project_form_entry_mode">أي مبلغ تعرفه؟</string>
-    <string name="project_form_entry_fee">أتعابك قبل الضريبة</string>
-    <string name="project_form_entry_total">الإجمالي المستحق على العميل</string>
-    <string name="project_form_amount_fee_label">أتعابك قبل الضريبة</string>
-    <string name="project_form_amount_total_label">الإجمالي المستحق على العميل</string>
+    <string name="project_form_entry_fee">الأتعاب قبل الضريبة</string>
+    <string name="project_form_entry_total">إجمالي العميل</string>
     <string name="project_form_tax_enabled">إضافة ضريبة إلى هذا المشروع</string>
     <string name="project_form_tax_label">تسمية الضريبة</string>
     <string name="project_form_tax_label_hint">ضريبة القيمة المضافة</string>
     <string name="project_form_tax_rate">نسبة الضريبة (%)</string>
     <string name="project_form_tax_note">تسميتك ونسبتك الخاصتان. ولا يحدّد ‏ElmTrackr أي ضريبة تنطبق ولا يقدّم استشارات ضريبية.</string>
     <string name="project_form_hour_budget">ميزانية الساعات</string>
-    <string name="project_form_target_rate">الأجر المستهدف بالساعة</string>
+    <string name="project_form_target_rate">الأجر المستهدف</string>
     <string name="project_form_start_date">تاريخ البداية</string>
     <string name="project_form_deadline">الموعد النهائي</string>
     <string name="project_form_date_none">غير محدَّد</string>
     <string name="project_form_date_clear">محو</string>
+    <string name="project_form_date_clear_a11y">مسح %1$s</string>
     <string name="project_form_save">حفظ المشروع</string>
     <string name="project_form_billed_warning">لهذا المشروع طلب فاتورة مسجَّل. وتغيير المبلغ يحدّث المشروع وحده — أما طلب الفاتورة فيحتفظ بالمبلغ الذي أُرسل به. صحّحه من قسم الفواتير.</string>
-    <string name="project_form_breakdown_title">التفصيل</string>
 
     <!-- Amounts -->
     <string name="project_amount_base">أتعابك قبل الضريبة</string>
@@ -174,13 +171,22 @@
     <string name="project_detail_billing_reference">مرجع فاتورة خارجي</string>
     <string name="project_detail_billed_on">أُرسلت الفاتورة في</string>
     <string name="project_detail_due_on">تاريخ السداد</string>
+    <string name="project_detail_due_status">الحالة</string>
     <string name="project_detail_payments">المدفوعات</string>
     <string name="project_detail_payment_count">%1$d مدفوعات</string>
     <string name="project_detail_no_billing">لم يُسجَّل طلب فاتورة بعد.</string>
     <string name="project_detail_billing_disclaimer">لا يُنشئ ‏ElmTrackr فواتير رسمية. سجّل مرجعًا من الفاتورة التي أصدرتها في مكان آخر.</string>
     <string name="project_detail_no_time_yet">لم يُتتبَّع وقت على هذا المشروع بعد.</string>
     <string name="project_detail_time_pending">سجّل الحضور واختر هذا المشروع لتتبّع الوقت عليه.</string>
-    <string name="project_detail_shift_count">%1$d مناوبات</string>
+    <string name="project_detail_shifts">المناوبات</string>
+    <plurals name="project_detail_shift_count">
+        <item quantity="zero">لا مناوبات</item>
+        <item quantity="one">مناوبة واحدة</item>
+        <item quantity="two">مناوبتان</item>
+        <item quantity="few">%1$d مناوبات</item>
+        <item quantity="many">%1$d مناوبة</item>
+        <item quantity="other">%1$d مناوبة</item>
+    </plurals>
     <string name="project_detail_budget_used">استُخدم %1$s من %2$s</string>
     <string name="project_detail_no_description">لا وصف.</string>
     <string name="project_detail_not_set">غير محدَّد</string>
@@ -439,4 +445,34 @@
     <string name="project_delete_shifts_kept">‏%1$d مناوبات (‏%2$s س) تحتفظ بساعاتها وتصبح عملًا مدفوعًا عاديًا.</string>
     <string name="project_delete_billing_lost">تُحذف سجلات الفواتير والمدفوعات الخاصة بهذا المشروع.</string>
     <string name="project_delete_archive_hint">للإبقاء على المشروع في التقارير دون حذفه، أرشِفه بدلًا من ذلك.</string>
+
+    <!-- Projects tab guide -->
+    <string name="projects_guide_step">الخطوة %1$d من %2$d</string>
+    <string name="projects_guide_skip">تخطٍ</string>
+    <string name="projects_guide_back">رجوع</string>
+    <string name="projects_guide_next">التالي</string>
+    <string name="projects_guide_done">تم</string>
+    <string name="projects_guide_create">أنشئ مشروعك الأول</string>
+    <string name="projects_guide_footer">يمكنك فتح هذا الدليل مجددًا في أي وقت من أعلى قائمة المشاريع.</string>
+    <string name="projects_guide_open">كيف تعمل المشاريع</string>
+
+    <string name="projects_guide_setup_title">ابدأ بالسعر المتفق عليه</string>
+    <string name="projects_guide_setup_body">المشروع عمل واحد بسعر ثابت: العميل، والأتعاب المتفق عليها، والضريبة إن كنت تحصّلها. أدخل أتعابك قبل الضريبة أو الإجمالي الذي يدفعه العميل — ويحسب ElmTrackr القيمتين الأخريين ويبقيها متطابقة.</string>
+    <string name="projects_guide_setup_note">لا يجري تحويل العملات. يُسعَّر المشروع ويُفوتر ويُدفع بعملة واحدة.</string>
+    <string name="projects_guide_setup_a11y">بطاقة مشروع تُملأ: العميل، ثم الأتعاب المتفق عليها، ثم الضريبة فوقها، ثم إجمالي العميل تحتها — الأتعاب والضريبة معًا.</string>
+
+    <string name="projects_guide_track_title">سجّل الدخول كالمعتاد تمامًا</string>
+    <string name="projects_guide_track_body">ساعات المشروع ليست مؤقتًا منفصلًا. في الشاشة الرئيسية بدّل من «عمل بالساعة» إلى «وقت مشروع»، واختر المشروع، وابدأ الوردية. تُضاف الساعات إلى المشروع عند انتهاء الوردية.</string>
+    <string name="projects_guide_track_note">وقت المشروع لا يُحتسب أبدًا ضمن أجرك أو ساعاتك الإضافية، والعمل بالساعة لا يُحتسب أبدًا لمشروع.</string>
+    <string name="projects_guide_track_a11y">مفتاح الشاشة الرئيسية ينتقل من «عمل بالساعة» إلى «وقت مشروع»، وتُضاء بطاقة مشروع، وتعمل وردية وتملأ ساعاتها المشروع.</string>
+
+    <string name="projects_guide_rate_title">اعرف ما يدفعه السعر فعلًا</string>
+    <string name="projects_guide_rate_body">أجرك الفعلي هو الأتعاب قبل الضريبة مقسومة على كل ساعة سُجّلت في المشروع. الأتعاب ثابتة، فكلما طال العمل انخفض الأجر. يظهر بعد تسجيل بعض الوقت.</string>
+    <string name="projects_guide_rate_note">حدّد ميزانية ساعات ليظهر شريط يبيّن ما استُهلك منها. الرقم إجمالي: ضريبة الدخل والمصروفات ما زالت تُخصم منه.</string>
+    <string name="projects_guide_rate_a11y">شريط أتعاب ثابت فوق صف ساعات يستمر في النمو، بينما ينزلق المؤشر أسفله على تدرّجه.</string>
+
+    <string name="projects_guide_billing_title">فوتِر، ثم تابع ما يصل</string>
+    <string name="projects_guide_billing_body">عند إصدار الفاتورة، ضع المشروع كمُفوتَر. هذا يثبّت ما جرت فوترته، فلا يستطيع تعديل لاحق للمشروع أن يغيّر فاتورة أرسلتها. سجّل كل دفعة ويتبعها الرصيد المستحق تلقائيًا.</string>
+    <string name="projects_guide_billing_note">بعد تاريخ الاستحقاق يوسم المشروع كمتأخر ويمكنه تذكيرك. لا يصدر ElmTrackr فواتير — سجّل المرجع الذي أصدرته في مكان آخر.</string>
+    <string name="projects_guide_billing_a11y">مبلغ مفوتَر يثبت في مكانه، ودفعتان تصلان، وشريط المستحق ينكمش مع كل منهما، ثم يتحول إلى البرتقالي عند تجاوز تاريخ الاستحقاق.</string>
 </resources>

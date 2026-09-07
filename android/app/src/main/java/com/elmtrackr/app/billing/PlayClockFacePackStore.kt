@@ -135,7 +135,8 @@ class PlayClockFacePackStore @Inject constructor(
         )
     }
 
-    override suspend fun refresh() {
+    override suspend fun refresh(): PackRestoreResult {
+        var restored: Set<ClockFaceGroup> = emptySet()
         val settled = ownershipMutex.withLock {
             val details = connection.queryOneTimeProducts(ClockFacePackProducts.all)
             val purchases = connection.queryOwnedPurchases()
@@ -162,14 +163,30 @@ class PlayClockFacePackStore @Inject constructor(
             purchases
                 ?.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
                 ?.also { purchased ->
-                    purchasePreferences.setOwnedProductIds(
-                        purchased.flatMapTo(mutableSetOf()) { it.products },
+                    val reported = purchased.flatMapTo(mutableSetOf()) { it.products }
+                    // Read before the write, inside the lock: what Play has that
+                    // the cache did not is precisely what this refresh restored,
+                    // and it is the only signal that separates a reinstall from
+                    // an ordinary foreground.
+                    val cached = purchasePreferences.preferences.first().ownedProductIds
+                    restored = ClockFacePackOwnership.restoredBy(
+                        reportedProductIds = reported,
+                        cachedProductIds = cached,
                     )
+                    purchasePreferences.setOwnedProductIds(reported)
                 }
         }
         // Outside the lock: acknowledging is several round trips to Play and
         // holds nothing another writer needs.
         settled?.let { acknowledgeAll(it) }
+        // Emitted after the cache is written, so anything that reacts by reading
+        // ownership sees the grant it is reacting to.
+        if (restored.isNotEmpty()) _events.emit(PackPurchaseEvent.Restored(restored))
+        return when {
+            settled == null -> PackRestoreResult.Unavailable
+            restored.isNotEmpty() -> PackRestoreResult.Restored(restored)
+            else -> PackRestoreResult.NothingRestored
+        }
     }
 
     override suspend fun launchPurchase(activity: Activity, pack: ClockFaceGroup) {

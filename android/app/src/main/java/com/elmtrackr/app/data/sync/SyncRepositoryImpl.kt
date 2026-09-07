@@ -705,7 +705,7 @@ class SyncRepositoryImpl @Inject constructor(
                     suspendTasksRemoteSync(userId, warnings)
                     return
                 }
-                if (!shouldHoldForParent(error)) markTaskFailed(task, error)
+                if (!shouldHoldForRetry(error)) markTaskFailed(task, error)
             }
         }
     }
@@ -862,7 +862,7 @@ class SyncRepositoryImpl @Inject constructor(
                     shift.remoteId == null -> pushShiftCreate(shift, now)
                     else -> pushShiftUpdate(shift, now)
                 }
-            }.onFailure { if (!shouldHoldForParent(it)) markShiftFailed(shift, it) }
+            }.onFailure { if (!shouldHoldForRetry(it)) markShiftFailed(shift, it) }
         }
     }
 
@@ -991,12 +991,28 @@ class SyncRepositoryImpl @Inject constructor(
      * fifteen-minute intervals and permanently in the "unsynced changes" count.
      *
      * The same applies to a dropped connection or a 5xx, for the same reason: the
-     * row is fine and the next attempt will probably carry it. Both leave the row
-     * PENDING_*, which keeps it in the immediate retry path instead of parking it
-     * until the periodic run.
+     * row is fine and the next attempt will probably carry it.
+     *
+     * And to an expired session, which is the case this was missing. A 401 or a
+     * PGRST301 says the access token has aged out, not that the row is bad —
+     * supabase-kt is already refreshing, and the very next run carries the row
+     * unchanged. Parking it as FAILED instead took it out of the immediate retry
+     * path for fifteen minutes and left "unsynced changes" on screen until then.
+     * That is not a rare corner: the access token expires on its own schedule, so
+     * the request that discovers it is whichever one happens to be next — and
+     * clocking out schedules a sync, which makes end-of-shift a common moment to
+     * find out.
+     *
+     * All of these leave the row PENDING_*, which keeps it in the immediate retry
+     * path instead of parking it until the periodic run.
+     *
+     * Renamed from `shouldHoldForParent`: it was named for the first case it
+     * covered and has covered more than that for a while.
      */
-    private fun shouldHoldForParent(error: Throwable): Boolean =
-        RemoteSyncErrors.isForeignKeyViolation(error) || RemoteSyncErrors.isTransient(error)
+    private fun shouldHoldForRetry(error: Throwable): Boolean =
+        RemoteSyncErrors.isForeignKeyViolation(error) ||
+            RemoteSyncErrors.isTransient(error) ||
+            RemoteSyncErrors.isAuthExpired(error)
 
     private suspend fun markShiftFailed(shift: ShiftEntity, error: Throwable) {
         shiftDao.updateSyncState(
@@ -1194,6 +1210,7 @@ class SyncRepositoryImpl @Inject constructor(
                     else -> pushProjectUpdate(project, now)
                 }
             }.onFailure { error ->
+                if (shouldHoldForRetry(error)) return@onFailure
                 projectDao.updateSyncState(
                     project.localId, SyncStatus.FAILED, project.remoteId, project.lastSyncedAt, error.message,
                 )
@@ -1276,6 +1293,7 @@ class SyncRepositoryImpl @Inject constructor(
                     else -> pushBillingRecordUpdate(record, now)
                 }
             }.onFailure { error ->
+                if (shouldHoldForRetry(error)) return@onFailure
                 projectBillingRecordDao.updateSyncState(
                     record.localId, SyncStatus.FAILED, record.remoteId, record.lastSyncedAt, error.message,
                 )
@@ -1385,6 +1403,7 @@ class SyncRepositoryImpl @Inject constructor(
                     else -> pushProjectPaymentUpdate(payment, now)
                 }
             }.onFailure { error ->
+                if (shouldHoldForRetry(error)) return@onFailure
                 projectPaymentDao.updateSyncState(
                     payment.localId, SyncStatus.FAILED, payment.remoteId, payment.lastSyncedAt, error.message,
                 )
@@ -1502,7 +1521,7 @@ class SyncRepositoryImpl @Inject constructor(
                     }
                     else -> pushRefundClaimUpdate(claim, now)
                 }
-            }.onFailure { markRefundClaimFailed(claim, it) }
+            }.onFailure { if (!shouldHoldForRetry(it)) markRefundClaimFailed(claim, it) }
         }
     }
 
@@ -1677,7 +1696,7 @@ class SyncRepositoryImpl @Inject constructor(
                     profile.remoteId == null -> pushCompensationProfileCreate(profile, now)
                     else -> pushCompensationProfileUpdate(profile, now)
                 }
-            }.onFailure { markCompensationProfileFailed(profile, it) }
+            }.onFailure { if (!shouldHoldForRetry(it)) markCompensationProfileFailed(profile, it) }
         }
     }
 
@@ -1812,7 +1831,7 @@ class SyncRepositoryImpl @Inject constructor(
                     profile.remoteId == null -> pushPremiumProfileCreate(profile, now)
                     else -> pushPremiumProfileUpdate(profile, now)
                 }
-            }.onFailure { markPremiumProfileFailed(profile, it) }
+            }.onFailure { if (!shouldHoldForRetry(it)) markPremiumProfileFailed(profile, it) }
         }
     }
 
@@ -1960,6 +1979,7 @@ class SyncRepositoryImpl @Inject constructor(
                     }
                 }
             }.onFailure { error ->
+                if (shouldHoldForRetry(error)) return@onFailure
                 workplaceDao.updateSyncState(
                     row.localId, SyncStatus.FAILED, row.remoteId, row.lastSyncedAt, error.message,
                 )
@@ -2047,6 +2067,7 @@ class SyncRepositoryImpl @Inject constructor(
                     }
                 }
             }.onFailure { error ->
+                if (shouldHoldForRetry(error)) return@onFailure
                 leavePolicyDao.updateSyncState(
                     row.localId, SyncStatus.FAILED, row.remoteId, row.lastSyncedAt, error.message,
                 )
@@ -2137,6 +2158,7 @@ class SyncRepositoryImpl @Inject constructor(
                     }
                 }
             }.onFailure { error ->
+                if (shouldHoldForRetry(error)) return@onFailure
                 leaveBalanceSnapshotDao.updateSyncState(
                     row.localId, SyncStatus.FAILED, row.remoteId, row.lastSyncedAt, error.message,
                 )
@@ -2223,6 +2245,7 @@ class SyncRepositoryImpl @Inject constructor(
                     }
                 }
             }.onFailure { error ->
+                if (shouldHoldForRetry(error)) return@onFailure
                 absenceEventDao.updateSyncState(
                     row.localId, SyncStatus.FAILED, row.remoteId, row.lastSyncedAt, error.message,
                 )
@@ -2312,6 +2335,7 @@ class SyncRepositoryImpl @Inject constructor(
                     }
                 }
             }.onFailure { error ->
+                if (shouldHoldForRetry(error)) return@onFailure
                 absenceAllocationDao.updateSyncState(
                     row.localId, SyncStatus.FAILED, row.remoteId, row.lastSyncedAt, error.message,
                 )
@@ -2390,7 +2414,7 @@ class SyncRepositoryImpl @Inject constructor(
                     }
                     else -> pushUserSettingsUpdate(settings, profileRemoteId, now)
                 }
-            }.onFailure { markUserSettingsFailed(settings, it) }
+            }.onFailure { if (!shouldHoldForRetry(it)) markUserSettingsFailed(settings, it) }
         }
     }
 
@@ -2509,7 +2533,7 @@ class SyncRepositoryImpl @Inject constructor(
                     SyncStatus.PENDING_DELETE -> Unit
                     else -> pushProfileUpdate(profile, now)
                 }
-            }.onFailure { markProfileFailed(profile, it) }
+            }.onFailure { if (!shouldHoldForRetry(it)) markProfileFailed(profile, it) }
         }
     }
 

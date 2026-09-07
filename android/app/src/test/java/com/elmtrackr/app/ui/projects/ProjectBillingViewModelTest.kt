@@ -50,7 +50,9 @@ class ProjectBillingViewModelTest {
     private val shiftsRepo = FakeShiftsRepository()
     private val currentUser = FakeCurrentUserProvider()
 
-    private fun buildVm() = ProjectsViewModel(projectsRepo, settingsRepo, shiftsRepo, currentUser)
+    private val discovery = com.elmtrackr.app.fake.FakeFeatureDiscoveryPreferences()
+
+    private fun buildVm() = ProjectsViewModel(projectsRepo, settingsRepo, shiftsRepo, currentUser, discovery)
 
     private fun seed() {
         currentUser.setUserId("u1")

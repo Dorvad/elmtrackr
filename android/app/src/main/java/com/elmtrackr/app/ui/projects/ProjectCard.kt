@@ -39,6 +39,7 @@ import com.elmtrackr.app.ui.design.auroraExpandable
 import com.elmtrackr.app.domain.projects.ProjectSummary
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.CornerRadius
+import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.Spacing
 
 /**
@@ -159,14 +160,15 @@ fun ProjectCard(
                         )
                     }
                     project.deadline?.let { deadline ->
+                        // Plain, whatever the invoice is doing. This row used to
+                        // turn red on `billing.isOverdue`, which is about the
+                        // money being late and says nothing about the delivery
+                        // date beside it — so a project billed late showed a
+                        // deadline weeks away in red, and one genuinely past its
+                        // deadline showed it in black.
                         ProjectInfoRow(
                             label = stringResource(R.string.project_detail_deadline),
                             value = deadline.formattedMedium(),
-                            valueColor = if (summary.billing.isOverdue) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
                         )
                     }
                 }
@@ -188,7 +190,7 @@ fun ProjectCard(
                 Icon(
                     imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                     contentDescription = null,
-                    modifier = Modifier.height(18.dp),
+                    modifier = Modifier.height(Layout.inlineIcon),
                 )
             }
         }

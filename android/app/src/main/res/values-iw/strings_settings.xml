@@ -90,6 +90,9 @@
     <string name="settings_pack_purchased">החבילה נוספה</string>
     <string name="settings_pack_purchase_pending">ממתינים לאישור התשלום. החבילה תתווסף מיד עם קבלתו.</string>
     <string name="settings_pack_purchase_restored">הרכישה הקודמת שוחזרה</string>
+    <string name="settings_pack_restore_nothing">הרכישות שלכם כבר מעודכנות</string>
+    <string name="settings_pack_restore_unavailable">לא הצלחנו להתחבר ל‑Google Play. בדקו את החיבור ונסו שוב.</string>
+    <string name="settings_face_store_restoring">משחזר…</string>
     <string name="settings_pack_purchase_failed">הרכישה לא הושלמה. לא בוצע חיוב.</string>
     <string name="settings_face_shop_title">חנות העיצובים</string>
     <plurals name="settings_face_shop_waiting">

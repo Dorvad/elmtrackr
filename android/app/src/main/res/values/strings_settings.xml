@@ -90,6 +90,9 @@
     <string name="settings_pack_purchased">Pack added</string>
     <string name="settings_pack_purchase_pending">Waiting for your payment to clear. The pack is added as soon as it does.</string>
     <string name="settings_pack_purchase_restored">Your earlier purchase was restored</string>
+    <string name="settings_pack_restore_nothing">Your purchases are already up to date</string>
+    <string name="settings_pack_restore_unavailable">Could not reach Google Play. Check your connection and try again.</string>
+    <string name="settings_face_store_restoring">Restoring…</string>
     <string name="settings_pack_purchase_failed">The purchase did not go through. Nothing was charged.</string>
     <string name="settings_face_shop_title">Face shop</string>
     <plurals name="settings_face_shop_waiting">

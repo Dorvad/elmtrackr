@@ -138,15 +138,35 @@ class TaskManagementViewModel @Inject constructor(
         viewModelScope.launch {
             val userId = currentUserProvider.currentUserId() ?: return@launch
             val trimmed = name.trim()
-            val duplicate = tasksRepository.getActiveTasks(userId).any {
-                it.id != taskId && it.name.equals(trimmed, ignoreCase = true)
-            }
+            val now = Instant.now()
+            val existing = taskId?.let { tasksRepository.getTaskById(userId, it) }
+            val profiles = compensationProfilesRepository.getProfiles(userId)
+            // An edit keeps the task where it is; a new task joins the profile
+            // the screen is showing.
+            val targetProfileId = existing?.compensationProfileId
+                ?: resolveProfileId(profiles, _selectedProfileId.value)
+
+            // Unique within the job, not across the account.
+            //
+            // A task belongs to one job and the screen shows one job's tasks at a
+            // time, so that is the only list a name can collide with — and it is
+            // the list the editor checks against before it lets the save through.
+            // Checking every task the account owns instead meant a name already
+            // used under *another* profile was refused here, after the editor had
+            // accepted it: the sheet had already closed and discarded what was
+            // typed, and the message named a clash with a task that is not on the
+            // screen and cannot be reached from it. Scoped through the same
+            // function that scopes the list, so the two cannot drift apart again.
+            val duplicate = tasksForProfile(
+                tasks = tasksRepository.getActiveTasks(userId),
+                profileId = targetProfileId,
+                profiles = profiles,
+            ).any { it.id != taskId && it.name.equals(trimmed, ignoreCase = true) }
             if (duplicate) {
                 _errorMessage.value = UiText.Res(R.string.tasks_error_name_exists)
                 return@launch
             }
-            val now = Instant.now()
-            val existing = taskId?.let { tasksRepository.getTaskById(userId, it) }
+
             tasksRepository.upsertTask(
                 Task(
                     id = taskId ?: UUID.randomUUID().toString(),
@@ -155,13 +175,7 @@ class TaskManagementViewModel @Inject constructor(
                     icon = icon,
                     color = color,
                     hourlyRate = hourlyRate,
-                    // An edit keeps the task where it is; a new task joins the
-                    // profile the screen is showing.
-                    compensationProfileId = existing?.compensationProfileId
-                        ?: resolveProfileId(
-                            compensationProfilesRepository.getProfiles(userId),
-                            _selectedProfileId.value,
-                        ),
+                    compensationProfileId = targetProfileId,
                     isArchived = existing?.isArchived ?: false,
                     createdAt = existing?.createdAt ?: now,
                     updatedAt = now,

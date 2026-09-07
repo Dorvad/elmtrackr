@@ -48,14 +48,43 @@ interface ClockFacePackStore {
     suspend fun launchAllPacksPurchase(activity: Activity)
 
     /**
-     * Re-reads what the account owns from Play.
+     * Re-reads what the account owns from Play, and reports what that recovered.
      *
      * This is the whole of "restore purchases": Play is the record, so a
-     * reinstall, a new device or a refund is picked up by asking again. There is
-     * deliberately no button for it — [refresh] runs on every foreground, which
-     * is what makes a restore button unnecessary.
+     * reinstall, a new device or a refund is picked up by asking again. It runs
+     * on every foreground as well as behind the store's Restore button, so the
+     * common case is that nothing has changed and the answer is
+     * [PackRestoreResult.NothingRestored].
+     *
+     * Returning a result rather than Unit is what lets the button say something.
+     * A restore that silently succeeds and a restore that silently failed look
+     * identical to the person who pressed it, and "nothing happened" is the one
+     * outcome a restore affordance must never produce.
      */
-    suspend fun refresh()
+    suspend fun refresh(): PackRestoreResult
+}
+
+/**
+ * What one call to [ClockFacePackStore.refresh] recovered.
+ *
+ * Three outcomes rather than a boolean, because "nothing came back" and "we
+ * could not ask" are different things the user needs told differently: the
+ * first means their purchases are already in place, the second means try again
+ * with a connection.
+ */
+sealed interface PackRestoreResult {
+
+    /**
+     * Play reported packs this device did not know it owned, and they have been
+     * granted. A reinstall's first refresh is the ordinary case.
+     */
+    data class Restored(val packs: Set<ClockFaceGroup>) : PackRestoreResult
+
+    /** Play answered and had nothing this device was missing. */
+    data object NothingRestored : PackRestoreResult
+
+    /** Play could not be asked, so nothing is known and nothing was changed. */
+    data object Unavailable : PackRestoreResult
 }
 
 /**
@@ -185,6 +214,27 @@ sealed interface PackPurchaseEvent {
 
     /** Play already had this purchase; ownership was re-applied from its record. */
     data object AlreadyOwned : PackPurchaseEvent
+
+    /**
+     * Play reported packs this device did not know it owned — a reinstall, a new
+     * device, or an entitlements file that could not be read last launch.
+     *
+     * Carried on the same stream as a purchase because it grants the same thing
+     * and has to be honoured the same way: whoever installs a pack after a
+     * purchase has to install one after a restore, or the user is left owning a
+     * pack that is nowhere they would look for it.
+     *
+     * Only ever the packs that are *new to this device*. A pack the user owns and
+     * deliberately removed is already in the cache, so it is not reported again
+     * and does not reappear behind their back on the next foreground.
+     *
+     * A purchase completing at the same moment as a refresh can produce this and
+     * [Purchased] for the same pack — the interleaving the ownership mutex in
+     * [PlayClockFacePackStore] is written around. Both grant the same thing and
+     * installing is idempotent, so the cost is one extra snackbar in a race, not
+     * a wrong result.
+     */
+    data class Restored(val packs: Set<ClockFaceGroup>) : PackPurchaseEvent
 
     /** Play could not complete the purchase. [debugMessage] is for logs, never for the UI. */
     data class Failed(val responseCode: Int, val debugMessage: String) : PackPurchaseEvent

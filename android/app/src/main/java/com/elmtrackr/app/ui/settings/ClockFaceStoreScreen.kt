@@ -118,6 +118,7 @@ internal fun ClockFaceStoreScreen(
     onBuyAllPacks: () -> Unit,
     onRemovePack: (ClockFaceGroup) -> Unit,
     onRestore: () -> Unit,
+    isRestoring: Boolean = false,
     onDismissUnlocked: () -> Unit,
     onBack: () -> Unit,
     // The screenshot suite opens straight onto the shelf; users always land
@@ -171,6 +172,7 @@ internal fun ClockFaceStoreScreen(
                 StoreHeader(
                     availablePacks = availablePacks,
                     onRestore = onRestore,
+                    isRestoring = isRestoring,
                     onBack = onBack,
                     modifier = Modifier.auroraEnter(0),
                 )
@@ -399,12 +401,16 @@ private fun ShopTab(
  * Restore re-reads ownership from Play. The refresh also runs on every
  * foreground, so the button is mostly reassurance — but reassurance is what a
  * user who just reinstalled is looking for, and a support ticket is what they
- * file when they cannot find it.
+ * file when they cannot find it. Anything it recovers is added straight away
+ * and named on the unlock strip; when there was nothing missing it says so in
+ * the snackbar, because a restore that reports nothing at all is a restore the
+ * user has no reason to believe ran.
  */
 @Composable
 private fun StoreHeader(
     availablePacks: Set<ClockFaceGroup>,
     onRestore: () -> Unit,
+    isRestoring: Boolean,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -427,9 +433,19 @@ private fun StoreHeader(
                 )
             }
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = onRestore) {
+            // Disabled while it runs, and it says which it is. Play is given
+            // twenty seconds to answer, and a control that shows nothing for
+            // that long reads as broken — the user taps it again, and each tap
+            // would queue another query.
+            TextButton(onClick = onRestore, enabled = !isRestoring) {
                 Text(
-                    stringResource(R.string.settings_face_store_restore),
+                    stringResource(
+                        if (isRestoring) {
+                            R.string.settings_face_store_restoring
+                        } else {
+                            R.string.settings_face_store_restore
+                        },
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = MaterialTheme.typography.labelSmall.fontSize * EYEBROW_TRACKING,

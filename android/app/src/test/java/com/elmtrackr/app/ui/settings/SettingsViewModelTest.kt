@@ -566,6 +566,135 @@ class SettingsViewModelTest {
         assertEquals(null, vm.packPurchaseFeedback.value)
     }
 
+    // ── Restoring ─────────────────────────────────────────────────────────────
+
+    /**
+     * A restore that recovers something names it, on the same strip a purchase
+     * uses. "Your earlier purchase was restored" does not say *what*, and the
+     * user pressed Restore because they were looking for a particular pack.
+     */
+    @Test
+    fun `a restored pack is named and reported`() = runTest {
+        val store = com.elmtrackr.app.fake.FakeClockFacePackStore()
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
+            clockFacePrefs, FreeClockFacePackEntitlements(), store,
+        )
+        advanceUntilIdle()
+
+        store.emit(
+            com.elmtrackr.app.billing.PackPurchaseEvent.Restored(setOf(ClockFaceGroup.PAYDAY)),
+        )
+        advanceUntilIdle()
+
+        assertEquals(setOf(ClockFaceGroup.PAYDAY), vm.justUnlockedPacks.value)
+        assertEquals(
+            UiText.Res(R.string.settings_pack_purchase_restored),
+            vm.packPurchaseFeedback.value,
+        )
+    }
+
+    /**
+     * The usual outcome, and the one that used to look like a broken button:
+     * the refresh runs, finds nothing missing, and says nothing at all.
+     */
+    @Test
+    fun `a restore with nothing to recover still answers`() = runTest {
+        val store = com.elmtrackr.app.fake.FakeClockFacePackStore().apply {
+            refreshResult = com.elmtrackr.app.billing.PackRestoreResult.NothingRestored
+        }
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
+            clockFacePrefs, FreeClockFacePackEntitlements(), store,
+        )
+        advanceUntilIdle()
+
+        vm.restoreClockFacePacks()
+        advanceUntilIdle()
+
+        assertEquals(1, store.refreshCount)
+        assertEquals(
+            UiText.Res(R.string.settings_pack_restore_nothing),
+            vm.packPurchaseFeedback.value,
+        )
+    }
+
+    /**
+     * "Could not ask Play" and "asked Play, nothing missing" are different
+     * answers. Telling a user their purchases are up to date when the query
+     * never completed would send them to support with the wrong problem.
+     */
+    @Test
+    fun `a restore that could not reach Play says so`() = runTest {
+        val store = com.elmtrackr.app.fake.FakeClockFacePackStore().apply {
+            refreshResult = com.elmtrackr.app.billing.PackRestoreResult.Unavailable
+        }
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
+            clockFacePrefs, FreeClockFacePackEntitlements(), store,
+        )
+        advanceUntilIdle()
+
+        vm.restoreClockFacePacks()
+        advanceUntilIdle()
+
+        assertEquals(
+            UiText.Res(R.string.settings_pack_restore_unavailable),
+            vm.packPurchaseFeedback.value,
+        )
+    }
+
+    /**
+     * A restore that recovered packs is reported by the event, so the button
+     * stays quiet rather than talking over it with a second snackbar.
+     */
+    @Test
+    fun `a successful restore leaves the message to the event`() = runTest {
+        val store = com.elmtrackr.app.fake.FakeClockFacePackStore().apply {
+            refreshResult = com.elmtrackr.app.billing.PackRestoreResult.Restored(
+                setOf(ClockFaceGroup.PAYDAY),
+            )
+        }
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
+            clockFacePrefs, FreeClockFacePackEntitlements(), store,
+        )
+        advanceUntilIdle()
+
+        vm.restoreClockFacePacks()
+        advanceUntilIdle()
+
+        assertEquals(null, vm.packPurchaseFeedback.value)
+    }
+
+    /**
+     * The button reports it is working, and cannot be made to queue queries.
+     *
+     * Play is allowed twenty seconds to answer, so a restore really can sit
+     * in flight long enough for an impatient second tap.
+     */
+    @Test
+    fun `restoring is flagged while it runs and cannot be started twice`() = runTest {
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val store = com.elmtrackr.app.fake.FakeClockFacePackStore().apply { refreshGate = gate }
+        val vm = SettingsViewModel(
+            repo, authRepo, compensationRepo, themeStore, syncRepo, syncTrigger, appLockPrefs,
+            clockFacePrefs, FreeClockFacePackEntitlements(), store,
+        )
+        advanceUntilIdle()
+
+        vm.restoreClockFacePacks()
+        advanceUntilIdle()
+        assertTrue(vm.isRestoringPacks.value)
+
+        vm.restoreClockFacePacks()
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(1, store.refreshCount)
+        assertEquals(false, vm.isRestoringPacks.value)
+    }
+
     @Test
     fun `stored packs reach the state`() = runTest {
         val prefs = com.elmtrackr.app.fake.FakeClockFacePreferences(initialPacks = setOf("NATURE"))

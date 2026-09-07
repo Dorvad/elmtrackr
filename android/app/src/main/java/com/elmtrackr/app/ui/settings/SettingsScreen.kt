@@ -202,6 +202,7 @@ fun SettingsScreen(
     val packStorefront by viewModel.packStorefront.collectAsState()
     val packPurchaseFeedback by viewModel.packPurchaseFeedback.collectAsState()
     val justUnlockedPacks by viewModel.justUnlockedPacks.collectAsState()
+    val isRestoringPacks by viewModel.isRestoringPacks.collectAsState()
     LaunchedEffect(Unit) { viewModel.ensureSettingsExist() }
 
     AnimatedContent(
@@ -291,6 +292,7 @@ fun SettingsScreen(
                             justUnlockedPacks = justUnlockedPacks,
                             onDismissJustUnlocked = viewModel::clearJustUnlockedPacks,
                             onRestoreClockFacePacks = viewModel::restoreClockFacePacks,
+                            isRestoringPacks = isRestoringPacks,
                         )
                         is SettingsUiState.Error -> ErrorState(
                             message = state.message,
@@ -352,6 +354,7 @@ private fun SettingsFormHost(
     justUnlockedPacks: Set<ClockFaceGroup> = emptySet(),
     onDismissJustUnlocked: () -> Unit = {},
     onRestoreClockFacePacks: () -> Unit = {},
+    isRestoringPacks: Boolean = false,
 ) {
     val context = LocalContext.current
     val activity = context as FragmentActivity
@@ -579,6 +582,7 @@ private fun SettingsFormHost(
                     onRemoveClockFacePack(pack, clockStyle) { onPendingClockStyleChange(it) }
                 },
                 onRestore = onRestoreClockFacePacks,
+                isRestoring = isRestoringPacks,
                 onDismissUnlocked = onDismissJustUnlocked,
                 onBack = onNavigateBack,
             )

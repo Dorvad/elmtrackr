@@ -90,6 +90,9 @@
     <string name="settings_pack_purchased">تمت إضافة الحزمة</string>
     <string name="settings_pack_purchase_pending">في انتظار تأكيد الدفع. ستُضاف الحزمة فور تأكيده.</string>
     <string name="settings_pack_purchase_restored">تمت استعادة عملية الشراء السابقة</string>
+    <string name="settings_pack_restore_nothing">مشترياتك محدَّثة بالفعل</string>
+    <string name="settings_pack_restore_unavailable">تعذّر الوصول إلى Google Play. تحقّق من اتصالك وحاول مرة أخرى.</string>
+    <string name="settings_face_store_restoring">جارٍ الاستعادة…</string>
     <string name="settings_pack_purchase_failed">لم تكتمل عملية الشراء. لم يتم أي خصم.</string>
     <string name="settings_face_shop_title">متجر الواجهات</string>
     <plurals name="settings_face_shop_waiting">

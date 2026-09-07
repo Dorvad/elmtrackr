@@ -3,10 +3,12 @@ package com.elmtrackr.app.ui.projects
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.LayoutDirection
@@ -118,6 +120,14 @@ class ProjectsRenderTest {
         updatedAt = Instant.EPOCH,
     )
 
+    private fun shift(id: String, hours: Long) = Shift(
+        id = id,
+        userId = "u1",
+        startTime = Instant.parse("2026-07-20T06:00:00Z"),
+        endTime = Instant.parse("2026-07-20T06:00:00Z").plus(hours, ChronoUnit.HOURS),
+        projectId = "p1",
+    )
+
     private fun summary(
         project: Project = project(),
         shifts: List<Shift> = emptyList(),
@@ -190,6 +200,32 @@ class ProjectsRenderTest {
         // Expanded: the toggle flips, and the secondary figures join the tree.
         composeRule.onNodeWithText("Less detail").assertExists()
         composeRule.onNodeWithText("Hours tracked").assertExists()
+    }
+
+    /**
+     * The guide shows itself once and is only ever reached from here afterwards.
+     * Without this entry it would be a one-shot explanation of a screen people
+     * come back to for months.
+     */
+    @Test
+    fun `the list keeps a way back to the guide`() {
+        var opened = 0
+        composeRule.setContent {
+            Themed {
+                ProjectsList(
+                    state = readyState(summary()),
+                    onQueryChange = {},
+                    onFilterChange = {},
+                    onCreate = {},
+                    onOpen = {},
+                    onOpenGuide = { opened++ },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("How projects work").performClick()
+
+        assertEquals(1, opened)
     }
 
     @Test
@@ -353,28 +389,97 @@ class ProjectsRenderTest {
         composeRule.onAllNodesWithText("Partially paid").onFirst().assertExists()
     }
 
-    // ── Form ──────────────────────────────────────────────────────────────────
-
+    /**
+     * The Time card used to print the tracked hours twice — once under "Hours
+     * tracked" and again as the value of a row labelled "3 shifts" — so it stated
+     * one figure twice and never actually said how many shifts there were.
+     */
     @Test
-    fun `the form shows the amount entry choice`() {
+    fun `the time card counts the shifts instead of repeating the hours`() {
+        val worked = summary(
+            shifts = listOf(
+                shift("s1", hours = 3),
+                shift("s2", hours = 5),
+            ),
+        )
         composeRule.setContent {
-            Themed {
-                ProjectFormScreen(
-                    existing = null,
-                    initialInput = ProjectFormInput(currencyCode = "USD"),
-                    isBilled = false,
-                    isSaving = false,
-                    onSave = {},
-                    onBack = {},
-                )
-            }
+            Themed { ProjectDetailScreen(worked, emptyList(), emptyList(), {}, {}, {}, {}) }
         }
-        composeRule.onNodeWithText("Which amount do you know?").assertExists()
-        // Two nodes carry this text: the entry-mode choice and the amount
-        // field's own label, which is exactly the pairing being checked.
-        composeRule.onAllNodesWithText("Your fee before tax").onFirst().assertExists()
-        composeRule.onAllNodesWithText("Client total").onFirst().assertExists()
+
+        composeRule.onNodeWithText("Shifts").assertExists()
+        composeRule.onNodeWithText("2 shifts").assertExists()
+        // Eight hours, said once. Isolated like every other number the app
+        // prints, so the digits cannot be reordered by text around them.
+        composeRule
+            .onAllNodesWithText(BidiText.isolate("8") + "h")
+            .assertCountEquals(1)
     }
+
+    /** One shift is a shift, not "1 shifts". */
+    @Test
+    fun `a single shift reads as one`() {
+        val worked = summary(shifts = listOf(shift("s1", hours = 4)))
+        composeRule.setContent {
+            Themed { ProjectDetailScreen(worked, emptyList(), emptyList(), {}, {}, {}, {}) }
+        }
+
+        composeRule.onNodeWithText("1 shift").assertExists()
+    }
+
+    /**
+     * The due date and how far away it is are two facts, and both rows were
+     * labelled "Due" — so the card read as one fact stated twice.
+     */
+    @Test
+    fun `the due date and how late it is are labelled apart`() {
+        val record = ProjectBillingRecord(
+            id = "bill-1",
+            userId = "u1",
+            projectId = "p1",
+            fee = ProjectFee.from(BigDecimal("11800"), "USD", TaxMode.NONE, BigDecimal.ZERO),
+            billedOn = today.minusDays(40),
+            dueOn = today.minusDays(3),
+        )
+        val overdue = summary(records = listOf(record))
+        composeRule.setContent {
+            Themed { ProjectDetailScreen(overdue, listOf(record), emptyList(), {}, {}, {}, {}) }
+        }
+
+        composeRule.onAllNodesWithText("Due").assertCountEquals(1)
+        composeRule.onNodeWithText("Status").assertExists()
+        composeRule.onNodeWithText("3 days overdue").assertExists()
+    }
+
+    /**
+     * A deadline is a delivery date and an overdue invoice is money. The card
+     * used to colour the deadline from `billing.isOverdue`, so a project billed
+     * late showed a deadline weeks away in red. Both still render; only the
+     * unrelated colouring went.
+     */
+    @Test
+    fun `an overdue invoice does not restyle the delivery deadline`() {
+        val record = ProjectBillingRecord(
+            id = "bill-1",
+            userId = "u1",
+            projectId = "p1",
+            fee = ProjectFee.from(BigDecimal("11800"), "USD", TaxMode.NONE, BigDecimal.ZERO),
+            billedOn = today.minusDays(40),
+            dueOn = today.minusDays(3),
+        )
+        val overdue = summary(records = listOf(record))
+        composeRule.setContent {
+            Themed { ProjectCard(summary = overdue, onClick = {}) }
+        }
+
+        composeRule.onNodeWithText("More detail").performClick()
+
+        // The deadline is twenty days out; it is shown, and it is not the
+        // overdue signal. The overdue balance beside it still is.
+        composeRule.onNodeWithText("Deadline").assertExists()
+        composeRule.onNodeWithText("Outstanding").assertExists()
+    }
+
+    // ── Form ──────────────────────────────────────────────────────────────────
 
     @Test
     fun `the form explains that a billing snapshot is preserved`() {

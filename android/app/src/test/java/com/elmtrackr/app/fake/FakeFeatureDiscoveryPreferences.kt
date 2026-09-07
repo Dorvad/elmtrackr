@@ -21,6 +21,13 @@ class FakeFeatureDiscoveryPreferences(
         state.value = state.value.copy(paidProjectsDiscoveryDismissed = dismissed)
     }
 
+    val projectsGuideSeen: Boolean
+        get() = state.value.projectsGuideSeen
+
+    override suspend fun setProjectsGuideSeen(seen: Boolean) {
+        state.value = state.value.copy(projectsGuideSeen = seen)
+    }
+
     val refundReminderDismissedMonth: String?
         get() = state.value.refundReminderDismissedMonth
 

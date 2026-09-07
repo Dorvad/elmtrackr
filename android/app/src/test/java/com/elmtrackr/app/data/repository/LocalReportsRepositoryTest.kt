@@ -139,16 +139,27 @@ class LocalReportsRepositoryTest {
      * `groupByWeek` already resolved through [com.elmtrackr.app.domain.compensation.CompensationResolver];
      * what was missing was the repository handing it any profiles to resolve against.
      * 600 minutes distinguishes the two thresholds: 84 over 516, 120 over 480.
+     *
+     * Relative to now, but never on the profile's weekend. The fixture used to sit
+     * on "yesterday" flat, and a weekend shift is priced by a different rule
+     * altogether — so on the two days a week when yesterday was a Friday or a
+     * Saturday this asserted 84 against an answer of 180 and failed, on a clean
+     * tree, for reasons that had nothing to do with the code under test. The
+     * weekend is read off the profile rather than hardcoded so the fixture follows
+     * the preset if it ever changes.
      */
     @Test
     fun `weekly totals resolve through the stored profile too`() = runTest {
         val zone = java.time.ZoneId.of("Asia/Jerusalem")
-        val yesterday = java.time.LocalDate.now(zone).minusDays(1)
+        // weekendDays is JS day numbering, 0 = Sunday; DayOfWeek.value is 1 = Monday.
+        val weekend = ilProfile.rules.weekendDays.toSet()
+        val workday = generateSequence(java.time.LocalDate.now(zone).minusDays(1)) { it.minusDays(1) }
+            .first { it.dayOfWeek.value % 7 !in weekend }
         val tenHours = Shift(
             id = "s-recent",
             userId = "u1",
-            startTime = yesterday.atTime(9, 0).atZone(zone).toInstant(),
-            endTime = yesterday.atTime(19, 0).atZone(zone).toInstant(),
+            startTime = workday.atTime(9, 0).atZone(zone).toInstant(),
+            endTime = workday.atTime(19, 0).atZone(zone).toInstant(),
             breakMinutes = 0,
         )
         settingsDao.insertSettings(settings.toEntity())
