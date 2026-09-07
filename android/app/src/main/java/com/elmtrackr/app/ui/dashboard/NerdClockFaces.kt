@@ -26,6 +26,7 @@ import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeach
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.sin
@@ -109,6 +110,40 @@ private fun DrawScope.textCentre(
 private fun TextMeasurer.widthOf(text: String, style: TextStyle): Float =
     measure(text, style).size.width.toFloat()
 
+/**
+ * [text] in monospace at the largest size from [maxSize] down to [minSize] that fits
+ * [maxWidth] pixels.
+ *
+ * These faces were laid out against the reference canvas with English figures, and both
+ * assumptions give way in use: the dashboard card is nearer 284dp wide than 312 once its
+ * padding is taken, a store thumbnail is narrower again, and a localised amount is longer
+ * than the fixture — Hebrew renders the rate as `62.50 ₪ לשעה`, half again the width of
+ * `₪62.50/h`. Where two runs share a line the wider one used to be drawn straight through
+ * its neighbour.
+ *
+ * Shrinking rather than eliding, because these are figures: `₪1,23…` is not a smaller
+ * version of the number, it is a different number.
+ *
+ * One measurement, not a search. A monospace advance is proportional to the font size, so
+ * the size that fits is the size times the ratio; a per-frame binary search would also
+ * thrash the [TextMeasurer]'s small internal cache on every draw pass.
+ */
+private fun TextMeasurer.fittedMono(
+    text: String,
+    maxWidth: Float,
+    maxSize: Int,
+    minSize: Int,
+    weight: FontWeight,
+    color: Color,
+): TextStyle {
+    val largest = mono(maxSize, weight, color)
+    if (maxWidth <= 0f) return mono(minSize, weight, color)
+    val width = widthOf(text, largest)
+    if (width <= maxWidth || width <= 0f) return largest
+    val fitted = floor(maxSize * maxWidth / width).toInt().coerceIn(minSize, maxSize)
+    return if (fitted == maxSize) largest else mono(fitted, weight, color)
+}
+
 // ── Readout ───────────────────────────────────────────────────────────────────
 
 /**
@@ -127,10 +162,21 @@ internal fun DrawScope.drawReadoutFace(
 ) {
     val left = 26.dp.toPx()
     val right = size.width - 26.dp.toPx()
-    val eyebrow = mono(11, FontWeight.SemiBold, TerminalDim, letterSpacing = 1.1f)
+    val gap = 12.dp.toPx()
+    val eyebrowY = 24.dp.toPx()
 
-    textLeft(measurer, "SHIFT · LIVE", left, 24.dp.toPx(), eyebrow)
-    textRight(measurer, "TARGET ${telemetry.goalClock}", right, 24.dp.toPx(), eyebrow)
+    // The target is data; the banner beside it is decoration. So the target is placed
+    // first and the banner only if the row can hold both — on a narrow tile it cannot,
+    // and a banner drawn through the figure would cost the reader the figure.
+    val target = "TARGET ${telemetry.goalClock}"
+    val targetStyle = mono(11, FontWeight.SemiBold, TerminalDim)
+    val banner = "SHIFT · LIVE"
+    val bannerStyle = mono(11, FontWeight.SemiBold, TerminalDim, letterSpacing = 1.1f)
+    val bannerWidth = measurer.widthOf(banner, bannerStyle)
+    if (bannerWidth + gap + measurer.widthOf(target, targetStyle) <= right - left) {
+        textLeft(measurer, banner, left, eyebrowY, bannerStyle)
+    }
+    textRight(measurer, target, right, eyebrowY, targetStyle)
 
     val keyStyle = mono(16, FontWeight.Medium, TerminalKey)
     val rows = listOf(
@@ -144,7 +190,13 @@ internal fun DrawScope.drawReadoutFace(
         textLeft(measurer, label, left, y, keyStyle)
         // Earnings take the accent; the rest are plain, so one figure leads the column.
         val ink = if (value.second) accent else TerminalValue
-        textRight(measurer, value.first, right, y, mono(18, FontWeight.Bold, ink))
+        // Right-aligned into what the key beside it leaves, not into the whole row: the
+        // rate is the long one, and in Hebrew it is long enough to reach the key.
+        val room = right - left - measurer.widthOf(label, keyStyle) - gap
+        textRight(
+            measurer, value.first, right, y,
+            measurer.fittedMono(value.first, room, maxSize = 18, minSize = 12, weight = FontWeight.Bold, color = ink),
+        )
     }
 
     // The cursor. Half the phase on, half off — a square wave, not a fade, because a
@@ -287,28 +339,51 @@ internal fun DrawScope.drawSparklineFace(
     drawCircle(AuroraIndigo, 4.5.dp.toPx(), head)
     drawCircle(Color.White, 1.8.dp.toPx(), head)
 
-    // The headline figure, with the rate beside it and the clock opposite.
-    val headline = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontSize = 32.sp,
-        fontWeight = FontWeight.Bold,
-        color = foreground,
-    )
-    textLeft(measurer, telemetry.earnedText, left, 54.dp.toPx(), headline)
-    val earnedWidth = measurer.widthOf(telemetry.earnedText, headline)
-    textLeft(
-        measurer,
-        telemetry.rateText,
-        left + earnedWidth + 10.dp.toPx(),
-        52.dp.toPx(),
-        mono(11, FontWeight.SemiBold, AuroraAqua),
-    )
+    // The header: the clock on its own line above, then the headline figure with the
+    // rate beside it.
+    //
+    // All three used to share one line — headline from the left, rate after it, clock
+    // from the right — and the middle run had nothing stopping it. A four-figure amount,
+    // or a rate as long as Hebrew's `62.50 ₪ לשעה`, drew the rate straight through the
+    // clock. Lifting the clock clear of the headline's band settles it by geometry: the
+    // two runs that remain on the line are measured against each other, and the headline
+    // shrinks if the rate needs the room.
     textRight(
         measurer,
         telemetry.elapsedClock,
         right,
-        52.dp.toPx(),
+        30.dp.toPx(),
         mono(11, FontWeight.SemiBold, foreground.copy(alpha = 0.45f)),
+    )
+
+    val rateStyle = mono(11, FontWeight.SemiBold, AuroraAqua)
+    val rateGap = 10.dp.toPx()
+    val headline = measurer.fittedMono(
+        telemetry.earnedText,
+        right - left - rateGap - measurer.widthOf(telemetry.rateText, rateStyle),
+        maxSize = 32,
+        minSize = 18,
+        weight = FontWeight.Bold,
+        color = foreground,
+    )
+    textLeft(measurer, telemetry.earnedText, left, 58.dp.toPx(), headline)
+    // The headline has the floor at 18sp, so on a very narrow canvas it can still take
+    // more than its share; the rate then shrinks into what is left rather than running
+    // off the right edge.
+    val rateX = left + measurer.widthOf(telemetry.earnedText, headline) + rateGap
+    textLeft(
+        measurer,
+        telemetry.rateText,
+        rateX,
+        56.dp.toPx(),
+        measurer.fittedMono(
+            telemetry.rateText,
+            right - rateX,
+            maxSize = 11,
+            minSize = 7,
+            weight = FontWeight.SemiBold,
+            color = AuroraAqua,
+        ),
     )
 
     // Hour ticks. Derived from the goal, so a six-hour goal gets six.
@@ -343,7 +418,10 @@ internal fun DrawScope.drawGaugeFace(
 ) {
     val centreX = size.width / 2f
     val centreY = 150.dp.toPx()
-    val radius = 86.dp.toPx()
+    // 86dp wherever there is room for it, which is the dashboard card and the store's
+    // hero. The hour labels ride 14dp outside the band and are centred on it, so a fixed
+    // radius put the first and last of them off the edges of a narrower tile.
+    val radius = minOf(86.dp.toPx(), centreX - 30.dp.toPx()).coerceAtLeast(24.dp.toPx())
     val goalHours = (telemetry.goalMinutes / 60f).coerceAtLeast(1f)
     // One hour of headroom past the goal, so the redline band exists at any goal.
     val scaleHours = goalHours + 1f
@@ -385,10 +463,17 @@ internal fun DrawScope.drawGaugeFace(
     }
 
     // Labels outside the band, so the dial face stays free for the figures.
+    //
+    // The goal is always one of them: a seven-hour day used to leave the boundary between
+    // the worked band and the redline unnamed. It *replaces* the last strided label rather
+    // than joining it -- appending printed "6" and "7" a single stride apart on a dial
+    // otherwise labelled every two hours, which reads as a misprint.
     val labelStyle = mono(11, FontWeight.SemiBold, white.copy(alpha = 0.42f))
-    val step = if (goalHours <= 4f) 1 else 2
-    var hour = 0
-    while (hour <= goalHours.toInt()) {
+    val goal = goalHours.toInt().coerceAtLeast(1)
+    val stride = if (goalHours <= 4f) 1 else 2
+    val strided = (0..goal step stride).toList()
+    val labels = if (strided.last() == goal) strided else strided.dropLast(1) + goal
+    labels.forEach { hour ->
         val angle = (angleOf(hour.toFloat()) * PI / 180).toFloat()
         textCentre(
             measurer,
@@ -397,16 +482,18 @@ internal fun DrawScope.drawGaugeFace(
             centreY + sin(angle) * (radius + 14.dp.toPx()),
             labelStyle,
         )
-        hour += step
     }
 
+    // The figures inside the dial, fitted to it: a long amount is what the band leaves
+    // room for, not what the box does.
+    val dialRoom = (radius - 18.dp.toPx()) * 2f
     textCentre(
         measurer, telemetry.elapsedClock, centreX, 106.dp.toPx(),
-        mono(26, FontWeight.Bold, white),
+        measurer.fittedMono(telemetry.elapsedClock, dialRoom, maxSize = 26, minSize = 16, weight = FontWeight.Bold, color = white),
     )
     textCentre(
         measurer, telemetry.earnedText, centreX, 130.dp.toPx(),
-        mono(11, FontWeight.SemiBold, white.copy(alpha = 0.5f)),
+        measurer.fittedMono(telemetry.earnedText, dialRoom, maxSize = 11, minSize = 8, weight = FontWeight.SemiBold, color = white.copy(alpha = 0.5f)),
     )
 
     // The pointer, riding the band.
@@ -467,7 +554,14 @@ internal fun DrawScope.drawMatrixFace(
     val rows = (telemetry.cellCount + columns - 1) / columns
     if (rows <= 0) return
     val gap = 2.5.dp.toPx()
-    val cellHeight = 11.dp.toPx()
+    // 11dp a cell at the eight-hour goal the grid was drawn for, less when there are more
+    // rows to fit. A flat height was fine at eight rows and ran the grid — and the footer
+    // under it — clean out of the bottom of the face box at ten or twelve.
+    val footRoom = 20.dp.toPx()
+    val cellHeight = minOf(
+        11.dp.toPx(),
+        (size.height - top - footRoom - gap * (rows - 1)) / rows,
+    ).coerceAtLeast(3.dp.toPx())
     val cellWidth = (right - left - gap * (columns - 1)) / columns
     val corner = CornerRadius(2.5.dp.toPx())
 
@@ -503,7 +597,8 @@ internal fun DrawScope.drawMatrixFace(
         }
     }
 
-    val footY = top + rows * (cellHeight + gap) + 8.dp.toPx()
+    val footY = (top + rows * (cellHeight + gap) + 8.dp.toPx())
+        .coerceAtMost(size.height - 9.dp.toPx())
     textLeft(
         measurer, telemetry.elapsedClock, left, footY,
         mono(10, FontWeight.SemiBold, foreground.copy(alpha = 0.5f)),

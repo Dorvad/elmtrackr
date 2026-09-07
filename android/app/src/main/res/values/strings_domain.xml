@@ -88,4 +88,10 @@
     <string name="clock_style_sparkline">Sparkline</string>
     <string name="clock_style_gauge">Gauge</string>
     <string name="clock_style_matrix">Matrix</string>
+
+    <!-- Evolution pack creature names -->
+    <string name="clock_style_fern">Fern</string>
+    <string name="clock_style_ember">Ember</string>
+    <string name="clock_style_droplet">Droplet</string>
+    <string name="clock_style_spark">Spark</string>
 </resources>

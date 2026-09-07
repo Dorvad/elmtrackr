@@ -88,4 +88,10 @@
     <string name="clock_style_sparkline">مخطط</string>
     <string name="clock_style_gauge">مؤشر</string>
     <string name="clock_style_matrix">مصفوفة</string>
+
+    <!-- Evolution pack creature names -->
+    <string name="clock_style_fern">سرخس</string>
+    <string name="clock_style_ember">جمرة</string>
+    <string name="clock_style_droplet">قطرة</string>
+    <string name="clock_style_spark">شرارة</string>
 </resources>

@@ -532,4 +532,12 @@
     <string name="settings_face_matrix">صف لكل ساعة، وخلية لكل خمس دقائق</string>
     <string name="dashboard_face_rate_per_hour">%1$s/س</string>
     <string name="dashboard_face_target_amount">الهدف %1$s</string>
+
+    <!-- Evolution face pack -->
+    <string name="clock_group_evolution">تطوّر</string>
+    <string name="clock_group_evolution_desc">مخلوق ينمو طوال اليوم</string>
+    <string name="settings_face_fern">مخلوق ورقي يزداد اخضرارًا كل ساعة</string>
+    <string name="settings_face_ember">مخلوق ناري ينمو له قرنان وتاج</string>
+    <string name="settings_face_droplet">مخلوق مائي ينمو له زعانف ويسبح</string>
+    <string name="settings_face_spark">مخلوق كهربائي يتحوّل إلى عاصفة</string>
 </resources>

@@ -224,6 +224,47 @@ class FullAppScreenshotJvmTest {
         )
     }
 
+    // The Evolution pack at four points in its day, because one capture cannot show a
+    // face whose whole subject is change: the shell before the first hour is up, an early
+    // form, the 5.5-hour mark the other face captures use, and the final form at eight.
+    // Clocked out, like every capture above -- so these also pin the napping state, which
+    // is what the pack shows for most of the hours anyone will look at it.
+    @Test fun dashboardSparkShell() = capture("44-dashboard-spark-shell") {
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.SPARK),
+                todayCompletedMinutes = 30,
+            ),
+        )
+    }
+
+    @Test fun dashboardEmber() = capture("45-dashboard-ember") {
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.EMBER),
+                todayCompletedMinutes = 150,
+            ),
+        )
+    }
+
+    @Test fun dashboardFern() = capture("46-dashboard-fern") {
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.FERN),
+                todayCompletedMinutes = 330,
+            ),
+        )
+    }
+
+    @Test fun dashboardDropletFinal() = capture("47-dashboard-droplet-final") {
+        DashboardReadyPreview(
+            state = sampleDashboardState().copy(
+                settings = sampleSettings().copy(clockStyle = ClockStyle.DROPLET),
+                todayCompletedMinutes = 480,
+            ),
+        )
+    }
+
     @Test fun dashboardSkeleton() = capture("09-dashboard-loading") {
         DashboardSkeleton(Modifier.fillMaxSize().padding(16.dp))
     }

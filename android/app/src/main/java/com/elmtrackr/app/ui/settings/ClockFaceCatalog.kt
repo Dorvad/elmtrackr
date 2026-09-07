@@ -102,6 +102,31 @@ enum class ClockFaceGroup(
         listOf(ClockStyle.READOUT, ClockStyle.SPARKLINE, ClockStyle.GAUGE, ClockStyle.MATRIX),
         since = "1.4.0",
     ),
+
+    /**
+     * The day as something that hatches and grows up.
+     *
+     * Four pixel-art creatures, one per element, each with nine forms: the shell it
+     * starts the day in and one evolution an hour to the final form at the eighth. The
+     * only pack whose faces are *characters* — they blink, glance about and nap while
+     * clocked out — and the only one that rewards a long day with something the user has
+     * not seen before, which is a different kind of reason to look at a clock than
+     * [PROGRESS]'s.
+     *
+     * Deliberately original rather than a nod to anything: a creature that resembled
+     * someone else's would be a trademark problem shipped in a paid pack, so the four
+     * are ours — a leaf sprite, a flame sprite, a water sprite and a static sprite, each
+     * built on its own silhouette. The art and its conventions are in
+     * `EvolutionCreatures.kt`; the clock it makes is in `EvolutionClockFaces.kt`.
+     *
+     * These read `ClockFaceScene.growthHours`, the whole-day count Sprout already uses,
+     * so a creature is at the form the day has earned whether or not a shift is running
+     * right now.
+     */
+    EVOLUTION(
+        listOf(ClockStyle.FERN, ClockStyle.EMBER, ClockStyle.DROPLET, ClockStyle.SPARK),
+        since = "1.4.0",
+    ),
     ;
 
     /**

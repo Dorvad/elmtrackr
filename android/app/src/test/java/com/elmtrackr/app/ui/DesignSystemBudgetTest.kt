@@ -81,6 +81,14 @@ class DesignSystemBudgetTest {
         // literals are the drawing itself rather than layout that could take a Spacing
         // token, and its inks are face pigments rather than theme roles.
         "NerdClockFaces.kt",
+        // The Evolution pack, for the same reason again and more of it. The renderer's
+        // numbers are the drawing -- a pixel is 3.6dp and the ground line is at 158 --
+        // and the art file is thirty-six hand-authored sprites plus the five-step colour
+        // ramp each creature is drawn with. Those ramps are the creatures: a green that
+        // shifted with the app's accent would be a different character in every theme,
+        // which is the opposite of what a token would be for.
+        "EvolutionClockFaces.kt",
+        "EvolutionCreatures.kt",
         "RetroFlipBoard.kt",
         "RideProviderGraphics.kt",
         "PaidProjectsUpdateWizard.kt",

@@ -988,7 +988,11 @@ private fun DashboardClockSection(
                 SupportedClockStyle.READOUT,
                 SupportedClockStyle.SPARKLINE,
                 SupportedClockStyle.GAUGE,
-                SupportedClockStyle.MATRIX -> ExpressiveClockCard(
+                SupportedClockStyle.MATRIX,
+                SupportedClockStyle.FERN,
+                SupportedClockStyle.EMBER,
+                SupportedClockStyle.DROPLET,
+                SupportedClockStyle.SPARK -> ExpressiveClockCard(
                     style = renderStyle,
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
@@ -1376,6 +1380,12 @@ private fun ExpressiveClockCard(
                     SupportedClockStyle.STACKS -> stringResource(if (running) R.string.dashboard_clock_stacking_up else R.string.dashboard_clock_ready_to_stack)
                     SupportedClockStyle.JAR -> stringResource(if (running) R.string.dashboard_clock_jar_filling else R.string.dashboard_clock_jar_open)
                     SupportedClockStyle.TICKER -> stringResource(if (running) R.string.dashboard_clock_trending_up else R.string.dashboard_clock_market_closed)
+                    // The Evolution four share a caption: the creature says which one it
+                    // is, and four near-identical strings to translate would say nothing
+                    // the picture does not.
+                    SupportedClockStyle.FERN, SupportedClockStyle.EMBER,
+                    SupportedClockStyle.DROPLET, SupportedClockStyle.SPARK ->
+                        stringResource(if (running) R.string.dashboard_clock_evolving else R.string.dashboard_clock_napping)
                     else -> ""
                 },
                 style = MaterialTheme.typography.labelSmall,
@@ -1429,6 +1439,10 @@ private fun ExpressiveClockCard(
                     )
                 } else if (running) {
                     ShiftElapsedDisplay(
+                        // Where the face wants its reading: centred for all but the
+                        // Evolution creatures, which stand where a centred one would
+                        // print the time across their faces.
+                        modifier = Modifier.align(style.readingAlignment()),
                         elapsedSeconds = elapsedSeconds,
                         running = true,
                         style = when (style) {
@@ -1457,6 +1471,7 @@ private fun ExpressiveClockCard(
                         fontWeight = if (style == SupportedClockStyle.FOCUS) FontWeight.Light else FontWeight.Bold,
                         color = foreground,
                         textAlign = TextAlign.Center,
+                        modifier = Modifier.align(style.readingAlignment()),
                     )
                 }
             }

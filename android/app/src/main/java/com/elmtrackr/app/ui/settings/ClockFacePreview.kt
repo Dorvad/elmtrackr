@@ -59,6 +59,7 @@ import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.dashboard.ClockFaceTelemetry
 import com.elmtrackr.app.ui.dashboard.drawsOwnReading
+import com.elmtrackr.app.ui.dashboard.readingAlignment
 import com.elmtrackr.app.R
 import androidx.compose.ui.res.stringResource
 
@@ -175,6 +176,9 @@ internal fun WatchFacePreview(
                 style = readingStyle ?: previewReadingStyle(face, ratio),
                 color = readingColor(face, foreground),
                 maxLines = 1,
+                // The same placement the dashboard gives this face, so a tile is the
+                // real thing at a smaller scale down to where the reading sits.
+                modifier = Modifier.align(face.readingAlignment()),
             )
         }
     }

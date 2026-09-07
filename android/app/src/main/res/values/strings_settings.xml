@@ -505,4 +505,12 @@
     <string name="settings_face_matrix">One row per hour, one cell per five minutes</string>
     <string name="dashboard_face_rate_per_hour">%1$s/h</string>
     <string name="dashboard_face_target_amount">%1$s target</string>
+
+    <!-- Evolution face pack -->
+    <string name="clock_group_evolution">Evolution</string>
+    <string name="clock_group_evolution_desc">A creature that grows all day</string>
+    <string name="settings_face_fern">A leaf sprite, greener every hour</string>
+    <string name="settings_face_ember">A flame sprite that grows horns and a crown</string>
+    <string name="settings_face_droplet">A water sprite that fins out and swims</string>
+    <string name="settings_face_spark">A static sprite that crackles into a storm</string>
 </resources>

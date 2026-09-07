@@ -88,4 +88,10 @@
     <string name="clock_style_sparkline">גרף</string>
     <string name="clock_style_gauge">מחוג</string>
     <string name="clock_style_matrix">מטריצה</string>
+
+    <!-- Evolution pack creature names -->
+    <string name="clock_style_fern">שרך</string>
+    <string name="clock_style_ember">גחל</string>
+    <string name="clock_style_droplet">טיפה</string>
+    <string name="clock_style_spark">ניצוץ</string>
 </resources>

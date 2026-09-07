@@ -151,4 +151,8 @@
     <!-- Work profile selection above the clock -->
     <string name="dashboard_work_profile_label">Working at</string>
     <string name="dashboard_active_work_profile">Clocked in at %1$s</string>
+
+    <!-- Evolution clock card captions -->
+    <string name="dashboard_clock_evolving">EVOLVING</string>
+    <string name="dashboard_clock_napping">NAPPING</string>
 </resources>

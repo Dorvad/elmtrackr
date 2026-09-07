@@ -45,6 +45,7 @@ enum class ClockStyle {
     SAND, BLOCKS, ORBIT, TIDE, SPROUT, METRO, VINYL, LUNA, SUMMIT,
     METER, STACKS, JAR, TICKER,
     READOUT, SPARKLINE, GAUGE, MATRIX,
+    FERN, EMBER, DROPLET, SPARK,
     ;
 
     companion object {

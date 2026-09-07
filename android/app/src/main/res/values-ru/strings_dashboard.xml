@@ -151,4 +151,8 @@
     <string name="dashboard_gross_before_tax">Начислено · до налогов</string>
     <string name="dashboard_work_profile_label">Место работы</string>
     <string name="dashboard_active_work_profile">Смена начата: %1$s</string>
+
+    <!-- Evolution clock card captions -->
+    <string name="dashboard_clock_evolving">Развивается</string>
+    <string name="dashboard_clock_napping">Спит</string>
 </resources>
