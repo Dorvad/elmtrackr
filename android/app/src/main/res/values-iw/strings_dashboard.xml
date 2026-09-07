@@ -151,4 +151,8 @@
     <!-- Work profile selection above the clock -->
     <string name="dashboard_work_profile_label">עובד/ת ב־</string>
     <string name="dashboard_active_work_profile">משמרת פעילה ב־%1$s</string>
+
+    <!-- Evolution clock card captions -->
+    <string name="dashboard_clock_evolving">בהתפתחות</string>
+    <string name="dashboard_clock_napping">ישן</string>
 </resources>

@@ -511,4 +511,12 @@
     <string name="settings_face_matrix">Строка на час, ячейка на пять минут</string>
     <string name="dashboard_face_rate_per_hour">%1$s/ч</string>
     <string name="dashboard_face_target_amount">цель %1$s</string>
+
+    <!-- Evolution face pack -->
+    <string name="clock_group_evolution">Эволюция</string>
+    <string name="clock_group_evolution_desc">Существо, которое растёт весь день</string>
+    <string name="settings_face_fern">Листовик: с каждым часом зеленее</string>
+    <string name="settings_face_ember">Огневик: отрастает рога и корона</string>
+    <string name="settings_face_droplet">Водяник: отрастает плавники и плывёт</string>
+    <string name="settings_face_spark">Электрик: разряд, растущий в грозу</string>
 </resources>

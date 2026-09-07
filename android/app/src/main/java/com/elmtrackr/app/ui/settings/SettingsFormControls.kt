@@ -90,6 +90,10 @@ internal fun clockStyleDisplayName(style: ClockStyle): String = stringResource(
         ClockStyle.SPARKLINE -> R.string.clock_style_sparkline
         ClockStyle.GAUGE -> R.string.clock_style_gauge
         ClockStyle.MATRIX -> R.string.clock_style_matrix
+        ClockStyle.FERN -> R.string.clock_style_fern
+        ClockStyle.EMBER -> R.string.clock_style_ember
+        ClockStyle.DROPLET -> R.string.clock_style_droplet
+        ClockStyle.SPARK -> R.string.clock_style_spark
     },
 )
 
@@ -355,6 +359,10 @@ internal fun watchFaceDescription(style: ClockStyle): String = stringResource(
         ClockStyle.SPARKLINE -> R.string.settings_face_sparkline
         ClockStyle.GAUGE -> R.string.settings_face_gauge
         ClockStyle.MATRIX -> R.string.settings_face_matrix
+        ClockStyle.FERN -> R.string.settings_face_fern
+        ClockStyle.EMBER -> R.string.settings_face_ember
+        ClockStyle.DROPLET -> R.string.settings_face_droplet
+        ClockStyle.SPARK -> R.string.settings_face_spark
     },
 )
 

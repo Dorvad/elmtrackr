@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.dashboard
 
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.geometry.CornerRadius as GeometryCornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -18,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeach
+import com.elmtrackr.app.ui.theme.AuroraPeachDeep
 import com.elmtrackr.app.ui.theme.AuroraPlum
 
 /**
@@ -45,7 +48,7 @@ internal data class ClockFaceScene(
     /** How far into the two-hour overtime extension, 0..1. */
     val overtimeExtension: Float,
     val running: Boolean,
-    /** Hours worked today, 0..8, for Sprout's growth. */
+    /** Hours worked today, 0..8 -- Sprout's growth, and the Evolution creatures' form. */
     val growthHours: Float,
     /** Vinyl's tonearm position — the day progress after the needle-drop ease. */
     val vinylProgress: Float,
@@ -94,13 +97,42 @@ private val RetroAmber = Color(0xffffc857)
 private val TerminalPlate = Color(0xff10141f)
 private val GaugePlate = Color(0xff151d2e)
 
+// The Evolution pack's plate: one dark screen for all four, whatever the theme does.
+// Pixel art wants a ground it can be lit against -- the creatures are drawn with their
+// own five-step ramps and would lose their outlines on a light surface -- and one shared
+// plate is also what makes the four read as a pack rather than four unrelated sprites.
+private val EvolutionPlate = Color(0xff141a2b)
+
 /** The faces whose plate is dark whatever the theme does. */
 internal fun SupportedClockStyle.hasDarkPlate(): Boolean = when (this) {
     SupportedClockStyle.BOLD, SupportedClockStyle.NIGHT, SupportedClockStyle.RETRO,
     SupportedClockStyle.VINYL, SupportedClockStyle.METER,
-    SupportedClockStyle.READOUT, SupportedClockStyle.GAUGE -> true
+    SupportedClockStyle.READOUT, SupportedClockStyle.GAUGE,
+    SupportedClockStyle.FERN, SupportedClockStyle.EMBER,
+    SupportedClockStyle.DROPLET, SupportedClockStyle.SPARK -> true
     else -> false
 }
+
+/**
+ * Where the dashboard hangs the composed reading over [this] face.
+ *
+ * Centred for every face but the Evolution four, whose creature stands in the lower half
+ * of the box: a reading over its middle would print the elapsed time across the face of
+ * the thing the pack is about. A bias rather than [Alignment.TopCenter] because the
+ * reading is a different height on every type scale and in every preview size, and a
+ * proportional offset keeps a gap above it at all of them.
+ *
+ * A property of the face, like [drawsOwnReading], so a new face declares its own answer
+ * and the store's preview gets the same treatment without a second branch.
+ */
+internal fun SupportedClockStyle.readingAlignment(): Alignment = when (this) {
+    SupportedClockStyle.FERN, SupportedClockStyle.EMBER,
+    SupportedClockStyle.DROPLET, SupportedClockStyle.SPARK -> EvolutionReadingAlignment
+    else -> Alignment.Center
+}
+
+/** High in the box, but not against its edge. See [readingAlignment]. */
+private val EvolutionReadingAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = -0.74f)
 
 /**
  * The faces that print their own numerals, so the composed centre readout is
@@ -135,6 +167,8 @@ internal fun clockFacePlate(style: SupportedClockStyle, surface: Color): Color =
     SupportedClockStyle.METER -> PaydayHousing
     SupportedClockStyle.READOUT -> TerminalPlate
     SupportedClockStyle.GAUGE -> GaugePlate
+    SupportedClockStyle.FERN, SupportedClockStyle.EMBER,
+    SupportedClockStyle.DROPLET, SupportedClockStyle.SPARK -> EvolutionPlate
     else -> surface
 }
 
@@ -164,6 +198,13 @@ internal fun clockFaceAccent(style: SupportedClockStyle, overtime: Boolean): Col
     // peach too, so the needle and the overtime band share one ink.
     style == SupportedClockStyle.READOUT -> AuroraAqua
     style == SupportedClockStyle.GAUGE -> AuroraPeach
+    // Evolution takes its species' own hue, from the readable end of each ramp: this
+    // accent also paints the card's clock-in button, where the creature's brighter
+    // leaf-lime or gleam-white would be a white label on a pale fill.
+    style == SupportedClockStyle.FERN -> SproutLeafDeep
+    style == SupportedClockStyle.EMBER -> AuroraPeachDeep
+    style == SupportedClockStyle.DROPLET -> AuroraAqua
+    style == SupportedClockStyle.SPARK -> PaydayGoldDeep
     else -> AuroraIndigo
 }
 
@@ -498,6 +539,22 @@ internal fun DrawScope.drawClockFace(
         }
         SupportedClockStyle.MATRIX -> withTelemetry(scene, palette) { telemetry, measurer ->
             drawMatrixFace(telemetry, pulse, running, foreground, accent, measurer)
+        }
+        // The Evolution four. One renderer, four creatures: the pack's variety is in the
+        // art, not in four drawings of the same idea.
+        SupportedClockStyle.FERN, SupportedClockStyle.EMBER,
+        SupportedClockStyle.DROPLET, SupportedClockStyle.SPARK -> {
+            evolutionSpeciesOf(style)?.let { species ->
+                drawEvolutionFace(
+                    species = species,
+                    growthHours = growthHours,
+                    overtime = dayOvertime,
+                    pulse = pulse,
+                    running = running,
+                    foreground = foreground,
+                    accent = accent,
+                )
+            }
         }
         else -> Unit
     }

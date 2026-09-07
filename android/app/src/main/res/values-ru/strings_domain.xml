@@ -88,4 +88,10 @@
     <string name="clock_style_sparkline">График</string>
     <string name="clock_style_gauge">Циферблат</string>
     <string name="clock_style_matrix">Матрица</string>
+
+    <!-- Evolution pack creature names -->
+    <string name="clock_style_fern">Папоротник</string>
+    <string name="clock_style_ember">Уголёк</string>
+    <string name="clock_style_droplet">Капелька</string>
+    <string name="clock_style_spark">Искорка</string>
 </resources>
