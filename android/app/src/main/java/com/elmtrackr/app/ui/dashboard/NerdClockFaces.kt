@@ -462,13 +462,18 @@ internal fun DrawScope.drawGaugeFace(
         )
     }
 
-    // Labels outside the band, so the dial face stays free for the figures. The goal is
-    // always one of them even when the step would pass over it: a seven-hour day used to
-    // leave the boundary between the worked band and the redline unnamed.
+    // Labels outside the band, so the dial face stays free for the figures.
+    //
+    // The goal is always one of them: a seven-hour day used to leave the boundary between
+    // the worked band and the redline unnamed. It *replaces* the last strided label rather
+    // than joining it -- appending printed "6" and "7" a single stride apart on a dial
+    // otherwise labelled every two hours, which reads as a misprint.
     val labelStyle = mono(11, FontWeight.SemiBold, white.copy(alpha = 0.42f))
     val goal = goalHours.toInt().coerceAtLeast(1)
     val stride = if (goalHours <= 4f) 1 else 2
-    ((0..goal step stride).toList() + goal).distinct().forEach { hour ->
+    val strided = (0..goal step stride).toList()
+    val labels = if (strided.last() == goal) strided else strided.dropLast(1) + goal
+    labels.forEach { hour ->
         val angle = (angleOf(hour.toFloat()) * PI / 180).toFloat()
         textCentre(
             measurer,

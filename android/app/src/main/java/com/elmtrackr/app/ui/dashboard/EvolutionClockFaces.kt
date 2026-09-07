@@ -166,11 +166,13 @@ internal fun DrawScope.drawEvolutionFace(
     }
 
     // The ground it stands on, so a bobbing creature reads as bobbing rather than
-    // drifting.
+    // drifting. Narrower than the sprite and barely there: at four fifths of the width
+    // it ran past the feet on both sides and read as a shelf the creature was standing
+    // on, which is a heavier thing than the drawing needs.
     drawOval(
-        color = foreground.copy(alpha = 0.1f),
-        topLeft = Offset(centreX - spriteWidth * 0.4f, ground - 2.dp.toPx()),
-        size = Size(spriteWidth * 0.8f, 5.dp.toPx()),
+        color = foreground.copy(alpha = 0.08f),
+        topLeft = Offset(centreX - spriteWidth * 0.26f, ground - 1.dp.toPx()),
+        size = Size(spriteWidth * 0.52f, 4.dp.toPx()),
     )
 
     drawCreature(
@@ -187,7 +189,7 @@ internal fun DrawScope.drawEvolutionFace(
     if (running) {
         drawMotes(species.mote, centreX, spriteWidth, ground, accent, pulse)
     } else {
-        drawSleep(centreX, spriteWidth, originY, foreground, pulse)
+        drawSleep(centreX, spriteWidth, originY, foreground)
     }
     drawHourTrack(stage, intoHour, accent, foreground, running, pulse)
 }
@@ -319,7 +321,15 @@ private fun DrawScope.drawHourTrack(
     }
 }
 
-/** What a working creature gives off: spores, embers, bubbles or arcs, rising and clearing. */
+/**
+ * What a working creature gives off: spores, embers, bubbles or arcs, rising and clearing.
+ *
+ * Down the creature's flanks rather than across its width. Spaced from the centre, the
+ * middle mote landed on the creature's own belly and the other two on its arms, where a
+ * translucent pixel of the accent is either invisible or reads as a defect in the sprite;
+ * the first dashboard render showed no motes at all for that reason. Outside the
+ * silhouette they have the plate to be seen against.
+ */
 private fun DrawScope.drawMotes(
     mote: EvolutionMote,
     centreX: Float,
@@ -329,25 +339,34 @@ private fun DrawScope.drawMotes(
     pulse: Float,
 ) {
     val px = PixelSize.toPx()
-    val rise = 54.dp.toPx()
+    val rise = 58.dp.toPx()
+    val flank = spriteWidth / 2f + 5.dp.toPx()
     repeat(MOTE_COUNT) { index ->
         val phase = (pulse + index / MOTE_COUNT.toFloat()) % 1f
-        val drift = sin(phase * TAU + index) * 5.dp.toPx()
-        val x = centreX + (index - 1) * (spriteWidth * 0.42f) + drift
-        val y = ground - 8.dp.toPx() - phase * rise
-        val alpha = (1f - phase) * 0.55f
+        // Two up one side, one up the other, so the pair never reads as a symmetric
+        // ornament the way three evenly spaced ones did.
+        val side = if (index == 1) 1f else -1f
+        val x = centreX + side * flank + sin(phase * TAU + index) * 4.dp.toPx()
+        val y = ground - 10.dp.toPx() - phase * rise
+        val alpha = (1f - phase) * 0.8f
         when (mote) {
             EvolutionMote.BUBBLE -> drawCircle(
                 color = accent.copy(alpha = alpha),
-                radius = px * (0.6f + phase * 0.8f),
+                radius = px * (0.7f + phase * 1.1f),
                 center = Offset(x, y),
                 style = Stroke(1.dp.toPx()),
             )
             EvolutionMote.ARC -> {
+                // A discharge, not a drift: two pixels on a diagonal.
                 drawRect(accent.copy(alpha = alpha), Offset(x, y), Size(px, px))
-                drawRect(accent.copy(alpha = alpha * 0.6f), Offset(x + px, y - px), Size(px, px))
+                drawRect(accent.copy(alpha = alpha * 0.55f), Offset(x + px, y - px), Size(px, px))
             }
-            else -> drawRect(
+            EvolutionMote.EMBER -> {
+                // A spark with its own tail, so it reads as rising rather than hanging.
+                drawRect(accent.copy(alpha = alpha), Offset(x, y), Size(px, px))
+                drawRect(accent.copy(alpha = alpha * 0.4f), Offset(x, y + px), Size(px, px * 0.6f))
+            }
+            EvolutionMote.SPORE -> drawRect(
                 color = accent.copy(alpha = alpha),
                 topLeft = Offset(x, y),
                 size = Size(px, px),
@@ -356,24 +375,24 @@ private fun DrawScope.drawMotes(
     }
 }
 
-/** The nap: two bubbles off the side of a sleeping head. */
+/**
+ * The nap: two bubbles off the sleeping creature's shoulder.
+ *
+ * Placed rather than animated, which is not a shortcut. With no shift running the card
+ * holds `pulse = 0` — see the file's KDoc — so bubbles written as a rising loop only ever
+ * rendered whichever two frames phase zero happened to pick. They came out as a pair of
+ * stray dots detached from the creature and pushed up into the hour track, which is what
+ * the dashboard captures showed. Two fixed circles beside the head, clear of the track
+ * at every form's height, is the drawing that state actually gets.
+ */
 private fun DrawScope.drawSleep(
     centreX: Float,
     spriteWidth: Float,
-    originY: Float,
+    spriteTop: Float,
     foreground: Color,
-    pulse: Float,
 ) {
-    repeat(2) { index ->
-        val phase = (pulse + index / 2f) % 1f
-        drawCircle(
-            color = foreground.copy(alpha = (1f - phase) * 0.3f),
-            radius = (1.5f + phase * 3.5f).dp.toPx(),
-            center = Offset(
-                centreX + spriteWidth * 0.42f + phase * 12.dp.toPx(),
-                originY + 6.dp.toPx() - phase * 24.dp.toPx(),
-            ),
-            style = Stroke(1.dp.toPx()),
-        )
-    }
+    val near = Offset(centreX + spriteWidth / 2f + 5.dp.toPx(), spriteTop + 10.dp.toPx())
+    val far = Offset(near.x + 6.dp.toPx(), near.y - 8.dp.toPx())
+    drawCircle(foreground.copy(alpha = 0.3f), 2.dp.toPx(), near, style = Stroke(1.dp.toPx()))
+    drawCircle(foreground.copy(alpha = 0.18f), 3.2.dp.toPx(), far, style = Stroke(1.dp.toPx()))
 }

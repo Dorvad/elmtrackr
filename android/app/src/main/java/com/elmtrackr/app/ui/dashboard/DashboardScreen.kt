@@ -988,7 +988,11 @@ private fun DashboardClockSection(
                 SupportedClockStyle.READOUT,
                 SupportedClockStyle.SPARKLINE,
                 SupportedClockStyle.GAUGE,
-                SupportedClockStyle.MATRIX -> ExpressiveClockCard(
+                SupportedClockStyle.MATRIX,
+                SupportedClockStyle.FERN,
+                SupportedClockStyle.EMBER,
+                SupportedClockStyle.DROPLET,
+                SupportedClockStyle.SPARK -> ExpressiveClockCard(
                     style = renderStyle,
                     activeShift = activeShift,
                     elapsedSeconds = elapsedSeconds,
