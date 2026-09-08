@@ -128,6 +128,42 @@ class WearLaunchPathTest {
     }
 
     /**
+     * The same launch, at the largest font the wearer can ask for and at the module's
+     * minimum API.
+     *
+     * `wear-play-resubmission-2026-08.md` §3 lists "Settings → Display → Font size at
+     * its largest" among the cases to cover on hardware, and it was never covered
+     * anywhere — the run above, like every other test in this module, uses the default
+     * scale. The watch's display styles cap their own growth (see
+     * `TextStyle.withCappedFontScale`), which is arithmetic on the launch path that
+     * only executes above 1.3x, so a default-scale test never reaches it.
+     *
+     * API 30 is the module's `minSdk` and a real Wear OS level, so it is worth one
+     * pass of its own: the 33 above is where everything else runs.
+     */
+    @Test
+    @Config(sdk = [33], fontScale = 2.0f)
+    fun `the launcher activity survives the largest accessibility font size`() {
+        val controller = Robolectric.buildActivity(WearMainActivity::class.java)
+
+        controller.create()
+        controller.start()
+        controller.resume()
+        controller.destroy()
+    }
+
+    @Test
+    @Config(sdk = [30], fontScale = 1.5f)
+    fun `the launcher activity survives minSdk at a large font size`() {
+        val controller = Robolectric.buildActivity(WearMainActivity::class.java)
+
+        controller.create()
+        controller.start()
+        controller.resume()
+        controller.destroy()
+    }
+
+    /**
      * The view model, built the way the activity builds it.
      *
      * Its `init` reads the cached snapshot and kicks off the data-layer refresh, so

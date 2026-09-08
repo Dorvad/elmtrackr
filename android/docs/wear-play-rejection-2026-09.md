@@ -6,12 +6,28 @@ Play rejected the watch artifact again, under a different heading from August's:
 > The functionality of your app doesn't work as described. … Your app crashed
 > when testing.
 
+**The rejected artifact is wear 10052 / phone 52, versionName 1.3.1** — confirmed
+against Play Console. That matters more than it reads, for two reasons.
+
+First, it is this tree. August's document could not say that: its §3 records that
+the rejected 10041 was "higher than anything recorded in this repository, so the
+exact build that failed is not reconstructable from source here." This one is, so
+everything below is an inspection of the artifact Google actually reviewed rather
+than of something near it.
+
+Second, and less comfortably: **the August launch-crash fixes shipped in 10052
+and did not hold.** 10041 predates them; 10042 and 10043 carried them and were
+never uploaded. So the first artifact to carry that work is the one that has just
+been rejected again. Whatever is wrong is either untouched by those fixes or was
+introduced after them — and the watch UI was rewritten after them, in `ed089f2`,
+which has never run on a device.
+
 August's heading was "your app does not install or launch without crashing"
 ([wear-play-resubmission-2026-08.md](wear-play-resubmission-2026-08.md)). That
 document's §3 is the important precedent, and it is blunt: **the crash was never
 reproduced.** The August work removed the crash paths a reading of the code could
 find, which is not the same as fixing the crash, and §3 lists the hardware run
-that would have confirmed it. The rejection came back.
+that would have confirmed it.
 
 So this round did not start by reading the code again. It started by trying to
 break the module, and then by making the next failure produce evidence.
@@ -30,6 +46,17 @@ crash.
 | R8 stripped something reached by name | Read `mapping/release/usage.txt` | Nothing that matters. The classes dropped whole (`WearMessages`, `WearPaths`, `WearAuroraColors`, the `R` classes) hold compile-time constants that are inlined at their use sites, exactly as the keep file's comment predicts |
 | Something on the way to the first frame throws | Drove `WearMainActivity` create → start → resume → pause → stop → destroy under Robolectric, plus the view model with no cache and no Play Services, plus the data-layer listener | All pass |
 | The signed-out state is a dead end | Read it | It is a real explained screen: "Open ElmTrackr on your paired phone to sign in" |
+| The resource shrinker dropped the brand fonts, so `R.font` throws at composition — release-only, and `ed089f2` put both faces on the launch path | Unzipped the release APK and read `mapping/release/resources.txt` | Both `.ttf` files are in the APK and both are marked reachable. The keep file's claim that nothing needs a defensive rule for them holds |
+| The shrinker dropped `android_wear_capabilities`, so the watch stops advertising itself — the August fix for this was a `keep.xml` that nothing verified | Same shrinker report | "reachable from keep xml file". The pin works |
+| A library injects a component that runs before our code and fails on a watch | Dumped the merged release manifest | WorkManager's receivers and services, `androidx.startup`, profileinstaller, `GoogleApiActivity`, and Room's invalidation service (transitively, via WorkManager). Nothing unexpected, nothing Wear-hostile |
+| A large accessibility font size breaks the launch — §3 of the August document lists it and nothing had ever tested it, because every test in this module ran at the default scale | Drove the activity at 2.0x, at the 1.3x cap boundary, at 0.85x, and at minSdk 30 with 1.5x | All pass. `withCappedFontScale` is arithmetic that only executes above 1.3x, so a default-scale run never reached it; now two of those cases are permanent tests |
+
+Reading `withCappedFontScale` for that last one turned up an asymmetry worth
+closing: `lineHeight` was guarded against `TextUnit.Unspecified` and `fontSize`,
+one line above it, was not. Multiplying an unspecified `TextUnit` throws, and it
+throws during composition, which on the launch path is a crash. Every caller
+today passes a style that sets a size, so this was a trap rather than a live bug
+— closed because this module is under review for exactly that class of failure.
 
 The activity was the notable gap. `WearLaunchPathTest` already covered the
 Application, the complication provider and the trampoline — it had never created
@@ -84,6 +111,27 @@ with one ruleset. A redaction ruleset is the last thing that should exist in two
 copies. The watch does not talk to Postgres or hold a token, so most of its rules
 are phone-only there — but `WearShiftSnapshot.shiftId` is a row id that travels to
 the watch, so the UUID rule earns its place on the wrist.
+
+### Two consequences of adding it, both deliberate
+
+**The watch app now declares `android.permission.INTERNET`.** It previously held
+only `WAKE_LOCK` and `VIBRATE`. `sentry-android-core` contributes the permission
+and there is no way around it: a reporter that cannot reach the network is not a
+reporter. Worth being explicit about, because this is a user-visible permission
+added to an app that is *currently in policy review*, and because the watch
+app's premise is that it talks to the phone rather than the network. The
+alternative — forward crashes to the phone over the data layer and let the phone
+report them — was rejected on the grounds that it cannot report a crash on a
+watch with no paired phone, which is the case that matters most here.
+
+**Sentry's auto-init is switched off.** `sentry-android-core` contributes two
+content providers, and a content provider runs *before* `Application.onCreate`
+— which is before the guard `WearCrashReporting` puts around init. Unguarded
+library code ahead of our own, on the launch path, in the module being rejected
+for dying on the launch path, is precisely what this change must not introduce.
+`io.sentry.auto-init=false` is Sentry's documented switch for manual
+initialisation: the providers stay installed and skip auto-init, so the only
+place the SDK starts is inside a `runCatching` we own.
 
 ### Only the core SDK
 
@@ -144,10 +192,11 @@ review and both are Play Console work, not code. Check them before uploading:
 3. The watch screenshots are still the app's own pixels — no frames, no mats
    (§1 of the August document, and `tools/check-wear-screenshots.py`).
 
-Also confirm in Play Console **which versionCode was rejected**. This repository
-is at phone 52 / wear 10052, and the August document records that production
-drifted from what the tree said before. If the rejected artifact is not 10052,
-what Google reviewed is not what is described here.
+The rejected versionCode is confirmed as 10052, so unlike August there is no
+question about which build to reason from. Whatever ships next must be built from
+the same commit as its phone counterpart: the two share `:wear-sync`, and a watch
+built from a different tree than the phone it talks to is a wire mismatch waiting
+to happen.
 
 ---
 
