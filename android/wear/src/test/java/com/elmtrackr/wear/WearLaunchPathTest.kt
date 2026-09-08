@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.ContextWrapper
 import androidx.test.core.app.ApplicationProvider
 import com.elmtrackr.wear.complication.ElmTrackrComplicationService
+import com.elmtrackr.wear.sync.WearDataListenerService
 import com.elmtrackr.wear.tile.WearPunchTrampolineActivity
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -94,6 +95,63 @@ class WearLaunchPathTest {
      * manifest contract is covered by `WearManifestContractTest`, and the punch
      * target it launches is covered below; the timeline itself is emulator-only.
      */
+
+    /**
+     * The launcher activity, through the whole foreground lifecycle.
+     *
+     * The gap this closes is the obvious one: "your app crashed when testing" is a
+     * reviewer tapping the launcher icon, and nothing here had ever created
+     * [WearMainActivity]. The Application was covered because Robolectric builds it
+     * for every test in this class, and the tile, complication and trampoline were
+     * covered directly — the one component in between, the activity that actually
+     * puts a frame on the screen, was not.
+     *
+     * Reaching `resume()` means the theme resolved, the view model was constructed,
+     * its bootstrap ran, and the Wear Compose tree composed and measured. Any of
+     * those throwing is the shape of failure the rejections describe.
+     */
+    @Test
+    fun `the launcher activity reaches resume and unwinds again`() {
+        val controller = Robolectric.buildActivity(WearMainActivity::class.java)
+
+        controller.create()
+        controller.start()
+        controller.resume()
+        // And back down: a throw in onPause/onStop after a store reviewer swipes away
+        // is the same crash dialog as one on the way up.
+        controller.pause()
+        controller.stop()
+        controller.destroy()
+    }
+
+    /**
+     * The view model, built the way the activity builds it.
+     *
+     * Its `init` reads the cached snapshot and kicks off the data-layer refresh, so
+     * it runs disk I/O and touches Play Services on a device that may have neither a
+     * cache nor a paired phone. Constructing it here with no Play Services present
+     * is the closest this environment gets to the reviewer's harness.
+     */
+    @Test
+    fun `the view model can be constructed with no phone and no cache`() {
+        val viewModel = WearMainViewModel(app())
+
+        assertNotNull(viewModel.displayState)
+    }
+
+    /**
+     * The data-layer listener, which Play Services starts — not the user.
+     *
+     * It is exported and bound by a different uid, so it is reachable in states
+     * this app never sets up. Construction and teardown must not throw.
+     */
+    @Test
+    fun `the data layer listener can be constructed and destroyed`() {
+        val service = Robolectric.setupService(WearDataListenerService::class.java)
+
+        assertNotNull(service)
+        service.onDestroy()
+    }
 
     @Test
     fun `the complication service can be constructed and destroyed`() {
