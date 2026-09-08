@@ -42,7 +42,7 @@ androidxTestCore = "1.7.0"
 androidxTestRunner = "1.7.0"
 androidxEspresso = "3.7.0"
 sentryAndroidGradle = "6.16.0"
-sentryAndroid = "8.46.0"
+sentryAndroid = "8.50.1"
 mlkitDocumentScanner = "16.0.0"
 mlkitTextRecognition = "16.0.1"
 tesseract4android = "4.8.0"
@@ -79,6 +79,7 @@ androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidge
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
 play-services-wearable = { group = "com.google.android.gms", name = "play-services-wearable", version.ref = "playServicesWearable" }
+sentry-android-core = { group = "io.sentry", name = "sentry-android-core", version.ref = "sentryAndroid" }
 play-app-update = { group = "com.google.android.play", name = "app-update", version.ref = "playAppUpdate" }
 play-app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "playAppUpdate" }
 play-review = { group = "com.google.android.play", name = "review", version.ref = "playReview" }

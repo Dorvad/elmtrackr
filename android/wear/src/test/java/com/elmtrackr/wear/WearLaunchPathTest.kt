@@ -5,10 +5,13 @@ import android.content.Intent
 import android.content.ContextWrapper
 import androidx.test.core.app.ApplicationProvider
 import com.elmtrackr.wear.complication.ElmTrackrComplicationService
+import com.elmtrackr.wear.monitoring.WearCrashReporting
 import com.elmtrackr.wear.sync.WearDataListenerService
 import com.elmtrackr.wear.tile.WearPunchTrampolineActivity
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -167,6 +170,46 @@ class WearLaunchPathTest {
      * than throw on an intent carrying no action, an unknown action, or nothing
      * at all.
      */
+    /**
+     * Crash reporting must never be the crash.
+     *
+     * It is started first in `Application.onCreate`, in a module Play keeps rejecting
+     * for dying on the launch path, so every entry point swallows its own failures.
+     * This build has no DSN — `local.properties` carries none on CI — so the calls
+     * below all take the unavailable branch, which is the one that must also be inert:
+     * an unconfigured reporter has to do nothing quietly rather than throw.
+     */
+    @Test
+    fun `crash reporting is inert and silent without a DSN`() {
+        assertFalse("a test build must not be compiled with a DSN", WearCrashReporting.isAvailable())
+
+        // None of these may throw.
+        WearCrashReporting.startIfConsented(app())
+        WearCrashReporting.report(IllegalStateException("handled, not fatal"))
+        WearCrashReporting.applyPhoneConsent(app(), enabled = false)
+        WearCrashReporting.applyPhoneConsent(app(), enabled = true)
+    }
+
+    /**
+     * The phone owns the consent and the watch remembers the answer.
+     *
+     * The watch ships no settings screen, so its only source of truth is the snapshot
+     * the phone pushes; the answer is cached so it survives a launch that happens
+     * before any snapshot arrives. It defaults to on, matching the phone's own
+     * opt-out default — and a watch that has never been paired still reports, which
+     * is the entire point on a store reviewer's device.
+     */
+    @Test
+    fun `the phone's consent is remembered and defaults to on`() {
+        assertTrue("an unpaired watch should still report", WearCrashReporting.isEnabled(app()))
+
+        WearCrashReporting.applyPhoneConsent(app(), enabled = false)
+        assertFalse("an opt-out from the phone must stick", WearCrashReporting.isEnabled(app()))
+
+        WearCrashReporting.applyPhoneConsent(app(), enabled = true)
+        assertTrue(WearCrashReporting.isEnabled(app()))
+    }
+
     @Test
     fun `the trampoline finishes quietly on an intent it does not recognise`() {
         val cases = listOf(
