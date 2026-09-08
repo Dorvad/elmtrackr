@@ -1,5 +1,7 @@
 package com.elmtrackr.app.monitoring
 
+import com.elmtrackr.wear.sync.SensitiveTextScrubber
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

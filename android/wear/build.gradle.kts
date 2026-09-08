@@ -4,11 +4,40 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.sentry.android.gradle)
 }
 
 val localPropsFile = rootProject.file("local.properties")
 val localProps = Properties().apply {
     if (localPropsFile.exists()) load(localPropsFile.inputStream())
+}
+val sentryDsn = localProps.getProperty("sentry.dsn", "")
+
+// Mirrors :app exactly. Nothing is uploaded from a build machine: the mapping for
+// a watch release has to be attached deliberately, because a wear crash arrives
+// with renamed classes even though the keep file preserves SourceFile and
+// LineNumberTable. See wear-play-resubmission-2026-08.md.
+sentry {
+    autoUploadProguardMapping.set(false)
+    autoUploadNativeSymbols.set(false)
+    includeSourceContext.set(false)
+    telemetry.set(false)
+    // Off, unlike :app, and the dependency is declared by hand below instead.
+    //
+    // Auto-installation adds the whole `sentry-android` bundle. On the phone that is
+    // a fair trade; on a watch it is not. Measured on this module's release APK:
+    //
+    //   3.58 MB  before crash reporting
+    //   7.33 MB  with the auto-installed bundle
+    //   4.20 MB  with sentry-android-core alone
+    //
+    // The 3.1 MB in between is mostly sentry-android-ndk, whose libsentry.so is
+    // 785 KB in each of four ABIs, plus -replay. Neither earns its place on a wrist:
+    // the crashes this module needs to see are JVM crashes on the launch path, and
+    // session replay has no business recording a watch screen.
+    autoInstallation {
+        enabled.set(false)
+    }
 }
 
 android {
@@ -35,6 +64,8 @@ android {
         // mismatch waiting to happen.
         versionCode = 10052
         versionName = "1.3.1"
+
+        buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
     }
 
     // The Play Store only delivers the watch app to a paired watch when it is
@@ -108,6 +139,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     bundle {
@@ -141,6 +173,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.play.services.wearable)
+    // Crash reporting, core only — see the `sentry` block above for why this is
+    // declared here rather than auto-installed.
+    implementation(libs.sentry.android.core)
     implementation(libs.androidx.work.runtime.ktx)
     implementation("androidx.concurrent:concurrent-futures-ktx:1.2.0")
 

@@ -2,6 +2,7 @@ package com.elmtrackr.app.monitoring
 
 import android.content.Context
 import com.elmtrackr.app.BuildConfig
+import com.elmtrackr.wear.sync.SensitiveTextScrubber
 import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
 

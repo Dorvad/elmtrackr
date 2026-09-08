@@ -5,6 +5,7 @@ import com.elmtrackr.app.data.local.preferences.AppPreferenceKeys
 import com.elmtrackr.app.data.local.preferences.appPreferencesDataStore
 import com.elmtrackr.app.di.entrypoint.AppEntryPoints
 import com.elmtrackr.app.language.withAppLocale
+import com.elmtrackr.app.monitoring.CrashReporting
 import com.elmtrackr.app.widget.WidgetContext
 import com.elmtrackr.app.widget.WidgetContextLoader
 import com.elmtrackr.app.widget.WidgetShiftState
@@ -50,9 +51,16 @@ object WearSyncPublisher {
     ) {
         runCatching {
             val dataClient = Wearable.getDataClient(context.applicationContext)
+            // Stamped here rather than in the mapper because this is the one point
+            // every publish path passes through, the signed-out ones included. It is
+            // a device setting, not shift state, so it should not depend on which
+            // caller happened to build the snapshot.
+            val outgoing = snapshot.copy(
+                crashReportingEnabled = CrashReporting.isEnabledByUser(context),
+            )
             val putRequest = PutDataMapRequest.create(WearPaths.SHIFT_STATE).apply {
-                dataMap.putString(WearPaths.PAYLOAD_KEY, WearSnapshotCodec.encode(snapshot))
-                dataMap.putLong("updatedAt", snapshot.updatedAtEpochMillis)
+                dataMap.putString(WearPaths.PAYLOAD_KEY, WearSnapshotCodec.encode(outgoing))
+                dataMap.putLong("updatedAt", outgoing.updatedAtEpochMillis)
             }.asPutDataRequest().setUrgent()
             dataClient.putDataItem(putRequest).await()
             nudgeConnectedNodes(context)

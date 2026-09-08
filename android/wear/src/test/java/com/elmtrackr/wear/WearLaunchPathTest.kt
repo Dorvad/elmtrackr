@@ -5,9 +5,13 @@ import android.content.Intent
 import android.content.ContextWrapper
 import androidx.test.core.app.ApplicationProvider
 import com.elmtrackr.wear.complication.ElmTrackrComplicationService
+import com.elmtrackr.wear.monitoring.WearCrashReporting
+import com.elmtrackr.wear.sync.WearDataListenerService
 import com.elmtrackr.wear.tile.WearPunchTrampolineActivity
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -95,6 +99,99 @@ class WearLaunchPathTest {
      * target it launches is covered below; the timeline itself is emulator-only.
      */
 
+    /**
+     * The launcher activity, through the whole foreground lifecycle.
+     *
+     * The gap this closes is the obvious one: "your app crashed when testing" is a
+     * reviewer tapping the launcher icon, and nothing here had ever created
+     * [WearMainActivity]. The Application was covered because Robolectric builds it
+     * for every test in this class, and the tile, complication and trampoline were
+     * covered directly — the one component in between, the activity that actually
+     * puts a frame on the screen, was not.
+     *
+     * Reaching `resume()` means the theme resolved, the view model was constructed,
+     * its bootstrap ran, and the Wear Compose tree composed and measured. Any of
+     * those throwing is the shape of failure the rejections describe.
+     */
+    @Test
+    fun `the launcher activity reaches resume and unwinds again`() {
+        val controller = Robolectric.buildActivity(WearMainActivity::class.java)
+
+        controller.create()
+        controller.start()
+        controller.resume()
+        // And back down: a throw in onPause/onStop after a store reviewer swipes away
+        // is the same crash dialog as one on the way up.
+        controller.pause()
+        controller.stop()
+        controller.destroy()
+    }
+
+    /**
+     * The same launch, at the largest font the wearer can ask for and at the module's
+     * minimum API.
+     *
+     * `wear-play-resubmission-2026-08.md` §3 lists "Settings → Display → Font size at
+     * its largest" among the cases to cover on hardware, and it was never covered
+     * anywhere — the run above, like every other test in this module, uses the default
+     * scale. The watch's display styles cap their own growth (see
+     * `TextStyle.withCappedFontScale`), which is arithmetic on the launch path that
+     * only executes above 1.3x, so a default-scale test never reaches it.
+     *
+     * API 30 is the module's `minSdk` and a real Wear OS level, so it is worth one
+     * pass of its own: the 33 above is where everything else runs.
+     */
+    @Test
+    @Config(sdk = [33], fontScale = 2.0f)
+    fun `the launcher activity survives the largest accessibility font size`() {
+        val controller = Robolectric.buildActivity(WearMainActivity::class.java)
+
+        controller.create()
+        controller.start()
+        controller.resume()
+        controller.destroy()
+    }
+
+    @Test
+    @Config(sdk = [30], fontScale = 1.5f)
+    fun `the launcher activity survives minSdk at a large font size`() {
+        val controller = Robolectric.buildActivity(WearMainActivity::class.java)
+
+        controller.create()
+        controller.start()
+        controller.resume()
+        controller.destroy()
+    }
+
+    /**
+     * The view model, built the way the activity builds it.
+     *
+     * Its `init` reads the cached snapshot and kicks off the data-layer refresh, so
+     * it runs disk I/O and touches Play Services on a device that may have neither a
+     * cache nor a paired phone. Constructing it here with no Play Services present
+     * is the closest this environment gets to the reviewer's harness.
+     */
+    @Test
+    fun `the view model can be constructed with no phone and no cache`() {
+        val viewModel = WearMainViewModel(app())
+
+        assertNotNull(viewModel.displayState)
+    }
+
+    /**
+     * The data-layer listener, which Play Services starts — not the user.
+     *
+     * It is exported and bound by a different uid, so it is reachable in states
+     * this app never sets up. Construction and teardown must not throw.
+     */
+    @Test
+    fun `the data layer listener can be constructed and destroyed`() {
+        val service = Robolectric.setupService(WearDataListenerService::class.java)
+
+        assertNotNull(service)
+        service.onDestroy()
+    }
+
     @Test
     fun `the complication service can be constructed and destroyed`() {
         val service = Robolectric.setupService(ElmTrackrComplicationService::class.java)
@@ -109,6 +206,46 @@ class WearLaunchPathTest {
      * than throw on an intent carrying no action, an unknown action, or nothing
      * at all.
      */
+    /**
+     * Crash reporting must never be the crash.
+     *
+     * It is started first in `Application.onCreate`, in a module Play keeps rejecting
+     * for dying on the launch path, so every entry point swallows its own failures.
+     * This build has no DSN — `local.properties` carries none on CI — so the calls
+     * below all take the unavailable branch, which is the one that must also be inert:
+     * an unconfigured reporter has to do nothing quietly rather than throw.
+     */
+    @Test
+    fun `crash reporting is inert and silent without a DSN`() {
+        assertFalse("a test build must not be compiled with a DSN", WearCrashReporting.isAvailable())
+
+        // None of these may throw.
+        WearCrashReporting.startIfConsented(app())
+        WearCrashReporting.report(IllegalStateException("handled, not fatal"))
+        WearCrashReporting.applyPhoneConsent(app(), enabled = false)
+        WearCrashReporting.applyPhoneConsent(app(), enabled = true)
+    }
+
+    /**
+     * The phone owns the consent and the watch remembers the answer.
+     *
+     * The watch ships no settings screen, so its only source of truth is the snapshot
+     * the phone pushes; the answer is cached so it survives a launch that happens
+     * before any snapshot arrives. It defaults to on, matching the phone's own
+     * opt-out default — and a watch that has never been paired still reports, which
+     * is the entire point on a store reviewer's device.
+     */
+    @Test
+    fun `the phone's consent is remembered and defaults to on`() {
+        assertTrue("an unpaired watch should still report", WearCrashReporting.isEnabled(app()))
+
+        WearCrashReporting.applyPhoneConsent(app(), enabled = false)
+        assertFalse("an opt-out from the phone must stick", WearCrashReporting.isEnabled(app()))
+
+        WearCrashReporting.applyPhoneConsent(app(), enabled = true)
+        assertTrue(WearCrashReporting.isEnabled(app()))
+    }
+
     @Test
     fun `the trampoline finishes quietly on an intent it does not recognise`() {
         val cases = listOf(

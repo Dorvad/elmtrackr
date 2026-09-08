@@ -1,4 +1,4 @@
-package com.elmtrackr.app.monitoring
+package com.elmtrackr.wear.sync
 
 /**
  * Removes identifying values from text on its way into a crash report.
@@ -22,6 +22,17 @@ package com.elmtrackr.app.monitoring
  *
  * This is a second line of defence, not the first. `isSendDefaultPii` is off, no user
  * is attached to events, and nothing here logs record contents on purpose.
+ *
+ * ### Why it lives in the shared module
+ *
+ * Both artifacts report crashes and both need the same redaction, and `:wear-sync` is
+ * the only module the phone and the watch already share. A redaction ruleset is the
+ * last thing that should exist in two copies: the copies drift, and the one that drifts
+ * is the one that leaks.
+ *
+ * The watch does not talk to Postgres or hold a token, so the first four rules are
+ * phone-only there. The UUID rule is not: `WearShiftSnapshot.shiftId` is a row id that
+ * travels to the watch, so an exception message on the wrist can carry one.
  */
 object SensitiveTextScrubber {
 

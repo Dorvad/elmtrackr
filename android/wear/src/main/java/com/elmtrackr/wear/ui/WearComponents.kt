@@ -105,7 +105,14 @@ fun TextStyle.withCappedFontScale(maxScale: Float = 1.3f): TextStyle {
     if (fontScale <= maxScale) return this
     val factor = maxScale / fontScale
     return copy(
-        fontSize = fontSize * factor,
+        // Both guarded, and the fontSize guard is the point: multiplying
+        // TextUnit.Unspecified throws, and it throws during composition, which on the
+        // launch path is a crash. The lineHeight below was already guarded and this
+        // was not — an asymmetry rather than a decision. Every caller today passes a
+        // style that sets a size, so this is a trap being closed, not a bug being
+        // fixed; it is closed because this module is under review for exactly this
+        // class of failure.
+        fontSize = if (fontSize.isSpecified) fontSize * factor else fontSize,
         lineHeight = if (lineHeight.isSpecified) lineHeight * factor else lineHeight,
     )
 }

@@ -20,6 +20,22 @@
             android:name="com.google.android.wearable.standalone"
             android:value="false" />
 
+        <!-- Sentry initialises from WearCrashReporting and nowhere else.
+
+             sentry-android-core contributes two content providers,
+             SentryInitProvider and SentryPerformanceProvider, and a content
+             provider runs before Application.onCreate — which means before the
+             guard WearCrashReporting puts around init. In a module Play keeps
+             rejecting for dying on the launch path, unguarded library code
+             ahead of our own is exactly what we cannot add. This is Sentry's
+             documented switch for manual initialisation: the providers stay
+             installed (the SDK reads app-start timing from one of them) and
+             skip auto-init, so the only place the SDK starts is inside a
+             runCatching we own. -->
+        <meta-data
+            android:name="io.sentry.auto-init"
+            android:value="false" />
+
         <uses-library
             android:name="com.google.android.wearable"
             android:required="true" />
