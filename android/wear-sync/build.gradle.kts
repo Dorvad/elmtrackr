@@ -22,5 +22,18 @@ java {
 
 dependencies {
     implementation(libs.kotlinx.serialization.json)
+
+    // Sentry types for CrashReportScrubber, and nothing else.
+    //
+    // compileOnly, so this module does not put the SDK on a consumer's classpath:
+    // :app gets it from the Sentry Gradle plugin's auto-installation and :wear
+    // declares sentry-android-core by hand, both at the version this catalog names.
+    // The scrubber is the one piece of crash-report handling the phone and the watch
+    // must not implement twice, so it lives here with the text rules it applies.
+    compileOnly(libs.sentry.java)
+
     testImplementation(libs.junit)
+    // On the test classpath for real: the scrubber tests build actual SentryEvent,
+    // Breadcrumb and Request objects rather than asserting against a stand-in.
+    testImplementation(libs.sentry.java)
 }

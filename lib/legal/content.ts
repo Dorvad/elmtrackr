@@ -4,7 +4,7 @@ export const LEGAL_CONTACT_EMAIL = "support@elmtrackr.site";
 export const PRIVACY_POLICY_URL = "https://elmtrackr.site/privacy";
 export const TERMS_URL = "https://elmtrackr.site/terms";
 
-export const PRIVACY_POLICY_LAST_UPDATED = "June 26, 2025";
+export const PRIVACY_POLICY_LAST_UPDATED = "September 9, 2026";
 
 export const privacyPolicySections = [
   {
@@ -16,6 +16,11 @@ export const privacyPolicySections = [
     title: "Data we collect",
     body:
       "Account: email address and optional display name when you sign up. Work data: shift times, breaks, notes, overtime settings, compensation rules, and pay estimates you configure. Refunds: travel claim details and receipt photos you upload. Device: the app stores data locally on your phone and syncs to our cloud database when you are signed in.",
+  },
+  {
+    title: "Crash reports and diagnostics",
+    body:
+      "When crash reporting is on — it is on by default and you can turn it off in Settings → Help & About → Share crash reports — a failure sends a technical report to Sentry, our crash-reporting processor. It contains the error and its stack trace, your device model and Android version, the app version, a short trail of the screens and actions leading up to the failure, and a random identifier for the installation, which lets us tell one device's crashes from another's. It does not contain your name, your email address, your shifts, your pay or your receipts, and identifying values are stripped from error text before the report is sent. The Wear OS app does the same, following the setting you choose on the phone.",
   },
   {
     title: "How we use data",
@@ -30,7 +35,7 @@ export const privacyPolicySections = [
   {
     title: "Sharing",
     body:
-      "We do not sell your personal data. We do not use third-party advertising or analytics SDKs. Data is shared only with infrastructure providers needed to run the service (e.g. Supabase as our database host).",
+      "We do not sell your personal data, and we use no advertising SDKs and no advertising or marketing trackers. Data reaches two processors, both acting on our instructions: Supabase, which hosts the database and receipt storage, and Sentry, which receives crash reports and app-health diagnostics when crash reporting is left on. You can turn crash reporting off at any time in Settings → Help & About → Share crash reports.",
   },
   {
     title: "Retention & deletion",

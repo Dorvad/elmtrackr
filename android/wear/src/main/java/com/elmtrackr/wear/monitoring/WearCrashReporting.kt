@@ -4,9 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.elmtrackr.wear.BuildConfig
 import com.elmtrackr.wear.runCatchingCancellable
-import com.elmtrackr.wear.sync.SensitiveTextScrubber
+import com.elmtrackr.wear.sync.CrashReportScrubber
 import io.sentry.Sentry
-import io.sentry.SentryEvent
 import io.sentry.android.core.SentryAndroid
 
 /**
@@ -115,8 +114,20 @@ object WearCrashReporting {
                 // and spans would cost battery and radio for data nobody is reading.
                 options.tracesSampleRate = 0.0
                 options.isAttachStacktrace = true
+                // Mirrors :app. Session replay is not even on this module's classpath —
+                // the `sentry` block above is what keeps it off a wrist — so these are
+                // belt and braces against a future dependency change, and cost two
+                // field writes at start-up.
+                options.isAttachScreenshot = false
+                options.isAttachViewHierarchy = false
+                options.sessionReplay.sessionSampleRate = 0.0
+                options.sessionReplay.onErrorSampleRate = 0.0
+                options.setBeforeBreadcrumb { breadcrumb, _ ->
+                    runCatchingCancellable { CrashReportScrubber.scrub(breadcrumb) }
+                    breadcrumb
+                }
                 options.setBeforeSend { event, _ ->
-                    runCatchingCancellable { scrub(event) }
+                    runCatchingCancellable { CrashReportScrubber.scrub(event) }
                     event
                 }
             }
@@ -125,19 +136,5 @@ object WearCrashReporting {
             // launch path. Dying in the reporter would be beyond ironic.
             Log.e(TAG, "Could not start crash reporting", it)
         }
-    }
-
-    /**
-     * Rewrites the free-text fields of [event] in place, using the same rules as the
-     * phone. Stack frames are left alone — they carry no user data and are the whole
-     * reason the report is worth sending.
-     */
-    private fun scrub(event: SentryEvent) {
-        event.message?.let { message ->
-            message.formatted = SensitiveTextScrubber.scrub(message.formatted)
-            message.message = SensitiveTextScrubber.scrub(message.message)
-        }
-        event.exceptions?.forEach { it.value = SensitiveTextScrubber.scrub(it.value) }
-        event.breadcrumbs?.forEach { it.message = SensitiveTextScrubber.scrub(it.message) }
     }
 }
