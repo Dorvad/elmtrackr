@@ -465,7 +465,7 @@
     <string name="settings_save_profile">حفظ الملف</string>
     <!-- Crash reporting -->
     <string name="settings_crash_reports">مشاركة تقارير الأعطال</string>
-    <string name="settings_crash_reports_desc">أرسل تشخيصات أعطال مجهولة المصدر للمساعدة في إصلاح الأخطاء. ولا تُضمَّن مناوباتك ولا أجرك ولا تفاصيلك الشخصية أبدًا.</string>
+    <string name="settings_crash_reports_desc">يرسل تفاصيل العطل وطراز جهازك وإصدار التطبيق ومُعرِّفًا عشوائيًا لهذا التثبيت عند حدوث خلل. ولا تُضمَّن مناوباتك ولا أجرك ولا إيصالاتك ولا تفاصيلك الشخصية أبدًا.</string>
     <string name="settings_night_il_note">يُعالَج العمل الليلي في الإعداد الجاهز لإسرائيل تلقائيًا: المناوبة التي تضم ساعتين أو أكثر بين 22:00 و06:00 تستخدم معيارًا يوميًا مختصرًا من 7 ساعات، فتبدأ الساعات الإضافية أبكر. ولا ينطبق مضاعف ليلي منفصل.</string>
     <string name="settings_delete_premium_title">حذف معدل العلاوة؟</string>
     <string name="settings_delete_premium_text">ستُزال \"%1$s\". وتحتفظ المناوبات التي استخدمتها بأجرها المحفوظ، لكن لن تستطيع تطبيقها على مناوبات جديدة.</string>

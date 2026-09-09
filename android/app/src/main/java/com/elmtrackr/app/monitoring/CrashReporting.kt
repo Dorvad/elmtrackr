@@ -2,7 +2,7 @@ package com.elmtrackr.app.monitoring
 
 import android.content.Context
 import com.elmtrackr.app.BuildConfig
-import com.elmtrackr.wear.sync.SensitiveTextScrubber
+import com.elmtrackr.wear.sync.CrashReportScrubber
 import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
 
@@ -55,19 +55,6 @@ object CrashReporting {
         runCatching { Sentry.captureException(throwable) }
     }
 
-    /**
-     * Rewrites the free-text fields of [event] in place. Stack frames are left alone —
-     * they carry no user data and are what makes the report worth sending.
-     */
-    private fun scrub(event: io.sentry.SentryEvent) {
-        event.message?.let { message ->
-            message.formatted = SensitiveTextScrubber.scrub(message.formatted)
-            message.message = SensitiveTextScrubber.scrub(message.message)
-        }
-        event.exceptions?.forEach { it.value = SensitiveTextScrubber.scrub(it.value) }
-        event.breadcrumbs?.forEach { it.message = SensitiveTextScrubber.scrub(it.message) }
-    }
-
     private fun start(context: Context) {
         SentryAndroid.init(context) { options ->
             options.dsn = BuildConfig.SENTRY_DSN
@@ -76,13 +63,34 @@ object CrashReporting {
             options.isSendDefaultPii = false
             options.tracesSampleRate = 0.0
             options.isAttachStacktrace = true
+            // Sessions are the one thing here that transmits without a crash: one
+            // envelope per foreground and background, carrying the release, the device
+            // and Sentry's installation id. That is what crash-free-rate is computed
+            // from, and it is why the data safety form declares Device or other IDs.
+            // See docs/play-data-safety.md.
             options.isEnableAutoSessionTracking = true
-            // Last gate before an event leaves the device. See SensitiveTextScrubber
-            // for what it removes and why. Wrapped in runCatching because a throw here
+            // Three ways the contents of the user's screen could become an attachment.
+            // All three are off by default in this SDK version; they are set anyway
+            // because a default is a decision someone else gets to change, and this one
+            // would change what the data safety declaration has to say without a line
+            // of this app's code moving.
+            options.isAttachScreenshot = false
+            options.isAttachViewHierarchy = false
+            options.sessionReplay.sessionSampleRate = 0.0
+            options.sessionReplay.onErrorSampleRate = 0.0
+            // Breadcrumbs are scrubbed where they are recorded, not only where they are
+            // sent: an NDK crash is written straight to the outbox and uploaded on the
+            // next launch, and that path never reaches setBeforeSend.
+            options.setBeforeBreadcrumb { breadcrumb, _ ->
+                runCatching { CrashReportScrubber.scrub(breadcrumb) }
+                breadcrumb
+            }
+            // Last gate before an event leaves the device. See CrashReportScrubber for
+            // what it removes and why. Wrapped in runCatching because a throw here
             // happens inside the SDK's own send path: losing a report is a bad
             // outcome, losing the process while reporting a crash is a worse one.
             options.setBeforeSend { event, _ ->
-                runCatching { scrub(event) }
+                runCatching { CrashReportScrubber.scrub(event) }
                 event
             }
         }

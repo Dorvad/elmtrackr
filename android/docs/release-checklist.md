@@ -174,9 +174,15 @@ on, PII off, no tracing). Without a DSN the feature is compiled out entirely.
 4. CI builds: add a `SENTRY_DSN` repository secret and write it into
    `local.properties` in the workflow (same pattern as `SUPABASE_URL`).
 5. Update the privacy policy to disclose crash diagnostics collection and the
-   in-app opt-out.
+   in-app opt-out, and declare it on the data safety form. **This step was
+   missed, and Play rejected the release for it in September 2026** — the
+   wording to publish and the form rows to tick are in
+   [play-data-safety.md](./play-data-safety.md).
 6. After the first internal build: force a test crash on a device and confirm
    the event arrives in Sentry.
+7. Read that event's USER, CONTEXTS and BREADCRUMBS panels against
+   [play-data-safety.md](./play-data-safety.md) §2.2. What Sentry actually stores
+   is the only evidence that settles what the form has to say.
 
 ---
 
@@ -233,11 +239,18 @@ every crash it finds as a blocker).
 1. **Create a developer account** at play.google.com/console ($25 one-time,
    requires identity verification — allow a few days).
 2. **Create app** → name "ElmTrackr", default language Hebrew, type App, Free.
-3. Complete the **app content** declarations: privacy policy URL, data safety
-   form (accounts: email; user content: shifts, receipts; encrypted in
-   transit; deletable in-app **and via a web deletion URL** — Play requires
-   the web link for apps with account creation), ads declaration (none),
-   content rating questionnaire, target audience.
+3. Complete the **app content** declarations: privacy policy URL, ads
+   declaration (none), content rating questionnaire, target audience, and the
+   **data safety form**.
+
+   Fill the data safety form from
+   [play-data-safety.md](./play-data-safety.md) — every row, with the evidence
+   behind it. Do not fill it from memory or from this checklist: the summary that
+   used to sit here ("accounts: email; user content: shifts, receipts") left out
+   crash logs, diagnostics and the per-install identifier the app sends to Sentry,
+   and Play rejected the September 2026 release for exactly that gap. The form
+   also has to be re-checked whenever a dependency changes, not only when a
+   feature does; §6 of that document says how.
 4. **Store listing**: Hebrew + English title/descriptions, screenshots
    (lead with the pay breakdown and clock faces), 1024×500 feature graphic,
    512×512 icon.
@@ -272,5 +285,6 @@ must be unique across all form factors, so `:wear` uses its own range,
 | R8 release build verified | Done in CI-equivalent build; re-verify on device (§2) |
 | Hebrew string parity | Done (1,027/1,027); device walkthrough pending (§3) |
 | Crash reporting | Done — opt-out toggle shipped; DSN setup pending (§4) |
+| Data safety form | **Blocking** — rejected September 2026; re-declare from [play-data-safety.md](./play-data-safety.md), and republish the privacy policy with it |
 | Sign in with Google | Client shipped and tested; Google Cloud + Supabase config pending (§4b) |
 | Device matrix | Pending (§5) |

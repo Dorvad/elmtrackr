@@ -438,7 +438,7 @@
     <string name="settings_save_profile">Save profile</string>
     <!-- Crash reporting -->
     <string name="settings_crash_reports">Share crash reports</string>
-    <string name="settings_crash_reports_desc">Send anonymous crash diagnostics to help fix bugs. Your shifts, pay, and personal details are never included.</string>
+    <string name="settings_crash_reports_desc">Sends the error, your device model, the app version and a random ID for this install when something goes wrong. Your shifts, pay, receipts and personal details are never included.</string>
     <string name="settings_night_il_note">Night work under the Israel preset is handled automatically: a shift with 2+ hours between 22:00 and 06:00 uses a shortened 7-hour daily standard, so overtime starts earlier. A separate night multiplier does not apply.</string>
     <string name="settings_delete_premium_title">Delete premium rate?</string>
     <string name="settings_delete_premium_text">\"%1$s\" will be removed. Shifts that used it keep their saved pay, but you can no longer apply it to new shifts.</string>
