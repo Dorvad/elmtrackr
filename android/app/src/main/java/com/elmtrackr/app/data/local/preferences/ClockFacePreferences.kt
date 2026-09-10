@@ -27,4 +27,28 @@ interface ClockFacePreferences {
      * rather than read straight from storage.
      */
     suspend fun setInstalledClockFacePacks(packNames: Set<String>)
+
+    /**
+     * The packs the user has taken off this device on purpose.
+     *
+     * Recorded rather than inferred from absence, because absence has two causes
+     * that call for opposite handling: a pack the user removed should stay
+     * removed, and a pack they own but never had installed should be put back.
+     * `ClockFacePackBillingCoordinator` is what tells them apart, and this is
+     * what it tells them apart with.
+     */
+    suspend fun setRemovedClockFacePacks(packNames: Set<String>)
+}
+
+/**
+ * Moving an existing install's entitlements into their own store, once.
+ *
+ * Its own interface, and a one-method one, because the order it runs in relative
+ * to the free-era seed is load-bearing and the failure case is what
+ * `ClockFacePackBillingCoordinator` has to get right: a seed that runs after a
+ * migration that threw grants nothing and marks the grant as worked out. That is
+ * a rule worth a test, and a test needs something that can fail on request.
+ */
+interface EntitlementsMigration {
+    suspend fun migrateEntitlementsIfNeeded()
 }

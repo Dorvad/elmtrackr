@@ -1,6 +1,8 @@
 package com.elmtrackr.app.billing
 
 import com.elmtrackr.app.data.local.preferences.ClockFacePreferences
+import com.elmtrackr.app.data.local.preferences.EntitlementsMigration
+import com.elmtrackr.app.data.local.preferences.PurchasePreferences
 import com.elmtrackr.app.monitoring.CrashReporting
 import com.elmtrackr.app.di.ApplicationScope
 import com.elmtrackr.app.ui.settings.ClockFaceGroup
@@ -32,7 +34,8 @@ class ClockFacePackBillingCoordinator @Inject constructor(
     private val grandfathering: ClockFacePackGrandfathering,
     private val store: ClockFacePackStore,
     private val clockFacePreferences: ClockFacePreferences,
-    private val appPreferences: com.elmtrackr.app.data.local.preferences.AppPreferencesRepository,
+    private val purchasePreferences: PurchasePreferences,
+    private val entitlementsMigration: EntitlementsMigration,
     @ApplicationScope private val scope: CoroutineScope,
 ) {
 
@@ -52,8 +55,9 @@ class ClockFacePackBillingCoordinator @Inject constructor(
         // with no restore button pressed.*
         //
         // Only what is new to the device, which is what [PackPurchaseEvent.Restored]
-        // carries. A pack the user owns and chose to remove is already in the
-        // cache and is never reported, so removal still sticks.
+        // carries — the immediate half of the join. The steady state is
+        // [reconcileAcquiredPacks], which catches every device this event cannot
+        // reach; a removal survives both because it is recorded, not inferred.
         //
         // Application-scoped rather than tied to the gallery, because Play can
         // confirm a purchase after the user has left the screen, or the app.
@@ -74,31 +78,102 @@ class ClockFacePackBillingCoordinator @Inject constructor(
             // disk before ownership is recomputed, or the first frame after an
             // update would show a user's own packs as locked.
             //
-            // Independently guarded, though. These are two different systems —
-            // local storage and Play — and a failure in the first used to skip
-            // the second entirely, leaving ownership as whatever was last
-            // cached with nothing retrying until the next foreground.
-            // Before the seed, and that order is load-bearing. Entitlements moved
-            // to their own DataStore so a corrupt app_preferences file cannot
-            // revoke the free-era grant; on the first launch after that change an
-            // upgrading user's packs live only in the old file. Seeding first would
-            // read an empty new store, find the marker absent, re-derive the grant
-            // from an equally empty installed set, and offer the user their own
-            // packs for sale — the exact loss the split exists to prevent.
-            runCatching { appPreferences.migrateEntitlementsIfNeeded() }
+            // The migration comes first, and that order is load-bearing.
+            // Entitlements moved to their own DataStore so a corrupt
+            // app_preferences file cannot revoke the free-era grant; on the first
+            // launch after that change an upgrading user's packs live only in the
+            // old file. Seeding first would read an empty new store, find the
+            // marker absent, re-derive the grant from an equally empty installed
+            // set, and offer the user their own packs for sale — the exact loss
+            // the split exists to prevent.
+            //
+            // Play is a separate system and stays independently guarded: a
+            // failure in local storage must not skip the refresh, which is the
+            // only thing that can recover a purchase.
+            val migrated = runCatching { entitlementsMigration.migrateEntitlementsIfNeeded() }
                 .onFailure(CrashReporting::report)
-            runCatching { grandfathering.seedIfNeeded() }
-                .onFailure(CrashReporting::report)
+                .isSuccess
+            // Guarded on the migration having actually run, not merely on the
+            // order of the two calls. The seed is spent the first time it runs:
+            // it writes its marker whether or not it granted anything, and it
+            // derives the grant from the installed set in the *new* store. A
+            // migration that threw leaves that store empty, so seeding after one
+            // would grant nothing, mark the grant as worked out, and put the
+            // user's free-era packs permanently on sale — the exact loss the
+            // ordering above exists to prevent, arrived at through failure
+            // instead of through sequence. Skipping costs one launch: the next
+            // foreground retries both.
+            if (migrated) {
+                runCatching { grandfathering.seedIfNeeded() }
+                    .onFailure(CrashReporting::report)
+            }
             runCatching { store.refresh() }
+                .onFailure(CrashReporting::report)
+            // After the refresh, so Play's answer is in the cache being read.
+            runCatching { reconcileAcquiredPacks() }
                 .onFailure(CrashReporting::report)
         }
     }
 
+    /**
+     * Puts back a pack the user has acquired and does not have.
+     *
+     * The event-driven install above joins ownership to installation at the
+     * moment ownership *changes*, which is right for the device that is watching
+     * when it happens and useless for every other one. A device that reinstalled
+     * before that join existed already has the product id in its cache, so Play
+     * reports nothing new, [PackPurchaseEvent.Restored] never fires again, and
+     * the pack sits behind an Add button on the shop shelf for good. The same
+     * dead end follows a single failed write of the installed set: nothing
+     * retries it, because the retry was keyed to an event that has been and gone.
+     *
+     * So the join is stated as an invariant instead of an event — a pack the user
+     * acquired is installed unless they removed it — and checked on every
+     * foreground. The record of removals is what makes that safe: without one,
+     * "acquired and absent" would also describe a pack the
+     * user deliberately took off their list, and reconciling would put it back
+     * every time the app checked with Play.
+     *
+     * Read from [PurchasePreferences] rather than from the storefront, and that
+     * is load-bearing: [FreeClockFacePackStore] reports every pack as owned so the
+     * gallery renders as it did before packs were sold, and reconciling against
+     * *that* would install the whole catalogue on every device in a free build.
+     * Only a Play purchase or the free-era grant counts as acquired.
+     *
+     * One-time cost, worth naming: a user who removed a pack they own before this
+     * record existed has no removal on file, so it comes back once. Getting a pack
+     * back that you own is a smaller harm than being locked out of one you paid
+     * for, and it only happens on the first foreground after the update.
+     */
+    private suspend fun reconcileAcquiredPacks() {
+        val purchases = purchasePreferences.preferences.first()
+        val acquired = ClockFacePackOwnership.owned(
+            purchasedProductIds = purchases.ownedProductIds,
+            grandfathered = ClockFacePacks.resolve(purchases.grandfatheredClockFacePacks),
+        )
+        if (acquired.isEmpty()) return
+        val faces = clockFacePreferences.preferences.first()
+        val installed = ClockFacePacks.resolve(faces.installedClockFacePacks)
+        val missing = acquired - installed - ClockFacePacks.resolve(faces.removedClockFacePacks)
+        if (missing.isEmpty()) return
+        clockFacePreferences.setInstalledClockFacePacks(
+            (installed + missing).mapTo(mutableSetOf()) { it.name },
+        )
+    }
+
     private suspend fun install(packs: Set<ClockFaceGroup>) {
         if (packs.isEmpty()) return
-        val stored = ClockFacePacks.resolve(
-            clockFacePreferences.preferences.first().installedClockFacePacks,
-        )
+        val prefs = clockFacePreferences.preferences.first()
+        // Buying or restoring a pack retracts an earlier removal of it, the same
+        // way adding it by hand does. Left on file, the record would send the next
+        // reconcile past a pack the user has just paid for.
+        val removed = ClockFacePacks.resolve(prefs.removedClockFacePacks)
+        if (removed.any { it in packs }) {
+            clockFacePreferences.setRemovedClockFacePacks(
+                (removed - packs).mapTo(mutableSetOf()) { it.name },
+            )
+        }
+        val stored = ClockFacePacks.resolve(prefs.installedClockFacePacks)
         if (stored.containsAll(packs)) return
         clockFacePreferences.setInstalledClockFacePacks(
             (stored + packs).mapTo(mutableSetOf()) { it.name },

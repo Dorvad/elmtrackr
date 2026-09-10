@@ -153,6 +153,22 @@ object AppPreferenceKeys {
      */
     val CLOCK_FACE_PACKS_GRANDFATHERED =
         booleanPreferencesKey("clock_face_packs_grandfathered")
+
+    /**
+     * Pack names the user has taken off this device on purpose.
+     *
+     * The record that lets ownership and installation be reconciled without
+     * undoing a removal. A pack the user owns should be under Your faces — that is
+     * what they paid for — so anything owned and absent is put back, and this set
+     * is the one exception. Without it the two states can only be joined at the
+     * moment ownership *changes*, which leaves a device whose ownership was
+     * already cached with no way back: see [ClockFacePackBillingCoordinator].
+     *
+     * In the entitlements store rather than beside the other face preferences,
+     * because it is only meaningful next to [INSTALLED_CLOCK_FACE_PACKS] and a
+     * wipe that emptied one but not the other would re-add packs the user removed.
+     */
+    val REMOVED_CLOCK_FACE_PACKS = stringSetPreferencesKey("removed_clock_face_packs")
 }
 
 data class AppPreferenceValues(
@@ -183,6 +199,8 @@ data class AppPreferenceValues(
     val grandfatheredClockFacePacks: Set<String> = emptySet(),
     /** Whether [grandfatheredClockFacePacks] has been worked out on this device. */
     val clockFacePacksGrandfathered: Boolean = false,
+    /** Raw pack names the user removed on purpose, and which are not put back. */
+    val removedClockFacePacks: Set<String> = emptySet(),
     /** On by default: pairing a watch should work without a settings visit. */
     val wearSyncEnabled: Boolean = true,
 )
@@ -195,6 +213,7 @@ class AppPreferencesRepository(private val context: Context) :
     FeatureDiscoveryPreferences,
     ClockFacePreferences,
     PurchasePreferences,
+    EntitlementsMigration,
     WearSyncPreferences {
 
     /**
@@ -239,6 +258,8 @@ class AppPreferencesRepository(private val context: Context) :
                         prefs[AppPreferenceKeys.GRANDFATHERED_CLOCK_FACE_PACKS] ?: emptySet(),
                     clockFacePacksGrandfathered =
                         prefs[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED] ?: false,
+                    removedClockFacePacks =
+                        prefs[AppPreferenceKeys.REMOVED_CLOCK_FACE_PACKS] ?: emptySet(),
                 )
             }
 
@@ -247,6 +268,7 @@ class AppPreferencesRepository(private val context: Context) :
         val ownedProductIds: Set<String>,
         val grandfatheredClockFacePacks: Set<String>,
         val clockFacePacksGrandfathered: Boolean,
+        val removedClockFacePacks: Set<String>,
     )
 
     override val preferences: Flow<AppPreferenceValues> =
@@ -302,6 +324,7 @@ class AppPreferencesRepository(private val context: Context) :
                     ownedProductIds = owned.ownedProductIds,
                     grandfatheredClockFacePacks = owned.grandfatheredClockFacePacks,
                     clockFacePacksGrandfathered = owned.clockFacePacksGrandfathered,
+                    removedClockFacePacks = owned.removedClockFacePacks,
                 )
             }
 
@@ -407,6 +430,12 @@ class AppPreferencesRepository(private val context: Context) :
         }
     }
 
+    override suspend fun setRemovedClockFacePacks(packNames: Set<String>) {
+        context.entitlementsDataStore.edit {
+            it[AppPreferenceKeys.REMOVED_CLOCK_FACE_PACKS] = packNames
+        }
+    }
+
     /**
      * Writes the free-era grant and its marker in one edit.
      *
@@ -435,7 +464,7 @@ class AppPreferencesRepository(private val context: Context) :
      * deliberately left in place: this is cheap, and a rollback to a build that
      * still reads them finds them intact.
      */
-    suspend fun migrateEntitlementsIfNeeded() {
+    override suspend fun migrateEntitlementsIfNeeded() {
         val already = context.entitlementsDataStore.data.first()
         if (already[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED] != null) return
         val old = context.appPreferencesDataStore.data.first()

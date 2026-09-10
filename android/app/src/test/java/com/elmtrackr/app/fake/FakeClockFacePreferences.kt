@@ -9,10 +9,15 @@ import kotlinx.coroutines.flow.asStateFlow
 class FakeClockFacePreferences(
     initial: List<String> = emptyList(),
     initialPacks: Set<String> = emptySet(),
+    initialRemovedPacks: Set<String> = emptySet(),
 ) : ClockFacePreferences {
 
     private val state = MutableStateFlow(
-        AppPreferenceValues(recentClockFaces = initial, installedClockFacePacks = initialPacks),
+        AppPreferenceValues(
+            recentClockFaces = initial,
+            installedClockFacePacks = initialPacks,
+            removedClockFacePacks = initialRemovedPacks,
+        ),
     )
 
     override val preferences: Flow<AppPreferenceValues> = state.asStateFlow()
@@ -21,11 +26,17 @@ class FakeClockFacePreferences(
 
     val installedClockFacePacks: Set<String> get() = state.value.installedClockFacePacks
 
+    val removedClockFacePacks: Set<String> get() = state.value.removedClockFacePacks
+
     override suspend fun setRecentClockFaces(styleNames: List<String>) {
         state.value = state.value.copy(recentClockFaces = styleNames)
     }
 
     override suspend fun setInstalledClockFacePacks(packNames: Set<String>) {
         state.value = state.value.copy(installedClockFacePacks = packNames)
+    }
+
+    override suspend fun setRemovedClockFacePacks(packNames: Set<String>) {
+        state.value = state.value.copy(removedClockFacePacks = packNames)
     }
 }

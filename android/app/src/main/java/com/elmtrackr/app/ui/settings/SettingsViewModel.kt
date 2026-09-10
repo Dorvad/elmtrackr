@@ -453,10 +453,19 @@ class SettingsViewModel @Inject constructor(
     fun installClockFacePack(pack: ClockFaceGroup) {
         viewModelScope.launch {
             if (!clockFacePackEntitlements.isEntitled(pack)) return@launch
-            val stored = ClockFacePacks.resolve(
-                clockFacePreferences.preferences.first().installedClockFacePacks,
-            )
+            val prefs = clockFacePreferences.preferences.first()
+            val stored = ClockFacePacks.resolve(prefs.installedClockFacePacks)
             clockFacePreferences.setInstalledClockFacePacks((stored + pack).map { it.name }.toSet())
+            // Adding a pack retracts the decision to remove it. Leaving the record
+            // behind would be harmless today and wrong the moment the user removes
+            // it again from a different screen: the record has to describe the last
+            // thing they did, not every thing they have ever done.
+            val removed = ClockFacePacks.resolve(prefs.removedClockFacePacks)
+            if (pack in removed) {
+                clockFacePreferences.setRemovedClockFacePacks(
+                    (removed - pack).mapTo(mutableSetOf()) { it.name },
+                )
+            }
         }
     }
 
@@ -475,10 +484,16 @@ class SettingsViewModel @Inject constructor(
     ) {
         if (pack.isBundled) return
         viewModelScope.launch {
-            val stored = ClockFacePacks.resolve(
-                clockFacePreferences.preferences.first().installedClockFacePacks,
-            )
+            val prefs = clockFacePreferences.preferences.first()
+            val stored = ClockFacePacks.resolve(prefs.installedClockFacePacks)
             clockFacePreferences.setInstalledClockFacePacks((stored - pack).map { it.name }.toSet())
+            // Recorded, because a pack the user owns is otherwise put back the next
+            // time ownership and installation are reconciled. Absence alone cannot
+            // say whether they removed it or never had it.
+            val removed = ClockFacePacks.resolve(prefs.removedClockFacePacks)
+            clockFacePreferences.setRemovedClockFacePacks(
+                (removed + pack).mapTo(mutableSetOf()) { it.name },
+            )
             ClockFacePacks.fallbackAfterRemoving(pack, selected)?.let(onSelectionReset)
         }
     }
