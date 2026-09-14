@@ -29,7 +29,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
+import java.util.UUID
 
 // A corrupt or unreadable cache file must never be fatal. Without the
 // corruption handler the `data` flow rethrows CorruptionException on every
@@ -55,6 +58,8 @@ class WearStateRepository(
     private val applyScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val cacheKey = stringPreferencesKey("snapshot_json")
+    private val punchLogKey = stringPreferencesKey("punch_log_json")
+    private val punchLogMutex = Mutex()
 
     private val _snapshot = MutableStateFlow(WearShiftSnapshot.signedOut())
     val snapshot: StateFlow<WearShiftSnapshot> = _snapshot.asStateFlow()
@@ -85,7 +90,7 @@ class WearStateRepository(
         }.onFailure { Log.w(TAG, "Could not read the cached shift snapshot", it) }
     }
 
-    suspend fun refreshFromDataLayer() {
+    suspend fun refreshFromDataLayer(): WearShiftSnapshot? =
         runCatchingCancellable {
             val dataClient = Wearable.getDataClient(context)
             val uri = android.net.Uri.parse("wear://*$SHIFT_STATE")
@@ -97,10 +102,18 @@ class WearStateRepository(
                 .maxByOrNull { it.updatedAtEpochMillis }
             items.release()
             if (newest != null) {
-                applySnapshot(newest)
+                val pending = pendingEvents().isNotEmpty()
+                if (WearLocalShift.shouldApplyPhoneSnapshot(_snapshot.value, newest, pending)) {
+                    applySnapshot(newest)
+                } else {
+                    applySnapshot(
+                        WearLocalShift.mergeConsent(_snapshot.value, newest),
+                    )
+                }
             }
+            newest
         }.onFailure { Log.w(TAG, "Could not read the phone snapshot from the data layer", it) }
-    }
+            .getOrNull()
 
     /**
      * Parses the callback-scoped buffer synchronously (it is invalid once the
@@ -117,7 +130,14 @@ class WearStateRepository(
         }
         if (snapshots.isEmpty()) return
         applyScope.launch {
-            snapshots.forEach { applySnapshot(it) }
+            snapshots.forEach { incoming ->
+                val pending = pendingEvents().isNotEmpty()
+                if (WearLocalShift.shouldApplyPhoneSnapshot(_snapshot.value, incoming, pending)) {
+                    applySnapshot(incoming)
+                } else {
+                    applySnapshot(WearLocalShift.mergeConsent(_snapshot.value, incoming))
+                }
+            }
         }
     }
 
@@ -179,6 +199,63 @@ class WearStateRepository(
 
     fun setPunchInProgress(inProgress: Boolean) {
         _isPunchInProgress.value = inProgress
+    }
+
+    /**
+     * Records a punch on the watch itself when the phone cannot take it —
+     * unpaired, unsigned, unreachable, or opted out of Wear sync. The event is
+     * queued so a later signed-in phone can replay it with the original wrist
+     * time rather than "whenever the two devices next saw each other".
+     */
+    suspend fun applyLocalPunch(isPunchIn: Boolean, nowMillis: Long = System.currentTimeMillis()): PunchResult {
+        if (isPunchIn && _snapshot.value.isActive) return PunchResult(success = true)
+        if (!isPunchIn && !_snapshot.value.isActive) return PunchResult(success = true)
+        appendEvent(
+            WearPunchEvent(
+                id = UUID.randomUUID().toString(),
+                isPunchIn = isPunchIn,
+                epochMillis = nowMillis,
+            ),
+        )
+        val next = if (isPunchIn) {
+            WearLocalShift.punchIn(_snapshot.value, nowMillis)
+        } else {
+            WearLocalShift.punchOut(_snapshot.value, nowMillis)
+        }
+        applySnapshot(next)
+        return PunchResult(success = true)
+    }
+
+    suspend fun pendingEvents(): List<WearPunchEvent> =
+        punchLogMutex.withLock { loadPunchLogLocked().events }
+
+    suspend fun removeEvent(eventId: String) {
+        punchLogMutex.withLock {
+            val remaining = loadPunchLogLocked().events.filterNot { it.id == eventId }
+            persistPunchLogLocked(WearPunchEventLog(remaining))
+        }
+    }
+
+    private suspend fun appendEvent(event: WearPunchEvent) {
+        punchLogMutex.withLock {
+            val current = loadPunchLogLocked()
+            persistPunchLogLocked(WearPunchEventLog(current.events + event))
+        }
+    }
+
+    private suspend fun loadPunchLogLocked(): WearPunchEventLog {
+        val json = runCatchingCancellable {
+            context.wearStateDataStore.data.first()[punchLogKey]
+        }.getOrNull()
+        return json?.let(WearSnapshotCodec::decodePunchLog) ?: WearPunchEventLog()
+    }
+
+    private suspend fun persistPunchLogLocked(log: WearPunchEventLog) {
+        runCatchingCancellable {
+            context.wearStateDataStore.edit { prefs ->
+                prefs[punchLogKey] = WearSnapshotCodec.encodePunchLog(log)
+            }
+        }.onFailure { Log.w(TAG, "Could not persist the watch punch log", it) }
     }
 
     private fun parseDataItem(item: com.google.android.gms.wearable.DataItem): WearShiftSnapshot? {

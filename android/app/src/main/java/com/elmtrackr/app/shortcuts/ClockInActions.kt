@@ -14,7 +14,7 @@ import com.elmtrackr.app.domain.tasks.TaskClockInHelper
  */
 object ClockInActions {
 
-    suspend fun clockInHeadless(context: Context): Shift? {
+    suspend fun clockInHeadless(context: Context, startTimeMillis: Long? = null): Shift? {
         val deps = AppEntryPoints.background(context)
         val userId = deps.currentUserProvider().currentUserId() ?: return null
         val settings = deps.settingsRepository().getSettings(userId)
@@ -39,6 +39,7 @@ object ClockInActions {
             taskNameSnapshot = params.taskNameSnapshot,
             taskIconSnapshot = params.taskIconSnapshot,
             taskHourlyRateSnapshot = params.taskHourlyRateSnapshot,
+            startTimeMillis = startTimeMillis,
         )
         task?.let { deps.tasksRepository().markTaskUsed(userId, it.id) }
         if (isFirstClockIn) {

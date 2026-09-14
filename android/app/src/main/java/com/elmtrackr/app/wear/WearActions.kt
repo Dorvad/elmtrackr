@@ -9,7 +9,7 @@ import com.elmtrackr.wear.sync.PunchResult
 
 object WearActions {
 
-    suspend fun clockIn(context: Context): PunchResult {
+    suspend fun clockIn(context: Context, startTimeMillis: Long? = null): PunchResult {
         if (!WearSyncPublisher.isSyncEnabled(context)) {
             return PunchResult(success = false, errorCode = "sync_disabled")
         }
@@ -20,7 +20,7 @@ object WearActions {
         deps.currentUserProvider().currentUserId()
             ?: return PunchResult(success = false, errorCode = "not_signed_in")
         return runCatching {
-            ClockInActions.clockInHeadless(context)
+            ClockInActions.clockInHeadless(context, startTimeMillis)
                 ?: return PunchResult(success = false, errorCode = "not_signed_in")
             WearSyncPublisher.refresh(context)
             PunchResult(success = true)
@@ -29,14 +29,14 @@ object WearActions {
         }
     }
 
-    suspend fun clockOut(context: Context): PunchResult {
+    suspend fun clockOut(context: Context, endTimeMillis: Long? = null): PunchResult {
         if (!WearSyncPublisher.isSyncEnabled(context)) {
             return PunchResult(success = false, errorCode = "sync_disabled")
         }
         if (AppLockActionGuard.blockIfLocked(context)) {
             return PunchResult(success = false, errorCode = "app_locked")
         }
-        return when (ClockOutActions.clockOutActiveShift(context)) {
+        return when (ClockOutActions.clockOutActiveShift(context, endTimeMillis)) {
             ClockOutActions.Result.CLOCKED_OUT -> {
                 WearSyncPublisher.refresh(context)
                 PunchResult(success = true)

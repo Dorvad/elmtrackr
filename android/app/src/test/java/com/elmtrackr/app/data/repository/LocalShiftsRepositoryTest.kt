@@ -89,6 +89,32 @@ class LocalShiftsRepositoryTest {
         assertNull(dao.currentShifts.single().workplaceId)
     }
 
+    @Test
+    fun `clockIn uses the watch's original start time when one is supplied`() = runTest {
+        val dao = InMemoryShiftDao()
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
+        val punchedAt = System.currentTimeMillis() - 3_600_000L
+
+        val shift = repository.clockIn(userId = "u1", startTimeMillis = punchedAt)
+
+        assertEquals(punchedAt, shift.startTime.toEpochMilli())
+        assertEquals(punchedAt, dao.currentShifts.single().startTime)
+    }
+
+    @Test
+    fun `clockOut uses the watch's original end time when one is supplied`() = runTest {
+        val dao = InMemoryShiftDao()
+        val start = System.currentTimeMillis() - 7_200_000L
+        dao.insertShift(shiftEntity(localId = "active-1", startTime = start))
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
+        val punchedOutAt = start + 3_600_000L
+
+        val shift = repository.clockOut("active-1", endTimeMillis = punchedOutAt)
+
+        assertEquals(punchedOutAt, shift.endTime?.toEpochMilli())
+        assertEquals(punchedOutAt, dao.currentShifts.single().endTime)
+    }
+
     private fun compensationProfileEntity(
         localId: String,
         userId: String = "u1",

@@ -5,10 +5,13 @@ import android.os.Bundle
 import com.elmtrackr.wear.ElmTrackrWearApp
 
 /**
- * Invisible tap target for the tile. Theme.NoDisplay requires finish() before
- * onResume() completes, so the punch itself runs on the application scope —
- * an in-activity coroutine here would both violate that contract and leak the
- * destroyed window while the punch round-trip (up to ~5s) is in flight.
+ * Invisible tap target for the tile.
+ *
+ * Theme.NoDisplay is a known crash on Wear: the platform requires finish()
+ * before onResume(), and several watch builds still deliver onResume after
+ * onCreate has already called finish(). Theme.Translucent.NoTitleBar keeps
+ * the trampoline invisible without that contract. finish() still runs in
+ * onCreate so the window never stays around for the punch round-trip.
  *
  * Exported on purpose. A tile's `LaunchAction` is dispatched by the Wear OS
  * tile host, which is a different app running under a different uid, so an
@@ -34,6 +37,11 @@ class WearPunchTrampolineActivity : Activity() {
             ACTION_OUT -> app?.punchFromTile(isPunchIn = false)
         }
         finish()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!isFinishing) finish()
     }
 
     companion object {

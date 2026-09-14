@@ -18,7 +18,7 @@
 
         <meta-data
             android:name="com.google.android.wearable.standalone"
-            android:value="false" />
+            android:value="true" />
 
         <!-- Sentry initialises from WearCrashReporting and nowhere else.
 
@@ -64,7 +64,7 @@
             android:noHistory="true"
             android:excludeFromRecents="true"
             android:taskAffinity=""
-            android:theme="@android:style/Theme.NoDisplay" />
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <service
             android:name=".sync.WearDataListenerService"

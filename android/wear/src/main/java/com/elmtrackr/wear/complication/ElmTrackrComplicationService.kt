@@ -22,16 +22,20 @@ import com.elmtrackr.wear.ui.WearLabels
 class ElmTrackrComplicationService : SuspendingComplicationDataSourceService() {
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
-        val app = ElmTrackrWearApp.from(this)
-        app?.wearStateRepository?.refreshFromDataLayer()
-        val snapshot = app?.wearStateRepository?.snapshot?.value ?: WearShiftSnapshot.signedOut()
-        val tapAction = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, WearMainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        return buildData(request.complicationType, snapshot, tapAction)
+        return try {
+            val app = ElmTrackrWearApp.from(this)
+            app?.wearStateRepository?.refreshFromDataLayer()
+            val snapshot = app?.wearStateRepository?.snapshot?.value ?: WearShiftSnapshot.signedOut()
+            val tapAction = PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, WearMainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            buildData(request.complicationType, snapshot, tapAction)
+        } catch (_: Exception) {
+            getPreviewData(request.complicationType)
+        }
     }
 
     /**

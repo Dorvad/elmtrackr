@@ -32,4 +32,24 @@ class WearSnapshotCodecTest {
         assertNotNull(decoded)
         assertEquals(result, decoded)
     }
+
+    @Test
+    fun punchCommand_roundTripAndEmptyPayload() {
+        val command = WearPunchCommand(epochMillis = 1_700_000_000_000L)
+        val decoded = WearSnapshotCodec.decodePunchCommand(WearSnapshotCodec.encodePunchCommand(command))
+        assertEquals(command, decoded)
+        assertEquals(null, WearSnapshotCodec.decodePunchCommand(ByteArray(0)))
+    }
+
+    @Test
+    fun punchLog_roundTrip() {
+        val log = WearPunchEventLog(
+            events = listOf(
+                WearPunchEvent(id = "e1", isPunchIn = true, epochMillis = 1L),
+                WearPunchEvent(id = "e2", isPunchIn = false, epochMillis = 2L),
+            ),
+        )
+        val decoded = WearSnapshotCodec.decodePunchLog(WearSnapshotCodec.encodePunchLog(log))
+        assertEquals(log, decoded)
+    }
 }
