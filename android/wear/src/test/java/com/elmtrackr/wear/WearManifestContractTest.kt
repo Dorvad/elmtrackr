@@ -100,6 +100,22 @@ class WearManifestContractTest {
         assertTrue("Data layer listener missing", services.contains(".sync.WearDataListenerService"))
     }
 
+    @Test
+    fun dataListenerReceivesCapabilityChanges() {
+        val nodes = manifest.getElementsByTagName("service")
+        val listener = (0 until nodes.length)
+            .map { nodes.item(it) as Element }
+            .firstOrNull { it.getAttributeNS(ANDROID_NS, "name") == ".sync.WearDataListenerService" }
+        assertNotNull(listener)
+        val actions = listener!!.getElementsByTagName("action")
+        val names = (0 until actions.length).map { (actions.item(it) as Element).getAttributeNS(ANDROID_NS, "name") }
+        assertTrue(
+            "Without CAPABILITY_CHANGED the watch never learns the phone came back " +
+                "unless the launcher opens, so tile-only punches stay queued.",
+            names.contains("com.google.android.gms.wearable.CAPABILITY_CHANGED"),
+        )
+    }
+
     private fun activity(name: String): Element? {
         val nodes = manifest.getElementsByTagName("activity")
         return (0 until nodes.length)

@@ -2,6 +2,7 @@ package com.elmtrackr.app.wear
 
 import com.elmtrackr.app.widget.WidgetShiftState
 import com.elmtrackr.wear.sync.WearShiftSnapshot
+import java.time.LocalDate
 
 fun WidgetShiftState.toWearSnapshot(signedIn: Boolean): WearShiftSnapshot =
     WearShiftSnapshot(
@@ -15,4 +16,5 @@ fun WidgetShiftState.toWearSnapshot(signedIn: Boolean): WearShiftSnapshot =
         todayMinutes = todayMinutes,
         dailyGoalMinutes = dailyGoalMinutes,
         updatedAtEpochMillis = System.currentTimeMillis(),
+        todayEpochDay = LocalDate.now().toEpochDay(),
     )

@@ -26,5 +26,6 @@ class WearSnapshotMapperTest {
         assertEquals("shift-1", snapshot.shiftId)
         assertEquals("09:00", snapshot.startTimeLabel)
         assertEquals(60, snapshot.todayMinutes)
+        assertEquals(java.time.LocalDate.now().toEpochDay(), snapshot.todayEpochDay)
     }
 }

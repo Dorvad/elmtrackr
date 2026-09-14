@@ -72,6 +72,7 @@ class WearStateRepository(
 
     suspend fun bootstrap() {
         loadCached()
+        rollLocalDayIfNeeded()
         refreshFromDataLayer()
     }
 
@@ -85,12 +86,17 @@ class WearStateRepository(
             val json = context.wearStateDataStore.data.first()[cacheKey]
             val cached = json?.let(WearSnapshotCodec::decode)
             if (cached != null) {
-                applySnapshot(cached, persist = false)
+                val rolled = WearLocalShift.rollToLocalDay(cached, System.currentTimeMillis())
+                applySnapshot(rolled, persist = rolled != cached)
             }
         }.onFailure { Log.w(TAG, "Could not read the cached shift snapshot", it) }
     }
 
-    suspend fun refreshFromDataLayer(): WearShiftSnapshot? =
+    /**
+     * Newest phone snapshot on the data layer, or null if none. Does not write
+     * DataStore — replay uses this to decide whether a lost ACK already landed.
+     */
+    suspend fun readNewestPhoneSnapshot(): WearShiftSnapshot? =
         runCatchingCancellable {
             val dataClient = Wearable.getDataClient(context)
             val uri = android.net.Uri.parse("wear://*$SHIFT_STATE")
@@ -101,52 +107,57 @@ class WearStateRepository(
             val newest = items.mapNotNull { parseDataItem(it) }
                 .maxByOrNull { it.updatedAtEpochMillis }
             items.release()
-            if (newest != null) {
-                val pending = pendingEvents().isNotEmpty()
-                if (WearLocalShift.shouldApplyPhoneSnapshot(_snapshot.value, newest, pending)) {
-                    applySnapshot(newest)
-                } else {
-                    applySnapshot(
-                        WearLocalShift.mergeConsent(_snapshot.value, newest),
-                    )
-                }
-            }
             newest
         }.onFailure { Log.w(TAG, "Could not read the phone snapshot from the data layer", it) }
             .getOrNull()
 
+    suspend fun refreshFromDataLayer(): WearShiftSnapshot? {
+        val newest = readNewestPhoneSnapshot() ?: return null
+        val pending = pendingEvents().isNotEmpty()
+        if (WearLocalShift.shouldApplyPhoneSnapshot(_snapshot.value, newest, pending)) {
+            applySnapshot(newest)
+        } else {
+            applySnapshot(WearLocalShift.mergeConsent(_snapshot.value, newest))
+        }
+        return newest
+    }
+
+    suspend fun rollLocalDayIfNeeded(nowMillis: Long = System.currentTimeMillis()) {
+        val current = _snapshot.value
+        val rolled = WearLocalShift.rollToLocalDay(current, nowMillis)
+        if (rolled != current) applySnapshot(rolled)
+    }
+
     /**
      * Parses the callback-scoped buffer synchronously (it is invalid once the
-     * listener returns) and applies the snapshots asynchronously — blocking
-     * the data-layer dispatch thread with runBlocking would stall delivery of
-     * subsequent events during a burst of phone-side updates.
+     * listener returns). Callers apply on their own coroutine so a replay of
+     * queued wrist punches can run in the same turn and cannot be overwritten
+     * by a stale snapshot applied later.
      */
-    fun handleDataEvents(events: DataEventBuffer) {
-        val snapshots = events.mapNotNull { event ->
+    fun takeChangedSnapshots(events: DataEventBuffer): List<WearShiftSnapshot> =
+        events.mapNotNull { event ->
             if (event.type != DataEvent.TYPE_CHANGED) return@mapNotNull null
             val item = event.dataItem
             if (!item.uri.path.orEmpty().startsWith(SHIFT_STATE)) return@mapNotNull null
             parseDataItem(item)
         }
-        if (snapshots.isEmpty()) return
-        applyScope.launch {
-            snapshots.forEach { incoming ->
-                val pending = pendingEvents().isNotEmpty()
-                if (WearLocalShift.shouldApplyPhoneSnapshot(_snapshot.value, incoming, pending)) {
-                    applySnapshot(incoming)
-                } else {
-                    applySnapshot(WearLocalShift.mergeConsent(_snapshot.value, incoming))
-                }
-            }
+
+    suspend fun applyIncomingPhoneSnapshot(incoming: WearShiftSnapshot) {
+        val pending = pendingEvents().isNotEmpty()
+        if (WearLocalShift.shouldApplyPhoneSnapshot(_snapshot.value, incoming, pending)) {
+            applySnapshot(incoming)
+        } else {
+            applySnapshot(WearLocalShift.mergeConsent(_snapshot.value, incoming))
         }
     }
 
     suspend fun applySnapshot(snapshot: WearShiftSnapshot, persist: Boolean = true) {
-        _snapshot.value = snapshot
+        val rolled = WearLocalShift.rollToLocalDay(snapshot, System.currentTimeMillis())
+        _snapshot.value = rolled
         if (persist) {
             runCatchingCancellable {
                 context.wearStateDataStore.edit { prefs ->
-                    prefs[cacheKey] = WearSnapshotCodec.encode(snapshot)
+                    prefs[cacheKey] = WearSnapshotCodec.encode(rolled)
                 }
             }.onFailure { Log.w(TAG, "Could not cache the shift snapshot", it) }
         }
@@ -157,7 +168,7 @@ class WearStateRepository(
         // this method runs on the startup path. One missing surface must
         // degrade that surface, not take the app down with it.
         runCatchingCancellable {
-            if (snapshot.isActive) {
+            if (rolled.isActive) {
                 WearTileRefreshWorker.schedule(context)
             } else {
                 WearTileRefreshWorker.cancel(context)

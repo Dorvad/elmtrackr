@@ -45,8 +45,7 @@ class WearActionClient(
                 attempt++
             }
             if (phoneSnapshot?.signedIn == true) {
-                replayPendingToPhone()
-                wearStateRepository.refreshFromDataLayer()
+                syncPendingWithPhone()
             }
         }
     }
@@ -76,19 +75,31 @@ class WearActionClient(
     }
 
     /**
-     * Replays punches that happened on the wrist while the phone was away.
-     * Stops on the first failure so a half-applied IN is not followed by an
-     * OUT that would close a different shift.
+     * Drain the local punch log onto the phone. Stops on the first real
+     * failure so later events cannot invert IN/OUT order. A lost ACK that
+     * already took effect on the phone is treated as settled so the queue
+     * cannot jam behind `no_active_shift`.
+     *
+     * Public so tile-only punches still replay when the phone reconnects
+     * without the launcher opening.
      */
-    private suspend fun replayPendingToPhone() {
-        punchMutex.withLock {
+    suspend fun syncPendingWithPhone() {
+        val drained = punchMutex.withLock {
             val events = wearStateRepository.pendingEvents()
+            if (events.isEmpty()) return@withLock false
             for (event in events) {
                 val path = if (event.isPunchIn) PUNCH_IN else PUNCH_OUT
                 val result = sendPunchToPhone(path, event.epochMillis)
-                if (!result.success) break
+                val phone = wearStateRepository.readNewestPhoneSnapshot()
+                if (!WearLocalShift.replayEventSettled(event, result, phone)) {
+                    return@withLock false
+                }
                 wearStateRepository.removeEvent(event.id)
             }
+            true
+        }
+        if (drained) {
+            wearStateRepository.refreshFromDataLayer()
         }
     }
 

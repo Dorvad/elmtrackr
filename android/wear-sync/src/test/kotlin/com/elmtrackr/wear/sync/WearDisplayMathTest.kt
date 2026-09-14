@@ -42,4 +42,19 @@ class WearDisplayMathTest {
         assertEquals("PUNCH OUT", display.actionLabel)
         assertTrue(display.elapsedHms.isNotEmpty())
     }
+
+    @Test
+    fun displayFor_rollsCompletedTotalsOffTheTodayLabelAfterMidnight() {
+        val late = 1_700_000_000_000L
+        val nextMorning = late + 10 * 60 * 60_000L
+        val snapshot = WearShiftSnapshot(
+            signedIn = true,
+            isActive = false,
+            todayMinutes = 100,
+            todayEpochDay = WearLocalShift.todayEpochDay(late, java.time.ZoneOffset.UTC),
+        )
+        val display = WearDisplayMath.displayFor(snapshot, nextMorning, java.time.ZoneOffset.UTC)
+        assertEquals(0, display.snapshot.todayMinutes)
+        assertEquals("0m", display.todayShort)
+    }
 }

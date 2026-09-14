@@ -1,5 +1,6 @@
 package com.elmtrackr.wear.sync
 
+import java.time.ZoneId
 import java.util.Locale
 import kotlin.math.max
 
@@ -47,35 +48,40 @@ object WearDisplayMath {
     fun progressRemainderMinutes(todayMinutes: Int, dailyGoalMinutes: Int): Int =
         max(0, dailyGoalMinutes - todayMinutes)
 
-    fun displayFor(snapshot: WearShiftSnapshot, nowMillis: Long = System.currentTimeMillis()): WearDisplayState {
-        val elapsed = if (snapshot.isActive && snapshot.shiftStartEpochMillis > 0L) {
-            elapsedHms(snapshot.shiftStartEpochMillis, nowMillis)
+    fun displayFor(
+        snapshot: WearShiftSnapshot,
+        nowMillis: Long = System.currentTimeMillis(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): WearDisplayState {
+        val rolled = WearLocalShift.rollToLocalDay(snapshot, nowMillis, zone)
+        val elapsed = if (rolled.isActive && rolled.shiftStartEpochMillis > 0L) {
+            elapsedHms(rolled.shiftStartEpochMillis, nowMillis)
         } else {
             ""
         }
-        val progress = progressPercent(snapshot.todayMinutes, snapshot.dailyGoalMinutes)
+        val progress = progressPercent(rolled.todayMinutes, rolled.dailyGoalMinutes)
         return WearDisplayState(
-            snapshot = snapshot,
+            snapshot = rolled,
             elapsedHms = elapsed,
-            todayHms = minutesToHms(snapshot.todayMinutes),
-            todayShort = minutesToShort(snapshot.todayMinutes),
+            todayHms = minutesToHms(rolled.todayMinutes),
+            todayShort = minutesToShort(rolled.todayMinutes),
             progressPercent = progress,
-            statusLabel = if (snapshot.isActive) "CLOCKED IN" else "CLOCKED OUT",
-            actionLabel = if (snapshot.isActive) "PUNCH OUT" else "PUNCH IN",
+            statusLabel = if (rolled.isActive) "CLOCKED IN" else "CLOCKED OUT",
+            actionLabel = if (rolled.isActive) "PUNCH OUT" else "PUNCH IN",
             primaryTimeLabel = when {
-                snapshot.isActive && elapsed.isNotEmpty() -> elapsed
-                snapshot.startTimeLabel != "--:--" -> snapshot.startTimeLabel
-                else -> minutesToHms(snapshot.todayMinutes)
+                rolled.isActive && elapsed.isNotEmpty() -> elapsed
+                rolled.startTimeLabel != "--:--" -> rolled.startTimeLabel
+                else -> minutesToHms(rolled.todayMinutes)
             },
             complicationShortText = when {
-                snapshot.isActive && elapsed.isNotEmpty() -> elapsed
-                snapshot.isActive -> "IN"
-                snapshot.startTimeLabel != "--:--" -> snapshot.startTimeLabel
+                rolled.isActive && elapsed.isNotEmpty() -> elapsed
+                rolled.isActive -> "IN"
+                rolled.startTimeLabel != "--:--" -> rolled.startTimeLabel
                 else -> "OUT"
             },
             complicationLongText = when {
-                snapshot.isActive && elapsed.isNotEmpty() -> "Clocked in · $elapsed"
-                snapshot.lastPunchLabel.isNotBlank() -> snapshot.lastPunchLabel
+                rolled.isActive && elapsed.isNotEmpty() -> "Clocked in · $elapsed"
+                rolled.lastPunchLabel.isNotBlank() -> rolled.lastPunchLabel
                 else -> "Clocked out"
             },
         )

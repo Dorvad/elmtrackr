@@ -30,6 +30,14 @@ data class WearShiftSnapshot(
      * payload.
      */
     val crashReportingEnabled: Boolean = true,
+    /**
+     * The local calendar day [todayMinutes] was accumulated on, as
+     * `LocalDate.toEpochDay()`. Watch-local punches stamp it so a total from
+     * Tuesday cannot still read as "Today" on Wednesday. Zero means the
+     * producer did not stamp a day (an older phone) and the total must not be
+     * rolled.
+     */
+    val todayEpochDay: Long = 0L,
 ) {
     companion object {
         /**
