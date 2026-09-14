@@ -41,6 +41,34 @@ class WearManifestContractTest {
     }
 
     @Test
+    fun watchAppIsStandalone() {
+        val application = manifest.getElementsByTagName("application").item(0) as Element
+        val nodes = application.getElementsByTagName("meta-data")
+        val standalone = (0 until nodes.length)
+            .map { nodes.item(it) as Element }
+            .firstOrNull { it.getAttributeNS(ANDROID_NS, "name") == "com.google.android.wearable.standalone" }
+        assertNotNull("standalone meta-data missing", standalone)
+        assertEquals(
+            "A non-standalone watch cannot punch without a signed-in phone, which is " +
+                "the review path that keeps being rejected as functionality not working.",
+            "true",
+            standalone!!.getAttributeNS(ANDROID_NS, "value"),
+        )
+    }
+
+    @Test
+    fun tileTrampolineDoesNotUseThemeNoDisplay() {
+        val trampoline = activity(".tile.WearPunchTrampolineActivity")
+        assertNotNull(trampoline)
+        val theme = trampoline!!.getAttributeNS(ANDROID_NS, "theme")
+        assertTrue(
+            "Theme.NoDisplay crashes on Wear when onResume is delivered after finish(). " +
+                "Use a translucent theme instead. Found: $theme",
+            theme.contains("Translucent"),
+        )
+    }
+
+    @Test
     fun launcherActivityIsExported() {
         val main = activity(".WearMainActivity")
         assertNotNull("The watch launcher activity is missing from the manifest", main)
@@ -70,6 +98,22 @@ class WearManifestContractTest {
             services.contains(".complication.ElmTrackrComplicationService"),
         )
         assertTrue("Data layer listener missing", services.contains(".sync.WearDataListenerService"))
+    }
+
+    @Test
+    fun dataListenerReceivesCapabilityChanges() {
+        val nodes = manifest.getElementsByTagName("service")
+        val listener = (0 until nodes.length)
+            .map { nodes.item(it) as Element }
+            .firstOrNull { it.getAttributeNS(ANDROID_NS, "name") == ".sync.WearDataListenerService" }
+        assertNotNull(listener)
+        val actions = listener!!.getElementsByTagName("action")
+        val names = (0 until actions.length).map { (actions.item(it) as Element).getAttributeNS(ANDROID_NS, "name") }
+        assertTrue(
+            "Without CAPABILITY_CHANGED the watch never learns the phone came back " +
+                "unless the launcher opens, so tile-only punches stay queued.",
+            names.contains("com.google.android.gms.wearable.CAPABILITY_CHANGED"),
+        )
     }
 
     private fun activity(name: String): Element? {

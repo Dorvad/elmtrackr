@@ -11,6 +11,8 @@ import com.google.android.gms.wearable.Node
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 
 class WearActionClient(
@@ -19,10 +21,11 @@ class WearActionClient(
 ) : MessageClient.OnMessageReceivedListener {
 
     private val appContext = context.applicationContext
+    private val punchMutex = Mutex()
 
-    suspend fun punchIn(): PunchResult = sendPunch(PUNCH_IN)
+    suspend fun punchIn(): PunchResult = punch(isPunchIn = true)
 
-    suspend fun punchOut(): PunchResult = sendPunch(PUNCH_OUT)
+    suspend fun punchOut(): PunchResult = punch(isPunchIn = false)
 
     suspend fun requestRefreshFromPhone() {
         runCatchingCancellable {
@@ -32,19 +35,75 @@ class WearActionClient(
                 .await()
             // The phone answers REFRESH asynchronously: it reads its DB and pushes
             // a new data item, which lands here as a DATA_CHANGED event a beat
-            // later. A single immediate read almost always loses that race and
-            // leaves the watch on the sign-in screen even though the phone is now
-            // signed in, so poll briefly until the signed-in state arrives.
-            repeat(REFRESH_POLL_ATTEMPTS) {
-                wearStateRepository.refreshFromDataLayer()
-                if (wearStateRepository.snapshot.value.signedIn) return
+            // later. A single immediate read almost always loses that race.
+            var phoneSnapshot: WearShiftSnapshot? = null
+            var attempt = 0
+            while (attempt < REFRESH_POLL_ATTEMPTS) {
+                phoneSnapshot = wearStateRepository.refreshFromDataLayer()
+                if (phoneSnapshot?.signedIn == true) break
                 delay(REFRESH_POLL_INTERVAL_MS)
+                attempt++
+            }
+            if (phoneSnapshot?.signedIn == true) {
+                syncPendingWithPhone()
             }
         }
     }
 
-    private suspend fun sendPunch(path: String): PunchResult {
+    private suspend fun punch(isPunchIn: Boolean): PunchResult = punchMutex.withLock {
         wearStateRepository.setPunchInProgress(true)
+        try {
+            val now = System.currentTimeMillis()
+            val path = if (isPunchIn) PUNCH_IN else PUNCH_OUT
+            val phoneResult = sendPunchToPhone(path, now)
+            if (phoneResult.success) {
+                wearStateRepository.refreshFromDataLayer()
+                return phoneResult
+            }
+            if (phoneResult.errorCode == "timeout") {
+                val latest = wearStateRepository.refreshFromDataLayer()
+                val phoneTookIt = latest?.signedIn == true && latest.isActive == isPunchIn
+                if (phoneTookIt) return PunchResult(success = true)
+            }
+            if (WearLocalShift.shouldFallbackToLocal(phoneResult.errorCode)) {
+                return wearStateRepository.applyLocalPunch(isPunchIn, now)
+            }
+            phoneResult
+        } finally {
+            wearStateRepository.setPunchInProgress(false)
+        }
+    }
+
+    /**
+     * Drain the local punch log onto the phone. Stops on the first real
+     * failure so later events cannot invert IN/OUT order. A lost ACK that
+     * already took effect on the phone is treated as settled so the queue
+     * cannot jam behind `no_active_shift`.
+     *
+     * Public so tile-only punches still replay when the phone reconnects
+     * without the launcher opening.
+     */
+    suspend fun syncPendingWithPhone() {
+        val drained = punchMutex.withLock {
+            val events = wearStateRepository.pendingEvents()
+            if (events.isEmpty()) return@withLock false
+            for (event in events) {
+                val path = if (event.isPunchIn) PUNCH_IN else PUNCH_OUT
+                val result = sendPunchToPhone(path, event.epochMillis)
+                val phone = wearStateRepository.readNewestPhoneSnapshot()
+                if (!WearLocalShift.replayEventSettled(event, result, phone)) {
+                    return@withLock false
+                }
+                wearStateRepository.removeEvent(event.id)
+            }
+            true
+        }
+        if (drained) {
+            wearStateRepository.refreshFromDataLayer()
+        }
+    }
+
+    private suspend fun sendPunchToPhone(path: String, epochMillis: Long): PunchResult {
         return try {
             val phone = findPhoneNode()
                 ?: return PunchResult(success = false, errorCode = "phone_unreachable")
@@ -54,7 +113,8 @@ class WearActionClient(
             messageClient.addListener(this).await()
             try {
                 pendingResult = null
-                messageClient.sendMessage(phone.id, path, ByteArray(0)).await()
+                val payload = WearSnapshotCodec.encodePunchCommand(WearPunchCommand(epochMillis))
+                messageClient.sendMessage(phone.id, path, payload).await()
                 waitForPunchResult()
             } finally {
                 runCatching { messageClient.removeListener(this) }
@@ -66,8 +126,6 @@ class WearActionClient(
             // Services is unavailable or the phone drops mid-flight. A punch
             // must fail with feedback, never crash the watch app.
             PunchResult(success = false, errorCode = "phone_unreachable")
-        } finally {
-            wearStateRepository.setPunchInProgress(false)
         }
     }
 

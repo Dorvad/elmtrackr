@@ -1,5 +1,6 @@
 package com.elmtrackr.wear.tile
 
+import android.util.Log
 import androidx.concurrent.futures.CallbackToFutureAdapter
 import androidx.wear.tiles.ActionBuilders
 import androidx.wear.tiles.ColorBuilders
@@ -15,7 +16,6 @@ import androidx.wear.tiles.material.Text
 import androidx.wear.tiles.material.Typography
 import com.elmtrackr.wear.ElmTrackrWearApp
 import com.elmtrackr.wear.R
-import com.elmtrackr.wear.WearMainActivity
 import com.elmtrackr.wear.sync.WearAuroraColors
 import com.elmtrackr.wear.sync.WearDisplayMath
 import com.elmtrackr.wear.sync.WearShiftSnapshot
@@ -38,9 +38,11 @@ class ElmTrackrTileService : TileService() {
     override fun onTileRequest(requestParams: RequestBuilders.TileRequest): ListenableFuture<TileBuilders.Tile> =
         CallbackToFutureAdapter.getFuture { completer ->
             scope.launch {
-                runCatching { buildTile() }
-                    .onSuccess { completer.set(it) }
-                    .onFailure { completer.setException(it) }
+                val tile = runCatching { buildTile() }.getOrElse { error ->
+                    Log.e(TAG, "Tile request failed; rendering the idle face instead", error)
+                    fallbackTile()
+                }
+                completer.set(tile)
             }
             "ElmTrackrTileRequest"
         }
@@ -77,7 +79,6 @@ class ElmTrackrTileService : TileService() {
         val snapshot = app?.wearStateRepository?.snapshot?.value ?: WearShiftSnapshot.signedOut()
 
         val root = when {
-            !snapshot.signedIn -> signedOutFace()
             snapshot.isActive -> activeFace(snapshot)
             else -> idleFace(snapshot)
         }
@@ -98,6 +99,25 @@ class ElmTrackrTileService : TileService() {
             )
             .build()
     }
+
+    private fun fallbackTile(): TileBuilders.Tile =
+        TileBuilders.Tile.Builder()
+            .setResourcesVersion(RESOURCES_VERSION)
+            .setFreshnessIntervalMillis(3_600_000L)
+            .setTimeline(
+                TimelineBuilders.Timeline.Builder()
+                    .addTimelineEntry(
+                        TimelineBuilders.TimelineEntry.Builder()
+                            .setLayout(
+                                LayoutElementBuilders.Layout.Builder()
+                                    .setRoot(idleFace(WearShiftSnapshot.signedOut()))
+                                    .build(),
+                            )
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build()
 
     // --- Faces ---
 
@@ -168,17 +188,6 @@ class ElmTrackrTileService : TileService() {
             center = center,
             ringPercent = display.progressPercent,
         )
-    }
-
-    private fun signedOutFace(): LayoutElementBuilders.LayoutElement {
-        val center = LayoutElementBuilders.Column.Builder()
-            .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-            .addContent(text(getString(R.string.tile_sign_in), Typography.TYPOGRAPHY_TITLE2, INK))
-            .addContent(spacer(3f))
-            .addContent(text(getString(R.string.tile_on_phone), Typography.TYPOGRAPHY_CAPTION1, OUTLINE))
-            .build()
-
-        return face(clickAction = openAppAction(), center = center)
     }
 
     /**
@@ -309,21 +318,8 @@ class ElmTrackrTileService : TileService() {
             .build()
     }
 
-    private fun openAppAction(): ModifiersBuilders.Clickable =
-        ModifiersBuilders.Clickable.Builder()
-            .setOnClick(
-                ActionBuilders.LaunchAction.Builder()
-                    .setAndroidActivity(
-                        ActionBuilders.AndroidActivity.Builder()
-                            .setClassName(WearMainActivity::class.java.name)
-                            .setPackageName(applicationContext.packageName)
-                            .build(),
-                    )
-                    .build(),
-            )
-            .build()
-
     companion object {
+        private const val TAG = "ElmTrackrTile"
         // v4: the bolt mark became the Aurora gradient disc with a white bolt,
         // matching the phone. Tile renderers cache resources by this version,
         // so a bump is the only thing that makes them re-read the drawable —

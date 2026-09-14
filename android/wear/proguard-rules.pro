@@ -56,6 +56,9 @@
 # stable independently of what R8 does to either side.
 -keep class com.elmtrackr.wear.sync.WearShiftSnapshot { *; }
 -keep class com.elmtrackr.wear.sync.PunchResult { *; }
+-keep class com.elmtrackr.wear.sync.WearPunchCommand { *; }
+-keep class com.elmtrackr.wear.sync.WearPunchEvent { *; }
+-keep class com.elmtrackr.wear.sync.WearPunchEventLog { *; }
 
 # ============================================================
 # WorkManager — the tile refresh worker's class NAME is written into

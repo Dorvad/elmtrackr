@@ -19,11 +19,20 @@ class WearMessageListenerService : WearableListenerService() {
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
         when (messageEvent.path) {
-            WearMessages.PUNCH_IN -> handlePunch(messageEvent) { WearActions.clockIn(it) }
-            WearMessages.PUNCH_OUT -> handlePunch(messageEvent) { WearActions.clockOut(it) }
+            WearMessages.PUNCH_IN -> handlePunch(messageEvent) { ctx ->
+                WearActions.clockIn(ctx, punchTimeMillis(messageEvent))
+            }
+            WearMessages.PUNCH_OUT -> handlePunch(messageEvent) { ctx ->
+                WearActions.clockOut(ctx, punchTimeMillis(messageEvent))
+            }
             WearMessages.REFRESH -> scope.launch { WearSyncPublisher.refresh(applicationContext) }
         }
     }
+
+    private fun punchTimeMillis(messageEvent: MessageEvent): Long? =
+        WearSnapshotCodec.decodePunchCommand(messageEvent.data)
+            ?.epochMillis
+            ?.takeIf { it > 0L }
 
     /**
      * Whether [nodeId] is a device currently paired with this one.

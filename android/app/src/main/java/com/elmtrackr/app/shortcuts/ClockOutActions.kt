@@ -23,7 +23,7 @@ object ClockOutActions {
         NO_ACTIVE_SHIFT,
     }
 
-    suspend fun clockOutActiveShift(context: Context): Result {
+    suspend fun clockOutActiveShift(context: Context, endTimeMillis: Long? = null): Result {
         if (AppLockActionGuard.blockIfLocked(context)) return Result.NO_ACTIVE_SHIFT
         val deps = AppEntryPoints.background(context)
         val userId = deps.currentUserProvider().currentUserId() ?: return Result.NO_ACTIVE_SHIFT
@@ -34,9 +34,13 @@ object ClockOutActions {
         if (settings != null) {
             val profiles = deps.compensationProfilesRepository().getProfiles(userId)
             val snapshot = ShiftCompensationHelper.buildClockOutSnapshot(activeShift, settings, profiles)
-            deps.shiftsRepository().clockOut(activeShift.id, compensationSnapshot = snapshot)
+            deps.shiftsRepository().clockOut(
+                activeShift.id,
+                compensationSnapshot = snapshot,
+                endTimeMillis = endTimeMillis,
+            )
         } else {
-            deps.shiftsRepository().clockOut(activeShift.id)
+            deps.shiftsRepository().clockOut(activeShift.id, endTimeMillis = endTimeMillis)
         }
 
         ActiveShiftNotificationManager(context.applicationContext).cancelActiveShiftNotification()

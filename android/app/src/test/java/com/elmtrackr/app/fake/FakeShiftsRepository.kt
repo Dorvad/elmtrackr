@@ -41,13 +41,15 @@ class FakeShiftsRepository : ShiftsRepository {
         compensationSource: CompensationSource,
         projectId: String?,
         projectNameSnapshot: String?,
+        startTimeMillis: Long?,
     ): Shift {
         _shifts.value.firstOrNull { it.userId == userId && it.isActive }?.let { return it }
 
         val shift = Shift(
             id = "fake-${_shifts.value.size}",
             userId = userId,
-            startTime = Instant.parse("2024-01-08T09:00:00Z"),
+            startTime = startTimeMillis?.let { Instant.ofEpochMilli(it) }
+                ?: Instant.parse("2024-01-08T09:00:00Z"),
             endTime = null,
             compensationProfileId = compensationProfileId,
             taskId = taskId,
@@ -67,10 +69,12 @@ class FakeShiftsRepository : ShiftsRepository {
         breakMinutes: Int,
         notes: String?,
         compensationSnapshot: CompensationSnapshot?,
+        endTimeMillis: Long?,
     ): Shift {
         val shift = _shifts.value.first { it.id == localId }
         val updated = shift.copy(
-            endTime = Instant.parse("2024-01-08T17:00:00Z"),
+            endTime = endTimeMillis?.let { Instant.ofEpochMilli(it) }
+                ?: Instant.parse("2024-01-08T17:00:00Z"),
             breakMinutes = breakMinutes,
             notes = notes,
             compensationSnapshot = compensationSnapshot,

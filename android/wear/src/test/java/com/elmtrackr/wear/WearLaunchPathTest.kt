@@ -163,6 +163,17 @@ class WearLaunchPathTest {
         controller.destroy()
     }
 
+    @Test
+    @Config(sdk = [33], qualifiers = "w227dp-h227dp-small-notlong-round")
+    fun `the launcher activity reaches resume on a round canvas`() {
+        val controller = Robolectric.buildActivity(WearMainActivity::class.java)
+
+        controller.create()
+        controller.start()
+        controller.resume()
+        controller.destroy()
+    }
+
     /**
      * The view model, built the way the activity builds it.
      *
@@ -258,9 +269,14 @@ class WearLaunchPathTest {
             val controller: ActivityController<WearPunchTrampolineActivity> =
                 Robolectric.buildActivity(WearPunchTrampolineActivity::class.java, intent)
             controller.create()
+            controller.start()
+            controller.resume()
+            controller.pause()
+            controller.stop()
             // Reaching here means onCreate did not throw. The activity is a
-            // NoDisplay trampoline, so finishing is the correct outcome for an
-            // action it does not handle.
+            // translucent trampoline, so finishing is the correct outcome for an
+            // action it does not handle — including driving resume, which is the
+            // Theme.NoDisplay crash the previous theme hit on real watches.
             controller.destroy()
         }
     }

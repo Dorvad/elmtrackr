@@ -53,17 +53,16 @@ android {
         // applicationId — so the wear module keeps its own range:
         // 10000 + the phone :app versionCode. Bump both together.
         //
-        // 10052 = 10000 + the phone's 52. Play refuses any code at or below one
-        // it has already seen, and 10041 is burned by the August rejection.
+        // 10053 = 10000 + the phone's 53. Play refuses any code at or below one
+        // it has already seen. 10041 is burned by the August rejection; 10052 is
+        // the September rejection ("your app crashed when testing").
         //
-        // 10042 and 10043 both exist in this repository's history and both carry
-        // the launch-crash fixes; neither was ever uploaded, so Google has only
-        // ever reviewed 10041. Whatever ships next must be built from the same
-        // commit as its phone counterpart — the two share :wear-sync, so a watch
-        // built from a different tree than the phone it talks to is a wire
-        // mismatch waiting to happen.
-        versionCode = 10052
-        versionName = "1.3.1"
+        // Whatever ships next must be built from the same commit as its phone
+        // counterpart — the two share :wear-sync, so a watch built from a
+        // different tree than the phone it talks to is a wire mismatch waiting
+        // to happen.
+        versionCode = 10053
+        versionName = "1.3.2"
 
         buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
     }

@@ -18,7 +18,7 @@
 
         <meta-data
             android:name="com.google.android.wearable.standalone"
-            android:value="false" />
+            android:value="true" />
 
         <!-- Sentry initialises from WearCrashReporting and nowhere else.
 
@@ -64,7 +64,7 @@
             android:noHistory="true"
             android:excludeFromRecents="true"
             android:taskAffinity=""
-            android:theme="@android:style/Theme.NoDisplay" />
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <service
             android:name=".sync.WearDataListenerService"
@@ -81,6 +81,15 @@
                 <data
                     android:host="*"
                     android:pathPrefix="/elmtrackr/"
+                    android:scheme="wear" />
+            </intent-filter>
+            <!-- Phone reconnect: drain wrist punches that were queued while
+                 unpaired, even if the user never opens the watch launcher. -->
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.CAPABILITY_CHANGED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/"
                     android:scheme="wear" />
             </intent-filter>
         </service>

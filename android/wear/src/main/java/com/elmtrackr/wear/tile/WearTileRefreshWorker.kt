@@ -22,7 +22,9 @@ class WearTileRefreshWorker(
         // context that is not this app's will not become one on a later run,
         // so a retry would just re-run the same no-op with backoff.
         val app = ElmTrackrWearApp.from(applicationContext) ?: return Result.success()
+        app.wearStateRepository.rollLocalDayIfNeeded()
         app.wearStateRepository.refreshFromDataLayer()
+        app.wearActionClient.syncPendingWithPhone()
         runCatchingCancellable { ElmTrackrComplicationBridge.requestUpdateAll(applicationContext) }
         // The complication bridge doesn't cover the tile — without this the
         // tile's count-up freezes at whatever it showed when last rendered.

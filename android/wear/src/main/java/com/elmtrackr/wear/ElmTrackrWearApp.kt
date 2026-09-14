@@ -56,6 +56,7 @@ class ElmTrackrWearApp : Application() {
         wearActionClient = WearActionClient(this, wearStateRepository)
         applicationScope.launch {
             wearStateRepository.bootstrap()
+            wearActionClient.requestRefreshFromPhone()
         }
         // The watch has no settings screen, so the user's choice about crash
         // reporting reaches it here, in every snapshot the phone pushes.
