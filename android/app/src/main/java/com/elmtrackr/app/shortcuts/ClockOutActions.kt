@@ -21,6 +21,7 @@ object ClockOutActions {
     enum class Result {
         CLOCKED_OUT,
         NO_ACTIVE_SHIFT,
+        STALE_PUNCH,
     }
 
     suspend fun clockOutActiveShift(context: Context, endTimeMillis: Long? = null): Result {
@@ -29,6 +30,9 @@ object ClockOutActions {
         val userId = deps.currentUserProvider().currentUserId() ?: return Result.NO_ACTIVE_SHIFT
         val activeShift = deps.shiftsRepository().observeActiveShift(userId).first()
             ?: return Result.NO_ACTIVE_SHIFT
+        if (endTimeMillis != null && endTimeMillis < activeShift.startTime.toEpochMilli()) {
+            return Result.STALE_PUNCH
+        }
 
         val settings = deps.settingsRepository().getSettings(userId)
         if (settings != null) {
@@ -61,7 +65,9 @@ object ClockOutActions {
             Result.CLOCKED_OUT ->
                 localized.getString(R.string.shortcut_feedback_clocked_out_title) to
                     localized.getString(R.string.shortcut_feedback_clocked_out_body)
-            Result.NO_ACTIVE_SHIFT ->
+            Result.NO_ACTIVE_SHIFT,
+            Result.STALE_PUNCH,
+            ->
                 localized.getString(R.string.shortcut_feedback_no_shift_title) to
                     localized.getString(R.string.shortcut_feedback_no_shift_body)
         }

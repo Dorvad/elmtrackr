@@ -89,6 +89,17 @@ object WearLocalShift {
     }
 
     /**
+     * A queued wrist punch older than the phone's currently active shift cannot
+     * safely be replayed yet. Sending it now would either be acknowledged as a
+     * duplicate clock-in or close the newer phone shift with an old clock-out.
+     */
+    fun shouldDeferReplay(event: WearPunchEvent, phone: WearShiftSnapshot?): Boolean {
+        if (phone == null || !phone.signedIn || !phone.isActive) return false
+        val phoneStart = phone.shiftStartEpochMillis
+        return phoneStart > 0L && event.epochMillis < phoneStart
+    }
+
+    /**
      * Reset cached "today" when the calendar day has moved, and credit only
      * the part of an in-progress shift that sits on the current local day.
      * Zero [WearShiftSnapshot.todayEpochDay] means an older producer that did
