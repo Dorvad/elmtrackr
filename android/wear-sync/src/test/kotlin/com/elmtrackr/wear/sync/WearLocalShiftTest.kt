@@ -106,6 +106,25 @@ class WearLocalShiftTest {
     }
 
     @Test
+    fun shouldDeferReplay_holdsOlderQueuedPunchesWhenPhoneHasNewerActiveShift() {
+        val oldClockIn = WearPunchEvent(id = "a", isPunchIn = true, epochMillis = 1_000L)
+        val oldClockOut = WearPunchEvent(id = "b", isPunchIn = false, epochMillis = 2_000L)
+        val newerPhoneShift = WearShiftSnapshot(
+            signedIn = true,
+            isActive = true,
+            shiftStartEpochMillis = 3_000L,
+        )
+        val olderPhoneShift = newerPhoneShift.copy(shiftStartEpochMillis = 500L)
+        val idlePhone = newerPhoneShift.copy(isActive = false)
+
+        assertTrue(WearLocalShift.shouldDeferReplay(oldClockIn, newerPhoneShift))
+        assertTrue(WearLocalShift.shouldDeferReplay(oldClockOut, newerPhoneShift))
+        assertFalse(WearLocalShift.shouldDeferReplay(oldClockIn, olderPhoneShift))
+        assertFalse(WearLocalShift.shouldDeferReplay(oldClockOut, idlePhone))
+        assertFalse(WearLocalShift.shouldDeferReplay(oldClockIn, null))
+    }
+
+    @Test
     fun shouldApplyPhoneSnapshot_rejectsSignedOutOverLocalWork() {
         val local = WearLocalShift.punchIn(WearShiftSnapshot.signedOut(), 1_000L)
         val phone = WearShiftSnapshot.signedOut(2_000L)
@@ -141,6 +160,7 @@ class WearLocalShiftTest {
         assertTrue(WearLocalShift.shouldFallbackToLocal("timeout"))
         assertTrue(WearLocalShift.shouldFallbackToLocal("sync_disabled"))
         assertTrue(WearLocalShift.shouldFallbackToLocal("app_locked"))
+        assertFalse(WearLocalShift.shouldFallbackToLocal("active_shift_newer"))
         assertFalse(WearLocalShift.shouldFallbackToLocal("clock_in_failed"))
         assertFalse(WearLocalShift.shouldFallbackToLocal("no_active_shift"))
     }

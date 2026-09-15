@@ -6,6 +6,7 @@ import com.elmtrackr.app.security.AppLockActionGuard
 import com.elmtrackr.app.shortcuts.ClockOutActions
 import com.elmtrackr.app.shortcuts.ClockInActions
 import com.elmtrackr.wear.sync.PunchResult
+import kotlinx.coroutines.flow.first
 
 object WearActions {
 
@@ -17,10 +18,18 @@ object WearActions {
             return PunchResult(success = false, errorCode = "app_locked")
         }
         val deps = AppEntryPoints.background(context)
-        deps.currentUserProvider().currentUserId()
+        val userId = deps.currentUserProvider().currentUserId()
             ?: return PunchResult(success = false, errorCode = "not_signed_in")
+        val requestedStartTime = startTimeMillis.validWearPunchTime()
+        val activeShift = deps.shiftsRepository().observeActiveShift(userId).first()
+        if (requestedStartTime != null &&
+            activeShift != null &&
+            requestedStartTime < activeShift.startTime.toEpochMilli()
+        ) {
+            return PunchResult(success = false, errorCode = ERROR_ACTIVE_SHIFT_NEWER)
+        }
         return runCatching {
-            ClockInActions.clockInHeadless(context, startTimeMillis)
+            ClockInActions.clockInHeadless(context, requestedStartTime)
                 ?: return PunchResult(success = false, errorCode = "not_signed_in")
             WearSyncPublisher.refresh(context)
             PunchResult(success = true)
@@ -36,13 +45,20 @@ object WearActions {
         if (AppLockActionGuard.blockIfLocked(context)) {
             return PunchResult(success = false, errorCode = "app_locked")
         }
-        return when (ClockOutActions.clockOutActiveShift(context, endTimeMillis)) {
+        return when (ClockOutActions.clockOutActiveShift(context, endTimeMillis.validWearPunchTime())) {
             ClockOutActions.Result.CLOCKED_OUT -> {
                 WearSyncPublisher.refresh(context)
                 PunchResult(success = true)
             }
             ClockOutActions.Result.NO_ACTIVE_SHIFT ->
                 PunchResult(success = false, errorCode = "no_active_shift")
+            ClockOutActions.Result.STALE_PUNCH ->
+                PunchResult(success = false, errorCode = ERROR_ACTIVE_SHIFT_NEWER)
         }
     }
+
+    private fun Long?.validWearPunchTime(): Long? =
+        this?.takeIf { it in 1L..System.currentTimeMillis() }
+
+    private const val ERROR_ACTIVE_SHIFT_NEWER = "active_shift_newer"
 }

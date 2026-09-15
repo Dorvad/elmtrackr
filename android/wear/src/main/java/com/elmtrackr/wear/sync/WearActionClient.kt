@@ -88,6 +88,10 @@ class WearActionClient(
             val events = wearStateRepository.pendingEvents()
             if (events.isEmpty()) return@withLock false
             for (event in events) {
+                val phoneBeforeReplay = wearStateRepository.readNewestPhoneSnapshot()
+                if (WearLocalShift.shouldDeferReplay(event, phoneBeforeReplay)) {
+                    return@withLock false
+                }
                 val path = if (event.isPunchIn) PUNCH_IN else PUNCH_OUT
                 val result = sendPunchToPhone(path, event.epochMillis)
                 val phone = wearStateRepository.readNewestPhoneSnapshot()

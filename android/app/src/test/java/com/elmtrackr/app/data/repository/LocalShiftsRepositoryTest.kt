@@ -165,6 +165,7 @@ class LocalShiftsRepositoryTest {
         taskNameSnapshot = null,
         taskIconSnapshot = null,
         taskHourlyRateSnapshot = null,
+        workplaceId = null,
         createdAt = startTime,
         updatedAt = startTime,
         deletedAt = deletedAt,
