@@ -102,6 +102,7 @@ class WearLocalShiftTest {
         assertFalse(WearLocalShift.replayEventSettled(inEvent, timeout, idlePhone))
         assertFalse(WearLocalShift.replayEventSettled(outEvent, timeout, runningPhone))
         assertFalse(WearLocalShift.replayEventSettled(inEvent, timeout, null))
+        assertFalse(WearLocalShift.replayEventSettled(outEvent, timeout, idlePhone.copy(updatedAtEpochMillis = 1L)))
         assertFalse(WearLocalShift.replayEventSettled(inEvent, unreachable, runningPhone))
     }
 

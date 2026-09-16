@@ -85,6 +85,7 @@ object WearLocalShift {
         if (!event.isPunchIn && result.errorCode == "no_active_shift") return true
         if (result.errorCode != "timeout") return false
         if (phone == null || !phone.signedIn) return false
+        if (phone.updatedAtEpochMillis < event.epochMillis) return false
         return if (event.isPunchIn) phone.isActive else !phone.isActive
     }
 
