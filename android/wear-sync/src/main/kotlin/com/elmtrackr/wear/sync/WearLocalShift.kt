@@ -167,7 +167,6 @@ object WearLocalShift {
         "timeout",
         "unknown_sender",
         "sync_disabled",
-        "app_locked",
         -> true
         else -> false
     }
