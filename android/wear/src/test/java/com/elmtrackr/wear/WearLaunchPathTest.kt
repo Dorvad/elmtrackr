@@ -258,6 +258,34 @@ class WearLaunchPathTest {
     }
 
     @Test
+    fun `the exported punch trampoline requires the tile token`() {
+        val token = WearPunchTrampolineActivity.tileLaunchToken(app())
+
+        assertFalse(
+            WearPunchTrampolineActivity.isAuthorizedTileIntent(
+                app(),
+                Intent().putExtra(WearPunchTrampolineActivity.EXTRA_ACTION, WearPunchTrampolineActivity.ACTION_IN),
+            ),
+        )
+        assertFalse(
+            WearPunchTrampolineActivity.isAuthorizedTileIntent(
+                app(),
+                Intent()
+                    .putExtra(WearPunchTrampolineActivity.EXTRA_ACTION, WearPunchTrampolineActivity.ACTION_IN)
+                    .putExtra(WearPunchTrampolineActivity.EXTRA_TOKEN, "not-$token"),
+            ),
+        )
+        assertTrue(
+            WearPunchTrampolineActivity.isAuthorizedTileIntent(
+                app(),
+                Intent()
+                    .putExtra(WearPunchTrampolineActivity.EXTRA_ACTION, WearPunchTrampolineActivity.ACTION_IN)
+                    .putExtra(WearPunchTrampolineActivity.EXTRA_TOKEN, token),
+            ),
+        )
+    }
+
+    @Test
     fun `the trampoline finishes quietly on an intent it does not recognise`() {
         val cases = listOf(
             Intent(),

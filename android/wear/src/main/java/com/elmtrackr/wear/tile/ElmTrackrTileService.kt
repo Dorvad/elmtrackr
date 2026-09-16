@@ -311,6 +311,12 @@ class ElmTrackrTileService : TileService() {
                                 WearPunchTrampolineActivity.EXTRA_ACTION,
                                 ActionBuilders.stringExtra(action),
                             )
+                            .addKeyToExtraMapping(
+                                WearPunchTrampolineActivity.EXTRA_TOKEN,
+                                ActionBuilders.stringExtra(
+                                    WearPunchTrampolineActivity.tileLaunchToken(applicationContext),
+                                ),
+                            )
                             .build(),
                     )
                     .build(),
