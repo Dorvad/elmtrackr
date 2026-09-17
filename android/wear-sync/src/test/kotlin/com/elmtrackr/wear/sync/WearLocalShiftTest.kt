@@ -106,6 +106,40 @@ class WearLocalShiftTest {
     }
 
     @Test
+    fun livePunchSettledByPhone_rejectsStaleMatchingStateAfterTimeout() {
+        val staleRunningPhone = WearShiftSnapshot.signedOut().copy(
+            signedIn = true,
+            isActive = true,
+            shiftStartEpochMillis = 1_000L,
+        )
+        val staleIdlePhone = WearShiftSnapshot.signedOut().copy(
+            signedIn = true,
+            isActive = false,
+            lastPunchEndEpochMillis = 1_000L,
+        )
+
+        assertFalse(WearLocalShift.livePunchSettledByPhone(true, 2_000L, staleRunningPhone))
+        assertFalse(WearLocalShift.livePunchSettledByPhone(false, 2_000L, staleIdlePhone))
+    }
+
+    @Test
+    fun livePunchSettledByPhone_acceptsPhoneSnapshotThatCarriesThisPunchTime() {
+        val freshRunningPhone = WearShiftSnapshot.signedOut().copy(
+            signedIn = true,
+            isActive = true,
+            shiftStartEpochMillis = 2_000L,
+        )
+        val freshIdlePhone = WearShiftSnapshot.signedOut().copy(
+            signedIn = true,
+            isActive = false,
+            lastPunchEndEpochMillis = 2_000L,
+        )
+
+        assertTrue(WearLocalShift.livePunchSettledByPhone(true, 2_000L, freshRunningPhone))
+        assertTrue(WearLocalShift.livePunchSettledByPhone(false, 2_000L, freshIdlePhone))
+    }
+
+    @Test
     fun shouldApplyPhoneSnapshot_rejectsStaleSignedOutOverLocalWork() {
         val local = WearLocalShift.punchIn(WearShiftSnapshot.signedOut(), 1_000L)
         val phone = WearShiftSnapshot.signedOut(500L)

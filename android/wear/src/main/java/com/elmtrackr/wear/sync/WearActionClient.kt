@@ -61,9 +61,11 @@ class WearActionClient(
                 return phoneResult
             }
             if (phoneResult.errorCode == "timeout") {
-                val latest = wearStateRepository.refreshFromDataLayer()
-                val phoneTookIt = latest?.signedIn == true && latest.isActive == isPunchIn
-                if (phoneTookIt) return PunchResult(success = true)
+                val latest = wearStateRepository.readNewestPhoneSnapshot()
+                if (latest != null && WearLocalShift.livePunchSettledByPhone(isPunchIn, now, latest)) {
+                    wearStateRepository.applySnapshot(latest)
+                    return PunchResult(success = true)
+                }
             }
             if (WearLocalShift.shouldFallbackToLocal(phoneResult.errorCode)) {
                 return wearStateRepository.applyLocalPunch(isPunchIn, now)
@@ -140,7 +142,6 @@ class WearActionClient(
             pendingResult?.let { return it }
             delay(250)
         }
-        wearStateRepository.refreshFromDataLayer()
         return PunchResult(success = false, errorCode = "timeout")
     }
 

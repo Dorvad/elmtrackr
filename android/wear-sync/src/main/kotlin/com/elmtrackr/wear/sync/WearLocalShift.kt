@@ -89,6 +89,26 @@ object WearLocalShift {
     }
 
     /**
+     * A live punch that timed out may still have landed on the phone; trust that
+     * only when the phone snapshot contains evidence for this specific punch.
+     * Coarse active/inactive state is not enough, because a stale snapshot can
+     * already match the requested action and would turn a lost punch into a
+     * false success.
+     */
+    fun livePunchSettledByPhone(
+        isPunchIn: Boolean,
+        punchEpochMillis: Long,
+        phone: WearShiftSnapshot?,
+    ): Boolean {
+        if (phone == null || !phone.signedIn) return false
+        return if (isPunchIn) {
+            phone.isActive && phone.shiftStartEpochMillis >= punchEpochMillis
+        } else {
+            !phone.isActive && phone.lastPunchEndEpochMillis >= punchEpochMillis
+        }
+    }
+
+    /**
      * Reset cached "today" when the calendar day has moved, and credit only
      * the part of an in-progress shift that sits on the current local day.
      * Zero [WearShiftSnapshot.todayEpochDay] means an older producer that did
