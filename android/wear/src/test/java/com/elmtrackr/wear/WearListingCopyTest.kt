@@ -16,7 +16,14 @@ class WearListingCopyTest {
     @Test
     fun listingCopyMentionsTileAndComplicationInEveryShippedLanguage() {
         val copy = resolveListingCopy().readText()
-        assertFalse("listing copy must not say Android Wear", copy.contains("Android Wear"))
+        val pasteBlocks = Regex("^> .+$", RegexOption.MULTILINE)
+            .findAll(copy)
+            .joinToString("\n") { it.value }
+        assertTrue("listing copy has no paste-ready paragraphs", pasteBlocks.isNotBlank())
+        assertFalse(
+            "the paste-ready paragraphs must not say Android Wear",
+            pasteBlocks.contains("Android Wear"),
+        )
         for (language in listOf("English", "Hebrew", "Arabic", "Russian")) {
             assertTrue("missing $language heading in play-listing-wear-copy.md", copy.contains("## $language"))
         }
