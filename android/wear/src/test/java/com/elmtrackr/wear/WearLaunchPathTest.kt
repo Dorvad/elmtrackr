@@ -190,6 +190,18 @@ class WearLaunchPathTest {
     }
 
     /**
+     * WorkManager is on-demand via [ElmTrackrWearApp] as Configuration.Provider.
+     * If the default androidx.startup initializer is left in, this still passes
+     * on Robolectric and still crashes on a real watch — so this test is the
+     * on-demand half; [WearManifestContractTest.workManagerDoesNotAutoInitBeforeApplicationOnCreate]
+     * is the ContentProvider half.
+     */
+    @Test
+    fun `WorkManager is reachable after Application onCreate`() {
+        assertNotNull(androidx.work.WorkManager.getInstance(app()))
+    }
+
+    /**
      * The data-layer listener, which Play Services starts — not the user.
      *
      * It is exported and bound by a different uid, so it is reachable in states

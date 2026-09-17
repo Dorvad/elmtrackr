@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-feature android:name="android.hardware.type.watch" />
 
@@ -14,7 +15,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.DeviceDefault">
+        android:theme="@style/Theme.ElmTrackrWear">
 
         <meta-data
             android:name="com.google.android.wearable.standalone"
@@ -36,6 +37,29 @@
             android:name="io.sentry.auto-init"
             android:value="false" />
 
+        <!-- WorkManager and ProfileInstaller both register androidx.startup
+             initializers, which are ContentProviders and therefore run before
+             Application.onCreate. :app already removes WorkManager's. The watch
+             did not, so a JobScheduler failure on a review device died on the
+             launch path before WearCrashReporting could start. On-demand init
+             is Configuration.Provider on ElmTrackrWearApp. ProfileInstaller is
+             a compile-time dex thing; it has no business running on a wrist
+             being reviewed for launch crashes. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+            <meta-data
+                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
         <uses-library
             android:name="com.google.android.wearable"
             android:required="true" />
@@ -44,7 +68,7 @@
             android:name=".WearMainActivity"
             android:exported="true"
             android:taskAffinity=""
-            android:theme="@android:style/Theme.DeviceDefault">
+            android:theme="@style/Theme.ElmTrackrWear">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
