@@ -140,7 +140,9 @@ object WearLocalShift {
      * while unpaired. A signed-in snapshot may replace local state only after
      * offline punches have been replayed onto the phone — otherwise the phone
      * would paint "clocked out" over a running wrist shift that has not been
-     * sent yet.
+     * sent yet. Once there is no replay waiting, however, a newer signed-out
+     * snapshot is an explicit clear from the phone (sign-out or Wear sync off)
+     * and must blank the watch even if it was showing earlier shift data.
      */
     fun shouldApplyPhoneSnapshot(
         local: WearShiftSnapshot,
@@ -149,13 +151,19 @@ object WearLocalShift {
     ): Boolean {
         if (hasPendingReplay) return false
         if (phone.signedIn) return true
-        return !hasLocalWork(local)
+        if (!hasLocalWork(local)) return true
+        return phone.updatedAtEpochMillis > latestWorkEpochMillis(local)
     }
 
     fun hasLocalWork(snapshot: WearShiftSnapshot): Boolean =
         snapshot.isActive ||
             snapshot.todayMinutes > 0 ||
             snapshot.lastPunchEndEpochMillis > 0L
+
+    private fun latestWorkEpochMillis(snapshot: WearShiftSnapshot): Long =
+        maxOf(snapshot.shiftStartEpochMillis, snapshot.lastPunchEndEpochMillis)
+            .takeIf { it > 0L }
+            ?: snapshot.updatedAtEpochMillis
 
     fun mergeConsent(local: WearShiftSnapshot, phone: WearShiftSnapshot): WearShiftSnapshot =
         local.copy(crashReportingEnabled = phone.crashReportingEnabled)

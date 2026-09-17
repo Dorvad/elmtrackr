@@ -106,11 +106,36 @@ class WearLocalShiftTest {
     }
 
     @Test
-    fun shouldApplyPhoneSnapshot_rejectsSignedOutOverLocalWork() {
+    fun shouldApplyPhoneSnapshot_rejectsStaleSignedOutOverLocalWork() {
+        val local = WearLocalShift.punchIn(WearShiftSnapshot.signedOut(), 1_000L)
+        val phone = WearShiftSnapshot.signedOut(500L)
+
+        assertFalse(WearLocalShift.shouldApplyPhoneSnapshot(local, phone, hasPendingReplay = false))
+    }
+
+    @Test
+    fun shouldApplyPhoneSnapshot_acceptsNewerSignedOutClearOnceReplayHasFinished() {
         val local = WearLocalShift.punchIn(WearShiftSnapshot.signedOut(), 1_000L)
         val phone = WearShiftSnapshot.signedOut(2_000L)
 
-        assertFalse(WearLocalShift.shouldApplyPhoneSnapshot(local, phone, hasPendingReplay = false))
+        assertTrue(WearLocalShift.shouldApplyPhoneSnapshot(local, phone, hasPendingReplay = false))
+    }
+
+    @Test
+    fun shouldApplyPhoneSnapshot_acceptsSignedOutClearEvenAfterLocalRolloverUpdatedTheCache() {
+        val local = WearLocalShift.punchIn(WearShiftSnapshot.signedOut(), 1_000L)
+            .copy(updatedAtEpochMillis = 3_000L)
+        val phone = WearShiftSnapshot.signedOut(2_000L)
+
+        assertTrue(WearLocalShift.shouldApplyPhoneSnapshot(local, phone, hasPendingReplay = false))
+    }
+
+    @Test
+    fun shouldApplyPhoneSnapshot_rejectsNewerSignedOutClearWhileReplayIsPending() {
+        val local = WearLocalShift.punchIn(WearShiftSnapshot.signedOut(), 1_000L)
+        val phone = WearShiftSnapshot.signedOut(2_000L)
+
+        assertFalse(WearLocalShift.shouldApplyPhoneSnapshot(local, phone, hasPendingReplay = true))
     }
 
     @Test
