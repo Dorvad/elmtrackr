@@ -28,6 +28,7 @@ data class WidgetShiftState(
     val shiftStartEpochMillis: Long = 0L,
     val lastPunchEndEpochMillis: Long = 0L,
     val todayMinutes: Int = 0,
+    val todayEpochDay: Long,
     val dailyGoalMinutes: Int = DEFAULT_DAILY_GOAL_MINUTES,
     val isSignedIn: Boolean = true,
 ) {
