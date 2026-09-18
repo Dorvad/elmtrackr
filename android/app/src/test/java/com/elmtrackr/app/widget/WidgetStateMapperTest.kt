@@ -6,9 +6,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.ZoneOffset
 
 class WidgetStateMapperTest {
 
@@ -26,11 +28,12 @@ class WidgetStateMapperTest {
         active: Shift? = null,
         lastCompleted: Shift? = null,
         today: List<Shift> = emptyList(),
+        settings: UserSettings = UserSettings(id = "s", userId = "user-1"),
     ) = WidgetContext(
         activeShift = active,
         lastCompletedShift = lastCompleted,
         todayShifts = today,
-        settings = UserSettings(id = "s", userId = "user-1"),
+        settings = settings,
     )
 
     @Test
@@ -65,6 +68,20 @@ class WidgetStateMapperTest {
         assertEquals("shift-1", state.shiftId)
         assertTrue(state.shiftStartEpochMillis > 0L)
         assertTrue(state.todayMinutes > 0)
+    }
+
+    @Test
+    fun `today epoch day uses work timezone`() {
+        val settings = UserSettings(
+            id = "s",
+            userId = "user-1",
+            timezone = "Pacific/Honolulu",
+        )
+        val clock = Clock.fixed(Instant.parse("2024-01-01T01:00:00Z"), ZoneOffset.UTC)
+
+        val state = WidgetStateMapper.map(context(settings = settings), clock = clock)
+
+        assertEquals(LocalDate.of(2023, 12, 31).toEpochDay(), state.todayEpochDay)
     }
 
     @Test
