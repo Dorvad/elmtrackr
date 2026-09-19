@@ -46,6 +46,7 @@ object WearLocalShift {
         if (!snapshot.isActive) return snapshot.copy(updatedAtEpochMillis = nowMillis)
         val start = snapshot.shiftStartEpochMillis
         val today = todayEpochDay(nowMillis, zone)
+        val startOfToday = startOfLocalDayMillis(nowMillis, zone)
         val completedToday = if (snapshot.todayEpochDay == 0L || snapshot.todayEpochDay == today) {
             snapshot.todayMinutes
         } else {
@@ -56,11 +57,17 @@ object WearLocalShift {
         } else {
             0
         }
+        // A roll during an overnight shift already put the running minutes into todayMinutes.
+        val totalToday = if (snapshot.todayEpochDay == today && start in 1 until startOfToday) {
+            maxOf(completedToday, minutes)
+        } else {
+            completedToday + minutes
+        }
         return snapshot.copy(
             isActive = false,
             lastPunchEndEpochMillis = nowMillis,
             lastPunchLabel = "",
-            todayMinutes = completedToday + minutes,
+            todayMinutes = totalToday,
             todayEpochDay = today,
             shiftStartEpochMillis = 0L,
             updatedAtEpochMillis = nowMillis,
