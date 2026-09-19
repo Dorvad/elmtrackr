@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
 import java.time.ZoneOffset
 
 class WearLocalShiftTest {
@@ -55,6 +56,21 @@ class WearLocalShiftTest {
 
         assertEquals(expected, next.todayMinutes)
         assertTrue(expected in 70..80)
+        assertEquals(WearLocalShift.todayEpochDay(end, ZoneOffset.UTC), next.todayEpochDay)
+    }
+
+    @Test
+    fun punchOut_doesNotDoubleCountAnOvernightShiftAlreadyRolledIntoToday() {
+        val start = Instant.parse("2024-06-01T23:00:00Z").toEpochMilli()
+        val rolledAt = Instant.parse("2024-06-02T01:00:00Z").toEpochMilli()
+        val end = Instant.parse("2024-06-02T02:00:00Z").toEpochMilli()
+        val running = WearLocalShift.punchIn(WearShiftSnapshot.signedOut(start), start, ZoneOffset.UTC)
+        val rolled = WearLocalShift.rollToLocalDay(running, rolledAt, ZoneOffset.UTC)
+
+        val next = WearLocalShift.punchOut(rolled, end, ZoneOffset.UTC)
+
+        assertEquals(60, rolled.todayMinutes)
+        assertEquals(120, next.todayMinutes)
         assertEquals(WearLocalShift.todayEpochDay(end, ZoneOffset.UTC), next.todayEpochDay)
     }
 
