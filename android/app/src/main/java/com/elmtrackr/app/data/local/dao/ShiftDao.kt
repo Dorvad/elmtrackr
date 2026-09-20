@@ -23,7 +23,7 @@ interface ShiftDao {
 
     @Query(
         "SELECT * FROM shifts WHERE userId = :userId AND endTime IS NULL " +
-            "AND deletedAt IS NULL LIMIT 1"
+            "AND deletedAt IS NULL ORDER BY startTime ASC LIMIT 1"
     )
     fun observeActiveShift(userId: String): Flow<ShiftEntity?>
 

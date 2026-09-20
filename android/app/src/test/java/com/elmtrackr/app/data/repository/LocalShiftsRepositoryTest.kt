@@ -38,6 +38,25 @@ class LocalShiftsRepositoryTest {
     }
 
     @Test
+    fun `clockIn returns the canonical earliest active shift when duplicates exist`() = runTest {
+        val dao = InMemoryShiftDao()
+        dao.insertShift(shiftEntity(localId = "late", startTime = 2_000L))
+        dao.insertShift(shiftEntity(localId = "early", startTime = 1_000L))
+        val repository = LocalShiftsRepository(
+            dao,
+            FakeRefundsRepository(),
+            FakeSyncTrigger(),
+            FakeCompensationProfileDao(),
+            DirectTransactionRunner,
+        )
+
+        val shift = repository.clockIn(userId = "u1")
+
+        assertEquals("early", shift.id)
+        assertEquals(2, dao.currentShifts.size)
+    }
+
+    @Test
     fun `clockIn creates shift with compensation profile when no active shift exists`() = runTest {
         val dao = InMemoryShiftDao()
         val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
@@ -211,7 +230,10 @@ class LocalShiftsRepositoryTest {
             shifts.map { list -> list.filter { it.userId == userId && it.deletedAt == null }.sortedByDescending { it.startTime } }
 
         override fun observeActiveShift(userId: String): Flow<ShiftEntity?> =
-            shifts.map { list -> list.filter { it.userId == userId && it.endTime == null && it.deletedAt == null }.maxByOrNull { it.startTime } }
+            shifts.map { list ->
+                list.filter { it.userId == userId && it.endTime == null && it.deletedAt == null }
+                    .minByOrNull { it.startTime }
+            }
 
         override suspend fun getShiftById(localId: String): ShiftEntity? =
             shifts.value.firstOrNull { it.localId == localId }
