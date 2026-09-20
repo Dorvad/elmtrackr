@@ -4,9 +4,10 @@ import com.elmtrackr.app.widget.WidgetShiftState
 import com.elmtrackr.wear.sync.WearShiftSnapshot
 import java.time.LocalDate
 
-fun WidgetShiftState.toWearSnapshot(signedIn: Boolean): WearShiftSnapshot =
+fun WidgetShiftState.toWearSnapshot(signedIn: Boolean, userId: String = ""): WearShiftSnapshot =
     WearShiftSnapshot(
         signedIn = signedIn,
+        userId = userId,
         isActive = isActive,
         shiftId = shiftId,
         shiftStartEpochMillis = shiftStartEpochMillis,

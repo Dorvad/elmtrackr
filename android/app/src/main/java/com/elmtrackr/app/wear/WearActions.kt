@@ -9,7 +9,11 @@ import com.elmtrackr.wear.sync.PunchResult
 
 object WearActions {
 
-    suspend fun clockIn(context: Context, startTimeMillis: Long? = null): PunchResult {
+    suspend fun clockIn(
+        context: Context,
+        startTimeMillis: Long? = null,
+        expectedUserId: String = "",
+    ): PunchResult {
         if (!WearSyncPublisher.isSyncEnabled(context)) {
             return PunchResult(success = false, errorCode = "sync_disabled")
         }
@@ -17,8 +21,11 @@ object WearActions {
             return PunchResult(success = false, errorCode = "app_locked")
         }
         val deps = AppEntryPoints.background(context)
-        deps.currentUserProvider().currentUserId()
+        val currentUserId = deps.currentUserProvider().currentUserId()
             ?: return PunchResult(success = false, errorCode = "not_signed_in")
+        if (expectedUserId.isNotBlank() && expectedUserId != currentUserId) {
+            return PunchResult(success = false, errorCode = "user_mismatch")
+        }
         return runCatching {
             ClockInActions.clockInHeadless(context, startTimeMillis)
                 ?: return PunchResult(success = false, errorCode = "not_signed_in")
@@ -29,12 +36,21 @@ object WearActions {
         }
     }
 
-    suspend fun clockOut(context: Context, endTimeMillis: Long? = null): PunchResult {
+    suspend fun clockOut(
+        context: Context,
+        endTimeMillis: Long? = null,
+        expectedUserId: String = "",
+    ): PunchResult {
         if (!WearSyncPublisher.isSyncEnabled(context)) {
             return PunchResult(success = false, errorCode = "sync_disabled")
         }
         if (AppLockActionGuard.blockIfLocked(context)) {
             return PunchResult(success = false, errorCode = "app_locked")
+        }
+        val currentUserId = AppEntryPoints.background(context).currentUserProvider().currentUserId()
+            ?: return PunchResult(success = false, errorCode = "not_signed_in")
+        if (expectedUserId.isNotBlank() && expectedUserId != currentUserId) {
+            return PunchResult(success = false, errorCode = "user_mismatch")
         }
         return when (ClockOutActions.clockOutActiveShift(context, endTimeMillis)) {
             ClockOutActions.Result.CLOCKED_OUT -> {

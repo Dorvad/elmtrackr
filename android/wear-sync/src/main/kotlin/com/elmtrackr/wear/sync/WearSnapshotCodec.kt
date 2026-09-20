@@ -32,7 +32,6 @@ object WearSnapshotCodec {
     fun encodePunchLog(log: WearPunchEventLog): String =
         json.encodeToString(log)
 
-    fun decodePunchLog(payload: String): WearPunchEventLog =
-        runCatching { json.decodeFromString<WearPunchEventLog>(payload) }
-            .getOrDefault(WearPunchEventLog())
+    fun decodePunchLog(payload: String): WearPunchEventLog? =
+        runCatching { json.decodeFromString<WearPunchEventLog>(payload) }.getOrNull()
 }

@@ -77,11 +77,16 @@ object WearSyncPublisher {
         val locale = context.withAppLocale().resources.configuration.locales[0]
             ?: java.util.Locale.getDefault()
         val state = WidgetStateMapper.map(widgetContext, locale)
-        publishSnapshot(context, state.toWearSnapshot(signedIn = true))
+        publishSnapshot(context, state.toWearSnapshot(signedIn = true, userId = userId))
     }
 
     suspend fun publishFromShiftState(context: Context, state: WidgetShiftState, signedIn: Boolean) {
-        publishSnapshot(context, state.toWearSnapshot(signedIn = signedIn))
+        val userId = if (signedIn) {
+            AppEntryPoints.background(context).currentUserProvider().currentUserId().orEmpty()
+        } else {
+            ""
+        }
+        publishSnapshot(context, state.toWearSnapshot(signedIn = signedIn, userId = userId))
     }
 
     suspend fun refresh(context: Context) {
