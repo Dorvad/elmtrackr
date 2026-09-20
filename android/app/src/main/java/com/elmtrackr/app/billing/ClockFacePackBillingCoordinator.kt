@@ -85,10 +85,13 @@ class ClockFacePackBillingCoordinator @Inject constructor(
             // read an empty new store, find the marker absent, re-derive the grant
             // from an equally empty installed set, and offer the user their own
             // packs for sale — the exact loss the split exists to prevent.
-            runCatching { appPreferences.migrateEntitlementsIfNeeded() }
+            val migrated = runCatching { appPreferences.migrateEntitlementsIfNeeded() }
                 .onFailure(CrashReporting::report)
-            runCatching { grandfathering.seedIfNeeded() }
-                .onFailure(CrashReporting::report)
+                .isSuccess
+            if (migrated) {
+                runCatching { grandfathering.seedIfNeeded() }
+                    .onFailure(CrashReporting::report)
+            }
             runCatching { store.refresh() }
                 .onFailure(CrashReporting::report)
         }

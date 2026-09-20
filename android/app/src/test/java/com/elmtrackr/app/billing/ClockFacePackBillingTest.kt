@@ -1,6 +1,5 @@
 package com.elmtrackr.app.billing
 
-import com.elmtrackr.app.fake.FakeClockFacePreferences
 import com.elmtrackr.app.fake.FakePurchasePreferences
 import com.elmtrackr.app.ui.settings.ClockFaceGroup
 import com.elmtrackr.app.ui.settings.ClockFacePacks
@@ -237,9 +236,8 @@ class ClockFacePackBillingTest {
 
     @Test
     fun `grandfathering grants what was installed when packs became paid`() = runTest {
-        val purchases = FakePurchasePreferences()
+        val purchases = FakePurchasePreferences(installedPacks = setOf("NATURE"))
         val grandfathering = ClockFacePackGrandfathering(
-            clockFacePreferences = FakeClockFacePreferences(initialPacks = setOf("NATURE")),
             purchasePreferences = purchases,
         )
 
@@ -257,9 +255,12 @@ class ClockFacePackBillingTest {
      */
     @Test
     fun `grandfathering runs once`() = runTest {
-        val purchases = FakePurchasePreferences(grandfathered = emptySet(), grandfatheringDone = true)
+        val purchases = FakePurchasePreferences(
+            grandfathered = emptySet(),
+            grandfatheringDone = true,
+            installedPacks = setOf("NATURE"),
+        )
         val grandfathering = ClockFacePackGrandfathering(
-            clockFacePreferences = FakeClockFacePreferences(initialPacks = setOf("NATURE")),
             purchasePreferences = purchases,
         )
 
@@ -276,7 +277,6 @@ class ClockFacePackBillingTest {
     fun `a device with no packs grandfathers nothing and is still marked done`() = runTest {
         val purchases = FakePurchasePreferences()
         val grandfathering = ClockFacePackGrandfathering(
-            clockFacePreferences = FakeClockFacePreferences(),
             purchasePreferences = purchases,
         )
 
@@ -284,6 +284,22 @@ class ClockFacePackBillingTest {
 
         assertEquals(emptySet<String>(), purchases.grandfatheredClockFacePacks)
         assertTrue(purchases.grandfatheringDone)
+    }
+
+    @Test
+    fun `grandfathering does not spend the marker when entitlements cannot be read`() = runTest {
+        val purchases = FakePurchasePreferences(
+            installedPacks = setOf("NATURE"),
+            seedSnapshotReadable = false,
+        )
+        val grandfathering = ClockFacePackGrandfathering(
+            purchasePreferences = purchases,
+        )
+
+        grandfathering.seedIfNeeded()
+
+        assertEquals(emptySet<String>(), purchases.grandfatheredClockFacePacks)
+        assertFalse(purchases.grandfatheringDone)
     }
 
     // ── The invariant paid packs must not break ───────────────────────────────
