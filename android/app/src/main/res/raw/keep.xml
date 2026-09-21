@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    android_wear_capabilities is read by Play Services by name; nothing in this
+    module's code or manifest references R.array.android_wear_capabilities, so the
+    release resource shrinker would otherwise strip it and the phone would stop
+    advertising itself to the watch. Debug builds do not shrink, which is why this
+    class of regression only ever shows in a release artifact. The watch module pins
+    its own array the same way.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@array/android_wear_capabilities" />

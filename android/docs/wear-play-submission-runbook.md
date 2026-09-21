@@ -14,6 +14,11 @@ notice — re-read both pages before a submission rather than trusting this file
 
 ## 0. Check this first. It may be the entire problem.
 
+> **21 September 2026:** the review, code fixes and the full manual
+> resubmission sequence for the 10055 rejection are in
+> [wear-play-resubmission-2026-09-21.md](wear-play-resubmission-2026-09-21.md).
+> Follow its Section B in order; the notes below remain as background.
+
 The 17 September 2026 rejection names **version code 10055**, twice: a crash,
 and a listing that does not mention tile or complication.
 

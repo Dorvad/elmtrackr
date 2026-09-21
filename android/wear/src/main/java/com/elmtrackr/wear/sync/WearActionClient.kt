@@ -6,6 +6,7 @@ import com.elmtrackr.wear.sync.WearMessages.PUNCH_IN
 import com.elmtrackr.wear.sync.WearMessages.PUNCH_OUT
 import com.elmtrackr.wear.sync.WearMessages.PUNCH_RESULT
 import com.elmtrackr.wear.sync.WearMessages.REFRESH
+import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.Node
 import com.google.android.gms.wearable.Wearable
@@ -31,17 +32,20 @@ class WearActionClient(
         runCatchingCancellable {
             val phone = findPhoneNode() ?: return
             Wearable.getMessageClient(appContext)
-                .sendMessage(phone.id, REFRESH, ByteArray(0))
+                .sendMessage(phone.nodeId, REFRESH, ByteArray(0))
                 .await()
             // The phone answers REFRESH asynchronously: it reads its DB and pushes
             // a new data item, which lands here as a DATA_CHANGED event a beat
-            // later. A single immediate read almost always loses that race.
+            // later. A single immediate read almost always loses that race. A
+            // node that does not advertise the phone app gets fewer beats: it is
+            // most likely a phone without ElmTrackr, which never answers.
             var phoneSnapshot: WearShiftSnapshot? = null
             var attempt = 0
-            while (attempt < REFRESH_POLL_ATTEMPTS) {
+            val attempts = WearPhoneReach.refreshPollAttempts(phone)
+            while (attempt < attempts) {
                 phoneSnapshot = wearStateRepository.refreshFromDataLayer()
                 if (phoneSnapshot?.signedIn == true) break
-                delay(REFRESH_POLL_INTERVAL_MS)
+                delay(WearPhoneReach.REFRESH_POLL_INTERVAL_MS)
                 attempt++
             }
             if (phoneSnapshot?.signedIn == true) {
@@ -132,8 +136,8 @@ class WearActionClient(
             try {
                 pendingResult = null
                 val payload = WearSnapshotCodec.encodePunchCommand(WearPunchCommand(epochMillis, userId))
-                messageClient.sendMessage(phone.id, path, payload).await()
-                waitForPunchResult()
+                messageClient.sendMessage(phone.nodeId, path, payload).await()
+                waitForPunchResult(WearPhoneReach.punchResultTimeoutMillis(phone))
             } finally {
                 runCatching { messageClient.removeListener(this) }
             }
@@ -150,13 +154,16 @@ class WearActionClient(
     @Volatile
     private var pendingResult: PunchResult? = null
 
-    private suspend fun waitForPunchResult(): PunchResult {
-        // 10s: the phone-side punch includes a Room write and a Supabase push;
-        // 5s produced false "failed" feedback on slow networks, and a retry
-        // after a false failure is how duplicate punches happen.
-        repeat(40) {
+    private suspend fun waitForPunchResult(timeoutMillis: Long): PunchResult {
+        // The budget is the phone's to earn: ten seconds for a node that advertises
+        // the ElmTrackr phone app (its punch includes a Room write and a Supabase
+        // push, and 5s produced false "failed" feedback on slow networks — a retry
+        // after a false failure is how duplicate punches happen), a short one for a
+        // node that does not. See WearPhoneReach for the reasoning.
+        val beats = (timeoutMillis / PUNCH_RESULT_POLL_MS).toInt().coerceAtLeast(1)
+        repeat(beats) {
             pendingResult?.let { return it }
-            delay(250)
+            delay(PUNCH_RESULT_POLL_MS)
         }
         return PunchResult(success = false, errorCode = "timeout")
     }
@@ -166,15 +173,32 @@ class WearActionClient(
         pendingResult = WearSnapshotCodec.decodePunchResult(messageEvent.data)
     }
 
-    private suspend fun findPhoneNode(): Node? {
-        val nodes = Wearable.getNodeClient(appContext).connectedNodes.await()
-        return nodes.firstOrNull { it.isNearby } ?: nodes.firstOrNull()
+    /**
+     * The phone to talk to, or null when no phone is connected at all.
+     *
+     * Nodes advertising [WearCapabilities.PHONE_APP] are ElmTrackr phones and are
+     * preferred. Any other connected node is still returned — a phone on a build
+     * that predates the capability must keep receiving punches — but flagged so
+     * the caller gives it the short budget rather than the full ten seconds. The
+     * capability lookup is best-effort: if it fails the watch behaves exactly as
+     * it did before the capability existed.
+     */
+    private suspend fun findPhoneNode(): WearPhoneTarget? {
+        val capabilityNodes = runCatchingCancellable {
+            Wearable.getCapabilityClient(appContext)
+                .getCapability(WearCapabilities.PHONE_APP, CapabilityClient.FILTER_REACHABLE)
+                .await()
+                .nodes
+                .map { it.toCandidate() }
+        }.getOrDefault(emptyList())
+        val connectedNodes = Wearable.getNodeClient(appContext).connectedNodes.await()
+            .map { it.toCandidate() }
+        return WearPhoneReach.choose(capabilityNodes, connectedNodes)
     }
 
+    private fun Node.toCandidate() = WearPhoneReach.Candidate(id = id, isNearby = isNearby)
+
     private companion object {
-        // ~3s total: covers a phone DB read plus data-layer round trip without
-        // making a genuinely signed-out watch feel stuck on the sign-in screen.
-        const val REFRESH_POLL_ATTEMPTS = 12
-        const val REFRESH_POLL_INTERVAL_MS = 250L
+        const val PUNCH_RESULT_POLL_MS = 250L
     }
 }

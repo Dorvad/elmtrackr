@@ -10,6 +10,7 @@ import com.elmtrackr.app.widget.WidgetContext
 import com.elmtrackr.app.widget.WidgetContextLoader
 import com.elmtrackr.app.widget.WidgetShiftState
 import com.elmtrackr.app.widget.WidgetStateMapper
+import com.elmtrackr.wear.sync.WearCapabilities
 import com.elmtrackr.wear.sync.WearMessages
 import com.elmtrackr.wear.sync.WearPaths
 import com.elmtrackr.wear.sync.WearShiftSnapshot
@@ -22,7 +23,7 @@ import kotlinx.coroutines.tasks.await
 object WearSyncPublisher {
 
     /** Capability the watch app declares; lets the phone detect the installed app. */
-    const val WATCH_APP_CAPABILITY = "elmtrackr_wear_app"
+    const val WATCH_APP_CAPABILITY = WearCapabilities.WATCH_APP
 
     suspend fun isSyncEnabled(context: Context): Boolean = runCatching {
         context.applicationContext.appPreferencesDataStore.data.first()
