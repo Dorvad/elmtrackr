@@ -102,6 +102,7 @@ class WearLocalShiftTest {
         assertFalse(WearLocalShift.replayEventSettled(inEvent, timeout, idlePhone))
         assertFalse(WearLocalShift.replayEventSettled(outEvent, timeout, runningPhone))
         assertFalse(WearLocalShift.replayEventSettled(inEvent, timeout, null))
+        assertFalse(WearLocalShift.replayEventSettled(outEvent, timeout, idlePhone.copy(updatedAtEpochMillis = 1L)))
         assertFalse(WearLocalShift.replayEventSettled(inEvent, unreachable, runningPhone))
     }
 
@@ -159,10 +160,14 @@ class WearLocalShiftTest {
         assertTrue(WearLocalShift.shouldFallbackToLocal("not_signed_in"))
         assertTrue(WearLocalShift.shouldFallbackToLocal("timeout"))
         assertTrue(WearLocalShift.shouldFallbackToLocal("sync_disabled"))
-        assertTrue(WearLocalShift.shouldFallbackToLocal("app_locked"))
         assertFalse(WearLocalShift.shouldFallbackToLocal("active_shift_newer"))
         assertFalse(WearLocalShift.shouldFallbackToLocal("clock_in_failed"))
         assertFalse(WearLocalShift.shouldFallbackToLocal("no_active_shift"))
+    }
+
+    @Test
+    fun shouldFallbackToLocal_doesNotBypassThePhoneAppLock() {
+        assertFalse(WearLocalShift.shouldFallbackToLocal("app_locked"))
     }
 
     @Test
