@@ -4,7 +4,7 @@ import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.TodayMinutes
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.time.WorkTimezone
-import java.time.Instant
+import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -12,11 +12,16 @@ import java.util.Locale
 
 object WidgetStateMapper {
 
-    fun map(context: WidgetContext, locale: Locale = Locale.getDefault()): WidgetShiftState {
+    fun map(
+        context: WidgetContext,
+        locale: Locale = Locale.getDefault(),
+        clock: Clock = Clock.systemDefaultZone(),
+    ): WidgetShiftState {
         val dateFormatter = DateTimeFormatter.ofPattern("EEE d MMM", locale)
         val zone = context.settings?.let { WorkTimezone.zoneFor(it) } ?: ZoneId.systemDefault()
-        val today = LocalDate.now(zone)
-        val now = Instant.now().atZone(zone)
+        val nowInstant = clock.instant()
+        val today = nowInstant.atZone(zone).toLocalDate()
+        val now = nowInstant.atZone(zone)
         val dateLabel = now.format(dateFormatter)
         val dailyGoal = context.settings?.dailyOvertimeThresholdMinutes
             ?: WidgetShiftState.DEFAULT_DAILY_GOAL_MINUTES
@@ -34,6 +39,7 @@ object WidgetStateMapper {
                 pendingCount = context.pendingCount,
                 shiftStartEpochMillis = shift.startTime.toEpochMilli(),
                 todayMinutes = todayMinutes,
+                todayEpochDay = today.toEpochDay(),
                 dailyGoalMinutes = dailyGoal,
                 isSignedIn = context.isSignedIn,
             )
@@ -50,6 +56,7 @@ object WidgetStateMapper {
                 pendingCount = context.pendingCount,
                 lastPunchEndEpochMillis = lastEnd.toEpochMilli(),
                 todayMinutes = todayMinutes,
+                todayEpochDay = today.toEpochDay(),
                 dailyGoalMinutes = dailyGoal,
                 isSignedIn = context.isSignedIn,
             )
@@ -62,6 +69,7 @@ object WidgetStateMapper {
                 lastPunchLabel = "",
                 pendingCount = context.pendingCount,
                 todayMinutes = todayMinutes,
+                todayEpochDay = today.toEpochDay(),
                 dailyGoalMinutes = dailyGoal,
                 isSignedIn = context.isSignedIn,
             )
