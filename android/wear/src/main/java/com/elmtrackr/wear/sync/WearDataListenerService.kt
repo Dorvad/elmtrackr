@@ -2,6 +2,7 @@ package com.elmtrackr.wear.sync
 
 import com.elmtrackr.wear.ElmTrackrWearApp
 import com.elmtrackr.wear.sync.WearMessages.REFRESH
+import com.elmtrackr.wear.wearBackgroundExceptionHandler
 import com.google.android.gms.wearable.CapabilityInfo
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.MessageEvent
@@ -14,7 +15,9 @@ import kotlinx.coroutines.launch
 
 class WearDataListenerService : WearableListenerService() {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + wearBackgroundExceptionHandler(TAG),
+    )
 
     private val repository: WearStateRepository?
         get() = ElmTrackrWearApp.from(this)?.wearStateRepository
@@ -61,5 +64,9 @@ class WearDataListenerService : WearableListenerService() {
                 app.wearActionClient.syncPendingWithPhone()
             }
         }
+    }
+
+    private companion object {
+        const val TAG = "WearDataListener"
     }
 }

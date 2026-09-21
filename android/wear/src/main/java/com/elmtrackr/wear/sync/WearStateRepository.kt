@@ -15,6 +15,7 @@ import com.elmtrackr.wear.sync.WearPaths.PAYLOAD_KEY
 import com.elmtrackr.wear.sync.WearPaths.SHIFT_STATE
 import com.elmtrackr.wear.tile.ElmTrackrTileService
 import com.elmtrackr.wear.tile.WearTileRefreshWorker
+import com.elmtrackr.wear.wearBackgroundExceptionHandler
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
@@ -55,7 +56,9 @@ class WearStateRepository(
 ) {
     // Repository is application-lifetime; used for applying data-layer events
     // after their buffer has been released.
-    private val applyScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val applyScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + wearBackgroundExceptionHandler(TAG),
+    )
 
     private val cacheKey = stringPreferencesKey("snapshot_json")
     private val punchLogKey = stringPreferencesKey("punch_log_json")

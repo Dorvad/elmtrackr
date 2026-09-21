@@ -75,7 +75,10 @@ object WearCrashReporting {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .edit()
                 .putBoolean(KEY_ENABLED, enabled)
-                .apply()
+                // commit, not apply: the next launch (and the next line of the
+                // caller) has to read this answer. apply() is async and a crash
+                // between here and the flush would forget an opt-out.
+                .commit()
         }.onFailure { Log.w(TAG, "Could not persist the crash reporting choice", it) }
         if (!isAvailable()) return
         if (enabled) start(context.applicationContext) else stop()
