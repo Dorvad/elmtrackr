@@ -101,6 +101,26 @@ object WearLocalShift {
     }
 
     /**
+     * A live punch that timed out may still have landed on the phone; trust that
+     * only when the phone snapshot contains evidence for this specific punch.
+     * Coarse active/inactive state is not enough, because a stale snapshot can
+     * already match the requested action and would turn a lost punch into a
+     * false success.
+     */
+    fun livePunchSettledByPhone(
+        isPunchIn: Boolean,
+        punchEpochMillis: Long,
+        phone: WearShiftSnapshot?,
+    ): Boolean {
+        if (phone == null || !phone.signedIn) return false
+        return if (isPunchIn) {
+            phone.isActive && phone.shiftStartEpochMillis >= punchEpochMillis
+        } else {
+            !phone.isActive && phone.lastPunchEndEpochMillis >= punchEpochMillis
+        }
+    }
+
+    /**
      * Reset cached "today" when the calendar day has moved, and credit only
      * the part of an in-progress shift that sits on the current local day.
      * Zero [WearShiftSnapshot.todayEpochDay] means an older producer that did
@@ -152,7 +172,9 @@ object WearLocalShift {
      * while unpaired. A signed-in snapshot may replace local state only after
      * offline punches have been replayed onto the phone — otherwise the phone
      * would paint "clocked out" over a running wrist shift that has not been
-     * sent yet.
+     * sent yet. Once there is no replay waiting, however, a newer signed-out
+     * snapshot is an explicit clear from the phone (sign-out or Wear sync off)
+     * and must blank the watch even if it was showing earlier shift data.
      */
     fun shouldApplyPhoneSnapshot(
         local: WearShiftSnapshot,
@@ -161,13 +183,19 @@ object WearLocalShift {
     ): Boolean {
         if (hasPendingReplay) return false
         if (phone.signedIn) return true
-        return !hasLocalWork(local)
+        if (!hasLocalWork(local)) return true
+        return phone.updatedAtEpochMillis > latestWorkEpochMillis(local)
     }
 
     fun hasLocalWork(snapshot: WearShiftSnapshot): Boolean =
         snapshot.isActive ||
             snapshot.todayMinutes > 0 ||
             snapshot.lastPunchEndEpochMillis > 0L
+
+    private fun latestWorkEpochMillis(snapshot: WearShiftSnapshot): Long =
+        maxOf(snapshot.shiftStartEpochMillis, snapshot.lastPunchEndEpochMillis)
+            .takeIf { it > 0L }
+            ?: snapshot.updatedAtEpochMillis
 
     fun mergeConsent(local: WearShiftSnapshot, phone: WearShiftSnapshot): WearShiftSnapshot =
         local.copy(crashReportingEnabled = phone.crashReportingEnabled)
