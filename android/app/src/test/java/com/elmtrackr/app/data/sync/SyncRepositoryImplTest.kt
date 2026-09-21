@@ -321,6 +321,46 @@ class SyncRepositoryImplTest {
     }
 
     @Test
+    fun `push sends local clock out after linking to existing remote start time`() = runTest {
+        // Must equal isoToEpoch("2024-06-01T08:00:00Z") for the start-time match to apply.
+        val startEpoch = 1_717_228_800_000L
+        val endEpoch = 1_717_257_600_000L
+        val dao = InMemoryShiftDao()
+        val remote = FakeRemoteShiftDataSource(
+            initial = listOf(
+                RemoteShiftRow(
+                    id = "remote-existing",
+                    userId = "user-1",
+                    startTime = "2024-06-01T08:00:00Z",
+                    endTime = null,
+                    breakMinutes = 0,
+                    createdAt = "2024-06-01T08:00:00Z",
+                    updatedAt = "2024-06-01T08:00:00Z",
+                ),
+            ),
+        )
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        dao.insertShift(
+            shiftEntity(
+                localId = "local-1",
+                syncStatus = SyncStatus.PENDING_CREATE,
+                startTime = startEpoch,
+                endTime = endEpoch,
+            ),
+        )
+
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        assertEquals(0, remote.inserts.size)
+        assertEquals("2024-06-01T16:00:00Z", remote.rowsNow().single().endTime)
+        val synced = dao.getShiftById("local-1")!!
+        assertEquals("remote-existing", synced.remoteId)
+        assertEquals(SyncStatus.SYNCED, synced.syncStatus)
+    }
+
+    @Test
     fun `syncAll still pulls shifts when tasks table is missing`() = runTest {
         val dao = InMemoryShiftDao()
         val remote = FakeRemoteShiftDataSource(

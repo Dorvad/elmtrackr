@@ -879,7 +879,10 @@ class SyncRepositoryImpl @Inject constructor(
         val startTimeIso = epochToIso(shift.startTime)
         val existingRemote = shiftsRemote.findByUserAndStartTime(shift.userId, startTimeIso)
         if (existingRemote != null) {
-            markShiftSynced(shift, existingRemote.id, syncedAt)
+            // A matching start time may be the clock-in half of this same local row.
+            // Attach the id, then push local clock-out/break/note edits instead of
+            // declaring them synced against the older remote copy.
+            pushShiftUpdate(shift.copy(remoteId = existingRemote.id), syncedAt)
             return
         }
 
@@ -897,7 +900,7 @@ class SyncRepositoryImpl @Inject constructor(
             if (RemoteSyncErrors.isUniqueViolation(error)) {
                 val linked = shiftsRemote.findByUserAndStartTime(shift.userId, startTimeIso)
                     ?: throw error
-                markShiftSynced(shift, linked.id, syncedAt)
+                pushShiftUpdate(shift.copy(remoteId = linked.id), syncedAt)
             } else {
                 throw error
             }
