@@ -160,6 +160,9 @@ object WearLocalShift {
     fun mergeConsent(local: WearShiftSnapshot, phone: WearShiftSnapshot): WearShiftSnapshot =
         local.copy(crashReportingEnabled = phone.crashReportingEnabled)
 
+    fun shouldKeepBackgroundRefreshRunning(snapshot: WearShiftSnapshot, hasPendingReplay: Boolean): Boolean =
+        snapshot.isActive || hasPendingReplay
+
     fun shouldFallbackToLocal(errorCode: String?): Boolean = when (errorCode) {
         null,
         "phone_unreachable",

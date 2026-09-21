@@ -154,4 +154,14 @@ class WearLocalShiftTest {
         assertTrue(merged.isActive)
         assertFalse(merged.crashReportingEnabled)
     }
+
+    @Test
+    fun shouldKeepBackgroundRefreshRunning_whenActiveOrReplayIsPending() {
+        val idle = WearShiftSnapshot.signedOut()
+        val active = WearLocalShift.punchIn(idle, 1_000L)
+
+        assertFalse(WearLocalShift.shouldKeepBackgroundRefreshRunning(idle, hasPendingReplay = false))
+        assertTrue(WearLocalShift.shouldKeepBackgroundRefreshRunning(active, hasPendingReplay = false))
+        assertTrue(WearLocalShift.shouldKeepBackgroundRefreshRunning(idle, hasPendingReplay = true))
+    }
 }

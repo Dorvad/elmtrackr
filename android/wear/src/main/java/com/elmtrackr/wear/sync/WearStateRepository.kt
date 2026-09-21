@@ -186,8 +186,12 @@ class WearStateRepository(
         // host, the watch-face complication registry, and WorkManager — and
         // this method runs on the startup path. One missing surface must
         // degrade that surface, not take the app down with it.
+        val keepRefreshWorkerRunning = WearLocalShift.shouldKeepBackgroundRefreshRunning(
+            rolled,
+            hasPendingReplay = pendingEvents().isNotEmpty(),
+        )
         runCatchingCancellable {
-            if (rolled.isActive) {
+            if (keepRefreshWorkerRunning) {
                 WearTileRefreshWorker.schedule(context)
             } else {
                 WearTileRefreshWorker.cancel(context)
