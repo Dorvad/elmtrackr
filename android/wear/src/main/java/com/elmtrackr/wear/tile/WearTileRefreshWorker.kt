@@ -53,17 +53,21 @@ class WearTileRefreshWorker(
         // A PeriodicWorkRequest can't do this — WorkManager silently clamps
         // periods below 15 minutes, freezing the tile count-up between runs.
         fun schedule(context: Context) {
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                WORK_NAME,
-                ExistingWorkPolicy.REPLACE,
-                OneTimeWorkRequestBuilder<WearTileRefreshWorker>()
-                    .setInitialDelay(60, TimeUnit.SECONDS)
-                    .build(),
-            )
+            runCatchingCancellable {
+                WorkManager.getInstance(context).enqueueUniqueWork(
+                    WORK_NAME,
+                    ExistingWorkPolicy.REPLACE,
+                    OneTimeWorkRequestBuilder<WearTileRefreshWorker>()
+                        .setInitialDelay(60, TimeUnit.SECONDS)
+                        .build(),
+                )
+            }
         }
 
         fun cancel(context: Context) {
-            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            runCatchingCancellable {
+                WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            }
         }
     }
 }

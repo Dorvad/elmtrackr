@@ -19,6 +19,7 @@ import com.elmtrackr.wear.R
 import com.elmtrackr.wear.sync.WearAuroraColors
 import com.elmtrackr.wear.sync.WearDisplayMath
 import com.elmtrackr.wear.sync.WearShiftSnapshot
+import com.elmtrackr.wear.wearBackgroundExceptionHandler
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,14 +34,19 @@ import kotlinx.coroutines.launch
  */
 class ElmTrackrTileService : TileService() {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + wearBackgroundExceptionHandler(TAG),
+    )
 
     override fun onTileRequest(requestParams: RequestBuilders.TileRequest): ListenableFuture<TileBuilders.Tile> =
         CallbackToFutureAdapter.getFuture { completer ->
             scope.launch {
                 val tile = runCatching { buildTile() }.getOrElse { error ->
                     Log.e(TAG, "Tile request failed; rendering the idle face instead", error)
-                    fallbackTile()
+                    runCatching { fallbackTile() }.getOrElse { fallbackError ->
+                        Log.e(TAG, "Idle fallback also failed; returning an empty tile", fallbackError)
+                        emptyTile()
+                    }
                 }
                 completer.set(tile)
             }
@@ -51,13 +57,17 @@ class ElmTrackrTileService : TileService() {
         requestParams: RequestBuilders.ResourcesRequest,
     ): ListenableFuture<ResourceBuilders.Resources> =
         CallbackToFutureAdapter.getFuture { completer ->
-            completer.set(
+            val resources = runCatching {
                 ResourceBuilders.Resources.Builder()
                     .setVersion(RESOURCES_VERSION)
                     .addIdToImageMapping(ID_BACKGROUND, drawableResource(R.drawable.tile_bg_gradient))
                     .addIdToImageMapping(ID_BOLT_BUTTON, drawableResource(R.drawable.tile_bolt_button))
-                    .build(),
-            )
+                    .build()
+            }.getOrElse { error ->
+                Log.e(TAG, "Tile resources request failed; returning an empty version", error)
+                ResourceBuilders.Resources.Builder().setVersion(RESOURCES_VERSION).build()
+            }
+            completer.set(resources)
             "ElmTrackrTileResources"
         }
 
@@ -111,6 +121,31 @@ class ElmTrackrTileService : TileService() {
                             .setLayout(
                                 LayoutElementBuilders.Layout.Builder()
                                     .setRoot(idleFace(WearShiftSnapshot.signedOut()))
+                                    .build(),
+                            )
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build()
+
+    /** Last-resort tile: no strings, no images, so it cannot throw on a missing resource. */
+    private fun emptyTile(): TileBuilders.Tile =
+        TileBuilders.Tile.Builder()
+            .setResourcesVersion(RESOURCES_VERSION)
+            .setFreshnessIntervalMillis(3_600_000L)
+            .setTimeline(
+                TimelineBuilders.Timeline.Builder()
+                    .addTimelineEntry(
+                        TimelineBuilders.TimelineEntry.Builder()
+                            .setLayout(
+                                LayoutElementBuilders.Layout.Builder()
+                                    .setRoot(
+                                        LayoutElementBuilders.Box.Builder()
+                                            .setWidth(DimensionBuilders.expand())
+                                            .setHeight(DimensionBuilders.expand())
+                                            .build(),
+                                    )
                                     .build(),
                             )
                             .build(),

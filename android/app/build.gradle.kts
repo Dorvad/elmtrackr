@@ -32,19 +32,15 @@ android {
         applicationId = "com.elmlaunch.myapp"
         minSdk = 26
         targetSdk = 36
-        // 53, and the number matters more than it looks.
+        // 56, and the number matters more than it looks.
         //
-        // Production is live on phone 51 while this file said 43, because the code
-        // was bumped by hand at build time and never committed. That drift is how a
-        // watch artifact Play rejected (10041) stayed on the listing for two months
-        // while its replacement sat in git: releases went out phone-only, from a
-        // tree whose numbers described a different build.
-        //
-        // 52 / 10052 is the artifact Play rejected in September 2026 for a Wear
-        // crash. 53 is the next code above that, and the module invariant is
-        // wear == 10000 + this number, so the watch ships as 10053.
-        versionCode = 53
-        versionName = "1.3.2"
+        // Production uploads have been bumped by hand and not committed before:
+        // this file said 53 while Play rejected wear 10055. The module invariant
+        // is wear == 10000 + this number. 10055 is burned by the 17 Sep 2026
+        // rejection ("crashed when testing" + listing missing tile/complication),
+        // so both artifacts skip to 56 / 10056.
+        versionCode = 56
+        versionName = "1.3.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")
