@@ -11,6 +11,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.wear.tiles.TileService
 import com.elmtrackr.wear.runCatchingCancellable
+import com.elmtrackr.wear.sync.WearPaths.CRASH_REPORTING_CONSENT
+import com.elmtrackr.wear.sync.WearPaths.ENABLED_KEY
 import com.elmtrackr.wear.sync.WearPaths.PAYLOAD_KEY
 import com.elmtrackr.wear.sync.WearPaths.SHIFT_STATE
 import com.elmtrackr.wear.tile.ElmTrackrTileService
@@ -142,12 +144,29 @@ class WearStateRepository(
             parseDataItem(item)
         }
 
+    fun takeChangedCrashReportingConsents(events: DataEventBuffer): List<Boolean> =
+        events.mapNotNull { event ->
+            if (event.type != DataEvent.TYPE_CHANGED) return@mapNotNull null
+            val item = event.dataItem
+            if (!item.uri.path.orEmpty().startsWith(CRASH_REPORTING_CONSENT)) return@mapNotNull null
+            val dataMap = DataMapItem.fromDataItem(item).dataMap
+            if (!dataMap.containsKey(ENABLED_KEY)) return@mapNotNull null
+            dataMap.getBoolean(ENABLED_KEY)
+        }
+
     suspend fun applyIncomingPhoneSnapshot(incoming: WearShiftSnapshot) {
         val pending = pendingEvents().isNotEmpty()
         if (WearLocalShift.shouldApplyPhoneSnapshot(_snapshot.value, incoming, pending)) {
             applySnapshot(incoming)
         } else {
             applySnapshot(WearLocalShift.mergeConsent(_snapshot.value, incoming))
+        }
+    }
+
+    suspend fun applyCrashReportingConsent(enabled: Boolean) {
+        val current = _snapshot.value
+        if (current.crashReportingEnabled != enabled) {
+            applySnapshot(current.copy(crashReportingEnabled = enabled))
         }
     }
 

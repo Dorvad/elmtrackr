@@ -54,6 +54,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
@@ -80,6 +81,8 @@ import com.elmtrackr.app.ui.theme.auroraSemantics
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Spacing
+import com.elmtrackr.app.wear.WearSyncPublisher
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun SettingsHub(
@@ -787,6 +790,7 @@ internal fun HelpDetailScreen(
     onSyncNow: () -> Unit,
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
@@ -815,6 +819,9 @@ internal fun HelpDetailScreen(
                         onCheckedChange = { enabled ->
                             crashReportsEnabled = enabled
                             CrashReporting.setEnabledByUser(context, enabled)
+                            coroutineScope.launch {
+                                WearSyncPublisher.publishCrashReportingConsent(context)
+                            }
                         },
                     )
                 }

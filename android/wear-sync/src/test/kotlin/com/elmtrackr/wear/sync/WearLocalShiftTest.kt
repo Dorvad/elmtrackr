@@ -139,7 +139,7 @@ class WearLocalShiftTest {
         assertTrue(WearLocalShift.shouldFallbackToLocal("phone_unreachable"))
         assertTrue(WearLocalShift.shouldFallbackToLocal("not_signed_in"))
         assertTrue(WearLocalShift.shouldFallbackToLocal("timeout"))
-        assertTrue(WearLocalShift.shouldFallbackToLocal("sync_disabled"))
+        assertFalse(WearLocalShift.shouldFallbackToLocal("sync_disabled"))
         assertTrue(WearLocalShift.shouldFallbackToLocal("app_locked"))
         assertFalse(WearLocalShift.shouldFallbackToLocal("clock_in_failed"))
         assertFalse(WearLocalShift.shouldFallbackToLocal("no_active_shift"))

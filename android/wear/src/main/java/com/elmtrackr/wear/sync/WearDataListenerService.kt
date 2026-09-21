@@ -22,8 +22,10 @@ class WearDataListenerService : WearableListenerService() {
     override fun onDataChanged(dataEvents: DataEventBuffer) {
         val target = repository ?: return
         val snapshots = target.takeChangedSnapshots(dataEvents)
+        val crashReportingConsents = target.takeChangedCrashReportingConsents(dataEvents)
         val app = ElmTrackrWearApp.from(this) ?: return
         scope.launch {
+            crashReportingConsents.forEach { target.applyCrashReportingConsent(it) }
             snapshots.forEach { target.applyIncomingPhoneSnapshot(it) }
             // Tile-only punches queue events without opening the launcher.
             // Drain after applying so a stale signed-out snapshot cannot
