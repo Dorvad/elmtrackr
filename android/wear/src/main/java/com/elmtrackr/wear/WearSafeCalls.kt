@@ -1,6 +1,9 @@
 package com.elmtrackr.wear
 
+import android.util.Log
+import com.elmtrackr.wear.monitoring.WearCrashReporting
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 
 /**
  * [runCatching], minus the part that breaks structured concurrency.
@@ -22,3 +25,16 @@ internal inline fun <T> runCatchingCancellable(block: () -> T): Result<T> =
     } catch (throwable: Throwable) {
         Result.failure(throwable)
     }
+
+/**
+ * SupervisorJob does not stop an unhandled child from reaching the thread's
+ * default handler, which on Android kills the process. The tile host and the
+ * data-layer listener both start work the system triggers — a reviewer adding
+ * the tile is enough — so those scopes have to swallow and report rather than
+ * take the app down.
+ */
+internal fun wearBackgroundExceptionHandler(tag: String) = CoroutineExceptionHandler { _, throwable ->
+    if (throwable is CancellationException) return@CoroutineExceptionHandler
+    Log.e(tag, "Unhandled failure on a watch background scope", throwable)
+    WearCrashReporting.report(throwable)
+}
