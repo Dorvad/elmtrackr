@@ -10,6 +10,7 @@ import androidx.work.WorkerParameters
 import com.elmtrackr.wear.ElmTrackrWearApp
 import com.elmtrackr.wear.runCatchingCancellable
 import com.elmtrackr.wear.sync.ElmTrackrComplicationBridge
+import com.elmtrackr.wear.sync.WearLocalShift
 import java.util.concurrent.TimeUnit
 
 class WearTileRefreshWorker(
@@ -32,10 +33,14 @@ class WearTileRefreshWorker(
             TileService.getUpdater(applicationContext).requestUpdate(ElmTrackrTileService::class.java)
         }
         // Re-arming is the one step that must not be skipped: drop it and the
-        // count-up stops for the rest of the shift. It stays outside the
-        // guarded blocks above so a watch with no tile host still keeps
-        // the complication ticking.
-        if (app.wearStateRepository.snapshot.value.isActive) {
+        // count-up stops for the rest of the shift. The same loop also retries
+        // queued wrist punches after a failed drain, even when the local face is
+        // clocked out and no further phone snapshot is expected.
+        val keepRunning = WearLocalShift.shouldKeepBackgroundRefreshRunning(
+            app.wearStateRepository.snapshot.value,
+            hasPendingReplay = app.wearStateRepository.pendingEvents().isNotEmpty(),
+        )
+        if (keepRunning) {
             runCatchingCancellable { schedule(applicationContext) }
         }
         return Result.success()

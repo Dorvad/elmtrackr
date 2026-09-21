@@ -8,6 +8,7 @@ import com.elmtrackr.wear.complication.ElmTrackrComplicationService
 import com.elmtrackr.wear.monitoring.WearCrashReporting
 import com.elmtrackr.wear.sync.WearDataListenerService
 import com.elmtrackr.wear.tile.WearPunchTrampolineActivity
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -300,6 +301,19 @@ class WearLaunchPathTest {
                     .putExtra(WearPunchTrampolineActivity.EXTRA_TOKEN, token),
             ),
         )
+    }
+
+    @Test
+    fun `consent-only data updates the cached snapshot`() = runTest {
+        val repository = app().wearStateRepository
+
+        repository.applyCrashReportingConsent(enabled = false)
+
+        assertFalse(repository.snapshot.value.crashReportingEnabled)
+
+        repository.applyCrashReportingConsent(enabled = true)
+
+        assertTrue(repository.snapshot.value.crashReportingEnabled)
     }
 
     @Test

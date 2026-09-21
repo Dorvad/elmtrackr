@@ -207,13 +207,15 @@ object WearLocalShift {
     fun mergeConsent(local: WearShiftSnapshot, phone: WearShiftSnapshot): WearShiftSnapshot =
         local.copy(crashReportingEnabled = phone.crashReportingEnabled)
 
+    fun shouldKeepBackgroundRefreshRunning(snapshot: WearShiftSnapshot, hasPendingReplay: Boolean): Boolean =
+        snapshot.isActive || hasPendingReplay
+
     fun shouldFallbackToLocal(errorCode: String?): Boolean = when (errorCode) {
         null,
         "phone_unreachable",
         "not_signed_in",
         "timeout",
         "unknown_sender",
-        "sync_disabled",
         -> true
         else -> false
     }

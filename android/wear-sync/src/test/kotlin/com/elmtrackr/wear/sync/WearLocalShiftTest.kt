@@ -234,7 +234,7 @@ class WearLocalShiftTest {
         assertTrue(WearLocalShift.shouldFallbackToLocal("phone_unreachable"))
         assertTrue(WearLocalShift.shouldFallbackToLocal("not_signed_in"))
         assertTrue(WearLocalShift.shouldFallbackToLocal("timeout"))
-        assertTrue(WearLocalShift.shouldFallbackToLocal("sync_disabled"))
+        assertFalse(WearLocalShift.shouldFallbackToLocal("sync_disabled"))
         assertFalse(WearLocalShift.shouldFallbackToLocal("active_shift_newer"))
         assertFalse(WearLocalShift.shouldFallbackToLocal("clock_in_failed"))
         assertFalse(WearLocalShift.shouldFallbackToLocal("no_active_shift"))
@@ -253,5 +253,15 @@ class WearLocalShiftTest {
         val merged = WearLocalShift.mergeConsent(local, phone)
         assertTrue(merged.isActive)
         assertFalse(merged.crashReportingEnabled)
+    }
+
+    @Test
+    fun shouldKeepBackgroundRefreshRunning_whenActiveOrReplayIsPending() {
+        val idle = WearShiftSnapshot.signedOut()
+        val active = WearLocalShift.punchIn(idle, 1_000L)
+
+        assertFalse(WearLocalShift.shouldKeepBackgroundRefreshRunning(idle, hasPendingReplay = false))
+        assertTrue(WearLocalShift.shouldKeepBackgroundRefreshRunning(active, hasPendingReplay = false))
+        assertTrue(WearLocalShift.shouldKeepBackgroundRefreshRunning(idle, hasPendingReplay = true))
     }
 }

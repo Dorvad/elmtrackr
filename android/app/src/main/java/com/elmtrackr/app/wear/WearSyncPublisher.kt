@@ -45,6 +45,20 @@ object WearSyncPublisher {
         publishSnapshotIgnoringPreference(context, WearShiftSnapshot.signedOut())
     }
 
+    /** Pushes only crash-reporting consent, even when shift mirroring is disabled. */
+    suspend fun publishCrashReportingConsent(context: Context) {
+        runCatching {
+            val appContext = context.applicationContext
+            val dataClient = Wearable.getDataClient(appContext)
+            val putRequest = PutDataMapRequest.create(WearPaths.CRASH_REPORTING_CONSENT).apply {
+                dataMap.putBoolean(WearPaths.ENABLED_KEY, CrashReporting.isEnabledByUser(context))
+                dataMap.putLong("updatedAt", System.currentTimeMillis())
+            }.asPutDataRequest().setUrgent()
+            dataClient.putDataItem(putRequest).await()
+            nudgeConnectedNodes(context)
+        }
+    }
+
     private suspend fun publishSnapshotIgnoringPreference(
         context: Context,
         snapshot: WearShiftSnapshot,
