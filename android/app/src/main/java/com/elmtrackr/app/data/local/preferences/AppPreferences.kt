@@ -342,6 +342,22 @@ class AppPreferencesRepository(private val context: Context) :
 
     override suspend fun currentPreferences(): AppPreferenceValues = preferences.first()
 
+    override suspend fun grandfatheringSeedSnapshot(): AppPreferenceValues? = try {
+        val prefs = context.entitlementsDataStore.data.first()
+        AppPreferenceValues(
+            installedClockFacePacks =
+                prefs[AppPreferenceKeys.INSTALLED_CLOCK_FACE_PACKS] ?: emptySet(),
+            ownedProductIds = prefs[AppPreferenceKeys.OWNED_PRODUCT_IDS] ?: emptySet(),
+            grandfatheredClockFacePacks =
+                prefs[AppPreferenceKeys.GRANDFATHERED_CLOCK_FACE_PACKS] ?: emptySet(),
+            clockFacePacksGrandfathered =
+                prefs[AppPreferenceKeys.CLOCK_FACE_PACKS_GRANDFATHERED] ?: false,
+        )
+    } catch (e: IOException) {
+        CrashReporting.report(e)
+        null
+    }
+
     suspend fun setLegacyDataAdopted(adopted: Boolean) {
         context.appPreferencesDataStore.edit { it[AppPreferenceKeys.LEGACY_DATA_ADOPTED] = adopted }
     }

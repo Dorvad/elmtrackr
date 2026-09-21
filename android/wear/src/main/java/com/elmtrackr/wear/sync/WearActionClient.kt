@@ -55,7 +55,7 @@ class WearActionClient(
         try {
             val now = System.currentTimeMillis()
             val path = if (isPunchIn) PUNCH_IN else PUNCH_OUT
-            val phoneResult = sendPunchToPhone(path, now)
+            val phoneResult = sendPunchToPhone(path, now, wearStateRepository.snapshot.value.userId)
             if (phoneResult.success) {
                 wearStateRepository.refreshFromDataLayer()
                 return phoneResult
@@ -91,12 +91,20 @@ class WearActionClient(
             if (events.isEmpty()) return@withLock false
             for (event in events) {
                 val phoneBeforeReplay = wearStateRepository.readNewestPhoneSnapshot()
+                if (event.userId.isBlank() || phoneBeforeReplay?.userId?.let { it != event.userId } == true) {
+                    wearStateRepository.removeEvent(event.id)
+                    continue
+                }
                 if (WearLocalShift.shouldDeferReplay(event, phoneBeforeReplay)) {
                     return@withLock false
                 }
                 val path = if (event.isPunchIn) PUNCH_IN else PUNCH_OUT
-                val result = sendPunchToPhone(path, event.epochMillis)
+                val result = sendPunchToPhone(path, event.epochMillis, event.userId)
                 val phone = wearStateRepository.readNewestPhoneSnapshot()
+                if (result.errorCode == "user_mismatch") {
+                    wearStateRepository.removeEvent(event.id)
+                    continue
+                }
                 if (!WearLocalShift.replayEventSettled(event, result, phone)) {
                     return@withLock false
                 }
@@ -109,7 +117,11 @@ class WearActionClient(
         }
     }
 
-    private suspend fun sendPunchToPhone(path: String, epochMillis: Long): PunchResult {
+    private suspend fun sendPunchToPhone(
+        path: String,
+        epochMillis: Long,
+        userId: String = "",
+    ): PunchResult {
         return try {
             val phone = findPhoneNode()
                 ?: return PunchResult(success = false, errorCode = "phone_unreachable")
@@ -119,7 +131,7 @@ class WearActionClient(
             messageClient.addListener(this).await()
             try {
                 pendingResult = null
-                val payload = WearSnapshotCodec.encodePunchCommand(WearPunchCommand(epochMillis))
+                val payload = WearSnapshotCodec.encodePunchCommand(WearPunchCommand(epochMillis, userId))
                 messageClient.sendMessage(phone.id, path, payload).await()
                 waitForPunchResult()
             } finally {

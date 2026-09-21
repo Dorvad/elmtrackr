@@ -69,7 +69,7 @@ class LocalShiftsRepository @Inject constructor(
         projectNameSnapshot: String?,
         startTimeMillis: Long?,
     ): Shift = clockInMutex.withLock {
-        shiftDao.getActiveShifts(userId).maxByOrNull { it.startTime }?.let { activeShift ->
+        shiftDao.getActiveShifts(userId).minByOrNull { it.startTime }?.let { activeShift ->
             return activeShift.toDomain()
         }
 

@@ -12,6 +12,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class WearPunchCommand(
     val epochMillis: Long = 0L,
+    val userId: String = "",
 )
 
 @Serializable
@@ -19,6 +20,7 @@ data class WearPunchEvent(
     val id: String,
     val isPunchIn: Boolean,
     val epochMillis: Long,
+    val userId: String = "",
 )
 
 @Serializable

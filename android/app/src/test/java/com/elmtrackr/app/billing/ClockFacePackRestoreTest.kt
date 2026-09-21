@@ -58,7 +58,6 @@ class ClockFacePackRestoreTest {
         facePreferences: FakeClockFacePreferences,
     ) = ClockFacePackBillingCoordinator(
         grandfathering = ClockFacePackGrandfathering(
-            clockFacePreferences = facePreferences,
             purchasePreferences = FakePurchasePreferences(),
         ),
         store = store,

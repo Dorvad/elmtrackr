@@ -2,6 +2,7 @@ package com.elmtrackr.wear.sync
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -35,7 +36,7 @@ class WearSnapshotCodecTest {
 
     @Test
     fun punchCommand_roundTripAndEmptyPayload() {
-        val command = WearPunchCommand(epochMillis = 1_700_000_000_000L)
+        val command = WearPunchCommand(epochMillis = 1_700_000_000_000L, userId = "user-1")
         val decoded = WearSnapshotCodec.decodePunchCommand(WearSnapshotCodec.encodePunchCommand(command))
         assertEquals(command, decoded)
         assertEquals(null, WearSnapshotCodec.decodePunchCommand(ByteArray(0)))
@@ -51,5 +52,10 @@ class WearSnapshotCodecTest {
         )
         val decoded = WearSnapshotCodec.decodePunchLog(WearSnapshotCodec.encodePunchLog(log))
         assertEquals(log, decoded)
+    }
+
+    @Test
+    fun corruptPunchLog_returnsNullInsteadOfEmptyQueue() {
+        assertNull(WearSnapshotCodec.decodePunchLog("{not-json"))
     }
 }

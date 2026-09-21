@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class WearShiftSnapshot(
     val signedIn: Boolean = false,
+    val userId: String = "",
     val isActive: Boolean = false,
     val shiftId: String = "",
     val shiftStartEpochMillis: Long = 0L,

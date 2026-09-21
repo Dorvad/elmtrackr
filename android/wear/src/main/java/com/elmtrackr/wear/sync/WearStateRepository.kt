@@ -45,6 +45,13 @@ private val Context.wearStateDataStore: DataStore<Preferences> by preferencesDat
     corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
 )
 
+// Kept separate from the display snapshot cache: the snapshot may be safely
+// reset on corruption, but an unreplayed punch log is user work that must never
+// be converted to "no pending work" by that cache's recovery handler.
+private val Context.wearPunchLogDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "wear_punch_log",
+)
+
 /** Transient full-screen punch feedback: a success checkmark or a failure cross. */
 data class WearConfirmation(
     val message: String,
@@ -224,13 +231,15 @@ class WearStateRepository(
     suspend fun applyLocalPunch(isPunchIn: Boolean, nowMillis: Long = System.currentTimeMillis()): PunchResult {
         if (isPunchIn && _snapshot.value.isActive) return PunchResult(success = true)
         if (!isPunchIn && !_snapshot.value.isActive) return PunchResult(success = true)
-        appendEvent(
+        val queued = appendEvent(
             WearPunchEvent(
                 id = UUID.randomUUID().toString(),
                 isPunchIn = isPunchIn,
                 epochMillis = nowMillis,
+                userId = _snapshot.value.userId,
             ),
         )
+        if (!queued) return PunchResult(success = false, errorCode = "local_queue_failed")
         val next = if (isPunchIn) {
             WearLocalShift.punchIn(_snapshot.value, nowMillis)
         } else {
@@ -241,36 +250,48 @@ class WearStateRepository(
     }
 
     suspend fun pendingEvents(): List<WearPunchEvent> =
-        punchLogMutex.withLock { loadPunchLogLocked().events }
+        punchLogMutex.withLock { loadPunchLogLocked()?.events.orEmpty() }
 
     suspend fun removeEvent(eventId: String) {
         punchLogMutex.withLock {
-            val remaining = loadPunchLogLocked().events.filterNot { it.id == eventId }
+            val current = loadPunchLogLocked() ?: return@withLock
+            val remaining = current.events.filterNot { it.id == eventId }
             persistPunchLogLocked(WearPunchEventLog(remaining))
         }
     }
 
-    private suspend fun appendEvent(event: WearPunchEvent) {
+    private suspend fun appendEvent(event: WearPunchEvent): Boolean =
         punchLogMutex.withLock {
-            val current = loadPunchLogLocked()
+            val current = loadPunchLogLocked() ?: return@withLock false
             persistPunchLogLocked(WearPunchEventLog(current.events + event))
         }
-    }
 
-    private suspend fun loadPunchLogLocked(): WearPunchEventLog {
+    private suspend fun loadPunchLogLocked(): WearPunchEventLog? {
         val json = runCatchingCancellable {
-            context.wearStateDataStore.data.first()[punchLogKey]
-        }.getOrNull()
-        return json?.let(WearSnapshotCodec::decodePunchLog) ?: WearPunchEventLog()
+            context.wearPunchLogDataStore.data.first()[punchLogKey]
+        }.onFailure { Log.w(TAG, "Could not read the watch punch log", it) }
+            .getOrNull()
+            ?: runCatchingCancellable {
+                // Legacy location from before the queue was split away from the
+                // lossy snapshot cache. Read only when the new queue is empty.
+                context.wearStateDataStore.data.first()[punchLogKey]
+            }.onFailure { Log.w(TAG, "Could not read the legacy watch punch log", it) }
+                .getOrNull()
+        if (json == null) return WearPunchEventLog()
+        return WearSnapshotCodec.decodePunchLog(json)
+            ?: run {
+                Log.w(TAG, "Could not decode the watch punch log")
+                null
+            }
     }
 
-    private suspend fun persistPunchLogLocked(log: WearPunchEventLog) {
+    private suspend fun persistPunchLogLocked(log: WearPunchEventLog): Boolean =
         runCatchingCancellable {
-            context.wearStateDataStore.edit { prefs ->
+            context.wearPunchLogDataStore.edit { prefs ->
                 prefs[punchLogKey] = WearSnapshotCodec.encodePunchLog(log)
             }
         }.onFailure { Log.w(TAG, "Could not persist the watch punch log", it) }
-    }
+            .isSuccess
 
     private fun parseDataItem(item: com.google.android.gms.wearable.DataItem): WearShiftSnapshot? {
         val payload = DataMapItem.fromDataItem(item).dataMap.getString(PAYLOAD_KEY) ?: return null
