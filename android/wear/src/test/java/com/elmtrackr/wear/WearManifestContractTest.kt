@@ -57,6 +57,40 @@ class WearManifestContractTest {
     }
 
     @Test
+    fun workManagerDoesNotAutoInitBeforeApplicationOnCreate() {
+        val providers = manifest.getElementsByTagName("provider")
+        val startup = (0 until providers.length)
+            .map { providers.item(it) as Element }
+            .firstOrNull {
+                it.getAttributeNS(ANDROID_NS, "name") == "androidx.startup.InitializationProvider"
+            }
+        assertNotNull("androidx.startup provider missing — merge/remove of WorkManagerInitializer needs it", startup)
+        val metas = startup!!.getElementsByTagName("meta-data")
+        val workManager = (0 until metas.length)
+            .map { metas.item(it) as Element }
+            .firstOrNull {
+                it.getAttributeNS(ANDROID_NS, "name") == "androidx.work.WorkManagerInitializer"
+            }
+        assertNotNull(workManager)
+        assertEquals(
+            "WorkManager's default initializer is a ContentProvider and runs before " +
+                "Application.onCreate. Leave it in and a JobScheduler failure on a review " +
+                "watch is a launch crash Sentry never sees. Found tools:node=" +
+                workManager!!.getAttributeNS(TOOLS_NS, "node"),
+            "remove",
+            workManager.getAttributeNS(TOOLS_NS, "node"),
+        )
+    }
+
+    @Test
+    fun launcherUsesTheBlackWearTheme() {
+        val application = manifest.getElementsByTagName("application").item(0) as Element
+        val main = activity(".WearMainActivity")
+        assertEquals("@style/Theme.ElmTrackrWear", application.getAttributeNS(ANDROID_NS, "theme"))
+        assertEquals("@style/Theme.ElmTrackrWear", main!!.getAttributeNS(ANDROID_NS, "theme"))
+    }
+
+    @Test
     fun tileTrampolineDoesNotUseThemeNoDisplay() {
         val trampoline = activity(".tile.WearPunchTrampolineActivity")
         assertNotNull(trampoline)
@@ -139,5 +173,6 @@ class WearManifestContractTest {
 
     private companion object {
         const val ANDROID_NS = "http://schemas.android.com/apk/res/android"
+        const val TOOLS_NS = "http://schemas.android.com/tools"
     }
 }
