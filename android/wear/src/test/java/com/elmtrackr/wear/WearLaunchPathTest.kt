@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.ContextWrapper
 import androidx.test.core.app.ApplicationProvider
+import androidx.wear.watchface.complications.data.ComplicationType
+import androidx.wear.watchface.complications.data.NoDataComplicationData
 import com.elmtrackr.wear.complication.ElmTrackrComplicationService
 import com.elmtrackr.wear.monitoring.WearCrashReporting
 import com.elmtrackr.wear.sync.WearDataListenerService
@@ -221,6 +223,24 @@ class WearLaunchPathTest {
         val service = Robolectric.setupService(ElmTrackrComplicationService::class.java)
 
         assertNotNull(service)
+        service.onDestroy()
+    }
+
+    /**
+     * The complication picker asks for preview data on the main thread, with no
+     * framework guard around the call, so a throw there is a crash while a reviewer
+     * is adding the complication to a watch face. Every supported type has to
+     * produce something — real data, or the empty slot the provider falls back to.
+     */
+    @Test
+    fun `the complication preview builds for every supported type`() {
+        val service = Robolectric.setupService(ElmTrackrComplicationService::class.java)
+
+        for (type in listOf(ComplicationType.SHORT_TEXT, ComplicationType.LONG_TEXT, ComplicationType.RANGED_VALUE)) {
+            val data = service.getPreviewData(type)
+            assertNotNull("no preview for $type", data)
+            assertFalse("preview for $type fell back to the empty slot", data is NoDataComplicationData)
+        }
         service.onDestroy()
     }
 
