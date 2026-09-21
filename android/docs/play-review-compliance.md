@@ -1,9 +1,15 @@
 # Play review compliance — Wear OS rejections (Jul 27)
 
+> **17 September 2026:** Play rejected wear **10055** for the listing finding
+> below *and* for "your app crashed when testing". The listing half is still
+> this section. The crash half and the next version codes are
+> [wear-play-rejection-2026-09-10055.md](./wear-play-rejection-2026-09-10055.md).
+> Paste [play-listing-wear-copy.md](./play-listing-wear-copy.md) **before**
+> uploading. §1 and §4 are re-checked on **every** review.
+
 > **A second round of rejections arrived in August 2026** (screenshots inside
 > device frames, and "does not install or launch without crashing"). See
 > [wear-play-resubmission-2026-08.md](./wear-play-resubmission-2026-08.md).
-> §1 and §4 below are re-checked on **every** review, so they still apply.
 
 Four rejections were received under the Wear App Quality Guidelines. Two are
 fixed in code (this repo), two must be resolved in the Play Console. This
@@ -16,29 +22,19 @@ document covers all four so the next submission passes.
 **Rejection:** "Your play listing description doesn't mention tile or
 complication although it's included in your app."
 
-The Wear guidelines require the store listing to describe every Wear surface
-the app ships. ElmTrackr ships a punch tile and a shift complication, so the
-description must say so explicitly.
+This is Wear quality requirement **WO-G2**. ElmTrackr ships a punch tile and a
+shift complication, so the description must say so explicitly, in every
+language the listing is offered in. The reviewer greps for the English words
+**tile** and **complication**.
 
-**Fix:** In Play Console → Store presence → Main store listing, add the
-following paragraph to the full description (both languages), then re-submit:
+**Fix:** Play Console → Grow → Store presence → Main store listing. Paste the
+paragraphs in [play-listing-wear-copy.md](./play-listing-wear-copy.md) into the
+full description for English, Hebrew, Arabic, and Russian, then re-submit.
 
-English:
-
-> **On Wear OS:** clock in and out straight from your wrist. ElmTrackr
-> includes a watch app with a live shift timer, a **tile** for one-tap punch
-> in/out with your daily progress ring, and a watch-face **complication**
-> showing your current shift status and elapsed time at a glance.
-
-Hebrew:
-
-> **ב-Wear OS:** כניסה ויציאה ממשמרת ישירות מהשעון. ElmTrackr כוללת אפליקציית
-> שעון עם טיימר משמרת חי, **אריח (Tile)** לכניסה/יציאה בהקשה אחת עם טבעת
-> התקדמות יומית, ו**סיבוכיית (Complication)** לפני השעון שמציגה את סטטוס
-> המשמרת והזמן שחלף במבט אחד.
-
-The words "tile" and "complication" must appear literally — the reviewer
-checks for them.
+Do not mention "Android Wear". Search each translation for `tile` and
+`complication` before you click submit. If either word is missing, this
+heading fails on its own — it failed 10055 even after the watch was made
+standalone.
 
 ## 2. Background not black **[fixed in code]**
 
