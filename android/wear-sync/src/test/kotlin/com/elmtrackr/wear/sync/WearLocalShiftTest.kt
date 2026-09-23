@@ -142,6 +142,25 @@ class WearLocalShiftTest {
     }
 
     @Test
+    fun shouldDiscardReplayForPhoneUser_keepsUnsignedLocalWorkForLaterSignedInPhone() {
+        val unsignedEvent = WearPunchEvent(id = "a", isPunchIn = true, epochMillis = 1_000L, userId = "")
+        val signedInPhone = WearShiftSnapshot(signedIn = true, userId = "user-1")
+
+        assertFalse(WearLocalShift.shouldDiscardReplayForPhoneUser(unsignedEvent, signedInPhone))
+    }
+
+    @Test
+    fun shouldDiscardReplayForPhoneUser_onlyDropsKnownCrossUserEvents() {
+        val userEvent = WearPunchEvent(id = "a", isPunchIn = true, epochMillis = 1_000L, userId = "user-1")
+        val sameUserPhone = WearShiftSnapshot(signedIn = true, userId = "user-1")
+        val otherUserPhone = WearShiftSnapshot(signedIn = true, userId = "user-2")
+
+        assertFalse(WearLocalShift.shouldDiscardReplayForPhoneUser(userEvent, sameUserPhone))
+        assertFalse(WearLocalShift.shouldDiscardReplayForPhoneUser(userEvent, null))
+        assertTrue(WearLocalShift.shouldDiscardReplayForPhoneUser(userEvent, otherUserPhone))
+    }
+
+    @Test
     fun livePunchSettledByPhone_rejectsStaleMatchingStateAfterTimeout() {
         val staleRunningPhone = WearShiftSnapshot.signedOut().copy(
             signedIn = true,

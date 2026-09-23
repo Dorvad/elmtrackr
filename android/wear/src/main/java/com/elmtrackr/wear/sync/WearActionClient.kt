@@ -95,7 +95,7 @@ class WearActionClient(
             if (events.isEmpty()) return@withLock false
             for (event in events) {
                 val phoneBeforeReplay = wearStateRepository.readNewestPhoneSnapshot()
-                if (event.userId.isBlank() || phoneBeforeReplay?.userId?.let { it != event.userId } == true) {
+                if (WearLocalShift.shouldDiscardReplayForPhoneUser(event, phoneBeforeReplay)) {
                     wearStateRepository.removeEvent(event.id)
                     continue
                 }

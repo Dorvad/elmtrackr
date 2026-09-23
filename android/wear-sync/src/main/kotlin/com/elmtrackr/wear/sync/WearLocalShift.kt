@@ -108,6 +108,16 @@ object WearLocalShift {
     }
 
     /**
+     * Keep unsigned/legacy local work: a blank user id is the state a watch has
+     * before it has ever received a signed-in phone snapshot. Only discard when
+     * the queued event names one user and the phone snapshot names another.
+     */
+    fun shouldDiscardReplayForPhoneUser(event: WearPunchEvent, phone: WearShiftSnapshot?): Boolean {
+        if (event.userId.isBlank()) return false
+        return phone?.userId?.let { it != event.userId } == true
+    }
+
+    /**
      * A live punch that timed out may still have landed on the phone; trust that
      * only when the phone snapshot contains evidence for this specific punch.
      * Coarse active/inactive state is not enough, because a stale snapshot can
