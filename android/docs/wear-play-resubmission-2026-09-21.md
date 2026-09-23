@@ -2,9 +2,12 @@
 
 **Written:** 21 September 2026, against commit `8691411` on `Main`.
 **Rejected artifact:** wear **10055** (17 September 2026), two findings.
-**Next artifacts:** phone **56** / wear **10056**, versionName **1.3.3** — already
-set in both `build.gradle.kts` files. Confirm in Play Console that neither code
-has ever been uploaded before building (§B step 2); if one has, bump both.
+
+> **Superseded on 22 September 2026:** 10056 was uploaded and rejected in turn
+> (large-font text overlap, missing ongoing activity). The fixes and the
+> amendments to Section B are in
+> [wear-play-rejection-2026-09-22-10056.md](wear-play-rejection-2026-09-22-10056.md).
+> The next artifacts are phone **57** / wear **10057**, versionName **1.3.4**.
 
 > **Issue found: Wear app functionality not working as described** … *Your app
 > crashed when testing.*

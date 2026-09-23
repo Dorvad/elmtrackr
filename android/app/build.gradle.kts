@@ -32,15 +32,15 @@ android {
         applicationId = "com.elmlaunch.myapp"
         minSdk = 26
         targetSdk = 36
-        // 56, and the number matters more than it looks.
+        // 57, and the number matters more than it looks.
         //
         // Production uploads have been bumped by hand and not committed before:
         // this file said 53 while Play rejected wear 10055. The module invariant
-        // is wear == 10000 + this number. 10055 is burned by the 17 Sep 2026
-        // rejection ("crashed when testing" + listing missing tile/complication),
-        // so both artifacts skip to 56 / 10056.
-        versionCode = 56
-        versionName = "1.3.3"
+        // is wear == 10000 + this number. 10055 and 10056 are burned by the
+        // September 2026 rejections (10056: large-font text overlap and no
+        // ongoing activity on the watch), so both artifacts move to 57 / 10057.
+        versionCode = 57
+        versionName = "1.3.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")

@@ -103,6 +103,17 @@ class WearManifestContractTest {
     }
 
     @Test
+    fun postNotificationsIsDeclaredForTheOngoingActivity() {
+        val nodes = manifest.getElementsByTagName("uses-permission")
+        val names = (0 until nodes.length).map { (nodes.item(it) as Element).getAttributeNS(ANDROID_NS, "name") }
+        assertTrue(
+            "The running shift is a Wear OS Ongoing Activity, which rides on a notification; " +
+                "from API 33 that needs POST_NOTIFICATIONS or the watch-face indicator never appears.",
+            names.contains("android.permission.POST_NOTIFICATIONS"),
+        )
+    }
+
+    @Test
     fun launcherActivityIsExported() {
         val main = activity(".WearMainActivity")
         assertNotNull("The watch launcher activity is missing from the manifest", main)

@@ -1,6 +1,9 @@
 package com.elmtrackr.wear
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -18,6 +21,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.wear.compose.material3.AppScaffold
 import com.elmtrackr.wear.ui.ConfirmationOverlay
 import com.elmtrackr.wear.ui.CountdownOverlay
+import com.elmtrackr.wear.ongoing.WearOngoingShift
 import com.elmtrackr.wear.ui.IdleScreen
 import com.elmtrackr.wear.ui.RunningScreen
 import com.elmtrackr.wear.ui.WearAuroraBackground
@@ -37,6 +41,39 @@ class WearMainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * The ongoing-activity indicator rides on a notification, and from API 33
+     * posting one is a runtime permission. It is asked for on first open rather
+     * than at the first punch so the 3-2-1 countdown is never interrupted by a
+     * system dialog; the system stops re-asking on its own after repeated denials.
+     *
+     * The platform request, not the ActivityResult contract: this module carries
+     * no Fragment dependency and the contract's lint check insists on one.
+     */
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (WearOngoingShift.canPost(this)) return
+        runCatching {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_POST_NOTIFICATIONS)
+        }.onFailure { Log.w(TAG, "Could not request POST_NOTIFICATIONS", it) }
+    }
+
+    @Deprecated("Platform callback; the ActivityResult contract is deliberately not used here")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray,
+    ) {
+        @Suppress("DEPRECATION")
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != REQUEST_POST_NOTIFICATIONS) return
+        // A shift that is already running gets its indicator now rather than at
+        // the next punch; WearOngoingShift re-checks the grant itself.
+        ElmTrackrWearApp.from(this)?.let { app ->
+            WearOngoingShift.sync(this, app.wearStateRepository.snapshot.value)
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         // Re-pull phone state every time the watch face comes forward, and replay
@@ -48,6 +85,7 @@ class WearMainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestNotificationPermissionIfNeeded()
         setContent {
             WearAuroraTheme {
                 // AppScaffold owns TimeText. Drawing TimeText ourselves, outside
@@ -69,6 +107,11 @@ class WearMainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private companion object {
+        const val TAG = "WearMainActivity"
+        const val REQUEST_POST_NOTIFICATIONS = 41
     }
 }
 

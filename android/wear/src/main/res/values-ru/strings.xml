@@ -35,4 +35,6 @@
     <string name="wear_comp_in">Приход</string>
     <string name="wear_comp_out">Уход</string>
     <string name="wear_comp_clocked_in">На смене · %1$s</string>
+    <string name="ongoing_channel_name">Текущая смена</string>
+    <string name="ongoing_channel_description">Показывает текущую смену на циферблате, пока вы на смене.</string>
 </resources>

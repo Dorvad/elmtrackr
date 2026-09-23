@@ -6,6 +6,10 @@
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- The running shift is surfaced as a Wear OS Ongoing Activity, which rides on
+         an ongoing notification. Runtime-requested in WearMainActivity on API 33+;
+         without it the watch face indicator and the recents chip never appear. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".ElmTrackrWearApp"

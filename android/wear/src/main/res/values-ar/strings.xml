@@ -35,4 +35,6 @@
     <string name="wear_comp_in">حضور</string>
     <string name="wear_comp_out">انصراف</string>
     <string name="wear_comp_clocked_in">مسجَّل الحضور · %1$s</string>
+    <string name="ongoing_channel_name">مناوبة نشطة</string>
+    <string name="ongoing_channel_description">يعرض المناوبة الجارية على وجه الساعة أثناء تسجيل الحضور.</string>
 </resources>

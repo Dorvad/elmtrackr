@@ -35,4 +35,6 @@
     <string name="wear_comp_in">IN</string>
     <string name="wear_comp_out">OUT</string>
     <string name="wear_comp_clocked_in">Clocked in · %1$s</string>
+    <string name="ongoing_channel_name">Active shift</string>
+    <string name="ongoing_channel_description">Shows the running shift on the watch face while you are clocked in.</string>
 </resources>

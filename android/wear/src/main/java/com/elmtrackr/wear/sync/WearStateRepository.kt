@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.wear.tiles.TileService
+import com.elmtrackr.wear.ongoing.WearOngoingShift
 import com.elmtrackr.wear.runCatchingCancellable
 import com.elmtrackr.wear.sync.WearPaths.CRASH_REPORTING_CONSENT
 import com.elmtrackr.wear.sync.WearPaths.ENABLED_KEY
@@ -211,6 +212,12 @@ class WearStateRepository(
         runCatchingCancellable {
             ElmTrackrComplicationBridge.requestUpdateAll(context)
         }.onFailure { Log.w(TAG, "Could not request a complication update", it) }
+
+        // The fourth surface: the Wear OS ongoing-activity indicator on the watch
+        // face and the chip in recents, both of which the quality guidelines
+        // require while a shift runs. Posted while active, cancelled otherwise.
+        // Guards itself, including the POST_NOTIFICATIONS check.
+        WearOngoingShift.sync(context, rolled)
 
         // Re-render the tile immediately on every state change. The refresh
         // worker only drives the once-a-minute count-up while a shift runs;

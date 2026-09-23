@@ -53,18 +53,18 @@ android {
         // applicationId — so the wear module keeps its own range:
         // 10000 + the phone :app versionCode. Bump both together.
         //
-        // 10056 = 10000 + the phone's 56. Play refuses any code at or below one
+        // 10057 = 10000 + the phone's 57. Play refuses any code at or below one
         // it has already seen. Burned: 10041 (August crash), 10052 (September
-        // crash), 10055 (17 Sep 2026 crash + listing missing tile/complication).
-        // This file said 10053 while Play reviewed 10055 — the same uncommitted
-        // hand-bump that left 10041 on the listing for two months.
+        // crash), 10055 (17 Sep 2026 crash + listing missing tile/complication),
+        // 10056 (22 Sep 2026: text overlap at large font sizes + no ongoing
+        // activity while a shift runs).
         //
         // Whatever ships next must be built from the same commit as its phone
         // counterpart — the two share :wear-sync, so a watch built from a
         // different tree than the phone it talks to is a wire mismatch waiting
         // to happen.
-        versionCode = 10056
-        versionName = "1.3.3"
+        versionCode = 10057
+        versionName = "1.3.4"
 
         buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
     }
@@ -189,6 +189,7 @@ dependencies {
     implementation(libs.androidx.wear.tiles)
     implementation(libs.androidx.wear.tiles.material)
     implementation(libs.androidx.wear.watchface.complications)
+    implementation(libs.androidx.wear.ongoing)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

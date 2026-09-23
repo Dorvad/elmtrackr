@@ -14,10 +14,17 @@ notice — re-read both pages before a submission rather than trusting this file
 
 ## 0. Check this first. It may be the entire problem.
 
+> **22 September 2026:** wear 10056 was rejected for text overlap at large
+> font sizes and for having no ongoing activity while a shift runs. Both are
+> fixed in code; see
+> [wear-play-rejection-2026-09-22-10056.md](wear-play-rejection-2026-09-22-10056.md).
+> The next pair is **57 / 10057**.
+>
 > **21 September 2026:** the review, code fixes and the full manual
 > resubmission sequence for the 10055 rejection are in
 > [wear-play-resubmission-2026-09-21.md](wear-play-resubmission-2026-09-21.md).
-> Follow its Section B in order; the notes below remain as background.
+> Follow its Section B in order, with the amendments in the 22 September
+> document; the notes below remain as background.
 
 The 17 September 2026 rejection names **version code 10055**, twice: a crash,
 and a listing that does not mention tile or complication.

@@ -1,5 +1,7 @@
 package com.elmtrackr.wear
 
+import android.Manifest
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.ContextWrapper
@@ -8,6 +10,8 @@ import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.NoDataComplicationData
 import com.elmtrackr.wear.complication.ElmTrackrComplicationService
 import com.elmtrackr.wear.monitoring.WearCrashReporting
+import com.elmtrackr.wear.ongoing.WearOngoingShift
+import com.elmtrackr.wear.sync.WearShiftSnapshot
 import com.elmtrackr.wear.sync.WearDataListenerService
 import com.elmtrackr.wear.tile.WearPunchTrampolineActivity
 import kotlinx.coroutines.test.runTest
@@ -19,6 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.android.controller.ActivityController
 
@@ -321,6 +326,59 @@ class WearLaunchPathTest {
                     .putExtra(WearPunchTrampolineActivity.EXTRA_TOKEN, token),
             ),
         )
+    }
+
+    /**
+     * The Wear quality guidelines require an ongoing activity while a shift runs
+     * — an indicator on the watch face and a chip in recents — and Play rejected
+     * 10056 for not having one. It rides on an ongoing notification, so the
+     * observable contract is: an active snapshot posts it, an inactive one clears
+     * it, and the notification carries the ongoing flag the system keys on.
+     */
+    @Test
+    fun `an active snapshot posts the ongoing shift and an idle one clears it`() = runTest {
+        val context = app()
+        shadowOf(context).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        val notifications = shadowOf(context.getSystemService(NotificationManager::class.java))
+        val repository = context.wearStateRepository
+
+        repository.applySnapshot(
+            WearShiftSnapshot(
+                signedIn = true,
+                isActive = true,
+                shiftStartEpochMillis = System.currentTimeMillis() - 600_000L,
+                startTimeLabel = "09:00",
+            ),
+            persist = false,
+        )
+
+        val posted = notifications.getNotification(WearOngoingShift.NOTIFICATION_ID)
+        assertNotNull("no ongoing shift notification was posted", posted)
+        assertTrue(
+            "the shift notification must be ongoing for Wear OS to treat it as an ongoing activity",
+            posted.flags and android.app.Notification.FLAG_ONGOING_EVENT != 0,
+        )
+        assertTrue(
+            "the ongoing-activity extras are missing, so no indicator would show on the watch face",
+            posted.extras.keySet().any { it.contains("ongoing", ignoreCase = true) },
+        )
+
+        repository.applySnapshot(WearShiftSnapshot.signedOut(), persist = false)
+
+        assertNull(
+            "clocking out must clear the ongoing shift",
+            notifications.getNotification(WearOngoingShift.NOTIFICATION_ID),
+        )
+    }
+
+    /** Without the permission the indicator is a degraded feature, never a crash. */
+    @Test
+    fun `the ongoing shift is silent when notifications are not permitted`() {
+        WearOngoingShift.sync(
+            app(),
+            WearShiftSnapshot(signedIn = true, isActive = true, shiftStartEpochMillis = 1_000L),
+        )
+        WearOngoingShift.sync(app(), WearShiftSnapshot.signedOut())
     }
 
     @Test
