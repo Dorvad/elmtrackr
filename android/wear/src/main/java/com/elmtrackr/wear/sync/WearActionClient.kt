@@ -59,7 +59,12 @@ class WearActionClient(
         try {
             val now = System.currentTimeMillis()
             val path = if (isPunchIn) PUNCH_IN else PUNCH_OUT
-            val phoneResult = sendPunchToPhone(path, now, wearStateRepository.snapshot.value.userId)
+            val expectedUserId = wearStateRepository.snapshot.value.userId
+            val phoneResult = if (expectedUserId.isBlank()) {
+                PunchResult(success = false, errorCode = "not_signed_in")
+            } else {
+                sendPunchToPhone(path, now, expectedUserId)
+            }
             if (phoneResult.success) {
                 wearStateRepository.refreshFromDataLayer()
                 return phoneResult
@@ -95,15 +100,17 @@ class WearActionClient(
             if (events.isEmpty()) return@withLock false
             for (event in events) {
                 val phoneBeforeReplay = wearStateRepository.readNewestPhoneSnapshot()
-                if (event.userId.isBlank() || phoneBeforeReplay?.userId?.let { it != event.userId } == true) {
+                if (WearLocalShift.shouldDiscardReplayForPhoneUser(event, phoneBeforeReplay)) {
                     wearStateRepository.removeEvent(event.id)
                     continue
                 }
+                val replayUserId = WearLocalShift.userIdForReplay(event, phoneBeforeReplay)
+                    ?: return@withLock false
                 if (WearLocalShift.shouldDeferReplay(event, phoneBeforeReplay)) {
                     return@withLock false
                 }
                 val path = if (event.isPunchIn) PUNCH_IN else PUNCH_OUT
-                val result = sendPunchToPhone(path, event.epochMillis, event.userId)
+                val result = sendPunchToPhone(path, event.epochMillis, replayUserId)
                 val phone = wearStateRepository.readNewestPhoneSnapshot()
                 if (result.errorCode == "user_mismatch") {
                     wearStateRepository.removeEvent(event.id)
