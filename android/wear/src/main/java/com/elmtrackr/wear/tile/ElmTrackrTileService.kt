@@ -176,7 +176,7 @@ class ElmTrackrTileService : TileService() {
             )
             .addContent(spacer(8f))
             .addContent(
-                text(getString(R.string.punch_in).uppercase(), Typography.TYPOGRAPHY_TITLE2, INK),
+                text(getString(R.string.punch_in).uppercase(), Typography.TYPOGRAPHY_TITLE2, INK, maxLines = 2),
             )
             .addContent(spacer(3f))
             .addContent(text(getString(R.string.wear_clocked_out), Typography.TYPOGRAPHY_CAPTION2, INK2))
@@ -210,7 +210,7 @@ class ElmTrackrTileService : TileService() {
             .addContent(
                 text(
                     WearDisplayMath.elapsedHm(snapshot.shiftStartEpochMillis),
-                    Typography.TYPOGRAPHY_DISPLAY1,
+                    countUpTypography(),
                     INK,
                 ),
             )
@@ -228,6 +228,13 @@ class ElmTrackrTileService : TileService() {
     /**
      * Shared face scaffold: black background, wordmark on top, optional
      * day-goal ring, centered content, single full-face tap target.
+     *
+     * The wordmark and the content are one column, not two layers. As two layers
+     * — wordmark top-aligned, content centred, each against the whole face —
+     * nothing kept a content column that grew at a large font size from running
+     * into the wordmark, which is the overlap Play recorded on 10056. In a
+     * column the content box takes whatever height the wordmark leaves (an
+     * expanded child of a Column is a weighted child), and centres inside it.
      */
     private fun face(
         clickAction: ModifiersBuilders.Clickable,
@@ -259,35 +266,56 @@ class ElmTrackrTileService : TileService() {
         }
 
         builder.addContent(
-            LayoutElementBuilders.Box.Builder()
+            LayoutElementBuilders.Column.Builder()
                 .setWidth(DimensionBuilders.expand())
                 .setHeight(DimensionBuilders.expand())
                 .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-                .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_TOP)
-                .setModifiers(
-                    ModifiersBuilders.Modifiers.Builder()
-                        .setPadding(
-                            ModifiersBuilders.Padding.Builder()
-                                .setTop(DimensionBuilders.dp(10f))
+                .addContent(spacer(10f))
+                .addContent(text(getString(R.string.wear_brand), Typography.TYPOGRAPHY_CAPTION3, INK2))
+                .addContent(
+                    LayoutElementBuilders.Box.Builder()
+                        .setWidth(DimensionBuilders.expand())
+                        .setHeight(DimensionBuilders.expand())
+                        .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+                        .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+                        .setModifiers(
+                            ModifiersBuilders.Modifiers.Builder()
+                                .setPadding(
+                                    ModifiersBuilders.Padding.Builder()
+                                        // Keeps wrapped lines off a round bezel.
+                                        .setStart(DimensionBuilders.dp(14f))
+                                        .setEnd(DimensionBuilders.dp(14f))
+                                        .setBottom(DimensionBuilders.dp(6f))
+                                        .build(),
+                                )
                                 .build(),
                         )
+                        .addContent(center)
                         .build(),
                 )
-                .addContent(text(getString(R.string.wear_brand), Typography.TYPOGRAPHY_CAPTION3, INK2))
-                .build(),
-        )
-
-        builder.addContent(
-            LayoutElementBuilders.Box.Builder()
-                .setWidth(DimensionBuilders.expand())
-                .setHeight(DimensionBuilders.expand())
-                .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-                .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
-                .addContent(center)
                 .build(),
         )
 
         return builder.build()
+    }
+
+    /**
+     * The count-up's typography, stepped down as the system font scale goes up.
+     *
+     * Tile text is in sp and scales with the wearer's setting, and there is no
+     * per-element cap the way the app has (`withCappedFontScale`). DISPLAY1 is
+     * 40sp; at the largest accessibility size that is 80sp, wider than the face
+     * for "10:23" and straight through the ring. Choosing a smaller role from the
+     * scale the host will apply keeps the rendered size near the app's cap.
+     */
+    private fun countUpTypography(): Int {
+        val scale = runCatching { resources.configuration.fontScale }.getOrDefault(1f)
+        return when {
+            scale <= 1.15f -> Typography.TYPOGRAPHY_DISPLAY1 // 40sp
+            scale <= 1.35f -> Typography.TYPOGRAPHY_DISPLAY2 // 34sp
+            scale <= 1.6f -> Typography.TYPOGRAPHY_DISPLAY3 // 30sp
+            else -> Typography.TYPOGRAPHY_TITLE1 // 24sp
+        }
     }
 
     /** Ring inset from the bezel; anchored at 12 o'clock, sweeping clockwise. */
@@ -326,6 +354,8 @@ class ElmTrackrTileService : TileService() {
             .setTypography(typography)
             .setColor(ColorBuilders.argb(color))
             .setMaxLines(maxLines)
+            .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
+            .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE_END)
             .build()
 
     private fun spacer(heightDp: Float): LayoutElementBuilders.Spacer =

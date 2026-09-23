@@ -25,6 +25,7 @@ playBilling = "9.1.0"
 wearCompose = "1.5.0"
 wearTiles = "1.4.0"
 wearWatchface = "1.2.1"
+wearOngoing = "1.1.0"
 camerax = "1.4.2"
 credentials = "1.6.0"
 googleId = "1.2.0"
@@ -103,6 +104,9 @@ androidx-wear-compose-navigation = { group = "androidx.wear.compose", name = "co
 androidx-wear-tiles = { group = "androidx.wear.tiles", name = "tiles", version.ref = "wearTiles" }
 androidx-wear-tiles-material = { group = "androidx.wear.tiles", name = "tiles-material", version.ref = "wearTiles" }
 androidx-wear-watchface-complications = { group = "androidx.wear.watchface", name = "watchface-complications-data-source-ktx", version.ref = "wearWatchface" }
+# Ongoing Activity: the watch-face indicator and recents chip Wear OS shows while a
+# shift runs. A Wear quality requirement; Play rejected 10056 for its absence.
+androidx-wear-ongoing = { group = "androidx.wear", name = "wear-ongoing", version.ref = "wearOngoing" }
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }

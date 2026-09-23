@@ -34,4 +34,6 @@
     <string name="wear_comp_in">במשמרת</string>
     <string name="wear_comp_out">בחוץ</string>
     <string name="wear_comp_clocked_in">במשמרת · %1$s</string>
+    <string name="ongoing_channel_name">משמרת פעילה</string>
+    <string name="ongoing_channel_description">מציג את המשמרת הפעילה על פני השעון בזמן שאתם במשמרת.</string>
 </resources>
