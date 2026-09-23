@@ -117,6 +117,12 @@ object WearLocalShift {
         return phone?.userId?.let { it != event.userId } == true
     }
 
+    /** The concrete user id a replay should ask the phone to verify, or null until one is known. */
+    fun userIdForReplay(event: WearPunchEvent, phone: WearShiftSnapshot?): String? {
+        if (event.userId.isNotBlank()) return event.userId
+        return phone?.userId?.takeIf { phone.signedIn && it.isNotBlank() }
+    }
+
     /**
      * A live punch that timed out may still have landed on the phone; trust that
      * only when the phone snapshot contains evidence for this specific punch.
