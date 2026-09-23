@@ -18,6 +18,7 @@ class WearSnapshotMapperTest {
             pendingCount = 0,
             shiftStartEpochMillis = 1_700_000_000_000L,
             todayMinutes = 60,
+            todayEpochDay = 19_723L,
             dailyGoalMinutes = 480,
         )
         val snapshot = state.toWearSnapshot(signedIn = true)
@@ -26,5 +27,6 @@ class WearSnapshotMapperTest {
         assertEquals("shift-1", snapshot.shiftId)
         assertEquals("09:00", snapshot.startTimeLabel)
         assertEquals(60, snapshot.todayMinutes)
+        assertEquals(19_723L, snapshot.todayEpochDay)
     }
 }

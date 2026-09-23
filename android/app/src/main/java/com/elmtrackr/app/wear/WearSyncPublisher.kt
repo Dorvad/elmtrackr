@@ -10,6 +10,7 @@ import com.elmtrackr.app.widget.WidgetContext
 import com.elmtrackr.app.widget.WidgetContextLoader
 import com.elmtrackr.app.widget.WidgetShiftState
 import com.elmtrackr.app.widget.WidgetStateMapper
+import com.elmtrackr.wear.sync.WearCapabilities
 import com.elmtrackr.wear.sync.WearMessages
 import com.elmtrackr.wear.sync.WearPaths
 import com.elmtrackr.wear.sync.WearShiftSnapshot
@@ -22,7 +23,7 @@ import kotlinx.coroutines.tasks.await
 object WearSyncPublisher {
 
     /** Capability the watch app declares; lets the phone detect the installed app. */
-    const val WATCH_APP_CAPABILITY = "elmtrackr_wear_app"
+    const val WATCH_APP_CAPABILITY = WearCapabilities.WATCH_APP
 
     suspend fun isSyncEnabled(context: Context): Boolean = runCatching {
         context.applicationContext.appPreferencesDataStore.data.first()
@@ -43,6 +44,20 @@ object WearSyncPublisher {
      */
     suspend fun clearWatchData(context: Context) {
         publishSnapshotIgnoringPreference(context, WearShiftSnapshot.signedOut())
+    }
+
+    /** Pushes only crash-reporting consent, even when shift mirroring is disabled. */
+    suspend fun publishCrashReportingConsent(context: Context) {
+        runCatching {
+            val appContext = context.applicationContext
+            val dataClient = Wearable.getDataClient(appContext)
+            val putRequest = PutDataMapRequest.create(WearPaths.CRASH_REPORTING_CONSENT).apply {
+                dataMap.putBoolean(WearPaths.ENABLED_KEY, CrashReporting.isEnabledByUser(context))
+                dataMap.putLong("updatedAt", System.currentTimeMillis())
+            }.asPutDataRequest().setUrgent()
+            dataClient.putDataItem(putRequest).await()
+            nudgeConnectedNodes(context)
+        }
     }
 
     private suspend fun publishSnapshotIgnoringPreference(
@@ -77,11 +92,16 @@ object WearSyncPublisher {
         val locale = context.withAppLocale().resources.configuration.locales[0]
             ?: java.util.Locale.getDefault()
         val state = WidgetStateMapper.map(widgetContext, locale)
-        publishSnapshot(context, state.toWearSnapshot(signedIn = true))
+        publishSnapshot(context, state.toWearSnapshot(signedIn = true, userId = userId))
     }
 
     suspend fun publishFromShiftState(context: Context, state: WidgetShiftState, signedIn: Boolean) {
-        publishSnapshot(context, state.toWearSnapshot(signedIn = signedIn))
+        val userId = if (signedIn) {
+            AppEntryPoints.background(context).currentUserProvider().currentUserId().orEmpty()
+        } else {
+            ""
+        }
+        publishSnapshot(context, state.toWearSnapshot(signedIn = signedIn, userId = userId))
     }
 
     suspend fun refresh(context: Context) {

@@ -3,9 +3,10 @@ package com.elmtrackr.app.wear
 import com.elmtrackr.app.widget.WidgetShiftState
 import com.elmtrackr.wear.sync.WearShiftSnapshot
 
-fun WidgetShiftState.toWearSnapshot(signedIn: Boolean): WearShiftSnapshot =
+fun WidgetShiftState.toWearSnapshot(signedIn: Boolean, userId: String = ""): WearShiftSnapshot =
     WearShiftSnapshot(
         signedIn = signedIn,
+        userId = userId,
         isActive = isActive,
         shiftId = shiftId,
         shiftStartEpochMillis = shiftStartEpochMillis,
@@ -15,4 +16,5 @@ fun WidgetShiftState.toWearSnapshot(signedIn: Boolean): WearShiftSnapshot =
         todayMinutes = todayMinutes,
         dailyGoalMinutes = dailyGoalMinutes,
         updatedAtEpochMillis = System.currentTimeMillis(),
+        todayEpochDay = todayEpochDay,
     )

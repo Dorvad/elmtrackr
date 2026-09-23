@@ -1,5 +1,6 @@
 package com.elmtrackr.wear.tile
 
+import android.util.Log
 import androidx.concurrent.futures.CallbackToFutureAdapter
 import androidx.wear.tiles.ActionBuilders
 import androidx.wear.tiles.ColorBuilders
@@ -15,10 +16,10 @@ import androidx.wear.tiles.material.Text
 import androidx.wear.tiles.material.Typography
 import com.elmtrackr.wear.ElmTrackrWearApp
 import com.elmtrackr.wear.R
-import com.elmtrackr.wear.WearMainActivity
 import com.elmtrackr.wear.sync.WearAuroraColors
 import com.elmtrackr.wear.sync.WearDisplayMath
 import com.elmtrackr.wear.sync.WearShiftSnapshot
+import com.elmtrackr.wear.wearBackgroundExceptionHandler
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,14 +34,21 @@ import kotlinx.coroutines.launch
  */
 class ElmTrackrTileService : TileService() {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + wearBackgroundExceptionHandler(TAG),
+    )
 
     override fun onTileRequest(requestParams: RequestBuilders.TileRequest): ListenableFuture<TileBuilders.Tile> =
         CallbackToFutureAdapter.getFuture { completer ->
             scope.launch {
-                runCatching { buildTile() }
-                    .onSuccess { completer.set(it) }
-                    .onFailure { completer.setException(it) }
+                val tile = runCatching { buildTile() }.getOrElse { error ->
+                    Log.e(TAG, "Tile request failed; rendering the idle face instead", error)
+                    runCatching { fallbackTile() }.getOrElse { fallbackError ->
+                        Log.e(TAG, "Idle fallback also failed; returning an empty tile", fallbackError)
+                        emptyTile()
+                    }
+                }
+                completer.set(tile)
             }
             "ElmTrackrTileRequest"
         }
@@ -49,13 +57,17 @@ class ElmTrackrTileService : TileService() {
         requestParams: RequestBuilders.ResourcesRequest,
     ): ListenableFuture<ResourceBuilders.Resources> =
         CallbackToFutureAdapter.getFuture { completer ->
-            completer.set(
+            val resources = runCatching {
                 ResourceBuilders.Resources.Builder()
                     .setVersion(RESOURCES_VERSION)
                     .addIdToImageMapping(ID_BACKGROUND, drawableResource(R.drawable.tile_bg_gradient))
                     .addIdToImageMapping(ID_BOLT_BUTTON, drawableResource(R.drawable.tile_bolt_button))
-                    .build(),
-            )
+                    .build()
+            }.getOrElse { error ->
+                Log.e(TAG, "Tile resources request failed; returning an empty version", error)
+                ResourceBuilders.Resources.Builder().setVersion(RESOURCES_VERSION).build()
+            }
+            completer.set(resources)
             "ElmTrackrTileResources"
         }
 
@@ -77,7 +89,6 @@ class ElmTrackrTileService : TileService() {
         val snapshot = app?.wearStateRepository?.snapshot?.value ?: WearShiftSnapshot.signedOut()
 
         val root = when {
-            !snapshot.signedIn -> signedOutFace()
             snapshot.isActive -> activeFace(snapshot)
             else -> idleFace(snapshot)
         }
@@ -98,6 +109,50 @@ class ElmTrackrTileService : TileService() {
             )
             .build()
     }
+
+    private fun fallbackTile(): TileBuilders.Tile =
+        TileBuilders.Tile.Builder()
+            .setResourcesVersion(RESOURCES_VERSION)
+            .setFreshnessIntervalMillis(3_600_000L)
+            .setTimeline(
+                TimelineBuilders.Timeline.Builder()
+                    .addTimelineEntry(
+                        TimelineBuilders.TimelineEntry.Builder()
+                            .setLayout(
+                                LayoutElementBuilders.Layout.Builder()
+                                    .setRoot(idleFace(WearShiftSnapshot.signedOut()))
+                                    .build(),
+                            )
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build()
+
+    /** Last-resort tile: no strings, no images, so it cannot throw on a missing resource. */
+    private fun emptyTile(): TileBuilders.Tile =
+        TileBuilders.Tile.Builder()
+            .setResourcesVersion(RESOURCES_VERSION)
+            .setFreshnessIntervalMillis(3_600_000L)
+            .setTimeline(
+                TimelineBuilders.Timeline.Builder()
+                    .addTimelineEntry(
+                        TimelineBuilders.TimelineEntry.Builder()
+                            .setLayout(
+                                LayoutElementBuilders.Layout.Builder()
+                                    .setRoot(
+                                        LayoutElementBuilders.Box.Builder()
+                                            .setWidth(DimensionBuilders.expand())
+                                            .setHeight(DimensionBuilders.expand())
+                                            .build(),
+                                    )
+                                    .build(),
+                            )
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build()
 
     // --- Faces ---
 
@@ -121,7 +176,7 @@ class ElmTrackrTileService : TileService() {
             )
             .addContent(spacer(8f))
             .addContent(
-                text(getString(R.string.punch_in).uppercase(), Typography.TYPOGRAPHY_TITLE2, INK),
+                text(getString(R.string.punch_in).uppercase(), Typography.TYPOGRAPHY_TITLE2, INK, maxLines = 2),
             )
             .addContent(spacer(3f))
             .addContent(text(getString(R.string.wear_clocked_out), Typography.TYPOGRAPHY_CAPTION2, INK2))
@@ -155,7 +210,7 @@ class ElmTrackrTileService : TileService() {
             .addContent(
                 text(
                     WearDisplayMath.elapsedHm(snapshot.shiftStartEpochMillis),
-                    Typography.TYPOGRAPHY_DISPLAY1,
+                    countUpTypography(),
                     INK,
                 ),
             )
@@ -170,20 +225,16 @@ class ElmTrackrTileService : TileService() {
         )
     }
 
-    private fun signedOutFace(): LayoutElementBuilders.LayoutElement {
-        val center = LayoutElementBuilders.Column.Builder()
-            .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-            .addContent(text(getString(R.string.tile_sign_in), Typography.TYPOGRAPHY_TITLE2, INK))
-            .addContent(spacer(3f))
-            .addContent(text(getString(R.string.tile_on_phone), Typography.TYPOGRAPHY_CAPTION1, OUTLINE))
-            .build()
-
-        return face(clickAction = openAppAction(), center = center)
-    }
-
     /**
      * Shared face scaffold: black background, wordmark on top, optional
      * day-goal ring, centered content, single full-face tap target.
+     *
+     * The wordmark and the content are one column, not two layers. As two layers
+     * — wordmark top-aligned, content centred, each against the whole face —
+     * nothing kept a content column that grew at a large font size from running
+     * into the wordmark, which is the overlap Play recorded on 10056. In a
+     * column the content box takes whatever height the wordmark leaves (an
+     * expanded child of a Column is a weighted child), and centres inside it.
      */
     private fun face(
         clickAction: ModifiersBuilders.Clickable,
@@ -215,35 +266,56 @@ class ElmTrackrTileService : TileService() {
         }
 
         builder.addContent(
-            LayoutElementBuilders.Box.Builder()
+            LayoutElementBuilders.Column.Builder()
                 .setWidth(DimensionBuilders.expand())
                 .setHeight(DimensionBuilders.expand())
                 .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-                .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_TOP)
-                .setModifiers(
-                    ModifiersBuilders.Modifiers.Builder()
-                        .setPadding(
-                            ModifiersBuilders.Padding.Builder()
-                                .setTop(DimensionBuilders.dp(10f))
+                .addContent(spacer(10f))
+                .addContent(text(getString(R.string.wear_brand), Typography.TYPOGRAPHY_CAPTION3, INK2))
+                .addContent(
+                    LayoutElementBuilders.Box.Builder()
+                        .setWidth(DimensionBuilders.expand())
+                        .setHeight(DimensionBuilders.expand())
+                        .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+                        .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+                        .setModifiers(
+                            ModifiersBuilders.Modifiers.Builder()
+                                .setPadding(
+                                    ModifiersBuilders.Padding.Builder()
+                                        // Keeps wrapped lines off a round bezel.
+                                        .setStart(DimensionBuilders.dp(14f))
+                                        .setEnd(DimensionBuilders.dp(14f))
+                                        .setBottom(DimensionBuilders.dp(6f))
+                                        .build(),
+                                )
                                 .build(),
                         )
+                        .addContent(center)
                         .build(),
                 )
-                .addContent(text(getString(R.string.wear_brand), Typography.TYPOGRAPHY_CAPTION3, INK2))
-                .build(),
-        )
-
-        builder.addContent(
-            LayoutElementBuilders.Box.Builder()
-                .setWidth(DimensionBuilders.expand())
-                .setHeight(DimensionBuilders.expand())
-                .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-                .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
-                .addContent(center)
                 .build(),
         )
 
         return builder.build()
+    }
+
+    /**
+     * The count-up's typography, stepped down as the system font scale goes up.
+     *
+     * Tile text is in sp and scales with the wearer's setting, and there is no
+     * per-element cap the way the app has (`withCappedFontScale`). DISPLAY1 is
+     * 40sp; at the largest accessibility size that is 80sp, wider than the face
+     * for "10:23" and straight through the ring. Choosing a smaller role from the
+     * scale the host will apply keeps the rendered size near the app's cap.
+     */
+    private fun countUpTypography(): Int {
+        val scale = runCatching { resources.configuration.fontScale }.getOrDefault(1f)
+        return when {
+            scale <= 1.15f -> Typography.TYPOGRAPHY_DISPLAY1 // 40sp
+            scale <= 1.35f -> Typography.TYPOGRAPHY_DISPLAY2 // 34sp
+            scale <= 1.6f -> Typography.TYPOGRAPHY_DISPLAY3 // 30sp
+            else -> Typography.TYPOGRAPHY_TITLE1 // 24sp
+        }
     }
 
     /** Ring inset from the bezel; anchored at 12 o'clock, sweeping clockwise. */
@@ -282,6 +354,8 @@ class ElmTrackrTileService : TileService() {
             .setTypography(typography)
             .setColor(ColorBuilders.argb(color))
             .setMaxLines(maxLines)
+            .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
+            .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE_END)
             .build()
 
     private fun spacer(heightDp: Float): LayoutElementBuilders.Spacer =
@@ -302,6 +376,12 @@ class ElmTrackrTileService : TileService() {
                                 WearPunchTrampolineActivity.EXTRA_ACTION,
                                 ActionBuilders.stringExtra(action),
                             )
+                            .addKeyToExtraMapping(
+                                WearPunchTrampolineActivity.EXTRA_TOKEN,
+                                ActionBuilders.stringExtra(
+                                    WearPunchTrampolineActivity.tileLaunchToken(applicationContext),
+                                ),
+                            )
                             .build(),
                     )
                     .build(),
@@ -309,21 +389,8 @@ class ElmTrackrTileService : TileService() {
             .build()
     }
 
-    private fun openAppAction(): ModifiersBuilders.Clickable =
-        ModifiersBuilders.Clickable.Builder()
-            .setOnClick(
-                ActionBuilders.LaunchAction.Builder()
-                    .setAndroidActivity(
-                        ActionBuilders.AndroidActivity.Builder()
-                            .setClassName(WearMainActivity::class.java.name)
-                            .setPackageName(applicationContext.packageName)
-                            .build(),
-                    )
-                    .build(),
-            )
-            .build()
-
     companion object {
+        private const val TAG = "ElmTrackrTile"
         // v4: the bolt mark became the Aurora gradient disc with a white bolt,
         // matching the phone. Tile renderers cache resources by this version,
         // so a bump is the only thing that makes them re-read the drawable —

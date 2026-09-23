@@ -10,11 +10,15 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.wear.tiles.TileService
+import com.elmtrackr.wear.ongoing.WearOngoingShift
 import com.elmtrackr.wear.runCatchingCancellable
+import com.elmtrackr.wear.sync.WearPaths.CRASH_REPORTING_CONSENT
+import com.elmtrackr.wear.sync.WearPaths.ENABLED_KEY
 import com.elmtrackr.wear.sync.WearPaths.PAYLOAD_KEY
 import com.elmtrackr.wear.sync.WearPaths.SHIFT_STATE
 import com.elmtrackr.wear.tile.ElmTrackrTileService
 import com.elmtrackr.wear.tile.WearTileRefreshWorker
+import com.elmtrackr.wear.wearBackgroundExceptionHandler
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
@@ -29,7 +33,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
+import java.util.UUID
 
 // A corrupt or unreadable cache file must never be fatal. Without the
 // corruption handler the `data` flow rethrows CorruptionException on every
@@ -39,6 +46,13 @@ import kotlinx.coroutines.tasks.await
 private val Context.wearStateDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "wear_shift_state",
     corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+)
+
+// Kept separate from the display snapshot cache: the snapshot may be safely
+// reset on corruption, but an unreplayed punch log is user work that must never
+// be converted to "no pending work" by that cache's recovery handler.
+private val Context.wearPunchLogDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "wear_punch_log",
 )
 
 /** Transient full-screen punch feedback: a success checkmark or a failure cross. */
@@ -52,9 +66,13 @@ class WearStateRepository(
 ) {
     // Repository is application-lifetime; used for applying data-layer events
     // after their buffer has been released.
-    private val applyScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val applyScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + wearBackgroundExceptionHandler(TAG),
+    )
 
     private val cacheKey = stringPreferencesKey("snapshot_json")
+    private val punchLogKey = stringPreferencesKey("punch_log_json")
+    private val punchLogMutex = Mutex()
 
     private val _snapshot = MutableStateFlow(WearShiftSnapshot.signedOut())
     val snapshot: StateFlow<WearShiftSnapshot> = _snapshot.asStateFlow()
@@ -67,6 +85,7 @@ class WearStateRepository(
 
     suspend fun bootstrap() {
         loadCached()
+        rollLocalDayIfNeeded()
         refreshFromDataLayer()
     }
 
@@ -80,12 +99,17 @@ class WearStateRepository(
             val json = context.wearStateDataStore.data.first()[cacheKey]
             val cached = json?.let(WearSnapshotCodec::decode)
             if (cached != null) {
-                applySnapshot(cached, persist = false)
+                val rolled = WearLocalShift.rollToLocalDay(cached, System.currentTimeMillis())
+                applySnapshot(rolled, persist = rolled != cached)
             }
         }.onFailure { Log.w(TAG, "Could not read the cached shift snapshot", it) }
     }
 
-    suspend fun refreshFromDataLayer() {
+    /**
+     * Newest phone snapshot on the data layer, or null if none. Does not write
+     * DataStore — replay uses this to decide whether a lost ACK already landed.
+     */
+    suspend fun readNewestPhoneSnapshot(): WearShiftSnapshot? =
         runCatchingCancellable {
             val dataClient = Wearable.getDataClient(context)
             val uri = android.net.Uri.parse("wear://*$SHIFT_STATE")
@@ -96,37 +120,74 @@ class WearStateRepository(
             val newest = items.mapNotNull { parseDataItem(it) }
                 .maxByOrNull { it.updatedAtEpochMillis }
             items.release()
-            if (newest != null) {
-                applySnapshot(newest)
-            }
+            newest
         }.onFailure { Log.w(TAG, "Could not read the phone snapshot from the data layer", it) }
+            .getOrNull()
+
+    suspend fun refreshFromDataLayer(): WearShiftSnapshot? {
+        val newest = readNewestPhoneSnapshot() ?: return null
+        val pending = pendingEvents().isNotEmpty()
+        if (WearLocalShift.shouldApplyPhoneSnapshot(_snapshot.value, newest, pending)) {
+            applySnapshot(newest)
+        } else {
+            applySnapshot(WearLocalShift.mergeConsent(_snapshot.value, newest))
+        }
+        return newest
+    }
+
+    suspend fun rollLocalDayIfNeeded(nowMillis: Long = System.currentTimeMillis()) {
+        val current = _snapshot.value
+        val rolled = WearLocalShift.rollToLocalDay(current, nowMillis)
+        if (rolled != current) applySnapshot(rolled)
     }
 
     /**
      * Parses the callback-scoped buffer synchronously (it is invalid once the
-     * listener returns) and applies the snapshots asynchronously — blocking
-     * the data-layer dispatch thread with runBlocking would stall delivery of
-     * subsequent events during a burst of phone-side updates.
+     * listener returns). Callers apply on their own coroutine so a replay of
+     * queued wrist punches can run in the same turn and cannot be overwritten
+     * by a stale snapshot applied later.
      */
-    fun handleDataEvents(events: DataEventBuffer) {
-        val snapshots = events.mapNotNull { event ->
+    fun takeChangedSnapshots(events: DataEventBuffer): List<WearShiftSnapshot> =
+        events.mapNotNull { event ->
             if (event.type != DataEvent.TYPE_CHANGED) return@mapNotNull null
             val item = event.dataItem
             if (!item.uri.path.orEmpty().startsWith(SHIFT_STATE)) return@mapNotNull null
             parseDataItem(item)
         }
-        if (snapshots.isEmpty()) return
-        applyScope.launch {
-            snapshots.forEach { applySnapshot(it) }
+
+    fun takeChangedCrashReportingConsents(events: DataEventBuffer): List<Boolean> =
+        events.mapNotNull { event ->
+            if (event.type != DataEvent.TYPE_CHANGED) return@mapNotNull null
+            val item = event.dataItem
+            if (!item.uri.path.orEmpty().startsWith(CRASH_REPORTING_CONSENT)) return@mapNotNull null
+            val dataMap = DataMapItem.fromDataItem(item).dataMap
+            if (!dataMap.containsKey(ENABLED_KEY)) return@mapNotNull null
+            dataMap.getBoolean(ENABLED_KEY)
+        }
+
+    suspend fun applyIncomingPhoneSnapshot(incoming: WearShiftSnapshot) {
+        val pending = pendingEvents().isNotEmpty()
+        if (WearLocalShift.shouldApplyPhoneSnapshot(_snapshot.value, incoming, pending)) {
+            applySnapshot(incoming)
+        } else {
+            applySnapshot(WearLocalShift.mergeConsent(_snapshot.value, incoming))
+        }
+    }
+
+    suspend fun applyCrashReportingConsent(enabled: Boolean) {
+        val current = _snapshot.value
+        if (current.crashReportingEnabled != enabled) {
+            applySnapshot(current.copy(crashReportingEnabled = enabled))
         }
     }
 
     suspend fun applySnapshot(snapshot: WearShiftSnapshot, persist: Boolean = true) {
-        _snapshot.value = snapshot
+        val rolled = WearLocalShift.rollToLocalDay(snapshot, System.currentTimeMillis())
+        _snapshot.value = rolled
         if (persist) {
             runCatchingCancellable {
                 context.wearStateDataStore.edit { prefs ->
-                    prefs[cacheKey] = WearSnapshotCodec.encode(snapshot)
+                    prefs[cacheKey] = WearSnapshotCodec.encode(rolled)
                 }
             }.onFailure { Log.w(TAG, "Could not cache the shift snapshot", it) }
         }
@@ -136,8 +197,12 @@ class WearStateRepository(
         // host, the watch-face complication registry, and WorkManager — and
         // this method runs on the startup path. One missing surface must
         // degrade that surface, not take the app down with it.
+        val keepRefreshWorkerRunning = WearLocalShift.shouldKeepBackgroundRefreshRunning(
+            rolled,
+            hasPendingReplay = pendingEvents().isNotEmpty(),
+        )
         runCatchingCancellable {
-            if (snapshot.isActive) {
+            if (keepRefreshWorkerRunning) {
                 WearTileRefreshWorker.schedule(context)
             } else {
                 WearTileRefreshWorker.cancel(context)
@@ -147,6 +212,12 @@ class WearStateRepository(
         runCatchingCancellable {
             ElmTrackrComplicationBridge.requestUpdateAll(context)
         }.onFailure { Log.w(TAG, "Could not request a complication update", it) }
+
+        // The fourth surface: the Wear OS ongoing-activity indicator on the watch
+        // face and the chip in recents, both of which the quality guidelines
+        // require while a shift runs. Posted while active, cancelled otherwise.
+        // Guards itself, including the POST_NOTIFICATIONS check.
+        WearOngoingShift.sync(context, rolled)
 
         // Re-render the tile immediately on every state change. The refresh
         // worker only drives the once-a-minute count-up while a shift runs;
@@ -180,6 +251,77 @@ class WearStateRepository(
     fun setPunchInProgress(inProgress: Boolean) {
         _isPunchInProgress.value = inProgress
     }
+
+    /**
+     * Records a punch on the watch itself when the phone cannot take it —
+     * unpaired, unsigned, unreachable, or opted out of Wear sync. The event is
+     * queued so a later signed-in phone can replay it with the original wrist
+     * time rather than "whenever the two devices next saw each other".
+     */
+    suspend fun applyLocalPunch(isPunchIn: Boolean, nowMillis: Long = System.currentTimeMillis()): PunchResult {
+        if (isPunchIn && _snapshot.value.isActive) return PunchResult(success = true)
+        if (!isPunchIn && !_snapshot.value.isActive) return PunchResult(success = true)
+        val queued = appendEvent(
+            WearPunchEvent(
+                id = UUID.randomUUID().toString(),
+                isPunchIn = isPunchIn,
+                epochMillis = nowMillis,
+                userId = _snapshot.value.userId,
+            ),
+        )
+        if (!queued) return PunchResult(success = false, errorCode = "local_queue_failed")
+        val next = if (isPunchIn) {
+            WearLocalShift.punchIn(_snapshot.value, nowMillis)
+        } else {
+            WearLocalShift.punchOut(_snapshot.value, nowMillis)
+        }
+        applySnapshot(next)
+        return PunchResult(success = true)
+    }
+
+    suspend fun pendingEvents(): List<WearPunchEvent> =
+        punchLogMutex.withLock { loadPunchLogLocked()?.events.orEmpty() }
+
+    suspend fun removeEvent(eventId: String) {
+        punchLogMutex.withLock {
+            val current = loadPunchLogLocked() ?: return@withLock
+            val remaining = current.events.filterNot { it.id == eventId }
+            persistPunchLogLocked(WearPunchEventLog(remaining))
+        }
+    }
+
+    private suspend fun appendEvent(event: WearPunchEvent): Boolean =
+        punchLogMutex.withLock {
+            val current = loadPunchLogLocked() ?: return@withLock false
+            persistPunchLogLocked(WearPunchEventLog(current.events + event))
+        }
+
+    private suspend fun loadPunchLogLocked(): WearPunchEventLog? {
+        val json = runCatchingCancellable {
+            context.wearPunchLogDataStore.data.first()[punchLogKey]
+        }.onFailure { Log.w(TAG, "Could not read the watch punch log", it) }
+            .getOrNull()
+            ?: runCatchingCancellable {
+                // Legacy location from before the queue was split away from the
+                // lossy snapshot cache. Read only when the new queue is empty.
+                context.wearStateDataStore.data.first()[punchLogKey]
+            }.onFailure { Log.w(TAG, "Could not read the legacy watch punch log", it) }
+                .getOrNull()
+        if (json == null) return WearPunchEventLog()
+        return WearSnapshotCodec.decodePunchLog(json)
+            ?: run {
+                Log.w(TAG, "Could not decode the watch punch log")
+                null
+            }
+    }
+
+    private suspend fun persistPunchLogLocked(log: WearPunchEventLog): Boolean =
+        runCatchingCancellable {
+            context.wearPunchLogDataStore.edit { prefs ->
+                prefs[punchLogKey] = WearSnapshotCodec.encodePunchLog(log)
+            }
+        }.onFailure { Log.w(TAG, "Could not persist the watch punch log", it) }
+            .isSuccess
 
     private fun parseDataItem(item: com.google.android.gms.wearable.DataItem): WearShiftSnapshot? {
         val payload = DataMapItem.fromDataItem(item).dataMap.getString(PAYLOAD_KEY) ?: return null

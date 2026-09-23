@@ -554,11 +554,13 @@ class SyncRepositoryImpl @Inject constructor(
         val isFullSync: Boolean,
         /** False when the page budget ran out, so [seenRemoteIds] is incomplete. */
         val drainedFully: Boolean = true,
+        /** True when the server view contained rows for a different local user. */
+        val sawForeignRows: Boolean = false,
     ) {
         val pulledAnyRows: Boolean get() = seenRemoteIds.isNotEmpty()
 
-        /** Tombstoning against a partial server view would delete valid local rows. */
-        val safeToTombstone: Boolean get() = isFullSync && pulledAnyRows && drainedFully
+        /** Tombstoning against a partial or mismatched server view would delete valid local rows. */
+        val safeToTombstone: Boolean get() = isFullSync && pulledAnyRows && drainedFully && !sawForeignRows
     }
 
     /**
@@ -607,6 +609,7 @@ class SyncRepositoryImpl @Inject constructor(
         var holdEpoch: Long? = null
         var drainedFully = true
         val seenRemoteIds = mutableSetOf<String>()
+        var sawForeignRows = false
         var pagesFetched = 0
         // Held in memory and written once, after the loop, instead of once per page.
         // Every page used to cost a DataStore edit — a durable fsync on the same file
@@ -639,11 +642,12 @@ class SyncRepositoryImpl @Inject constructor(
                 val rowEpoch = isoToEpoch(updatedAtIso(row))
                 // The cursor still advances past a foreign row and its id still
                 // counts as seen: holding the cursor would stall the pull on a row
-                // that will never be applicable, and excluding it from
-                // seenRemoteIds would let the tombstone pass delete a local row
-                // that happened to share the id. Keeping local data beats
-                // deleting it, here as elsewhere in this pipeline.
+                // that will never be applicable. Seeing any foreign row also
+                // disables the tombstone sweep for this pull, because the result
+                // set has proven it is not a complete, trustworthy view of
+                // [userId]'s server rows.
                 if (ownerOf(row) != userId) {
+                    sawForeignRows = true
                     foreignRowsThisRun++
                     maxEpoch = maxOf(maxEpoch, rowEpoch)
                     continue
@@ -681,7 +685,12 @@ class SyncRepositoryImpl @Inject constructor(
 
         pendingCursor?.let { syncCursorStore.setLastPulledAt(userId, entity, it) }
 
-        return PullOutcome(seenRemoteIds = seenRemoteIds, isFullSync = isFullSync, drainedFully = drainedFully)
+        return PullOutcome(
+            seenRemoteIds = seenRemoteIds,
+            isFullSync = isFullSync,
+            drainedFully = drainedFully,
+            sawForeignRows = sawForeignRows,
+        )
     }
 
     // ── Tasks ───────────────────────────────────────────────────────────────
@@ -870,7 +879,10 @@ class SyncRepositoryImpl @Inject constructor(
         val startTimeIso = epochToIso(shift.startTime)
         val existingRemote = shiftsRemote.findByUserAndStartTime(shift.userId, startTimeIso)
         if (existingRemote != null) {
-            markShiftSynced(shift, existingRemote.id, syncedAt)
+            // A matching start time may be the clock-in half of this same local row.
+            // Attach the id, then push local clock-out/break/note edits instead of
+            // declaring them synced against the older remote copy.
+            pushShiftUpdate(shift.copy(remoteId = existingRemote.id), syncedAt)
             return
         }
 
@@ -888,7 +900,7 @@ class SyncRepositoryImpl @Inject constructor(
             if (RemoteSyncErrors.isUniqueViolation(error)) {
                 val linked = shiftsRemote.findByUserAndStartTime(shift.userId, startTimeIso)
                     ?: throw error
-                markShiftSynced(shift, linked.id, syncedAt)
+                pushShiftUpdate(shift.copy(remoteId = linked.id), syncedAt)
             } else {
                 throw error
             }

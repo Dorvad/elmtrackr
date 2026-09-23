@@ -14,53 +14,56 @@ notice — re-read both pages before a submission rather than trusting this file
 
 ## 0. Check this first. It may be the entire problem.
 
-The rejection names **version code 10041**.
+> **22 September 2026:** wear 10056 was rejected for text overlap at large
+> font sizes and for having no ongoing activity while a shift runs. Both are
+> fixed in code; see
+> [wear-play-rejection-2026-09-22-10056.md](wear-play-rejection-2026-09-22-10056.md).
+> The next pair is **57 / 10057**.
+>
+> **21 September 2026:** the review, code fixes and the full manual
+> resubmission sequence for the 10055 rejection are in
+> [wear-play-resubmission-2026-09-21.md](wear-play-resubmission-2026-09-21.md).
+> Follow its Section B in order, with the amendments in the 22 September
+> document; the notes below remain as background.
 
-**This repository has never produced a 10041.** The wear `versionCode` history is:
+The 17 September 2026 rejection names **version code 10055**, twice: a crash,
+and a listing that does not mention tile or complication.
 
-| Commit | Date | wear versionCode |
-|---|---|---|
-| `f53d2dc` | 2026-08-08 | 10011 |
-| `e4d0a04` | 2026-08-10 | 10012 |
-| **`41b835e`** | **2026-08-23** | **10042** — *"Fix the Wear OS launch crashes"* |
-| `5183178` | 2026-08-30 | 10043 |
+**The listing half cannot be fixed in this repository.** Paste
+[play-listing-wear-copy.md](play-listing-wear-copy.md) into every listing
+language and grep for `tile` and `complication` before you upload. That finding
+has come back on every Wear review that left the listing untouched, including
+10055.
 
-It went 10012 → 10042, skipping 10041 entirely. **Every launch-crash fix lives in
-10042 and later.** So a rejection naming 10041 is a rejection of a build that
-contains none of them.
+**This repository was at 10053 when 10055 was rejected.** The extra codes were
+a local hand-bump that was never committed. The next pair is **56 / 10056**.
+Move 10055 to Not included.
 
-Three things could produce that, and they need different responses:
+### What to check, in the console, before touching any more code
 
-1. **The rejected 10041 is still in the release.** Play re-reviews what is in the
-   track. If 10041 was never moved out, each "resubmit" re-reviews the same
-   broken artifact and you wait a week to be told so again.
-2. **10042/10043 was never successfully rolled out** — uploaded to a draft that
-   was never sent for review, or the release was left unsubmitted.
-3. **You are re-reading the August rejection email.** In which case the fixed
-   build genuinely has not been reviewed yet.
+1. **Store listing** — `tile` and `complication` in every listed language.
+2. **App bundle explorer** — confirm 10055 is the artifact under review, then
+   that 10056 is the one you are about to attach.
+3. **The release under review** — if 10055 (or 10052, or 10041) still appears
+   in the artifact list, that is what is being reviewed.
+4. If a rejected code is present: new release, newest artifacts only, rejected
+   ones set to **Not included**, roll out.
 
-### What to check, in the console, before touching any code
+Until an artifact ≥ 10056 is in review *and* the listing mentions tile and
+complication, the code in this tree is not what Google is judging.
 
-1. **Release → Production (and every other track) → Releases.** Look at the
-   artifact list for the release under review. If **10041** appears anywhere,
-   that is what is being reviewed.
-2. **App bundle explorer.** Search for 10041, 10042 and 10043. This tells you
-   which artifacts Play has actually received, and their status.
-3. If 10041 is present: create a new release, include **only** the newest wear
-   artifact, set 10041 to **Not included**, and roll out.
-
-Until an artifact ≥ 10042 has been through review, the code fixes are untested by
-Google and nothing below will change the outcome.
-
-> I cannot see your Play Console, so I cannot tell you which of the three it is.
-> This is the one item on the list that costs two minutes to check and could
-> explain every week you have lost.
+> I cannot see your Play Console. The listing paste is the one item that costs
+> two minutes and has independently failed every Wear submission so far.
 
 ---
 
-## 1. Why this keeps happening — the structural cause
+## 1. Why this kept happening — the structural cause (historical)
 
-The watch app declares itself phone-dependent:
+The watch **now** declares `standalone=true` and can punch with no phone.
+Section 0 of this file is the live checklist. What follows is why 10041–10052
+failed, so it is not undone.
+
+The watch used to declare itself phone-dependent:
 
 ```xml
 <meta-data android:name="com.google.android.wearable.standalone" android:value="false" />
@@ -231,7 +234,7 @@ Audited against the live checklist on 3 September 2026.
 | Large-font text clipping | **Pass** | Fixed July; verify again on hardware per §3. |
 | targetSdk ≥ 34 | **Pass** | `targetSdk = 36`. |
 | 64-bit support (**enforced 15 Sep 2026**) | **Pass** | The `:wear` module has no native code — no `.so`, no `abiFilters`, no NDK, and no native dependency. Nothing to do, but note the date: it is 12 days away. |
-| Unique versionCode across form factors | **Pass** | `wear == 10000 + phone`, currently 10043 / 43. |
+| Unique versionCode across form factors | **Pass** | `wear == 10000 + phone`, currently 10056 / 56. |
 | Wear screenshots, listing, credentials | **You confirmed done** | Re-checked on *every* review — see §5. |
 
 ---

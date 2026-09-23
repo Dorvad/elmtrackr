@@ -19,6 +19,15 @@ import kotlinx.coroutines.flow.Flow
 interface PurchasePreferences {
     val preferences: Flow<AppPreferenceValues>
 
+    /**
+     * Reads the entitlement file for one-time grandfathering.
+     *
+     * Unlike [preferences], this must not substitute empty values when the store
+     * cannot be read: an empty seed is permanent, while an unreadable store may be
+     * transient.
+     */
+    suspend fun grandfatheringSeedSnapshot(): AppPreferenceValues?
+
     /** Replaces the cached purchase list with what Play just reported. */
     suspend fun setOwnedProductIds(productIds: Set<String>)
 

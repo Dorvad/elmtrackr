@@ -1,8 +1,6 @@
 package com.elmtrackr.app.billing
 
-import com.elmtrackr.app.data.local.preferences.ClockFacePreferences
 import com.elmtrackr.app.data.local.preferences.PurchasePreferences
-import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,7 +20,6 @@ import javax.inject.Singleton
  */
 @Singleton
 class ClockFacePackGrandfathering @Inject constructor(
-    private val clockFacePreferences: ClockFacePreferences,
     private val purchasePreferences: PurchasePreferences,
 ) {
 
@@ -35,8 +32,9 @@ class ClockFacePackGrandfathering @Inject constructor(
      * bought in the meantime.
      */
     suspend fun seedIfNeeded() {
-        if (purchasePreferences.preferences.first().clockFacePacksGrandfathered) return
-        val installed = clockFacePreferences.preferences.first().installedClockFacePacks
+        val entitlements = purchasePreferences.grandfatheringSeedSnapshot() ?: return
+        if (entitlements.clockFacePacksGrandfathered) return
+        val installed = entitlements.installedClockFacePacks
         purchasePreferences.setGrandfatheredClockFacePacks(
             ClockFacePackOwnership.grandfatherSeed(installed).mapTo(mutableSetOf()) { it.name },
         )

@@ -18,6 +18,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,13 +64,26 @@ import com.elmtrackr.wear.sync.WearConfirmation
 
 /**
  * Face scaffold shared by every screen: wordmark pinned to the top, content
- * centered on the vertical axis — the symmetric composition from the mockup.
+ * centred on the vertical axis — the symmetric composition from the mockup.
+ *
+ * The wordmark and the content used to be two independent layers, each
+ * positioned against the whole screen, so nothing stopped a content column that
+ * grew past its default height from running into the wordmark. At the default
+ * font size that was already a near miss on the idle face; at the largest
+ * accessibility size the two overlapped outright, which Play recorded as "texts
+ * are overlapping when a large font size is selected". [WearFaceLayout] now places
+ * both from one measure pass: content stays screen-centred while it fits, slides
+ * down below the wordmark when it would touch it, and when even that does not
+ * fit the wordmark is dropped and the content scrolls. The two cannot overlap by
+ * construction, at any font size, on any screen.
  */
 @Composable
 private fun WearFace(
     onTap: (() -> Unit)? = null,
     onTapLabel: String? = null,
     showWordmark: Boolean = true,
+    /** Full-bleed layer drawn under the content — the goal ring. */
+    decoration: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -89,19 +105,72 @@ private fun WearFace(
                 }
             },
     ) {
-        if (showWordmark) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    // Clear of the curved TimeText band along the top bezel.
-                    .padding(top = 28.dp),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                WearBrandLabel()
+        decoration?.invoke()
+        WearFaceLayout(
+            showWordmark = showWordmark,
+            wordmark = { WearBrandLabel() },
+            content = {
+                // One measurable for the layout below, scrollable so a column taller
+                // than the space between the time and the bezel scrolls rather than
+                // overflowing. Horizontal padding keeps wrapped lines off a round edge.
+                Box(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 18.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    content()
+                }
+            },
+        )
+    }
+}
+
+/**
+ * Places the wordmark and the content without letting them meet.
+ *
+ * - `topReserve` clears the curved TimeText the scaffold draws along the top
+ *   bezel; it grows with the font scale because TimeText does.
+ * - Content is measured against the height left below that reserve, so a
+ *   scrollable child gets a finite bound rather than infinity.
+ * - If the wordmark, a gap and the content all fit, the content is screen-centred
+ *   (the default composition) or pushed down just enough to clear the wordmark.
+ * - Otherwise the wordmark is not placed at all and the content takes the space.
+ */
+@Composable
+private fun WearFaceLayout(
+    showWordmark: Boolean,
+    wordmark: @Composable () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+    Layout(
+        contents = listOf(wordmark, content),
+        modifier = Modifier.fillMaxSize(),
+    ) { (wordmarkMeasurables, contentMeasurables), constraints ->
+        val width = constraints.maxWidth
+        val height = constraints.maxHeight
+        val topReserve = (4.dp.toPx() + 24.dp.toPx() * fontScale).toInt()
+        val bottomReserve = 8.dp.toPx().toInt()
+        val gap = 6.dp.toPx().toInt()
+
+        val loose = Constraints(maxWidth = width)
+        val wordmarkPlaceable = if (showWordmark) wordmarkMeasurables.firstOrNull()?.measure(loose) else null
+        val contentPlaceable = contentMeasurables.first().measure(
+            Constraints(maxWidth = width, maxHeight = (height - topReserve - bottomReserve).coerceAtLeast(0)),
+        )
+
+        val centredY = (height - contentPlaceable.height) / 2
+        val belowWordmark = topReserve + (wordmarkPlaceable?.height ?: 0) + gap
+        val wordmarkFits = wordmarkPlaceable != null &&
+            belowWordmark + contentPlaceable.height <= height - bottomReserve
+        val contentY = if (wordmarkFits) maxOf(centredY, belowWordmark) else maxOf(centredY, topReserve)
+
+        layout(width, height) {
+            if (wordmarkFits) {
+                wordmarkPlaceable!!.placeRelative((width - wordmarkPlaceable.width) / 2, topReserve)
             }
-        }
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            content()
+            contentPlaceable.placeRelative((width - contentPlaceable.width) / 2, contentY)
         }
     }
 }
@@ -120,6 +189,12 @@ private fun StatusDotRow(label: String, dotColor: Color) {
             text = label,
             style = WearElmType.status,
             color = AuroraInk2,
+            textAlign = TextAlign.Center,
+            // A Row cannot wrap; the text can. Two lines with an ellipsis so a long
+            // translation at a large font size wraps instead of leaving the screen.
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
         )
     }
 }
@@ -133,13 +208,11 @@ fun SetupScreen(onRefresh: () -> Unit) {
     // would also be the only screen showing the brand twice: the badge below is
     // the same mark. Dropping it fixes the overlap and removes the repetition.
     WearFace(showWordmark = false) {
-        // Scrollable so oversized accessibility fonts push content into a
-        // scroll instead of clipping it against the round bezel.
+        // The face itself scrolls (see WearFace), so this column only lays out; a
+        // second vertical scroll here would be measured against infinite height
+        // and throw during composition.
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 28.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -196,6 +269,9 @@ fun IdleScreen(
                 text = stringResource(R.string.punch_in).uppercase(),
                 style = WearElmType.action,
                 color = AuroraInk,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(6.dp))
             StatusDotRow(
@@ -212,7 +288,7 @@ fun IdleScreen(
                     // instead of being clipped at the screen edge.
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 4.dp, start = 20.dp, end = 20.dp),
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }
@@ -230,8 +306,8 @@ fun RunningScreen(
     WearFace(
         onTap = onPunchOut.takeIf { !isLoading },
         onTapLabel = stringResource(R.string.punch_out),
+        decoration = { AuroraProgressRing(progressPercent = progressPercent) },
     ) {
-        AuroraProgressRing(progressPercent = progressPercent)
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             StatusDotRow(
                 label = stringResource(R.string.wear_on_shift),
@@ -429,9 +505,13 @@ fun ConfirmationOverlay(confirmation: WearConfirmation) {
         }
         Text(
             text = message,
-            style = WearElmType.title,
+            // Capped like the numerals: a three-line failure message at 2x would
+            // be taller than the screen. Three lines at 1.3x fit under the mark.
+            style = WearElmType.title.withCappedFontScale(),
             color = AuroraInk,
             textAlign = TextAlign.Center,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 10.dp, start = 12.dp, end = 12.dp),
         )
     }

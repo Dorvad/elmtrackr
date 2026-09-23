@@ -67,17 +67,21 @@ class LocalShiftsRepository @Inject constructor(
         compensationSource: CompensationSource,
         projectId: String?,
         projectNameSnapshot: String?,
+        startTimeMillis: Long?,
     ): Shift = clockInMutex.withLock {
-        shiftDao.getActiveShifts(userId).maxByOrNull { it.startTime }?.let { activeShift ->
+        shiftDao.getActiveShifts(userId).minByOrNull { it.startTime }?.let { activeShift ->
             return activeShift.toDomain()
         }
 
         val now = Instant.now().toEpochMilli()
+        val startTime = startTimeMillis
+            ?.takeIf { it in 1L..now }
+            ?: now
         val entity = ShiftEntity(
             localId = UUID.randomUUID().toString(),
             remoteId = null,
             userId = userId,
-            startTime = now,
+            startTime = startTime,
             endTime = null,
             breakMinutes = 0,
             notes = null,
@@ -119,12 +123,14 @@ class LocalShiftsRepository @Inject constructor(
         breakMinutes: Int,
         notes: String?,
         compensationSnapshot: CompensationSnapshot?,
+        endTimeMillis: Long?,
     ): Shift {
         val existing = shiftDao.getShiftById(localId)?.takeIf { it.deletedAt == null }
             ?: error("Shift $localId not found")
         val now = Instant.now().toEpochMilli()
+        val endTime = (endTimeMillis ?: now).coerceIn(existing.startTime, now.coerceAtLeast(existing.startTime))
         val updated = existing.copy(
-            endTime = now,
+            endTime = endTime,
             breakMinutes = breakMinutes,
             notes = notes,
             compensationSnapshotJson = compensationSnapshot?.let { CompensationRulesCodec.encodeSnapshot(it) },

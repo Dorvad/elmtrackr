@@ -1,12 +1,16 @@
 package com.elmtrackr.app.wear
 
 import android.content.Context
+import android.util.Log
+import com.elmtrackr.app.monitoring.CrashReporting
 import com.elmtrackr.wear.sync.PunchResult
 import com.elmtrackr.wear.sync.WearMessages
 import com.elmtrackr.wear.sync.WearSnapshotCodec
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
 import com.google.android.gms.wearable.WearableListenerService
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -15,15 +19,46 @@ import kotlinx.coroutines.tasks.await
 
 class WearMessageListenerService : WearableListenerService() {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // Play Services starts this service on the watch's behalf, so the work here
+    // runs in the background with nobody looking. A SupervisorJob alone does not
+    // stop an unhandled failure from reaching the thread's default handler, which
+    // on Android kills the phone app — over a watch message. Report and swallow.
+    private val scope = CoroutineScope(
+        SupervisorJob() +
+            Dispatchers.IO +
+            CoroutineExceptionHandler { _, throwable ->
+                if (throwable is CancellationException) return@CoroutineExceptionHandler
+                Log.e(TAG, "Unhandled failure while serving a watch message", throwable)
+                runCatching { CrashReporting.report(throwable) }
+            },
+    )
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
         when (messageEvent.path) {
-            WearMessages.PUNCH_IN -> handlePunch(messageEvent) { WearActions.clockIn(it) }
-            WearMessages.PUNCH_OUT -> handlePunch(messageEvent) { WearActions.clockOut(it) }
-            WearMessages.REFRESH -> scope.launch { WearSyncPublisher.refresh(applicationContext) }
+            WearMessages.PUNCH_IN -> handlePunch(messageEvent) { ctx ->
+                val command = punchCommand(messageEvent)
+                WearActions.clockIn(ctx, command?.epochMillis?.takeIf { it > 0L }, command?.userId.orEmpty())
+            }
+            WearMessages.PUNCH_OUT -> handlePunch(messageEvent) { ctx ->
+                val command = punchCommand(messageEvent)
+                WearActions.clockOut(ctx, command?.epochMillis?.takeIf { it > 0L }, command?.userId.orEmpty())
+            }
+            WearMessages.REFRESH -> scope.launch {
+                // refresh() reads the database before it publishes, and only the
+                // publish half guarded itself. A Room failure here used to be an
+                // uncaught exception on a background coroutine — a phone crash
+                // triggered by the watch coming into range.
+                runCatching { WearSyncPublisher.refresh(applicationContext) }
+                    .onFailure {
+                        if (it is CancellationException) throw it
+                        Log.w(TAG, "Could not answer the watch's refresh request", it)
+                    }
+            }
         }
     }
+
+    private fun punchCommand(messageEvent: MessageEvent) =
+        WearSnapshotCodec.decodePunchCommand(messageEvent.data)
 
     /**
      * Whether [nodeId] is a device currently paired with this one.
@@ -70,5 +105,9 @@ class WearMessageListenerService : WearableListenerService() {
                     .await()
             }
         }
+    }
+
+    private companion object {
+        const val TAG = "WearMessageListener"
     }
 }

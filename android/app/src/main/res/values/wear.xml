@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Advertises the ElmTrackr phone app to a paired watch via the CapabilityClient.
+
+    The watch used to treat every connected node as an ElmTrackr phone and wait the
+    full punch budget for an acknowledgement. A watch paired to a phone without the
+    app (a store reviewer's set-up, or a user who installed the watch app first)
+    therefore sat on a ten-second spinner after every punch before recording it
+    locally. With this capability the watch can tell the two apart: see
+    WearPhoneReach in :wear-sync. The name must match WearCapabilities.PHONE_APP.
+-->
+<resources>
+    <string-array name="android_wear_capabilities" translatable="false">
+        <item>elmtrackr_phone_app</item>
+    </string-array>
+</resources>

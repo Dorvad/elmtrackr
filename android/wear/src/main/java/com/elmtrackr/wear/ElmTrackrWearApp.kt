@@ -4,12 +4,10 @@ import android.app.Application
 import android.content.Context
 import android.os.VibrationEffect
 import android.os.Vibrator
-import android.util.Log
+import androidx.work.Configuration
 import com.elmtrackr.wear.monitoring.WearCrashReporting
 import com.elmtrackr.wear.sync.WearActionClient
 import com.elmtrackr.wear.sync.WearStateRepository
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -17,7 +15,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-class ElmTrackrWearApp : Application() {
+class ElmTrackrWearApp : Application(), Configuration.Provider {
 
     // SupervisorJob keeps one failed child from cancelling its siblings, but it
     // does NOT stop an unhandled failure from reaching the thread's default
@@ -27,16 +25,17 @@ class ElmTrackrWearApp : Application() {
     private val applicationScope = CoroutineScope(
         SupervisorJob() +
             Dispatchers.IO +
-            CoroutineExceptionHandler { _, throwable ->
-                if (throwable is CancellationException) return@CoroutineExceptionHandler
-                Log.e(TAG, "Unhandled failure on the watch application scope", throwable)
-                // Logged and reported. Logging alone is what this module did before,
-                // and logcat on a store reviewer's watch is not somewhere anyone can
-                // read: three rejections mentioning a crash produced no stack trace
-                // between them.
-                WearCrashReporting.report(throwable)
-            },
+            wearBackgroundExceptionHandler(TAG),
     )
+
+    // On-demand WorkManager, matching :app. The default androidx.startup
+    // initializer is a ContentProvider, so it runs *before* Application.onCreate
+    // — before crash reporting, before any of our guards. JobScheduler on some
+    // Wear review devices throws from that initializer, which is a process death
+    // on the launch path with no stack in Sentry. Configuration.Provider is how
+    // WorkManager is told to wait until first use instead.
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().build()
 
     lateinit var wearStateRepository: WearStateRepository
         private set
@@ -56,6 +55,7 @@ class ElmTrackrWearApp : Application() {
         wearActionClient = WearActionClient(this, wearStateRepository)
         applicationScope.launch {
             wearStateRepository.bootstrap()
+            wearActionClient.requestRefreshFromPhone()
         }
         // The watch has no settings screen, so the user's choice about crash
         // reporting reaches it here, in every snapshot the phone pushes.

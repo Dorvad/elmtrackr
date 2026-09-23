@@ -41,6 +41,79 @@ class WearManifestContractTest {
     }
 
     @Test
+    fun watchAppIsStandalone() {
+        val application = manifest.getElementsByTagName("application").item(0) as Element
+        val nodes = application.getElementsByTagName("meta-data")
+        val standalone = (0 until nodes.length)
+            .map { nodes.item(it) as Element }
+            .firstOrNull { it.getAttributeNS(ANDROID_NS, "name") == "com.google.android.wearable.standalone" }
+        assertNotNull("standalone meta-data missing", standalone)
+        assertEquals(
+            "A non-standalone watch cannot punch without a signed-in phone, which is " +
+                "the review path that keeps being rejected as functionality not working.",
+            "true",
+            standalone!!.getAttributeNS(ANDROID_NS, "value"),
+        )
+    }
+
+    @Test
+    fun workManagerDoesNotAutoInitBeforeApplicationOnCreate() {
+        val providers = manifest.getElementsByTagName("provider")
+        val startup = (0 until providers.length)
+            .map { providers.item(it) as Element }
+            .firstOrNull {
+                it.getAttributeNS(ANDROID_NS, "name") == "androidx.startup.InitializationProvider"
+            }
+        assertNotNull("androidx.startup provider missing — merge/remove of WorkManagerInitializer needs it", startup)
+        val metas = startup!!.getElementsByTagName("meta-data")
+        val workManager = (0 until metas.length)
+            .map { metas.item(it) as Element }
+            .firstOrNull {
+                it.getAttributeNS(ANDROID_NS, "name") == "androidx.work.WorkManagerInitializer"
+            }
+        assertNotNull(workManager)
+        assertEquals(
+            "WorkManager's default initializer is a ContentProvider and runs before " +
+                "Application.onCreate. Leave it in and a JobScheduler failure on a review " +
+                "watch is a launch crash Sentry never sees. Found tools:node=" +
+                workManager!!.getAttributeNS(TOOLS_NS, "node"),
+            "remove",
+            workManager.getAttributeNS(TOOLS_NS, "node"),
+        )
+    }
+
+    @Test
+    fun launcherUsesTheBlackWearTheme() {
+        val application = manifest.getElementsByTagName("application").item(0) as Element
+        val main = activity(".WearMainActivity")
+        assertEquals("@style/Theme.ElmTrackrWear", application.getAttributeNS(ANDROID_NS, "theme"))
+        assertEquals("@style/Theme.ElmTrackrWear", main!!.getAttributeNS(ANDROID_NS, "theme"))
+    }
+
+    @Test
+    fun tileTrampolineDoesNotUseThemeNoDisplay() {
+        val trampoline = activity(".tile.WearPunchTrampolineActivity")
+        assertNotNull(trampoline)
+        val theme = trampoline!!.getAttributeNS(ANDROID_NS, "theme")
+        assertTrue(
+            "Theme.NoDisplay crashes on Wear when onResume is delivered after finish(). " +
+                "Use a translucent theme instead. Found: $theme",
+            theme.contains("Translucent"),
+        )
+    }
+
+    @Test
+    fun postNotificationsIsDeclaredForTheOngoingActivity() {
+        val nodes = manifest.getElementsByTagName("uses-permission")
+        val names = (0 until nodes.length).map { (nodes.item(it) as Element).getAttributeNS(ANDROID_NS, "name") }
+        assertTrue(
+            "The running shift is a Wear OS Ongoing Activity, which rides on a notification; " +
+                "from API 33 that needs POST_NOTIFICATIONS or the watch-face indicator never appears.",
+            names.contains("android.permission.POST_NOTIFICATIONS"),
+        )
+    }
+
+    @Test
     fun launcherActivityIsExported() {
         val main = activity(".WearMainActivity")
         assertNotNull("The watch launcher activity is missing from the manifest", main)
@@ -72,6 +145,22 @@ class WearManifestContractTest {
         assertTrue("Data layer listener missing", services.contains(".sync.WearDataListenerService"))
     }
 
+    @Test
+    fun dataListenerReceivesCapabilityChanges() {
+        val nodes = manifest.getElementsByTagName("service")
+        val listener = (0 until nodes.length)
+            .map { nodes.item(it) as Element }
+            .firstOrNull { it.getAttributeNS(ANDROID_NS, "name") == ".sync.WearDataListenerService" }
+        assertNotNull(listener)
+        val actions = listener!!.getElementsByTagName("action")
+        val names = (0 until actions.length).map { (actions.item(it) as Element).getAttributeNS(ANDROID_NS, "name") }
+        assertTrue(
+            "Without CAPABILITY_CHANGED the watch never learns the phone came back " +
+                "unless the launcher opens, so tile-only punches stay queued.",
+            names.contains("com.google.android.gms.wearable.CAPABILITY_CHANGED"),
+        )
+    }
+
     private fun activity(name: String): Element? {
         val nodes = manifest.getElementsByTagName("activity")
         return (0 until nodes.length)
@@ -95,5 +184,6 @@ class WearManifestContractTest {
 
     private companion object {
         const val ANDROID_NS = "http://schemas.android.com/apk/res/android"
+        const val TOOLS_NS = "http://schemas.android.com/tools"
     }
 }

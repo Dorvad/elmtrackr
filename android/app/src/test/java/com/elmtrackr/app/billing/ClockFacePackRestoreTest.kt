@@ -60,7 +60,6 @@ class ClockFacePackRestoreTest {
         migration: EntitlementsMigration = NoOpEntitlementsMigration,
     ) = ClockFacePackBillingCoordinator(
         grandfathering = ClockFacePackGrandfathering(
-            clockFacePreferences = facePreferences,
             purchasePreferences = purchasePreferences,
         ),
         store = store,

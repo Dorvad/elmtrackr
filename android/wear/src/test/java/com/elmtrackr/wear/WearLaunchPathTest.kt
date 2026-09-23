@@ -1,13 +1,20 @@
 package com.elmtrackr.wear
 
+import android.Manifest
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.ContextWrapper
 import androidx.test.core.app.ApplicationProvider
+import androidx.wear.watchface.complications.data.ComplicationType
+import androidx.wear.watchface.complications.data.NoDataComplicationData
 import com.elmtrackr.wear.complication.ElmTrackrComplicationService
 import com.elmtrackr.wear.monitoring.WearCrashReporting
+import com.elmtrackr.wear.ongoing.WearOngoingShift
+import com.elmtrackr.wear.sync.WearShiftSnapshot
 import com.elmtrackr.wear.sync.WearDataListenerService
 import com.elmtrackr.wear.tile.WearPunchTrampolineActivity
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -16,6 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.android.controller.ActivityController
 
@@ -163,6 +171,17 @@ class WearLaunchPathTest {
         controller.destroy()
     }
 
+    @Test
+    @Config(sdk = [33], qualifiers = "w227dp-h227dp-small-notlong-round")
+    fun `the launcher activity reaches resume on a round canvas`() {
+        val controller = Robolectric.buildActivity(WearMainActivity::class.java)
+
+        controller.create()
+        controller.start()
+        controller.resume()
+        controller.destroy()
+    }
+
     /**
      * The view model, built the way the activity builds it.
      *
@@ -176,6 +195,18 @@ class WearLaunchPathTest {
         val viewModel = WearMainViewModel(app())
 
         assertNotNull(viewModel.displayState)
+    }
+
+    /**
+     * WorkManager is on-demand via [ElmTrackrWearApp] as Configuration.Provider.
+     * If the default androidx.startup initializer is left in, this still passes
+     * on Robolectric and still crashes on a real watch — so this test is the
+     * on-demand half; [WearManifestContractTest.workManagerDoesNotAutoInitBeforeApplicationOnCreate]
+     * is the ContentProvider half.
+     */
+    @Test
+    fun `WorkManager is reachable after Application onCreate`() {
+        assertNotNull(androidx.work.WorkManager.getInstance(app()))
     }
 
     /**
@@ -197,6 +228,24 @@ class WearLaunchPathTest {
         val service = Robolectric.setupService(ElmTrackrComplicationService::class.java)
 
         assertNotNull(service)
+        service.onDestroy()
+    }
+
+    /**
+     * The complication picker asks for preview data on the main thread, with no
+     * framework guard around the call, so a throw there is a crash while a reviewer
+     * is adding the complication to a watch face. Every supported type has to
+     * produce something — real data, or the empty slot the provider falls back to.
+     */
+    @Test
+    fun `the complication preview builds for every supported type`() {
+        val service = Robolectric.setupService(ElmTrackrComplicationService::class.java)
+
+        for (type in listOf(ComplicationType.SHORT_TEXT, ComplicationType.LONG_TEXT, ComplicationType.RANGED_VALUE)) {
+            val data = service.getPreviewData(type)
+            assertNotNull("no preview for $type", data)
+            assertFalse("preview for $type fell back to the empty slot", data is NoDataComplicationData)
+        }
         service.onDestroy()
     }
 
@@ -237,13 +286,112 @@ class WearLaunchPathTest {
      */
     @Test
     fun `the phone's consent is remembered and defaults to on`() {
-        assertTrue("an unpaired watch should still report", WearCrashReporting.isEnabled(app()))
+        val context = app()
+        assertTrue("an unpaired watch should still report", WearCrashReporting.isEnabled(context))
 
-        WearCrashReporting.applyPhoneConsent(app(), enabled = false)
-        assertFalse("an opt-out from the phone must stick", WearCrashReporting.isEnabled(app()))
+        // Application.onCreate collects crashReportingEnabled from the cached
+        // snapshot (default on) on Dispatchers.IO. Wait for that write to land
+        // so this opt-out is not overwritten by the default.
+        Thread.sleep(150)
+        WearCrashReporting.applyPhoneConsent(context, enabled = false)
+        assertFalse("an opt-out from the phone must stick", WearCrashReporting.isEnabled(context))
 
-        WearCrashReporting.applyPhoneConsent(app(), enabled = true)
-        assertTrue(WearCrashReporting.isEnabled(app()))
+        WearCrashReporting.applyPhoneConsent(context, enabled = true)
+        assertTrue(WearCrashReporting.isEnabled(context))
+    }
+
+    @Test
+    fun `the exported punch trampoline requires the tile token`() {
+        val token = WearPunchTrampolineActivity.tileLaunchToken(app())
+
+        assertFalse(
+            WearPunchTrampolineActivity.isAuthorizedTileIntent(
+                app(),
+                Intent().putExtra(WearPunchTrampolineActivity.EXTRA_ACTION, WearPunchTrampolineActivity.ACTION_IN),
+            ),
+        )
+        assertFalse(
+            WearPunchTrampolineActivity.isAuthorizedTileIntent(
+                app(),
+                Intent()
+                    .putExtra(WearPunchTrampolineActivity.EXTRA_ACTION, WearPunchTrampolineActivity.ACTION_IN)
+                    .putExtra(WearPunchTrampolineActivity.EXTRA_TOKEN, "not-$token"),
+            ),
+        )
+        assertTrue(
+            WearPunchTrampolineActivity.isAuthorizedTileIntent(
+                app(),
+                Intent()
+                    .putExtra(WearPunchTrampolineActivity.EXTRA_ACTION, WearPunchTrampolineActivity.ACTION_IN)
+                    .putExtra(WearPunchTrampolineActivity.EXTRA_TOKEN, token),
+            ),
+        )
+    }
+
+    /**
+     * The Wear quality guidelines require an ongoing activity while a shift runs
+     * — an indicator on the watch face and a chip in recents — and Play rejected
+     * 10056 for not having one. It rides on an ongoing notification, so the
+     * observable contract is: an active snapshot posts it, an inactive one clears
+     * it, and the notification carries the ongoing flag the system keys on.
+     */
+    @Test
+    fun `an active snapshot posts the ongoing shift and an idle one clears it`() = runTest {
+        val context = app()
+        shadowOf(context).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        val notifications = shadowOf(context.getSystemService(NotificationManager::class.java))
+        val repository = context.wearStateRepository
+
+        repository.applySnapshot(
+            WearShiftSnapshot(
+                signedIn = true,
+                isActive = true,
+                shiftStartEpochMillis = System.currentTimeMillis() - 600_000L,
+                startTimeLabel = "09:00",
+            ),
+            persist = false,
+        )
+
+        val posted = notifications.getNotification(WearOngoingShift.NOTIFICATION_ID)
+        assertNotNull("no ongoing shift notification was posted", posted)
+        assertTrue(
+            "the shift notification must be ongoing for Wear OS to treat it as an ongoing activity",
+            posted.flags and android.app.Notification.FLAG_ONGOING_EVENT != 0,
+        )
+        assertTrue(
+            "the ongoing-activity extras are missing, so no indicator would show on the watch face",
+            posted.extras.keySet().any { it.contains("ongoing", ignoreCase = true) },
+        )
+
+        repository.applySnapshot(WearShiftSnapshot.signedOut(), persist = false)
+
+        assertNull(
+            "clocking out must clear the ongoing shift",
+            notifications.getNotification(WearOngoingShift.NOTIFICATION_ID),
+        )
+    }
+
+    /** Without the permission the indicator is a degraded feature, never a crash. */
+    @Test
+    fun `the ongoing shift is silent when notifications are not permitted`() {
+        WearOngoingShift.sync(
+            app(),
+            WearShiftSnapshot(signedIn = true, isActive = true, shiftStartEpochMillis = 1_000L),
+        )
+        WearOngoingShift.sync(app(), WearShiftSnapshot.signedOut())
+    }
+
+    @Test
+    fun `consent-only data updates the cached snapshot`() = runTest {
+        val repository = app().wearStateRepository
+
+        repository.applyCrashReportingConsent(enabled = false)
+
+        assertFalse(repository.snapshot.value.crashReportingEnabled)
+
+        repository.applyCrashReportingConsent(enabled = true)
+
+        assertTrue(repository.snapshot.value.crashReportingEnabled)
     }
 
     @Test
@@ -258,9 +406,14 @@ class WearLaunchPathTest {
             val controller: ActivityController<WearPunchTrampolineActivity> =
                 Robolectric.buildActivity(WearPunchTrampolineActivity::class.java, intent)
             controller.create()
+            controller.start()
+            controller.resume()
+            controller.pause()
+            controller.stop()
             // Reaching here means onCreate did not throw. The activity is a
-            // NoDisplay trampoline, so finishing is the correct outcome for an
-            // action it does not handle.
+            // translucent trampoline, so finishing is the correct outcome for an
+            // action it does not handle — including driving resume, which is the
+            // Theme.NoDisplay crash the previous theme hit on real watches.
             controller.destroy()
         }
     }

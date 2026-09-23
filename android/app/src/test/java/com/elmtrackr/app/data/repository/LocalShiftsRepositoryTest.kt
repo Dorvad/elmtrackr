@@ -38,6 +38,25 @@ class LocalShiftsRepositoryTest {
     }
 
     @Test
+    fun `clockIn returns the canonical earliest active shift when duplicates exist`() = runTest {
+        val dao = InMemoryShiftDao()
+        dao.insertShift(shiftEntity(localId = "late", startTime = 2_000L))
+        dao.insertShift(shiftEntity(localId = "early", startTime = 1_000L))
+        val repository = LocalShiftsRepository(
+            dao,
+            FakeRefundsRepository(),
+            FakeSyncTrigger(),
+            FakeCompensationProfileDao(),
+            DirectTransactionRunner,
+        )
+
+        val shift = repository.clockIn(userId = "u1")
+
+        assertEquals("early", shift.id)
+        assertEquals(2, dao.currentShifts.size)
+    }
+
+    @Test
     fun `clockIn creates shift with compensation profile when no active shift exists`() = runTest {
         val dao = InMemoryShiftDao()
         val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
@@ -87,6 +106,32 @@ class LocalShiftsRepositoryTest {
         repository.clockIn(userId = "u1", compensationProfileId = null)
 
         assertNull(dao.currentShifts.single().workplaceId)
+    }
+
+    @Test
+    fun `clockIn uses the watch's original start time when one is supplied`() = runTest {
+        val dao = InMemoryShiftDao()
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
+        val punchedAt = System.currentTimeMillis() - 3_600_000L
+
+        val shift = repository.clockIn(userId = "u1", startTimeMillis = punchedAt)
+
+        assertEquals(punchedAt, shift.startTime.toEpochMilli())
+        assertEquals(punchedAt, dao.currentShifts.single().startTime)
+    }
+
+    @Test
+    fun `clockOut uses the watch's original end time when one is supplied`() = runTest {
+        val dao = InMemoryShiftDao()
+        val start = System.currentTimeMillis() - 7_200_000L
+        dao.insertShift(shiftEntity(localId = "active-1", startTime = start))
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
+        val punchedOutAt = start + 3_600_000L
+
+        val shift = repository.clockOut("active-1", endTimeMillis = punchedOutAt)
+
+        assertEquals(punchedOutAt, shift.endTime?.toEpochMilli())
+        assertEquals(punchedOutAt, dao.currentShifts.single().endTime)
     }
 
     private fun compensationProfileEntity(
@@ -139,6 +184,7 @@ class LocalShiftsRepositoryTest {
         taskNameSnapshot = null,
         taskIconSnapshot = null,
         taskHourlyRateSnapshot = null,
+        workplaceId = null,
         createdAt = startTime,
         updatedAt = startTime,
         deletedAt = deletedAt,
@@ -185,7 +231,10 @@ class LocalShiftsRepositoryTest {
             shifts.map { list -> list.filter { it.userId == userId && it.deletedAt == null }.sortedByDescending { it.startTime } }
 
         override fun observeActiveShift(userId: String): Flow<ShiftEntity?> =
-            shifts.map { list -> list.filter { it.userId == userId && it.endTime == null && it.deletedAt == null }.maxByOrNull { it.startTime } }
+            shifts.map { list ->
+                list.filter { it.userId == userId && it.endTime == null && it.deletedAt == null }
+                    .minByOrNull { it.startTime }
+            }
 
         override suspend fun getShiftById(localId: String): ShiftEntity? =
             shifts.value.firstOrNull { it.localId == localId }

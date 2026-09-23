@@ -21,22 +21,30 @@ object ClockOutActions {
     enum class Result {
         CLOCKED_OUT,
         NO_ACTIVE_SHIFT,
+        STALE_PUNCH,
     }
 
-    suspend fun clockOutActiveShift(context: Context): Result {
+    suspend fun clockOutActiveShift(context: Context, endTimeMillis: Long? = null): Result {
         if (AppLockActionGuard.blockIfLocked(context)) return Result.NO_ACTIVE_SHIFT
         val deps = AppEntryPoints.background(context)
         val userId = deps.currentUserProvider().currentUserId() ?: return Result.NO_ACTIVE_SHIFT
         val activeShift = deps.shiftsRepository().observeActiveShift(userId).first()
             ?: return Result.NO_ACTIVE_SHIFT
+        if (endTimeMillis != null && endTimeMillis < activeShift.startTime.toEpochMilli()) {
+            return Result.STALE_PUNCH
+        }
 
         val settings = deps.settingsRepository().getSettings(userId)
         if (settings != null) {
             val profiles = deps.compensationProfilesRepository().getProfiles(userId)
             val snapshot = ShiftCompensationHelper.buildClockOutSnapshot(activeShift, settings, profiles)
-            deps.shiftsRepository().clockOut(activeShift.id, compensationSnapshot = snapshot)
+            deps.shiftsRepository().clockOut(
+                activeShift.id,
+                compensationSnapshot = snapshot,
+                endTimeMillis = endTimeMillis,
+            )
         } else {
-            deps.shiftsRepository().clockOut(activeShift.id)
+            deps.shiftsRepository().clockOut(activeShift.id, endTimeMillis = endTimeMillis)
         }
 
         ActiveShiftNotificationManager(context.applicationContext).cancelActiveShiftNotification()
@@ -57,7 +65,9 @@ object ClockOutActions {
             Result.CLOCKED_OUT ->
                 localized.getString(R.string.shortcut_feedback_clocked_out_title) to
                     localized.getString(R.string.shortcut_feedback_clocked_out_body)
-            Result.NO_ACTIVE_SHIFT ->
+            Result.NO_ACTIVE_SHIFT,
+            Result.STALE_PUNCH,
+            ->
                 localized.getString(R.string.shortcut_feedback_no_shift_title) to
                     localized.getString(R.string.shortcut_feedback_no_shift_body)
         }

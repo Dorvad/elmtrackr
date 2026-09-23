@@ -33,6 +33,7 @@ interface ShiftsRepository {
         compensationSource: CompensationSource = CompensationSource.EMPLOYEE,
         projectId: String? = null,
         projectNameSnapshot: String? = null,
+        startTimeMillis: Long? = null,
     ): Shift
 
     /** Sets end time on an active shift (clock-out). */
@@ -41,6 +42,7 @@ interface ShiftsRepository {
         breakMinutes: Int = 0,
         notes: String? = null,
         compensationSnapshot: CompensationSnapshot? = null,
+        endTimeMillis: Long? = null,
     ): Shift
 
     /** Creates a fully-specified manual shift entry (PENDING_CREATE sync status). */
