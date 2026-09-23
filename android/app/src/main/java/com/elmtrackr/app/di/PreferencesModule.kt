@@ -4,6 +4,7 @@ import com.elmtrackr.app.data.local.preferences.AppLockPreferencesStore
 import com.elmtrackr.app.data.local.preferences.AppPreferencesRepository
 import com.elmtrackr.app.data.local.preferences.AppPreferencesStore
 import com.elmtrackr.app.data.local.preferences.ClockFacePreferences
+import com.elmtrackr.app.data.local.preferences.EntitlementsMigration
 import com.elmtrackr.app.data.local.preferences.FeatureDiscoveryPreferences
 import com.elmtrackr.app.data.local.preferences.OnboardingPreferences
 import com.elmtrackr.app.data.local.preferences.PurchasePreferences
@@ -48,6 +49,10 @@ abstract class PreferencesModule {
     @Binds
     @Singleton
     abstract fun bindPurchasePreferences(impl: AppPreferencesRepository): PurchasePreferences
+
+    @Binds
+    @Singleton
+    abstract fun bindEntitlementsMigration(impl: AppPreferencesRepository): EntitlementsMigration
 
     @Binds
     @Singleton

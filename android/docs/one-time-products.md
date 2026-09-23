@@ -80,12 +80,21 @@ Two rules the design turns on:
    `ClockFacePacks.available()` still adds the group holding the selected face
    regardless of ownership, so nobody's dashboard stops drawing. There is a test
    that fails if that ever gets wired to ownership.
-3. **A restore adds the pack, not just the entitlement.** Play reporting a
-   purchase this device did not know about is the same decision as a purchase,
-   arriving late, so `ClockFacePackBillingCoordinator` installs it — see §6's
-   *uninstall and reinstall* case. Only what is *new to the device* is added
-   (`ClockFacePackOwnership.restoredBy`), which is what keeps a pack the user
-   deliberately removed from being pushed back on at the next foreground.
+3. **A pack the user acquired is installed unless they removed it.** Play
+   reporting a purchase this device did not know about is the same decision as a
+   purchase, arriving late, so `ClockFacePackBillingCoordinator` installs it —
+   see §6's *uninstall and reinstall* case.
+
+   That event covers the device that is watching when ownership changes, and only
+   that device. One that cached the purchase before the install step existed —
+   anything that reinstalled between the flag flip and September 2026 — sees
+   nothing new from Play ever again, so the event never fires and the pack stays
+   behind an Add button for good. The coordinator therefore also reconciles the
+   steady state on every foreground: anything acquired and absent is put back.
+   `removed_clock_face_packs` is what makes that safe, because absence alone
+   cannot say whether the user removed a pack or never had it — and it is read
+   from `PurchasePreferences`, never from the storefront, since the free
+   implementation reports the whole catalogue as owned.
 
 ### Existing users keep their packs
 
@@ -238,7 +247,11 @@ build rather than one item at a time.
 - [ ] Restore with nothing missing says so instead of appearing to do nothing,
       and says something different again with Play unreachable (aeroplane mode).
 - [ ] Remove a pack you own, background and foreground the app: it stays
-      removed. A restore must not undo a removal.
+      removed. Neither a restore nor the foreground reconcile may undo a removal.
+- [ ] Own a pack that is *not* under **Your faces** — the state a pre-September
+      reinstall left behind, reproducible by clearing only
+      `installed_clock_face_packs` — then foreground the app: it comes back
+      without a restore, and its faces are selectable again.
 - [ ] A device with the Play Store disabled shows *Unavailable*, not a Buy button
       that fails.
 - [ ] A user who had packs installed before the flag flip keeps them, can remove
