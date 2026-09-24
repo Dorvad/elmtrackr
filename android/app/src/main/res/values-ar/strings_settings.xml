@@ -200,6 +200,15 @@
     <string name="settings_weekly_standard_hours">المعيار الأسبوعي (بالساعات)</string>
     <string name="settings_week_starts_on">الأسبوع يبدأ يوم</string>
     <string name="settings_week_starts_hint">تُحسب الساعات الإضافية الأسبوعية من هذا اليوم. وأسبوع العمل في إسرائيل ومعظم الولايات المتحدة يبدأ الأحد.</string>
+    <string name="settings_rest_boundary_hint">يمكن أن تبدأ الراحة الأسبوعية في منتصف يومها الأول. ينطبق المعيار المختصر فقط قبل هذا الوقت، في اليوم الذي تبدأ فيه عطلة نهاية الأسبوع — وليس يوم الجمعة فقط.</string>
+    <string name="settings_day_before_rest_minutes">يوم بدء الراحة، المعيار قبل هذا الوقت (بالدقائق)</string>
+    <string name="settings_rest_starts">تبدأ الراحة الأسبوعية</string>
+    <string name="settings_rest_starts_add">تحديد وقت بدء الراحة الأسبوعية</string>
+    <string name="settings_rest_starts_clear">مسح وقت بدء الراحة</string>
+    <string name="settings_short_day">يوم عمل مختصر</string>
+    <string name="settings_short_day_none">بدون</string>
+    <string name="settings_short_day_minutes">معيار يوم العمل المختصر (بالدقائق)</string>
+    <string name="settings_short_day_hint">تختصر بعض أماكن العمل يوماً واحداً من أيام الأسبوع (في القطاع الخاص في إسرائيل، غالباً إلى 7 ساعات و36 دقيقة) ليبقى الأسبوع عند المعيار الأسبوعي. اتركوا هذا فارغاً إذا لم يكن اليوم ثابتاً.</string>
     <string name="settings_section_premiums">العلاوات</string>
     <string name="settings_overtime">الساعات الإضافية</string>
     <string name="settings_seventh_day">علاوة اليوم السابع المتواصل</string>

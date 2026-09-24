@@ -193,6 +193,15 @@
     <string name="settings_weekly_standard_hours">Недельная норма (часов)</string>
     <string name="settings_week_starts_on">Неделя начинается с</string>
     <string name="settings_week_starts_hint">Недельные сверхурочные считают часы с этого дня. В Израиле и в большинстве штатов США рабочая неделя начинается с воскресенья.</string>
+    <string name="settings_rest_boundary_hint">Еженедельный отдых может начинаться в середине своего первого дня. Сокращённая норма действует только до этого времени, в тот день, с которого начинается выходной — не только в пятницу.</string>
+    <string name="settings_day_before_rest_minutes">День начала отдыха, норма до этого времени (минуты)</string>
+    <string name="settings_rest_starts">Еженедельный отдых начинается</string>
+    <string name="settings_rest_starts_add">Указать время начала еженедельного отдыха</string>
+    <string name="settings_rest_starts_clear">Убрать время начала отдыха</string>
+    <string name="settings_short_day">Сокращённый рабочий день</string>
+    <string name="settings_short_day_none">Нет</string>
+    <string name="settings_short_day_minutes">Норма сокращённого дня (минуты)</string>
+    <string name="settings_short_day_hint">Некоторые работодатели сокращают один день недели (в частном секторе Израиля часто до 7 часов 36 минут), чтобы неделя оставалась в пределах недельной нормы. Оставьте пустым, если этот день не фиксирован.</string>
     <string name="settings_section_premiums">Надбавки</string>
     <string name="settings_overtime">Сверхурочные</string>
     <string name="settings_seventh_day">Надбавка за седьмой день подряд</string>
