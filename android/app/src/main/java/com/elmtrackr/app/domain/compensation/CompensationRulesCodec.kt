@@ -26,6 +26,8 @@ object CompensationRulesCodec {
             put("paidBreaks", rules.paidBreaks)
             put("autoDeductBreakMinutes", rules.autoDeductBreakMinutes ?: JSONObject.NULL)
             put("minimumShiftMinutes", rules.minimumShiftMinutes ?: JSONObject.NULL)
+            rules.shortDayOfWeek?.let { put("shortDayOfWeek", it) }
+            rules.shortDayStandardMinutes?.let { put("shortDayStandardMinutes", it) }
             put("rounding", JSONObject().apply {
                 put("enabled", rules.rounding.enabled)
                 put("incrementMinutes", rules.rounding.incrementMinutes)
@@ -94,6 +96,8 @@ object CompensationRulesCodec {
             paidBreaks = regular.optBoolean("paidBreaks", false),
             autoDeductBreakMinutes = regular.optNullableInt("autoDeductBreakMinutes"),
             minimumShiftMinutes = regular.optNullableInt("minimumShiftMinutes"),
+            shortDayOfWeek = regular.optNullableInt("shortDayOfWeek")?.coerceIn(0, 6),
+            shortDayStandardMinutes = regular.optNullableInt("shortDayStandardMinutes"),
             rounding = RoundingRules(
                 enabled = rounding.optBoolean("enabled", false),
                 incrementMinutes = rounding.optInt("incrementMinutes", 15),

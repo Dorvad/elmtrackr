@@ -192,6 +192,15 @@
     <string name="settings_weekly_standard_hours">תקן שבועי (שעות)</string>
     <string name="settings_week_starts_on">תחילת השבוע</string>
     <string name="settings_week_starts_hint">שעות נוספות שבועיות נספרות מהיום הזה. בישראל וברוב ארה״ב השבוע מתחיל ביום ראשון.</string>
+    <string name="settings_rest_boundary_hint">המנוחה השבועית יכולה להתחיל באמצע היום הראשון שלה. התקן המקוצר חל רק לפני השעה הזו, ביום שבו מתחיל סוף השבוע — לא רק ביום שישי.</string>
+    <string name="settings_day_before_rest_minutes">יום תחילת המנוחה, תקן לפני השעה הזו (דקות)</string>
+    <string name="settings_rest_starts">המנוחה השבועית מתחילה</string>
+    <string name="settings_rest_starts_add">קביעת שעה שבה מתחילה המנוחה השבועית</string>
+    <string name="settings_rest_starts_clear">ניקוי שעת תחילת המנוחה</string>
+    <string name="settings_short_day">יום עבודה מקוצר</string>
+    <string name="settings_short_day_none">ללא</string>
+    <string name="settings_short_day_minutes">תקן יום העבודה המקוצר (דקות)</string>
+    <string name="settings_short_day_hint">במקומות עבודה מסוימים מקצרים יום אחד בשבוע (במגזר הפרטי בישראל, לרוב ל־7 שעות ו־36 דקות) כדי שהשבוע יישאר בתקן השבועי. השאירו ריק אם היום אינו קבוע.</string>
     <string name="settings_section_premiums">תוספות</string>
     <string name="settings_overtime">שעות נוספות</string>
     <string name="settings_seventh_day">תוספת יום שביעי ברצף</string>

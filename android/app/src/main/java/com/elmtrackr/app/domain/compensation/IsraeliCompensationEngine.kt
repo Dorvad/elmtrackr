@@ -606,12 +606,27 @@ object IsraeliCompensationEngine {
         if (jsDay !in rules.weekendDays) return false
         // An unreadable rest-start time falls back to treating the whole day as
         // rest, which is what a weekend day with no configured boundary already
-        // means. Erring the other way would pay Shabbat at the weekday rate.
+        // means. Erring the other way would pay the rest day at the weekday rate.
+        // The boundary applies on the day weekly rest *begins* — Friday under the
+        // Israel preset, Saturday for a Sat–Sun weekend — not a hardcoded Friday.
         val restStart = WallClockTime.parseMinutesOfDayOrNull(rules.weeklyRestStartTime)
-        if (jsDay == 5 && rules.weeklyRestStartTime != null && restStart != null) {
+        val entry = restEntryDay(rules.weekendDays)
+        if (jsDay == entry && rules.weeklyRestStartTime != null && restStart != null) {
             return minuteOfDay >= restStart
         }
         return true
+    }
+
+    /**
+     * The weekend day on which rest begins: a configured weekend day whose
+     * previous day is not itself a weekend day. Friday when the weekend is
+     * Fri–Sat; Saturday when it is Sat–Sun. Null when every day is a weekend
+     * day, in which case there is no partial boundary to apply.
+     */
+    internal fun restEntryDay(weekendDays: List<Int>): Int? {
+        val days = weekendDays.toSet()
+        if (days.isEmpty()) return null
+        return (0..6).firstOrNull { day -> day in days && ((day + 6) % 7) !in days }
     }
 
     internal fun dailyStandardAt(
@@ -636,6 +651,9 @@ object IsraeliCompensationEngine {
         if (!isWeeklyRest && isDayBeforeRestAt(jsDay, minuteOfDay, rules)) {
             return rules.dayBeforeRestDailyStandardMinutes ?: rules.dailyStandardMinutes
         }
+        if (!isWeeklyRest && isShortDayAt(jsDay, rules)) {
+            return rules.shortDayStandardMinutes ?: rules.dailyStandardMinutes
+        }
         return rules.dailyStandardMinutes
     }
 
@@ -644,14 +662,21 @@ object IsraeliCompensationEngine {
 
     internal fun isDayBeforeRestAt(jsDay: Int, minuteOfDay: Int, rules: CompensationRules): Boolean {
         if (rules.dayBeforeRestDailyStandardMinutes == null) return false
-        if (5 !in rules.weekendDays) return false
-        if (jsDay != 5) return false
+        val entry = restEntryDay(rules.weekendDays) ?: return false
+        if (jsDay != entry) return false
         // Unreadable means the boundary is unknown, so the whole of the day
-        // before rest keeps the shortened standard — the same direction the rest
+        // rest begins keeps the shortened standard — the same direction the rest
         // check above falls back in, so the two cannot disagree about one minute.
         val restStart = WallClockTime.parseMinutesOfDayOrNull(rules.weeklyRestStartTime)
             ?: return true
         return minuteOfDay < restStart
+    }
+
+    /** True on the employer-chosen shortened weekday, which is not the pre-rest day. */
+    internal fun isShortDayAt(jsDay: Int, rules: CompensationRules): Boolean {
+        val day = rules.shortDayOfWeek ?: return false
+        if (rules.shortDayStandardMinutes == null) return false
+        return jsDay == day.coerceIn(0, 6)
     }
 
     internal fun isNightAt(zdt: ZonedDateTime, rules: CompensationRules): Boolean {

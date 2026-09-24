@@ -27,10 +27,18 @@ object RegionPresets {
 
     private val defaultRounding = RoundingRules()
 
-    // Israeli law triggers OT on the daily OR weekly threshold, whichever is reached first
-    // (HIGHEST_ONLY stacking in PayrollCalculator). weekendDays = Fri+Sat off → 5-day week → 8.6 h/day.
-    // Weekly 125%/150% breakpoints are a starting point — verify with payroll/HR.
-    // Weekly-rest premium (150%) is separate from overtime — OT during rest is 175%/200%.
+    // Private-sector starting point, not every Israeli workplace.
+    // Hours of Work and Rest Law s.2: an ordinary day is 8 hours; night work and the
+    // day before weekly rest are 7 hours. The 2018 extension order cuts the week to
+    // 42 hours, which in a 5-day workplace is commonly 8 h 36 min on four days plus
+    // one employer-chosen day of 7 h 36 min. That short day is NOT preset here —
+    // the employer picks the day — so dailyStandardMinutes stays 516 (8 h 36 min)
+    // and weeklyStandardMinutes stays 2520 (42 h). A fifth 8 h 36 min day therefore
+    // crosses the weekly threshold. dayBeforeRestDailyStandardMinutes = 420 is the
+    // statutory 7-hour cap on the day weekly rest begins (Friday before 17:00 on
+    // this preset). 17:00 is a practical default, not candle-lighting time.
+    // OT: first two hours 125%, then 150% (s.16). Rest-day work 150% (s.17); OT on
+    // top of that rest base is 175% then 200%. HIGHEST_ONLY picks daily or weekly.
     private val ilRules = CompensationRules(
         dailyStandardMinutes = 516,
         weeklyStandardMinutes = 2520,

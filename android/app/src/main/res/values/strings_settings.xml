@@ -184,6 +184,15 @@
     <string name="settings_weekly_standard_hours">Weekly standard (hours)</string>
     <string name="settings_week_starts_on">Week starts on</string>
     <string name="settings_week_starts_hint">Weekly overtime counts hours from this day. Israel and most US workweeks start Sunday.</string>
+    <string name="settings_rest_boundary_hint">Weekly rest can start part-way through its first day. The shortened standard applies only before that time, on whichever day your weekend starts — not only Friday.</string>
+    <string name="settings_day_before_rest_minutes">Day rest starts, standard before that time (minutes)</string>
+    <string name="settings_rest_starts">Weekly rest starts</string>
+    <string name="settings_rest_starts_add">Set a time when weekly rest starts</string>
+    <string name="settings_rest_starts_clear">Clear rest start time</string>
+    <string name="settings_short_day">Shortened workday</string>
+    <string name="settings_short_day_none">None</string>
+    <string name="settings_short_day_minutes">Shortened workday standard (minutes)</string>
+    <string name="settings_short_day_hint">Some workplaces shorten one weekday (in Israel’s private sector, often to 7 hours 36 minutes) so the week stays at the weekly standard. Leave this unset if that day is not fixed.</string>
     <string name="settings_section_premiums">Premiums</string>
     <string name="settings_overtime">Overtime</string>
     <string name="settings_seventh_day">7th consecutive day premium</string>

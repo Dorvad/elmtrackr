@@ -606,4 +606,41 @@ class IsraeliCompensationEngineTest {
             ).isEmpty(),
         )
     }
+
+    @Test
+    fun `rest entry day follows the configured weekend, not a hardcoded Friday`() {
+        assertEquals(5, IsraeliCompensationEngine.restEntryDay(listOf(5, 6)))
+        assertEquals(6, IsraeliCompensationEngine.restEntryDay(listOf(0, 6)))
+        assertEquals(0, IsraeliCompensationEngine.restEntryDay(listOf(0)))
+    }
+
+    @Test
+    fun `a Sat-Sun weekend splits Saturday at the configured rest start`() {
+        val rules = RegionPresets.forRegion(RegionCode.IL).rules.copy(
+            weekendDays = listOf(0, 6),
+            weeklyRestStartTime = "18:00",
+            dayBeforeRestDailyStandardMinutes = 420,
+        )
+        val p = ilProfile(rules = rules)
+        // Sat 6 Jan 2024, 17:00–19:00 Jerusalem (UTC+2).
+        val s = shift("2024-01-06T15:00:00Z", "2024-01-06T17:00:00Z")
+
+        assertEquals("60@1.0 | 60@1.5", classify(s, p).shape())
+    }
+
+    @Test
+    fun `an employer short day uses its own standard and leaves other days alone`() {
+        val rules = RegionPresets.forRegion(RegionCode.IL).rules.copy(
+            shortDayOfWeek = 3, // Wednesday
+            shortDayStandardMinutes = 456, // 7 h 36 min
+        )
+        val p = ilProfile(rules = rules)
+        // Wed 3 Jan 2024, 08:00–16:00 Jerusalem = 480 minutes. 456 regular + 24 at 1.25.
+        val wednesday = shift("2024-01-03T06:00:00Z", "2024-01-03T14:00:00Z")
+        assertEquals("456@1.0 | 24@1.25", classify(wednesday, p).shape())
+
+        // Thu 4 Jan 2024, same clock times, ordinary 516-minute standard: all regular.
+        val thursday = shift("2024-01-04T06:00:00Z", "2024-01-04T14:00:00Z", id = "s2")
+        assertEquals("480@1.0", classify(thursday, p).shape())
+    }
 }

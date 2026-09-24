@@ -871,6 +871,13 @@ object PayrollCalculator {
         if (nightStandard != null && isNightWorkShift(shift, rules, zone)) {
             return nightStandard
         }
+        val shortMinutes = rules.shortDayStandardMinutes
+        val shortDay = rules.shortDayOfWeek
+        if (shortMinutes != null && shortDay != null &&
+            shift.startTime.atZone(zone).dayOfWeek.toJsDay() == shortDay.coerceIn(0, 6)
+        ) {
+            return shortMinutes
+        }
         return rules.dailyStandardMinutes
     }
 
