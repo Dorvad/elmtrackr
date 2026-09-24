@@ -426,6 +426,58 @@ internal fun CompensationSettingsContent(
                         )
                     }
                 }
+                if (regionCode == RegionCode.IL) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        stringResource(R.string.settings_rest_boundary_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OptionalMinutesField(
+                        stringResource(R.string.settings_day_before_rest_minutes),
+                        rules.dayBeforeRestDailyStandardMinutes,
+                    ) { rules = rules.copy(dayBeforeRestDailyStandardMinutes = it) }
+                    val restStart = rules.weeklyRestStartTime
+                    if (restStart.isNullOrBlank()) {
+                        TextButton(onClick = { rules = rules.copy(weeklyRestStartTime = "17:00") }) {
+                            Text(stringResource(R.string.settings_rest_starts_add))
+                        }
+                    } else {
+                        TimeField(
+                            stringResource(R.string.settings_rest_starts),
+                            restStart,
+                        ) { rules = rules.copy(weeklyRestStartTime = it) }
+                        TextButton(onClick = { rules = rules.copy(weeklyRestStartTime = null) }) {
+                            Text(stringResource(R.string.settings_rest_starts_clear))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                val shortDayOptions = listOf("" to stringResource(R.string.settings_short_day_none)) +
+                    dayLabels().mapIndexed { index, label -> index.toString() to label }
+                StringDropdown(
+                    stringResource(R.string.settings_short_day),
+                    rules.shortDayOfWeek?.toString().orEmpty(),
+                    shortDayOptions,
+                ) { selected ->
+                    val day = selected.toIntOrNull()?.coerceIn(0, 6)
+                    rules = rules.copy(
+                        shortDayOfWeek = day,
+                        shortDayStandardMinutes = if (day == null) null else rules.shortDayStandardMinutes,
+                    )
+                }
+                if (rules.shortDayOfWeek != null) {
+                    OptionalMinutesField(
+                        stringResource(R.string.settings_short_day_minutes),
+                        rules.shortDayStandardMinutes,
+                    ) { rules = rules.copy(shortDayStandardMinutes = it) }
+                    Text(
+                        stringResource(R.string.settings_short_day_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
 

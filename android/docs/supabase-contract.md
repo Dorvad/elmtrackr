@@ -348,6 +348,8 @@ Unique: `(shift_id, direction)`
 | `timezone` | text | IANA | string |
 | `base_hourly_rate` | numeric | nullable | `Double?` |
 | `rules_json` | jsonb | CompensationRules shape | `CompensationRulesCodec` |
+
+Optional keys inside `rules_json.regular`, omitted when unset: `shortDayOfWeek` (0–6) and `shortDayStandardMinutes`. Older clients ignore unknown keys. Missing keys decode as null and do not change pay.
 | `stacking_policy` | text | see StackingPolicy (aligned with `premium_type`) | `StackingPolicy.fromPersisted()` |
 | `effective_from` / `effective_until` | timestamptz | ISO-8601 | Instant |
 | `is_default` / `is_archived` | bool | | bool |

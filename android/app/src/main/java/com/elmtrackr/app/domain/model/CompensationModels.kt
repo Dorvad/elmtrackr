@@ -88,10 +88,29 @@ data class CompensationRules(
     val seventhDayTiers: List<OvertimeTier> = emptyList(),
     val weekendEnabled: Boolean = true,
     val weekendMultiplier: Double = 1.5,
-    /** Local time when weekly rest begins on the pre-rest day (e.g. Friday 17:00 before Shabbat). */
+    /**
+     * Local time when weekly rest begins on the day rest starts (the first
+     * configured weekend day that follows a working day). Null means that day
+     * is rest for its whole length. Israel defaults to 17:00 as a practical
+     * stand-in; candle-lighting time changes through the year and is not a
+     * single statutory clock time.
+     */
     val weeklyRestStartTime: String? = null,
-    /** Daily OT threshold on the calendar day before weekly rest (e.g. Friday day shift). */
+    /**
+     * Daily standard on the day rest starts, for minutes before [weeklyRestStartTime].
+     * Israel's Hours of Work and Rest Law caps the day before weekly rest at 7 hours.
+     */
     val dayBeforeRestDailyStandardMinutes: Int? = null,
+    /**
+     * Employer-chosen shortened weekday, separate from the pre-rest day.
+     * The 2018 extension order cuts the private-sector week from 43 hours to 42
+     * by shortening one fixed day (commonly to 7 hours 36 minutes). The law does
+     * not name which day, so this stays unset until the user picks one. Null
+     * means no extra short day; the weekly threshold still catches hours past
+     * the weekly standard.
+     */
+    val shortDayOfWeek: Int? = null,
+    val shortDayStandardMinutes: Int? = null,
     val weekendStacking: StackingPolicy = StackingPolicy.HIGHEST_ONLY,
     val holidayEnabled: Boolean = true,
     val holidayManualSpecialDayEnabled: Boolean = true,
