@@ -142,22 +142,22 @@ class WearLocalShiftTest {
     }
 
     @Test
-    fun shouldDiscardReplayForPhoneUser_keepsUnsignedLocalWorkForLaterSignedInPhone() {
+    fun shouldDeferReplayForPhoneUser_keepsUnsignedLocalWorkForLaterSignedInPhone() {
         val unsignedEvent = WearPunchEvent(id = "a", isPunchIn = true, epochMillis = 1_000L, userId = "")
         val signedInPhone = WearShiftSnapshot(signedIn = true, userId = "user-1")
 
-        assertFalse(WearLocalShift.shouldDiscardReplayForPhoneUser(unsignedEvent, signedInPhone))
+        assertFalse(WearLocalShift.shouldDeferReplayForPhoneUser(unsignedEvent, signedInPhone))
     }
 
     @Test
-    fun shouldDiscardReplayForPhoneUser_onlyDropsKnownCrossUserEvents() {
+    fun shouldDeferReplayForPhoneUser_onlyDefersKnownCrossUserEvents() {
         val userEvent = WearPunchEvent(id = "a", isPunchIn = true, epochMillis = 1_000L, userId = "user-1")
         val sameUserPhone = WearShiftSnapshot(signedIn = true, userId = "user-1")
         val otherUserPhone = WearShiftSnapshot(signedIn = true, userId = "user-2")
 
-        assertFalse(WearLocalShift.shouldDiscardReplayForPhoneUser(userEvent, sameUserPhone))
-        assertFalse(WearLocalShift.shouldDiscardReplayForPhoneUser(userEvent, null))
-        assertTrue(WearLocalShift.shouldDiscardReplayForPhoneUser(userEvent, otherUserPhone))
+        assertFalse(WearLocalShift.shouldDeferReplayForPhoneUser(userEvent, sameUserPhone))
+        assertFalse(WearLocalShift.shouldDeferReplayForPhoneUser(userEvent, null))
+        assertTrue(WearLocalShift.shouldDeferReplayForPhoneUser(userEvent, otherUserPhone))
     }
 
     @Test

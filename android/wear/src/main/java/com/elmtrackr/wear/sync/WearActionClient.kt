@@ -100,9 +100,8 @@ class WearActionClient(
             if (events.isEmpty()) return@withLock false
             for (event in events) {
                 val phoneBeforeReplay = wearStateRepository.readNewestPhoneSnapshot()
-                if (WearLocalShift.shouldDiscardReplayForPhoneUser(event, phoneBeforeReplay)) {
-                    wearStateRepository.removeEvent(event.id)
-                    continue
+                if (WearLocalShift.shouldDeferReplayForPhoneUser(event, phoneBeforeReplay)) {
+                    return@withLock false
                 }
                 val replayUserId = WearLocalShift.userIdForReplay(event, phoneBeforeReplay)
                     ?: return@withLock false
@@ -113,8 +112,7 @@ class WearActionClient(
                 val result = sendPunchToPhone(path, event.epochMillis, replayUserId)
                 val phone = wearStateRepository.readNewestPhoneSnapshot()
                 if (result.errorCode == "user_mismatch") {
-                    wearStateRepository.removeEvent(event.id)
-                    continue
+                    return@withLock false
                 }
                 if (!WearLocalShift.replayEventSettled(event, result, phone)) {
                     return@withLock false

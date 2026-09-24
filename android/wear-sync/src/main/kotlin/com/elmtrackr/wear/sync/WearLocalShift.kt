@@ -108,11 +108,14 @@ object WearLocalShift {
     }
 
     /**
-     * Keep unsigned/legacy local work: a blank user id is the state a watch has
-     * before it has ever received a signed-in phone snapshot. Only discard when
-     * the queued event names one user and the phone snapshot names another.
+     * Keep queued work with the account that made it. A blank user id is the
+     * state a watch has before it has ever received a signed-in phone snapshot,
+     * so only a known, different signed-in phone user can prove replay is unsafe
+     * right now. That mismatch defers the event; deleting it would lose the
+     * original account's wrist punch before the user can sign that account back
+     * in.
      */
-    fun shouldDiscardReplayForPhoneUser(event: WearPunchEvent, phone: WearShiftSnapshot?): Boolean {
+    fun shouldDeferReplayForPhoneUser(event: WearPunchEvent, phone: WearShiftSnapshot?): Boolean {
         if (event.userId.isBlank()) return false
         return phone?.userId?.let { it != event.userId } == true
     }
