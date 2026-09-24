@@ -14,31 +14,55 @@ import com.elmtrackr.app.domain.model.ReceiptParseResult
  * - Merchant: a Hebrew merchant name from the Hebrew pass is trusted (ML Kit
  *   cannot read Hebrew at all); otherwise the Latin pass names the merchant.
  * - Date/currency: taken from the amount's source first, then backfilled.
+ * - A fused reading (Hebrew label, Latin digits on that same row) wins whenever
+ *   it actually found a labeled total. That is the number the customer paid;
+ *   a Hebrew-only total is often the same label glued to a misread number.
  */
 object ReceiptParseResultMerger {
 
-    fun merge(hebrew: ReceiptParseResult?, latin: ReceiptParseResult?): ReceiptParseResult {
-        if (hebrew == null && latin == null) {
+    fun merge(
+        hebrew: ReceiptParseResult?,
+        latin: ReceiptParseResult?,
+        fused: ReceiptParseResult? = null,
+    ): ReceiptParseResult {
+        if (hebrew == null && latin == null && fused == null) {
             throw IllegalArgumentException("At least one parse result is required")
         }
-        if (hebrew == null) return requireNotNull(latin) { "At least one parse result is required" }
-        if (latin == null) return hebrew
+        if (hebrew == null && latin == null) return requireNotNull(fused)
+        if (hebrew == null && fused == null) return requireNotNull(latin)
+        if (latin == null && fused == null) return requireNotNull(hebrew)
 
-        val amountSource = pickAmountSource(hebrew, latin)
-        val other = if (amountSource === hebrew) latin else hebrew
+        val amountSource = pickAmount(hebrew, latin, fused)
+        val other = when (amountSource) {
+            hebrew -> latin ?: fused
+            latin -> hebrew ?: fused
+            else -> hebrew ?: latin
+        }
 
-        val merchant = pickMerchant(hebrew, latin)
+        val merchant = when {
+            hebrew != null && latin != null -> pickMerchant(hebrew, latin)
+            else -> hebrew?.merchantName ?: latin?.merchantName ?: fused?.merchantName
+        }
         val amount = amountSource?.amount
-        val date = amountSource?.receiptDate ?: hebrew.receiptDate ?: latin.receiptDate
-        val currency = amountSource?.currency ?: other.currency ?: hebrew.currency ?: latin.currency
+        val date = amountSource?.receiptDate
+            ?: hebrew?.receiptDate
+            ?: latin?.receiptDate
+            ?: fused?.receiptDate
+        val currency = amountSource?.currency
+            ?: other?.currency
+            ?: hebrew?.currency
+            ?: latin?.currency
+            ?: fused?.currency
         val nearTotal = amountSource?.amountNearTotalKeyword ?: false
 
         return ReceiptParseResult(
             merchantName = merchant,
             amount = amount,
-            currency = if (amount != null) currency else hebrew.currency ?: latin.currency,
+            currency = if (amount != null) currency else hebrew?.currency ?: latin?.currency ?: fused?.currency,
             receiptDate = date,
-            rawOcrText = combineRawText(hebrew.rawOcrText, latin.rawOcrText),
+            rawOcrText = combineRawText(
+                listOfNotNull(hebrew?.rawOcrText, latin?.rawOcrText, fused?.rawOcrText),
+            ),
             confidence = ReceiptParser.computeConfidence(
                 amount = amount,
                 amountNearTotal = nearTotal,
@@ -48,6 +72,30 @@ object ReceiptParseResultMerger {
             parserVersion = ReceiptParser.VERSION,
             amountNearTotalKeyword = nearTotal,
         )
+    }
+
+    /**
+     * The fused line is the one place a Hebrew total label and a Latin amount
+     * were seen on the same row. It outranks either engine alone when that
+     * label was found. Otherwise the two engines arbitrate as before, and a
+     * fused amount only fills a gap.
+     */
+    private fun pickAmount(
+        hebrew: ReceiptParseResult?,
+        latin: ReceiptParseResult?,
+        fused: ReceiptParseResult?,
+    ): ReceiptParseResult? {
+        if (fused?.amount != null && fused.amountNearTotalKeyword) return fused
+        val base = when {
+            hebrew == null -> latin
+            latin == null -> hebrew
+            else -> pickAmountSource(hebrew, latin)
+        }
+        if (base?.amountNearTotalKeyword == true) return base
+        if (fused?.amount != null && (base?.amount == null || fused.confidence.ordinal < base.confidence.ordinal)) {
+            return fused
+        }
+        return base
     }
 
     private fun pickAmountSource(hebrew: ReceiptParseResult, latin: ReceiptParseResult): ReceiptParseResult? = when {
@@ -69,8 +117,8 @@ object ReceiptParseResultMerger {
         return hebrewMerchant ?: latin.merchantName ?: hebrew.merchantName
     }
 
-    private fun combineRawText(hebrewRaw: String, latinRaw: String): String =
-        listOf(hebrewRaw, latinRaw).filter { it.isNotBlank() }.joinToString(RAW_TEXT_SEPARATOR)
+    private fun combineRawText(parts: List<String>): String =
+        parts.filter { it.isNotBlank() }.joinToString(RAW_TEXT_SEPARATOR)
 
     private const val RAW_TEXT_SEPARATOR = "\n--- OCR ---\n"
 }

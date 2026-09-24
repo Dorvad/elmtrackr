@@ -109,6 +109,36 @@ class ReceiptImageBinarizerTest {
     }
 
     @Test
+    fun `contrast normalize keeps ink darker than the paper beside it`() {
+        val width = 240
+        val height = 40
+        val pixels = IntArray(width * height)
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                pixels[y * width + x] = argb(250 - (x * 190) / width)
+            }
+        }
+        val strokes = listOf(20, 220)
+        strokes.forEach { sx ->
+            for (y in 12 until 28) {
+                for (x in sx until sx + 4) {
+                    val background = 250 - (x * 190) / width
+                    pixels[y * width + x] = argb((background * 6) / 10)
+                }
+            }
+        }
+
+        val out = ReceiptImageBinarizer.contrastNormalize(pixels, width, height)
+
+        fun gray(x: Int, y: Int) = out[y * width + x] and 0xFF
+        strokes.forEach { sx ->
+            assertTrue("stroke at x=$sx was flattened away", gray(sx + 1, 20) < gray(sx + 12, 20))
+        }
+        // The two ends of the page, both paper, land near each other.
+        assertTrue(kotlin.math.abs(gray(8, 8) - gray(230, 8)) < 80)
+    }
+
+    @Test
     fun `a mismatched pixel count is rejected rather than read past the end`() {
         val error = runCatching { ReceiptImageBinarizer.binarize(IntArray(10), 4, 4) }.exceptionOrNull()
 

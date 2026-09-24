@@ -91,6 +91,19 @@ class ReceiptParseResultMergerTest {
     }
 
     @Test
+    fun `a fused labeled total beats the misread hebrew total`() {
+        val hebrew = result(amount = 4.0, currency = "ILS", nearTotal = true, confidence = ReceiptParseConfidence.MEDIUM)
+        val latin = result(amount = 42.0, confidence = ReceiptParseConfidence.LOW)
+        val fused = result(amount = 42.0, currency = "ILS", nearTotal = true, confidence = ReceiptParseConfidence.MEDIUM)
+
+        val merged = ReceiptParseResultMerger.merge(hebrew = hebrew, latin = latin, fused = fused)
+
+        assertEquals(42.0, merged.amount!!, 0.001)
+        assertEquals("ILS", merged.currency)
+        assertTrue(merged.amountNearTotalKeyword)
+    }
+
+    @Test
     fun `raw text from both engines is preserved`() {
         val hebrew = result(raw = "טקסט עברי", amount = 42.0)
         val latin = result(raw = "latin text")

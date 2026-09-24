@@ -64,17 +64,28 @@ class ReceiptParser(
         parserVersion = VERSION,
     )
 
-    internal fun normalize(text: String): String = text
-        .replace('\u00A0', ' ')
-        .replace('\u200F', ' ')
-        .replace('\u200E', ' ')
-        .replace('\u061C', ' ')
-        .replace('\u05F4', '"') // Hebrew gershayim -> ASCII quote (OCR emits both for סה"כ)
-        .replace('\u05F3', '\'') // Hebrew geresh
-        .replace('\u201D', '"')
-        .replace('\u201C', '"')
-        .replace(Regex("[ \t]+"), " ")
-        .trim()
+    internal fun normalize(text: String): String {
+        val repaired = OCR_DIGIT_TOKEN.replace(text) { repairOcrDigits(it.value) }
+        // 1.234,56 (dot thousands, comma decimals) before the plain comma rule,
+        // or the plain rule would turn the tail into a second number.
+        val european = EUROPEAN_AMOUNT.replace(repaired) { match ->
+            match.groupValues[1].replace(".", "") + "." + match.groupValues[2]
+        }
+        val dotted = COMMA_DECIMAL.replace(european) { match ->
+            match.groupValues[1] + "." + match.groupValues[2]
+        }
+        return dotted
+            .replace('\u00A0', ' ')
+            .replace('\u200F', ' ')
+            .replace('\u200E', ' ')
+            .replace('\u061C', ' ')
+            .replace('\u05F4', '"') // Hebrew gershayim -> ASCII quote (OCR emits both for סה"כ)
+            .replace('\u05F3', '\'') // Hebrew geresh
+            .replace('\u201D', '"')
+            .replace('\u201C', '"')
+            .replace(Regex("[ \t]+"), " ")
+            .trim()
+    }
 
     private data class AmountExtraction(
         val amount: Double?,
@@ -104,11 +115,10 @@ class ReceiptParser(
 
         lines.forEachIndexed { index, line ->
             if (isLikelyDateLine(line)) return@forEachIndexed
-            val canonLine = canonical(line)
-            val strong = containsAny(canonLine, STRONG_TOTAL_KEYWORDS)
+            val strong = matchesKeywords(line, STRONG_TOTAL_KEYWORDS)
             val adjacent = !strong && hasAdjacentTotalContext(lines, index)
-            val weak = containsAny(canonLine, WEAK_TOTAL_KEYWORDS)
-            val negative = isNegativeLine(canonLine)
+            val weak = matchesKeywords(line, WEAK_TOTAL_KEYWORDS)
+            val negative = isNegativeLine(line)
             val currencyHint = hasCurrencyHint(line)
 
             AMOUNT_PATTERN.findAll(line).forEach { match ->
@@ -191,11 +201,11 @@ class ReceiptParser(
      * total; "לפני מע"מ" (before) is a subtotal and is penalised even though the
      * line also says סה"כ; a bare tax line is penalised as before.
      */
-    private fun isNegativeLine(canonLine: String): Boolean {
-        if (containsAny(canonLine, TAX_EXCLUSIVE_PHRASES)) return true
-        if (containsAny(canonLine, NEGATIVE_KEYWORDS)) return true
-        val mentionsTax = containsAny(canonLine, TAX_KEYWORDS)
-        return mentionsTax && !containsAny(canonLine, TAX_INCLUSIVE_PHRASES)
+    private fun isNegativeLine(line: String): Boolean {
+        if (matchesKeywords(line, TAX_EXCLUSIVE_PHRASES)) return true
+        if (matchesKeywords(line, NEGATIVE_KEYWORDS)) return true
+        val mentionsTax = matchesKeywords(line, TAX_KEYWORDS)
+        return mentionsTax && !matchesKeywords(line, TAX_INCLUSIVE_PHRASES)
     }
 
     private fun hasCurrencyHint(line: String): Boolean {
@@ -205,14 +215,12 @@ class ReceiptParser(
         return tokens.any { it == "שח" || it == "שקל" || it == "שקלים" }
     }
 
-    private fun isNearTotalKeyword(line: String): Boolean {
-        val canonLine = canonical(line)
-        return containsAny(canonLine, STRONG_TOTAL_KEYWORDS) || containsAny(canonLine, WEAK_TOTAL_KEYWORDS)
-    }
+    private fun isNearTotalKeyword(line: String): Boolean =
+        matchesKeywords(line, STRONG_TOTAL_KEYWORDS) || matchesKeywords(line, WEAK_TOTAL_KEYWORDS)
 
     private fun hasAdjacentTotalContext(lines: List<String>, index: Int): Boolean {
         val window = listOfNotNull(lines.getOrNull(index - 1), lines.getOrNull(index + 1))
-        return window.any { containsAny(canonical(it), STRONG_TOTAL_KEYWORDS) }
+        return window.any { matchesKeywords(it, STRONG_TOTAL_KEYWORDS) }
     }
 
     private fun isLikelyDateLine(line: String): Boolean =
@@ -299,7 +307,7 @@ class ReceiptParser(
     }
 
     companion object {
-        const val VERSION = "1.2.0"
+        const val VERSION = "1.3.0"
 
         /**
          * Hebrew final letters, mapped to the base form they are confused with.
@@ -355,8 +363,68 @@ class ReceiptParser(
                 .joinToString("")
 
 
-        private fun containsAny(canonLine: String, keywords: List<String>): Boolean =
-            keywords.any { canonLine.contains(it) }
+        /**
+         * True when [line] carries a total label, including the shapes Tesseract
+         * actually emits: letters printed one glyph apart, and the whole label
+         * mirrored because the engine walked the line left to right.
+         */
+        internal fun hasStrongTotalLabel(line: String): Boolean =
+            matchesKeywords(line, STRONG_TOTAL_KEYWORDS)
+
+        private fun matchesKeywords(line: String, keywords: List<String>): Boolean {
+            val variants = listOf(line, collapseSpacedHebrew(line))
+            return variants.any { variant ->
+                val folded = canonical(variant)
+                val reversed = reverseHebrewLetters(folded)
+                keywords.any { keyword -> folded.contains(keyword) || reversed.contains(keyword) }
+            }
+        }
+
+        /** Joins a run of single Hebrew letters. `ס ה כ` is what a sparse pass does to `סה"כ`. */
+        private fun collapseSpacedHebrew(line: String): String {
+            val tokens = line.replace(QUOTE_CHARS, "")
+                .split(Regex("\\s+"))
+                .filter { it.isNotEmpty() }
+            val out = mutableListOf<String>()
+            val buf = StringBuilder()
+            fun flush() {
+                if (buf.isNotEmpty()) {
+                    out.add(buf.toString())
+                    buf.clear()
+                }
+            }
+            for (token in tokens) {
+                if (token.length == 1 && token[0] in '\u0590'..'\u05FF') buf.append(token) else {
+                    flush()
+                    out.add(token)
+                }
+            }
+            flush()
+            return out.joinToString(" ")
+        }
+
+        /** Reverses Hebrew letters in place so a visually ordered `כ"הס` folds back to `סהכ`. */
+        private fun reverseHebrewLetters(folded: String): String {
+            val chars = folded.toCharArray()
+            val indexes = chars.indices.filter { chars[it] in '\u0590'..'\u05FF' }
+            val reversed = indexes.map { chars[it] }.asReversed()
+            indexes.forEachIndexed { i, at -> chars[at] = reversed[i] }
+            return String(chars)
+        }
+
+        private fun repairOcrDigits(token: String): String = buildString(token.length) {
+            for (ch in token) {
+                append(
+                    when (ch) {
+                        'O', 'o' -> '0'
+                        'I', 'l', '|' -> '1'
+                        'S', 's' -> '5'
+                        'B', 'b' -> '8'
+                        else -> ch
+                    },
+                )
+            }
+        }
 
         // Written as they are printed; stored canonical — lowercased, quotes
         // stripped, Hebrew final letters folded. See [canonical].
@@ -378,6 +446,15 @@ class ReceiptParser(
             "amount payable",
             "total due",
             "to pay",
+            "סכום סופי",
+            "מחיר סופי",
+            "לתשלום סופי",
+            "סכום העסקה",
+            "סהכ נטו",
+            "final amount",
+            "final total",
+            "amount charged",
+            "total charged",
         ).map(::canonical)
 
         /** A tax mention, which only says something once its qualifier is read. */
@@ -462,6 +539,24 @@ class ReceiptParser(
          * The trailing guard stops a partial match being accepted where the
          * number runs on past two decimal places.
          */
+        private val QUOTE_CHARS = Regex("[\"'`’‘״׳]")
+
+        /**
+         * A decimal amount whose glyphs OCR swapped for lookalikes: `O`/`0`,
+         * `l`/`1`, `S`/`5`, `B`/`8`. Only tokens that already look like money are
+         * rewritten, so a word is left alone.
+         */
+        private val OCR_DIGIT_TOKEN = Regex("""(?<![\p{L}\d])[0-9OoIl|SsBb]{1,6}[.,][0-9OoIl|SsBb]{1,2}(?![\p{L}\d])""")
+
+        /** `1.234,56` — thousands with dots, decimals with a comma. */
+        private val EUROPEAN_AMOUNT = Regex("""(?<!\d)(\d{1,3}(?:\.\d{3})+),(\d{1,2})(?!\d)""")
+
+        /**
+         * `42,50` and `5310,00`. One or two digits after the comma are decimals;
+         * three digits (`1,250`) stay a thousands separator for [AMOUNT_PATTERN].
+         */
+        private val COMMA_DECIMAL = Regex("""(?<!\d)(\d+),(\d{1,2})(?!\d)""")
+
         private val AMOUNT_PATTERN = Regex(
             """(?<![\d.])(?:₪|ILS|NIS|\$|€|£)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?!\d)\s*(?:₪|ILS|NIS|\$|€|£)?""",
             RegexOption.IGNORE_CASE,

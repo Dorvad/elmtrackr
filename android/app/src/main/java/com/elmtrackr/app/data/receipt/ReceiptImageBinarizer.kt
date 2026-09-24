@@ -45,6 +45,9 @@ internal object ReceiptImageBinarizer {
      */
     private const val THRESHOLD_PERCENT = 15
 
+    /** How far a pixel is pushed away from its local average. */
+    private const val CONTRAST_GAIN = 3
+
     private const val WHITE = 0xFFFFFFFF.toInt()
     private const val BLACK = 0xFF000000.toInt()
 
@@ -56,6 +59,64 @@ internal object ReceiptImageBinarizer {
         require(width > 0 && height > 0) { "Image must have a positive size" }
         require(pixels.size == width * height) { "Pixel array does not match ${width}x$height" }
 
+        val (gray, integral) = grayscaleIntegral(pixels, width, height)
+
+        val half = maxOf(width / WINDOW_DIVISOR, MIN_WINDOW_PX) / 2
+        val out = IntArray(pixels.size)
+        for (y in 0 until height) {
+            val y0 = maxOf(0, y - half)
+            val y1 = minOf(height - 1, y + half)
+            for (x in 0 until width) {
+                val x0 = maxOf(0, x - half)
+                val x1 = minOf(width - 1, x + half)
+                val count = ((x1 - x0 + 1) * (y1 - y0 + 1)).toLong()
+                val sum = windowSum(integral, width, x0, y0, x1, y1)
+                // count * gray * 100 <= sum * (100 - t) — the comparison is kept
+                // in integers so it cannot drift with floating point.
+                val value = gray[y * width + x].toLong()
+                out[y * width + x] =
+                    if (value * count * 100L <= sum * (100L - THRESHOLD_PERCENT)) BLACK else WHITE
+            }
+        }
+        return out
+    }
+
+    /**
+     * Flattens uneven lighting while keeping the stroke gray, for Tesseract's
+     * LSTM engine.
+     *
+     * LSTM was trained on photographs, not on hard black-and-white, and a hard
+     * threshold is exactly what eats the thin strokes that separate ה from ח and
+     * ד from ר. Subtracting the local average leaves the ink darker than the
+     * paper next to it and pulls a shadowed corner and a blown-out corner toward
+     * the same mid gray, which is the input the network actually expects.
+     */
+    fun contrastNormalize(pixels: IntArray, width: Int, height: Int): IntArray {
+        require(width > 0 && height > 0) { "Image must have a positive size" }
+        require(pixels.size == width * height) { "Pixel array does not match ${width}x$height" }
+
+        val (gray, integral) = grayscaleIntegral(pixels, width, height)
+        val half = maxOf(width / WINDOW_DIVISOR, MIN_WINDOW_PX) / 2
+        val out = IntArray(pixels.size)
+        for (y in 0 until height) {
+            val y0 = maxOf(0, y - half)
+            val y1 = minOf(height - 1, y + half)
+            for (x in 0 until width) {
+                val x0 = maxOf(0, x - half)
+                val x1 = minOf(width - 1, x + half)
+                val count = ((x1 - x0 + 1) * (y1 - y0 + 1)).toLong()
+                val sum = windowSum(integral, width, x0, y0, x1, y1)
+                val mean = sum / count
+                val stretched = (128 + (gray[y * width + x] - mean) * CONTRAST_GAIN)
+                    .coerceIn(0, 255)
+                    .toInt()
+                out[y * width + x] = (0xFF shl 24) or (stretched shl 16) or (stretched shl 8) or stretched
+            }
+        }
+        return out
+    }
+
+    private fun grayscaleIntegral(pixels: IntArray, width: Int, height: Int): Pair<IntArray, LongArray> {
         val gray = toGrayscale(pixels)
         // Integral image with a zero row and column, so a window sum is four
         // lookups with no bounds juggling at the edges. Long, because a 2048²
@@ -69,28 +130,15 @@ internal object ReceiptImageBinarizer {
                     integral[y * (width + 1) + (x + 1)] + rowSum
             }
         }
+        return gray to integral
+    }
 
-        val half = maxOf(width / WINDOW_DIVISOR, MIN_WINDOW_PX) / 2
-        val out = IntArray(pixels.size)
-        for (y in 0 until height) {
-            val y0 = maxOf(0, y - half)
-            val y1 = minOf(height - 1, y + half)
-            for (x in 0 until width) {
-                val x0 = maxOf(0, x - half)
-                val x1 = minOf(width - 1, x + half)
-                val count = ((x1 - x0 + 1) * (y1 - y0 + 1)).toLong()
-                val sum = integral[(y1 + 1) * (width + 1) + (x1 + 1)] -
-                    integral[y0 * (width + 1) + (x1 + 1)] -
-                    integral[(y1 + 1) * (width + 1) + x0] +
-                    integral[y0 * (width + 1) + x0]
-                // count * gray * 100 <= sum * (100 - t) — the comparison is kept
-                // in integers so it cannot drift with floating point.
-                val value = gray[y * width + x].toLong()
-                out[y * width + x] =
-                    if (value * count * 100L <= sum * (100L - THRESHOLD_PERCENT)) BLACK else WHITE
-            }
-        }
-        return out
+    private fun windowSum(integral: LongArray, width: Int, x0: Int, y0: Int, x1: Int, y1: Int): Long {
+        val stride = width + 1
+        return integral[(y1 + 1) * stride + (x1 + 1)] -
+            integral[y0 * stride + (x1 + 1)] -
+            integral[(y1 + 1) * stride + x0] +
+            integral[y0 * stride + x0]
     }
 
     /**
