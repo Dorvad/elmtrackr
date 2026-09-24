@@ -1,5 +1,7 @@
 package com.elmtrackr.app.data.receipt
 
+import com.elmtrackr.app.domain.receipt.OcrLine
+import com.elmtrackr.app.domain.receipt.OcrPage
 import com.elmtrackr.app.domain.receipt.ReceiptTextRecognizer
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
@@ -30,7 +32,7 @@ class MLKitReceiptTextRecognizer @Inject constructor() : ReceiptTextRecognizer {
         runCatching { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }.getOrNull()
     }
 
-    override suspend fun recognizeText(imagePath: String): Result<String> = withContext(Dispatchers.IO) {
+    override suspend fun recognize(imagePath: String): Result<OcrPage> = withContext(Dispatchers.IO) {
         runCatching {
             val client = recognizer ?: error("Latin text recognition is unavailable on this device")
             val file = File(imagePath)
@@ -40,7 +42,17 @@ class MLKitReceiptTextRecognizer @Inject constructor() : ReceiptTextRecognizer {
             try {
                 val image = InputImage.fromBitmap(bitmap, 0)
                 val result = client.process(image).await()
-                result.text.trim().ifBlank { error("No text detected on receipt") }
+                val text = result.text.trim().ifBlank { error("No text detected on receipt") }
+                val height = bitmap.height.toFloat().coerceAtLeast(1f)
+                val lines = result.textBlocks.flatMap { block -> block.lines }.map { line ->
+                    val box = line.boundingBox
+                    OcrLine(
+                        text = line.text,
+                        top = box?.top?.div(height),
+                        bottom = box?.bottom?.div(height),
+                    )
+                }
+                OcrPage(text = text, lines = lines.ifEmpty { OcrPage.fromText(text).lines })
             } finally {
                 bitmap.recycle()
             }

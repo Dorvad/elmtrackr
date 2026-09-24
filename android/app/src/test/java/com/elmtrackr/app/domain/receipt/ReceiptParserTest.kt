@@ -365,6 +365,85 @@ class ReceiptParserTest {
     }
 
     @Test
+    fun `a comma decimal total is the final amount`() {
+        val result = parser.parse("""
+            מוסך
+            סה"כ לתשלום 42,50 ₪
+        """.trimIndent())
+
+        assertEquals(42.5, result.amount!!, 0.001)
+        assertTrue(result.amountNearTotalKeyword)
+    }
+
+    @Test
+    fun `a european thousands comma decimal is read whole`() {
+        val result = parser.parse("""
+            חנות
+            סכום סופי 1.234,56
+        """.trimIndent())
+
+        assertEquals(1234.56, result.amount!!, 0.001)
+        assertTrue(result.amountNearTotalKeyword)
+    }
+
+    @Test
+    fun `a thousands comma is not treated as decimals`() {
+        val result = parser.parse("""
+            חנות
+            לתשלום 1,250.50
+        """.trimIndent())
+
+        assertEquals(1250.5, result.amount!!, 0.001)
+    }
+
+    @Test
+    fun `a visually reversed hebrew total label still marks the amount`() {
+        val result = parser.parse("""
+            פיצריה
+            88.00 כ"הס
+        """.trimIndent())
+
+        assertEquals(88.0, result.amount!!, 0.001)
+        assertTrue(result.amountNearTotalKeyword)
+    }
+
+    @Test
+    fun `letter spaced hebrew total label still marks the amount`() {
+        val result = parser.parse("""
+            קיוסק
+            ס ה " כ 19,90
+        """.trimIndent())
+
+        assertEquals(19.9, result.amount!!, 0.001)
+        assertTrue(result.amountNearTotalKeyword)
+    }
+
+    @Test
+    fun `lookalike digits in the total are repaired`() {
+        val result = parser.parse("""
+            בית קפה
+            סה"כ 4O.5O ₪
+        """.trimIndent())
+
+        assertEquals(40.5, result.amount!!, 0.001)
+        assertTrue(result.amountNearTotalKeyword)
+    }
+
+    @Test
+    fun `final amount labels are totals`() {
+        listOf(
+            "חניון\nסכום סופי 32.00" to 32.0,
+            "מונית\nמחיר סופי 47.50" to 47.5,
+            "Gett\nFinal amount 18.00 ILS" to 18.0,
+            "סופר\nסכום העסקה 118.00" to 118.0,
+        ).forEach { (text, expected) ->
+            val result = parser.parse(text)
+            assertEquals(text, expected, result.amount!!, 0.001)
+            assertTrue(text, result.amountNearTotalKeyword)
+        }
+    }
+
+    @Test
     fun `parse receipt without amount still extracts merchant and date`() {
         val text = """
             Yango
