@@ -614,7 +614,7 @@ fun ReceiptPhotoArea(
     onViewLocalReceipt: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) onPickPhoto(uri)
     }
     val bitmap = remember(pendingPhotoPath) {
@@ -687,7 +687,10 @@ fun ReceiptPhotoArea(
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.refunds_scan_receipt))
                 }
-                OutlinedButton(onClick = { picker.launch("image/*") }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                OutlinedButton(
+                    onClick = { picker.launch(arrayOf("image/*", "application/pdf")) },
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                ) {
                     Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.refunds_attach_receipt))

@@ -46,7 +46,7 @@
     <string name="refunds_cloud_receipt_attached">Cloud receipt attached</string>
     <string name="refunds_no_receipt_yet">No receipt attached yet</string>
     <string name="refunds_scan_receipt">Scan receipt</string>
-    <string name="refunds_attach_receipt">Attach receipt</string>
+    <string name="refunds_attach_receipt">Attach photo or PDF</string>
     <string name="refunds_use_device_camera">Use device camera</string>
     <string name="refunds_retake_with_camera">Retake with camera</string>
     <string name="refunds_remove_receipt_photo">Remove receipt photo</string>
@@ -106,7 +106,8 @@
     <string name="refunds_err_no_receipt">No receipt is attached to this claim.</string>
     <string name="refunds_err_receipt_file_missing">The receipt image file is missing.</string>
     <string name="refunds_err_preview_unavailable">Receipt preview is unavailable right now.</string>
-    <string name="refunds_err_image_too_large">Choose an image smaller than 10 MB.</string>
+    <string name="refunds_err_image_too_large">Choose a photo or PDF smaller than 10 MB.</string>
+    <string name="refunds_err_pdf_unreadable">Could not open that file. Choose a photo, or a PDF the phone can read.</string>
     <string name="refunds_notice_receipt_saved_enter_amount">Receipt saved locally. Enter the refund amount before submitting the claim.</string>
     <string name="refunds_notice_receipt_saved_verify">Receipt saved locally. Verify the claim details before submitting.</string>
     <string name="refunds_notice_saved_no_receipt">Claim saved without the new receipt. Receipt upload is unavailable; you can attach it later.</string>
