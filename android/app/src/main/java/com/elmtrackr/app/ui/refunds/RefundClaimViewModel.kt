@@ -9,6 +9,7 @@ import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.data.receipts.PhotoFileManager
 import com.elmtrackr.app.data.receipt.ReceiptImageStore
+import com.elmtrackr.app.data.receipt.ReceiptImport
 import com.elmtrackr.app.domain.CurrentUserProvider
 import com.elmtrackr.app.domain.RefundPolicy
 import com.elmtrackr.app.domain.model.Receipt
@@ -571,14 +572,21 @@ class RefundClaimViewModel @Inject constructor(
             val previousPath = form.pendingPhotoPath?.takeIf { it != form.localReceiptImagePath }
             // Null on oversize; a throw is still possible on IO failure, and the
             // modal spinner must not outlive it.
-            val copied = runCatching {
-                receiptImageStore.copyToLocalStorage(uri, shift.id, form.direction)
-            }.getOrNull()
+            val imported = runCatching {
+                receiptImageStore.importReceipt(uri, shift.id, form.direction)
+            }.getOrDefault(ReceiptImport.Unreadable)
+            val copied = (imported as? ReceiptImport.Saved)?.file
             if (copied == null) {
                 _uiState.update {
                     it.copy(
                         isProcessingReceipt = false,
-                        errorMessage = UiText.Res(R.string.refunds_err_image_too_large),
+                        errorMessage = UiText.Res(
+                            if (imported is ReceiptImport.TooLarge) {
+                                R.string.refunds_err_image_too_large
+                            } else {
+                                R.string.refunds_err_pdf_unreadable
+                            },
+                        ),
                     )
                 }
                 return@launch

@@ -50,7 +50,7 @@
     <string name="refunds_cloud_receipt_attached">Приложен чек из облака</string>
     <string name="refunds_no_receipt_yet">Чек пока не приложен</string>
     <string name="refunds_scan_receipt">Сканировать чек</string>
-    <string name="refunds_attach_receipt">Приложить чек</string>
+    <string name="refunds_attach_receipt">Приложить фото или PDF</string>
     <string name="refunds_use_device_camera">Использовать камеру устройства</string>
     <string name="refunds_retake_with_camera">Переснять камерой</string>
     <string name="refunds_remove_receipt_photo">Убрать фото чека</string>
@@ -110,7 +110,8 @@
     <string name="refunds_err_no_receipt">К этой заявке не приложен чек.</string>
     <string name="refunds_err_receipt_file_missing">Файл изображения чека отсутствует.</string>
     <string name="refunds_err_preview_unavailable">Предпросмотр чека сейчас недоступен.</string>
-    <string name="refunds_err_image_too_large">Выберите изображение меньше 10 МБ.</string>
+    <string name="refunds_err_image_too_large">Выберите фото или PDF меньше 10 МБ.</string>
+    <string name="refunds_err_pdf_unreadable">Не удалось открыть файл. Выберите фото или PDF, который телефон может прочитать.</string>
     <string name="refunds_notice_receipt_saved_enter_amount">Чек сохранён локально. Введите сумму компенсации, прежде чем подавать заявку.</string>
     <string name="refunds_notice_receipt_saved_verify">Чек сохранён локально. Проверьте данные заявки перед подачей.</string>
     <string name="refunds_notice_saved_no_receipt">Заявка сохранена без нового чека. Загрузка чеков недоступна, приложить его можно позже.</string>
