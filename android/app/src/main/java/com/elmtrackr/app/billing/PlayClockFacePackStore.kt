@@ -318,34 +318,22 @@ class PlayClockFacePackStore @Inject constructor(
     /**
      * The raw amount behind [formattedPrice], for the bundle's saving badge.
      *
-     * Same two offer shapes as the formatted price, and read from the same offer,
-     * so the number the badge is computed from is the number the user is shown.
+     * Read from the same offer the price string came from, so the number the
+     * badge is computed from is the number the user is shown.
      */
-    private fun priceMicros(productId: String): Long? {
-        val product = products[productId] ?: return null
-        val offer = product.oneTimePurchaseOfferDetails
-            ?: product.oneTimePurchaseOfferDetailsList?.firstOrNull()
-            ?: return null
-        return offer.priceAmountMicros
-    }
+    private fun priceMicros(productId: String): Long? =
+        products[productId]?.buyOffer()?.priceAmountMicros
 
     /**
-     * Play's own price string for [productId], or null if it has not answered.
+     * Play's own price string for [productId], or null if it has not answered
+     * with a buy offer that has one.
      *
-     * Reads the single-offer getter first and falls back to the list. Play's
-     * one-time products are configured as purchase options carrying offers, and
-     * the list getter is documented as populated *only* for a product with more
-     * than one offer — so a product that later gains a second offer, say an
-     * introductory price, would report no price through the singular getter while
-     * remaining perfectly buyable. That failure would surface as a Buy button with
-     * a blank price, which reads as a broken app rather than a pricing change
-     * made in the console. Checking both costs a line.
+     * A missing or blank price is what disables the card's Buy button on the
+     * unpriced label. The offer is chosen in [ProductDetails.buyOffer] rather
+     * than taken as the first item Play listed.
      */
-    private fun formattedPrice(productId: String): String? {
-        val product = products[productId] ?: return null
-        return product.oneTimePurchaseOfferDetails?.formattedPrice
-            ?: product.oneTimePurchaseOfferDetailsList?.firstOrNull()?.formattedPrice
-    }
+    private fun formattedPrice(productId: String): String? =
+        products[productId]?.buyOffer()?.formattedPrice
 
     /**
      * What the storefront should say about Play after a query.
