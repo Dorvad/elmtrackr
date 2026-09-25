@@ -188,6 +188,29 @@ class PlayBillingConnection @Inject constructor(
     suspend fun queryOneTimeProducts(productIds: List<String>): List<ProductDetails>? {
         if (productIds.isEmpty()) return emptyList()
         if (!ensureConnected()) return null
+        val batch = queryOnce(productIds) ?: return null
+        // A product Play omitted from the batch — or returned with no priced buy
+        // offer — is asked for on its own. New purchase options (Payday was the
+        // first) come back unfetched inside a mixed query and priced on their
+        // own, and a batch that drops one leaves that card's Buy button
+        // disabled on the unpriced label.
+        val missing = productIds.filter { id -> batch.none { it.productId == id && it.buyOffer() != null } }
+        if (missing.isEmpty()) return batch
+        val recovered = missing.mapNotNull { id ->
+            queryOnce(listOf(id))?.firstOrNull { it.productId == id && it.buyOffer() != null }
+        }
+        if (recovered.isNotEmpty()) {
+            Log.d(TAG, "Recovered product details on a second query: ${recovered.map { it.productId }}")
+        }
+        val stillMissing = missing.filter { id -> recovered.none { it.productId == id } }
+        if (stillMissing.isNotEmpty()) {
+            Log.d(TAG, "Play returned no priced buy offer for $stillMissing")
+        }
+        val recoveredIds = recovered.map { it.productId }.toSet()
+        return batch.filter { it.productId !in recoveredIds } + recovered
+    }
+
+    private suspend fun queryOnce(productIds: List<String>): List<ProductDetails>? {
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(
                 productIds.map { id ->
@@ -252,15 +275,10 @@ class PlayBillingConnection @Inject constructor(
         val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(product)
             .apply {
-                // Set only when the product actually carries multiple offers.
-                // Play returns a non-null list in that case alone, and passing a
-                // token for a plain single-price product is not the documented
-                // path for one.
-                product.oneTimePurchaseOfferDetailsList
-                    ?.firstOrNull()
-                    ?.offerToken
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let { setOfferToken(it) }
+                // The token of the offer the price was read from. Play requires
+                // it for a purchase option, and the first offer in the list is
+                // not always that option.
+                product.buyOffer()?.offerToken?.let { setOfferToken(it) }
             }
             .build()
         return runCatchingBilling("launchBillingFlow") {
