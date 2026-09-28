@@ -9,9 +9,16 @@ import com.elmtrackr.app.fake.FakeShiftsRepository
 import com.elmtrackr.app.fake.FakeRefundsRepository
 import com.elmtrackr.app.fake.FakeRefundReceiptStorage
 import com.elmtrackr.app.fake.FakeTasksRepository
+import com.elmtrackr.app.domain.leave.AbsenceListEntry
+import com.elmtrackr.app.domain.model.AbsenceAllocation
+import com.elmtrackr.app.domain.model.AbsenceEvent
+import com.elmtrackr.app.domain.model.AbsenceType
+import com.elmtrackr.app.domain.model.LeaveBalanceUnit
 import com.elmtrackr.app.domain.model.MonthlyReport
+import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.model.Workplace
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -25,8 +32,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
+import java.time.ZoneOffset
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReportsViewModelTest {
@@ -39,6 +48,8 @@ class ReportsViewModelTest {
     private val settingsRepo = FakeSettingsRepository()
 
     private val tasksRepo = FakeTasksRepository()
+    private val leaveRepo = com.elmtrackr.app.fake.FakeLeaveRepository()
+    private val workplacesRepo = com.elmtrackr.app.fake.FakeWorkplacesRepository()
 
     private fun buildVm(ensureSettings: Boolean = true): ReportsViewModel {
         if (ensureSettings) {
@@ -56,6 +67,8 @@ class ReportsViewModelTest {
             FakeRefundReceiptStorage(),
             com.elmtrackr.app.fake.FakeProjectsRepository(),
             com.elmtrackr.app.fake.FakeReviewPromptRecorder(),
+            leaveRepo,
+            workplacesRepo,
             // The production flowOn dispatcher would run the payroll transform off the
             // test scheduler, so advanceUntilIdle could not await its emissions.
             computationDispatcher = mainDispatcherRule.dispatcher,
@@ -461,4 +474,131 @@ class ReportsViewModelTest {
         assertEquals("44.00", cells[4]) // total hours
         assertEquals("4.00", cells[6])  // overtime hours — weekly-driven, was 0.00
     }
+
+    @Test
+    fun `csv names a vacation day after the hours total without adding it to worked hours`() {
+        val vm = buildVm()
+        val withoutLeave = vm.buildCsvContent(listOf(completedShift()), settings = null, year = 2024, month = 1)
+        val csv = vm.buildCsvContent(
+            listOf(completedShift()),
+            settings = null,
+            year = 2024,
+            month = 1,
+            leaveEntries = listOf(vacationEntry(notes = "=HYPERLINK(\"http://x\")", workplace = "Cafe, North")),
+        )
+
+        val lines = csv.lines()
+        val totalIndex = lines.indexOfFirst { it.startsWith("TOTAL") }
+        val leaveIndex = lines.indexOf("PAID LEAVE")
+        assertTrue("Leave block follows the hours total: $csv", leaveIndex > totalIndex)
+        val dayRow = lines.first { it.startsWith("2026-09-15") }
+        assertTrue(dayRow.contains("Vacation"))
+        assertTrue(dayRow.contains("\"Cafe, North\""))
+        assertTrue(dayRow.contains("1.00"))
+        assertTrue(dayRow.contains("\"'=HYPERLINK(\"\"http://x\"\")\""))
+        assertEquals(
+            withoutLeave.lines().first { it.startsWith("TOTAL") },
+            lines.first { it.startsWith("TOTAL") },
+        )
+        assertTrue(lines.last().startsWith("LEAVE TOTAL"))
+    }
+
+    @Test
+    fun `ready state lists a vacation day in the selected month and ignores another month`() = runTest {
+        val vm = buildVm()
+        val states = mutableListOf<ReportsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+        advanceUntilIdle()
+        val (year, month) = vm.selectedYearMonth.value
+        val inMonth = LocalDate.of(year, month, 15)
+        val otherMonth = inMonth.minusMonths(1)
+
+        workplacesRepo.setWorkplaces(
+            Workplace(
+                id = "wp",
+                userId = "local-user",
+                name = "Cafe North",
+                regionCode = RegionCode.IL,
+                currencyCode = "ILS",
+                timezone = "UTC",
+            ),
+        )
+        leaveRepo.setEvents(
+            AbsenceEvent(
+                id = "e1",
+                userId = "local-user",
+                type = AbsenceType.VACATION,
+                startDate = inMonth,
+                endDate = inMonth,
+            ),
+            AbsenceEvent(
+                id = "e2",
+                userId = "local-user",
+                type = AbsenceType.VACATION,
+                startDate = otherMonth,
+                endDate = otherMonth,
+            ),
+        )
+        leaveRepo.setAllocations(
+            AbsenceAllocation(
+                id = "a1",
+                userId = "local-user",
+                absenceEventId = "e1",
+                workplaceId = "wp",
+                affectedDate = inMonth,
+                entitlementUnits = 1.0,
+                unit = LeaveBalanceUnit.DAYS,
+                estimatedGrossPay = 320.0,
+            ),
+            AbsenceAllocation(
+                id = "a2",
+                userId = "local-user",
+                absenceEventId = "e2",
+                workplaceId = "wp",
+                affectedDate = otherMonth,
+                entitlementUnits = 1.0,
+                unit = LeaveBalanceUnit.DAYS,
+                estimatedGrossPay = 320.0,
+            ),
+        )
+        advanceUntilIdle()
+
+        val ready = states.filterIsInstance<ReportsUiState.Ready>().last()
+        assertEquals(inMonth, ready.leaveEntries.single().date)
+        assertEquals(AbsenceType.VACATION, ready.leaveEntries.single().type)
+        assertEquals("Cafe North", ready.leaveEntries.single().workplaceName)
+        assertEquals(1.0, ready.paidLeave!!.vacationDays, 0.0001)
+        assertEquals(0, ready.report.totalMinutes)
+        assertEquals(
+            ready.report.totalMinutes,
+            ready.report.regularMinutes + ready.report.overtimeMinutes + ready.report.weekendMinutes,
+        )
+        job.cancel()
+    }
+
+    private fun vacationEntry(
+        notes: String? = null,
+        workplace: String = "Cafe North",
+    ) = AbsenceListEntry(
+        allocation = AbsenceAllocation(
+            id = "a1",
+            userId = "local-user",
+            absenceEventId = "e1",
+            workplaceId = "wp",
+            affectedDate = LocalDate.parse("2026-09-15"),
+            entitlementUnits = 1.0,
+            unit = LeaveBalanceUnit.DAYS,
+            estimatedGrossPay = 320.0,
+        ),
+        event = AbsenceEvent(
+            id = "e1",
+            userId = "local-user",
+            type = AbsenceType.VACATION,
+            startDate = LocalDate.parse("2026-09-15"),
+            endDate = LocalDate.parse("2026-09-15"),
+            notes = notes,
+        ),
+        workplaceName = workplace,
+        currencyCode = "ILS",
+    )
 }

@@ -1,6 +1,8 @@
 package com.elmtrackr.app.ui.reports
 
 import com.elmtrackr.app.domain.PayrollCalculator
+import com.elmtrackr.app.domain.leave.AbsenceListEntry
+import com.elmtrackr.app.domain.leave.MonthlyLeaveEarnings
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.MonthlyReport
@@ -56,6 +58,15 @@ sealed interface ReportsUiState {
         val projectClients: List<String> = emptyList(),
         val projectCurrencies: List<String> = emptyList(),
         val availableProjects: List<com.elmtrackr.app.domain.model.Project> = emptyList(),
+        /**
+         * Paid leave for this month, kept off [report]. Vacation and sick days are
+         * not worked time, and `regular + overtime + weekend == total` is what the
+         * distribution bar, the CSV totals row and the PDF header all assume.
+         * Null when the month has no leave, so an hourly-only month is unchanged.
+         */
+        val paidLeave: MonthlyLeaveEarnings? = null,
+        /** One row per affected day, so the report names the date the user entered. */
+        val leaveEntries: List<AbsenceListEntry> = emptyList(),
     ) : ReportsUiState
 
     data class Error(val message: String) : ReportsUiState

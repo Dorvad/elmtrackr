@@ -88,6 +88,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.domain.DailyInsight
 import com.elmtrackr.app.domain.HoursFormatter
+import com.elmtrackr.app.domain.leave.AbsenceListEntry
+import com.elmtrackr.app.domain.leave.LeaveQuantityFormat
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.OvernightShiftDetector
@@ -97,6 +99,7 @@ import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.domain.model.LeaveBalanceUnit
 import com.elmtrackr.app.domain.model.RefundAction
 import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.domain.model.Shift
@@ -233,7 +236,9 @@ fun ReportsScreen(
             projectsEnabled = ready?.projectReport != null,
             onSelect = { activeTab = it },
         )
-        val embedNavInHoursCard = effectiveTab == ReportTab.HOURS && ready?.report?.shiftCount?.let { it > 0 } == true
+        val hoursReportVisible = effectiveTab == ReportTab.HOURS &&
+            ready?.let { it.report.shiftCount > 0 || it.leaveEntries.isNotEmpty() } == true
+        val embedNavInHoursCard = hoursReportVisible
         if (effectiveTab == ReportTab.HOURS && !embedNavInHoursCard) {
             MonthNavigator(
                 selectedYearMonth.first,
@@ -296,7 +301,7 @@ fun ReportsScreen(
                             )
                         } ?: ReportsEmptyContent()
 
-                        ReportTab.HOURS -> if (state.report.shiftCount == 0) {
+                        ReportTab.HOURS -> if (state.report.shiftCount == 0 && state.leaveEntries.isEmpty()) {
                             ReportsEmptyContent()
                         } else {
                             HoursReport(
@@ -320,6 +325,7 @@ fun ReportsScreen(
                                                 contextShifts = state.payContextShifts,
                                                 year = state.year,
                                                 month = state.month,
+                                                leaveEntries = state.leaveEntries,
                                             ),
                                             viewModel.csvFilename(state.year, state.month),
                                         )
@@ -860,6 +866,11 @@ internal fun HoursReport(
         }
     }
 
+    if (state.leaveEntries.isNotEmpty()) {
+        Spacer(Modifier.height(14.dp))
+        LeaveReportSection(state)
+    }
+
     // ── Gross pay (phone only — shown in tablet top row) ─────────────────────
     if (!isTablet) {
     state.paySummary?.takeIf { it.totalGross > 0 }?.let { pay ->
@@ -1032,7 +1043,7 @@ internal fun HoursReport(
     }
 
     // ── OT thresholds footnote (web: inline with hairline divider) ────────────
-    state.settings?.let { settings ->
+    state.settings?.takeIf { state.rawShifts.isNotEmpty() }?.let { settings ->
         Spacer(Modifier.height(12.dp))
         OtThresholdFootnote(settings, state.profiles)
 
@@ -2112,6 +2123,150 @@ private fun ReportCard(modifier: Modifier = Modifier, content: @Composable () ->
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) { content() }
     }
+}
+
+@Composable
+private fun LeaveReportSection(state: ReportsUiState.Ready) {
+    val leave = state.paidLeave
+    ElmSectionHeader(stringResource(R.string.leave_reports_section))
+    Spacer(Modifier.height(8.dp))
+    ReportCard {
+        if (leave != null && !leave.isEmpty) {
+            if (leave.hasVacation) {
+                ReportRow(
+                    stringResource(R.string.leave_reports_vacation),
+                    leaveAmountLabel(leave.vacationDays, leave.vacationHours),
+                )
+            }
+            if (leave.hasSick) {
+                ReportRow(
+                    stringResource(R.string.leave_reports_sick),
+                    leaveAmountLabel(leave.sickDays, leave.sickHours),
+                )
+            }
+            if (leave.paidLeaveGross > 0.0) {
+                ReportRow(
+                    stringResource(R.string.leave_reports_estimated_total),
+                    MoneyFormatter.format(leave.paidLeaveGross, leave.currencyCode, appLocale()),
+                )
+            }
+            if (state.leaveEntries.isNotEmpty()) {
+                HorizontalDivider(
+                    Modifier.padding(vertical = 10.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+            }
+        }
+        state.leaveEntries.forEachIndexed { index, entry ->
+            if (index > 0) {
+                HorizontalDivider(
+                    Modifier.padding(vertical = 10.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+            }
+            LeaveReportRow(entry)
+        }
+    }
+}
+
+@Composable
+private fun LeaveReportRow(entry: AbsenceListEntry) {
+    val date = entry.date.format(DateTimeFormatter.ofPattern("EEE, d MMM", appLocale()))
+    val type = stringResource(
+        if (entry.type == com.elmtrackr.app.domain.model.AbsenceType.VACATION) {
+            R.string.leave_reports_vacation
+        } else {
+            R.string.leave_reports_sick
+        },
+    )
+    val quantity = when (entry.allocation.unit) {
+        LeaveBalanceUnit.DAYS -> if (entry.allocation.entitlementUnits == 1.0) {
+            stringResource(R.string.leave_form_length_single)
+        } else {
+            stringResource(
+                R.string.leave_reports_days_value,
+                LeaveQuantityFormat.number(entry.allocation.entitlementUnits, appLocale()),
+            )
+        }
+        LeaveBalanceUnit.HOURS -> stringResource(
+            R.string.leave_reports_hours_value,
+            LeaveQuantityFormat.number(entry.allocation.entitlementUnits, appLocale()),
+        )
+    }
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "$date · $type",
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                quantity,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(start = Spacing.s8),
+            )
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(top = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                entry.workplaceName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (entry.allocation.estimatedGrossPay > 0.0) {
+                Text(
+                    MoneyFormatter.format(entry.allocation.estimatedGrossPay, entry.currencyCode, appLocale()),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = Spacing.s8),
+                )
+            }
+        }
+        entry.event.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+            Text(
+                notes,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun leaveAmountLabel(days: Double, hours: Double): String {
+    val locale = appLocale()
+    val dayText = when {
+        days <= 0.0 -> null
+        days == 1.0 -> stringResource(R.string.leave_form_length_single)
+        else -> stringResource(
+            R.string.leave_reports_days_value,
+            LeaveQuantityFormat.number(days, locale),
+        )
+    }
+    val hourText = if (hours > 0.0) {
+        stringResource(
+            R.string.leave_reports_hours_value,
+            LeaveQuantityFormat.number(hours, locale),
+        )
+    } else {
+        null
+    }
+    return listOfNotNull(dayText, hourText).joinToString(" · ")
 }
 
 @Composable

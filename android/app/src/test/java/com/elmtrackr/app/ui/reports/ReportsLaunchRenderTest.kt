@@ -1,13 +1,24 @@
 package com.elmtrackr.app.ui.reports
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.elmtrackr.app.ScreenshotTestApplication
+import com.elmtrackr.app.domain.model.AbsenceAllocation
+import com.elmtrackr.app.domain.model.AbsenceEvent
+import com.elmtrackr.app.domain.model.AbsenceType
+import com.elmtrackr.app.domain.model.LeaveBalanceUnit
+import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.model.Workplace
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
+import com.elmtrackr.app.fake.FakeLeaveRepository
+import com.elmtrackr.app.fake.FakeWorkplacesRepository
 import com.elmtrackr.app.fake.FakeCurrentUserProvider
 import com.elmtrackr.app.fake.FakePremiumProfilesRepository
 import com.elmtrackr.app.fake.FakeProjectsRepository
@@ -21,11 +32,14 @@ import com.elmtrackr.app.fake.FakeTasksRepository
 import com.elmtrackr.app.ui.theme.ElmTrackrTheme
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 /**
  * Where the dashboard's refund reminder lands.
@@ -44,6 +58,8 @@ class ReportsLaunchRenderTest {
     val composeRule = createComposeRule()
 
     private val settingsRepo = FakeSettingsRepository()
+    private val leaveRepo = FakeLeaveRepository()
+    private val workplacesRepo = FakeWorkplacesRepository()
 
     private fun viewModel(): ReportsViewModel {
         settingsRepo.setSettings(
@@ -61,6 +77,8 @@ class ReportsLaunchRenderTest {
             FakeRefundReceiptStorage(),
             FakeProjectsRepository(),
             FakeReviewPromptRecorder(),
+            leaveRepo,
+            workplacesRepo,
             computationDispatcher = Dispatchers.Unconfined,
         )
     }
@@ -125,5 +143,56 @@ class ReportsLaunchRenderTest {
 
         composeRule.onNodeWithText("Hours").assertIsSelected()
         composeRule.onNodeWithText("Travel Refunds").assertIsNotSelected()
+    }
+
+    @Test
+    fun `a vacation day is named on the hours report`() {
+        val day = LocalDate.now(ZoneOffset.UTC).withDayOfMonth(15)
+        workplacesRepo.setWorkplaces(
+            Workplace(
+                id = "wp",
+                userId = "local-user",
+                name = "Cafe North",
+                regionCode = RegionCode.IL,
+                currencyCode = "ILS",
+                timezone = "UTC",
+            ),
+        )
+        leaveRepo.setEvents(
+            AbsenceEvent(
+                id = "e1",
+                userId = "local-user",
+                type = AbsenceType.VACATION,
+                startDate = day,
+                endDate = day,
+                notes = "beach day",
+            ),
+        )
+        leaveRepo.setAllocations(
+            AbsenceAllocation(
+                id = "a1",
+                userId = "local-user",
+                absenceEventId = "e1",
+                workplaceId = "wp",
+                affectedDate = day,
+                entitlementUnits = 1.0,
+                unit = LeaveBalanceUnit.DAYS,
+                estimatedGrossPay = 320.0,
+            ),
+        )
+
+        composeRule.setContent {
+            ElmTrackrTheme(darkTheme = false) {
+                ReportsScreen(viewModel = viewModel())
+            }
+        }
+
+        assertTrue(
+            composeRule.onAllNodesWithText("Vacation", substring = true).fetchSemanticsNodes().isNotEmpty(),
+        )
+        composeRule.onNodeWithText("PAID LEAVE").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Cafe North", substring = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("beach day", substring = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("No completed shifts").assertDoesNotExist()
     }
 }
