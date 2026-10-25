@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -90,9 +91,16 @@ class SyncDetailsViewModel @Inject constructor(
                 }
                 com.elmtrackr.app.data.sync.SyncResult.AuthExpired ->
                     _message.value = UiText.Res(R.string.sync_session_expired)
-                else -> {
+                // There is no cloud to reach. "Sync finished" here claimed an upload
+                // that never happened.
+                com.elmtrackr.app.data.sync.SyncResult.NotConfigured ->
+                    _message.value = UiText.Res(R.string.sync_not_configured)
+                com.elmtrackr.app.data.sync.SyncResult.Success -> {
                     syncTrigger.schedule()
-                    _message.value = UiText.Res(R.string.sync_finished)
+                    // What the run actually achieved, not a blanket "finished": a run
+                    // can succeed and still leave changes waiting or unsent.
+                    _message.value = SyncStatusText.format(syncRepository.observeLastSyncStatus().first())
+                        ?: UiText.Res(R.string.sync_finished)
                 }
             }
             _isSyncing.value = false

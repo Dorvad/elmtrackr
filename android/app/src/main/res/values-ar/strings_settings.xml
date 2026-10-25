@@ -487,7 +487,7 @@
     <string name="settings_backup_share_subject">نسخة ‏ElmTrackr الاحتياطية المحلية</string>
     <string name="settings_backup_share_chooser">تصدير النسخة الاحتياطية المحلية</string>
     <string name="settings_sync_synced_with_warnings">تمت المزامنة مع تحذيرات: %1$s</string>
-    <string name="settings_sync_synced_unsent">تمت المزامنة. التغييرات غير المرفوعة: %1$d</string>
+    <string name="settings_sync_synced_unsent">تعذّر رفع %1$d من التغييرات. إنها محفوظة على هذا الجهاز وستُعاد المحاولة.</string>
 
     <!-- Sick leave arrangement, per compensation profile -->
     <string name="settings_section_sick_leave">الإجازة المرضية</string>
@@ -555,4 +555,7 @@
     <string name="settings_advanced_summary">مُعبّأة حسب منطقتك. غيّرها فقط حيث يختلف عقدك.</string>
     <string name="settings_currency_change_hint">ستظهر الورديات السابقة في هذا العمل أيضاً بعملة %1$s. لا يتم تحويل المبالغ.</string>
     <string name="settings_time_breaks_intro">كيف يتحوّل وقت الساعة إلى وقت مدفوع. معظم الأعمال تُبقي التقريب والحد الأدنى للأجر معطّلين.</string>
+
+    <!-- Sync status: changes held for retry (Wave 2) -->
+    <string name="sync_waiting_count">محفوظ على هذا الجهاز. %1$d من التغييرات بانتظار الرفع.</string>
 </resources>

@@ -276,7 +276,7 @@ class WearStateRepository(
             WearLocalShift.punchOut(_snapshot.value, nowMillis)
         }
         applySnapshot(next)
-        return PunchResult(success = true)
+        return PunchResult(success = true, queuedOnWatch = true)
     }
 
     suspend fun pendingEvents(): List<WearPunchEvent> =

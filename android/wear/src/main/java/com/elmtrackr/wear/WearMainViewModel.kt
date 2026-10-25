@@ -105,9 +105,15 @@ class WearMainViewModel(
     private suspend fun punch(isPunchIn: Boolean) {
         val result = if (isPunchIn) app.wearActionClient.punchIn() else app.wearActionClient.punchOut()
         if (result.success) {
-            app.wearStateRepository.showConfirmation(
-                app.getString(if (isPunchIn) R.string.confirmed_in else R.string.confirmed_out),
-            )
+            // "Clocked in" means the phone took it. A punch only queued on the watch
+            // says so, so nobody walks away believing the phone already has it.
+            val message = when {
+                result.queuedOnWatch && isPunchIn -> R.string.confirmed_in_on_watch
+                result.queuedOnWatch -> R.string.confirmed_out_on_watch
+                isPunchIn -> R.string.confirmed_in
+                else -> R.string.confirmed_out
+            }
+            app.wearStateRepository.showConfirmation(app.getString(message))
         } else {
             app.wearStateRepository.showConfirmation(failureMessage(result.errorCode), isSuccess = false)
             // A failed punch usually means the face is stale — e.g. punching

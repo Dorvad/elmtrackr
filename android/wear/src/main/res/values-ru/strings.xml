@@ -19,6 +19,9 @@
     <string name="punch_out">Отметить уход</string>
     <string name="confirmed_in">Приход отмечен</string>
     <string name="confirmed_out">Уход отмечен</string>
+    <!-- The phone has not taken the punch yet; it is queued on the watch. -->
+    <string name="confirmed_in_on_watch">Приход отмечен · сохранено на часах</string>
+    <string name="confirmed_out_on_watch">Уход отмечен · сохранено на часах</string>
     <string name="phone_unreachable">Телефон недоступен</string>
     <string name="punch_failed">Не удалось отметить</string>
     <string name="wear_sync_disabled">Часы отключены в настройках телефона</string>

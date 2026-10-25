@@ -814,6 +814,30 @@ class SyncRepositoryImplTest {
     }
 
     /**
+     * A row held back for retry has not left the device, so the run must not
+     * report "Synced". It used to: only FAILED rows were counted, and a shift
+     * waiting out a timeout read as "Synced just now".
+     */
+    @Test
+    fun `a row held back for retry is reported as waiting, never as synced`() = runTest {
+        val dao = InMemoryShiftDao()
+        val remote = object : RemoteShiftDataSource by FakeRemoteShiftDataSource() {
+            override suspend fun insert(shift: RemoteShiftInsert): RemoteShiftRow =
+                throw java.net.SocketTimeoutException("timeout")
+        }
+        val repository = createRepository(shiftDao = dao, remoteShifts = remote)
+
+        dao.insertShift(shiftEntity(localId = "local-1", syncStatus = SyncStatus.PENDING_CREATE))
+        val result = repository.syncAll("user-1")
+
+        assertTrue(result is SyncResult.Success)
+        assertEquals(SyncStatus.PENDING_CREATE, dao.getShiftById("local-1")!!.syncStatus)
+        val status = repository.observeLastSyncStatus().first()
+        assertEquals("SyncWaiting: 1", status)
+        assertFalse(status!!.startsWith("Synced "))
+    }
+
+    /**
      * The same rule, on a table that never had it. Shifts and tasks held a
      * transient failure; projects, payments, workplaces, leave rows, settings and
      * profiles all marked FAILED on any error at all — so one flaky request

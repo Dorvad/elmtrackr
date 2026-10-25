@@ -60,4 +60,12 @@ data class WearShiftSnapshot(
 data class PunchResult(
     val success: Boolean,
     val errorCode: String? = null,
+    /**
+     * The punch was recorded on the watch and queued for the phone, which has not
+     * taken it yet. Set only by the watch itself, never sent: @Transient keeps it
+     * off the wire, so a phone and a watch on different versions read each other's
+     * results exactly as before.
+     */
+    @kotlinx.serialization.Transient
+    val queuedOnWatch: Boolean = false,
 )
