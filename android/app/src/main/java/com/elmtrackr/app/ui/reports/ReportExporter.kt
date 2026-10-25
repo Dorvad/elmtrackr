@@ -9,7 +9,11 @@ import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.MonthlyReportBuilder
+import com.elmtrackr.app.domain.leave.LeaveQuantityFormat
+import com.elmtrackr.app.domain.leave.MonthlyLeaveEarnings
 import com.elmtrackr.app.domain.time.WorkTimezone
+import com.elmtrackr.app.domain.model.AbsenceType
+import com.elmtrackr.app.domain.model.LeaveBalanceUnit
 import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.data.receipt.ReceiptBitmapDecoder
 import com.elmtrackr.app.domain.MoneyFormatter
@@ -121,6 +125,12 @@ object ReportExporter {
         heading.textAlign = Paint.Align.LEFT
         y += 18f
         canvas.drawText(res.getString(R.string.export_completed_shifts, state.report.shiftCount), margin, y, subtitle)
+        state.paidLeave?.let { leave ->
+            leaveHeaderSummary(res, leave)?.let { summary ->
+                y += 14f
+                canvas.drawText(summary, margin, y, subtitle)
+            }
+        }
         y += 22f
 
         canvas.drawRoundRect(margin, y, pageWidth - margin, y + 84f, 18f, 18f, fill)
@@ -211,6 +221,73 @@ object ReportExporter {
             y += 24f
         }
 
+        if (state.leaveEntries.isNotEmpty()) {
+            ensureSpace(56f)
+            canvas.drawText(res.getString(R.string.leave_reports_section), margin, y, heading)
+            y += 16f
+            state.leaveEntries.forEach { entry ->
+                ensureSpace(36f)
+                val type = res.getString(
+                    if (entry.type == AbsenceType.VACATION) R.string.leave_reports_vacation
+                    else R.string.leave_reports_sick,
+                )
+                val quantity = allocationAmountLabel(
+                    res,
+                    entry.allocation.entitlementUnits,
+                    entry.allocation.unit,
+                )
+                canvas.drawText(dateFormat.format(entry.date.atStartOfDay(zone).toInstant()), margin, y, body)
+                canvas.drawText(type, margin + 100f, y, body)
+                canvas.drawText(entry.workplaceName.take(22), margin + 175f, y, body)
+                canvas.drawText(quantity, margin + 310f, y, body)
+                val gross = entry.allocation.estimatedGrossPay
+                canvas.drawText(
+                    if (gross > 0.0) {
+                        MoneyFormatter.format(gross, entry.currencyCode, res.exportLocale())
+                    } else {
+                        "—"
+                    },
+                    pageWidth - margin,
+                    y,
+                    body.apply { textAlign = Paint.Align.RIGHT },
+                )
+                body.textAlign = Paint.Align.LEFT
+                y += 11f
+                entry.event.notes?.takeIf { it.isNotBlank() }?.let {
+                    canvas.drawText(res.getString(R.string.export_note, it.take(92)), margin + 100f, y, muted)
+                    y += 11f
+                }
+                canvas.drawLine(margin, y, pageWidth - margin, y, line)
+                y += 14f
+            }
+            // One line per currency, as on screen: leave at two workplaces paid in
+            // different currencies has no single total.
+            val leaveTotals = state.leaveGrossByCurrency
+            val totalLabel = res.getString(R.string.leave_reports_estimated_total)
+            leaveTotals.forEach { (code, gross) ->
+                ensureSpace(22f)
+                canvas.drawText(
+                    if (leaveTotals.size == 1) {
+                        totalLabel
+                    } else {
+                        res.getString(R.string.project_money_label_with_code, totalLabel, code)
+                    },
+                    margin,
+                    y,
+                    heading,
+                )
+                canvas.drawText(
+                    MoneyFormatter.format(gross, code, res.exportLocale()),
+                    pageWidth - margin,
+                    y,
+                    heading.apply { textAlign = Paint.Align.RIGHT },
+                )
+                heading.textAlign = Paint.Align.LEFT
+                y += 22f
+            }
+        }
+
+        if (state.rawShifts.isNotEmpty()) {
         ensureSpace(56f)
         canvas.drawText(res.getString(R.string.reports_shift_breakdown), margin, y, heading)
         y += 16f
@@ -273,6 +350,7 @@ object ReportExporter {
             }
             canvas.drawLine(margin, y, pageWidth - margin, y, line)
             y += 13f
+        }
         }
 
         if (state.taskBreakdown.isNotEmpty()) {
@@ -604,6 +682,53 @@ object ReportExporter {
             muted,
         )
     }
+
+    private fun leaveHeaderSummary(res: Context, leave: MonthlyLeaveEarnings): String? {
+        if (leave.isEmpty) return null
+        val parts = buildList {
+            if (leave.hasVacation) {
+                add(
+                    "${res.getString(R.string.leave_reports_vacation)}: ${
+                        leaveAmountLabel(res, leave.vacationDays, leave.vacationHours)
+                    }",
+                )
+            }
+            if (leave.hasSick) {
+                add(
+                    "${res.getString(R.string.leave_reports_sick)}: ${
+                        leaveAmountLabel(res, leave.sickDays, leave.sickHours)
+                    }",
+                )
+            }
+        }
+        return parts.joinToString("   ").ifBlank { null }
+    }
+
+    private fun leaveAmountLabel(res: Context, days: Double, hours: Double): String {
+        val parts = buildList {
+            if (days > 0.0) add(dayOrDays(res, days))
+            if (hours > 0.0) {
+                add(res.getString(R.string.leave_reports_hours_value, LeaveQuantityFormat.number(hours, res.exportLocale())))
+            }
+        }
+        return parts.joinToString(" · ")
+    }
+
+    private fun allocationAmountLabel(res: Context, units: Double, unit: LeaveBalanceUnit): String =
+        when (unit) {
+            LeaveBalanceUnit.DAYS -> dayOrDays(res, units)
+            LeaveBalanceUnit.HOURS -> res.getString(
+                R.string.leave_reports_hours_value,
+                LeaveQuantityFormat.number(units, res.exportLocale()),
+            )
+        }
+
+    private fun dayOrDays(res: Context, days: Double): String =
+        if (days == 1.0) {
+            res.getString(R.string.leave_form_length_single)
+        } else {
+            res.getString(R.string.leave_reports_days_value, LeaveQuantityFormat.number(days, res.exportLocale()))
+        }
 
     private const val AuroraPdfInk = 0xff181530.toInt()
     private const val AuroraPdfMuted = 0xff615C8A.toInt()

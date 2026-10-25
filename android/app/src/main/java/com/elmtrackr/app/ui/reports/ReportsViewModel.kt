@@ -8,6 +8,10 @@ import com.elmtrackr.app.domain.DailyInsightsBuilder
 import com.elmtrackr.app.data.repository.CompensationProfilesRepository
 import com.elmtrackr.app.data.repository.PremiumProfilesRepository
 import com.elmtrackr.app.domain.HoursFormatter
+import com.elmtrackr.app.domain.leave.AbsenceListEntry
+import com.elmtrackr.app.domain.leave.LeaveEarningsBuilder
+import com.elmtrackr.app.domain.leave.LeaveQuantityFormat
+import com.elmtrackr.app.domain.leave.MonthlyLeaveEarnings
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.MonthlyReportBuilder
@@ -16,13 +20,20 @@ import com.elmtrackr.app.domain.WeeklyBreakdownBuilder
 import com.elmtrackr.app.domain.ReportInsightsBuilder
 import com.elmtrackr.app.domain.TaskMonthlyReportBuilder
 import com.elmtrackr.app.domain.time.WorkTimezone
+import com.elmtrackr.app.domain.model.AbsenceAllocation
+import com.elmtrackr.app.domain.model.AbsenceEvent
+import com.elmtrackr.app.domain.model.AbsenceType
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.LeaveBalanceUnit
 import com.elmtrackr.app.domain.model.MonthlyReport
+import com.elmtrackr.app.domain.model.Workplace
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.TaskMonthlyBreakdown
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.repository.LeaveRepository
 import com.elmtrackr.app.domain.repository.ReportsRepository
+import com.elmtrackr.app.domain.repository.WorkplacesRepository
 import com.elmtrackr.app.domain.repository.RefundsRepository
 import com.elmtrackr.app.domain.repository.RefundReceiptStorage
 import com.elmtrackr.app.domain.repository.SettingsRepository
@@ -65,6 +76,8 @@ class ReportsViewModel @Inject constructor(
     private val refundReceiptStorage: RefundReceiptStorage?,
     private val projectsRepository: com.elmtrackr.app.domain.repository.ProjectsRepository,
     private val reviewPromptRecorder: com.elmtrackr.app.review.ReviewPromptRecorder,
+    private val leaveRepository: LeaveRepository,
+    private val workplacesRepository: WorkplacesRepository,
     // Injected so tests can run the payroll transform on their own test dispatcher;
     // production keeps it off the main thread (see flowOn below).
     @ComputationDispatcher
@@ -204,6 +217,87 @@ class ReportsViewModel @Inject constructor(
                 .availableCurrencies(summaries),
             projects = com.elmtrackr.app.domain.projects.ProjectReportFilterEngine
                 .availableProjects(summaries),
+        )
+    }
+
+    /**
+     * Paid leave for the selected month, or null when the month has none.
+     *
+     * Combined onto the hourly report after that report has already been built,
+     * the same way the project report is: leave must not delay the hours, and it
+     * must not be added into them. A vacation day has no worked minutes, so
+     * folding it into [MonthlyReport] would break `regular + overtime + weekend
+     * == total` and report hours the user did not work.
+     */
+    private val paidLeave: kotlinx.coroutines.flow.Flow<PaidLeaveBundle?> =
+        combine(_selectedYear, _selectedMonth) { year, month -> year to month }
+            .flatMapLatest { (year, month) ->
+                currentUserProvider.userId.flatMapLatest { userId ->
+                    if (userId == null) return@flatMapLatest flowOf(null)
+                    combine(
+                        leaveRepository.observeAllocationsInMonth(userId, year, month),
+                        leaveRepository.observeEvents(userId),
+                        workplacesRepository.observeAllWorkplaces(userId),
+                        settingsRepository.observeSettings(userId),
+                    ) { allocations, events, workplaces, settings ->
+                        buildPaidLeave(year, month, allocations, events, workplaces, settings)
+                    }
+                }
+            }
+            .catch { emit(null) }
+
+    private data class PaidLeaveBundle(
+        val earnings: MonthlyLeaveEarnings,
+        val entries: List<AbsenceListEntry>,
+    )
+
+    private fun buildPaidLeave(
+        year: Int,
+        month: Int,
+        allocations: List<AbsenceAllocation>,
+        events: List<AbsenceEvent>,
+        workplaces: List<Workplace>,
+        settings: UserSettings?,
+    ): PaidLeaveBundle? {
+        if (allocations.isEmpty()) return null
+        val eventsById = events.associateBy { it.id }
+        val workplacesById = workplaces.associateBy { it.id }
+        val entries = allocations.mapNotNull { allocation ->
+            // No event means we cannot tell vacation from sick. Omitting the row
+            // is safer than filing it under the wrong balance.
+            val event = eventsById[allocation.absenceEventId] ?: return@mapNotNull null
+            val workplace = workplacesById[allocation.workplaceId]
+            AbsenceListEntry(
+                allocation = allocation,
+                event = event,
+                workplaceName = workplace?.name?.takeIf { it.isNotBlank() } ?: allocation.workplaceId,
+                currencyCode = allocation.calculationSnapshot?.currencyCode
+                    ?.takeIf { it.isNotBlank() }
+                    ?: workplace?.currencyCode?.takeIf { it.isNotBlank() }
+                    ?: settings?.displayCurrencyCode()
+                    ?: "ILS",
+            )
+        }.sortedWith(
+            compareByDescending<AbsenceListEntry> { it.date }
+                .thenBy { it.workplaceName }
+                .thenBy { it.allocation.id },
+        )
+        if (entries.isEmpty()) return null
+        val currency = entries.map { it.currencyCode }.distinct().singleOrNull()
+            ?: settings?.displayCurrencyCode()
+            ?: entries.first().currencyCode
+        return PaidLeaveBundle(
+            earnings = LeaveEarningsBuilder.buildMonthly(
+                year = year,
+                month = month,
+                currencyCode = currency,
+                allocations = allocations,
+                typeOf = { eventsById[it.absenceEventId]?.type },
+                workplaceNameOf = { id ->
+                    workplacesById[id]?.name?.takeIf { it.isNotBlank() } ?: id
+                },
+            ),
+            entries = entries,
         )
     }
 
@@ -411,6 +505,23 @@ class ReportsViewModel @Inject constructor(
                 else -> state
             }
         }
+        // Month is checked before attaching. combine keeps the previous
+        // emission until the new month's leave arrives, and copying January's
+        // vacation onto February's report would name a day the user did not take.
+        .combine(paidLeave) { state, leave ->
+            when (state) {
+                is ReportsUiState.Ready -> if (
+                    leave == null ||
+                    leave.earnings.year != state.year ||
+                    leave.earnings.month != state.month
+                ) {
+                    state
+                } else {
+                    state.copy(paidLeave = leave.earnings, leaveEntries = leave.entries)
+                }
+                else -> state
+            }
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -488,6 +599,12 @@ class ReportsViewModel @Inject constructor(
         contextShifts: List<Shift> = shifts,
         year: Int = selectedYearMonth.value.first,
         month: Int = selectedYearMonth.value.second,
+        /**
+         * Vacation and sick days for this month. A separate block after the hours
+         * total: the hours columns stay a worked-time report, and a payroll file
+         * that omitted the day the user entered is the bug this block closes.
+         */
+        leaveEntries: List<AbsenceListEntry> = emptyList(),
         // A premium shift's minutes are special-rate time on screen and in the PDF.
         // Without the profiles here the export classified the same minutes as
         // ordinary time, so the file disagreed with the report it came from.
@@ -534,8 +651,54 @@ class ReportsViewModel @Inject constructor(
             HoursFormatter.csv(report.weekendMinutes),
             "", "${completed.size} shifts",
         ).joinToString(",")
+        appendLeaveBlock(lines, leaveEntries)
         return lines.joinToString("\n")
     }
+
+    /**
+     * Names each reported day. Workplace and notes are user-typed and go through
+     * [csvEscape]; a formula in either would otherwise run when payroll opens the file.
+     */
+    private fun appendLeaveBlock(lines: MutableList<String>, leaveEntries: List<AbsenceListEntry>) {
+        if (leaveEntries.isEmpty()) return
+        lines += ""
+        lines += "PAID LEAVE"
+        lines += "Date,Type,Workplace,Days,Hours,Estimated Gross,Currency,Notes"
+        leaveEntries.forEach { entry ->
+            lines += listOf(
+                entry.date.toString(),
+                when (entry.type) {
+                    AbsenceType.VACATION -> "Vacation"
+                    AbsenceType.SICK -> "Sick"
+                },
+                csvEscape(entry.workplaceName),
+                LeaveQuantityFormat.csv(entry.leaveDays()),
+                LeaveQuantityFormat.csv(entry.leaveHours()),
+                LeaveQuantityFormat.csv(entry.allocation.estimatedGrossPay),
+                entry.currencyCode,
+                csvEscape(entry.event.notes.orEmpty()),
+            ).joinToString(",")
+        }
+        // One total row per currency. A single row would add shekels to dollars for a
+        // user with leave at two workplaces paid in different currencies — on the file
+        // that goes to payroll. With one currency this is the one row it always was.
+        leaveEntries.groupBy { it.currencyCode }.toSortedMap().forEach { (code, entries) ->
+            lines += listOf(
+                "LEAVE TOTAL", "", "",
+                LeaveQuantityFormat.csv(entries.sumOf { it.leaveDays() }),
+                LeaveQuantityFormat.csv(entries.sumOf { it.leaveHours() }),
+                LeaveQuantityFormat.csv(entries.sumOf { it.allocation.estimatedGrossPay }),
+                code,
+                "",
+            ).joinToString(",")
+        }
+    }
+
+    private fun AbsenceListEntry.leaveDays(): Double =
+        if (allocation.unit == LeaveBalanceUnit.DAYS) allocation.entitlementUnits else 0.0
+
+    private fun AbsenceListEntry.leaveHours(): Double =
+        if (allocation.unit == LeaveBalanceUnit.HOURS) allocation.entitlementUnits else 0.0
 
     private fun formatDatetime(instant: java.time.Instant?, zone: ZoneId): String = instant
         ?.atZone(zone)

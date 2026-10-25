@@ -16,6 +16,7 @@ import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.time.WorkTimezone
 import com.elmtrackr.app.fake.FakeCompensationProfilesRepository
 import com.elmtrackr.app.fake.FakeCurrentUserProvider
+import com.elmtrackr.app.fake.FakeLeaveRepository
 import com.elmtrackr.app.fake.FakePremiumProfilesRepository
 import com.elmtrackr.app.fake.FakeProjectsRepository
 import com.elmtrackr.app.fake.FakeRefundReceiptStorage
@@ -25,6 +26,7 @@ import com.elmtrackr.app.fake.FakeReviewPromptRecorder
 import com.elmtrackr.app.fake.FakeSettingsRepository
 import com.elmtrackr.app.fake.FakeShiftsRepository
 import com.elmtrackr.app.fake.FakeTasksRepository
+import com.elmtrackr.app.fake.FakeWorkplacesRepository
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Assert.assertEquals
@@ -66,6 +68,8 @@ class ReportExportConsistencyTest {
             FakeRefundReceiptStorage(),
             FakeProjectsRepository(),
             FakeReviewPromptRecorder(),
+            FakeLeaveRepository(),
+            FakeWorkplacesRepository(),
             computationDispatcher = mainDispatcherRule.dispatcher,
         )
     }

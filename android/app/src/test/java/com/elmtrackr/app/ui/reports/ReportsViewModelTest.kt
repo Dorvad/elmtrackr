@@ -9,9 +9,16 @@ import com.elmtrackr.app.fake.FakeShiftsRepository
 import com.elmtrackr.app.fake.FakeRefundsRepository
 import com.elmtrackr.app.fake.FakeRefundReceiptStorage
 import com.elmtrackr.app.fake.FakeTasksRepository
+import com.elmtrackr.app.domain.leave.AbsenceListEntry
+import com.elmtrackr.app.domain.model.AbsenceAllocation
+import com.elmtrackr.app.domain.model.AbsenceEvent
+import com.elmtrackr.app.domain.model.AbsenceType
+import com.elmtrackr.app.domain.model.LeaveBalanceUnit
 import com.elmtrackr.app.domain.model.MonthlyReport
+import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
+import com.elmtrackr.app.domain.model.Workplace
 import com.elmtrackr.app.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -25,8 +32,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
+import java.time.ZoneOffset
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReportsViewModelTest {
@@ -39,6 +48,8 @@ class ReportsViewModelTest {
     private val settingsRepo = FakeSettingsRepository()
 
     private val tasksRepo = FakeTasksRepository()
+    private val leaveRepo = com.elmtrackr.app.fake.FakeLeaveRepository()
+    private val workplacesRepo = com.elmtrackr.app.fake.FakeWorkplacesRepository()
 
     private fun buildVm(ensureSettings: Boolean = true): ReportsViewModel {
         if (ensureSettings) {
@@ -56,6 +67,8 @@ class ReportsViewModelTest {
             FakeRefundReceiptStorage(),
             com.elmtrackr.app.fake.FakeProjectsRepository(),
             com.elmtrackr.app.fake.FakeReviewPromptRecorder(),
+            leaveRepo,
+            workplacesRepo,
             // The production flowOn dispatcher would run the payroll transform off the
             // test scheduler, so advanceUntilIdle could not await its emissions.
             computationDispatcher = mainDispatcherRule.dispatcher,
@@ -461,4 +474,195 @@ class ReportsViewModelTest {
         assertEquals("44.00", cells[4]) // total hours
         assertEquals("4.00", cells[6])  // overtime hours — weekly-driven, was 0.00
     }
+
+    @Test
+    fun `csv names a vacation day after the hours total without adding it to worked hours`() {
+        val vm = buildVm()
+        val withoutLeave = vm.buildCsvContent(listOf(completedShift()), settings = null, year = 2024, month = 1)
+        val csv = vm.buildCsvContent(
+            listOf(completedShift()),
+            settings = null,
+            year = 2024,
+            month = 1,
+            leaveEntries = listOf(vacationEntry(notes = "=HYPERLINK(\"http://x\")", workplace = "Cafe, North")),
+        )
+
+        val lines = csv.lines()
+        val totalIndex = lines.indexOfFirst { it.startsWith("TOTAL") }
+        val leaveIndex = lines.indexOf("PAID LEAVE")
+        assertTrue("Leave block follows the hours total: $csv", leaveIndex > totalIndex)
+        val dayRow = lines.first { it.startsWith("2026-09-15") }
+        assertTrue(dayRow.contains("Vacation"))
+        assertTrue(dayRow.contains("\"Cafe, North\""))
+        assertTrue(dayRow.contains("1.00"))
+        assertTrue(dayRow.contains("\"'=HYPERLINK(\"\"http://x\"\")\""))
+        assertEquals(
+            withoutLeave.lines().first { it.startsWith("TOTAL") },
+            lines.first { it.startsWith("TOTAL") },
+        )
+        assertTrue(lines.last().startsWith("LEAVE TOTAL"))
+    }
+
+    @Test
+    fun `ready state lists a vacation day in the selected month and ignores another month`() = runTest {
+        val vm = buildVm()
+        val states = mutableListOf<ReportsUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+        advanceUntilIdle()
+        val (year, month) = vm.selectedYearMonth.value
+        val inMonth = LocalDate.of(year, month, 15)
+        val otherMonth = inMonth.minusMonths(1)
+
+        workplacesRepo.setWorkplaces(
+            Workplace(
+                id = "wp",
+                userId = "local-user",
+                name = "Cafe North",
+                regionCode = RegionCode.IL,
+                currencyCode = "ILS",
+                timezone = "UTC",
+            ),
+        )
+        leaveRepo.setEvents(
+            AbsenceEvent(
+                id = "e1",
+                userId = "local-user",
+                type = AbsenceType.VACATION,
+                startDate = inMonth,
+                endDate = inMonth,
+            ),
+            AbsenceEvent(
+                id = "e2",
+                userId = "local-user",
+                type = AbsenceType.VACATION,
+                startDate = otherMonth,
+                endDate = otherMonth,
+            ),
+        )
+        leaveRepo.setAllocations(
+            AbsenceAllocation(
+                id = "a1",
+                userId = "local-user",
+                absenceEventId = "e1",
+                workplaceId = "wp",
+                affectedDate = inMonth,
+                entitlementUnits = 1.0,
+                unit = LeaveBalanceUnit.DAYS,
+                estimatedGrossPay = 320.0,
+            ),
+            AbsenceAllocation(
+                id = "a2",
+                userId = "local-user",
+                absenceEventId = "e2",
+                workplaceId = "wp",
+                affectedDate = otherMonth,
+                entitlementUnits = 1.0,
+                unit = LeaveBalanceUnit.DAYS,
+                estimatedGrossPay = 320.0,
+            ),
+        )
+        advanceUntilIdle()
+
+        val ready = states.filterIsInstance<ReportsUiState.Ready>().last()
+        assertEquals(inMonth, ready.leaveEntries.single().date)
+        assertEquals(AbsenceType.VACATION, ready.leaveEntries.single().type)
+        assertEquals("Cafe North", ready.leaveEntries.single().workplaceName)
+        assertEquals(1.0, ready.paidLeave!!.vacationDays, 0.0001)
+        assertEquals(0, ready.report.totalMinutes)
+        assertEquals(
+            ready.report.totalMinutes,
+            ready.report.regularMinutes + ready.report.overtimeMinutes + ready.report.weekendMinutes,
+        )
+        job.cancel()
+    }
+
+    @Test
+    fun `csv leave totals are per currency and never add two currencies together`() {
+        val vm = buildVm()
+        val csv = vm.buildCsvContent(
+            emptyList(),
+            settings = null,
+            year = 2026,
+            month = 9,
+            leaveEntries = listOf(
+                vacationEntry(id = "a1", workplace = "Cafe North", currency = "ILS", gross = 4000.0),
+                vacationEntry(id = "a2", workplace = "Remote Inc", currency = "USD", gross = 1000.0),
+            ),
+        )
+
+        val totals = csv.lines().filter { it.startsWith("LEAVE TOTAL") }
+        assertEquals("one total row per currency: $csv", 2, totals.size)
+        assertEquals("LEAVE TOTAL,,,1.00,0.00,4000.00,ILS,", totals[0])
+        assertEquals("LEAVE TOTAL,,,1.00,0.00,1000.00,USD,", totals[1])
+        assertFalse("no combined figure anywhere: $csv", csv.contains("5000.00"))
+        val usdRow = csv.lines().first { it.contains("Remote Inc") }
+        assertEquals("USD", usdRow.split(",")[6])
+    }
+
+    @Test
+    fun `csv for a month with leave and no completed shifts keeps a zero hours total`() {
+        val vm = buildVm()
+        val csv = vm.buildCsvContent(
+            emptyList(),
+            settings = null,
+            year = 2026,
+            month = 9,
+            leaveEntries = listOf(vacationEntry()),
+        )
+
+        val total = csv.lines().first { it.startsWith("TOTAL") }.split(",")
+        assertEquals("0.00", total[4])
+        assertEquals("0 shifts", total[9])
+        assertTrue(csv.lines().any { it.startsWith("2026-09-15") && it.contains("Vacation") })
+        assertEquals("LEAVE TOTAL,,,1.00,0.00,320.00,ILS,", csv.lines().last())
+    }
+
+    @Test
+    fun `screen leave totals are grouped by currency`() {
+        val state = ReportsUiState.Ready(
+            year = 2026,
+            month = 9,
+            report = MonthlyReport(2026, 9, 0, 0, 0, 0, 0, emptyList()),
+            weeklyTotals = emptyList(),
+            leaveEntries = listOf(
+                vacationEntry(id = "a1", currency = "USD", gross = 1000.0),
+                vacationEntry(id = "a2", currency = "ILS", gross = 300.0),
+                vacationEntry(id = "a3", currency = "ILS", gross = 100.0),
+                // An unvalued day consumes entitlement but has no money to total.
+                vacationEntry(id = "a4", currency = "EUR", gross = 0.0),
+            ),
+        )
+
+        assertEquals(mapOf("ILS" to 400.0, "USD" to 1000.0), state.leaveGrossByCurrency)
+        assertEquals(listOf("ILS", "USD"), state.leaveGrossByCurrency.keys.toList())
+    }
+
+    private fun vacationEntry(
+        notes: String? = null,
+        workplace: String = "Cafe North",
+        id: String = "a1",
+        currency: String = "ILS",
+        gross: Double = 320.0,
+    ) = AbsenceListEntry(
+        allocation = AbsenceAllocation(
+            id = id,
+            userId = "local-user",
+            absenceEventId = "e1",
+            workplaceId = "wp-$currency",
+            affectedDate = LocalDate.parse("2026-09-15"),
+            entitlementUnits = 1.0,
+            unit = LeaveBalanceUnit.DAYS,
+            estimatedGrossPay = gross,
+        ),
+        event = AbsenceEvent(
+            id = "e1",
+            userId = "local-user",
+            type = AbsenceType.VACATION,
+            startDate = LocalDate.parse("2026-09-15"),
+            endDate = LocalDate.parse("2026-09-15"),
+            notes = notes,
+        ),
+        workplaceName = workplace,
+        currencyCode = currency,
+    )
 }
