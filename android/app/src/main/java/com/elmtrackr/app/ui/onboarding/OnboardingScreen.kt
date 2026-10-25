@@ -907,17 +907,7 @@ private fun NavRow(onBack: () -> Unit, onNext: () -> Unit, nextEnabled: Boolean 
     }
 }
 
-private fun String.decimalInput(): String = buildString {
-    var hasDecimal = false
-    this@decimalInput.forEach { char ->
-        when {
-            char.isDigit() -> append(char)
-            char == '.' && !hasDecimal && isNotEmpty() -> {
-                append(char)
-                hasDecimal = true
-            }
-        }
-    }
-}
+/** See [com.elmtrackr.app.ui.common.DecimalInput]: a typed comma used to vanish here. */
+private fun String.decimalInput(): String = com.elmtrackr.app.ui.common.DecimalInput.sanitize(this)
 
 private fun Double.toEditableHours(): String = if (this == toInt().toDouble()) toInt().toString() else toString()

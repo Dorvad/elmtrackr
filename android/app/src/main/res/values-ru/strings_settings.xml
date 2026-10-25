@@ -189,8 +189,8 @@
     <string name="settings_comp_profiles_hint">У каждого профиля свои правила оплаты. Выберите профиль для правки или добавьте ещё один для второй работы.</string>
     <string name="settings_region_preset">Набор для региона</string>
     <string name="settings_section_work_week">Рабочая неделя</string>
-    <string name="settings_daily_standard_hours">Дневная норма (часов)</string>
-    <string name="settings_weekly_standard_hours">Недельная норма (часов)</string>
+    <string name="settings_daily_standard_hours">Сверхурочные после (часов в день)</string>
+    <string name="settings_weekly_standard_hours">Сверхурочные после (часов в неделю)</string>
     <string name="settings_week_starts_on">Неделя начинается с</string>
     <string name="settings_week_starts_hint">Недельные сверхурочные считают часы с этого дня. В Израиле и в большинстве штатов США рабочая неделя начинается с воскресенья.</string>
     <string name="settings_rest_boundary_hint">Еженедельный отдых может начинаться в середине своего первого дня. Сокращённая норма действует только до этого времени, в тот день, с которого начинается выходной — не только в пятницу.</string>
@@ -216,17 +216,17 @@
     <string name="settings_night_ends">Ночь заканчивается</string>
     <string name="settings_section_time_breaks">Время и перерывы</string>
     <string name="settings_breaks_paid">Перерывы оплачиваются</string>
-    <string name="settings_auto_deduct_break">Автоматически вычитать перерыв (минут)</string>
+    <string name="settings_auto_deduct_break">Автоматический неоплачиваемый перерыв (минуты)</string>
     <string name="settings_auto_deduct_hint">Вычитается автоматически, если у смены не записан перерыв.</string>
-    <string name="settings_min_shift_pay">Минимальная оплата смены (минут)</string>
-    <string name="settings_min_shift_hint">Более короткие смены оплачиваются так, как если бы длились столько (минимальная оплата за выход).</string>
-    <string name="settings_round_shift_length">Округлять длину смены</string>
-    <string name="settings_rounding_increment">Шаг округления (минут)</string>
+    <string name="settings_min_shift_pay">Минимальное оплачиваемое время смены (минуты)</string>
+    <string name="settings_min_shift_hint">Более короткие смены оплачиваются так, будто длились столько. В некоторых договорах это называют минимальной оплатой вызова.</string>
+    <string name="settings_round_shift_length">Округлять оплачиваемое время</string>
+    <string name="settings_rounding_increment">Шаг округления (минуты)</string>
     <string name="settings_rounding_nearest">До ближайшего</string>
     <string name="settings_rounding_up">Вверх</string>
     <string name="settings_rounding_down">Вниз</string>
     <string name="settings_section_deductions">Удержания</string>
-    <string name="settings_deduct_gross">Вычитать из начисленной оценки</string>
+    <string name="settings_deduct_gross">Показывать оценку после удержаний</string>
     <string name="settings_deduction_percent" formatted="false">Удержание (%)</string>
     <string name="settings_deduction_fixed">Удержание (%1$s за смену)</string>
     <string name="settings_deduction_hint">Приблизительная поправка на сумму «на руки» (например, оценка налога или пенсионных) — это не бухгалтерский расчёт чистой оплаты.</string>
@@ -236,13 +236,13 @@
     <string name="settings_ladder_summary">Текущая шкала — %1$s. Выберите набор для региона, чтобы изменить ступени.</string>
     <string name="settings_add_profile">Добавить профиль</string>
     <string name="settings_base_hourly_rate">Базовая почасовая ставка (%1$s)</string>
-    <string name="settings_rounding_direction">Направление округления</string>
+    <string name="settings_rounding_direction">В какую сторону округлять</string>
     <string name="settings_percentage">Процент</string>
-    <string name="settings_fixed_per_shift">Фиксированно за смену</string>
+    <string name="settings_fixed_per_shift">Фиксированная сумма в месяц</string>
     <string name="settings_new_comp_profile">Новый профиль оплаты</string>
     <string name="settings_comp_profile_name_placeholder">например, вторая работа, подработка по выходным</string>
     <string name="settings_create">Создать</string>
-    <string name="settings_premium_stacking">Суммирование надбавок</string>
+    <string name="settings_premium_stacking">Когда действуют несколько надбавок</string>
     <string name="settings_use_hhmm">Используйте формат ЧЧ:ММ, например 22:00</string>
 
     <!-- Timezone picker -->
@@ -528,4 +528,10 @@
     <string name="settings_face_ember">Огневик: отрастает рога и корона</string>
     <string name="settings_face_droplet">Водяник: отрастает плавники и плывёт</string>
     <string name="settings_face_spark">Электрик: разряд, растущий в грозу</string>
+
+    <!-- Work profile form: progressive disclosure and plain-language labels (Wave 2) -->
+    <string name="settings_advanced_title">Сверхурочные, перерывы и другие правила оплаты</string>
+    <string name="settings_advanced_summary">Заполнены по вашему региону. Меняйте только то, что отличается в вашем договоре.</string>
+    <string name="settings_currency_change_hint">Прошлые смены на этой работе тоже будут показаны в %1$s. Суммы не пересчитываются.</string>
+    <string name="settings_time_breaks_intro">Как время по часам превращается в оплачиваемое. В большинстве работ округление и минимальная оплата выключены.</string>
 </resources>

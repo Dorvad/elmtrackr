@@ -35,7 +35,7 @@
     <!-- Welcome step -->
     <string name="onboarding_welcome_title">Добро пожаловать в ElmTrackr</string>
     <string name="onboarding_welcome_replay_title">Проверьте свои настройки</string>
-    <string name="onboarding_welcome_replay_subtitle">Обновите профиль, оплату, рабочую неделю и функции.</string>
+    <string name="onboarding_welcome_replay_subtitle">Проверьте регион и оплату. Сверхурочные, перерывы и другие ваши правила останутся как есть.</string>
     <string name="onboarding_welcome_intro">Ваши часы, сверхурочные и оплата — учёт в одно нажатие, даже без сети.</string>
     <string name="onboarding_how_it_works">Как это работает</string>
     <string name="onboarding_how_step1_title">Отмечайте приход в начале</string>

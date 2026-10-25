@@ -188,8 +188,8 @@
     <string name="settings_comp_profiles_hint">פרופיל אחד לכל עבודה: התעריף, השעות הנוספות, התוספות, דמי המחלה והצבע שלה. בחרו אחד לעריכה, או הוסיפו עוד לעבודה שנייה \u2014 ואז אפשר להחליף ביניהם מעל השעון.</string>
     <string name="settings_region_preset">אזור מוגדר מראש</string>
     <string name="settings_section_work_week">שבוע עבודה</string>
-    <string name="settings_daily_standard_hours">תקן יומי (שעות)</string>
-    <string name="settings_weekly_standard_hours">תקן שבועי (שעות)</string>
+    <string name="settings_daily_standard_hours">שעות נוספות מתחילות אחרי (שעות ביום)</string>
+    <string name="settings_weekly_standard_hours">שעות נוספות מתחילות אחרי (שעות בשבוע)</string>
     <string name="settings_week_starts_on">תחילת השבוע</string>
     <string name="settings_week_starts_hint">שעות נוספות שבועיות נספרות מהיום הזה. בישראל וברוב ארה״ב השבוע מתחיל ביום ראשון.</string>
     <string name="settings_rest_boundary_hint">המנוחה השבועית יכולה להתחיל באמצע היום הראשון שלה. התקן המקוצר חל רק לפני השעה הזו, ביום שבו מתחיל סוף השבוע — לא רק ביום שישי.</string>
@@ -215,17 +215,17 @@
     <string name="settings_night_ends">סוף הלילה</string>
     <string name="settings_section_time_breaks">זמן והפסקות</string>
     <string name="settings_breaks_paid">הפסקות בתשלום</string>
-    <string name="settings_auto_deduct_break">ניכוי הפסקה אוטומטי (דקות)</string>
+    <string name="settings_auto_deduct_break">הפסקה לא בתשלום שמנוכה אוטומטית (דקות)</string>
     <string name="settings_auto_deduct_hint">מנוכה אוטומטית כשלמשמרת אין הפסקה מתועדת.</string>
-    <string name="settings_min_shift_pay">תשלום מינימום למשמרת (דקות)</string>
-    <string name="settings_min_shift_hint">משמרות קצרות יותר מתומחרות כאילו נמשכו כך (שכר מינימום לקריאה).</string>
-    <string name="settings_round_shift_length">עיגול אורך המשמרת</string>
-    <string name="settings_rounding_increment">יחידת עיגול (דקות)</string>
+    <string name="settings_min_shift_pay">זמן מינימלי לתשלום במשמרת (דקות)</string>
+    <string name="settings_min_shift_hint">משמרות קצרות יותר משולמות כאילו נמשכו זמן זה. בחלק מהחוזים זה נקרא תשלום מינימום לקריאה.</string>
+    <string name="settings_round_shift_length">עיגול הזמן לתשלום</string>
+    <string name="settings_rounding_increment">עיגול בקפיצות של (דקות)</string>
     <string name="settings_rounding_nearest">הקרוב</string>
     <string name="settings_rounding_up">למעלה</string>
     <string name="settings_rounding_down">למטה</string>
     <string name="settings_section_deductions">ניכויים</string>
-    <string name="settings_deduct_gross">ניכוי מהערכת הברוטו</string>
+    <string name="settings_deduct_gross">הצגת הערכה לאחר ניכויים</string>
     <string name="settings_deduction_percent" formatted="false">ניכוי (%)</string>
     <string name="settings_deduction_fixed">ניכוי (%1$s למשמרת)</string>
     <string name="settings_deduction_hint">התאמה גסה לנטו (למשל הערכת מס או פנסיה) — לא חישוב שכר מדויק.</string>
@@ -237,11 +237,11 @@
     <string name="settings_base_hourly_rate">שכר שעתי בסיסי (%1$s)</string>
     <string name="settings_rounding_direction">כיוון העיגול</string>
     <string name="settings_percentage">אחוז</string>
-    <string name="settings_fixed_per_shift">סכום קבוע למשמרת</string>
+    <string name="settings_fixed_per_shift">סכום קבוע לחודש</string>
     <string name="settings_new_comp_profile">פרופיל עבודה חדש</string>
     <string name="settings_comp_profile_name_placeholder">למשל: עבודה שנייה, סופ״ש</string>
     <string name="settings_create">יצירה</string>
-    <string name="settings_premium_stacking">שילוב תוספות</string>
+    <string name="settings_premium_stacking">כשחלות כמה תוספות</string>
     <string name="settings_use_hhmm">פורמט HH:MM, למשל 22:00</string>
 
     <!-- Timezone picker -->
@@ -529,4 +529,10 @@
     <string name="settings_face_ember">יצור אש שמצמיח קרניים וכתר</string>
     <string name="settings_face_droplet">יצור מים שמצמיח סנפירים ושוחה</string>
     <string name="settings_face_spark">יצור חשמל שהופך לסערה</string>
+
+    <!-- Work profile form: progressive disclosure and plain-language labels (Wave 2) -->
+    <string name="settings_advanced_title">שעות נוספות, הפסקות וכללי שכר נוספים</string>
+    <string name="settings_advanced_summary">מולאו לפי האזור שבחרתם. שנו רק במקום שבו החוזה שלכם שונה.</string>
+    <string name="settings_currency_change_hint">גם משמרות קודמות בעבודה זו יוצגו ב־%1$s. הסכומים אינם מומרים.</string>
+    <string name="settings_time_breaks_intro">איך זמן השעון הופך לזמן בתשלום. ברוב העבודות העיגול ותשלום המינימום כבויים.</string>
 </resources>

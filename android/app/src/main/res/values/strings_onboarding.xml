@@ -35,7 +35,7 @@
     <!-- Welcome step -->
     <string name="onboarding_welcome_title">Welcome to ElmTrackr</string>
     <string name="onboarding_welcome_replay_title">Review your setup</string>
-    <string name="onboarding_welcome_replay_subtitle">Update your profile, pay, work week, and features.</string>
+    <string name="onboarding_welcome_replay_subtitle">Review your region and pay. Overtime, breaks and your other rules stay as you set them.</string>
     <string name="onboarding_welcome_intro">Your hours, overtime, and pay — tracked from one tap, even offline.</string>
     <string name="onboarding_how_it_works">How it works</string>
     <string name="onboarding_how_step1_title">Clock in when you start</string>
