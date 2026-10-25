@@ -72,10 +72,25 @@
     <string name="leave_gap_no_tier">הגדרות דמי המחלה של מקום העבודה הזה לא מתייחסות ליום הזה של המחלה.</string>
     <string name="leave_gap_disabled">סוג ההיעדרות הזה כבוי בהגדרות מקום העבודה.</string>
     <string name="leave_gap_no_manual_amount">הזן מה אמור להיות התשלום עבור היום הזה.</string>
-    <string name="leave_gap_action_amount">הזנת סכום</string>
     <string name="leave_gap_action_hours">הזנת שעות צפויות</string>
     <string name="leave_gap_action_settings">פתיחת הגדרות היעדרות</string>
     <string name="leave_gap_saved_anyway">היום הזה נשמר בכל מקרה ויורד מהיתרה.</string>
+    <string name="leave_manual_mode_daily">סכום ליום</string>
+    <string name="leave_manual_mode_final">סכום סופי</string>
+    <string name="leave_manual_field_daily">שווי של יום מלא</string>
+    <string name="leave_manual_field_final">התשלום עבור היום הזה</string>
+    <string name="leave_manual_help_daily_sick">אחוז דמי המחלה ליום הזה של המחלה יחושב ממנו, וכך גם חלק יום.</string>
+    <string name="leave_manual_help_daily_vacation">חלק יום יחושב ממנו.</string>
+    <string name="leave_manual_help_final">הסכום ישמש בדיוק כפי שהוזן, בלי אחוז ובלי התאמה לחלק יום.</string>
+    <string name="leave_manual_enter">הזן סכום בעצמך</string>
+    <string name="leave_manual_use_automatic">השתמש בהערכה האוטומטית</string>
+    <string name="leave_manual_invalid">הזן סכום של 0 ומעלה.</string>
+    <string name="leave_manual_missing">הזן סכום לכל יום שהגדרת כידני, או החזר אותו להערכה האוטומטית.</string>
+    <string name="leave_form_partial_invalid_days">הזן חלק יום: יותר מ-0 ועד 1.</string>
+    <string name="leave_form_partial_invalid_hours">הזן שעות: יותר מ-0 ועד 24.</string>
+    <string name="leave_form_manual_marker">הוזן על ידך</string>
+    <string name="leave_calc_manual_daily">סכום יומי שהזנת: %1$s</string>
+    <string name="leave_calc_manual_final">סכום סופי שהזנת: %1$s</string>
 
     <!-- Conflicts -->
     <string name="leave_conflict_duplicate">ב-%1$s כבר דווחה היעדרות במקום העבודה הזה.</string>

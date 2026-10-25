@@ -72,10 +72,25 @@
     <string name="leave_gap_no_tier">لا تذكر إعدادات أجر المرض في مكان العمل هذا شيئًا عن هذا اليوم من المرض.</string>
     <string name="leave_gap_disabled">هذا النوع من الإجازات مُعطَّل في إعدادات مكان العمل هذا.</string>
     <string name="leave_gap_no_manual_amount">أدخل المبلغ الذي يجب أن يُدفع لهذا اليوم.</string>
-    <string name="leave_gap_action_amount">إدخال المبلغ</string>
     <string name="leave_gap_action_hours">إدخال الساعات المتوقّعة</string>
     <string name="leave_gap_action_settings">فتح إعدادات الإجازات</string>
     <string name="leave_gap_saved_anyway">هذا اليوم مسجَّل ومحسوب من رصيدك على أي حال.</string>
+    <string name="leave_manual_mode_daily">مبلغ اليوم</string>
+    <string name="leave_manual_mode_final">المبلغ النهائي</string>
+    <string name="leave_manual_field_daily">قيمة يوم كامل</string>
+    <string name="leave_manual_field_final">ما يُدفع عن هذا اليوم</string>
+    <string name="leave_manual_help_daily_sick">تُطبَّق عليه نسبة أجر المرض لهذا اليوم من المرض، ويُحتسب منه جزء اليوم.</string>
+    <string name="leave_manual_help_daily_vacation">يُحتسب منه جزء اليوم.</string>
+    <string name="leave_manual_help_final">يُستخدم كما أُدخل تمامًا، دون تطبيق نسبة أو تعديل لجزء اليوم.</string>
+    <string name="leave_manual_enter">أدخل المبلغ بنفسك</string>
+    <string name="leave_manual_use_automatic">استخدم التقدير التلقائي</string>
+    <string name="leave_manual_invalid">أدخل مبلغًا يساوي 0 أو أكثر.</string>
+    <string name="leave_manual_missing">أدخل مبلغًا لكل يوم جعلته يدويًا، أو أعده إلى التقدير التلقائي.</string>
+    <string name="leave_form_partial_invalid_days">أدخل جزءًا من اليوم: أكثر من 0 وحتى 1.</string>
+    <string name="leave_form_partial_invalid_hours">أدخل الساعات: أكثر من 0 وحتى 24.</string>
+    <string name="leave_form_manual_marker">أدخلته أنت</string>
+    <string name="leave_calc_manual_daily">المبلغ اليومي الذي أدخلته: %1$s</string>
+    <string name="leave_calc_manual_final">المبلغ النهائي الذي أدخلته: %1$s</string>
 
     <!-- Conflicts -->
     <string name="leave_conflict_duplicate">‏%1$s مُبلَّغ عنه بإجازة في مكان العمل هذا بالفعل.</string>

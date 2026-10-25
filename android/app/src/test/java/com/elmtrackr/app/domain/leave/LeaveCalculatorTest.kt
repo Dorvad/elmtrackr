@@ -62,7 +62,7 @@ class LeaveCalculatorTest {
         expectedWorkMinutes: Int? = null,
         hourlyRate: Double? = 50.0,
         history: LeaveEarningsHistory = this.history,
-        manualDailyAmount: Double? = null,
+        manualAmount: Double? = null,
     ) = LeaveEstimateRequest(
         event = event,
         workplaceId = workplaceId,
@@ -74,7 +74,7 @@ class LeaveCalculatorTest {
         hourlyRate = hourlyRate,
         currencyCode = "ILS",
         history = history,
-        manualDailyAmount = manualDailyAmount,
+        manualAmount = manualAmount,
     )
 
     private fun ready(estimate: LeaveEstimate) = (estimate as LeaveEstimate.Ready).snapshot
@@ -239,7 +239,7 @@ class LeaveCalculatorTest {
                     "2026-08-12",
                     rules = rules,
                     history = LeaveEarningsHistory.EMPTY,
-                    manualDailyAmount = 375.0,
+                    manualAmount = 375.0,
                 ),
             ),
         )
