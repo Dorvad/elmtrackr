@@ -69,6 +69,14 @@ data class PayBracket(
     val rate: Double,
     val amount: Double,
     val category: PayCategory,
+    /**
+     * The tier's own multiplier, before any night uplift is blended into [rate].
+     *
+     * What a person reads as "125%". [rate] can carry a share of the night premium,
+     * which is reported separately as `nightGross`, so showing it would print a
+     * percentage no rule in the profile names.
+     */
+    val multiplier: Double = rate,
 )
 
 /** Pay breakdown for a single completed shift. */

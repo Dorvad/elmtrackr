@@ -101,6 +101,8 @@ object MonthlyReportBuilder {
             // the hours and the money be compared directly.
             weekendMinutes = resolvedClassification.specialMinutes,
             segments = segments,
+            workedMinutes = resolvedClassification.workedMinutes,
+            paidTime = PayrollCalculator.payableTime(shift, resolved.rules),
         )
     }
 
@@ -164,6 +166,7 @@ object MonthlyReportBuilder {
             weekendMinutes = breakdowns.sumOf { it.weekendMinutes },
             shiftCount = completed.size,
             shifts = breakdowns,
+            workedMinutes = breakdowns.sumOf { it.workedMinutes },
         )
     }
 

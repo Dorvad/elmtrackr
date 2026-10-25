@@ -24,4 +24,36 @@
     <string name="a11y_collapsed">مطوي</string>
     <string name="a11y_expand">توسيع</string>
     <string name="a11y_collapse">طي</string>
+
+    <!-- Worked vs paid time, and pay components (Wave 2). Shared by Dashboard, the clock-out recap, Reports and the shift form. -->
+    <string name="paid_time_worked">العمل الفعلي</string>
+    <string name="paid_time_paid">الوقت المدفوع</string>
+    <string name="paid_time_elapsed">مدة الوردية</string>
+    <string name="paid_time_unpaid_break">استراحة غير مدفوعة</string>
+    <string name="paid_time_paid_break">استراحة مدفوعة</string>
+    <string name="paid_time_rounding">التقريب</string>
+    <string name="paid_time_minimum">استكمال الحد الأدنى للوردية</string>
+    <string name="paid_time_reason_rounding">%1$s مدفوعة بعد التقريب</string>
+    <string name="paid_time_reason_minimum">%1$s مدفوعة، بما في ذلك الحد الأدنى المضمون للوردية</string>
+    <string name="paid_time_reason_paid_breaks">%1$s مدفوعة، بما في ذلك الاستراحات المدفوعة</string>
+    <string name="paid_time_reason_mixed">%1$s مدفوعة وفق قواعد الوقت في ملف العمل</string>
+    <string name="pay_component_regular">الأجر العادي</string>
+    <string name="pay_component_overtime">العمل الإضافي</string>
+    <string name="pay_component_weekend">عطلة الأسبوع / يوم الراحة</string>
+    <string name="pay_component_holiday">العطل والعلاوات</string>
+    <string name="pay_component_night">علاوة ليلية</string>
+    <string name="pay_component_total">الإجمالي التقديري</string>
+    <string name="pay_component_deductions">الاستقطاعات التي أعددتها</string>
+    <string name="pay_component_after_deductions">بعد تلك الاستقطاعات</string>
+    <string name="pay_estimate_disclaimer">تقدير مبني على قواعد ملف عملك. المبلغ النهائي في قسيمة الراتب.</string>
+    <string name="pay_bracket_regular">عادي</string>
+    <string name="pay_bracket_overtime">إضافي</string>
+    <string name="pay_bracket_seventh_day">اليوم السابع المتتالي</string>
+    <string name="pay_bracket_weekend">عطلة الأسبوع</string>
+    <string name="pay_bracket_weekly_rest">الراحة الأسبوعية</string>
+    <string name="pay_bracket_weekly_rest_overtime">إضافي في يوم الراحة</string>
+    <string name="pay_bracket_holiday">عطلة رسمية</string>
+    <string name="pay_bracket_holiday_overtime">إضافي في العطلة</string>
+    <string name="pay_bracket_premium">علاوة</string>
+    <string name="pay_bracket_label">%1$s %2$s</string>
 </resources>

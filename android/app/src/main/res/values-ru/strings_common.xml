@@ -24,4 +24,36 @@
     <string name="a11y_collapsed">Свёрнуто</string>
     <string name="a11y_expand">Развернуть</string>
     <string name="a11y_collapse">Свернуть</string>
+
+    <!-- Worked vs paid time, and pay components (Wave 2). Shared by Dashboard, the clock-out recap, Reports and the shift form. -->
+    <string name="paid_time_worked">Отработано</string>
+    <string name="paid_time_paid">Оплачиваемое время</string>
+    <string name="paid_time_elapsed">Длительность смены</string>
+    <string name="paid_time_unpaid_break">Неоплачиваемый перерыв</string>
+    <string name="paid_time_paid_break">Оплачиваемый перерыв</string>
+    <string name="paid_time_rounding">Округление</string>
+    <string name="paid_time_minimum">Доплата до минимальной смены</string>
+    <string name="paid_time_reason_rounding">К оплате %1$s после округления</string>
+    <string name="paid_time_reason_minimum">К оплате %1$s с учётом минимальной оплаты смены</string>
+    <string name="paid_time_reason_paid_breaks">К оплате %1$s, включая оплачиваемые перерывы</string>
+    <string name="paid_time_reason_mixed">К оплате %1$s по правилам учёта времени профиля</string>
+    <string name="pay_component_regular">Обычная оплата</string>
+    <string name="pay_component_overtime">Сверхурочные</string>
+    <string name="pay_component_weekend">Выходные / день отдыха</string>
+    <string name="pay_component_holiday">Праздники и надбавки</string>
+    <string name="pay_component_night">Ночная надбавка</string>
+    <string name="pay_component_total">Расчётная сумма до налогов</string>
+    <string name="pay_component_deductions">Заданные вами удержания</string>
+    <string name="pay_component_after_deductions">После этих удержаний</string>
+    <string name="pay_estimate_disclaimer">Оценка по правилам вашего профиля. Итоговая сумма — в расчётном листке.</string>
+    <string name="pay_bracket_regular">Обычные</string>
+    <string name="pay_bracket_overtime">Сверхурочные</string>
+    <string name="pay_bracket_seventh_day">7-й день подряд</string>
+    <string name="pay_bracket_weekend">Выходной</string>
+    <string name="pay_bracket_weekly_rest">Еженедельный отдых</string>
+    <string name="pay_bracket_weekly_rest_overtime">Сверхурочные в день отдыха</string>
+    <string name="pay_bracket_holiday">Праздник</string>
+    <string name="pay_bracket_holiday_overtime">Сверхурочные в праздник</string>
+    <string name="pay_bracket_premium">Надбавка</string>
+    <string name="pay_bracket_label">%1$s %2$s</string>
 </resources>

@@ -10,6 +10,7 @@ import com.elmtrackr.app.domain.model.PayBracket
 import com.elmtrackr.app.domain.model.PayBucket
 import com.elmtrackr.app.domain.model.PayCategory
 import com.elmtrackr.app.domain.model.PayByCurrency
+import com.elmtrackr.app.domain.model.PaidTime
 import com.elmtrackr.app.domain.model.paysDailyOvertime
 import com.elmtrackr.app.domain.model.ResolvedCompensation
 import com.elmtrackr.app.domain.model.RegionCode
@@ -160,7 +161,10 @@ object PayrollCalculator {
                 PayBucket.HOLIDAY -> holidayGross += net
             }
             nightGross += nightPremium
-            PayBracket(segment.label, segment.minutes, blendedRate, amount, segment.category)
+            PayBracket(
+                segment.label, segment.minutes, blendedRate, amount, segment.category,
+                multiplier = segment.multiplier,
+            )
         }
 
         val isSpecial = segments.any { it.isWeeklyRest } ||
@@ -242,7 +246,10 @@ object PayrollCalculator {
             val blendedRate = tier.rate + nightFraction * (nightRate - tier.rate)
             val amount = mins * ratePerMinute * blendedRate
             val nightPremium = mins * ratePerMinute * nightFraction * (nightRate - tier.rate)
-            brackets += PayBracket(tier.label, mins, blendedRate, amount, tier.category)
+            brackets += PayBracket(
+                tier.label, mins, blendedRate, amount, tier.category,
+                multiplier = tier.rate,
+            )
 
             // Was a six-way substring match on the English label, whose fifth and
             // sixth branches differed only in case and so could never both be
@@ -492,11 +499,26 @@ object PayrollCalculator {
         return if (rules.deductionsMode == "fixed") rules.deductionsFixedAmount else 0.0
     }
 
-    internal fun payableNetMinutes(shift: Shift, rules: CompensationRules): Int? {
+    internal fun payableNetMinutes(shift: Shift, rules: CompensationRules): Int? =
+        payableTime(shift, rules)?.payableMinutes
+
+    /**
+     * How a shift's clock time became the time it is paid for, step by step.
+     *
+     * This is the walk [payableNetMinutes] has always done, with each step kept rather
+     * than folded away, so a screen can say *why* "paid" differs from "worked" without
+     * re-deriving it. Both engines price from [PaidTime.payableMinutes], which is
+     * what keeps an explanation built from this from disagreeing with the money.
+     *
+     * Returns null for active shifts.
+     */
+    internal fun payableTime(shift: Shift, rules: CompensationRules): PaidTime? {
         val gross = ShiftDurationCalculator.grossMinutes(shift) ?: return null
         var net = if (rules.paidBreaks) gross else maxOf(0, gross - shift.breakMinutes)
         val autoBreak = rules.autoDeductBreakMinutes ?: 0
-        if (!rules.paidBreaks && autoBreak > 0 && shift.breakMinutes == 0 && net > autoBreak) {
+        val autoBreakApplied =
+            !rules.paidBreaks && autoBreak > 0 && shift.breakMinutes == 0 && net > autoBreak
+        if (autoBreakApplied) {
             net -= autoBreak
         }
         // Held before rounding, for the minimum-shift guard below.
@@ -510,6 +532,7 @@ object PayrollCalculator {
                 else -> ((net + inc / 2) / inc) * inc
             }
         }
+        val rounded = net
         val minimum = rules.minimumShiftMinutes ?: 0
         // Judged against the *worked* net, not the rounded one. Rounding can take a
         // short shift to zero — 7 minutes at a 15-minute "nearest" increment, or any
@@ -521,8 +544,29 @@ object PayrollCalculator {
         // `workedNet > 0` is what keeps a genuinely empty shift at zero: a shift whose
         // break consumes all of its gross time has no worked minutes to guarantee.
         if (minimum > 0 && workedNet > 0 && net < minimum) net = minimum
-        return net
+        return PaidTime(
+            elapsedMinutes = gross,
+            recordedBreakMinutes = shift.breakMinutes,
+            autoBreakMinutes = if (autoBreakApplied) autoBreak else 0,
+            breaksPaid = rules.paidBreaks,
+            roundingMinutes = rounded - workedNet,
+            minimumTopUpMinutes = net - rounded,
+            payableMinutes = net,
+        )
     }
+
+    /**
+     * [payableTime] for [shift] under the compensation profile it resolves to — the
+     * same resolution the pay engines use, so the explanation matches the money.
+     */
+    fun shiftTime(
+        shift: Shift,
+        settings: UserSettings,
+        profiles: List<CompensationProfile> = emptyList(),
+    ): PaidTime? = payableTime(
+        shift,
+        CompensationResolver.resolveShiftCompensation(shift, settings, profiles).rules,
+    )
 
     /**
      * @param contextShifts a window wide enough to cover the pay weeks the reported
