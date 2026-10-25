@@ -6,6 +6,7 @@ import com.elmtrackr.app.domain.model.AbsenceEvent
 import com.elmtrackr.app.domain.model.AbsenceType
 import com.elmtrackr.app.domain.model.LeaveBalanceSnapshot
 import com.elmtrackr.app.domain.model.LeaveBalanceUnit
+import com.elmtrackr.app.domain.model.LeaveManualMode
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
@@ -19,8 +20,13 @@ data class AbsenceDayInput(
     val entitlementUnits: Double = 1.0,
     val unit: LeaveBalanceUnit = LeaveBalanceUnit.DAYS,
     val expectedWorkMinutes: Int? = null,
-    /** Set when the app could not value the day and the user supplied an amount. */
-    val manualDailyAmount: Double? = null,
+    /**
+     * An amount the user entered for this day, used instead of the automatic one —
+     * because the app could not value the day, or because the user chose to.
+     */
+    val manualAmount: Double? = null,
+    /** What [manualAmount] means. See [LeaveManualMode]; null reads as a daily amount. */
+    val manualMode: LeaveManualMode? = null,
     val manualReason: String? = null,
 )
 

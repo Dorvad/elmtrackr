@@ -655,6 +655,35 @@ is Israeli to decide what a sick day pays. A day the ladder does not cover
 resolves to *no tier* rather than to zero — zero is a real multiplier here, so it
 cannot also mean "the policy does not say".
 
+### Manual leave amounts (inside `absence_allocations.calculation_snapshot_json`)
+
+A day the user priced themselves carries a `manual_override` object. No column
+or migration is involved: the keys live inside the existing `jsonb` snapshot,
+which travels verbatim through sync (`RemoteLeaveMapper`) and local backups.
+
+| Key | Wire | Android |
+|-----|------|---------|
+| `enabled` | boolean | `LeaveManualOverride.enabled` |
+| `reason` | string, nullable | `LeaveManualOverride.reason` |
+| `mode` | `base_daily`, `final_payable`, nullable | `LeaveManualMode.fromPersisted()` — unknown or absent → `null` |
+| `amount` | number, nullable | `LeaveManualOverride.amount` — exactly what was entered |
+
+- `base_daily` is the value of one full absent day. A part day is scaled from
+  it, and a sick day applies its ladder percentage to it.
+- `final_payable` is what the day pays, used as entered: `multiplier` is stored
+  as `1.0` and `base_amount` equals `estimated_gross_pay`.
+- A day priced from a manual amount stores `pay_basis: "manual"` in the
+  calculation snapshot; the workplace's own policy (`policy_snapshot_json` and
+  `leave_policies.rules_json`) is not changed by a one-day override.
+
+`mode` and `amount` were added in October 2026 and are additive. Snapshots
+written earlier have `enabled` (and `reason`) only, and those builds wrote
+`enabled: true` whenever an amount had been typed, even when the engine ignored
+it. Readers therefore treat a `manual_override` without `mode` as "something was
+typed", and only a snapshot whose `pay_basis` is `manual` as actually priced
+from it. An older client that re-saves an allocation rebuilds its snapshot and
+drops the two keys; it never misreads them.
+
 ## Adding a new enum value (checklist)
 
 - [ ] Migration updates DB check constraint if applicable

@@ -60,7 +60,12 @@ class LocalReportsRepository @Inject constructor(
             combine(
                 shiftDao.observeShiftsByDateRange(userId, contextFrom, to),
                 compensationProfileDao.observeProfiles(userId),
-            ) { entities, profileEntities ->
+                // Premium profiles too, as the header above says. This one call was
+                // still missing them, and it is the monthly total the Reports screen
+                // and the PDF header show: a premium shift's minutes were counted as
+                // ordinary time there while the rows beside them called them special.
+                premiumProfileDao.observeProfiles(userId),
+            ) { entities, profileEntities, premiumEntities ->
                 val context = entities.map { it.toDomain() }
                 val month0 = context.filter { it.startTime.toEpochMilli() in from until to }
                 MonthlyReportBuilder.buildMonthlyReport(
@@ -69,6 +74,7 @@ class LocalReportsRepository @Inject constructor(
                     shifts = month0,
                     settings = settings,
                     profiles = profileEntities.map { it.toDomain() },
+                    premiumProfiles = premiumEntities.map { it.toDomain() },
                     contextShifts = context,
                 )
             }

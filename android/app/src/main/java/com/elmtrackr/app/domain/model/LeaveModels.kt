@@ -311,9 +311,57 @@ data class LeaveCalculationSnapshot(
     val manualOverride: LeaveManualOverride? = null,
 )
 
+/**
+ * What an amount the user typed for one absent day means.
+ *
+ * Two different numbers, so two modes rather than one field read two ways. A
+ * daily amount is still an input to the calculation; a final amount is its
+ * result. Treating one as the other is the mistake that yields a plausible wrong
+ * figure, so the mode is stored with the amount and never inferred.
+ */
+enum class LeaveManualMode {
+    /**
+     * The value of one full absent day. A part day is worked out from it, and on
+     * a sick day the policy's sick-pay percentage for that day of the illness is
+     * applied to it — exactly as to an automatically calculated day.
+     */
+    BASE_DAILY,
+
+    /** What this day pays, as entered. No percentage and no part-day scaling. */
+    FINAL_PAYABLE,
+    ;
+
+    val persistedValue: String get() = name.lowercase()
+
+    companion object {
+        /**
+         * Null for anything unrecognised. A snapshot from a build that knew a mode
+         * this one does not is shown as a manual entry of unknown meaning rather
+         * than being guessed into one of these two.
+         */
+        fun fromPersisted(raw: String?): LeaveManualMode? {
+            if (raw.isNullOrBlank()) return null
+            val normalized = raw.trim().uppercase().replace('-', '_')
+            return entries.find { it.name == normalized }
+        }
+    }
+}
+
+/**
+ * Recorded on a calculation snapshot when the user's own amount priced the day.
+ *
+ * [mode] and [amount] are null on snapshots written before they were stored.
+ * Those builds recorded an override whenever a value had been typed, including
+ * when the engine ignored it, so an old snapshot's override is only a claim that
+ * something was typed — read [LeaveCalculationSnapshot.payBasis] for whether it
+ * was used.
+ */
 data class LeaveManualOverride(
     val enabled: Boolean,
     val reason: String? = null,
+    val mode: LeaveManualMode? = null,
+    /** Exactly what was entered, before any percentage or part-day scaling. */
+    val amount: Double? = null,
 )
 
 /**

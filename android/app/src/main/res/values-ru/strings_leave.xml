@@ -72,10 +72,25 @@
     <string name="leave_gap_no_tier">Настройки оплаты больничного на этом месте работы ничего не говорят об этом дне болезни.</string>
     <string name="leave_gap_disabled">Этот вид отсутствия отключён в настройках этого места работы.</string>
     <string name="leave_gap_no_manual_amount">Введите, сколько должен стоить этот день.</string>
-    <string name="leave_gap_action_amount">Ввести сумму</string>
     <string name="leave_gap_action_hours">Ввести ожидаемые часы</string>
     <string name="leave_gap_action_settings">Открыть настройки отсутствий</string>
     <string name="leave_gap_saved_anyway">Этот день всё равно записан и всё равно вычитается из баланса.</string>
+    <string name="leave_manual_mode_daily">Сумма за день</string>
+    <string name="leave_manual_mode_final">Итоговая сумма</string>
+    <string name="leave_manual_field_daily">Стоимость полного дня</string>
+    <string name="leave_manual_field_final">Оплата за этот день</string>
+    <string name="leave_manual_help_daily_sick">К ней применяется процент оплаты за этот день болезни, и от неё же считается неполный день.</string>
+    <string name="leave_manual_help_daily_vacation">Неполный день считается от неё.</string>
+    <string name="leave_manual_help_final">Используется точно как введено, без процента и пересчёта на неполный день.</string>
+    <string name="leave_manual_enter">Указать сумму самостоятельно</string>
+    <string name="leave_manual_use_automatic">Использовать автоматическую оценку</string>
+    <string name="leave_manual_invalid">Введите сумму от 0 и выше.</string>
+    <string name="leave_manual_missing">Укажите сумму для каждого дня с ручным вводом или верните для него автоматическую оценку.</string>
+    <string name="leave_form_partial_invalid_days">Введите долю дня: больше 0 и не более 1.</string>
+    <string name="leave_form_partial_invalid_hours">Введите часы: больше 0 и не более 24.</string>
+    <string name="leave_form_manual_marker">введено вами</string>
+    <string name="leave_calc_manual_daily">Сумма за день, которую вы указали: %1$s</string>
+    <string name="leave_calc_manual_final">Итоговая сумма, которую вы указали: %1$s</string>
 
     <!-- Conflicts -->
     <string name="leave_conflict_duplicate">На %1$s уже отмечено отсутствие на этом месте работы.</string>

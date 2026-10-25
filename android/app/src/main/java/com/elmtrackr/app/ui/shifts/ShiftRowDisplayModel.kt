@@ -21,6 +21,8 @@ internal data class ShiftRowDisplayModel(
     val weekend: Boolean,
     val hasOt: Boolean,
     val payGross: Double?,
+    /** The shift's own currency, so a row at a dollar job is not shown in shekels. */
+    val payCurrency: String? = null,
 )
 
 private val rowTimeFmt = DateTimeFormatter.ofPattern("HH:mm")
@@ -54,6 +56,7 @@ internal fun buildShiftRowDisplay(
         weekend = resolved.weekend,
         hasOt = resolved.hasOt,
         payGross = resolved.payGross,
+        payCurrency = resolved.payCurrency,
     )
 }
 
@@ -77,15 +80,17 @@ private fun computeShiftPayFacts(
     val overtimeMinutes = settings?.let {
         ShiftClassifier.classify(shift, context, it, profiles, premiumProfiles)?.overtimeMinutes
     } ?: 0
+    val pay = settings?.let {
+        PayrollCalculator.calculateShiftPayInContext(
+            shift, context, it, profiles, premiumProfiles,
+        )
+    }
     return ShiftPayFacts(
         netMinutes = ShiftDurationCalculator.netMinutes(shift) ?: 0,
         weekend = weekend,
         hasOt = shift.isEmployeePaid && overtimeMinutes > 0 && !shift.isSpecialDay && !weekend,
-        payGross = settings?.let {
-            PayrollCalculator.calculateShiftPayInContext(
-                shift, context, it, profiles, premiumProfiles,
-            )
-        }?.totalGross,
+        payGross = pay?.totalGross,
+        payCurrency = pay?.currencyCode,
     )
 }
 

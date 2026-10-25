@@ -38,7 +38,8 @@ data class WeeklyTotals(
     val dayRange: String,           // "1–7", "8–14", "15–21", "22+"
     val totalMinutes: Int,
     val overtimeMinutes: Int = 0,
-    val pay: Double? = null,
+    /** Gross per currency; null when no rate is configured. Never one figure across currencies. */
+    val pay: PayByCurrency? = null,
     val prevMonthMinutes: Int = 0,
     val shifts: List<Shift>,
 )

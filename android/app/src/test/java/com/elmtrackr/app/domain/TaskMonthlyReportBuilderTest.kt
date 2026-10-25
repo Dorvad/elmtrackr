@@ -49,6 +49,7 @@ class TaskMonthlyReportBuilderTest {
         assertEquals(2, alpha.shiftCount)
         assertEquals(360, alpha.totalMinutes)
         assertEquals(180, alpha.averageShiftMinutes)
-        assertTrue((alpha.totalPay ?: 0.0) > 0)
+        // One currency, so exactly one figure, and a positive one.
+        assertTrue((alpha.totalPay?.singleOrNull()?.second ?: 0.0) > 0)
     }
 }

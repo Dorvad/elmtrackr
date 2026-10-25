@@ -3,6 +3,7 @@ package com.elmtrackr.app.domain.leave
 import com.elmtrackr.app.domain.model.AbsenceType
 import com.elmtrackr.app.domain.model.LeaveBalanceUnit
 import com.elmtrackr.app.domain.model.LeaveCalculationSnapshot
+import com.elmtrackr.app.domain.model.LeaveManualMode
 import com.elmtrackr.app.domain.model.LeaveManualOverride
 import com.elmtrackr.app.domain.model.LeavePolicyRules
 import com.elmtrackr.app.domain.model.LeavePolicySnapshot
@@ -127,6 +128,10 @@ object LeavePolicyCodec {
             put("manual_override", JSONObject().apply {
                 put("enabled", override.enabled)
                 put("reason", override.reason ?: JSONObject.NULL)
+                // Additive keys inside the same jsonb object: a build that predates them
+                // reads "enabled" and "reason" as before and ignores these.
+                put("mode", override.mode?.persistedValue ?: JSONObject.NULL)
+                put("amount", override.amount ?: JSONObject.NULL)
             })
         }
     }.toString()
@@ -161,6 +166,8 @@ object LeavePolicyCodec {
                     LeaveManualOverride(
                         enabled = override.optBoolean("enabled", false),
                         reason = override.optNullableString("reason"),
+                        mode = LeaveManualMode.fromPersisted(override.optNullableString("mode")),
+                        amount = override.optNullableDouble("amount"),
                     )
                 },
             )

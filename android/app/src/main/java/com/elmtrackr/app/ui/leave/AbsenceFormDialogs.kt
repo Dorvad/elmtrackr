@@ -18,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.MoneyFormatter
+import com.elmtrackr.app.domain.model.LeaveManualMode
 import com.elmtrackr.app.domain.model.SickPayBasis
 import com.elmtrackr.app.domain.model.VacationPayBasis
 import com.elmtrackr.app.ui.theme.Spacing
@@ -139,7 +140,11 @@ fun CalculationExplanationDialog(
                                 color = auroraSecondaryText(),
                             )
                         }
-                        snapshot.sickDayOrdinal?.let { ordinal ->
+                        // Not for a final amount: no percentage was applied to it, and
+                        // "100%" would read as if the ladder had paid the day in full.
+                        snapshot.sickDayOrdinal?.takeIf {
+                            snapshot.manualOverride?.mode != LeaveManualMode.FINAL_PAYABLE
+                        }?.let { ordinal ->
                             Text(
                                 text = stringResource(
                                     R.string.leave_calc_sick_tier,
@@ -164,8 +169,26 @@ fun CalculationExplanationDialog(
                                 color = auroraSemantics.warningInk,
                             )
                         }
-                        if (snapshot.manualOverride?.enabled == true) {
-                            Text(
+                        val override = snapshot.manualOverride?.takeIf { it.enabled }
+                        val enteredAmount = override?.amount
+                        when {
+                            // Which amount the user entered, and what it was: a daily
+                            // amount is the "base" above it, a final amount is the result.
+                            override?.mode != null && enteredAmount != null -> Text(
+                                text = stringResource(
+                                    if (override.mode == LeaveManualMode.FINAL_PAYABLE) {
+                                        R.string.leave_calc_manual_final
+                                    } else {
+                                        R.string.leave_calc_manual_daily
+                                    },
+                                    MoneyFormatter.format(enteredAmount, currencyCode, appLocale()),
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = auroraSecondaryText(),
+                            )
+                            // An older record. It only used the typed amount when the
+                            // basis was manual, so only then is the note true.
+                            override != null && snapshot.payBasis == VacationPayBasis.MANUAL.persistedValue -> Text(
                                 text = stringResource(R.string.leave_calc_manual_note),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = auroraSecondaryText(),

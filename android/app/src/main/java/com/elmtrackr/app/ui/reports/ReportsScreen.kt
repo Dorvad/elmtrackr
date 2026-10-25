@@ -33,6 +33,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.elmtrackr.app.ui.common.asString
 import com.elmtrackr.app.ui.common.appLocale
+import com.elmtrackr.app.ui.common.formattedEach
+import com.elmtrackr.app.ui.common.formattedEachOrZero
+import com.elmtrackr.app.ui.common.labelWithCode
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.ui.res.stringResource
 import com.elmtrackr.app.R
@@ -320,6 +323,7 @@ fun ReportsScreen(
                                                 contextShifts = state.payContextShifts,
                                                 year = state.year,
                                                 month = state.month,
+                                                premiumProfiles = state.premiumProfiles,
                                             ),
                                             viewModel.csvFilename(state.year, state.month),
                                         )
@@ -560,7 +564,6 @@ private fun PhoneHoursReportTop(
 private fun TabletHoursReportTop(
     state: ReportsUiState.Ready,
     report: com.elmtrackr.app.domain.model.MonthlyReport,
-    currency: String,
     year: Int,
     month: Int,
     onPreviousMonth: () -> Unit,
@@ -621,31 +624,14 @@ private fun TabletHoursReportTop(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        state.paySummary?.takeIf { it.totalGross > 0 }?.let { pay ->
-            ReportCard(Modifier.weight(1f)) {
-                SectionLabel(stringResource(R.string.reports_gross_pay_before_tax))
-                Text(
-                    MoneyFormatter.format(pay.totalGross, currency, appLocale()),
-                    style = TextStyle(
-                        fontSize = MaterialTheme.typography.headlineMedium.fontSize,
-                        fontWeight = FontWeight.ExtraBold,
-                        brush = Brush.linearGradient(listOf(AuroraIndigo, AuroraPlum, AuroraAqua)),
-                    ),
-                )
-                Spacer(Modifier.height(10.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PayCell(stringResource(R.string.dashboard_stat_regular), pay.regularGross, currency, AuroraIndigo,
-                        MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
-                    // auroraOvertimeInk(), not the accent: this is a money figure on
-                    // the overtime container, the same text-on-tint pair as the
-                    // dashboard's overtime stat.
-                    PayCell(stringResource(R.string.dashboard_stat_overtime), pay.overtimeGross, currency, auroraOvertimeInk(),
-                        auroraOvertimeBackground(), Modifier.weight(1f))
-                    PayCell(stringResource(R.string.dashboard_pay_holiday), pay.specialGross, currency, AuroraPlum,
-                        auroraWeekendBackground(), Modifier.weight(1f))
-                }
+        val paid = state.paySummary?.paidByCurrency.orEmpty()
+        if (paid.isNotEmpty()) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.s12)) {
+                paid.forEach { totals -> GrossPayCard(totals, showCurrencyCode = paid.size > 1) }
             }
-        } ?: Spacer(Modifier.weight(1f))
+        } else {
+            Spacer(Modifier.weight(1f))
+        }
 
         ReportCard(Modifier.weight(1f)) {
             Row(
@@ -743,7 +729,6 @@ internal fun HoursReport(
     onExportCsv: () -> Unit,
     onExportPdf: () -> Unit,
 ) {
-    val currency = state.paySummary?.currencyCode ?: state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
     val report = state.report
     val isTablet = isTabletLayout()
 
@@ -752,7 +737,6 @@ internal fun HoursReport(
         TabletHoursReportTop(
             state = state,
             report = report,
-            currency = currency,
             year = state.year,
             month = state.month,
             onPreviousMonth = onPreviousMonth,
@@ -862,28 +846,10 @@ internal fun HoursReport(
 
     // ── Gross pay (phone only — shown in tablet top row) ─────────────────────
     if (!isTablet) {
-    state.paySummary?.takeIf { it.totalGross > 0 }?.let { pay ->
+    val paid = state.paySummary?.paidByCurrency.orEmpty()
+    paid.forEach { totals ->
         Spacer(Modifier.height(14.dp))
-        ReportCard {
-            SectionLabel(stringResource(R.string.reports_gross_pay_before_tax))
-            Text(
-                MoneyFormatter.format(pay.totalGross, currency, appLocale()),
-                style = TextStyle(
-                    fontSize = MaterialTheme.typography.headlineMedium.fontSize,
-                    fontWeight = FontWeight.ExtraBold,
-                    brush = Brush.linearGradient(listOf(AuroraIndigo, AuroraPlum, AuroraAqua)),
-                ),
-            )
-            Spacer(Modifier.height(10.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PayCell(stringResource(R.string.dashboard_stat_regular), pay.regularGross, currency, AuroraIndigo,
-                    MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
-                PayCell(stringResource(R.string.dashboard_stat_overtime), pay.overtimeGross, currency, auroraOvertimeInk(),
-                    auroraOvertimeBackground(), Modifier.weight(1f))
-                PayCell(stringResource(R.string.dashboard_pay_holiday), pay.specialGross, currency, AuroraPlum,
-                    auroraWeekendBackground(), Modifier.weight(1f))
-            }
-        }
+        GrossPayCard(totals, showCurrencyCode = paid.size > 1)
     }
     }
 
@@ -911,7 +877,14 @@ internal fun HoursReport(
     // ── Shift Insights / QuickStats (web: 6-card grid) ────────────────────────
     if (!isTablet) {
     state.insights?.let { insights ->
-        val currency2 = state.paySummary?.currencyCode ?: state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
+        // The insights' own currency: the average and the best shift are only computed
+        // when the month was paid in one currency, and this is that one.
+        val currency2 = insights.payCurrencyCode ?: state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
+        val payUnavailableSub = if (insights.payInMultipleCurrencies) {
+            stringResource(R.string.reports_pay_multiple_currencies)
+        } else {
+            stringResource(R.string.reports_set_rate_unlock)
+        }
         Spacer(Modifier.height(18.dp))
         ElmSectionHeader(stringResource(R.string.reports_shift_insights))
         Spacer(Modifier.height(8.dp))
@@ -967,7 +940,7 @@ internal fun HoursReport(
                 icon = "💰",
                 label = stringResource(R.string.reports_avg_pay_shift),
                 value = if (insights.avgPayPerShift != null) MoneyFormatter.format(insights.avgPayPerShift, currency2, appLocale()) else "—",
-                sub = if (insights.avgPayPerShift != null) stringResource(R.string.reports_per_shift) else stringResource(R.string.reports_set_rate_unlock),
+                sub = if (insights.avgPayPerShift != null) stringResource(R.string.reports_per_shift) else payUnavailableSub,
                 accentColor = AuroraIndigo,
                 bgColor = AuroraIndigo.copy(alpha = 0.10f),
                 modifier = Modifier.weight(1f),
@@ -978,7 +951,7 @@ internal fun HoursReport(
                 value = if (insights.highestEarningAmount != null) MoneyFormatter.format(insights.highestEarningAmount, currency2, appLocale()) else "—",
                 sub = insights.highestEarningShift?.startTime?.atZone(state.zone)
                     ?.format(DateTimeFormatter.ofPattern("MMM d", appLocale()))
-                    ?: if (insights.highestEarningAmount == null) stringResource(R.string.reports_set_rate_unlock) else null,
+                    ?: if (insights.highestEarningAmount == null) payUnavailableSub else null,
                 accentColor = AuroraPlum,
                 bgColor = auroraWeekendBackground(),
                 modifier = Modifier.weight(1f),
@@ -1026,7 +999,7 @@ internal fun HoursReport(
                     Modifier.padding(vertical = 10.dp),
                     color = MaterialTheme.colorScheme.outlineVariant,
                 )
-                TaskBreakdownRow(task, currency)
+                TaskBreakdownRow(task, state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name)
             }
         }
     }
@@ -1346,7 +1319,7 @@ private fun TaskBreakdownRow(task: TaskMonthlyBreakdown, currency: String) {
             )
             task.totalPay?.let { pay ->
                 Text(
-                    MoneyFormatter.format(pay, currency, appLocale()),
+                    pay.formattedEachOrZero(currency),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
@@ -1460,7 +1433,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
         }
 
         // OT indicator + pay sub-row
-        val showSubRow = week.overtimeMinutes > 0 || (week.pay != null && (week.pay ?: 0.0) > 0)
+        val showSubRow = week.overtimeMinutes > 0 || week.pay?.isNotEmpty == true
         if (showSubRow) {
             Spacer(Modifier.height(5.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1474,11 +1447,12 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
-                week.pay?.takeIf { it > 0 }?.let { pay ->
+                week.pay?.takeIf { it.isNotEmpty }?.let { pay ->
                     if (week.overtimeMinutes > 0) Spacer(Modifier.width(12.dp))
                     Spacer(Modifier.weight(1f))
                     Text(
-                        MoneyFormatter.format(pay, settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name, appLocale()),
+                        // In each shift's own currency, never one figure for two.
+                        pay.formattedEach(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuroraIndigo,
@@ -1647,7 +1621,10 @@ private fun RefundReview(
             shift.isCompleted && (shift.refundAction != null || shift.id in claimShiftIds)
         }
     }
-    val currency = state.paySummary?.currencyCode ?: state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
+    // Refund claims carry no currency of their own: they are entered in the account's
+    // currency. The month's wage currency is a different fact and, in a month worked in
+    // two currencies, has no single answer.
+    val currency = state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
     val allMonthsLabel = stringResource(R.string.reports_all_months)
     var exportingAll by rememberSaveable { mutableStateOf(false) }
     if (reimbursableShifts.isEmpty()) {
@@ -1816,12 +1793,15 @@ private fun RefundAnalytics(
     val currency = settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
     // Same reason as ShiftReportRow: sumMonthlyPay walks every completed shift of the
     // month through the pay engine, and this ran on each recomposition of the card.
-    val salary = remember(shifts, settings, profiles, premiumProfiles) {
+    val salary = remember(shifts, settings, profiles, premiumProfiles, currency) {
         settings?.let { s ->
-            val gross = PayrollCalculator
+            val pay = PayrollCalculator
                 .sumMonthlyPay(shifts.filter { it.isCompleted }, s, profiles, premiumProfiles)
-                .totalGross
-            gross.takeIf { it > 0 }
+                .grossPay
+            // "Salary plus refunds" is one figure, so only when every wage was paid in the
+            // currency the refunds are in. Otherwise the two cannot be added and the line
+            // is left out rather than printed under the refunds' currency.
+            pay.singleOrNull()?.takeIf { (code, _) -> code == currency }?.second
         }
     }
     Card(shape = RoundedCornerShape(CornerRadius.Large), colors = CardDefaults.cardColors(containerColor = AuroraIndigo)) {
@@ -2073,6 +2053,47 @@ private fun StatPill(label: String, value: String, background: Color, color: Col
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+/**
+ * Gross pay for one currency: the headline figure and its regular / overtime / holiday
+ * split, every figure in [totals]' own currency.
+ *
+ * Shown once per currency the month was paid in. With one currency this is the card the
+ * report has always had. With two, each card names its currency and neither is a sum of
+ * both — there are no exchange rates in the app to make one honest.
+ */
+@Composable
+private fun GrossPayCard(
+    totals: PayrollCalculator.CurrencyPayTotals,
+    showCurrencyCode: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val currency = totals.currencyCode
+    ReportCard(modifier) {
+        val label = stringResource(R.string.reports_gross_pay_before_tax)
+        SectionLabel(if (showCurrencyCode) labelWithCode(label, currency) else label)
+        Text(
+            MoneyFormatter.format(totals.totalGross, currency, appLocale()),
+            style = TextStyle(
+                fontSize = MaterialTheme.typography.headlineMedium.fontSize,
+                fontWeight = FontWeight.ExtraBold,
+                brush = Brush.linearGradient(listOf(AuroraIndigo, AuroraPlum, AuroraAqua)),
+            ),
+        )
+        Spacer(Modifier.height(Spacing.s10))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.s8)) {
+            PayCell(stringResource(R.string.dashboard_stat_regular), totals.regularGross, currency, AuroraIndigo,
+                MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
+            // auroraOvertimeInk(), not the accent: this is a money figure on
+            // the overtime container, the same text-on-tint pair as the
+            // dashboard's overtime stat.
+            PayCell(stringResource(R.string.dashboard_stat_overtime), totals.overtimeGross, currency, auroraOvertimeInk(),
+                auroraOvertimeBackground(), Modifier.weight(1f))
+            PayCell(stringResource(R.string.dashboard_pay_holiday), totals.specialGross, currency, AuroraPlum,
+                auroraWeekendBackground(), Modifier.weight(1f))
+        }
     }
 }
 

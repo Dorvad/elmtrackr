@@ -11,6 +11,7 @@ data class TaskMonthlyBreakdown(
     val regularMinutes: Int,
     val overtimeMinutes: Int,
     val weekendMinutes: Int,
-    val totalPay: Double?,
+    /** Gross per currency; null when no shift of the task was priced. */
+    val totalPay: PayByCurrency?,
     val averageShiftMinutes: Int,
 )

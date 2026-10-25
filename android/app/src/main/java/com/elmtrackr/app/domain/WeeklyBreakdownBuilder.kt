@@ -2,6 +2,7 @@ package com.elmtrackr.app.domain
 
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PayByCurrency
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -76,7 +77,7 @@ object WeeklyBreakdownBuilder {
             val shiftList: MutableList<Shift> = mutableListOf(),
             var totalMin: Int = 0,
             var overtimeMin: Int = 0,
-            var pay: Double = 0.0,
+            var pay: PayByCurrency = PayByCurrency.EMPTY,
             var prevMin: Int = 0,
             var firstDate: String = "",
         )
@@ -103,9 +104,14 @@ object WeeklyBreakdownBuilder {
                     // Same context as the monthly gross above the card, so the
                     // buckets add up to it. Passing only the month meant a week
                     // straddling the 1st was priced without its own prior minutes.
-                    b.pay += PayrollCalculator.calculateShiftPayInContext(
-                        shift, payContext, settings, profiles, premiumProfiles,
-                    )?.totalGross ?: 0.0
+                    // In the shift's own currency: two jobs in one week are two figures.
+                    b.pay += PayByCurrency.ofShifts(
+                        listOfNotNull(
+                            PayrollCalculator.calculateShiftPayInContext(
+                                shift, payContext, settings, profiles, premiumProfiles,
+                            ),
+                        ),
+                    )
                 }
             }
             val date = WorkTimezone.shiftLocalDate(shift, zone).toString()

@@ -97,6 +97,10 @@ object MoneyFormat {
     fun formatNumber(money: Money, locale: Locale = Locale.getDefault()): String =
         numberFormatter(money.fractionDigits, locale).format(money.amount)
 
+    /** [formatNumber] for a pay-engine `Double`, at the currency's own scale. */
+    fun formatNumber(amount: Double, currencyCode: String, locale: Locale = Locale.getDefault()): String =
+        numberFormatter(CurrencyScales.digitsFor(CurrencyScales.normalize(currencyCode)), locale).format(amount)
+
     /**
      * True when this amount's symbol does not identify its currency on its own.
      *
@@ -112,8 +116,12 @@ object MoneyFormat {
      * A currency the platform has no data for already renders with its code and
      * needs no help.
      */
-    fun symbolNeedsCode(money: Money, locale: Locale = Locale.getDefault()): Boolean {
-        val currency = runCatching { Currency.getInstance(money.currencyCode) }.getOrNull()
+    fun symbolNeedsCode(money: Money, locale: Locale = Locale.getDefault()): Boolean =
+        symbolNeedsCode(money.currencyCode, locale)
+
+    /** [symbolNeedsCode] by code, for an amount that is not held as [Money]. */
+    fun symbolNeedsCode(currencyCode: String, locale: Locale = Locale.getDefault()): Boolean {
+        val currency = runCatching { Currency.getInstance(CurrencyScales.normalize(currencyCode)) }.getOrNull()
             ?: return false
         return currency.getSymbol(locale) != currency.currencyCode
     }

@@ -320,12 +320,20 @@ class LocalLeaveRepository @Inject constructor(
             endDate = merged.endDate,
             notes = merged.notes,
             days = existingDays.map { allocation ->
+                // A day the user priced themselves keeps their amount and its meaning
+                // through the merge. Re-pricing it automatically would silently discard
+                // a value they entered on purpose.
+                val manual = allocation.calculationSnapshot?.manualOverride
+                    ?.takeIf { it.enabled && it.mode != null && it.amount != null }
                 AbsenceDayInput(
                     workplaceId = allocation.workplaceId,
                     date = allocation.affectedDate,
                     entitlementUnits = allocation.entitlementUnits,
                     unit = allocation.unit,
                     expectedWorkMinutes = allocation.expectedWorkMinutes,
+                    manualAmount = manual?.amount,
+                    manualMode = manual?.mode,
+                    manualReason = manual?.reason,
                 )
             },
         )
@@ -447,7 +455,8 @@ class LocalLeaveRepository @Inject constructor(
                             ?: settings?.currency?.name
                             ?: "ILS",
                         history = history,
-                        manualDailyAmount = day.manualDailyAmount,
+                        manualAmount = day.manualAmount,
+                        manualMode = day.manualMode,
                         manualReason = day.manualReason,
                         calculatedAt = now,
                     ),

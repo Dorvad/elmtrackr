@@ -47,7 +47,9 @@ import com.elmtrackr.app.domain.leave.LeaveConflict
 import com.elmtrackr.app.domain.leave.LeaveEstimateGap
 import com.elmtrackr.app.domain.model.AbsenceType
 import com.elmtrackr.app.domain.model.LeaveBalanceUnit
+import com.elmtrackr.app.domain.model.LeaveManualMode
 import com.elmtrackr.app.ui.common.asString
+import com.elmtrackr.app.ui.common.rememberDiscardGuard
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraScreen
 import com.elmtrackr.app.ui.design.AuroraScreenHeader
@@ -90,8 +92,28 @@ fun AbsenceFormScreen(
     val message by viewModel.userMessage.collectAsState()
 
     LaunchedEffect(type, editingEventId) { viewModel.start(type, editingEventId) }
-    LaunchedEffect(closed) { if (closed) onClose() }
-    BackHandler { onClose() }
+    // Every way out tells the view model, which outlives the form: the next time this
+    // form opens it must open fresh, not resume what was just saved or discarded.
+    val close: () -> Unit = {
+        viewModel.onFormClosed()
+        onClose()
+    }
+    // A finished save closes here directly, never through the guard below: what was
+    // on screen is stored, so there is nothing to ask about.
+    LaunchedEffect(closed) { if (closed) close() }
+
+    // System back and the header's arrow both go through this. It closed the form
+    // outright before, so a range of days, a note and typed amounts went with one
+    // back gesture.
+    val ready = state as? AbsenceFormUiState.Ready
+    val requestClose = rememberDiscardGuard(
+        isDirty = ready?.isDirty == true,
+        onConfirmClose = close,
+    )
+    // While a save is being written, back does nothing. Closing then would either drop
+    // a save that is about to fail without showing why, or ask to discard changes that
+    // are already being stored. The save finishes in a moment and closes the form.
+    BackHandler(enabled = ready?.isSaving == true) {}
 
     when (val current = state) {
         is AbsenceFormUiState.Loading -> ElmLoadingState(Modifier.fillMaxWidth())
@@ -104,7 +126,7 @@ fun AbsenceFormScreen(
         is AbsenceFormUiState.NoWorkplace -> AuroraScreen {
             AuroraScreenHeader(
                 title = titleFor(type),
-                onBack = onClose,
+                onBack = requestClose,
                 backContentDescription = stringResource(R.string.leave_form_back),
             )
             ElmEmptyState(
@@ -118,7 +140,7 @@ fun AbsenceFormScreen(
             state = current,
             messageText = message?.asString(),
             onMessageShown = viewModel::consumeUserMessage,
-            onClose = onClose,
+            onClose = requestClose,
             viewModel = viewModel,
         )
     }
@@ -213,6 +235,19 @@ private fun AbsenceFormContent(
                         },
                         value = state.partialAmount,
                         onValueChange = viewModel::setPartialAmount,
+                        // Said at the field, not only on save: an unreadable part day
+                        // has no estimate, and the empty total needs a reason beside it.
+                        errorText = if (state.partialAmountInvalid && state.partialAmount.isNotBlank()) {
+                            stringResource(
+                                if (state.partialUnit == LeaveBalanceUnit.HOURS) {
+                                    R.string.leave_form_partial_invalid_hours
+                                } else {
+                                    R.string.leave_form_partial_invalid_days
+                                },
+                            )
+                        } else {
+                            null
+                        },
                         modifier = Modifier.weight(1f),
                     )
                     Spacer(Modifier.width(Layout.inlineGap))
@@ -264,6 +299,8 @@ private fun AbsenceFormContent(
                     dateText = day.date.format(dateFormat),
                     onToggle = { viewModel.toggleDay(day.date) },
                     onManualAmount = { amount -> viewModel.setManualAmount(day.date, amount) },
+                    onManualMode = { mode -> viewModel.setManualMode(day.date, mode) },
+                    onUseAutomatic = { viewModel.useAutomaticAmount(day.date) },
                 )
             }
         }
@@ -466,6 +503,11 @@ private fun DateRow(label: String, value: String, onClick: () -> Unit) {
  * A sick day shows its ordinal and its percentage because that is what decides
  * the money, and someone reconciling a payslip needs to see "sick day 2, 50%"
  * rather than only a number. A day with no estimate gets a field, never a zero.
+ *
+ * Any day can take the user's own amount instead of the automatic one, and the
+ * row says which of three figures is which: the automatic estimate, a daily amount
+ * the user entered (still scaled by a part day and a sick-day percentage), or a
+ * final amount used as entered.
  */
 @Composable
 private fun DayRow(
@@ -475,6 +517,8 @@ private fun DayRow(
     dateText: String,
     onToggle: () -> Unit,
     onManualAmount: (String) -> Unit,
+    onManualMode: (LeaveManualMode) -> Unit,
+    onUseAutomatic: () -> Unit,
 ) {
     val stateLabel = if (day.selected) {
         stringResource(R.string.leave_a11y_day_included, dateText)
@@ -501,16 +545,21 @@ private fun DayRow(
             Spacer(Modifier.width(Layout.inlineGap))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.s2)) {
                 Text(dateText, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                if (isSick && day.sickDayOrdinal != null) {
-                    val percent = day.multiplier?.let { (it * 100).toInt() }
+                val finalAmount = day.usesManualAmount && day.manualMode == LeaveManualMode.FINAL_PAYABLE
+                val detail = buildList {
+                    if (isSick && day.sickDayOrdinal != null) {
+                        add(stringResource(R.string.leave_form_sick_day, day.sickDayOrdinal))
+                        // No percentage beside a final amount: none was applied to it.
+                        val percent = day.multiplier?.let { (it * 100).toInt() }
+                        if (percent != null && !finalAmount) add(stringResource(R.string.leave_form_pays_percent, percent))
+                    }
+                    if (day.usesManualAmount && day.estimatedGross != null) {
+                        add(stringResource(R.string.leave_form_manual_marker))
+                    }
+                }
+                if (detail.isNotEmpty()) {
                     Text(
-                        text = buildString {
-                            append(stringResource(R.string.leave_form_sick_day, day.sickDayOrdinal))
-                            if (percent != null) {
-                                append(" · ")
-                                append(stringResource(R.string.leave_form_pays_percent, percent))
-                            }
-                        },
+                        text = detail.joinToString(" · "),
                         style = MaterialTheme.typography.labelSmall,
                         color = auroraSecondaryText(),
                     )
@@ -531,19 +580,97 @@ private fun DayRow(
                 )
             }
         }
-        if (day.selected && day.gap != null) {
-            Text(
-                text = gapText(day.gap),
-                style = MaterialTheme.typography.bodySmall,
-                color = auroraSecondaryText(),
-            )
-            Spacer(Modifier.height(Spacing.s4))
-            ElmDecimalField(
-                label = stringResource(R.string.leave_gap_action_amount),
-                value = day.manualAmount,
-                onValueChange = onManualAmount,
-                supportingText = stringResource(R.string.leave_gap_saved_anyway),
-            )
+        if (day.selected) {
+            if (day.gap != null) {
+                Text(
+                    text = gapText(day.gap),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = auroraSecondaryText(),
+                )
+                if (day.parsedManualAmount == null) {
+                    Text(
+                        text = stringResource(R.string.leave_gap_saved_anyway),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = auroraSecondaryText(),
+                    )
+                }
+            }
+            if (day.showsManualEntry) {
+                Spacer(Modifier.height(Spacing.s4))
+                ManualAmountEntry(
+                    day = day,
+                    isSick = isSick,
+                    onManualAmount = onManualAmount,
+                    onManualMode = onManualMode,
+                    onUseAutomatic = onUseAutomatic,
+                )
+            } else {
+                // The estimate is there, but it is the user's to replace: a payslip,
+                // an agreement, a figure the app cannot know.
+                TextButton(
+                    onClick = { onManualMode(LeaveManualMode.BASE_DAILY) },
+                    modifier = Modifier.heightIn(min = Layout.minTouchTarget),
+                ) {
+                    Text(stringResource(R.string.leave_manual_enter))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The user's own amount for one day, and what it means.
+ *
+ * The two meanings are picked explicitly rather than read from context, because
+ * they give different results on any part day and any sick day after the first
+ * rung of the ladder: a daily amount is scaled, a final amount is not.
+ */
+@Composable
+private fun ManualAmountEntry(
+    day: AbsenceDayRow,
+    isSick: Boolean,
+    onManualAmount: (String) -> Unit,
+    onManualMode: (LeaveManualMode) -> Unit,
+    onUseAutomatic: () -> Unit,
+) {
+    val mode = day.manualMode ?: LeaveManualMode.BASE_DAILY
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.s6)) {
+        ElmSegmentedPillRow(
+            options = listOf(
+                stringResource(R.string.leave_manual_mode_daily),
+                stringResource(R.string.leave_manual_mode_final),
+            ),
+            selectedIndex = if (mode == LeaveManualMode.FINAL_PAYABLE) 1 else 0,
+            onSelect = { index ->
+                onManualMode(if (index == 1) LeaveManualMode.FINAL_PAYABLE else LeaveManualMode.BASE_DAILY)
+            },
+        )
+        ElmDecimalField(
+            label = stringResource(
+                if (mode == LeaveManualMode.FINAL_PAYABLE) {
+                    R.string.leave_manual_field_final
+                } else {
+                    R.string.leave_manual_field_daily
+                },
+            ),
+            value = day.manualAmount,
+            onValueChange = onManualAmount,
+            supportingText = stringResource(
+                when {
+                    mode == LeaveManualMode.FINAL_PAYABLE -> R.string.leave_manual_help_final
+                    isSick -> R.string.leave_manual_help_daily_sick
+                    else -> R.string.leave_manual_help_daily_vacation
+                },
+            ),
+            errorText = if (day.manualAmountInvalid) stringResource(R.string.leave_manual_invalid) else null,
+        )
+        if (day.manualMode != null) {
+            TextButton(
+                onClick = onUseAutomatic,
+                modifier = Modifier.heightIn(min = Layout.minTouchTarget),
+            ) {
+                Text(stringResource(R.string.leave_manual_use_automatic))
+            }
         }
     }
 }

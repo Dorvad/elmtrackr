@@ -323,6 +323,7 @@ class DashboardViewModel @Inject constructor(
                     shifts = raw.monthShifts,
                     settings = raw.settings,
                     profiles = raw.profiles,
+                    premiumProfiles = raw.premiumProfiles,
                     contextShifts = raw.payContextShifts,
                 )
                 DashboardUiState.Ready(
@@ -505,9 +506,15 @@ class DashboardViewModel @Inject constructor(
      * exactly the divergence Waves B–E existed to remove.
      *
      * Null means "no rate configured", which the faces render as an absent figure rather
-     * than as zero earnings.
+     * than as zero earnings. It is also null on a day worked at two jobs paid in two
+     * currencies: a clock face has room for one figure, and there is no honest single
+     * figure to give it.
+     *
+     * The currency travels with the amount. It used to be taken from the month summary,
+     * which is null for a month worked in two currencies, and the face then fell back to
+     * the account currency — dollars earned today printed with a shekel sign.
      */
-    val todayEarnings: StateFlow<Double?> = combine(
+    val todayEarnings: StateFlow<TodayEarnings?> = combine(
         uiState,
         minuteTicks(),
     ) { state, _ -> state }
@@ -527,18 +534,32 @@ class DashboardViewModel @Inject constructor(
                 .filter { it.isEmployeePaid && it.endTime != null }
                 .filter { it.startTime.atZone(zone).toLocalDate() == today }
             val priced = completedToday + listOfNotNull(closedNow)
-            if (priced.isEmpty()) return@map 0.0
-            PayrollCalculator.sumMonthlyPay(
+            if (priced.isEmpty()) return@map TodayEarnings(0.0, settings.displayCurrencyCode())
+            val todayPay = PayrollCalculator.sumMonthlyPay(
                 priced, settings, ready.profiles, ready.premiumProfiles,
                 // Today is its own context. A weekly tier needs the week, but this figure
                 // answers "what has today earned"; folding the week in would attribute
                 // earlier days' overtime to today.
                 contextShifts = priced,
-            ).totalGross
+            )
+            val paid = todayPay.paidByCurrency
+            when (paid.size) {
+                // Nothing earned yet (the first minutes of a shift): still a zero in the
+                // currency the day is being priced in.
+                0 -> TodayEarnings(
+                    0.0,
+                    todayPay.byCurrency.singleOrNull()?.currencyCode ?: settings.displayCurrencyCode(),
+                )
+                1 -> TodayEarnings(paid.single().totalGross, paid.single().currencyCode)
+                else -> null
+            }
         }
         .catch { emit(null) }
         .flowOn(computationDispatcher)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Today's engine-priced earnings and the one currency they are in. See [todayEarnings]. */
+    data class TodayEarnings(val amount: Double, val currencyCode: String)
 
     /** Emits at once, then every minute. See [todayEarnings]. */
     private fun minuteTicks(): Flow<Unit> = flow {
