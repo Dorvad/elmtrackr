@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.visibleRows
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.leave.LeaveQuantityFormat
 import com.elmtrackr.app.domain.leave.MonthlyLeaveEarnings
@@ -73,7 +74,12 @@ object ReportExporter {
     ) = withContext(Dispatchers.IO) {
         val res = context.withAppLocale()
         val locale = res.resources.configuration.locales[0]
-        val filename = "elmtrackr-shifts-${state.year}-${state.month.toString().padStart(2, '0')}.pdf"
+        val scopeSuffix = state.scopedJobName?.let { name ->
+            name.lowercase().map { if (it.isLetterOrDigit()) it else '-' }.joinToString("")
+                .split('-').filter { it.isNotEmpty() }.joinToString("-").take(40)
+                .takeIf { it.isNotEmpty() }?.let { "-$it" }
+        }.orEmpty()
+        val filename = "elmtrackr-shifts-${state.year}-${state.month.toString().padStart(2, '0')}$scopeSuffix.pdf"
         val file = exportFile(context, filename)
         val document = PdfDocument()
         val pageWidth = 595
@@ -124,7 +130,37 @@ object ReportExporter {
         canvas.drawText(monthLabel, pageWidth - margin, y, heading.apply { textAlign = Paint.Align.RIGHT })
         heading.textAlign = Paint.Align.LEFT
         y += 18f
+        // Which job the document covers, so a file handed to one employer cannot be
+        // mistaken for one that includes another's hours.
+        state.scopedJobName?.let { job ->
+            canvas.drawText(res.getString(R.string.reports_export_job, BidiText.isolate(job)), margin, y, subtitle)
+            y += 14f
+        } ?: run {
+            if (state.profiles.size > 1) {
+                canvas.drawText(res.getString(R.string.reports_scope_all_jobs), margin, y, subtitle)
+                y += 14f
+            }
+        }
         canvas.drawText(res.getString(R.string.export_completed_shifts, state.report.shiftCount), margin, y, subtitle)
+        // Worked time, and paid time only where the profile's rules made it differ —
+        // the same pair the screen shows.
+        y += 14f
+        canvas.drawText(
+            buildString {
+                append(res.getString(R.string.paid_time_worked))
+                append(": ")
+                append(DurationText.format(res, state.report.workedMinutes))
+                if (state.report.payableDiffersFromWorked) {
+                    append("   ")
+                    append(res.getString(R.string.paid_time_paid))
+                    append(": ")
+                    append(DurationText.format(res, state.report.totalMinutes))
+                }
+            },
+            margin,
+            y,
+            subtitle,
+        )
         state.paidLeave?.let { leave ->
             leaveHeaderSummary(res, leave)?.let { summary ->
                 y += 14f
@@ -162,23 +198,38 @@ object ReportExporter {
         y += 38f
 
         // One block per currency the month was paid in, each entirely in that currency.
-        // With one currency this is the block the PDF has always printed.
+        //
+        // Listed from the same components as the screen's "How your pay was estimated"
+        // card, so the rows add up to the total. This block used to print three cells
+        // and a total, with weekend and holiday money together under "Holiday" and the
+        // night premium omitted — parts that did not sum to the figure beside them.
         paid.forEach { pay ->
             val code = pay.currencyCode
-            val title = res.getString(R.string.reports_gross_pay_before_tax)
-            ensureSpace(70f)
+            val components = com.elmtrackr.app.ui.common.PayComponents.of(pay)
+            val rows = components.visibleRows()
+            val title = res.getString(R.string.reports_breakdown_title)
+            ensureSpace(36f + rows.size * 12f)
             canvas.drawText(
                 if (paid.size > 1) res.getString(R.string.project_money_label_with_code, title, BidiText.isolate(code)) else title,
                 margin,
                 y,
                 heading,
             )
-            y += 17f
-            drawMetric(canvas, res.getString(R.string.dashboard_stat_regular), MoneyFormatter.format(pay.regularGross, code, res.exportLocale()), margin, y, body, muted)
-            drawMetric(canvas, res.getString(R.string.dashboard_stat_overtime), MoneyFormatter.format(pay.overtimeGross, code, res.exportLocale()), margin + 150f, y, body, muted)
-            drawMetric(canvas, res.getString(R.string.dashboard_pay_holiday), MoneyFormatter.format(pay.specialGross, code, res.exportLocale()), margin + 300f, y, body, muted)
-            drawMetric(canvas, res.getString(R.string.export_col_total), MoneyFormatter.format(pay.totalGross, code, res.exportLocale()), pageWidth - margin - 95f, y, body, muted)
-            y += 30f
+            y += 15f
+            rows.forEach { (label, amount) ->
+                canvas.drawText(res.getString(label), margin, y, body)
+                canvas.drawText(MoneyFormatter.format(amount, code, res.exportLocale()), pageWidth - margin, y, body.apply { textAlign = Paint.Align.RIGHT })
+                body.textAlign = Paint.Align.LEFT
+                y += 12f
+            }
+            canvas.drawLine(margin, y - 8f, pageWidth - margin, y - 8f, line)
+            y += 2f
+            canvas.drawText(res.getString(R.string.pay_component_total), margin, y, heading)
+            canvas.drawText(MoneyFormatter.format(pay.totalGross, code, res.exportLocale()), pageWidth - margin, y, heading.apply { textAlign = Paint.Align.RIGHT })
+            heading.textAlign = Paint.Align.LEFT
+            y += 12f
+            canvas.drawText(res.getString(R.string.pay_estimate_disclaimer), margin, y, muted)
+            y += 20f
         }
 
         if (state.weeklyTotals.isNotEmpty()) {
@@ -326,13 +377,18 @@ object ReportExporter {
                 if (shift.breakMinutes > 0) append("  ${res.getString(R.string.shifts_break_line, shift.breakMinutes)}")
             }
             val tags = buildList {
+                // Paid time beside the worked figure in the duration column, only when
+                // the rules changed it — as on the screen's row.
+                breakdown?.takeIf { it.totalMinutes != it.workedMinutes }?.let {
+                    add("${res.getString(R.string.paid_time_paid)} ${DurationText.format(res, it.totalMinutes)}")
+                }
                 if (shift.isSpecialDay) add(res.getString(R.string.dashboard_pay_holiday))
                 if ((breakdown?.weekendMinutes ?: 0) > 0 && !shift.isSpecialDay) add(res.getString(R.string.dashboard_stat_weekend))
                 if (com.elmtrackr.app.domain.OvernightShiftDetector.isOvernight(shift, zone)) add(res.getString(R.string.reports_chip_overnight))
             }.joinToString(" / ")
             canvas.drawText(dateFormat.format(shift.startTime), margin, y, body)
             canvas.drawText(timeText, margin + 94f, y, body)
-            canvas.drawText(breakdown?.totalMinutes?.let { DurationText.format(res, it) } ?: "-", margin + 230f, y, body)
+            canvas.drawText(breakdown?.workedMinutes?.let { DurationText.format(res, it) } ?: "-", margin + 230f, y, body)
             canvas.drawText(tags.ifBlank { "-" }, margin + 300f, y, muted)
             canvas.drawText(
                 // The shift's own currency. Printing every row under the month's (or the
@@ -611,7 +667,7 @@ object ReportExporter {
         canvas.drawRoundRect(x, y - 12f, x + 515f, y + 6f, 8f, 8f, fill)
         canvas.drawText(res.getString(R.string.export_col_date), x + 4f, y, heading)
         canvas.drawText(res.getString(R.string.export_col_time), x + 94f, y, heading)
-        canvas.drawText(res.getString(R.string.export_col_total), x + 230f, y, heading)
+        canvas.drawText(res.getString(R.string.paid_time_worked), x + 230f, y, heading)
         canvas.drawText(res.getString(R.string.export_col_tags), x + 300f, y, heading)
         canvas.drawText(res.getString(R.string.export_col_gross), x + 515f, y, heading.apply { textAlign = Paint.Align.RIGHT })
         heading.textAlign = Paint.Align.LEFT

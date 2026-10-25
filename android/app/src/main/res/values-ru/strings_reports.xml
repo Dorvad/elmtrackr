@@ -13,7 +13,7 @@
     <string name="reports_hours_value">%1$s ч</string>
     <string name="reports_all_hours_month">Все часы за месяц</string>
     <string name="reports_pct_of_total">%1$d%% от общего</string>
-    <string name="reports_gross_pay_before_tax">Начислено · до налогов</string>
+    <string name="reports_gross_pay_before_tax">Оценка · до налогов</string>
     <string name="reports_peak_performer">Лучший результат</string>
     <string name="reports_peak_more">Вы отработали на %1$d%% больше часов, чем %2$s. Так держать!</string>
     <string name="reports_peak_fewer">Вы отработали на %1$d%% меньше часов, чем %2$s.</string>
@@ -198,4 +198,23 @@
     <string name="insight_ramen_title">Счётчик рамена</string>
     <string name="insight_ramen_text">Рамен быстрого приготовления варится **%1$d минут**. За ваши **%2$d ч** работы можно было приготовить **%3$d порций**. Экономный образ жизни.</string>
     <string name="reports_export_failed">Не удалось выполнить экспорт. Проверьте свободное место и попробуйте снова.</string>
+
+    <!-- Overview, pay explanation, job scope and export (Wave 2) -->
+    <string name="reports_scope_all_jobs">Все работы</string>
+    <string name="reports_scope_group">Работы в отчёте</string>
+    <string name="reports_in_progress">Месяц ещё идёт — по %1$s</string>
+    <string name="reports_leave_line">Оплачиваемое отсутствие: %1$s, не входит в отработанное время</string>
+    <string name="reports_leave_only">В этом месяце нет смен — только оплачиваемые отсутствия, они ниже.</string>
+    <string name="reports_breakdown_title">Как рассчитана оплата</string>
+    <string name="reports_paid_time_title">Как учтено оплачиваемое время</string>
+    <string name="reports_export_title">Экспорт</string>
+    <string name="reports_export_subject">%1$s · %2$s</string>
+    <string name="reports_export_currency_one">Суммы в %1$s</string>
+    <string name="reports_export_currency_many">Суммы в %1$s, итоги по каждой валюте отдельно</string>
+    <string name="reports_export_csv">Таблица CSV</string>
+    <string name="reports_export_pdf">Сводка PDF</string>
+    <string name="reports_export_job">Работа: %1$s</string>
+    <string name="reports_job_empty_title">Нет смен в «%1$s» за %2$s</string>
+    <string name="reports_job_empty_body">В других ваших работах в этом месяце есть смены.</string>
+    <string name="reports_job_empty_action">Показать все работы</string>
 </resources>

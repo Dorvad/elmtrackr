@@ -149,7 +149,7 @@ class MixedCurrencyPayRenderTest {
     fun `reports show one gross pay card per currency, each labelled`() {
         setHoursReport(mixed)
 
-        val labels = composeRule.onAllNodesWithText("GROSS PAY · BEFORE TAX", substring = true).texts()
+        val labels = composeRule.onAllNodesWithText("HOW YOUR PAY WAS ESTIMATED", substring = true).texts()
         assertEquals(labels.toString(), 2, labels.size)
         assertTrue(labels.toString(), labels.any { "ILS" in it })
         assertTrue(labels.toString(), labels.any { "USD" in it })
@@ -163,8 +163,8 @@ class MixedCurrencyPayRenderTest {
     fun `reports for one currency keep the single unlabelled card`() {
         setHoursReport(single)
 
-        val labels = composeRule.onAllNodesWithText("GROSS PAY · BEFORE TAX", substring = true).texts()
-        assertEquals(listOf("GROSS PAY · BEFORE TAX"), labels)
+        val labels = composeRule.onAllNodesWithText("HOW YOUR PAY WAS ESTIMATED", substring = true).texts()
+        assertEquals(listOf("HOW YOUR PAY WAS ESTIMATED"), labels)
         assertTrue(allTexts().contains(MoneyFormatter.format(4000.0, "ILS", Locale.getDefault())))
     }
 }

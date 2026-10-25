@@ -13,6 +13,8 @@ import com.elmtrackr.app.domain.leave.LeaveEarningsBuilder
 import com.elmtrackr.app.domain.leave.LeaveQuantityFormat
 import com.elmtrackr.app.domain.leave.MonthlyLeaveEarnings
 import com.elmtrackr.app.domain.PayrollCalculator
+import com.elmtrackr.app.domain.ReportScope
+import com.elmtrackr.app.domain.employeePaidOnly
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.OvernightShiftDetector
@@ -102,6 +104,17 @@ class ReportsViewModel @Inject constructor(
 
     fun onProjectFilterChange(filter: com.elmtrackr.app.domain.projects.ProjectReportFilter) {
         _projectFilter.value = filter
+    }
+
+    /**
+     * Which job the hours report covers. All jobs until the user picks one; the
+     * choice is checked against the current profiles on every emission (see
+     * [ReportScope.valid]) so a deleted job cannot leave the report empty.
+     */
+    private val _scope = MutableStateFlow<ReportScope>(ReportScope.AllJobs)
+
+    fun selectScope(scope: ReportScope) {
+        _scope.value = scope
     }
 
     /**
@@ -235,16 +248,39 @@ class ReportsViewModel @Inject constructor(
                 currentUserProvider.userId.flatMapLatest { userId ->
                     if (userId == null) return@flatMapLatest flowOf(null)
                     combine(
-                        leaveRepository.observeAllocationsInMonth(userId, year, month),
-                        leaveRepository.observeEvents(userId),
-                        workplacesRepository.observeAllWorkplaces(userId),
-                        settingsRepository.observeSettings(userId),
-                    ) { allocations, events, workplaces, settings ->
-                        buildPaidLeave(year, month, allocations, events, workplaces, settings)
+                        combine(
+                            leaveRepository.observeAllocationsInMonth(userId, year, month),
+                            leaveRepository.observeEvents(userId),
+                            workplacesRepository.observeAllWorkplaces(userId),
+                            settingsRepository.observeSettings(userId),
+                        ) { allocations, events, workplaces, settings ->
+                            LeaveInputs(allocations, events, workplaces, settings)
+                        },
+                        compensationProfilesRepository.observeProfiles(userId),
+                        _scope,
+                    ) { leave, profiles, requested ->
+                        // Narrowed with the hours: a one-job report lists that job's
+                        // leave, and its total is that job's leave alone.
+                        val scope = ReportScope.valid(requested, profiles)
+                        buildPaidLeave(
+                            year,
+                            month,
+                            leave.allocations.filter { ReportScope.includesLeave(scope, it.workplaceId, profiles) },
+                            leave.events,
+                            leave.workplaces,
+                            leave.settings,
+                        )
                     }
                 }
             }
             .catch { emit(null) }
+
+    private data class LeaveInputs(
+        val allocations: List<AbsenceAllocation>,
+        val events: List<AbsenceEvent>,
+        val workplaces: List<Workplace>,
+        val settings: UserSettings?,
+    )
 
     private data class PaidLeaveBundle(
         val earnings: MonthlyLeaveEarnings,
@@ -388,27 +424,35 @@ class ReportsViewModel @Inject constructor(
                         compensationProfilesRepository.observeProfiles(userId),
                         premiumProfilesRepository.observeProfiles(userId),
                         tasksRepository.observeAllTasks(userId),
-                    ) { inputs, profiles, premiumProfiles, tasks ->
-                        val completedShifts = inputs.shifts.filter { it.isCompleted }
+                        _scope,
+                    ) { inputs, profiles, premiumProfiles, tasks, requestedScope ->
+                        val monthCompleted = inputs.shifts.filter { it.isCompleted }
                         when {
                             inputs.settings == null -> ReportsUiState.Loading
                             else -> {
                                 val settings = inputs.settings
-                                val prevCompleted = inputs.previousShifts.filter { it.isCompleted }
+                                val scope = ReportScope.valid(requestedScope, profiles)
+                                val prevMonthCompleted = inputs.previousShifts.filter { it.isCompleted }
                                 // The previous month is already loaded here for the
                                 // week-over-week delta, so pay-week context across the
                                 // 1st costs nothing extra. Only the month is reported;
                                 // these fill the weekly overtime allowance.
-                                val payContext = completedShifts + prevCompleted
-                                val safeReport = inputs.report ?: MonthlyReportBuilder.buildMonthlyReport(
-                                    year = year,
-                                    month = month,
-                                    shifts = inputs.shifts,
-                                    settings = settings,
-                                    profiles = profiles,
-                                    premiumProfiles = premiumProfiles,
-                                    contextShifts = payContext,
-                                )
+                                //
+                                // Never narrowed by the job scope: a shift must price the
+                                // same in a one-job report as in the all-jobs one.
+                                val payContext = monthCompleted + prevMonthCompleted
+                                val completedShifts = ReportScope.filter(scope, monthCompleted, settings, profiles)
+                                val prevCompleted = ReportScope.filter(scope, prevMonthCompleted, settings, profiles)
+                                val safeReport = inputs.report?.takeIf { scope == ReportScope.AllJobs }
+                                    ?: MonthlyReportBuilder.buildMonthlyReport(
+                                        year = year,
+                                        month = month,
+                                        shifts = completedShifts,
+                                        settings = settings,
+                                        profiles = profiles,
+                                        premiumProfiles = premiumProfiles,
+                                        contextShifts = payContext,
+                                    )
                                 val paySummary = settings.takeIf {
                                     (it.hourlyRate ?: 0.0) > 0.0 ||
                                         profiles.any { p -> (p.baseHourlyRate ?: 0.0) > 0.0 }
@@ -461,13 +505,20 @@ class ReportsViewModel @Inject constructor(
                                     featuresTravelRefunds = settings.featuresTravelRefunds,
                                     insights = insights,
                                     dailyInsights = dailyInsights,
-                                    previousMonthMinutes = prevCompleted.sumOf {
-                                        ShiftDurationCalculator.netMinutes(it) ?: 0
+                                    // Worked minutes, like the figure it is compared with.
+                                    // This used to be every shift's clock time less breaks
+                                    // — project time included — set against this month's
+                                    // payable wage minutes, so a rounding rule or a
+                                    // project could move the arrow on its own.
+                                    previousMonthMinutes = prevCompleted.employeePaidOnly().sumOf {
+                                        PayrollCalculator.shiftTime(it, settings, profiles)?.workedMinutes ?: 0
                                     },
                                     allShifts = inputs.allShifts,
                                     refundClaims = inputs.claims,
                                     taskBreakdown = taskBreakdown,
                                     zone = WorkTimezone.zoneFor(settings),
+                                    scope = scope,
+                                    allJobsShiftCount = monthCompleted.employeePaidOnly().size,
                                 )
                             }
                         }
@@ -609,6 +660,11 @@ class ReportsViewModel @Inject constructor(
         // Without the profiles here the export classified the same minutes as
         // ordinary time, so the file disagreed with the report it came from.
         premiumProfiles: List<PremiumProfile> = emptyList(),
+        /**
+         * The job the export covers, or null for all jobs. Named on the TOTAL row so a
+         * file handed to one employer says it holds that employer's hours only.
+         */
+        scopeJobName: String? = null,
     ): String {
         val reportSettings = settings ?: UserSettings(id = "export", userId = "export")
         val completed = shifts.filter { it.isCompleted }.sortedByDescending { it.startTime }
@@ -616,8 +672,12 @@ class ReportsViewModel @Inject constructor(
         val breakdowns = completed.map {
             MonthlyReportBuilder.buildShiftBreakdown(it, reportSettings, profiles, premiumProfiles, payContext)
         }
+        // "Total Hours" is payable time — what the Regular/Overtime/Weekend columns add
+        // up to and what pay is derived from. Worked time is appended as the last
+        // column rather than inserted, so every existing column keeps its position
+        // for spreadsheets and payroll imports that read by index.
         val lines = mutableListOf(
-            "Date,Start Time,End Time,Break (min),Total Hours,Regular Hours,Overtime Hours,Weekend Hours,Overnight,Notes",
+            "Date,Start Time,End Time,Break (min),Total Hours,Regular Hours,Overtime Hours,Weekend Hours,Overnight,Notes,Worked Hours",
         )
         val zone = WorkTimezone.zoneFor(reportSettings)
         completed.forEachIndexed { index, shift ->
@@ -633,6 +693,7 @@ class ReportsViewModel @Inject constructor(
                 HoursFormatter.csv(breakdown.weekendMinutes),
                 if (OvernightShiftDetector.isOvernight(shift, zone)) "Yes" else "No",
                 csvEscape(shift.notes ?: ""),
+                HoursFormatter.csv(breakdown.workedMinutes),
             ).joinToString(",")
         }
         lines += ""
@@ -643,13 +704,16 @@ class ReportsViewModel @Inject constructor(
         val report = MonthlyReportBuilder.buildMonthlyReport(
             year, month, completed, reportSettings, profiles, premiumProfiles, contextShifts = payContext,
         )
+        val totalLabel = "TOTAL - $year-${month.toString().padStart(2, '0')}"
         lines += listOf(
-            "TOTAL - $year-${month.toString().padStart(2, '0')}", "", "", "",
+            // The job name is user-typed, so it goes through csvEscape like notes do.
+            scopeJobName?.let { csvEscape("$totalLabel - $it") } ?: totalLabel, "", "", "",
             HoursFormatter.csv(report.totalMinutes),
             HoursFormatter.csv(report.regularMinutes),
             HoursFormatter.csv(report.overtimeMinutes),
             HoursFormatter.csv(report.weekendMinutes),
             "", "${completed.size} shifts",
+            HoursFormatter.csv(report.workedMinutes),
         ).joinToString(",")
         appendLeaveBlock(lines, leaveEntries)
         return lines.joinToString("\n")
@@ -709,8 +773,26 @@ class ReportsViewModel @Inject constructor(
     suspend fun receiptUrl(path: String): String? = refundReceiptStorage
         ?.let { storage -> runCatching { storage.createSignedUrl(path) }.getOrNull() }
 
-    fun csvFilename(year: Int, month: Int): String =
-        "elmtrackr-$year-${month.toString().padStart(2, '0')}.csv"
+    fun csvFilename(year: Int, month: Int, scopeJobName: String? = null): String =
+        "elmtrackr-$year-${month.toString().padStart(2, '0')}${scopeFileSuffix(scopeJobName)}.csv"
+
+    /**
+     * "-cafe" for a one-job export, so two jobs' files for the same month do not
+     * overwrite each other or look interchangeable. Letters and digits of any
+     * script are kept — a Hebrew job name stays readable — and everything else
+     * becomes a hyphen.
+     */
+    internal fun scopeFileSuffix(scopeJobName: String?): String {
+        val slug = scopeJobName.orEmpty()
+            .lowercase()
+            .map { if (it.isLetterOrDigit()) it else '-' }
+            .joinToString("")
+            .split('-')
+            .filter { it.isNotEmpty() }
+            .joinToString("-")
+            .take(40)
+        return if (slug.isEmpty()) "" else "-$slug"
+    }
 
     /**
      * Quotes a CSV field and neutralises spreadsheet formula injection.

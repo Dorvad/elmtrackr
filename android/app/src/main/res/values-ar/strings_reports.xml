@@ -13,7 +13,7 @@
     <string name="reports_hours_value">%1$s س</string>
     <string name="reports_all_hours_month">كل ساعات هذا الشهر</string>
     <string name="reports_pct_of_total">%1$d%% من الإجمالي</string>
-    <string name="reports_gross_pay_before_tax">الأجر الإجمالي · قبل الضريبة</string>
+    <string name="reports_gross_pay_before_tax">الإجمالي التقديري · قبل الضريبة</string>
     <string name="reports_peak_performer">أفضل أداء</string>
     <string name="reports_peak_more">عملت %1$d%% ساعات أكثر من %2$s. حافظ على هذا الزخم!</string>
     <string name="reports_peak_fewer">عملت %1$d%% ساعات أقل من %2$s.</string>
@@ -198,4 +198,23 @@
     <string name="insight_ramen_title">عدّاد الرامن</string>
     <string name="insight_ramen_text">الرامن السريع يستغرق **%1$d دقيقة**. وفي **%2$d س** من عملك، كان يمكنك تحضير **%3$d وعاء**. عيش اقتصادي.</string>
     <string name="reports_export_failed">تعذّر التصدير. تحقّق من المساحة المتوفّرة وأعد المحاولة.</string>
+
+    <!-- Overview, pay explanation, job scope and export (Wave 2) -->
+    <string name="reports_scope_all_jobs">كل الأعمال</string>
+    <string name="reports_scope_group">الأعمال في هذا التقرير</string>
+    <string name="reports_in_progress">الشهر ما زال جارياً — حتى %1$s</string>
+    <string name="reports_leave_line">إجازة مدفوعة: %1$s، لا تُحتسب وقت عمل</string>
+    <string name="reports_leave_only">لا ورديات هذا الشهر — فقط إجازات مدفوعة مدرجة أدناه.</string>
+    <string name="reports_breakdown_title">كيف قُدّر أجرك</string>
+    <string name="reports_paid_time_title">كيف احتُسب الوقت المدفوع</string>
+    <string name="reports_export_title">تصدير</string>
+    <string name="reports_export_subject">%1$s · %2$s</string>
+    <string name="reports_export_currency_one">المبالغ بعملة %1$s</string>
+    <string name="reports_export_currency_many">المبالغ بعملات %1$s، لكل عملة إجمالي منفصل</string>
+    <string name="reports_export_csv">جدول CSV</string>
+    <string name="reports_export_pdf">ملخص PDF</string>
+    <string name="reports_export_job">العمل: %1$s</string>
+    <string name="reports_job_empty_title">لا ورديات في %1$s خلال %2$s</string>
+    <string name="reports_job_empty_body">توجد ورديات هذا الشهر في أعمالك الأخرى.</string>
+    <string name="reports_job_empty_action">عرض كل الأعمال</string>
 </resources>
