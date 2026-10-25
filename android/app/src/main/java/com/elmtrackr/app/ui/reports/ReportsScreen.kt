@@ -537,7 +537,6 @@ private fun PhoneHoursReportTop(
     canGoNext: Boolean,
 ) {
     val report = state.report
-    val locale = appLocale()
     ReportCard {
         MonthNavRow(year = state.year, month = state.month, onPrev = onPreviousMonth, onNext = onNextMonth, canGoNext = canGoNext)
         Spacer(Modifier.height(Spacing.s12))
