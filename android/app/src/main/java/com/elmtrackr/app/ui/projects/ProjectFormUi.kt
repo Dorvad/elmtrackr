@@ -48,6 +48,7 @@ import com.elmtrackr.app.domain.projects.ProjectFormField
 import com.elmtrackr.app.domain.projects.ProjectFormInput
 import com.elmtrackr.app.domain.projects.ProjectFormValidator
 import com.elmtrackr.app.domain.text.BidiText
+import com.elmtrackr.app.ui.common.rememberDiscardGuard
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
 import com.elmtrackr.app.ui.settings.SettingsDetailHeader
@@ -118,7 +119,7 @@ fun ProjectFormScreen(
 
     // One comparison against the untouched input is the whole dirty check — the form
     // already rebuilds `input` from its fields on every recomposition.
-    val requestClose = rememberProjectDiscardGuard(
+    val requestClose = rememberDiscardGuard(
         isDirty = input != initialInput,
         onConfirmClose = onBack,
     )

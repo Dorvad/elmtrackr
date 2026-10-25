@@ -72,10 +72,28 @@
     <string name="leave_gap_no_tier">This workplace\'s sick pay settings say nothing about this day of the illness.</string>
     <string name="leave_gap_disabled">This kind of leave is switched off in this workplace\'s settings.</string>
     <string name="leave_gap_no_manual_amount">Enter what this day should pay.</string>
-    <string name="leave_gap_action_amount">Enter amount</string>
     <string name="leave_gap_action_hours">Enter expected hours</string>
     <string name="leave_gap_action_settings">Open leave settings</string>
     <string name="leave_gap_saved_anyway">This day is still recorded and still counts against your balance.</string>
+    <!-- Manual leave amount, mode 1 of 2: the user types what one full day is worth; part days and the sick-pay percentage are still applied. -->
+    <string name="leave_manual_mode_daily">Daily amount</string>
+    <!-- Manual leave amount, mode 2 of 2: the user types what the day pays, used as entered. -->
+    <string name="leave_manual_mode_final">Final amount</string>
+    <string name="leave_manual_field_daily">Value of a full day</string>
+    <string name="leave_manual_field_final">What this day pays</string>
+    <string name="leave_manual_help_daily_sick">The sick-pay percentage for this day of the illness is applied to it, and a part day is worked out from it.</string>
+    <string name="leave_manual_help_daily_vacation">A part day is worked out from it.</string>
+    <string name="leave_manual_help_final">Used exactly as entered. No percentage or part-day adjustment is applied.</string>
+    <string name="leave_manual_enter">Enter the amount yourself</string>
+    <string name="leave_manual_use_automatic">Use the automatic estimate</string>
+    <string name="leave_manual_invalid">Enter an amount of 0 or more.</string>
+    <string name="leave_manual_missing">Enter an amount for each day you set to manual, or switch it back to the automatic estimate.</string>
+    <string name="leave_form_partial_invalid_days">Enter part of a day: more than 0 and up to 1.</string>
+    <string name="leave_form_partial_invalid_hours">Enter hours: more than 0 and up to 24.</string>
+    <!-- Shown on a day row after "Sick day 2 · pays 50%" when the figure comes from an amount the user typed. -->
+    <string name="leave_form_manual_marker">entered by you</string>
+    <string name="leave_calc_manual_daily">Daily amount you entered: %1$s</string>
+    <string name="leave_calc_manual_final">Final amount you entered: %1$s</string>
 
     <!-- Conflicts -->
     <string name="leave_conflict_duplicate">%1$s already has leave reported at this workplace.</string>

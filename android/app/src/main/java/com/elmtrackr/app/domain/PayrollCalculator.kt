@@ -9,6 +9,7 @@ import com.elmtrackr.app.domain.model.OvertimeTier
 import com.elmtrackr.app.domain.model.PayBracket
 import com.elmtrackr.app.domain.model.PayBucket
 import com.elmtrackr.app.domain.model.PayCategory
+import com.elmtrackr.app.domain.model.PayByCurrency
 import com.elmtrackr.app.domain.model.paysDailyOvertime
 import com.elmtrackr.app.domain.model.ResolvedCompensation
 import com.elmtrackr.app.domain.model.RegionCode
@@ -559,9 +560,15 @@ object PayrollCalculator {
         // structurally (`Money.requireSameCurrency`, `MoneyByCurrency`); the wage
         // path did not.
         val grossByCurrency = mutableMapOf<String, Double>()
+        // Every figure, not just gross, kept per currency as well — deductions and net
+        // included. A percentage deduction is a share of its own shift's gross, and a
+        // fixed one is charged in its own profile's currency, so neither may be netted
+        // against pay earned in another.
+        val byCurrency = LinkedHashMap<String, CurrencyPayAccumulator>()
         // Fixed deductions are charged once per period, not per shift. Keyed by profile so
-        // a month spanning two profiles charges each of their fees once.
-        val fixedDeductionsByProfile = mutableMapOf<String, Double>()
+        // a month spanning two profiles charges each of their fees once. The currency is
+        // the profile's, which is the currency the fee was entered in.
+        val fixedDeductionsByProfile = mutableMapOf<String, Pair<String, Double>>()
 
         // Chronological, keyed on nothing but the start time. The previous pass grouped
         // by ISO week to hand each shift a running week total that this fold then threw
@@ -589,12 +596,17 @@ object PayrollCalculator {
             specialGross += bd.weekendGross + bd.holidayGross
             grossByCurrency[bd.currencyCode] =
                 (grossByCurrency[bd.currencyCode] ?: 0.0) + bd.totalGross
+            byCurrency.getOrPut(bd.currencyCode) { CurrencyPayAccumulator() }.add(bd)
             fixedPeriodDeduction(resolved.rules).takeIf { it != 0.0 }?.let { fixed ->
-                fixedDeductionsByProfile[resolved.profileId ?: PERIOD_DEDUCTION_FALLBACK_KEY] = fixed
+                fixedDeductionsByProfile[resolved.profileId ?: PERIOD_DEDUCTION_FALLBACK_KEY] =
+                    bd.currencyCode to fixed
             }
         }
 
-        deductionsGross += fixedDeductionsByProfile.values.sum()
+        deductionsGross += fixedDeductionsByProfile.values.sumOf { it.second }
+        fixedDeductionsByProfile.values.forEach { (currency, fixed) ->
+            byCurrency.getOrPut(currency) { CurrencyPayAccumulator() }.deductionsGross += fixed
+        }
 
         return MonthlyPaySummary(
             totalGross, regularGross, overtimeGross, specialGross,
@@ -611,10 +623,51 @@ object PayrollCalculator {
             // whose settings say ILS, which is what the old "USD" default did.
             currencyCode = grossByCurrency.keys.singleOrNull(),
             grossByCurrency = grossByCurrency.toMap(),
+            byCurrency = byCurrency.entries
+                .sortedBy { it.key }
+                .map { (code, totals) -> totals.toTotals(code) },
         )
     }
 
     private const val PERIOD_DEDUCTION_FALLBACK_KEY = "__legacy_settings__"
+
+    /** One currency's running sums, folded exactly as the month-wide sums are. */
+    private class CurrencyPayAccumulator {
+        var totalGross = 0.0
+        var regularGross = 0.0
+        var overtimeGross = 0.0
+        var specialGross = 0.0
+        var weekendGross = 0.0
+        var holidayGross = 0.0
+        var nightGross = 0.0
+        var deductionsGross = 0.0
+
+        fun add(bd: ShiftPayBreakdown) {
+            totalGross += bd.totalGross
+            regularGross += bd.regularGross
+            overtimeGross += bd.overtimeGross
+            weekendGross += bd.weekendGross
+            holidayGross += bd.holidayGross
+            nightGross += bd.nightGross
+            deductionsGross += bd.deductionsGross
+            specialGross += bd.weekendGross + bd.holidayGross
+        }
+
+        fun toTotals(currencyCode: String) = CurrencyPayTotals(
+            currencyCode = currencyCode,
+            totalGross = totalGross,
+            regularGross = regularGross,
+            overtimeGross = overtimeGross,
+            specialGross = specialGross,
+            weekendGross = weekendGross,
+            holidayGross = holidayGross,
+            nightGross = nightGross,
+            deductionsGross = deductionsGross,
+            // Floored per currency, as the month-wide net is: a deduction larger than
+            // one currency's gross must not eat into another currency's pay.
+            netGross = maxOf(0.0, totalGross - deductionsGross),
+        )
+    }
 
     /**
      * How many of a shift's payable minutes fall on a weekend day, counted per local
@@ -1161,6 +1214,35 @@ object PayrollCalculator {
     private fun parseTimeToMinutes(time: String, fallbackMinutes: Int): Int =
         WallClockTime.parseMinutesOfDayOrNull(time) ?: fallbackMinutes
 
+    /**
+     * Every monthly figure for one currency, and only for that currency.
+     *
+     * Each shift is priced in its own compensation profile's currency and ElmTrackr has
+     * no exchange rates, so these are the only totals that are quantities of anything in
+     * a month worked in more than one currency.
+     */
+    data class CurrencyPayTotals(
+        val currencyCode: String,
+        val totalGross: Double,
+        val regularGross: Double,
+        val overtimeGross: Double,
+        val specialGross: Double,
+        val weekendGross: Double = 0.0,
+        val holidayGross: Double = 0.0,
+        val nightGross: Double = 0.0,
+        val deductionsGross: Double = 0.0,
+        val netGross: Double = totalGross,
+    )
+
+    /**
+     * A month's pay.
+     *
+     * The unqualified figures ([totalGross], [regularGross] … [netGross]) add every shift
+     * together whatever its currency. They are a quantity only when [currencyCode] is
+     * non-null; in a month worked in two currencies they add shekels to dollars. Anything
+     * shown to a person or written to an export reads [byCurrency] — usually through
+     * [paidByCurrency] — which never combines currencies.
+     */
     data class MonthlyPaySummary(
         val totalGross: Double,
         val regularGross: Double,
@@ -1181,5 +1263,24 @@ object PayrollCalculator {
         val currencyCode: String? = null,
         /** Gross per currency. Sums to [totalGross] only when there is one. */
         val grossByCurrency: Map<String, Double> = emptyMap(),
-    )
+        /**
+         * Every figure per currency, alphabetical by code. Empty for a month with no
+         * priced shift. With one currency its only entry carries exactly the figures
+         * above, so a single-currency month renders as it always has.
+         */
+        val byCurrency: List<CurrencyPayTotals> = emptyList(),
+    ) {
+        /**
+         * The currencies that earned something this month — what a pay card shows.
+         *
+         * One entry: render it as the single total it is. Several: render each on its
+         * own, labelled with its code, and never add them. None: there is no pay to show.
+         */
+        val paidByCurrency: List<CurrencyPayTotals>
+            get() = byCurrency.filter { it.totalGross > 0.0 }
+
+        /** Gross as [PayByCurrency], for the surfaces that show gross alone. */
+        val grossPay: PayByCurrency
+            get() = PayByCurrency.from(byCurrency.map { it.currencyCode to it.totalGross })
+    }
 }

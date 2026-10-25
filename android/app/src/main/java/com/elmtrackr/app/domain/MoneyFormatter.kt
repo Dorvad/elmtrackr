@@ -1,6 +1,7 @@
 package com.elmtrackr.app.domain
 
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.domain.model.PayByCurrency
 import com.elmtrackr.app.domain.money.MoneyFormat
 import java.util.Locale
 
@@ -48,4 +49,42 @@ object MoneyFormatter {
         currencyCode: String,
         locale: Locale = Locale.getDefault(),
     ): String = MoneyFormat.formatAmount(amount, currencyCode, FormattingPolicy.display(locale))
+
+    /**
+     * The amount with its ISO code spelled out, for a place that shows more than one
+     * currency. A bare "$" beside "₪" says which symbol, not which job.
+     *
+     * [withCode] is the translated "number code" pattern (`project_money_with_code`),
+     * passed in because this layer has no resources; the caller isolates the code.
+     * A currency whose symbol already is its code formats as [format] does.
+     */
+    fun formatWithCode(
+        amount: Double,
+        currencyCode: String,
+        locale: Locale = Locale.getDefault(),
+        withCode: (number: String, code: String) -> String,
+    ): String {
+        val display = FormattingPolicy.display(locale)
+        if (!MoneyFormat.symbolNeedsCode(currencyCode, display)) return format(amount, currencyCode, locale)
+        return withCode(MoneyFormat.formatNumber(amount, currencyCode, display), currencyCode)
+    }
+
+    /**
+     * Every currency's amount, one after another and never added together.
+     *
+     * With one currency this is exactly [format], so a single-currency total reads as it
+     * always has. With several, each carries its code ([formatWithCode]) and they are
+     * joined by [separator]. Empty when nothing was earned.
+     */
+    fun formatEach(
+        pay: PayByCurrency,
+        locale: Locale = Locale.getDefault(),
+        separator: String = " · ",
+        withCode: (number: String, code: String) -> String,
+    ): String {
+        pay.singleOrNull()?.let { (code, amount) -> return format(amount, code, locale) }
+        return pay.entries().joinToString(separator) { (code, amount) ->
+            formatWithCode(amount, code, locale, withCode)
+        }
+    }
 }

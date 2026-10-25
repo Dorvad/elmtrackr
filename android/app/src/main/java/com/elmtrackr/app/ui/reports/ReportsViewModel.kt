@@ -27,6 +27,7 @@ import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.LeaveBalanceUnit
 import com.elmtrackr.app.domain.model.MonthlyReport
 import com.elmtrackr.app.domain.model.Workplace
+import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.TaskMonthlyBreakdown
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -405,6 +406,7 @@ class ReportsViewModel @Inject constructor(
                                     shifts = inputs.shifts,
                                     settings = settings,
                                     profiles = profiles,
+                                    premiumProfiles = premiumProfiles,
                                     contextShifts = payContext,
                                 )
                                 val paySummary = settings.takeIf {
@@ -568,6 +570,21 @@ class ReportsViewModel @Inject constructor(
         reviewPromptRecorder.noteReportExported()
     }
 
+    /**
+     * The hours CSV for one month.
+     *
+     * Every row and the TOTAL row are classified by [MonthlyReportBuilder] — the same
+     * [com.elmtrackr.app.domain.compensation.ShiftClassifier] the on-screen rows, the
+     * monthly report and the PDF use — with the same compensation profiles, premium
+     * profiles and pay-week context. A shift therefore cannot land in a different
+     * column because it was exported rather than viewed.
+     *
+     * Rounding: each cell is its own minutes rendered at two decimal hours
+     * ([HoursFormatter.csv], half-up). The TOTAL row is the month's exact minutes
+     * rendered the same way, not a sum of the rounded cells, so adding a column of
+     * rows in a spreadsheet can differ from TOTAL by at most 0.005 h per row. The
+     * minutes behind both are identical.
+     */
     fun buildCsvContent(
         shifts: List<Shift>,
         settings: UserSettings?,
@@ -588,12 +605,16 @@ class ReportsViewModel @Inject constructor(
          * that omitted the day the user entered is the bug this block closes.
          */
         leaveEntries: List<AbsenceListEntry> = emptyList(),
+        // A premium shift's minutes are special-rate time on screen and in the PDF.
+        // Without the profiles here the export classified the same minutes as
+        // ordinary time, so the file disagreed with the report it came from.
+        premiumProfiles: List<PremiumProfile> = emptyList(),
     ): String {
         val reportSettings = settings ?: UserSettings(id = "export", userId = "export")
         val completed = shifts.filter { it.isCompleted }.sortedByDescending { it.startTime }
         val payContext = contextShifts.filter { it.isCompleted }.ifEmpty { completed }
         val breakdowns = completed.map {
-            MonthlyReportBuilder.buildShiftBreakdown(it, reportSettings, profiles, emptyList(), payContext)
+            MonthlyReportBuilder.buildShiftBreakdown(it, reportSettings, profiles, premiumProfiles, payContext)
         }
         val lines = mutableListOf(
             "Date,Start Time,End Time,Break (min),Total Hours,Regular Hours,Overtime Hours,Weekend Hours,Overnight,Notes",
@@ -620,7 +641,7 @@ class ReportsViewModel @Inject constructor(
         // rows counts daily overtime only, so a month whose overtime was
         // weekly-threshold-driven exported 0.00 while the screen showed hours.
         val report = MonthlyReportBuilder.buildMonthlyReport(
-            year, month, completed, reportSettings, profiles, contextShifts = payContext,
+            year, month, completed, reportSettings, profiles, premiumProfiles, contextShifts = payContext,
         )
         lines += listOf(
             "TOTAL - $year-${month.toString().padStart(2, '0')}", "", "", "",

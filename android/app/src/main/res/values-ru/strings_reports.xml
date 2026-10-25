@@ -36,6 +36,7 @@
     <string name="reports_shift_one">смена</string>
     <string name="reports_shift_other">смены</string>
     <string name="reports_set_rate_unlock">задайте ставку, чтобы открыть</string>
+    <string name="reports_pay_multiple_currencies">оплата в нескольких валютах</string>
 
     <!-- Daily insight pager -->
     <string name="reports_insights_of_day">Наблюдения дня</string>

@@ -39,7 +39,6 @@ class MonthSummaryCardRenderTest {
                 MonthSummaryCard(
                     report = report,
                     paySummary = null,
-                    currencyCode = "ILS",
                     onOpenReport = {},
                 )
             }

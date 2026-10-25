@@ -36,6 +36,8 @@ object DailyInsightsBuilder {
     private const val TEL_EILAT_HRS    = 3.5
     private const val TLV_JFK_HRS      = 12.0
     private const val PIZZA_PRICE_ILS  = 65.0
+    /** The currency every `_ILS` price here is in. */
+    private const val ILS = "ILS"
     private const val BREAKING_BAD_HRS = 47.0
     private const val COFFEE_MIN       = 20.0
     private const val AVG_GAMER_HRS    = 30.0
@@ -117,7 +119,13 @@ object DailyInsightsBuilder {
         val totalHours = totalMinutes / 60.0
         val hoursInt = totalHours.roundToInt()
         val shiftCount = shifts.size
-        val totalGross = PayrollCalculator.sumMonthlyPay(shifts, settings, profiles, premiumProfiles, contextShifts).totalGross
+        // Only the shekel gross. Every comparison below divides by a price in shekels
+        // (PIZZA_PRICE_ILS and the rest), so pay in any other currency would be
+        // converted at a rate of one — and a month at a shekel job and a dollar job
+        // would add the two before dividing. Pay in other currencies simply does not
+        // feed these cards.
+        val totalGross = PayrollCalculator.sumMonthlyPay(shifts, settings, profiles, premiumProfiles, contextShifts)
+            .grossPay[ILS]
 
         val pool = mutableListOf<DailyInsight>()
 

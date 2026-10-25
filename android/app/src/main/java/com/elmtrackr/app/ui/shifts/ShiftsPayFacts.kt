@@ -5,6 +5,7 @@ import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.compensation.CompensationResolver
 import com.elmtrackr.app.domain.compensation.ShiftClassifier
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PayByCurrency
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -18,6 +19,8 @@ data class ShiftPayFacts(
     val weekend: Boolean,
     val hasOt: Boolean,
     val payGross: Double?,
+    /** The currency [payGross] is in: the shift's own profile's, not the account's. */
+    val payCurrency: String? = null,
 )
 
 /**
@@ -33,7 +36,7 @@ data class ShiftPayFacts(
  */
 data class ShiftsPayFacts(
     val perShift: Map<String, ShiftPayFacts>,
-    val weekPay: Map<LocalDate, Double?>,
+    val weekPay: Map<LocalDate, PayByCurrency?>,
 ) {
     companion object {
         val EMPTY = ShiftsPayFacts(emptyMap(), emptyMap())
@@ -84,14 +87,16 @@ internal fun buildShiftsPayFacts(
         val weekend = shift.isEmployeePaid &&
             CompensationResolver.isWeekendShift(shift, settings, profiles)
         val overtimeMinutes = classifications[shift.id]?.overtimeMinutes ?: 0
+        val pay = PayrollCalculator.calculateShiftPayInContext(
+            shift, context, settings, profiles, premiumProfiles,
+        )
         perShift[shift.id] = ShiftPayFacts(
             netMinutes = ShiftDurationCalculator.netMinutes(shift) ?: 0,
             weekend = weekend,
             hasOt = shift.isEmployeePaid && overtimeMinutes > 0 &&
                 !shift.isSpecialDay && !weekend,
-            payGross = PayrollCalculator.calculateShiftPayInContext(
-                shift, context, settings, profiles, premiumProfiles,
-            )?.totalGross,
+            payGross = pay?.totalGross,
+            payCurrency = pay?.currencyCode,
         )
     }
 
@@ -105,7 +110,7 @@ internal fun buildShiftsPayFacts(
                 PayrollCalculator.sumMonthlyPay(
                     completed, settings, profiles, premiumProfiles,
                     contextShifts = context.ifEmpty { completed },
-                ).totalGross
+                ).grossPay
             }
         }
 

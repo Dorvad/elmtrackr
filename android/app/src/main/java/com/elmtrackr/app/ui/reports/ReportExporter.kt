@@ -17,6 +17,7 @@ import com.elmtrackr.app.domain.model.LeaveBalanceUnit
 import com.elmtrackr.app.domain.model.RefundClaim
 import com.elmtrackr.app.data.receipt.ReceiptBitmapDecoder
 import com.elmtrackr.app.domain.MoneyFormatter
+import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.domain.model.CurrencyCode
 import com.elmtrackr.app.domain.model.RefundDirection
 import com.elmtrackr.app.domain.model.Shift
@@ -88,7 +89,11 @@ object ReportExporter {
         val accent = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AuroraPdfIndigo; strokeWidth = 7f }
         val plum = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AuroraPdfPlum; strokeWidth = 7f }
         val peach = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AuroraPdfPeach; strokeWidth = 7f }
-        val currency = state.paySummary?.currencyCode ?: state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
+        // The account currency, used only where no figure carries a currency of its own:
+        // a zero for a month with a rate and nothing earned yet, a task with no pay.
+        // Every earned amount below is printed in its own currency.
+        val currency = state.settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name
+        val paid = state.paySummary?.paidByCurrency.orEmpty()
         val monthLabel = "${Month.of(state.month).getDisplayName(TextStyle.FULL, locale)} ${state.year}"
         // Work zone, not the device zone: the CSV, the Hours breakdown and the pay
         // engine all bucket shifts by the configured work timezone, so a PDF printed in
@@ -137,21 +142,42 @@ object ReportExporter {
         drawMetric(canvas, res.getString(R.string.dashboard_stat_regular), DurationText.format(res, state.report.regularMinutes), margin + 16f, y, body, muted)
         drawMetric(canvas, res.getString(R.string.dashboard_stat_overtime), DurationText.format(res, state.report.overtimeMinutes), margin + 155f, y, body, muted)
         drawMetric(canvas, res.getString(R.string.dashboard_stat_weekend), DurationText.format(res, state.report.weekendMinutes), margin + 294f, y, body, muted)
-        state.paySummary?.let { pay ->
-            drawMetric(canvas, res.getString(R.string.export_gross_pay), MoneyFormatter.format(pay.totalGross, currency, res.exportLocale()), pageWidth - margin - 116f, y, body, muted)
+        // One figure fits this slot. A month paid in two currencies has no single
+        // gross, so the slot is left empty and each currency gets its own line in the
+        // pay section below rather than a sum printed under one currency's sign.
+        state.paySummary?.takeIf { paid.size <= 1 }?.let { pay ->
+            val single = paid.singleOrNull()
+            drawMetric(
+                canvas,
+                res.getString(R.string.export_gross_pay),
+                MoneyFormatter.format(single?.totalGross ?: pay.totalGross, single?.currencyCode ?: currency, res.exportLocale()),
+                pageWidth - margin - 116f,
+                y,
+                body,
+                muted,
+            )
         }
         y += 28f
         drawDistributionBar(canvas, margin + 16f, y, pageWidth - margin * 2 - 32f, state.report.totalMinutes, state.report.regularMinutes, state.report.overtimeMinutes, state.report.weekendMinutes, accent, peach, plum)
         y += 38f
 
-        state.paySummary?.takeIf { it.totalGross > 0.0 }?.let { pay ->
+        // One block per currency the month was paid in, each entirely in that currency.
+        // With one currency this is the block the PDF has always printed.
+        paid.forEach { pay ->
+            val code = pay.currencyCode
+            val title = res.getString(R.string.reports_gross_pay_before_tax)
             ensureSpace(70f)
-            canvas.drawText(res.getString(R.string.reports_gross_pay_before_tax), margin, y, heading)
+            canvas.drawText(
+                if (paid.size > 1) res.getString(R.string.project_money_label_with_code, title, BidiText.isolate(code)) else title,
+                margin,
+                y,
+                heading,
+            )
             y += 17f
-            drawMetric(canvas, res.getString(R.string.dashboard_stat_regular), MoneyFormatter.format(pay.regularGross, currency, res.exportLocale()), margin, y, body, muted)
-            drawMetric(canvas, res.getString(R.string.dashboard_stat_overtime), MoneyFormatter.format(pay.overtimeGross, currency, res.exportLocale()), margin + 150f, y, body, muted)
-            drawMetric(canvas, res.getString(R.string.dashboard_pay_holiday), MoneyFormatter.format(pay.specialGross, currency, res.exportLocale()), margin + 300f, y, body, muted)
-            drawMetric(canvas, res.getString(R.string.export_col_total), MoneyFormatter.format(pay.totalGross, currency, res.exportLocale()), pageWidth - margin - 95f, y, body, muted)
+            drawMetric(canvas, res.getString(R.string.dashboard_stat_regular), MoneyFormatter.format(pay.regularGross, code, res.exportLocale()), margin, y, body, muted)
+            drawMetric(canvas, res.getString(R.string.dashboard_stat_overtime), MoneyFormatter.format(pay.overtimeGross, code, res.exportLocale()), margin + 150f, y, body, muted)
+            drawMetric(canvas, res.getString(R.string.dashboard_pay_holiday), MoneyFormatter.format(pay.specialGross, code, res.exportLocale()), margin + 300f, y, body, muted)
+            drawMetric(canvas, res.getString(R.string.export_col_total), MoneyFormatter.format(pay.totalGross, code, res.exportLocale()), pageWidth - margin - 95f, y, body, muted)
             y += 30f
         }
 
@@ -309,7 +335,9 @@ object ReportExporter {
             canvas.drawText(breakdown?.totalMinutes?.let { DurationText.format(res, it) } ?: "-", margin + 230f, y, body)
             canvas.drawText(tags.ifBlank { "-" }, margin + 300f, y, muted)
             canvas.drawText(
-                pay?.let { MoneyFormatter.format(it.totalGross, currency, res.exportLocale()) } ?: "-",
+                // The shift's own currency. Printing every row under the month's (or the
+                // account's) sign labelled a dollar shift with a shekel sign.
+                pay?.let { MoneyFormatter.format(it.totalGross, it.currencyCode, res.exportLocale()) } ?: "-",
                 pageWidth - margin,
                 y,
                 body.apply { textAlign = Paint.Align.RIGHT },
@@ -633,7 +661,15 @@ object ReportExporter {
             muted,
         )
         canvas.drawText(
-            task.totalPay?.let { MoneyFormatter.format(it, currency, res.exportLocale()) } ?: "-",
+            task.totalPay?.let { pay ->
+                if (pay.isEmpty) {
+                    MoneyFormatter.format(0.0, currency, res.exportLocale())
+                } else {
+                    MoneyFormatter.formatEach(pay, res.exportLocale()) { number, code ->
+                        res.getString(R.string.project_money_with_code, number, BidiText.isolate(code))
+                    }
+                }
+            } ?: "-",
             pageWidth - margin,
             y,
             body.apply { textAlign = Paint.Align.RIGHT },

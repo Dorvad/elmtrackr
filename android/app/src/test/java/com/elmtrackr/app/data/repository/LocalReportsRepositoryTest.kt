@@ -1,9 +1,12 @@
 package com.elmtrackr.app.data.repository
 
+import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.local.mapper.toEntity
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.compensation.RegionPresets
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PremiumProfile
+import com.elmtrackr.app.domain.model.PremiumType
 import com.elmtrackr.app.domain.model.RegionCode
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -107,6 +110,42 @@ class LocalReportsRepositoryTest {
         )
 
         assertEquals(fromBuilder, fromRepository)
+    }
+
+    /**
+     * The monthly total the Reports screen and the PDF header show comes from here,
+     * while the rows beside it and the CSV classify each shift with premium profiles.
+     * Without them on this path a premium shift's minutes were ordinary time in the
+     * total and special time in the rows directly under it.
+     */
+    @Test
+    fun `a premium shift is special time in the stored monthly report`() = runTest {
+        val premium = PremiumProfile(
+            id = "prem-holiday",
+            userId = "u1",
+            name = "Holiday",
+            multiplier = 2.0,
+            premiumType = PremiumType.HIGHEST_ONLY,
+        )
+        val premiumShift = nineHourShift.copy(isSpecialDay = true, premiumProfileId = premium.id)
+        settingsDao.insertSettings(settings.toEntity())
+        shiftDao.insertShift(premiumShift.toEntity())
+        profileDao.insert(ilProfile.toEntity())
+        premiumDao.insert(premium.toEntity(syncStatus = SyncStatus.SYNCED))
+
+        val report = repository.observeMonthlyReport("u1", 2024, 1).first()!!
+        val fromBuilder = MonthlyReportBuilder.buildMonthlyReport(
+            year = 2024,
+            month = 1,
+            shifts = listOf(premiumShift),
+            settings = settings,
+            profiles = listOf(ilProfile),
+            premiumProfiles = listOf(premium),
+        )
+
+        assertEquals(fromBuilder, report)
+        assertEquals(0, report.regularMinutes)
+        assertEquals(report.totalMinutes, report.weekendMinutes + report.overtimeMinutes)
     }
 
     /** A user with no profiles still resolves through the settings fields. */

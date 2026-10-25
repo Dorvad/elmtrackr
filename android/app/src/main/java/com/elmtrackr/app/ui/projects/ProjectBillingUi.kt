@@ -42,6 +42,7 @@ import com.elmtrackr.app.domain.projects.ProjectBillingState
 import com.elmtrackr.app.domain.projects.ProjectPaymentFormInput
 import com.elmtrackr.app.domain.projects.ProjectPaymentValidator
 import com.elmtrackr.app.domain.text.BidiText
+import com.elmtrackr.app.ui.common.rememberDiscardGuard
 import com.elmtrackr.app.ui.settings.SettingsDetailHeader
 import com.elmtrackr.app.ui.theme.Spacing
 import java.time.LocalDate
@@ -87,7 +88,7 @@ fun ProjectBillingFormScreen(
         notes = notes,
     )
 
-    val requestClose = rememberProjectDiscardGuard(
+    val requestClose = rememberDiscardGuard(
         isDirty = input != initialInput,
         onConfirmClose = onBack,
     )
@@ -236,7 +237,7 @@ fun ProjectPaymentFormScreen(
         notes = notes,
     )
 
-    val requestClose = rememberProjectDiscardGuard(
+    val requestClose = rememberDiscardGuard(
         isDirty = input != initialInput,
         onConfirmClose = onBack,
     )

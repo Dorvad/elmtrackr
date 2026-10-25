@@ -16,6 +16,14 @@ data class ReportInsights(
     val highestEarningShift: Shift? = null,
     val highestEarningAmount: Double? = null,
     val message: String,
+    /** The one currency [avgPayPerShift] and [highestEarningAmount] are in. */
+    val payCurrencyCode: String? = null,
+    /**
+     * True when the month's shifts were paid in more than one currency. The average
+     * and the best shift are then null: an average of shekels and dollars is not an
+     * amount, and "best" would compare numbers in two different units.
+     */
+    val payInMultipleCurrencies: Boolean = false,
 )
 
 object ReportInsightsBuilder {
@@ -53,18 +61,29 @@ object ReportInsightsBuilder {
         var highestEarningShift: Shift? = null
         var highestEarningAmount: Double? = null
         var hasPay = false
+        val payCurrencies = mutableSetOf<String>()
         for (shift in completed) {
-            val pay = PayrollCalculator.calculateShiftPayInContext(shift, completed, settings, profiles, premiumProfiles)?.totalGross
+            val breakdown = PayrollCalculator.calculateShiftPayInContext(shift, completed, settings, profiles, premiumProfiles)
+            val pay = breakdown?.totalGross
             if (pay != null && pay > 0) {
                 hasPay = true
                 totalPay += pay
+                payCurrencies += breakdown.currencyCode
                 if (highestEarningAmount?.let { pay > it } != false) {
                     highestEarningAmount = pay
                     highestEarningShift = shift
                 }
             }
         }
-        val avgPayPerShift = if (hasPay && completed.isNotEmpty()) totalPay / completed.size else null
+        // Averaging and ranking need one unit. With two currencies neither is defined,
+        // so both are withheld rather than computed across them.
+        val singlePayCurrency = payCurrencies.singleOrNull()
+        val mixedPay = payCurrencies.size > 1
+        val avgPayPerShift = if (hasPay && !mixedPay && completed.isNotEmpty()) totalPay / completed.size else null
+        if (mixedPay) {
+            highestEarningAmount = null
+            highestEarningShift = null
+        }
 
         val message = when {
             overtimeCount > 0 -> "$overtimeCount shift${if (overtimeCount == 1) "" else "s"} crossed your daily overtime threshold."
@@ -82,6 +101,8 @@ object ReportInsightsBuilder {
             highestEarningShift   = highestEarningShift,
             highestEarningAmount  = highestEarningAmount,
             message               = message,
+            payCurrencyCode       = singlePayCurrency,
+            payInMultipleCurrencies = mixedPay,
         )
     }
 }
