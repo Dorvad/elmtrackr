@@ -49,6 +49,7 @@ import com.elmtrackr.app.domain.model.AbsenceType
 import com.elmtrackr.app.domain.model.LeaveBalanceUnit
 import com.elmtrackr.app.domain.model.LeaveManualMode
 import com.elmtrackr.app.ui.common.asString
+import com.elmtrackr.app.ui.common.rememberDiscardGuard
 import com.elmtrackr.app.ui.components.states.ErrorState
 import com.elmtrackr.app.ui.design.AuroraScreen
 import com.elmtrackr.app.ui.design.AuroraScreenHeader
@@ -91,8 +92,28 @@ fun AbsenceFormScreen(
     val message by viewModel.userMessage.collectAsState()
 
     LaunchedEffect(type, editingEventId) { viewModel.start(type, editingEventId) }
-    LaunchedEffect(closed) { if (closed) onClose() }
-    BackHandler { onClose() }
+    // Every way out tells the view model, which outlives the form: the next time this
+    // form opens it must open fresh, not resume what was just saved or discarded.
+    val close: () -> Unit = {
+        viewModel.onFormClosed()
+        onClose()
+    }
+    // A finished save closes here directly, never through the guard below: what was
+    // on screen is stored, so there is nothing to ask about.
+    LaunchedEffect(closed) { if (closed) close() }
+
+    // System back and the header's arrow both go through this. It closed the form
+    // outright before, so a range of days, a note and typed amounts went with one
+    // back gesture.
+    val ready = state as? AbsenceFormUiState.Ready
+    val requestClose = rememberDiscardGuard(
+        isDirty = ready?.isDirty == true,
+        onConfirmClose = close,
+    )
+    // While a save is being written, back does nothing. Closing then would either drop
+    // a save that is about to fail without showing why, or ask to discard changes that
+    // are already being stored. The save finishes in a moment and closes the form.
+    BackHandler(enabled = ready?.isSaving == true) {}
 
     when (val current = state) {
         is AbsenceFormUiState.Loading -> ElmLoadingState(Modifier.fillMaxWidth())
@@ -105,7 +126,7 @@ fun AbsenceFormScreen(
         is AbsenceFormUiState.NoWorkplace -> AuroraScreen {
             AuroraScreenHeader(
                 title = titleFor(type),
-                onBack = onClose,
+                onBack = requestClose,
                 backContentDescription = stringResource(R.string.leave_form_back),
             )
             ElmEmptyState(
@@ -119,7 +140,7 @@ fun AbsenceFormScreen(
             state = current,
             messageText = message?.asString(),
             onMessageShown = viewModel::consumeUserMessage,
-            onClose = onClose,
+            onClose = requestClose,
             viewModel = viewModel,
         )
     }

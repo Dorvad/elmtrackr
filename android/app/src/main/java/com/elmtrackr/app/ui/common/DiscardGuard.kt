@@ -1,4 +1,4 @@
-package com.elmtrackr.app.ui.projects
+package com.elmtrackr.app.ui.common
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.AlertDialog
@@ -20,18 +20,22 @@ import com.elmtrackr.app.R
  * tracking, no [BackHandler] and no discard dialog. A user who filled in a name,
  * client, fee, currency, tax and dates, or a payment amount, lost all of it to one
  * back gesture. The shift form and every Settings detail screen guard exactly this;
- * these three were the ones that did not.
+ * these three were the ones that did not. The absence form was the next: several
+ * days of leave, a note and typed amounts, gone to the same gesture.
  *
- * All three build a single input object from their fields and are handed the
- * original, so "dirty" is one comparison rather than per-field bookkeeping. That is
- * why this takes a [Boolean] and not a change count: there is no honest count to
+ * Every caller builds a single input object from its fields and compares it with
+ * the original, so "dirty" is one comparison rather than per-field bookkeeping. That
+ * is why this takes a [Boolean] and not a change count: there is no honest count to
  * show, and the wording does not need one.
+ *
+ * Lives in `ui/common` rather than with the project forms that introduced it, so a
+ * second screen reuses this dialog instead of growing its own copy.
  *
  * @return the close action to give both the header's back arrow and the system back
  *   gesture. Wiring only one of them is how a guard gets half-applied.
  */
 @Composable
-internal fun rememberProjectDiscardGuard(
+internal fun rememberDiscardGuard(
     isDirty: Boolean,
     onConfirmClose: () -> Unit,
 ): () -> Unit {
@@ -46,8 +50,8 @@ internal fun rememberProjectDiscardGuard(
             onDismissRequest = { pending = false },
             // The Settings strings, deliberately: they are already generic ("Discard
             // changes?" / "You have unsaved changes on this screen.") and already
-            // translated. Duplicating them under a project_ prefix would add two
-            // locales' worth of surface to say the same thing.
+            // translated. Duplicating them under a screen's own prefix would add a
+            // locale's worth of surface per screen to say the same thing.
             title = { Text(stringResource(R.string.settings_discard_title)) },
             text = { Text(stringResource(R.string.settings_discard_text)) },
             confirmButton = {

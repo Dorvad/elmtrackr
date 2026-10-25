@@ -63,6 +63,28 @@ data class AbsenceDayRow(
     val usesManualAmount: Boolean get() = manualMode != null && parsedManualAmount != null
 }
 
+/**
+ * Everything on the absence form a user typed or chose, and nothing it derives.
+ *
+ * Estimates, conflicts and loading flags change while the form sits untouched, so
+ * comparing whole states would call an unedited form dirty. Comparing this instead
+ * makes "dirty" exactly "the user changed something that would be lost".
+ */
+data class AbsenceFormFingerprint(
+    val type: AbsenceType,
+    val workplaceId: String,
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val selectedDates: Set<LocalDate>,
+    val fullDay: Boolean,
+    /** Empty for a full day: the part-day field is hidden and holds nothing that is kept. */
+    val partialAmount: String,
+    val partialUnit: LeaveBalanceUnit?,
+    val notes: String,
+    /** Per date, every amount or mode the user set — ticked or not, it is typed data. */
+    val manualByDate: Map<LocalDate, Pair<LeaveManualMode?, String>>,
+)
+
 sealed interface AbsenceFormUiState {
     data object Loading : AbsenceFormUiState
 
@@ -88,7 +110,35 @@ sealed interface AbsenceFormUiState {
         val isEstimating: Boolean = false,
         val isSaving: Boolean = false,
         val editingEventId: String? = null,
+        /**
+         * The form as it was opened — or as it was last saved. Null only while it is
+         * being built, which is never dirty.
+         */
+        val baseline: AbsenceFormFingerprint? = null,
     ) : AbsenceFormUiState {
+        val fingerprint: AbsenceFormFingerprint
+            get() = AbsenceFormFingerprint(
+                type = type,
+                workplaceId = selectedWorkplaceId,
+                startDate = startDate,
+                endDate = endDate,
+                selectedDates = days.filter { it.selected }.mapTo(mutableSetOf()) { it.date },
+                fullDay = fullDay,
+                partialAmount = if (fullDay) "" else partialAmount.trim(),
+                partialUnit = if (fullDay) null else partialUnit,
+                notes = notes.trim(),
+                manualByDate = days
+                    .filter { it.manualMode != null || it.manualAmount.isNotBlank() }
+                    .associate { it.date to (it.manualMode to it.manualAmount.trim()) },
+            )
+
+        /**
+         * True when closing now would lose something the user entered: dates, days,
+         * the workplace, a part day, the note, or a typed amount. Changing a value and
+         * changing it back is not dirty.
+         */
+        val isDirty: Boolean get() = baseline != null && fingerprint != baseline
+
         val selectedDays: List<AbsenceDayRow> get() = days.filter { it.selected }
         val estimatedTotal: Double get() = selectedDays.sumOf { it.estimatedGross ?: 0.0 }
         val needsInput: Boolean get() = selectedDays.any { it.gap != null }
@@ -222,9 +272,25 @@ class AbsenceFormViewModel @Inject constructor(
                 notes = existing?.notes.orEmpty(),
                 currencyCode = workplaces.firstOrNull { it.id == workplaceId }?.currencyCode ?: "ILS",
                 editingEventId = editingEventId,
-            )
+            ).let { opened -> opened.copy(baseline = opened.fingerprint) }
             refresh()
         }
+    }
+
+    /**
+     * The form has left the screen — saved, deleted or discarded.
+     *
+     * [start] resumes a form with the same key so a rotation keeps what was typed.
+     * Without this it also resumed after the form was closed: discarded edits came
+     * back the next time the same form was opened, and after a save the one-shot
+     * [closed] flag was still set and shut the reopened form at once.
+     */
+    fun onFormClosed() {
+        startedKey = null
+        estimateJob?.cancel()
+        // Cleared here rather than only in [start]: a reopened form reads this flag as
+        // it composes, before [start] has run, and a stale true would close it at once.
+        _closed.value = false
     }
 
     fun selectWorkplace(workplaceId: String) {
@@ -348,6 +414,9 @@ class AbsenceFormViewModel @Inject constructor(
                     leaveRepository.updateAbsence(user, state.editingEventId, draft)
                 }
             }.onSuccess {
+                // What is on screen is now what is stored, so nothing is left to lose:
+                // no discard prompt can follow a save that went through.
+                update { it.copy(baseline = it.fingerprint) }
                 _userMessage.value = UiText.Res(R.string.leave_form_saved)
                 _closed.value = true
             }.onFailure { error ->
