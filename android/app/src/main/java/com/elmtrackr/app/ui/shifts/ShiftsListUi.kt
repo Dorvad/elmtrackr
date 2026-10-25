@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.components.motion.rememberElapsedUnits
 import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.ui.common.appLocale
+import com.elmtrackr.app.ui.common.formattedEachOrZero
 import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.domain.MonthlyReportBuilder
@@ -53,6 +54,7 @@ import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.model.CompensationProfile
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.CurrencyCode
+import com.elmtrackr.app.domain.model.PayByCurrency
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.ui.design.AuroraHaptics
@@ -239,7 +241,7 @@ internal fun ShiftsHeroSummaryCard(
             if (hasRate) {
                 PayrollCalculator.sumMonthlyPay(
                     completed, s, profiles, premiumProfiles, contextShifts = payContext,
-                ).totalGross
+                ).grossPay
             } else {
                 null
             }
@@ -301,8 +303,12 @@ internal fun ShiftsHeroSummaryCard(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            MoneyFormatter.format(it, currency, appLocale()),
-                            style = MaterialTheme.typography.headlineMedium,
+                            it.formattedEachOrZero(currency.name),
+                            style = if (it.isMixed) {
+                                MaterialTheme.typography.titleMedium
+                            } else {
+                                MaterialTheme.typography.headlineMedium
+                            },
                             fontWeight = FontWeight.ExtraBold,
                         )
                     }
@@ -373,7 +379,8 @@ private data class HeroSummaryData(
     val regularMin: Int,
     val overtimeMin: Int,
     val weekendMin: Int,
-    val pay: Double?,
+    /** Gross per currency; never one figure for a month at two jobs in two currencies. */
+    val pay: PayByCurrency?,
 )
 
 /** Kept for screenshot regression — delegates to [ShiftsHeroSummaryCard]. */
@@ -475,7 +482,7 @@ internal fun ShiftsWeekSectionHeader(
                 )
                 section.pay?.let {
                     Text(
-                        MoneyFormatter.format(it, currency, appLocale()),
+                        it.formattedEachOrZero(currency.name),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -623,7 +630,11 @@ internal fun ShiftRow(
             Column(horizontalAlignment = Alignment.End) {
                 rowDisplay.payGross?.let {
                     Text(
-                        MoneyFormatter.format(it, CurrencyCode.from(settings?.displayCurrencyCode()), appLocale()),
+                        MoneyFormatter.format(
+                            it,
+                            rowDisplay.payCurrency ?: settings?.displayCurrencyCode() ?: CurrencyCode.ILS.name,
+                            appLocale(),
+                        ),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,

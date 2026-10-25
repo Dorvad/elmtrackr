@@ -72,6 +72,12 @@ object LeaveEarningsBase {
                 premiumProfiles = premiumProfiles,
                 contextShifts = relevant,
             )
+            // A month this workplace paid in two currencies has no single gross to
+            // average, and a leave day priced from shekels plus dollars would be a
+            // number in neither. It is left out like a month with no work, so the
+            // average comes from the months that can be added up — or, if none can,
+            // the form asks the user for a value instead of guessing.
+            if (summary.byCurrency.size > 1) return@mapNotNull null
             LeaveEarningsMonth(
                 yearMonth = yearMonth,
                 eligibleGross = summary.totalGross,

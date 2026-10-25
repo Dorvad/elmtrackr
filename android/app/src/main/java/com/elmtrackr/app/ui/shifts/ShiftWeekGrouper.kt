@@ -4,6 +4,7 @@ import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.compensation.RegionPresets
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PayByCurrency
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
@@ -21,7 +22,8 @@ data class ShiftWeekSection(
     val weekEnd: LocalDate,
     val shifts: List<Shift>,
     val totalMinutes: Int,
-    val pay: Double?,
+    /** Gross per currency; a week at two jobs in two currencies is two figures. */
+    val pay: PayByCurrency?,
     val isCurrentWeek: Boolean,
 )
 
@@ -56,7 +58,7 @@ object ShiftWeekGrouper {
         // Week totals precomputed away from the composition, keyed by week start. Null
         // keeps the original in-line sumMonthlyPay per week, which is what every test
         // and preview relies on.
-        weekPay: Map<LocalDate, Double?>? = null,
+        weekPay: Map<LocalDate, PayByCurrency?>? = null,
     ): List<ShiftWeekSection> {
         val weekLabelFmt = DateTimeFormatter.ofPattern("MMM d", locale)
         val displayShifts = buildList {
@@ -91,7 +93,7 @@ object ShiftWeekGrouper {
                             PayrollCalculator.sumMonthlyPay(
                                 it, s, profiles, premiumProfiles,
                                 contextShifts = payContextShifts.ifEmpty { it },
-                            ).totalGross
+                            ).grossPay
                         }
                     }
                 }

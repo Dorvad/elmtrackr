@@ -1,6 +1,7 @@
 package com.elmtrackr.app.domain
 
 import com.elmtrackr.app.domain.model.CompensationProfile
+import com.elmtrackr.app.domain.model.PayByCurrency
 import com.elmtrackr.app.domain.model.PremiumProfile
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.ShiftBreakdown
@@ -57,7 +58,7 @@ object TaskMonthlyReportBuilder {
             var regularMinutes = 0
             var overtimeMinutes = 0
             var weekendMinutes = 0
-            var totalPay = 0.0
+            var totalPay = PayByCurrency.EMPTY
             var payKnown = false
 
             for (shift in groupShifts) {
@@ -67,7 +68,8 @@ object TaskMonthlyReportBuilder {
                 overtimeMinutes += breakdown.overtimeMinutes
                 weekendMinutes += breakdown.weekendMinutes
                 PayrollCalculator.calculateShiftPayInContext(shift, completed, settings, profiles, premiumProfiles)?.let { pay ->
-                    totalPay += pay.totalGross
+                    // A task done at two jobs paid in two currencies has two totals.
+                    totalPay += PayByCurrency.of(pay.currencyCode, pay.totalGross)
                     payKnown = true
                 }
             }

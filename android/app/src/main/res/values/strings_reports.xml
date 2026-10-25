@@ -36,6 +36,8 @@
     <string name="reports_shift_one">shift</string>
     <string name="reports_shift_other">shifts</string>
     <string name="reports_set_rate_unlock">set rate to unlock</string>
+    <!-- Sub-line under "avg pay / shift" and "best shift" when the month was paid in more than one currency: no average or ranking across currencies exists. -->
+    <string name="reports_pay_multiple_currencies">paid in several currencies</string>
 
     <!-- Daily insight pager -->
     <string name="reports_insights_of_day">Insights of the Day</string>

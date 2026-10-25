@@ -95,6 +95,7 @@ import com.elmtrackr.app.domain.dashboard.DashboardPromoInputs
 import com.elmtrackr.app.domain.dashboard.activeDashboardPromo
 import androidx.compose.foundation.clickable
 import com.elmtrackr.app.ui.common.appLocale
+import com.elmtrackr.app.ui.common.moneyWithCode
 import com.elmtrackr.app.ui.design.ElmDistributionBar
 import com.elmtrackr.app.ui.design.ElmDistributionLegend
 import com.elmtrackr.app.ui.design.mirrorInRtl
@@ -239,7 +240,8 @@ fun DashboardScreen(
                     when (state) {
                         is DashboardUiState.Loading -> DashboardSkeleton()
                         is DashboardUiState.Ready -> DashboardReady(
-                            todayEarnings = todayEarnings,
+                            todayEarnings = todayEarnings?.amount,
+                            todayEarningsCurrency = todayEarnings?.currencyCode,
                             state = state,
                             onClockIn = viewModel::clockIn,
                             onClockOut = viewModel::clockOut,
@@ -314,6 +316,8 @@ private fun DashboardReady(
      * render tests can drive it directly and the minute-cadence flow is collected once.
      */
     todayEarnings: Double? = null,
+    /** The currency [todayEarnings] is in — its own, never the month's or a fallback. */
+    todayEarningsCurrency: String? = null,
     onDismissProjectShiftSummary: () -> Unit = {},
     onViewProject: () -> Unit = {},
     showFirstClockInCelebration: Boolean,
@@ -485,9 +489,6 @@ private fun DashboardReady(
             }
 
             val dailyOtMinutes = state.settings?.dailyOvertimeThresholdMinutes ?: (8 * 60)
-            val currencyCode = state.paySummary?.currencyCode
-                ?: state.settings?.displayCurrencyCode()
-                ?: "ILS"
 
             // Hourly tasks and paid projects are separate features. The mode
             // toggle decides which picker is on screen: task chips only while
@@ -624,11 +625,16 @@ private fun DashboardReady(
                         // The profile's rate when the selected profile sets one, the
                         // account rate otherwise — the same precedence the pay engine
                         // resolves, so the label names the rate the money was priced at.
-                        val profile = state.profiles.firstOrNull { it.isDefault }
-                            ?: state.profiles.firstOrNull()
+                        // Among profiles in today's currency first, so the rate and the
+                        // earnings beside it are in the same money.
+                        val inCurrency = state.profiles.filter {
+                            todayEarningsCurrency == null || it.currencyCode == todayEarningsCurrency
+                        }.ifEmpty { state.profiles }
+                        val profile = inCurrency.firstOrNull { it.isDefault }
+                            ?: inCurrency.firstOrNull()
                         profile?.baseHourlyRate?.takeIf { it > 0.0 } ?: settings.hourlyRate
                     },
-                    currencyCode = state.paySummary?.currencyCode
+                    currencyCode = todayEarningsCurrency
                         ?: state.settings?.displayCurrencyCode().orEmpty(),
                 )
             }
@@ -697,7 +703,6 @@ private fun DashboardReady(
                         MonthSummaryCard(
                             report = state.monthlyReport,
                             paySummary = state.paySummary,
-                            currencyCode = currencyCode,
                             onOpenReport = onNavigateToReports,
                             modifier = Modifier.auroraEnter(index = 2),
                         )
@@ -717,7 +722,6 @@ private fun DashboardReady(
                 MonthSummaryCard(
                     report       = state.monthlyReport,
                     paySummary   = state.paySummary,
-                    currencyCode = currencyCode,
                     onOpenReport = onNavigateToReports,
                     modifier     = Modifier.auroraEnter(index = 2),
                 )
@@ -1562,7 +1566,6 @@ private fun ExpressiveClockPulse(
 internal fun MonthSummaryCard(
     report: MonthlyReport?,
     paySummary: PayrollCalculator.MonthlyPaySummary?,
-    currencyCode: String,
     onOpenReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1629,15 +1632,29 @@ internal fun MonthSummaryCard(
                     fontWeight = FontWeight.Bold,
                 )
             }
-            if (paySummary != null && paySummary.totalGross > 0.0) {
+            // One figure per currency the month was paid in. Each comes with its own
+            // currency, so a month at a dollar job is never shown under the account's
+            // shekel sign, and two jobs in two currencies are two lines, never a sum.
+            val paid = paySummary?.paidByCurrency.orEmpty()
+            if (paid.isNotEmpty()) {
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = MoneyFormatter.format(paySummary.totalGross, currencyCode, appLocale()),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                    )
+                    paid.forEach { totals ->
+                        Text(
+                            text = if (paid.size == 1) {
+                                MoneyFormatter.format(totals.totalGross, totals.currencyCode, appLocale())
+                            } else {
+                                moneyWithCode(totals.totalGross, totals.currencyCode)
+                            },
+                            style = if (paid.size == 1) {
+                                MaterialTheme.typography.headlineSmall
+                            } else {
+                                MaterialTheme.typography.titleMedium
+                            },
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                        )
+                    }
                     Text(
                         text = stringResource(R.string.dashboard_gross_before_tax),
                         style = MaterialTheme.typography.labelSmall,
