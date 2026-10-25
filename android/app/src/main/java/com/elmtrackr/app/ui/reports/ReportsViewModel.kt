@@ -642,16 +642,8 @@ class ReportsViewModel @Inject constructor(
         if (leaveEntries.isEmpty()) return
         lines += ""
         lines += "PAID LEAVE"
-        lines += "Date,Type,Workplace,Days,Hours,Estimated Gross,Notes"
-        var totalDays = 0.0
-        var totalHours = 0.0
-        var totalGross = 0.0
+        lines += "Date,Type,Workplace,Days,Hours,Estimated Gross,Currency,Notes"
         leaveEntries.forEach { entry ->
-            val days = if (entry.allocation.unit == LeaveBalanceUnit.DAYS) entry.allocation.entitlementUnits else 0.0
-            val hours = if (entry.allocation.unit == LeaveBalanceUnit.HOURS) entry.allocation.entitlementUnits else 0.0
-            totalDays += days
-            totalHours += hours
-            totalGross += entry.allocation.estimatedGrossPay
             lines += listOf(
                 entry.date.toString(),
                 when (entry.type) {
@@ -659,20 +651,33 @@ class ReportsViewModel @Inject constructor(
                     AbsenceType.SICK -> "Sick"
                 },
                 csvEscape(entry.workplaceName),
-                LeaveQuantityFormat.csv(days),
-                LeaveQuantityFormat.csv(hours),
+                LeaveQuantityFormat.csv(entry.leaveDays()),
+                LeaveQuantityFormat.csv(entry.leaveHours()),
                 LeaveQuantityFormat.csv(entry.allocation.estimatedGrossPay),
+                entry.currencyCode,
                 csvEscape(entry.event.notes.orEmpty()),
             ).joinToString(",")
         }
-        lines += listOf(
-            "LEAVE TOTAL", "", "",
-            LeaveQuantityFormat.csv(totalDays),
-            LeaveQuantityFormat.csv(totalHours),
-            LeaveQuantityFormat.csv(totalGross),
-            "",
-        ).joinToString(",")
+        // One total row per currency. A single row would add shekels to dollars for a
+        // user with leave at two workplaces paid in different currencies — on the file
+        // that goes to payroll. With one currency this is the one row it always was.
+        leaveEntries.groupBy { it.currencyCode }.toSortedMap().forEach { (code, entries) ->
+            lines += listOf(
+                "LEAVE TOTAL", "", "",
+                LeaveQuantityFormat.csv(entries.sumOf { it.leaveDays() }),
+                LeaveQuantityFormat.csv(entries.sumOf { it.leaveHours() }),
+                LeaveQuantityFormat.csv(entries.sumOf { it.allocation.estimatedGrossPay }),
+                code,
+                "",
+            ).joinToString(",")
+        }
     }
+
+    private fun AbsenceListEntry.leaveDays(): Double =
+        if (allocation.unit == LeaveBalanceUnit.DAYS) allocation.entitlementUnits else 0.0
+
+    private fun AbsenceListEntry.leaveHours(): Double =
+        if (allocation.unit == LeaveBalanceUnit.HOURS) allocation.entitlementUnits else 0.0
 
     private fun formatDatetime(instant: java.time.Instant?, zone: ZoneId): String = instant
         ?.atZone(zone)

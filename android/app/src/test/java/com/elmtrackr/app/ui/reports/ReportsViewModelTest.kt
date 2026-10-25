@@ -576,19 +576,83 @@ class ReportsViewModelTest {
         job.cancel()
     }
 
+    @Test
+    fun `csv leave totals are per currency and never add two currencies together`() {
+        val vm = buildVm()
+        val csv = vm.buildCsvContent(
+            emptyList(),
+            settings = null,
+            year = 2026,
+            month = 9,
+            leaveEntries = listOf(
+                vacationEntry(id = "a1", workplace = "Cafe North", currency = "ILS", gross = 4000.0),
+                vacationEntry(id = "a2", workplace = "Remote Inc", currency = "USD", gross = 1000.0),
+            ),
+        )
+
+        val totals = csv.lines().filter { it.startsWith("LEAVE TOTAL") }
+        assertEquals("one total row per currency: $csv", 2, totals.size)
+        assertEquals("LEAVE TOTAL,,,1.00,0.00,4000.00,ILS,", totals[0])
+        assertEquals("LEAVE TOTAL,,,1.00,0.00,1000.00,USD,", totals[1])
+        assertFalse("no combined figure anywhere: $csv", csv.contains("5000.00"))
+        val usdRow = csv.lines().first { it.contains("Remote Inc") }
+        assertEquals("USD", usdRow.split(",")[6])
+    }
+
+    @Test
+    fun `csv for a month with leave and no completed shifts keeps a zero hours total`() {
+        val vm = buildVm()
+        val csv = vm.buildCsvContent(
+            emptyList(),
+            settings = null,
+            year = 2026,
+            month = 9,
+            leaveEntries = listOf(vacationEntry()),
+        )
+
+        val total = csv.lines().first { it.startsWith("TOTAL") }.split(",")
+        assertEquals("0.00", total[4])
+        assertEquals("0 shifts", total[9])
+        assertTrue(csv.lines().any { it.startsWith("2026-09-15") && it.contains("Vacation") })
+        assertEquals("LEAVE TOTAL,,,1.00,0.00,320.00,ILS,", csv.lines().last())
+    }
+
+    @Test
+    fun `screen leave totals are grouped by currency`() {
+        val state = ReportsUiState.Ready(
+            year = 2026,
+            month = 9,
+            report = MonthlyReport(2026, 9, 0, 0, 0, 0, 0, emptyList()),
+            weeklyTotals = emptyList(),
+            leaveEntries = listOf(
+                vacationEntry(id = "a1", currency = "USD", gross = 1000.0),
+                vacationEntry(id = "a2", currency = "ILS", gross = 300.0),
+                vacationEntry(id = "a3", currency = "ILS", gross = 100.0),
+                // An unvalued day consumes entitlement but has no money to total.
+                vacationEntry(id = "a4", currency = "EUR", gross = 0.0),
+            ),
+        )
+
+        assertEquals(mapOf("ILS" to 400.0, "USD" to 1000.0), state.leaveGrossByCurrency)
+        assertEquals(listOf("ILS", "USD"), state.leaveGrossByCurrency.keys.toList())
+    }
+
     private fun vacationEntry(
         notes: String? = null,
         workplace: String = "Cafe North",
+        id: String = "a1",
+        currency: String = "ILS",
+        gross: Double = 320.0,
     ) = AbsenceListEntry(
         allocation = AbsenceAllocation(
-            id = "a1",
+            id = id,
             userId = "local-user",
             absenceEventId = "e1",
-            workplaceId = "wp",
+            workplaceId = "wp-$currency",
             affectedDate = LocalDate.parse("2026-09-15"),
             entitlementUnits = 1.0,
             unit = LeaveBalanceUnit.DAYS,
-            estimatedGrossPay = 320.0,
+            estimatedGrossPay = gross,
         ),
         event = AbsenceEvent(
             id = "e1",
@@ -599,6 +663,6 @@ class ReportsViewModelTest {
             notes = notes,
         ),
         workplaceName = workplace,
-        currencyCode = "ILS",
+        currencyCode = currency,
     )
 }

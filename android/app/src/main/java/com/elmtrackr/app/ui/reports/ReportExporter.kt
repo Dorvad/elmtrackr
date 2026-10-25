@@ -234,11 +234,24 @@ object ReportExporter {
                 canvas.drawLine(margin, y, pageWidth - margin, y, line)
                 y += 14f
             }
-            state.paidLeave?.takeIf { it.paidLeaveGross > 0.0 }?.let { leave ->
+            // One line per currency, as on screen: leave at two workplaces paid in
+            // different currencies has no single total.
+            val leaveTotals = state.leaveGrossByCurrency
+            val totalLabel = res.getString(R.string.leave_reports_estimated_total)
+            leaveTotals.forEach { (code, gross) ->
                 ensureSpace(22f)
-                canvas.drawText(res.getString(R.string.leave_reports_estimated_total), margin, y, heading)
                 canvas.drawText(
-                    MoneyFormatter.format(leave.paidLeaveGross, leave.currencyCode, res.exportLocale()),
+                    if (leaveTotals.size == 1) {
+                        totalLabel
+                    } else {
+                        res.getString(R.string.project_money_label_with_code, totalLabel, code)
+                    },
+                    margin,
+                    y,
+                    heading,
+                )
+                canvas.drawText(
+                    MoneyFormatter.format(gross, code, res.exportLocale()),
                     pageWidth - margin,
                     y,
                     heading.apply { textAlign = Paint.Align.RIGHT },

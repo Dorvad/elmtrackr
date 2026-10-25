@@ -67,7 +67,22 @@ sealed interface ReportsUiState {
         val paidLeave: MonthlyLeaveEarnings? = null,
         /** One row per affected day, so the report names the date the user entered. */
         val leaveEntries: List<AbsenceListEntry> = emptyList(),
-    ) : ReportsUiState
+    ) : ReportsUiState {
+        /**
+         * Estimated leave gross per currency, alphabetical, zero buckets dropped.
+         *
+         * Read this rather than [MonthlyLeaveEarnings.paidLeaveGross] wherever money is
+         * shown. That figure adds every allocation together, which is only a quantity of
+         * anything while every workplace is paid in one currency; a month of leave at a
+         * shekel job and a dollar job has two totals, not one.
+         */
+        val leaveGrossByCurrency: Map<String, Double>
+            get() = leaveEntries
+                .groupBy { it.currencyCode }
+                .mapValues { (_, entries) -> entries.sumOf { it.allocation.estimatedGrossPay } }
+                .filterValues { it > 0.0 }
+                .toSortedMap()
+    }
 
     data class Error(val message: String) : ReportsUiState
 }

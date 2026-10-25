@@ -90,6 +90,7 @@ import com.elmtrackr.app.domain.DailyInsight
 import com.elmtrackr.app.domain.HoursFormatter
 import com.elmtrackr.app.domain.leave.AbsenceListEntry
 import com.elmtrackr.app.domain.leave.LeaveQuantityFormat
+import com.elmtrackr.app.domain.text.BidiText
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.MonthlyReportBuilder
 import com.elmtrackr.app.domain.OvernightShiftDetector
@@ -867,7 +868,7 @@ internal fun HoursReport(
     }
 
     if (state.leaveEntries.isNotEmpty()) {
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(Spacing.s14))
         LeaveReportSection(state)
     }
 
@@ -2129,7 +2130,7 @@ private fun ReportCard(modifier: Modifier = Modifier, content: @Composable () ->
 private fun LeaveReportSection(state: ReportsUiState.Ready) {
     val leave = state.paidLeave
     ElmSectionHeader(stringResource(R.string.leave_reports_section))
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(Spacing.s8))
     ReportCard {
         if (leave != null && !leave.isEmpty) {
             if (leave.hasVacation) {
@@ -2144,15 +2145,24 @@ private fun LeaveReportSection(state: ReportsUiState.Ready) {
                     leaveAmountLabel(leave.sickDays, leave.sickHours),
                 )
             }
-            if (leave.paidLeaveGross > 0.0) {
+            // One total per currency. Two workplaces paid in different currencies
+            // have no honest combined figure, so a second currency gets its own
+            // row, labelled with its code, rather than being added to the first.
+            val totals = state.leaveGrossByCurrency
+            val totalLabel = stringResource(R.string.leave_reports_estimated_total)
+            totals.forEach { (code, gross) ->
                 ReportRow(
-                    stringResource(R.string.leave_reports_estimated_total),
-                    MoneyFormatter.format(leave.paidLeaveGross, leave.currencyCode, appLocale()),
+                    if (totals.size == 1) {
+                        totalLabel
+                    } else {
+                        stringResource(R.string.project_money_label_with_code, totalLabel, BidiText.isolate(code))
+                    },
+                    MoneyFormatter.format(gross, code, appLocale()),
                 )
             }
             if (state.leaveEntries.isNotEmpty()) {
                 HorizontalDivider(
-                    Modifier.padding(vertical = 10.dp),
+                    Modifier.padding(vertical = Spacing.s10),
                     color = MaterialTheme.colorScheme.outlineVariant,
                 )
             }
@@ -2160,7 +2170,7 @@ private fun LeaveReportSection(state: ReportsUiState.Ready) {
         state.leaveEntries.forEachIndexed { index, entry ->
             if (index > 0) {
                 HorizontalDivider(
-                    Modifier.padding(vertical = 10.dp),
+                    Modifier.padding(vertical = Spacing.s10),
                     color = MaterialTheme.colorScheme.outlineVariant,
                 )
             }
@@ -2215,7 +2225,7 @@ private fun LeaveReportRow(entry: AbsenceListEntry) {
             )
         }
         Row(
-            Modifier.fillMaxWidth().padding(top = 2.dp),
+            Modifier.fillMaxWidth().padding(top = Spacing.s2),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -2241,7 +2251,7 @@ private fun LeaveReportRow(entry: AbsenceListEntry) {
                 notes,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp),
+                modifier = Modifier.padding(top = Spacing.s2),
             )
         }
     }
