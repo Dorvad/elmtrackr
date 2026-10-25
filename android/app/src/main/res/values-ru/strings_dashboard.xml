@@ -174,7 +174,7 @@
     <string name="dashboard_long_shift_action">Исправить окончание</string>
 
     <!-- Actionable sync notice (Wave 2) -->
-    <string name="dashboard_sync_failed">Не удалось загрузить изменений: %1$d. Они сохранены на телефоне.</string>
+    <string name="dashboard_sync_failed">Не загружено изменений: %1$d. Они сохранены на телефоне.</string>
     <string name="dashboard_sync_session_expired">Войдите снова, чтобы продолжить резервное копирование. Смены сохранены на телефоне.</string>
     <string name="dashboard_sync_review">Подробнее</string>
 </resources>

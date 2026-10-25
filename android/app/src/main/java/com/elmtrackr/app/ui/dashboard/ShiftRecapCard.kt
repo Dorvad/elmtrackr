@@ -155,7 +155,9 @@ internal fun ShiftRecapCard(
                 // The split only earns its space when there is more than one kind of
                 // pay in it; a regular-only shift is fully described by its total.
                 if (components.visibleRows().size > 1) {
-                    PayComponentList(components, showDeductions = false)
+                    // The total is the headline just above; repeating it as a row
+                    // read as a second, separate figure.
+                    PayComponentList(components, showDeductions = false, showTotal = false)
                 }
             } else {
                 Text(

@@ -147,7 +147,8 @@ class ReportsOverviewRenderTest {
         composeRule.onNodeWithText("January 2024 · ", substring = true).performScrollTo().assertIsDisplayed()
         // Named in the overview and on the export card.
         assertEquals(2, composeRule.onAllNodesWithText("Studio", substring = true).fetchSemanticsNodes().size)
-        composeRule.onNodeWithText("Amounts in ILS").performScrollTo().assertIsDisplayed()
+        // The code is bidi-isolated so it stays beside its words in Hebrew and Arabic.
+        composeRule.onNodeWithText("Amounts in \u2068ILS\u2069").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("CSV spreadsheet").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("PDF summary").performScrollTo().assertIsDisplayed()
     }

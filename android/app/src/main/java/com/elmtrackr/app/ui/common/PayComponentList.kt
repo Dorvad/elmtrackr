@@ -92,21 +92,25 @@ fun PayComponentList(
     components: PayComponents,
     modifier: Modifier = Modifier,
     showDeductions: Boolean = true,
+    /** Off where the caller already shows the total as its headline. */
+    showTotal: Boolean = true,
 ) {
     val locale = appLocale()
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.s4)) {
         components.visibleRows().forEach { (label, amount) ->
             PayComponentRow(label, MoneyFormatter.format(amount, components.currencyCode, locale))
         }
-        HorizontalDivider(
-            Modifier.padding(vertical = Spacing.s2),
-            color = MaterialTheme.colorScheme.outlineVariant,
-        )
-        PayComponentRow(
-            R.string.pay_component_total,
-            MoneyFormatter.format(components.total, components.currencyCode, locale),
-            emphasized = true,
-        )
+        if (showTotal) {
+            HorizontalDivider(
+                Modifier.padding(vertical = Spacing.s2),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+            PayComponentRow(
+                R.string.pay_component_total,
+                MoneyFormatter.format(components.total, components.currencyCode, locale),
+                emphasized = true,
+            )
+        }
         if (showDeductions && components.deductions > EPSILON) {
             PayComponentRow(
                 R.string.pay_component_deductions,

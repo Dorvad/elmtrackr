@@ -474,7 +474,7 @@
     <string name="settings_backup_share_subject">Локальная резервная копия ElmTrackr</string>
     <string name="settings_backup_share_chooser">Выгрузить локальную резервную копию</string>
     <string name="settings_sync_synced_with_warnings">Синхронизировано с предупреждениями: %1$s</string>
-    <string name="settings_sync_synced_unsent">Не удалось загрузить изменений: %1$d. Они сохранены на этом устройстве и будут отправлены повторно.</string>
+    <string name="settings_sync_synced_unsent">Пока не загружено изменений: %1$d. Они сохранены на устройстве и будут отправлены повторно.</string>
     <string name="settings_discard_profile_title">Отменить изменения?</string>
     <string name="settings_discard_profile_body">В этом рабочем профиле есть несохранённые изменения.</string>
     <string name="settings_language_current">Используется</string>

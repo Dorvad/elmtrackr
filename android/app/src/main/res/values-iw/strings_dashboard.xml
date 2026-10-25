@@ -174,7 +174,7 @@
     <string name="dashboard_long_shift_action">תיקון שעת הסיום</string>
 
     <!-- Actionable sync notice (Wave 2) -->
-    <string name="dashboard_sync_failed">%1$d שינויים לא הועלו. הם שמורים בטלפון.</string>
+    <string name="dashboard_sync_failed">שינויים שלא הועלו: %1$d. הם שמורים בטלפון.</string>
     <string name="dashboard_sync_session_expired">התחברו מחדש כדי להמשיך לגבות. המשמרות שמורות בטלפון.</string>
     <string name="dashboard_sync_review">פרטים</string>
 </resources>

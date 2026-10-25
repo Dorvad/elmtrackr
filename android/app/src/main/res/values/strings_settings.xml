@@ -460,7 +460,7 @@
     <string name="settings_backup_share_subject">ElmTrackr local backup</string>
     <string name="settings_backup_share_chooser">Export local backup</string>
     <string name="settings_sync_synced_with_warnings">Synced with warnings: %1$s</string>
-    <string name="settings_sync_synced_unsent">Couldn’t upload %1$d changes. They’re saved on this device and will be retried.</string>
+    <string name="settings_sync_synced_unsent">Changes not uploaded yet: %1$d. They’re saved on this device and will be retried.</string>
 
     <!-- Sick leave arrangement, per compensation profile -->
     <string name="settings_section_sick_leave">Sick leave</string>
@@ -530,5 +530,5 @@
     <string name="settings_time_breaks_intro">How clock time becomes paid time. Most jobs leave rounding and minimum pay off.</string>
 
     <!-- Sync status: changes held for retry (Wave 2) -->
-    <string name="sync_waiting_count">Saved on this device. %1$d changes are waiting to upload.</string>
+    <string name="sync_waiting_count">Saved on this device. Changes waiting to upload: %1$d.</string>
 </resources>

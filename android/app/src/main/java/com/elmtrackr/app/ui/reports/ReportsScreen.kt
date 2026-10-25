@@ -758,15 +758,20 @@ private fun PaidTimeCard(report: com.elmtrackr.app.domain.model.MonthlyReport) {
         SectionLabel(stringResource(R.string.reports_paid_time_title))
         Spacer(Modifier.height(Spacing.s8))
         ReportRow(stringResource(R.string.paid_time_worked), stringResource(R.string.shifts_hours_value_spaced, hours(report.workedMinutes)))
+        // The sign travels inside an isolate with its number. Prefixed to the whole
+        // value it is a neutral character, and a right-to-left paragraph moved it to
+        // the far side: "2.4+ h" in Hebrew.
+        @Composable fun signed(sign: String, minutes: Int) =
+            stringResource(R.string.shifts_hours_value_spaced, BidiText.isolate(sign + hours(minutes)))
         if (report.paidBreakMinutes > 0) {
-            ReportRow(stringResource(R.string.paid_time_paid_break), "+" + stringResource(R.string.shifts_hours_value_spaced, hours(report.paidBreakMinutes)))
+            ReportRow(stringResource(R.string.paid_time_paid_break), signed("+", report.paidBreakMinutes))
         }
         if (report.roundingMinutes != 0) {
             val sign = if (report.roundingMinutes > 0) "+" else "−"
-            ReportRow(stringResource(R.string.paid_time_rounding), sign + stringResource(R.string.shifts_hours_value_spaced, hours(kotlin.math.abs(report.roundingMinutes))))
+            ReportRow(stringResource(R.string.paid_time_rounding), signed(sign, kotlin.math.abs(report.roundingMinutes)))
         }
         if (report.minimumTopUpMinutes > 0) {
-            ReportRow(stringResource(R.string.paid_time_minimum), "+" + stringResource(R.string.shifts_hours_value_spaced, hours(report.minimumTopUpMinutes)))
+            ReportRow(stringResource(R.string.paid_time_minimum), signed("+", report.minimumTopUpMinutes))
         }
         HorizontalDivider(Modifier.padding(vertical = Spacing.s4), color = MaterialTheme.colorScheme.outlineVariant)
         ReportRow(stringResource(R.string.paid_time_paid), stringResource(R.string.shifts_hours_value_spaced, hours(report.totalMinutes)))
@@ -799,13 +804,15 @@ private fun ExportCard(
         )
         when (currencies.size) {
             0 -> Unit
+            // Isolated: a Latin code at the end of a Hebrew or Arabic sentence is
+            // otherwise reordered away from the words it belongs to.
             1 -> Text(
-                stringResource(R.string.reports_export_currency_one, currencies.single()),
+                stringResource(R.string.reports_export_currency_one, BidiText.isolate(currencies.single())),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             else -> Text(
-                stringResource(R.string.reports_export_currency_many, currencies.joinToString(", ")),
+                stringResource(R.string.reports_export_currency_many, currencies.joinToString(", ") { BidiText.isolate(it) }),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

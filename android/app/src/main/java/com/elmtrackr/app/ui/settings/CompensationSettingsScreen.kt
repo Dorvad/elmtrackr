@@ -384,7 +384,10 @@ internal fun CompensationSettingsContent(
                 // than discovered afterwards in a report.
                 if (currencyCode != state.profile.currencyCode) {
                     Text(
-                        stringResource(R.string.settings_currency_change_hint, currencyCode),
+                        stringResource(
+                            R.string.settings_currency_change_hint,
+                            com.elmtrackr.app.domain.text.BidiText.isolate(currencyCode),
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = Spacing.s4),

@@ -107,9 +107,10 @@ class ShiftRecapCardRenderTest {
 
         composeRule.onNodeWithText("Estimated pay", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("Estimate, before tax", useUnmergedTree = true).assertIsDisplayed()
-        // Once as the headline and once as the "Estimated gross" row the parts add up to.
+        // Once, as the headline: the components below it are not followed by a
+        // second copy of the same figure.
         assertEquals(
-            2,
+            1,
             composeRule.onAllNodesWithText("446.88", substring = true, useUnmergedTree = true)
                 .fetchSemanticsNodes().size,
         )

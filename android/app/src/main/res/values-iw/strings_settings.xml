@@ -467,7 +467,7 @@
     <string name="settings_backup_share_subject">גיבוי מקומי של ElmTrackr</string>
     <string name="settings_backup_share_chooser">ייצוא גיבוי מקומי</string>
     <string name="settings_sync_synced_with_warnings">סונכרן עם אזהרות: %1$s</string>
-    <string name="settings_sync_synced_unsent">לא ניתן היה להעלות %1$d שינויים. הם שמורים במכשיר וינסו שוב.</string>
+    <string name="settings_sync_synced_unsent">שינויים שעדיין לא הועלו: %1$d. הם שמורים במכשיר וינסו להעלות אותם שוב.</string>
 
     <!-- Sick leave arrangement, per compensation profile -->
     <string name="settings_section_sick_leave">דמי מחלה</string>
@@ -537,5 +537,5 @@
     <string name="settings_time_breaks_intro">איך זמן השעון הופך לזמן בתשלום. ברוב העבודות העיגול ותשלום המינימום כבויים.</string>
 
     <!-- Sync status: changes held for retry (Wave 2) -->
-    <string name="sync_waiting_count">נשמר במכשיר. %1$d שינויים ממתינים להעלאה.</string>
+    <string name="sync_waiting_count">נשמר במכשיר. שינויים שממתינים להעלאה: %1$d.</string>
 </resources>
