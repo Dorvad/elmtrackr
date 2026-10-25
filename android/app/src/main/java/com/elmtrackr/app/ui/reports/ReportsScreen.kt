@@ -320,6 +320,7 @@ fun ReportsScreen(
                                                 contextShifts = state.payContextShifts,
                                                 year = state.year,
                                                 month = state.month,
+                                                premiumProfiles = state.premiumProfiles,
                                             ),
                                             viewModel.csvFilename(state.year, state.month),
                                         )

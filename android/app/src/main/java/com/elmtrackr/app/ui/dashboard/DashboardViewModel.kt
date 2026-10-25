@@ -323,6 +323,7 @@ class DashboardViewModel @Inject constructor(
                     shifts = raw.monthShifts,
                     settings = raw.settings,
                     profiles = raw.profiles,
+                    premiumProfiles = raw.premiumProfiles,
                     contextShifts = raw.payContextShifts,
                 )
                 DashboardUiState.Ready(

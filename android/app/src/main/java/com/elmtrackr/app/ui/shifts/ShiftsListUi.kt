@@ -226,7 +226,7 @@ internal fun ShiftsHeroSummaryCard(
         val payContext = payContextShifts.filter { it.isCompleted }.ifEmpty { completed }
         val report = settings?.let {
             MonthlyReportBuilder.buildMonthlyReport(
-                month.year, month.monthValue, completed, it, profiles,
+                month.year, month.monthValue, completed, it, profiles, premiumProfiles,
                 contextShifts = payContext,
             )
         }
