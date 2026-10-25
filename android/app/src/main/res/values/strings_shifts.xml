@@ -114,4 +114,10 @@
     <string name="shifts_premium_auto_off">Regular rate — not one of your weekend days</string>
     <string name="shifts_premium_forced_off">Regular rate for this shift — overrides your weekend days</string>
     <string name="shifts_premium_on_hint">Pick a premium for holidays and special days, or leave None to use your weekend rate</string>
+
+    <!-- Shift form: time facts and saved-vs-edited comparison (Wave 2) -->
+    <string name="shifts_time_fact">%1$s %2$s</string>
+    <string name="shifts_saved_version">Currently saved: %1$s · %2$s</string>
+    <string name="shifts_saved_version_no_pay">Currently saved: %1$s</string>
+    <string name="shifts_pay_line">%1$s — %2$s</string>
 </resources>

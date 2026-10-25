@@ -70,6 +70,10 @@ import com.elmtrackr.app.ui.common.durationText
 import com.elmtrackr.app.domain.HoursFormatter
 import com.elmtrackr.app.domain.MoneyFormatter
 import com.elmtrackr.app.domain.PayrollCalculator
+import com.elmtrackr.app.domain.compensation.CompensationResolver
+import com.elmtrackr.app.domain.model.PaidTime
+import com.elmtrackr.app.ui.common.paidTimeNote
+import com.elmtrackr.app.ui.common.payBracketLabel
 import com.elmtrackr.app.domain.ShiftDurationCalculator
 import com.elmtrackr.app.domain.WeekendRules
 import com.elmtrackr.app.domain.model.CompensationProfile
@@ -334,6 +338,7 @@ internal fun ShiftEditFormContent(
                     selectedTask = selectedTask,
                     initialShift = initialShift,
                     currency = currency,
+                    zone = zone,
                 )
 
                 FormSectionCard(title = stringResource(R.string.shifts_section_when)) {
@@ -411,17 +416,24 @@ internal fun ShiftEditFormContent(
                             breakMinutes = breakMinutes,
                             isSpecialDay = premiumProfileId != null,
                             premiumProfileId = premiumProfileId,
-                        )
-                        val workedMin = if (previewEnd != null) {
-                            ShiftDurationCalculator.grossMinutes(previewShift)
-                        } else null
-                        val netMin = if (previewEnd != null) {
-                            ShiftDurationCalculator.netMinutes(previewShift)
-                        } else null
+                            compensationProfileId = compensationProfileId,
+                            forceRegularRate = premiumMode == "off",
+                            taskId = selectedTask?.id,
+                        ).let { draft -> shiftAsItWillBeSaved(initialShift, draft) }
+                        // The rules this shift is actually paid under, so "worked" and
+                        // "paid" here match the pay preview above and every report. This
+                        // line used to call clock time "worked" and clock time less the
+                        // break "paid", whatever the profile said about rounding, minimum
+                        // shifts or paid breaks.
+                        val rules = remember(previewShift, settings, profiles) {
+                            settings?.let {
+                                CompensationResolver.resolveShiftCompensation(previewShift, it, profiles).rules
+                            }
+                        }
                         WhenSummaryFooter(
-                            workedMinutes = workedMin,
+                            time = rules?.let { PayrollCalculator.payableTime(previewShift, it) },
                             breakMinutes = breakMinutes,
-                            paidMinutes = netMin,
+                            breaksPaid = rules?.paidBreaks == true,
                         )
                     }
                 }
@@ -640,6 +652,7 @@ private fun LivePayPreviewCard(
     selectedTask: Task?,
     initialShift: Shift?,
     currency: CurrencyCode,
+    zone: ZoneId = ZoneId.systemDefault(),
 ) {
     val previewStart = Instant.ofEpochMilli(startMillis)
     val previewEnd = if (hasEndTime) Instant.ofEpochMilli(endMillis) else null
@@ -660,17 +673,35 @@ private fun LivePayPreviewCard(
         taskIconSnapshot = selectedTask?.icon,
         taskHourlyRateSnapshot = selectedTask?.hourlyRate,
     )
+    // Priced the way Save will store it: the saved row, snapshot and all, while
+    // nothing that affects pay has changed; the draft under current rules otherwise.
+    val pricedShift = shiftAsItWillBeSaved(initialShift, previewShift)
     // Use the same month-shift context as the saved value so weekly overtime
     // tiers match what the shift will actually display after saving.
-    val previewPay = settings?.let {
-        PayrollCalculator.calculateShiftPayInContext(
-            previewShift,
-            allShiftsForPay.filter { s -> s.isCompleted },
-            it,
-            profiles,
-            premiumProfiles,
-        )
+    //
+    // Remembered on its inputs: this walks the shift's pay week (minute by minute on
+    // the Israeli engine) and used to run on every recomposition of the form —
+    // including every keystroke in the notes field below it.
+    val payContext = remember(allShiftsForPay) { allShiftsForPay.filter { s -> s.isCompleted } }
+    val previewPay = remember(pricedShift, payContext, settings, profiles, premiumProfiles) {
+        settings?.let {
+            PayrollCalculator.calculateShiftPayInContext(pricedShift, payContext, it, profiles, premiumProfiles)
+        }
     } ?: return
+    // What the stored shift is paid now, for comparison while editing. Only a
+    // completed shift has a saved figure to compare against.
+    val savedShift = initialShift?.takeIf { it.endTime != null }
+    val savedPay = remember(savedShift, payContext, settings, profiles, premiumProfiles) {
+        savedShift?.let { saved ->
+            settings?.let {
+                PayrollCalculator.calculateShiftPayInContext(saved, payContext, it, profiles, premiumProfiles)
+            }
+        }
+    }
+    // The figure is in the shift's own profile currency. It used to take the account
+    // currency, so a shift at a dollar job previewed with a shekel sign.
+    val payCurrency = previewPay.currencyCode
+    val locale = appLocale()
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -690,19 +721,65 @@ private fun LivePayPreviewCard(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                MoneyFormatter.format(previewPay.totalGross, currency, appLocale()),
+                MoneyFormatter.format(previewPay.totalGross, payCurrency, locale),
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
                 modifier = Modifier.padding(vertical = Spacing.sm),
             )
             previewPay.brackets.forEach { bracket ->
-                val hours = HoursFormatter.decimal(bracket.minutes, appLocale())
+                val hours = HoursFormatter.decimal(bracket.minutes, locale)
+                // The bracket at its own multiplier. Any night uplift blended into its
+                // rate is shown once, below, as the night premium it is — so "100%
+                // Regular" is never printed beside an amount that is not 100%.
+                val atOwnRate = if (bracket.rate > 0.0) bracket.amount * bracket.multiplier / bracket.rate else bracket.amount
                 Text(
-                    stringResource(R.string.shifts_pay_bracket_line, hours, bracket.label, MoneyFormatter.format(bracket.amount, currency, appLocale())),
+                    stringResource(
+                        R.string.shifts_pay_bracket_line,
+                        hours,
+                        payBracketLabel(bracket),
+                        MoneyFormatter.format(atOwnRate, payCurrency, locale),
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.9f),
                 )
+            }
+            if (previewPay.nightGross > 0.005) {
+                Text(
+                    stringResource(
+                        R.string.shifts_pay_line,
+                        stringResource(R.string.pay_component_night),
+                        MoneyFormatter.format(previewPay.nightGross, payCurrency, locale),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.9f),
+                )
+            }
+            savedShift?.let { saved ->
+                val timeChanged = saved.startTime != previewStart || saved.endTime != previewEnd
+                val payChanged = savedPay == null ||
+                    savedPay.currencyCode != payCurrency ||
+                    kotlin.math.abs(savedPay.totalGross - previewPay.totalGross) >= 0.005
+                if (timeChanged || payChanged) {
+                    val timeFormatter = remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
+                    val savedRange = stringResource(
+                        R.string.dashboard_recap_time_range,
+                        saved.startTime.atZone(zone).format(timeFormatter),
+                        saved.endTime?.atZone(zone)?.format(timeFormatter).orEmpty(),
+                    )
+                    Text(
+                        savedPay?.let {
+                            stringResource(
+                                R.string.shifts_saved_version,
+                                savedRange,
+                                MoneyFormatter.format(it.totalGross, it.currencyCode, locale),
+                            )
+                        } ?: stringResource(R.string.shifts_saved_version_no_pay, savedRange),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.85f),
+                        modifier = Modifier.padding(top = Spacing.sm),
+                    )
+                }
             }
         }
     }
@@ -938,30 +1015,54 @@ private fun ActiveEndPlaceholder(onEnableEnd: () -> Unit, modifier: Modifier = M
 
 @Composable
 private fun WhenSummaryFooter(
-    workedMinutes: Int?,
+    /** Null while the shift is still running: there is no end to measure to yet. */
+    time: PaidTime?,
     breakMinutes: Int,
-    paidMinutes: Int?,
+    breaksPaid: Boolean,
 ) {
+    val facts = buildList {
+        if (time != null) {
+            add(stringResource(R.string.shifts_time_fact, stringResource(R.string.paid_time_elapsed), durationText(time.elapsedMinutes)))
+        }
+        val breakLabel = if (breaksPaid) R.string.paid_time_paid_break else R.string.paid_time_unpaid_break
+        val breakShown = time?.let { if (breaksPaid) it.paidBreakMinutes else it.unpaidBreakMinutes } ?: breakMinutes
+        if (breakShown > 0) {
+            add(stringResource(R.string.shifts_time_fact, stringResource(breakLabel), durationText(breakShown)))
+        }
+        if (time != null) {
+            add(stringResource(R.string.shifts_time_fact, stringResource(R.string.paid_time_worked), durationText(time.workedMinutes)))
+        }
+    }
+    if (facts.isEmpty()) return
+    val note = time?.takeIf { it.payableDiffersFromWorked }
+        ?.let { paidTimeNote(durationText(it.payableMinutes), it.reasons) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
     ) {
         Icon(
             Icons.Filled.Info,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(14.dp),
+            modifier = Modifier.size(Spacing.s14),
         )
-        val worked = workedMinutes?.let { durationText(it) } ?: "-"
-        val paid = paidMinutes?.let { stringResource(R.string.shifts_hours_paid, HoursFormatter.decimal(it, appLocale())) } ?: "-"
-        Text(
-            stringResource(R.string.shifts_when_summary, worked, breakMinutes, paid),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 6.dp),
-        )
+        Column(Modifier.padding(start = Spacing.s6)) {
+            Text(
+                facts.joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            note?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
     }
 }
 
@@ -1144,6 +1245,29 @@ private fun countUnsavedChanges(
     if (compensationSource != initial.compensationSource) count++
     if (projectId != initial.projectId) count++
     return count
+}
+
+/**
+ * The shift as Save will store it, for pricing a preview.
+ *
+ * `ShiftsViewModel.saveEditedShift` rebuilds the compensation snapshot from the
+ * current rules only when the edit touches pay; any other edit keeps the stored
+ * snapshot. So while the times, break, premium, profile and task are unchanged the
+ * preview prices the saved row exactly as stored, and once one of them changes it
+ * prices the draft under current rules — which is what the saved shift will then be.
+ * Otherwise a shift saved under older rules showed a "new" figure the moment the
+ * form opened, for an edit that would not change its pay at all.
+ */
+internal fun shiftAsItWillBeSaved(initial: Shift?, draft: Shift): Shift {
+    val saved = initial?.takeIf { it.endTime != null } ?: return draft
+    val payUnchanged = saved.startTime == draft.startTime &&
+        saved.endTime == draft.endTime &&
+        saved.breakMinutes == draft.breakMinutes &&
+        saved.premiumProfileId == draft.premiumProfileId &&
+        saved.forceRegularRate == draft.forceRegularRate &&
+        (draft.compensationProfileId == null || saved.compensationProfileId == draft.compensationProfileId) &&
+        saved.taskId == draft.taskId
+    return if (payUnchanged) saved else draft
 }
 
 internal fun shouldShowRefundSection(

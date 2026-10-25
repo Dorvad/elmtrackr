@@ -116,4 +116,10 @@
     <string name="shifts_premium_auto_off">תעריף רגיל — זה לא אחד מימי סוף השבוע שלך</string>
     <string name="shifts_premium_forced_off">תעריף רגיל למשמרת הזו — עוקף את הגדרת ימי סוף השבוע</string>
     <string name="shifts_premium_on_hint">בוחרים תוספת לחגים וימים מיוחדים, או משאירים \"ללא\" לתעריף סוף השבוע</string>
+
+    <!-- Shift form: time facts and saved-vs-edited comparison (Wave 2) -->
+    <string name="shifts_time_fact">%1$s %2$s</string>
+    <string name="shifts_saved_version">שמור כרגע: %1$s · %2$s</string>
+    <string name="shifts_saved_version_no_pay">שמור כרגע: %1$s</string>
+    <string name="shifts_pay_line">%1$s — %2$s</string>
 </resources>

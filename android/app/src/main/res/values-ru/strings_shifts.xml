@@ -117,4 +117,10 @@
     <string name="shifts_premium_auto_off">Обычная ставка — этот день у вас не выходной</string>
     <string name="shifts_premium_forced_off">Обычная ставка для этой смены — в обход ваших выходных дней</string>
     <string name="shifts_premium_on_hint">Выберите надбавку для праздников и особых дней или оставьте «Нет», чтобы применилась ставка выходного</string>
+
+    <!-- Shift form: time facts and saved-vs-edited comparison (Wave 2) -->
+    <string name="shifts_time_fact">%1$s %2$s</string>
+    <string name="shifts_saved_version">Сейчас сохранено: %1$s · %2$s</string>
+    <string name="shifts_saved_version_no_pay">Сейчас сохранено: %1$s</string>
+    <string name="shifts_pay_line">%1$s — %2$s</string>
 </resources>

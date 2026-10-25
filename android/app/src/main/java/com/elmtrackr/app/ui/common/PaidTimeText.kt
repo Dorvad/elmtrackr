@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.elmtrackr.app.R
+import com.elmtrackr.app.domain.FormattingPolicy
 import com.elmtrackr.app.domain.model.PaidTimeReason
 import com.elmtrackr.app.domain.model.PayBracket
 import com.elmtrackr.app.domain.model.PayCategory
@@ -44,7 +45,9 @@ fun paidTimeNote(paidText: String, reasons: Set<PaidTimeReason>): String? {
  */
 @Composable
 fun payBracketLabel(bracket: PayBracket): String {
-    val percent = NumberFormat.getPercentInstance(appLocale()).format(
+    // Through FormattingPolicy, like every number a person reads, so hours, money and
+    // percentages share one convention per language.
+    val percent = NumberFormat.getPercentInstance(FormattingPolicy.display(appLocale())).format(
         // Whole percent: no shipped preset or editor produces a fractional multiplier
         // a person would want to read to the decimal.
         (bracket.multiplier * 100).roundToInt() / 100.0,
