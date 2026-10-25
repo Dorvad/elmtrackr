@@ -86,7 +86,26 @@ class DashboardViewModel @Inject constructor(
     // production keeps it off the main thread (see flowOn below).
     @ComputationDispatcher
     private val computationDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    // Nullable with a default only so tests that do not exercise sync need not build
+    // one; Hilt always provides it.
+    private val syncRepository: com.elmtrackr.app.data.sync.SyncRepository? = null,
 ) : ViewModel() {
+
+    /**
+     * A sync problem the user needs to act on, or null — which includes every
+     * ordinary offline moment. See [SyncAttention].
+     */
+    val syncAttention: StateFlow<SyncAttention?> =
+        authRepository.observeCurrentProfile()
+            .flatMapLatest { profile ->
+                val repo = syncRepository
+                if (profile == null || repo == null) return@flatMapLatest flowOf(null)
+                combine(repo.observeSyncHealth(profile.id), repo.observeLastSyncStatus()) { health, status ->
+                    SyncAttention.of(health, status)
+                }
+            }
+            .catch { emit(null) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _refreshNonce = MutableStateFlow(0)
     private val _showFirstClockInCelebration = MutableStateFlow(false)

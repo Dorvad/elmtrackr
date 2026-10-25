@@ -174,4 +174,9 @@
     <string name="dashboard_long_shift_title">ما زلت في الوردية بعد %1$s</string>
     <string name="dashboard_long_shift_body">إذا نسيت تسجيل الخروج، حدّد وقت الانتهاء الفعلي لتبقى ساعاتك وأجرك صحيحة.</string>
     <string name="dashboard_long_shift_action">تصحيح وقت الانتهاء</string>
+
+    <!-- Actionable sync notice (Wave 2) -->
+    <string name="dashboard_sync_failed">تعذّر رفع %1$d من التغييرات. إنها محفوظة على هذا الهاتف.</string>
+    <string name="dashboard_sync_session_expired">سجّل الدخول مجدداً لمواصلة النسخ الاحتياطي. وردياتك محفوظة على هذا الهاتف.</string>
+    <string name="dashboard_sync_review">مراجعة</string>
 </resources>

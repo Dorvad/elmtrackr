@@ -172,4 +172,9 @@
     <string name="dashboard_long_shift_title">Still clocked in after %1$s</string>
     <string name="dashboard_long_shift_body">If you forgot to clock out, set the real end time so your hours and pay stay right.</string>
     <string name="dashboard_long_shift_action">Fix end time</string>
+
+    <!-- Actionable sync notice (Wave 2) -->
+    <string name="dashboard_sync_failed">%1$d changes couldn’t upload. They’re saved on this phone.</string>
+    <string name="dashboard_sync_session_expired">Sign in again to keep backing up. Your shifts are saved on this phone.</string>
+    <string name="dashboard_sync_review">Review</string>
 </resources>

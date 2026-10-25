@@ -172,4 +172,9 @@
     <string name="dashboard_long_shift_title">Смена идёт уже %1$s</string>
     <string name="dashboard_long_shift_body">Если вы забыли завершить смену, укажите реальное время окончания, чтобы часы и оплата были верными.</string>
     <string name="dashboard_long_shift_action">Исправить окончание</string>
+
+    <!-- Actionable sync notice (Wave 2) -->
+    <string name="dashboard_sync_failed">Не удалось загрузить изменений: %1$d. Они сохранены на телефоне.</string>
+    <string name="dashboard_sync_session_expired">Войдите снова, чтобы продолжить резервное копирование. Смены сохранены на телефоне.</string>
+    <string name="dashboard_sync_review">Подробнее</string>
 </resources>

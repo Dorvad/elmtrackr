@@ -11,6 +11,9 @@ enum class SettingsLaunchRequest {
     PROFILE,
     FEATURES,
     SECURITY,
+
+    /** The dashboard's sync notice: what is waiting, what failed, and "Sync now". */
+    SYNC_DETAILS,
 }
 
 internal fun SettingsLaunchRequest.toDestination(): SettingsDestination = when (this) {
@@ -20,4 +23,5 @@ internal fun SettingsLaunchRequest.toDestination(): SettingsDestination = when (
     SettingsLaunchRequest.PROFILE -> SettingsDestination.PROFILE
     SettingsLaunchRequest.FEATURES -> SettingsDestination.FEATURES
     SettingsLaunchRequest.SECURITY -> SettingsDestination.SECURITY
+    SettingsLaunchRequest.SYNC_DETAILS -> SettingsDestination.SYNC_DETAILS
 }

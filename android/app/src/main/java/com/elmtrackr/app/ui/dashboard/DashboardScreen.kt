@@ -194,6 +194,7 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val shiftRecap by viewModel.shiftRecap.collectAsState()
+    val syncAttention by viewModel.syncAttention.collectAsState()
     val showCelebration by viewModel.showFirstClockInCelebration.collectAsState()
     val projectShiftSummary by viewModel.projectShiftSummary.collectAsState()
     val setupChecklist by viewModel.setupChecklist.collectAsState()
@@ -268,6 +269,8 @@ fun DashboardScreen(
                                 onOpenShift(shiftId)
                             },
                             onSetRate = { onNavigateToSettings(SettingsLaunchRequest.COMPENSATION) },
+                            syncAttention = syncAttention,
+                            onReviewSync = { onNavigateToSettings(SettingsLaunchRequest.SYNC_DETAILS) },
                             onViewProject = {
                                 viewModel.dismissProjectShiftSummary()
                                 onNavigateToProjects()
@@ -336,6 +339,8 @@ private fun DashboardReady(
     onDismissShiftRecap: () -> Unit = {},
     onOpenShift: (String) -> Unit = {},
     onSetRate: () -> Unit = {},
+    syncAttention: SyncAttention? = null,
+    onReviewSync: () -> Unit = {},
     showFirstClockInCelebration: Boolean,
     onDismissFirstClockInCelebration: () -> Unit,
     onEnablePaidProjects: () -> Unit = {},
@@ -465,6 +470,17 @@ private fun DashboardReady(
     CompositionLocalProvider(LocalWorkZone provides workZone) {
     AuroraScreen {
             DashboardHeader(displayName = state.displayName)
+
+            syncAttention?.let { attention ->
+                SyncAttentionNotice(
+                    attention = attention,
+                    onReview = onReviewSync,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = Spacing.s8)
+                        .auroraEnter(index = 1),
+                )
+            }
 
             // One nudge at a time. These four used to be gated independently,
             // so in the worst case all of them stacked above the month summary

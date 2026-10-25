@@ -172,4 +172,9 @@
     <string name="dashboard_long_shift_title">עדיין במשמרת אחרי %1$s</string>
     <string name="dashboard_long_shift_body">אם שכחתם לצאת מהמשמרת, הגדירו את שעת הסיום האמיתית כדי שהשעות והשכר יהיו נכונים.</string>
     <string name="dashboard_long_shift_action">תיקון שעת הסיום</string>
+
+    <!-- Actionable sync notice (Wave 2) -->
+    <string name="dashboard_sync_failed">%1$d שינויים לא הועלו. הם שמורים בטלפון.</string>
+    <string name="dashboard_sync_session_expired">התחברו מחדש כדי להמשיך לגבות. המשמרות שמורות בטלפון.</string>
+    <string name="dashboard_sync_review">פרטים</string>
 </resources>
