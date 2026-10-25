@@ -134,6 +134,41 @@ class LocalShiftsRepositoryTest {
         assertEquals(punchedOutAt, dao.currentShifts.single().endTime)
     }
 
+    /**
+     * Every caller ends a shift without passing a break or notes, and the repository
+     * used to write `0` and `null` regardless — erasing a break recorded on the running
+     * shift, or the note Paid Projects stores at clock-in.
+     */
+    @Test
+    fun `clockOut keeps the break and notes recorded on the running shift`() = runTest {
+        val dao = InMemoryShiftDao()
+        val start = System.currentTimeMillis() - 7_200_000L
+        dao.insertShift(
+            shiftEntity(localId = "active-1", startTime = start)
+                .copy(breakMinutes = 30, notes = "Client site visit"),
+        )
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
+
+        val shift = repository.clockOut("active-1")
+
+        assertEquals(30, shift.breakMinutes)
+        assertEquals("Client site visit", shift.notes)
+        assertEquals(30, dao.currentShifts.single().breakMinutes)
+    }
+
+    @Test
+    fun `clockOut still replaces the break and notes when they are given`() = runTest {
+        val dao = InMemoryShiftDao()
+        val start = System.currentTimeMillis() - 7_200_000L
+        dao.insertShift(shiftEntity(localId = "active-1", startTime = start).copy(breakMinutes = 30))
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
+
+        val shift = repository.clockOut("active-1", breakMinutes = 45, notes = "Long lunch")
+
+        assertEquals(45, shift.breakMinutes)
+        assertEquals("Long lunch", shift.notes)
+    }
+
     private fun compensationProfileEntity(
         localId: String,
         userId: String = "u1",

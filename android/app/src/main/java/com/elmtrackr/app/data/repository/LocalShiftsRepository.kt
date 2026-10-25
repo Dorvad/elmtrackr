@@ -120,7 +120,7 @@ class LocalShiftsRepository @Inject constructor(
 
     override suspend fun clockOut(
         localId: String,
-        breakMinutes: Int,
+        breakMinutes: Int?,
         notes: String?,
         compensationSnapshot: CompensationSnapshot?,
         endTimeMillis: Long?,
@@ -131,8 +131,8 @@ class LocalShiftsRepository @Inject constructor(
         val endTime = (endTimeMillis ?: now).coerceIn(existing.startTime, now.coerceAtLeast(existing.startTime))
         val updated = existing.copy(
             endTime = endTime,
-            breakMinutes = breakMinutes,
-            notes = notes,
+            breakMinutes = breakMinutes ?: existing.breakMinutes,
+            notes = notes ?: existing.notes,
             compensationSnapshotJson = compensationSnapshot?.let { CompensationRulesCodec.encodeSnapshot(it) },
             updatedAt = now,
             syncStatus = syncStatusForMutation(existing),
