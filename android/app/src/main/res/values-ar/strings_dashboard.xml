@@ -148,7 +148,7 @@
     <string name="dashboard_setup_celebration_body">لقد استكشفت الأساسيات. و‏ElmTrackr الآن يتتبّع مناوباتك ويحسب أجرها بالطريقة التي تعمل بها تمامًا.</string>
     <string name="dashboard_start_time_future_error">لا يمكن أن يكون وقت البداية في المستقبل.</string>
     <string name="dashboard_month_summary_open_report">عرض التقرير الكامل</string>
-    <string name="dashboard_gross_before_tax">الإجمالي · قبل الضريبة</string>
+    <string name="dashboard_gross_before_tax">الإجمالي التقديري · قبل الضريبة</string>
 
     <!-- Work profile selection above the clock -->
     <string name="dashboard_work_profile_label">العمل في</string>
@@ -157,4 +157,21 @@
     <!-- Evolution clock card captions -->
     <string name="dashboard_clock_evolving">يتطوّر</string>
     <string name="dashboard_clock_napping">نائم</string>
+
+    <!-- Month card, clock-out recap and long-shift notice (Wave 2) -->
+    <string name="dashboard_stat_worked">ساعات العمل</string>
+    <string name="dashboard_all_jobs">كل الأعمال</string>
+    <string name="dashboard_month_no_shifts">لا توجد ورديات مكتملة هذا الشهر بعد.</string>
+    <string name="dashboard_no_rate_hint">أضف أجرك بالساعة لرؤية الأرباح التقديرية.</string>
+    <string name="dashboard_no_rate_action">تحديد الأجر</string>
+    <string name="dashboard_recap_title">انتهت الوردية</string>
+    <string name="dashboard_recap_time_range">%1$s – %2$s</string>
+    <string name="dashboard_recap_estimated_pay">الأجر التقديري</string>
+    <string name="dashboard_recap_before_tax">تقدير قبل الضريبة</string>
+    <string name="dashboard_recap_review">مراجعة أو تعديل</string>
+    <string name="dashboard_recap_done">تم</string>
+    <string name="dashboard_recap_dismiss">إغلاق ملخص الوردية</string>
+    <string name="dashboard_long_shift_title">ما زلت في الوردية بعد %1$s</string>
+    <string name="dashboard_long_shift_body">إذا نسيت تسجيل الخروج، حدّد وقت الانتهاء الفعلي لتبقى ساعاتك وأجرك صحيحة.</string>
+    <string name="dashboard_long_shift_action">تصحيح وقت الانتهاء</string>
 </resources>

@@ -148,11 +148,28 @@
     <string name="dashboard_setup_celebration_body">Вы освоили основное. Теперь ElmTrackr учитывает и оценивает ваши смены ровно так, как вы работаете.</string>
     <string name="dashboard_start_time_future_error">Время начала не может быть в будущем.</string>
     <string name="dashboard_month_summary_open_report">Открыть полный отчёт</string>
-    <string name="dashboard_gross_before_tax">Начислено · до налогов</string>
+    <string name="dashboard_gross_before_tax">ОЦЕНКА · ДО НАЛОГОВ</string>
     <string name="dashboard_work_profile_label">Место работы</string>
     <string name="dashboard_active_work_profile">Смена начата: %1$s</string>
 
     <!-- Evolution clock card captions -->
     <string name="dashboard_clock_evolving">Развивается</string>
     <string name="dashboard_clock_napping">Спит</string>
+
+    <!-- Month card, clock-out recap and long-shift notice (Wave 2) -->
+    <string name="dashboard_stat_worked">Отработано</string>
+    <string name="dashboard_all_jobs">Все работы</string>
+    <string name="dashboard_month_no_shifts">В этом месяце ещё нет завершённых смен.</string>
+    <string name="dashboard_no_rate_hint">Укажите почасовую ставку, чтобы видеть оценку заработка.</string>
+    <string name="dashboard_no_rate_action">Указать ставку</string>
+    <string name="dashboard_recap_title">Смена завершена</string>
+    <string name="dashboard_recap_time_range">%1$s – %2$s</string>
+    <string name="dashboard_recap_estimated_pay">Расчётная оплата</string>
+    <string name="dashboard_recap_before_tax">Оценка до налогов</string>
+    <string name="dashboard_recap_review">Просмотреть или изменить</string>
+    <string name="dashboard_recap_done">Готово</string>
+    <string name="dashboard_recap_dismiss">Закрыть сводку смены</string>
+    <string name="dashboard_long_shift_title">Смена идёт уже %1$s</string>
+    <string name="dashboard_long_shift_body">Если вы забыли завершить смену, укажите реальное время окончания, чтобы часы и оплата были верными.</string>
+    <string name="dashboard_long_shift_action">Исправить окончание</string>
 </resources>

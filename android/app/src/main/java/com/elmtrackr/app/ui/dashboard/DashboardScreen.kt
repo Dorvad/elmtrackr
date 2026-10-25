@@ -93,9 +93,11 @@ import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.dashboard.DashboardPromo
 import com.elmtrackr.app.domain.dashboard.DashboardPromoInputs
 import com.elmtrackr.app.domain.dashboard.activeDashboardPromo
+import com.elmtrackr.app.domain.dashboard.LongShiftNotice
 import androidx.compose.foundation.clickable
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.common.moneyWithCode
+import com.elmtrackr.app.ui.common.paidTimeNote
 import com.elmtrackr.app.ui.design.ElmDistributionBar
 import com.elmtrackr.app.ui.design.ElmDistributionLegend
 import com.elmtrackr.app.ui.design.mirrorInRtl
@@ -187,8 +189,11 @@ fun DashboardScreen(
     onReviewRefunds: () -> Unit = onNavigateToReports,
     onNavigateToSettings: (SettingsLaunchRequest) -> Unit = {},
     onNavigateToProjects: () -> Unit = {},
+    /** Opens one shift's form in the Shifts tab — the recap's "Review or edit". */
+    onOpenShift: (String) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val shiftRecap by viewModel.shiftRecap.collectAsState()
     val showCelebration by viewModel.showFirstClockInCelebration.collectAsState()
     val projectShiftSummary by viewModel.projectShiftSummary.collectAsState()
     val setupChecklist by viewModel.setupChecklist.collectAsState()
@@ -256,6 +261,13 @@ fun DashboardScreen(
                             onProjectNoteChange = viewModel::setProjectClockInNote,
                             projectShiftSummary = projectShiftSummary,
                             onDismissProjectShiftSummary = viewModel::dismissProjectShiftSummary,
+                            shiftRecap = shiftRecap,
+                            onDismissShiftRecap = viewModel::dismissShiftRecap,
+                            onOpenShift = { shiftId ->
+                                viewModel.dismissShiftRecap()
+                                onOpenShift(shiftId)
+                            },
+                            onSetRate = { onNavigateToSettings(SettingsLaunchRequest.COMPENSATION) },
                             onViewProject = {
                                 viewModel.dismissProjectShiftSummary()
                                 onNavigateToProjects()
@@ -320,6 +332,10 @@ private fun DashboardReady(
     todayEarningsCurrency: String? = null,
     onDismissProjectShiftSummary: () -> Unit = {},
     onViewProject: () -> Unit = {},
+    shiftRecap: DashboardViewModel.ShiftRecap? = null,
+    onDismissShiftRecap: () -> Unit = {},
+    onOpenShift: (String) -> Unit = {},
+    onSetRate: () -> Unit = {},
     showFirstClockInCelebration: Boolean,
     onDismissFirstClockInCelebration: () -> Unit,
     onEnablePaidProjects: () -> Unit = {},
@@ -470,6 +486,7 @@ private fun DashboardReady(
                     setupChecklistAvailable = setupChecklist != null,
                     projectSummaryAvailable = projectShiftSummary != null,
                     updateWizardVisible = state.showPaidProjectsWizard,
+                    shiftRecapAvailable = shiftRecap != null,
                 ),
             )
 
@@ -556,6 +573,34 @@ private fun DashboardReady(
                         .padding(bottom = 12.dp)
                         .auroraEnter(index = 1),
                 )
+            }
+
+            shiftRecap?.takeIf { promo == DashboardPromo.SHIFT_RECAP }?.let { recap ->
+                ShiftRecapCard(
+                    recap = recap,
+                    onReview = { onOpenShift(recap.shiftId) },
+                    onDismiss = onDismissShiftRecap,
+                    onSetRate = onSetRate,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = Spacing.s12)
+                        .auroraEnter(index = 1),
+                )
+            }
+
+            // Ticked by the minute, and only read while a shift runs.
+            if (activeShift != null) {
+                val now = rememberCurrentInstant(MINUTE_MILLIS)
+                if (LongShiftNotice.shouldShow(activeShift, now)) {
+                    LongShiftNoticeCard(
+                        elapsedMinutes = ShiftDurationCalculator.elapsedMinutes(activeShift, now) ?: 0,
+                        onFixEndTime = { onOpenShift(activeShift.id) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = Spacing.s12)
+                            .auroraEnter(index = 1),
+                    )
+                }
             }
 
             if (activeShift?.isProjectTime == true) {
@@ -705,6 +750,8 @@ private fun DashboardReady(
                             paySummary = state.paySummary,
                             onOpenReport = onNavigateToReports,
                             modifier = Modifier.auroraEnter(index = 2),
+                            onSetRate = onSetRate,
+                            coversSeveralJobs = state.profiles.size > 1,
                         )
                         RecentShiftsSection(
                             recentShifts = state.recentShifts,
@@ -724,6 +771,8 @@ private fun DashboardReady(
                     paySummary   = state.paySummary,
                     onOpenReport = onNavigateToReports,
                     modifier     = Modifier.auroraEnter(index = 2),
+                    onSetRate    = onSetRate,
+                    coversSeveralJobs = state.profiles.size > 1,
                 )
 
                 RecentShiftsSection(
@@ -1568,6 +1617,14 @@ internal fun MonthSummaryCard(
     paySummary: PayrollCalculator.MonthlyPaySummary?,
     onOpenReport: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Whether any rate is configured. Without one there is no pay to show, and the
+     * card says how to get an estimate rather than leaving the space silently empty.
+     */
+    hasRate: Boolean = paySummary != null,
+    onSetRate: () -> Unit = {},
+    /** More than one job: say the figures cover all of them. */
+    coversSeveralJobs: Boolean = false,
 ) {
     // Keyed on the current month, so the heading follows the calendar over a
     // month boundary instead of naming the month the screen was opened in. The
@@ -1580,6 +1637,10 @@ internal fun MonthSummaryCard(
     }
     val shiftCount = report?.shiftCount ?: 0
     val openReportLabel = stringResource(R.string.dashboard_month_summary_open_report)
+    val shiftCountText = stringResource(
+        if (shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other,
+        shiftCount,
+    )
 
     ElmCardPadded(
         modifier = modifier
@@ -1596,10 +1657,11 @@ internal fun MonthSummaryCard(
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = stringResource(
-                    if (shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other,
-                    shiftCount,
-                ),
+                text = if (coversSeveralJobs) {
+                    "${stringResource(R.string.dashboard_all_jobs)} · $shiftCountText"
+                } else {
+                    shiftCountText
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium,
@@ -1610,6 +1672,11 @@ internal fun MonthSummaryCard(
 
         // Hours and pay on one line: the two numbers a user opens the app to
         // check. Everything behind them lives one tap away in Reports.
+        //
+        // The hours are the hours *worked*. They used to be the payable figure
+        // under the label "Total", so a profile that rounds or guarantees a minimum
+        // shift showed time nobody physically worked. Paid time now appears only
+        // where it differs, on its own line, with the rule that made it differ.
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1619,14 +1686,14 @@ internal fun MonthSummaryCard(
                 Text(
                     text = stringResource(
                         R.string.dashboard_hours_value,
-                        HoursFormatter.decimal(report?.totalMinutes ?: 0, appLocale()),
+                        HoursFormatter.decimal(report?.workedMinutes ?: 0, locale),
                     ),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,
                 )
                 Text(
-                    text = stringResource(R.string.dashboard_stat_total),
+                    text = stringResource(R.string.dashboard_stat_worked),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold,
@@ -1641,7 +1708,7 @@ internal fun MonthSummaryCard(
                     paid.forEach { totals ->
                         Text(
                             text = if (paid.size == 1) {
-                                MoneyFormatter.format(totals.totalGross, totals.currencyCode, appLocale())
+                                MoneyFormatter.format(totals.totalGross, totals.currencyCode, locale)
                             } else {
                                 moneyWithCode(totals.totalGross, totals.currencyCode)
                             },
@@ -1665,21 +1732,65 @@ internal fun MonthSummaryCard(
             }
         }
 
+        report?.takeIf { it.payableDiffersFromWorked }?.let { r ->
+            paidTimeNote(
+                stringResource(R.string.dashboard_hours_value, HoursFormatter.decimal(r.totalMinutes, locale)),
+                r.paidTimeReasons,
+            )?.let { note ->
+                Spacer(Modifier.height(Layout.inlineGap))
+                Text(
+                    text = note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
         Spacer(Modifier.height(Layout.rowGap))
 
-        ElmDistributionBar(
-            regularMinutes = report?.regularMinutes ?: 0,
-            overtimeMinutes = report?.overtimeMinutes ?: 0,
-            weekendMinutes = report?.weekendMinutes ?: 0,
-        )
+        if (shiftCount == 0) {
+            // A bar and three "0.0h" rows describe nothing; one sentence does.
+            Text(
+                text = stringResource(R.string.dashboard_month_no_shifts),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            ElmDistributionBar(
+                regularMinutes = report?.regularMinutes ?: 0,
+                overtimeMinutes = report?.overtimeMinutes ?: 0,
+                weekendMinutes = report?.weekendMinutes ?: 0,
+            )
 
-        Spacer(Modifier.height(Layout.inlineGap))
+            Spacer(Modifier.height(Layout.inlineGap))
 
-        ElmDistributionLegend(
-            regularMinutes = report?.regularMinutes ?: 0,
-            overtimeMinutes = report?.overtimeMinutes ?: 0,
-            weekendMinutes = report?.weekendMinutes ?: 0,
-        )
+            ElmDistributionLegend(
+                regularMinutes = report?.regularMinutes ?: 0,
+                overtimeMinutes = report?.overtimeMinutes ?: 0,
+                weekendMinutes = report?.weekendMinutes ?: 0,
+            )
+        }
+
+        if (!hasRate) {
+            Spacer(Modifier.height(Layout.rowGap))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.dashboard_no_rate_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onSetRate) {
+                    Text(
+                        stringResource(R.string.dashboard_no_rate_action),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
 
         Spacer(Modifier.height(Layout.rowGap))
 
@@ -1872,9 +1983,15 @@ internal fun DashboardReadyPreview(
     state: DashboardUiState.Ready,
     modifier: Modifier = Modifier,
     onNavigateToReports: () -> Unit = {},
+    shiftRecap: DashboardViewModel.ShiftRecap? = null,
+    onOpenShift: (String) -> Unit = {},
+    onSetRate: () -> Unit = {},
 ) {
     DashboardReady(
         state = state,
+        shiftRecap = shiftRecap,
+        onOpenShift = onOpenShift,
+        onSetRate = onSetRate,
         onClockIn = {},
         onClockOut = {},
         onEditStartTime = { _, _ -> },

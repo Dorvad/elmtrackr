@@ -146,7 +146,7 @@
     <string name="dashboard_setup_celebration_body">You\'ve explored the essentials. ElmTrackr now tracks and prices your shifts exactly the way you work.</string>
     <string name="dashboard_start_time_future_error">Start time can\'t be in the future.</string>
     <string name="dashboard_month_summary_open_report">View full report</string>
-    <string name="dashboard_gross_before_tax">GROSS · BEFORE TAX</string>
+    <string name="dashboard_gross_before_tax">ESTIMATED GROSS · BEFORE TAX</string>
 
     <!-- Work profile selection above the clock -->
     <string name="dashboard_work_profile_label">Working at</string>
@@ -155,4 +155,21 @@
     <!-- Evolution clock card captions -->
     <string name="dashboard_clock_evolving">EVOLVING</string>
     <string name="dashboard_clock_napping">NAPPING</string>
+
+    <!-- Month card, clock-out recap and long-shift notice (Wave 2) -->
+    <string name="dashboard_stat_worked">Worked</string>
+    <string name="dashboard_all_jobs">All jobs</string>
+    <string name="dashboard_month_no_shifts">No completed shifts this month yet.</string>
+    <string name="dashboard_no_rate_hint">Add your hourly rate to see estimated earnings.</string>
+    <string name="dashboard_no_rate_action">Set rate</string>
+    <string name="dashboard_recap_title">Shift ended</string>
+    <string name="dashboard_recap_time_range">%1$s – %2$s</string>
+    <string name="dashboard_recap_estimated_pay">Estimated pay</string>
+    <string name="dashboard_recap_before_tax">Estimate, before tax</string>
+    <string name="dashboard_recap_review">Review or edit</string>
+    <string name="dashboard_recap_done">Done</string>
+    <string name="dashboard_recap_dismiss">Dismiss shift summary</string>
+    <string name="dashboard_long_shift_title">Still clocked in after %1$s</string>
+    <string name="dashboard_long_shift_body">If you forgot to clock out, set the real end time so your hours and pay stay right.</string>
+    <string name="dashboard_long_shift_action">Fix end time</string>
 </resources>
