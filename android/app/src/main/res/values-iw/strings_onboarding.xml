@@ -35,7 +35,7 @@
     <!-- Welcome step -->
     <string name="onboarding_welcome_title">ברוכים הבאים ל־ElmTrackr</string>
     <string name="onboarding_welcome_replay_title">עוברים שוב על ההגדרות</string>
-    <string name="onboarding_welcome_replay_subtitle">עדכון הפרופיל, השכר, שבוע העבודה והפיצ׳רים.</string>
+    <string name="onboarding_welcome_replay_subtitle">בדקו את האזור והשכר. שעות נוספות, הפסקות ושאר הכללים יישארו כפי שהגדרתם.</string>
     <string name="onboarding_welcome_intro">השעות, השעות הנוספות והשכר שלך — הכול בהקשה אחת, גם בלי אינטרנט.</string>
     <string name="onboarding_how_it_works">איך זה עובד</string>
     <string name="onboarding_how_step1_title">נכנסים למשמרת כשמתחילים</string>

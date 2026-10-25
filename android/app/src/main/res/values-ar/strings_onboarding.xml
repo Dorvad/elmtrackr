@@ -35,7 +35,7 @@
     <!-- Welcome step -->
     <string name="onboarding_welcome_title">مرحبًا بك في ‏ElmTrackr</string>
     <string name="onboarding_welcome_replay_title">راجع إعداداتك</string>
-    <string name="onboarding_welcome_replay_subtitle">حدّث ملفك الشخصي وأجرك وأسبوع عملك والميزات.</string>
+    <string name="onboarding_welcome_replay_subtitle">راجع منطقتك وأجرك. يبقى العمل الإضافي والاستراحات وبقية قواعدك كما ضبطتها.</string>
     <string name="onboarding_welcome_intro">ساعاتك وساعاتك الإضافية وأجرك — تُتَبَّع بلمسة واحدة، حتى دون اتصال.</string>
     <string name="onboarding_how_it_works">كيف يعمل</string>
     <string name="onboarding_how_step1_title">سجّل الحضور عند البدء</string>

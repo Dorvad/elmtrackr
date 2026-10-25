@@ -134,6 +134,66 @@ class LocalShiftsRepositoryTest {
         assertEquals(punchedOutAt, dao.currentShifts.single().endTime)
     }
 
+    /**
+     * A watch replaying its offline queue sends the same punch-in twice. If the shift
+     * it started has been clocked out in between, the replay must not replace it.
+     */
+    @Test
+    fun `a replayed watch punch-in does not overwrite the shift it already started`() = runTest {
+        val dao = InMemoryShiftDao()
+        val start = System.currentTimeMillis() - 7_200_000L
+        val end = start + 3_600_000L
+        dao.insertShift(
+            shiftEntity(localId = "done-1", startTime = start, endTime = end)
+                .copy(breakMinutes = 15, notes = "kept", remoteId = "remote-1"),
+        )
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
+
+        val result = repository.clockIn(userId = "u1", startTimeMillis = start)
+
+        assertEquals("done-1", result.id)
+        val stored = dao.currentShifts.single()
+        assertEquals(end, stored.endTime)
+        assertEquals(15, stored.breakMinutes)
+        assertEquals("kept", stored.notes)
+        assertEquals("remote-1", stored.remoteId)
+    }
+
+    /**
+     * Every caller ends a shift without passing a break or notes, and the repository
+     * used to write `0` and `null` regardless — erasing a break recorded on the running
+     * shift, or the note Paid Projects stores at clock-in.
+     */
+    @Test
+    fun `clockOut keeps the break and notes recorded on the running shift`() = runTest {
+        val dao = InMemoryShiftDao()
+        val start = System.currentTimeMillis() - 7_200_000L
+        dao.insertShift(
+            shiftEntity(localId = "active-1", startTime = start)
+                .copy(breakMinutes = 30, notes = "Client site visit"),
+        )
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
+
+        val shift = repository.clockOut("active-1")
+
+        assertEquals(30, shift.breakMinutes)
+        assertEquals("Client site visit", shift.notes)
+        assertEquals(30, dao.currentShifts.single().breakMinutes)
+    }
+
+    @Test
+    fun `clockOut still replaces the break and notes when they are given`() = runTest {
+        val dao = InMemoryShiftDao()
+        val start = System.currentTimeMillis() - 7_200_000L
+        dao.insertShift(shiftEntity(localId = "active-1", startTime = start).copy(breakMinutes = 30))
+        val repository = LocalShiftsRepository(dao, FakeRefundsRepository(), FakeSyncTrigger(), FakeCompensationProfileDao(), DirectTransactionRunner)
+
+        val shift = repository.clockOut("active-1", breakMinutes = 45, notes = "Long lunch")
+
+        assertEquals(45, shift.breakMinutes)
+        assertEquals("Long lunch", shift.notes)
+    }
+
     private fun compensationProfileEntity(
         localId: String,
         userId: String = "u1",
@@ -242,8 +302,12 @@ class LocalShiftsRepositoryTest {
         override suspend fun getShiftByStartTime(userId: String, startTime: Long): ShiftEntity? =
             shifts.value.firstOrNull { it.userId == userId && it.startTime == startTime && it.deletedAt == null }
 
+        // REPLACE, as Room does: a clash on the primary key *or* on the unique
+        // (userId, startTime) index deletes the existing row first.
         override suspend fun insertShift(shift: ShiftEntity) {
-            shifts.value = shifts.value.filterNot { it.localId == shift.localId } + shift
+            shifts.value = shifts.value.filterNot {
+                it.localId == shift.localId || (it.userId == shift.userId && it.startTime == shift.startTime)
+            } + shift
         }
 
         override suspend fun updateShift(shift: ShiftEntity) {

@@ -66,7 +66,7 @@ class FakeShiftsRepository : ShiftsRepository {
 
     override suspend fun clockOut(
         localId: String,
-        breakMinutes: Int,
+        breakMinutes: Int?,
         notes: String?,
         compensationSnapshot: CompensationSnapshot?,
         endTimeMillis: Long?,
@@ -75,8 +75,8 @@ class FakeShiftsRepository : ShiftsRepository {
         val updated = shift.copy(
             endTime = endTimeMillis?.let { Instant.ofEpochMilli(it) }
                 ?: Instant.parse("2024-01-08T17:00:00Z"),
-            breakMinutes = breakMinutes,
-            notes = notes,
+            breakMinutes = breakMinutes ?: shift.breakMinutes,
+            notes = notes ?: shift.notes,
             compensationSnapshot = compensationSnapshot,
         )
         _shifts.value = _shifts.value.map { if (it.id == localId) updated else it }

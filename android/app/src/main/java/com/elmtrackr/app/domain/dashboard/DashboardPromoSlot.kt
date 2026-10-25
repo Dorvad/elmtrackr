@@ -16,6 +16,9 @@ import java.time.YearMonth
  * come first in the layout.
  */
 enum class DashboardPromo {
+    /** Recap of the hourly shift the user just clocked out of on this screen. */
+    SHIFT_RECAP,
+
     /** Unresolved travel refunds, shown only in the last days of the month. */
     REFUND_REMINDER,
 
@@ -38,6 +41,7 @@ data class DashboardPromoInputs(
     val projectSummaryAvailable: Boolean,
     /** The update wizard is a full-screen dialog; nothing should stack under it. */
     val updateWizardVisible: Boolean = false,
+    val shiftRecapAvailable: Boolean = false,
 )
 
 /**
@@ -46,6 +50,10 @@ data class DashboardPromoInputs(
  *
  * The ordering is by how time-bounded each one is, not by importance:
  *
+ * 0. [DashboardPromo.SHIFT_RECAP] — not a nudge at all but the answer to the tap the
+ *    user just made. It is dismissed with a tap and never returns, so anything it
+ *    displaces is back a moment later; displacing *it* would leave a clock-out with
+ *    no feedback.
  * 1. [DashboardPromo.REFUND_REMINDER] — only appears in a few days each month
  *    and expires on its own, so a later slot may never come round.
  * 2. [DashboardPromo.FIRST_RUN_WELCOME] — only meaningful before the first
@@ -62,6 +70,7 @@ fun resolveDashboardPromos(inputs: DashboardPromoInputs): List<DashboardPromo> {
     if (inputs.updateWizardVisible) return emptyList()
 
     return buildList {
+        if (inputs.shiftRecapAvailable) add(DashboardPromo.SHIFT_RECAP)
         if (inputs.unresolvedRefundCount > 0 &&
             inputs.isRefundWindow &&
             !inputs.refundReminderDismissed

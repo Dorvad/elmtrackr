@@ -146,7 +146,7 @@
     <string name="dashboard_setup_celebration_body">הכרתם את היסודות. מעכשיו ElmTrackr עוקב ומחשב את המשמרות בדיוק לפי הדרך שבה אתם עובדים.</string>
     <string name="dashboard_start_time_future_error">שעת ההתחלה לא יכולה להיות בעתיד.</string>
     <string name="dashboard_month_summary_open_report">לדוח המלא</string>
-    <string name="dashboard_gross_before_tax">ברוטו · לפני מס</string>
+    <string name="dashboard_gross_before_tax">ברוטו משוער · לפני מס</string>
 
     <!-- Work profile selection above the clock -->
     <string name="dashboard_work_profile_label">עובד/ת ב־</string>
@@ -155,4 +155,26 @@
     <!-- Evolution clock card captions -->
     <string name="dashboard_clock_evolving">בהתפתחות</string>
     <string name="dashboard_clock_napping">ישן</string>
+
+    <!-- Month card, clock-out recap and long-shift notice (Wave 2) -->
+    <string name="dashboard_stat_worked">שעות עבודה</string>
+    <string name="dashboard_all_jobs">כל העבודות</string>
+    <string name="dashboard_month_no_shifts">עדיין אין משמרות שהסתיימו החודש.</string>
+    <string name="dashboard_no_rate_hint">הוסיפו תעריף שעתי כדי לראות הערכת שכר.</string>
+    <string name="dashboard_no_rate_action">הגדרת תעריף</string>
+    <string name="dashboard_recap_title">המשמרת הסתיימה</string>
+    <string name="dashboard_recap_time_range">%1$s – %2$s</string>
+    <string name="dashboard_recap_estimated_pay">שכר משוער</string>
+    <string name="dashboard_recap_before_tax">הערכה, לפני מס</string>
+    <string name="dashboard_recap_review">צפייה ועריכה</string>
+    <string name="dashboard_recap_done">סיום</string>
+    <string name="dashboard_recap_dismiss">סגירת סיכום המשמרת</string>
+    <string name="dashboard_long_shift_title">עדיין במשמרת אחרי %1$s</string>
+    <string name="dashboard_long_shift_body">אם שכחתם לצאת מהמשמרת, הגדירו את שעת הסיום האמיתית כדי שהשעות והשכר יהיו נכונים.</string>
+    <string name="dashboard_long_shift_action">תיקון שעת הסיום</string>
+
+    <!-- Actionable sync notice (Wave 2) -->
+    <string name="dashboard_sync_failed">שינויים שלא הועלו: %1$d. הם שמורים בטלפון.</string>
+    <string name="dashboard_sync_session_expired">התחברו מחדש כדי להמשיך לגבות. המשמרות שמורות בטלפון.</string>
+    <string name="dashboard_sync_review">פרטים</string>
 </resources>

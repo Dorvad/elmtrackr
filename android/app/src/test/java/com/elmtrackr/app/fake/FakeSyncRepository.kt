@@ -24,6 +24,10 @@ class FakeSyncRepository : SyncRepository {
         ),
     )
 
+    fun setLastStatus(status: String?) {
+        lastStatus.value = status
+    }
+
     fun setHealth(pending: Int, failed: Int) {
         health.value = SyncHealth(pending, failed)
     }

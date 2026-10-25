@@ -17,6 +17,7 @@ class DashboardPromoSlotTest {
         setupChecklistAvailable: Boolean = false,
         projectSummaryAvailable: Boolean = false,
         updateWizardVisible: Boolean = false,
+        shiftRecapAvailable: Boolean = false,
     ) = DashboardPromoInputs(
         unresolvedRefundCount = unresolvedRefundCount,
         isRefundWindow = isRefundWindow,
@@ -25,6 +26,7 @@ class DashboardPromoSlotTest {
         setupChecklistAvailable = setupChecklistAvailable,
         projectSummaryAvailable = projectSummaryAvailable,
         updateWizardVisible = updateWizardVisible,
+        shiftRecapAvailable = shiftRecapAvailable,
     )
 
     @Test
@@ -75,6 +77,28 @@ class DashboardPromoSlotTest {
      * "clock in once" — so a brand-new dashboard would otherwise carry the prompt
      * twice. The checklist is the richer of the two, so the card yields.
      */
+    /**
+     * A clock-out answered by nothing is the failure the recap exists to fix, so it
+     * outranks even the time-bounded refund reminder — which is back as soon as the
+     * recap is dismissed.
+     */
+    @Test
+    fun `the clock-out recap outranks every nudge and yields only to the wizard`() {
+        val everything = inputs(
+            unresolvedRefundCount = 2,
+            isRefundWindow = true,
+            setupChecklistAvailable = true,
+            projectSummaryAvailable = true,
+            shiftRecapAvailable = true,
+        )
+        assertEquals(DashboardPromo.SHIFT_RECAP, activeDashboardPromo(everything))
+        assertEquals(
+            DashboardPromo.REFUND_REMINDER,
+            activeDashboardPromo(everything.copy(shiftRecapAvailable = false)),
+        )
+        assertNull(activeDashboardPromo(everything.copy(updateWizardVisible = true)))
+    }
+
     @Test
     fun `the welcome card yields to the checklist`() {
         val withChecklist = inputs(hasNoShifts = true, setupChecklistAvailable = true)

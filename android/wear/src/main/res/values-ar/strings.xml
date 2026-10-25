@@ -19,6 +19,9 @@
     <string name="punch_out">تسجيل الانصراف</string>
     <string name="confirmed_in">تم تسجيل الحضور</string>
     <string name="confirmed_out">تم تسجيل الانصراف</string>
+    <!-- The phone has not taken the punch yet; it is queued on the watch. -->
+    <string name="confirmed_in_on_watch">تم تسجيل الحضور · محفوظ على الساعة</string>
+    <string name="confirmed_out_on_watch">تم تسجيل الانصراف · محفوظ على الساعة</string>
     <string name="phone_unreachable">الهاتف غير متاح</string>
     <string name="punch_failed">فشل التسجيل</string>
     <string name="wear_sync_disabled">الساعة معطّلة في إعدادات الهاتف</string>

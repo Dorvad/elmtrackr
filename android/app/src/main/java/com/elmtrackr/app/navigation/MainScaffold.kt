@@ -368,6 +368,16 @@ private fun NavGraphBuilder.mainNavGraph(
                     restoreState = true
                 }
             },
+            // The clock-out recap and the long-shift notice open the shift's form,
+            // by the same pending-edit route Reports uses for a shift row.
+            onOpenShift = { shiftId ->
+                onPendingEditSet(shiftId)
+                navController.navigate(BottomNavItem.SHIFTS.route) {
+                    popUpTo(BottomNavItem.DASHBOARD.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            },
         )
     }
     composable(BottomNavItem.SHIFTS.route) {

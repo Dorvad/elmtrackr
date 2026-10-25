@@ -37,6 +37,17 @@ object SyncStatusText {
         // Carries a count rather than a sentence, so the whole message is
         // translatable — which is why this one keeps its detail and the warning
         // and failure statuses, which carry free-form English, do not.
+        if (status.startsWith(WAITING_PREFIX)) {
+            val count = status.removePrefix(WAITING_PREFIX).trim().toIntOrNull()
+                ?: return UiText.Res(R.string.sync_failed_retrying)
+            return UiText.Res(R.string.sync_waiting_count, count)
+        }
+        // The pipeline's sentence is English; say it in the reader's language. It
+        // used to fall through to "we'll try again automatically", which is the one
+        // thing an expired session will not do.
+        if (status.startsWith(AUTH_EXPIRED_PREFIX)) {
+            return UiText.Res(R.string.sync_session_expired)
+        }
         if (status.startsWith(UNSENT_PREFIX)) {
             val count = status.removePrefix(UNSENT_PREFIX).trim().toIntOrNull()
                 ?: return UiText.Res(R.string.sync_failed_retrying)
@@ -107,4 +118,10 @@ object SyncStatusText {
 
     /** Kept in step with SyncRepositoryImpl.UNSENT_STATUS_PREFIX. */
     private const val UNSENT_PREFIX = "SyncedUnsent:"
+
+    /** Kept in step with SyncRepositoryImpl.WAITING_STATUS_PREFIX. */
+    private const val WAITING_PREFIX = "SyncWaiting:"
+
+    /** The start of SyncRepositoryImpl.AUTH_EXPIRED_STATUS; kept in step with it. */
+    private const val AUTH_EXPIRED_PREFIX = "Session expired"
 }

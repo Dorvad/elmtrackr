@@ -207,6 +207,79 @@ class OnboardingViewModelTest {
         assertEquals(80.0, profiles.first().baseHourlyRate)
     }
 
+    /**
+     * Replay asks about the region, rate and currency. It used to save the region
+     * preset's rules over the profile as well, wiping every rule the user had tuned
+     * on the compensation screen — none of which the wizard shows.
+     */
+    @Test
+    fun `replay in the same region keeps the profile's own rules`() = runTest {
+        val il = com.elmtrackr.app.domain.model.RegionCode.IL
+        val preset = com.elmtrackr.app.domain.compensation.CompensationResolver.createFromPreset(
+            userId = "u1",
+            regionCode = il,
+            baseHourlyRate = 30.0,
+        )
+        val tuned = preset.rules.copy(
+            paidBreaks = true,
+            minimumShiftMinutes = 240,
+            rounding = com.elmtrackr.app.domain.model.RoundingRules(enabled = true, incrementMinutes = 15, direction = "up"),
+            dailyStandardMinutes = 480,
+        )
+        compensationRepo.setProfiles(preset.copy(id = "profile-1", rules = tuned))
+        settingsRepo.setSettings(
+            UserSettings(
+                id = "settings", userId = "u1", hourlyRate = 30.0, regionCode = il,
+                defaultCompensationProfileId = "profile-1", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
+            ),
+        )
+        val vm = buildVm()
+
+        vm.completeOnboarding(
+            validInput(hourlyRate = 45.0).copy(regionCode = il, preserveExisting = true),
+        )
+        advanceUntilIdle()
+
+        val saved = compensationRepo.getProfiles("u1").single()
+        assertEquals(tuned, saved.rules)
+        assertEquals(45.0, saved.baseHourlyRate)
+        // The legacy mirror follows the rules that were kept, not the wizard's seed.
+        assertEquals(480, settingsRepo.getSettings("u1")!!.dailyOvertimeThresholdMinutes)
+    }
+
+    @Test
+    fun `replay with a different region applies that region's rules`() = runTest {
+        val preset = com.elmtrackr.app.domain.compensation.CompensationResolver.createFromPreset(
+            userId = "u1",
+            regionCode = com.elmtrackr.app.domain.model.RegionCode.IL,
+            baseHourlyRate = 30.0,
+        )
+        compensationRepo.setProfiles(preset.copy(id = "profile-1", rules = preset.rules.copy(paidBreaks = true)))
+        settingsRepo.setSettings(
+            UserSettings(
+                id = "settings", userId = "u1", hourlyRate = 30.0,
+                defaultCompensationProfileId = "profile-1", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
+            ),
+        )
+        val vm = buildVm()
+
+        vm.completeOnboarding(
+            validInput(hourlyRate = 25.0).copy(
+                regionCode = com.elmtrackr.app.domain.model.RegionCode.US,
+                preserveExisting = true,
+            ),
+        )
+        advanceUntilIdle()
+
+        val saved = compensationRepo.getProfiles("u1").single()
+        assertEquals(com.elmtrackr.app.domain.model.RegionCode.US, saved.regionCode)
+        assertEquals(
+            com.elmtrackr.app.domain.compensation.RegionPresets.forRegion(com.elmtrackr.app.domain.model.RegionCode.US)
+                .rules.paidBreaks,
+            saved.rules.paidBreaks,
+        )
+    }
+
     @Test
     fun `replay onboarding preserves clock style and unshown feature flags`() = runTest {
         settingsRepo.setSettings(

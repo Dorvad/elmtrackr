@@ -24,4 +24,36 @@
     <string name="a11y_collapsed">Collapsed</string>
     <string name="a11y_expand">Expand</string>
     <string name="a11y_collapse">Collapse</string>
+
+    <!-- Worked vs paid time, and pay components (Wave 2). Shared by Dashboard, the clock-out recap, Reports and the shift form. -->
+    <string name="paid_time_worked">Worked</string>
+    <string name="paid_time_paid">Paid time</string>
+    <string name="paid_time_elapsed">Shift length</string>
+    <string name="paid_time_unpaid_break">Unpaid break</string>
+    <string name="paid_time_paid_break">Paid break</string>
+    <string name="paid_time_rounding">Rounding</string>
+    <string name="paid_time_minimum">Minimum-shift top-up</string>
+    <string name="paid_time_reason_rounding">Paid as %1$s after rounding</string>
+    <string name="paid_time_reason_minimum">Paid as %1$s, including the minimum-shift guarantee</string>
+    <string name="paid_time_reason_paid_breaks">Paid as %1$s, including paid breaks</string>
+    <string name="paid_time_reason_mixed">Paid as %1$s under your work profile’s time rules</string>
+    <string name="pay_component_regular">Regular pay</string>
+    <string name="pay_component_overtime">Overtime</string>
+    <string name="pay_component_weekend">Weekend / rest day</string>
+    <string name="pay_component_holiday">Holidays &amp; premiums</string>
+    <string name="pay_component_night">Night premium</string>
+    <string name="pay_component_total">Estimated gross</string>
+    <string name="pay_component_deductions">Deductions you set up</string>
+    <string name="pay_component_after_deductions">After those deductions</string>
+    <string name="pay_estimate_disclaimer">Estimated from your work profile’s rules. Your payslip has the final figure.</string>
+    <string name="pay_bracket_regular">Regular</string>
+    <string name="pay_bracket_overtime">Overtime</string>
+    <string name="pay_bracket_seventh_day">7th consecutive day</string>
+    <string name="pay_bracket_weekend">Weekend</string>
+    <string name="pay_bracket_weekly_rest">Weekly rest</string>
+    <string name="pay_bracket_weekly_rest_overtime">Rest-day overtime</string>
+    <string name="pay_bracket_holiday">Holiday</string>
+    <string name="pay_bracket_holiday_overtime">Holiday overtime</string>
+    <string name="pay_bracket_premium">Premium</string>
+    <string name="pay_bracket_label">%1$s %2$s</string>
 </resources>

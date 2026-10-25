@@ -26,6 +26,18 @@ data class ShiftBreakdown(
     val overtimeMinutes: Int,
     val weekendMinutes: Int,
     val segments: List<DaySegment>,
+    /**
+     * Time actually worked: clock time less breaks, before rounding or a minimum-shift
+     * floor. [totalMinutes] is the *payable* figure the categories add up to; the two
+     * are equal unless the profile rounds, guarantees a minimum, pays breaks or
+     * auto-deducts one.
+     */
+    val workedMinutes: Int = totalMinutes,
+    /**
+     * How the shift's clock time became [totalMinutes]. Null for project time, whose
+     * hours are tracked but not paid as wages.
+     */
+    val paidTime: PaidTime? = null,
 )
 
 /**
@@ -48,10 +60,40 @@ data class WeeklyTotals(
 data class MonthlyReport(
     val year: Int,
     val month: Int,            // 1–12
+    /** Payable minutes — what the pay figures are derived from. See [workedMinutes]. */
     val totalMinutes: Int,
     val regularMinutes: Int,
     val overtimeMinutes: Int,
     val weekendMinutes: Int,
     val shiftCount: Int,
     val shifts: List<ShiftBreakdown>,
-)
+    /**
+     * Minutes actually worked across the month, before rounding or minimum-shift
+     * floors. Shown as "worked"; [totalMinutes] is shown as "paid" only where the two
+     * differ, so rounded time is never presented as time physically worked.
+     */
+    val workedMinutes: Int = totalMinutes,
+) {
+    /** True when the profile's time rules made the paid hours differ from the worked hours. */
+    val payableDiffersFromWorked: Boolean get() = totalMinutes != workedMinutes
+
+    /** Rounding across the month, signed. */
+    val roundingMinutes: Int get() = shifts.sumOf { it.paidTime?.roundingMinutes ?: 0 }
+
+    /** Minutes added by minimum-shift guarantees across the month. */
+    val minimumTopUpMinutes: Int get() = shifts.sumOf { it.paidTime?.minimumTopUpMinutes ?: 0 }
+
+    /** Recorded break minutes the profiles paid for across the month. */
+    val paidBreakMinutes: Int get() = shifts.sumOf { it.paidTime?.paidBreakMinutes ?: 0 }
+
+    /** Unpaid break minutes across the month, recorded and automatically deducted. */
+    val unpaidBreakMinutes: Int get() = shifts.sumOf { it.paidTime?.unpaidBreakMinutes ?: 0 }
+
+    /** Which rules made paid time differ from worked time this month. */
+    val paidTimeReasons: Set<PaidTimeReason>
+        get() = if (payableDiffersFromWorked) {
+            PaidTimeReason.of(roundingMinutes, minimumTopUpMinutes, paidBreakMinutes)
+        } else {
+            emptySet()
+        }
+}

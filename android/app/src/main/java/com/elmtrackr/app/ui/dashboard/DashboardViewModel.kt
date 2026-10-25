@@ -86,7 +86,26 @@ class DashboardViewModel @Inject constructor(
     // production keeps it off the main thread (see flowOn below).
     @ComputationDispatcher
     private val computationDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    // Nullable with a default only so tests that do not exercise sync need not build
+    // one; Hilt always provides it.
+    private val syncRepository: com.elmtrackr.app.data.sync.SyncRepository? = null,
 ) : ViewModel() {
+
+    /**
+     * A sync problem the user needs to act on, or null — which includes every
+     * ordinary offline moment. See [SyncAttention].
+     */
+    val syncAttention: StateFlow<SyncAttention?> =
+        authRepository.observeCurrentProfile()
+            .flatMapLatest { profile ->
+                val repo = syncRepository
+                if (profile == null || repo == null) return@flatMapLatest flowOf(null)
+                combine(repo.observeSyncHealth(profile.id), repo.observeLastSyncStatus()) { health, status ->
+                    SyncAttention.of(health, status)
+                }
+            }
+            .catch { emit(null) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _refreshNonce = MutableStateFlow(0)
     private val _showFirstClockInCelebration = MutableStateFlow(false)
@@ -646,6 +665,8 @@ class DashboardViewModel @Inject constructor(
                 selectedProjectId = _selectedProjectId.value,
                 projects = clockableProjects.value,
             )
+            // A new shift makes the previous recap old news.
+            _shiftRecap.value = null
             val shift = shiftsRepository.clockIn(
                 userId = userId,
                 compensationProfileId = workProfileId,
@@ -798,8 +819,80 @@ class DashboardViewModel @Inject constructor(
             if (clockedOut != null && clockedOut.isProjectTime) {
                 _projectShiftSummary.value = buildProjectShiftSummary(userId, clockedOut)
             }
+            if (clockedOut != null && clockedOut.isEmployeePaid) {
+                // Never let the recap cost the punch: it is computed after the shift is
+                // saved, and a failure here leaves the clock-out exactly as it was.
+                _shiftRecap.value = runCatching {
+                    buildShiftRecap(userId, clockedOut, settings, profiles)
+                }.getOrNull()
+            }
         }
     }
+
+    /**
+     * What the shift that just ended worked and is estimated to earn, shown once on
+     * the dashboard after a clock-out from this screen.
+     *
+     * Not a second calculation. The time comes from the walk both engines price from
+     * ([PayrollCalculator.shiftTime]) and the money from
+     * [PayrollCalculator.calculateShiftPayInContext] over the same pay-week window the
+     * month summary uses — the call Reports makes for the same shift's row — so the
+     * recap, the month total and the report cannot tell the user three different
+     * things about one shift.
+     *
+     * Held in memory only. It answers "what did I just do?", and a figure that
+     * reappeared after a restart would be answering a question nobody asked.
+     */
+    private val _shiftRecap = MutableStateFlow<ShiftRecap?>(null)
+    val shiftRecap: StateFlow<ShiftRecap?> = _shiftRecap
+
+    fun dismissShiftRecap() {
+        _shiftRecap.value = null
+    }
+
+    private suspend fun buildShiftRecap(
+        userId: String,
+        shift: Shift,
+        settings: UserSettings,
+        profiles: List<com.elmtrackr.app.domain.model.CompensationProfile>,
+    ): ShiftRecap? {
+        val end = shift.endTime ?: return null
+        val zone = WorkTimezone.zoneFor(settings)
+        val startDate = shift.startTime.atZone(zone).toLocalDate()
+        val premiumProfiles = premiumProfilesRepository.getProfiles(userId)
+        val context = shiftsRepository.observeShiftsForPayContext(
+            userId,
+            startDate.year,
+            startDate.monthValue,
+            zone,
+            MonthlyReportBuilder.defaultWeekStartDay(settings),
+        ).first().filter { it.isCompleted }
+        // The saved row, as the month summary will read it — including the
+        // compensation snapshot taken at clock-out.
+        val saved = context.firstOrNull { it.id == shift.id } ?: shift
+        return ShiftRecap(
+            shiftId = saved.id,
+            startTime = saved.startTime,
+            endTime = saved.endTime ?: end,
+            time = PayrollCalculator.shiftTime(saved, settings, profiles),
+            pay = PayrollCalculator.calculateShiftPayInContext(
+                saved,
+                context.ifEmpty { listOf(saved) },
+                settings,
+                profiles,
+                premiumProfiles,
+            ),
+        )
+    }
+
+    /** See [shiftRecap]. [pay] is null when the shift's profile has no hourly rate. */
+    data class ShiftRecap(
+        val shiftId: String,
+        val startTime: Instant,
+        val endTime: Instant,
+        val time: com.elmtrackr.app.domain.model.PaidTime?,
+        val pay: com.elmtrackr.app.domain.model.ShiftPayBreakdown?,
+    )
 
     /**
      * Non-blocking summary shown after a project shift ends: how much time was

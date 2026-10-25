@@ -13,7 +13,7 @@
     <string name="reports_hours_value">%1$sh</string>
     <string name="reports_all_hours_month">All hours this month</string>
     <string name="reports_pct_of_total">%1$d%% of total</string>
-    <string name="reports_gross_pay_before_tax">Gross Pay · Before Tax</string>
+    <string name="reports_gross_pay_before_tax">Estimated gross · before tax</string>
     <string name="reports_peak_performer">Peak Performer</string>
     <string name="reports_peak_more">You worked %1$d%% more hours than %2$s. Keep up the momentum!</string>
     <string name="reports_peak_fewer">You worked %1$d%% fewer hours than %2$s.</string>
@@ -201,4 +201,23 @@
          a full disk, a revoked storage permission, or a device with no app that accepts
          the file; before this the failure was silent. -->
     <string name="reports_export_failed">Could not export. Check your free storage and try again.</string>
+
+    <!-- Overview, pay explanation, job scope and export (Wave 2) -->
+    <string name="reports_scope_all_jobs">All jobs</string>
+    <string name="reports_scope_group">Jobs in this report</string>
+    <string name="reports_in_progress">Month in progress — up to %1$s</string>
+    <string name="reports_leave_line">Paid leave: %1$s, not counted as worked time</string>
+    <string name="reports_leave_only">No shifts this month — only paid leave, listed below.</string>
+    <string name="reports_breakdown_title">How your pay was estimated</string>
+    <string name="reports_paid_time_title">How paid time was counted</string>
+    <string name="reports_export_title">Export</string>
+    <string name="reports_export_subject">%1$s · %2$s</string>
+    <string name="reports_export_currency_one">Amounts in %1$s</string>
+    <string name="reports_export_currency_many">Amounts in %1$s, each total kept separate</string>
+    <string name="reports_export_csv">CSV spreadsheet</string>
+    <string name="reports_export_pdf">PDF summary</string>
+    <string name="reports_export_job">Job: %1$s</string>
+    <string name="reports_job_empty_title">No shifts at %1$s in %2$s</string>
+    <string name="reports_job_empty_body">Your other jobs have shifts this month.</string>
+    <string name="reports_job_empty_action">Show all jobs</string>
 </resources>

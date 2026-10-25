@@ -13,7 +13,7 @@
     <string name="reports_hours_value">%1$s שע׳</string>
     <string name="reports_all_hours_month">כל השעות החודש</string>
     <string name="reports_pct_of_total">%1$d%% מהסך</string>
-    <string name="reports_gross_pay_before_tax">שכר ברוטו · לפני מס</string>
+    <string name="reports_gross_pay_before_tax">ברוטו משוער · לפני מס</string>
     <string name="reports_peak_performer">שיא החודש</string>
     <string name="reports_peak_more">עבדת %1$d%% יותר שעות מאשר ב%2$s. שומרים על המומנטום!</string>
     <string name="reports_peak_fewer">עבדת %1$d%% פחות שעות מאשר ב%2$s.</string>
@@ -197,4 +197,23 @@
     <string name="insight_ramen_title">מונה ראמן</string>
     <string name="insight_ramen_text">ראמן אינסטנט מוכן תוך **%1$d דקות**. ב־**%2$d שע׳** עבודה אפשר היה להכין **%3$d קערות**. חיים בתקציב.</string>
     <string name="reports_export_failed">הייצוא לא הצליח. בדוק את השטח הפנוי ונסה שוב.</string>
+
+    <!-- Overview, pay explanation, job scope and export (Wave 2) -->
+    <string name="reports_scope_all_jobs">כל העבודות</string>
+    <string name="reports_scope_group">העבודות בדוח</string>
+    <string name="reports_in_progress">החודש עדיין בעיצומו — עד %1$s</string>
+    <string name="reports_leave_line">היעדרות בתשלום: %1$s, לא נספרת כזמן עבודה</string>
+    <string name="reports_leave_only">אין משמרות החודש — רק היעדרויות בתשלום, ברשימה למטה.</string>
+    <string name="reports_breakdown_title">איך חושב השכר המשוער</string>
+    <string name="reports_paid_time_title">איך נספר הזמן לתשלום</string>
+    <string name="reports_export_title">ייצוא</string>
+    <string name="reports_export_subject">%1$s · %2$s</string>
+    <string name="reports_export_currency_one">סכומים ב־%1$s</string>
+    <string name="reports_export_currency_many">סכומים ב־%1$s, כל סכום בנפרד</string>
+    <string name="reports_export_csv">גיליון CSV</string>
+    <string name="reports_export_pdf">סיכום PDF</string>
+    <string name="reports_export_job">עבודה: %1$s</string>
+    <string name="reports_job_empty_title">אין משמרות ב־%1$s בחודש %2$s</string>
+    <string name="reports_job_empty_body">בעבודות האחרות שלך יש משמרות החודש.</string>
+    <string name="reports_job_empty_action">הצגת כל העבודות</string>
 </resources>

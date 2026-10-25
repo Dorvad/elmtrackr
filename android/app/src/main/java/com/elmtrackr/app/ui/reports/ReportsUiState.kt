@@ -1,6 +1,7 @@
 package com.elmtrackr.app.ui.reports
 
 import com.elmtrackr.app.domain.PayrollCalculator
+import com.elmtrackr.app.domain.ReportScope
 import com.elmtrackr.app.domain.leave.AbsenceListEntry
 import com.elmtrackr.app.domain.leave.MonthlyLeaveEarnings
 import com.elmtrackr.app.domain.model.CompensationProfile
@@ -67,7 +68,21 @@ sealed interface ReportsUiState {
         val paidLeave: MonthlyLeaveEarnings? = null,
         /** One row per affected day, so the report names the date the user entered. */
         val leaveEntries: List<AbsenceListEntry> = emptyList(),
+        /** Which job the hours, pay, leave and exports cover. */
+        val scope: ReportScope = ReportScope.AllJobs,
+        /**
+         * Completed hourly shifts this month across every job, so a one-job report
+         * with nothing in it can say the other jobs have shifts and offer to show them.
+         */
+        val allJobsShiftCount: Int = 0,
     ) : ReportsUiState {
+        /** The scoped job's name, or null for all jobs. */
+        val scopedJobName: String?
+            get() = (scope as? ReportScope.Job)?.let { job -> profiles.firstOrNull { it.id == job.profileId }?.name }
+
+        /** The job picker is offered only when there is more than one job to pick. */
+        val canChooseJob: Boolean get() = profiles.size > 1
+
         /**
          * Estimated leave gross per currency, alphabetical, zero buckets dropped.
          *

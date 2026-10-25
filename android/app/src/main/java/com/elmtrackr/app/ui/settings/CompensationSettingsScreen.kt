@@ -47,7 +47,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.activity.compose.BackHandler
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.design.auroraExpandActionLabel
+import com.elmtrackr.app.ui.design.auroraExpandable
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.foundation.clickable
+import com.elmtrackr.app.ui.common.DecimalInput
 import com.elmtrackr.app.ui.common.durationText
 import com.elmtrackr.app.domain.compensation.StackingPolicyLabels
 import com.elmtrackr.app.domain.ShiftDurationCalculator
@@ -131,6 +138,11 @@ internal fun CompensationSettingsContent(
     var pendingRegion by remember { mutableStateOf<RegionCode?>(null) }
     var confirmClearedRate by remember { mutableStateOf(false) }
     var showBackDiscard by remember { mutableStateOf(false) }
+    var pendingCreate by remember { mutableStateOf(false) }
+    // Advanced rules start folded: they come from the region preset and most people
+    // never need to touch them. Keyed on the profile like the fields, so a switch
+    // (which is only allowed with nothing unsaved) starts folded again.
+    var showAdvanced by rememberSaveable(state.profile.id) { mutableStateOf(false) }
 
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
     var newProfileName by rememberSaveable { mutableStateOf("") }
@@ -141,7 +153,7 @@ internal fun CompensationSettingsContent(
     var currencyCode by rememberSaveable(state.profile.id) { mutableStateOf(state.profile.currencyCode) }
     var timezone by rememberSaveable(state.profile.id) { mutableStateOf(state.profile.timezone) }
     var hourlyRateText by rememberSaveable(state.profile.id) {
-        mutableStateOf(state.profile.baseHourlyRate?.toString().orEmpty())
+        mutableStateOf(state.profile.baseHourlyRate?.let(DecimalInput::format).orEmpty())
     }
     var stackingPolicy by rememberSaveable(state.profile.id) { mutableStateOf(state.profile.stackingPolicy) }
     // CompensationRules is not Bundle-saveable; unsaved tier edits still reset
@@ -167,11 +179,16 @@ internal fun CompensationSettingsContent(
      * keystroke would prompt for one anyway. The sick arrangement is included
      * because it saves with this form even though it lives on the workplace.
      */
-    val isDirty = name != state.profile.name ||
+    //
+    // Values are compared as they will be saved: the name trimmed (the ViewModel
+    // trims it) and the rate as a number. Comparing the typed text with
+    // `Double.toString()` meant "60" never equalled the saved 60.0, so a form saved
+    // a moment ago still asked whether to discard its changes.
+    val isDirty = name.trim() != state.profile.name ||
         regionCode != state.profile.regionCode ||
         currencyCode != state.profile.currencyCode ||
         timezone != state.profile.timezone ||
-        hourlyRateText != state.profile.baseHourlyRate?.toString().orEmpty() ||
+        DecimalInput.parse(hourlyRateText) != state.profile.baseHourlyRate ||
         stackingPolicy != state.profile.stackingPolicy ||
         rules != state.profile.rules ||
         sickLeave != state.sickLeave ||
@@ -186,7 +203,7 @@ internal fun CompensationSettingsContent(
                 regionCode = regionCode,
                 currencyCode = currencyCode,
                 timezone = timezone,
-                hourlyRate = hourlyRateText.toDoubleOrNull(),
+                hourlyRate = DecimalInput.parse(hourlyRateText),
                 stackingPolicy = stackingPolicy,
                 rules = rules,
                 sickLeave = sickLeave,
@@ -195,6 +212,11 @@ internal fun CompensationSettingsContent(
             ),
         )
     }
+
+    // The system back gesture, not only the arrow: without this the gesture reached
+    // the settings hub's handler, which counts no pending edits for this screen, and
+    // left with them unsaved.
+    BackHandler(enabled = isDirty) { showBackDiscard = true }
 
     LaunchedEffect(state.saveMessage) {
         if (state.saveMessage != null) {
@@ -269,9 +291,15 @@ internal fun CompensationSettingsContent(
                     }
                     FilterChip(
                         selected = false,
+                        // Creating a job selects it, which re-keys every field — the same
+                        // loss as switching chips, so the same question first.
                         onClick = {
-                            newProfileName = ""
-                            showCreateDialog = true
+                            if (isDirty) {
+                                pendingCreate = true
+                            } else {
+                                newProfileName = ""
+                                showCreateDialog = true
+                            }
                         },
                         label = { Text(stringResource(R.string.settings_add_profile)) },
                     )
@@ -351,6 +379,20 @@ internal fun CompensationSettingsContent(
                 ) {
                     currencyCode = it
                 }
+                // The live profile's currency labels every shift at this job, past
+                // ones included, and nothing is converted. Said before saving rather
+                // than discovered afterwards in a report.
+                if (currencyCode != state.profile.currencyCode) {
+                    Text(
+                        stringResource(
+                            R.string.settings_currency_change_hint,
+                            com.elmtrackr.app.domain.text.BidiText.isolate(currencyCode),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.s4),
+                    )
+                }
                 Spacer(Modifier.height(12.dp))
                 StringDropdown(stringResource(R.string.settings_timezone), timezone, state.timezoneOptions.map { it to it }) {
                     timezone = it
@@ -367,8 +409,7 @@ internal fun CompensationSettingsContent(
                     // The comma a Hebrew or Arabic keyboard offers is accepted and
                     // read as a decimal point rather than silently dropped.
                     onValueChange = { input ->
-                        hourlyRateText = input.filter { c -> c.isDigit() || c == '.' || c == ',' }
-                            .replace(',', '.')
+                        hourlyRateText = DecimalInput.sanitize(input)
                     },
                     label = { Text(stringResource(R.string.settings_base_hourly_rate, currencyCode)) },
                     isError = rateInvalid,
@@ -381,12 +422,44 @@ internal fun CompensationSettingsContent(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
-                Spacer(Modifier.height(12.dp))
-                StackingPolicyRow(stackingPolicy) { stackingPolicy = it }
             }
         }
 
+        // Everything below the essentials — the overtime ladder, weekend and holiday
+        // premiums, breaks and rounding, sick pay, deductions — folded behind one row
+        // that says what it holds. Nothing is removed; it is one tap away.
         item {
+            ElmCardPadded {
+                val expandLabel = auroraExpandActionLabel(showAdvanced)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClickLabel = expandLabel, role = Role.Button) { showAdvanced = !showAdvanced }
+                        .auroraExpandable(showAdvanced)
+                        .padding(vertical = Spacing.s4),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.settings_advanced_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            stringResource(R.string.settings_advanced_summary),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Icon(
+                        if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                    )
+                }
+            }
+        }
+
+        if (showAdvanced) item {
             ElmCardPadded {
                 ElmSectionHeader(stringResource(R.string.settings_section_work_week))
                 Spacer(Modifier.height(12.dp))
@@ -481,9 +554,11 @@ internal fun CompensationSettingsContent(
             }
         }
 
-        item {
+        if (showAdvanced) item {
             ElmCardPadded {
                 ElmSectionHeader(stringResource(R.string.settings_section_premiums))
+                Spacer(Modifier.height(Spacing.s12))
+                StackingPolicyRow(stackingPolicy) { stackingPolicy = it }
                 Spacer(Modifier.height(8.dp))
                 ToggleRow(stringResource(R.string.settings_overtime), rules.overtimeEnabled) { rules = rules.copy(overtimeEnabled = it) }
                 if (rules.overtimeEnabled) {
@@ -553,9 +628,15 @@ internal fun CompensationSettingsContent(
             }
         }
 
-        item {
+        if (showAdvanced) item {
             ElmCardPadded {
                 ElmSectionHeader(stringResource(R.string.settings_section_time_breaks))
+                Text(
+                    stringResource(R.string.settings_time_breaks_intro),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Spacing.s4),
+                )
                 Spacer(Modifier.height(8.dp))
                 ToggleRow(stringResource(R.string.settings_breaks_paid), rules.paidBreaks) { rules = rules.copy(paidBreaks = it) }
                 if (!rules.paidBreaks) {
@@ -608,7 +689,7 @@ internal fun CompensationSettingsContent(
             }
         }
 
-        item {
+        if (showAdvanced) item {
             SickLeaveCard(
                 sickLeave = sickLeave,
                 regionCode = regionCode,
@@ -621,7 +702,7 @@ internal fun CompensationSettingsContent(
             )
         }
 
-        item {
+        if (showAdvanced) item {
             ElmCardPadded {
                 ElmSectionHeader(stringResource(R.string.settings_section_deductions))
                 Spacer(Modifier.height(8.dp))
@@ -722,6 +803,17 @@ internal fun CompensationSettingsContent(
                 onSelectProfile(targetId)
             },
             onKeep = { pendingProfileSwitch = null },
+        )
+    }
+
+    if (pendingCreate) {
+        DiscardChangesDialog(
+            onDiscard = {
+                pendingCreate = false
+                newProfileName = ""
+                showCreateDialog = true
+            },
+            onKeep = { pendingCreate = false },
         )
     }
 
@@ -908,12 +1000,12 @@ private fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Un
 
 @Composable
 private fun HoursField(label: String, minutes: Int, onHours: (Double) -> Unit) {
-    var text by remember(minutes) { mutableStateOf((minutes / 60.0).let { if (it == it.toLong().toDouble()) it.toLong().toString() else "%.2f".format(it) }) }
+    var text by remember(minutes) { mutableStateOf(DecimalInput.format(minutes / 60.0)) }
     OutlinedTextField(
         value = text,
         onValueChange = {
-            text = it
-            it.toDoubleOrNull()?.let(onHours)
+            text = DecimalInput.sanitize(it)
+            DecimalInput.parse(it)?.let(onHours)
         },
         label = { Text(label) },
         modifier = Modifier.fillMaxWidth(),
@@ -992,12 +1084,12 @@ private fun OptionalMinutesField(label: String, value: Int?, onChange: (Int?) ->
 
 @Composable
 private fun MultiplierField(label: String, value: Double, onChange: (Double) -> Unit) {
-    var text by remember(value) { mutableStateOf(value.toString()) }
+    var text by remember(value) { mutableStateOf(DecimalInput.format(value)) }
     OutlinedTextField(
         value = text,
         onValueChange = {
-            text = it
-            it.toDoubleOrNull()?.let(onChange)
+            text = DecimalInput.sanitize(it)
+            DecimalInput.parse(it)?.let(onChange)
         },
         label = { Text(label) },
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),

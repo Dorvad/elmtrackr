@@ -43,7 +43,11 @@ object ShiftClassifier {
      * rounding applied, the minimum-shift floor honoured. It is not always the same
      * as [workedMinutes], which is the clock time less breaks — rounding and the
      * minimum can make the payable figure larger. Reports that add hours want the
-     * payable figure, because that is the one the money is derived from.
+     * payable figure, because that is the one the money is derived from; anything
+     * labelled "worked" wants [workedMinutes].
+     *
+     * [workedMinutes] used to be assigned the payable figure despite this
+     * description. Nothing read it then; the worked-vs-paid display now does.
      */
     data class ShiftClassification(
         val payableMinutes: Int,
@@ -90,8 +94,8 @@ object ShiftClassifier {
         if (!shift.isEmployeePaid) return null
 
         val resolved = CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
-        val worked = PayrollCalculator.payableNetMinutes(shift, resolved.rules) ?: return null
-        if (worked <= 0) return null
+        val time = PayrollCalculator.payableTime(shift, resolved.rules) ?: return null
+        if (time.payableMinutes <= 0) return null
 
         // Project hours must not consume a weekly allowance that belongs to real
         // employee work, nor count toward a seventh consecutive workday.
@@ -105,7 +109,7 @@ object ShiftClassifier {
 
         return ShiftClassification(
             payableMinutes = byCategory.values.sum(),
-            workedMinutes = worked,
+            workedMinutes = time.workedMinutes,
             byCategory = byCategory,
         )
     }
@@ -165,10 +169,10 @@ object ShiftClassifier {
                 )
                 weekShifts.filter { it.id in reportedIds }.forEach { shift ->
                     val segments = classified[shift.id] ?: return@forEach
-                    val worked = PayrollCalculator.payableNetMinutes(
+                    val worked = PayrollCalculator.payableTime(
                         shift,
                         CompensationResolver.resolveShiftCompensation(shift, settings, profiles).rules,
-                    ) ?: return@forEach
+                    )?.workedMinutes ?: return@forEach
                     val byCategory = segments.groupingBy { it.category }
                         .fold(0) { acc, seg -> acc + seg.minutes }
                     out[shift.id] = ShiftClassification(

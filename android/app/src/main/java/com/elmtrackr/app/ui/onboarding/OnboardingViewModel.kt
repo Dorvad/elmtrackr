@@ -97,13 +97,21 @@ class OnboardingViewModel @Inject constructor(
                 val existingDefault = existingProfiles.firstOrNull { it.isDefault }
                     ?: existingProfiles.firstOrNull()
                 val compensationProfile = if (input.preserveExisting && existingDefault != null) {
+                    // A replay re-asks a handful of questions; it does not show the
+                    // overtime ladder, breaks, rounding, premiums or deductions. It used
+                    // to save the region preset's rules over all of them anyway, so a
+                    // user who replayed the tour to change their rate lost every rule
+                    // they had tuned. The profile's own rules now stay unless the user
+                    // actually picked a different region — the one answer here that
+                    // means "use that region's rules".
+                    val keepRules = existingDefault.regionCode == input.regionCode
                     compensationProfilesRepository.upsertProfile(
                         existingDefault.copy(
                             regionCode = input.regionCode,
                             currencyCode = input.currencyCode,
                             timezone = input.timezone,
                             baseHourlyRate = input.hourlyRate,
-                            rules = mergedRules,
+                            rules = if (keepRules) existingDefault.rules else mergedRules,
                             isDefault = true,
                         ),
                     )
@@ -115,11 +123,13 @@ class OnboardingViewModel @Inject constructor(
                         ),
                     )
                 }
+                // Mirrored from the rules actually saved, so the legacy settings fields
+                // cannot disagree with the profile the engines price from.
                 val source = base.copy(
                     timezone = input.timezone,
-                    dailyOvertimeThresholdMinutes = (input.dailyOvertimeHours * 60).roundToInt(),
-                    weeklyOvertimeThresholdMinutes = (input.weeklyOvertimeHours * 60).roundToInt(),
-                    weekendDays = input.weekendDays,
+                    dailyOvertimeThresholdMinutes = compensationProfile.rules.dailyStandardMinutes,
+                    weeklyOvertimeThresholdMinutes = compensationProfile.rules.weeklyStandardMinutes,
+                    weekendDays = compensationProfile.rules.weekendDays,
                     hourlyRate = input.hourlyRate,
                     currency = input.currency,
                     regionCode = input.regionCode,

@@ -128,4 +128,24 @@ class SyncStatusTextTest {
             SyncStatusText.format("Not configured", now, zone, locale),
         )
     }
+
+    @Test
+    fun `changes held for retry read as saved here and waiting, not synced`() {
+        assertEquals(
+            UiText.Res(R.string.sync_waiting_count, 2),
+            SyncStatusText.format("SyncWaiting: 2", now, zone, locale),
+        )
+    }
+
+    /** It used to fall through to "we'll try again automatically", which it will not. */
+    @Test
+    fun `an expired session says to sign in again`() {
+        assertEquals(
+            UiText.Res(R.string.sync_session_expired),
+            SyncStatusText.format(
+                "Session expired — sign in again to resume syncing. Your data is safe on this device.",
+                now, zone, locale,
+            ),
+        )
+    }
 }

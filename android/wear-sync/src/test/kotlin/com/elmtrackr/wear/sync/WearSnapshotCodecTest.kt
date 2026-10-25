@@ -1,6 +1,7 @@
 package com.elmtrackr.wear.sync
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -57,5 +58,19 @@ class WearSnapshotCodecTest {
     @Test
     fun corruptPunchLog_returnsNullInsteadOfEmptyQueue() {
         assertNull(WearSnapshotCodec.decodePunchLog("{not-json"))
+    }
+
+    /**
+     * Whether a punch was only queued on the watch is the watch's own knowledge.
+     * It must never be sent, so phones and watches on different versions keep
+     * reading each other's results exactly as before.
+     */
+    @Test
+    fun `a watch-queued punch result carries no new field on the wire`() {
+        val encoded = WearSnapshotCodec.encodePunchResult(PunchResult(success = true, queuedOnWatch = true))
+            .decodeToString()
+        assertFalse(encoded, encoded.contains("queuedOnWatch"))
+        val decoded = WearSnapshotCodec.decodePunchResult("""{"success":true,"errorCode":null}""".toByteArray())
+        assertEquals(PunchResult(success = true), decoded)
     }
 }

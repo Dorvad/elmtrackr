@@ -196,8 +196,8 @@
     <string name="settings_comp_profiles_hint">ملف واحد لكل عمل: أجره وساعاته الإضافية وعلاواته وأجر المرض ولونه. اختر واحداً لتعديله، أو أضف آخر لعمل ثانٍ \u2014 ثم يمكنك التبديل بينهما فوق الساعة.</string>
     <string name="settings_region_preset">الإعداد الجاهز للمنطقة</string>
     <string name="settings_section_work_week">أسبوع العمل</string>
-    <string name="settings_daily_standard_hours">المعيار اليومي (بالساعات)</string>
-    <string name="settings_weekly_standard_hours">المعيار الأسبوعي (بالساعات)</string>
+    <string name="settings_daily_standard_hours">يبدأ العمل الإضافي بعد (ساعات في اليوم)</string>
+    <string name="settings_weekly_standard_hours">يبدأ العمل الإضافي بعد (ساعات في الأسبوع)</string>
     <string name="settings_week_starts_on">الأسبوع يبدأ يوم</string>
     <string name="settings_week_starts_hint">تُحسب الساعات الإضافية الأسبوعية من هذا اليوم. وأسبوع العمل في إسرائيل ومعظم الولايات المتحدة يبدأ الأحد.</string>
     <string name="settings_rest_boundary_hint">يمكن أن تبدأ الراحة الأسبوعية في منتصف يومها الأول. ينطبق المعيار المختصر فقط قبل هذا الوقت، في اليوم الذي تبدأ فيه عطلة نهاية الأسبوع — وليس يوم الجمعة فقط.</string>
@@ -223,17 +223,17 @@
     <string name="settings_night_ends">الليل ينتهي</string>
     <string name="settings_section_time_breaks">الوقت والاستراحات</string>
     <string name="settings_breaks_paid">الاستراحات مدفوعة</string>
-    <string name="settings_auto_deduct_break">خصم الاستراحة تلقائيًا (بالدقائق)</string>
+    <string name="settings_auto_deduct_break">استراحة غير مدفوعة تُخصم تلقائياً (دقائق)</string>
     <string name="settings_auto_deduct_hint">تُخصم تلقائيًا عندما لا تكون للمناوبة استراحة مسجَّلة.</string>
-    <string name="settings_min_shift_pay">الحد الأدنى لأجر المناوبة (بالدقائق)</string>
-    <string name="settings_min_shift_hint">تُدفع المناوبات الأقصر كما لو دامت هذه المدة (أجر الحضور الأدنى).</string>
-    <string name="settings_round_shift_length">تقريب طول المناوبة</string>
-    <string name="settings_rounding_increment">وحدة التقريب (بالدقائق)</string>
+    <string name="settings_min_shift_pay">الحد الأدنى للوقت المدفوع لكل وردية (دقائق)</string>
+    <string name="settings_min_shift_hint">تُدفع الورديات الأقصر كأنها استمرت هذه المدة. تسمي بعض العقود ذلك أجر الحد الأدنى للاستدعاء.</string>
+    <string name="settings_round_shift_length">تقريب الوقت المدفوع</string>
+    <string name="settings_rounding_increment">التقريب بخطوات من (دقائق)</string>
     <string name="settings_rounding_nearest">الأقرب</string>
     <string name="settings_rounding_up">للأعلى</string>
     <string name="settings_rounding_down">للأسفل</string>
     <string name="settings_section_deductions">الخصومات</string>
-    <string name="settings_deduct_gross">الخصم من التقدير الإجمالي</string>
+    <string name="settings_deduct_gross">عرض تقدير بعد الاستقطاعات</string>
     <string name="settings_deduction_percent" formatted="false">الخصم (%)</string>
     <string name="settings_deduction_fixed">الخصم (%1$s لكل مناوبة)</string>
     <string name="settings_deduction_hint">تعديل تقريبي لصافي الأجر (مثل تقدير للضريبة أو التقاعد) — وليس حسابًا صافيًا بمستوى كشف الرواتب.</string>
@@ -245,11 +245,11 @@
     <string name="settings_base_hourly_rate">الأجر الأساسي بالساعة (%1$s)</string>
     <string name="settings_rounding_direction">اتجاه التقريب</string>
     <string name="settings_percentage">نسبة مئوية</string>
-    <string name="settings_fixed_per_shift">مبلغ ثابت لكل مناوبة</string>
+    <string name="settings_fixed_per_shift">مبلغ ثابت شهرياً</string>
     <string name="settings_new_comp_profile">ملف عمل جديد</string>
     <string name="settings_comp_profile_name_placeholder">مثال: وظيفة ثانية، عمل نهاية الأسبوع</string>
     <string name="settings_create">إنشاء</string>
-    <string name="settings_premium_stacking">تراكم العلاوات</string>
+    <string name="settings_premium_stacking">عند تطبيق عدة علاوات</string>
     <string name="settings_use_hhmm">استخدم صيغة ساعة:دقيقة، مثل 22:00</string>
 
     <!-- Timezone picker -->
@@ -487,7 +487,7 @@
     <string name="settings_backup_share_subject">نسخة ‏ElmTrackr الاحتياطية المحلية</string>
     <string name="settings_backup_share_chooser">تصدير النسخة الاحتياطية المحلية</string>
     <string name="settings_sync_synced_with_warnings">تمت المزامنة مع تحذيرات: %1$s</string>
-    <string name="settings_sync_synced_unsent">تمت المزامنة. التغييرات غير المرفوعة: %1$d</string>
+    <string name="settings_sync_synced_unsent">تغييرات لم تُرفع بعد: %1$d. إنها محفوظة على هذا الجهاز وستُعاد المحاولة.</string>
 
     <!-- Sick leave arrangement, per compensation profile -->
     <string name="settings_section_sick_leave">الإجازة المرضية</string>
@@ -549,4 +549,13 @@
     <string name="settings_face_ember">مخلوق ناري ينمو له قرنان وتاج</string>
     <string name="settings_face_droplet">مخلوق مائي ينمو له زعانف ويسبح</string>
     <string name="settings_face_spark">مخلوق كهربائي يتحوّل إلى عاصفة</string>
+
+    <!-- Work profile form: progressive disclosure and plain-language labels (Wave 2) -->
+    <string name="settings_advanced_title">العمل الإضافي والاستراحات وقواعد أجر أخرى</string>
+    <string name="settings_advanced_summary">مُعبّأة حسب منطقتك. غيّرها فقط حيث يختلف عقدك.</string>
+    <string name="settings_currency_change_hint">ستظهر الورديات السابقة في هذا العمل أيضاً بعملة %1$s. لا يتم تحويل المبالغ.</string>
+    <string name="settings_time_breaks_intro">كيف يتحوّل وقت الساعة إلى وقت مدفوع. معظم الأعمال تُبقي التقريب والحد الأدنى للأجر معطّلين.</string>
+
+    <!-- Sync status: changes held for retry (Wave 2) -->
+    <string name="sync_waiting_count">محفوظ على هذا الجهاز. تغييرات بانتظار الرفع: %1$d.</string>
 </resources>

@@ -39,6 +39,13 @@ import com.elmtrackr.app.ui.common.labelWithCode
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.ui.res.stringResource
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.paidTimeNote
+import com.elmtrackr.app.ui.common.PayComponents
+import com.elmtrackr.app.ui.common.PayComponentList
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.selection.selectableGroup
+import java.time.LocalDate
 import com.elmtrackr.app.ui.common.durationText
 import com.elmtrackr.app.ui.design.mirrorInRtl
 import androidx.compose.foundation.verticalScroll
@@ -240,6 +247,12 @@ fun ReportsScreen(
             projectsEnabled = ready?.projectReport != null,
             onSelect = { activeTab = it },
         )
+        if (effectiveTab == ReportTab.HOURS && ready?.canChooseJob == true) {
+            JobScopeSelector(
+                state = ready,
+                onSelect = viewModel::selectScope,
+            )
+        }
         val hoursReportVisible = effectiveTab == ReportTab.HOURS &&
             ready?.let { it.report.shiftCount > 0 || it.leaveEntries.isNotEmpty() } == true
         val embedNavInHoursCard = hoursReportVisible
@@ -306,7 +319,17 @@ fun ReportsScreen(
                         } ?: ReportsEmptyContent()
 
                         ReportTab.HOURS -> if (state.report.shiftCount == 0 && state.leaveEntries.isEmpty()) {
-                            ReportsEmptyContent()
+                            val jobName = state.scopedJobName
+                            if (jobName != null && state.allJobsShiftCount > 0) {
+                                JobEmptyContent(
+                                    jobName = jobName,
+                                    year = state.year,
+                                    month = state.month,
+                                    onShowAllJobs = { viewModel.selectScope(com.elmtrackr.app.domain.ReportScope.AllJobs) },
+                                )
+                            } else {
+                                ReportsEmptyContent()
+                            }
                         } else {
                             HoursReport(
                                 state = state,
@@ -331,8 +354,9 @@ fun ReportsScreen(
                                                 month = state.month,
                                                 leaveEntries = state.leaveEntries,
                                                 premiumProfiles = state.premiumProfiles,
+                                                scopeJobName = state.scopedJobName,
                                             ),
-                                            viewModel.csvFilename(state.year, state.month),
+                                            viewModel.csvFilename(state.year, state.month, state.scopedJobName),
                                         )
                                         }
                                     }
@@ -496,74 +520,319 @@ private fun ReportsEmptyContent() = ElmEmptyState(
 
 // ── Hours report ──────────────────────────────────────────────────────────────
 
+/**
+ * The month at a glance: what was worked, what it is estimated to have earned, and
+ * anything that qualifies those two numbers.
+ *
+ * It used to open on a "Hours distribution" figure that was payable time under a
+ * worked-time label, followed by four stat cards repeating the legend beneath it,
+ * with the pay several cards further down. The two questions a person opens a
+ * monthly report to answer are now its first two numbers.
+ */
 @Composable
 private fun PhoneHoursReportTop(
-    report: com.elmtrackr.app.domain.model.MonthlyReport,
-    year: Int,
-    month: Int,
+    state: ReportsUiState.Ready,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     canGoNext: Boolean,
-    onExportCsv: () -> Unit,
-    onExportPdf: () -> Unit,
 ) {
+    val report = state.report
     ReportCard {
-        MonthNavRow(year = year, month = month, onPrev = onPreviousMonth, onNext = onNextMonth, canGoNext = canGoNext)
-        Spacer(Modifier.height(12.dp))
+        MonthNavRow(year = state.year, month = state.month, onPrev = onPreviousMonth, onNext = onNextMonth, canGoNext = canGoNext)
+        Spacer(Modifier.height(Spacing.s12))
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Spacer(Modifier.height(12.dp))
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val stackActions = maxWidth < 340.dp
-            if (stackActions) {
-                Column(Modifier.fillMaxWidth()) {
-                    DistributionHeader(report)
-                    Spacer(Modifier.height(12.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = onExportCsv, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Filled.Share, null, Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("CSV", style = MaterialTheme.typography.labelMedium)
-                        }
-                        OutlinedButton(onClick = onExportPdf, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Filled.PictureAsPdf, null, Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("PDF", style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-                }
-            } else {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                    DistributionHeader(report, Modifier.weight(1f))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = onExportCsv) {
-                            Icon(Icons.Filled.Share, null, Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("CSV", style = MaterialTheme.typography.labelMedium)
-                        }
-                        OutlinedButton(onClick = onExportPdf) {
-                            Icon(Icons.Filled.PictureAsPdf, null, Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("PDF", style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
+        Spacer(Modifier.height(Spacing.s12))
+        ReportOverviewFigures(state)
+        if (report.shiftCount > 0) {
+            Spacer(Modifier.height(Spacing.s14))
+            ElmDistributionBar(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
+            Spacer(Modifier.height(Spacing.s8))
+            ElmDistributionLegend(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
+        }
+    }
+}
+
+/**
+ * Worked hours and estimated gross side by side, then the lines that qualify them:
+ * paid time when the rules changed it, leave kept apart from work, and a note while
+ * the month is still running. Shared by the phone and tablet layouts.
+ */
+@Composable
+private fun ReportOverviewFigures(state: ReportsUiState.Ready) {
+    val report = state.report
+    val locale = appLocale()
+    val paid = state.paySummary?.paidByCurrency.orEmpty()
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(Modifier.weight(1f)) {
+            SectionLabel(stringResource(R.string.paid_time_worked))
+            Text(
+                stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(report.workedMinutes, locale)),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                listOfNotNull(
+                    stringResource(
+                        if (report.shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other,
+                        report.shiftCount,
+                    ),
+                    state.scopedJobName?.let { BidiText.isolate(it) }
+                        ?: stringResource(R.string.reports_scope_all_jobs).takeIf { state.canChooseJob },
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (paid.isNotEmpty()) {
+            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.s8)) {
+                SectionLabel(stringResource(R.string.reports_gross_pay_before_tax))
+                // One figure per currency, each with its own code when there is more
+                // than one. There are no exchange rates here to make a sum honest.
+                paid.forEach { totals ->
+                    Text(
+                        if (paid.size == 1) {
+                            MoneyFormatter.format(totals.totalGross, totals.currencyCode, locale)
+                        } else {
+                            com.elmtrackr.app.ui.common.moneyWithCode(totals.totalGross, totals.currencyCode)
+                        },
+                        style = if (paid.size == 1) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                    )
                 }
             }
         }
-        Spacer(Modifier.height(14.dp))
-        ElmDistributionBar(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
-        Spacer(Modifier.height(8.dp))
-        ElmDistributionLegend(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
     }
 
-    Spacer(Modifier.height(14.dp))
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        ElmStatCard(stringResource(R.string.dashboard_stat_total), stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.totalMinutes, appLocale())), Modifier.weight(1f), variant = ElmStatVariant.PRIMARY)
-        ElmStatCard(stringResource(R.string.dashboard_stat_regular), stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.regularMinutes, appLocale())), Modifier.weight(1f))
+    ReportOverviewNotes(state)
+}
+
+/** The lines that qualify the month's two headline numbers. See [ReportOverviewFigures]. */
+@Composable
+private fun ReportOverviewNotes(state: ReportsUiState.Ready) {
+    val report = state.report
+    val locale = appLocale()
+    val notes = buildList {
+        if (report.payableDiffersFromWorked) {
+            paidTimeNote(
+                stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(report.totalMinutes, locale)),
+                report.paidTimeReasons,
+            )?.let(::add)
+        }
+        state.paidLeave?.takeIf { !it.isEmpty }?.let { leave ->
+            add(stringResource(R.string.reports_leave_line, leaveAmountLabel(leave.vacationDays + leave.sickDays, leave.vacationHours + leave.sickHours)))
+        }
+        if (report.shiftCount == 0 && state.leaveEntries.isNotEmpty()) {
+            add(stringResource(R.string.reports_leave_only))
+        }
+        val today = LocalDate.now(state.zone)
+        if (YearMonth.from(today) == YearMonth.of(state.year, state.month)) {
+            add(
+                stringResource(
+                    R.string.reports_in_progress,
+                    today.format(DateTimeFormatter.ofPattern("d MMM", locale)),
+                ),
+            )
+        }
     }
-    Spacer(Modifier.height(10.dp))
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        ElmStatCard(stringResource(R.string.dashboard_stat_overtime), stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.overtimeMinutes, appLocale())), Modifier.weight(1f), variant = ElmStatVariant.OVERTIME)
-        ElmStatCard(stringResource(R.string.dashboard_stat_weekend), stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.weekendMinutes, appLocale())), Modifier.weight(1f), variant = ElmStatVariant.WEEKEND)
+    notes.forEach { note ->
+        Spacer(Modifier.height(Spacing.s6))
+        Text(
+            note,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * Picks the job the report covers. Offered only with more than one job; "All jobs"
+ * comes first and is the default, so nothing changes for a one-job user.
+ */
+@Composable
+private fun JobScopeSelector(
+    state: ReportsUiState.Ready,
+    onSelect: (com.elmtrackr.app.domain.ReportScope) -> Unit,
+) {
+    val groupLabel = stringResource(R.string.reports_scope_group)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .semantics { contentDescription = groupLabel }
+            .selectableGroup()
+            .padding(vertical = Spacing.s4),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.s8),
+    ) {
+        com.elmtrackr.app.ui.design.ElmChoiceChip(
+            selected = state.scope == com.elmtrackr.app.domain.ReportScope.AllJobs,
+            onClick = { onSelect(com.elmtrackr.app.domain.ReportScope.AllJobs) },
+        ) {
+            Text(stringResource(R.string.reports_scope_all_jobs), style = MaterialTheme.typography.labelLarge)
+        }
+        state.profiles.forEach { profile ->
+            val scope = com.elmtrackr.app.domain.ReportScope.Job(profile.id)
+            com.elmtrackr.app.ui.design.ElmChoiceChip(
+                selected = state.scope == scope,
+                onClick = { onSelect(scope) },
+            ) {
+                Text(profile.name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            }
+        }
+    }
+}
+
+/** A one-job report with nothing in it, while the other jobs have shifts. */
+@Composable
+private fun JobEmptyContent(jobName: String, year: Int, month: Int, onShowAllJobs: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(vertical = Spacing.s24),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.s8),
+    ) {
+        Text(
+            stringResource(
+                R.string.reports_job_empty_title,
+                BidiText.isolate(jobName),
+                Month.of(month).displayName(appLocale()),
+            ),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            stringResource(R.string.reports_job_empty_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        TextButton(onClick = onShowAllJobs) {
+            Text(stringResource(R.string.reports_job_empty_action), fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+/**
+ * How one currency's estimated pay was put together, from the engine's own buckets.
+ *
+ * Replaces a card that showed three cells under the total — with weekend and holiday
+ * money together labelled "Holiday" and night premium nowhere — so its parts did not
+ * add up to the figure above them.
+ */
+@Composable
+private fun PayBreakdownCard(
+    totals: PayrollCalculator.CurrencyPayTotals,
+    showCurrencyCode: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    ReportCard(modifier) {
+        val title = stringResource(R.string.reports_breakdown_title)
+        SectionLabel(if (showCurrencyCode) labelWithCode(title, totals.currencyCode) else title)
+        Spacer(Modifier.height(Spacing.s10))
+        PayComponentList(PayComponents.of(totals))
+        Spacer(Modifier.height(Spacing.s10))
+        Text(
+            stringResource(R.string.pay_estimate_disclaimer),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * The steps from worked time to paid time, shown only when the profile's rules
+ * made them differ. Each row is a figure the engine actually applied.
+ */
+@Composable
+private fun PaidTimeCard(report: com.elmtrackr.app.domain.model.MonthlyReport) {
+    val locale = appLocale()
+    fun hours(minutes: Int) = HoursFormatter.decimal(minutes, locale)
+    ReportCard {
+        SectionLabel(stringResource(R.string.reports_paid_time_title))
+        Spacer(Modifier.height(Spacing.s8))
+        ReportRow(stringResource(R.string.paid_time_worked), stringResource(R.string.shifts_hours_value_spaced, hours(report.workedMinutes)))
+        // The sign travels inside an isolate with its number. Prefixed to the whole
+        // value it is a neutral character, and a right-to-left paragraph moved it to
+        // the far side: "2.4+ h" in Hebrew.
+        @Composable fun signed(sign: String, minutes: Int) =
+            stringResource(R.string.shifts_hours_value_spaced, BidiText.isolate(sign + hours(minutes)))
+        if (report.paidBreakMinutes > 0) {
+            ReportRow(stringResource(R.string.paid_time_paid_break), signed("+", report.paidBreakMinutes))
+        }
+        if (report.roundingMinutes != 0) {
+            val sign = if (report.roundingMinutes > 0) "+" else "−"
+            ReportRow(stringResource(R.string.paid_time_rounding), signed(sign, kotlin.math.abs(report.roundingMinutes)))
+        }
+        if (report.minimumTopUpMinutes > 0) {
+            ReportRow(stringResource(R.string.paid_time_minimum), signed("+", report.minimumTopUpMinutes))
+        }
+        HorizontalDivider(Modifier.padding(vertical = Spacing.s4), color = MaterialTheme.colorScheme.outlineVariant)
+        ReportRow(stringResource(R.string.paid_time_paid), stringResource(R.string.shifts_hours_value_spaced, hours(report.totalMinutes)))
+    }
+}
+
+/**
+ * What an export will contain, said before the tap: the month, the job scope and
+ * the currencies. The buttons used to read "CSV" and "PDF" and nothing else.
+ */
+@Composable
+private fun ExportCard(
+    state: ReportsUiState.Ready,
+    onExportCsv: () -> Unit,
+    onExportPdf: () -> Unit,
+) {
+    val locale = appLocale()
+    val monthLabel = "${Month.of(state.month).displayName(locale)} ${state.year}"
+    val scopeLabel = state.scopedJobName?.let { BidiText.isolate(it) } ?: stringResource(R.string.reports_scope_all_jobs)
+    val currencies = state.paySummary?.paidByCurrency.orEmpty().map { it.currencyCode }
+        .plus(state.leaveGrossByCurrency.keys)
+        .distinct()
+    ReportCard {
+        SectionLabel(stringResource(R.string.reports_export_title))
+        Spacer(Modifier.height(Spacing.s4))
+        Text(
+            stringResource(R.string.reports_export_subject, monthLabel, scopeLabel),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        when (currencies.size) {
+            0 -> Unit
+            // Isolated: a Latin code at the end of a Hebrew or Arabic sentence is
+            // otherwise reordered away from the words it belongs to.
+            1 -> Text(
+                stringResource(R.string.reports_export_currency_one, BidiText.isolate(currencies.single())),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            else -> Text(
+                stringResource(R.string.reports_export_currency_many, currencies.joinToString(", ") { BidiText.isolate(it) }),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.height(Spacing.s10))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.s8),
+            verticalArrangement = Arrangement.spacedBy(Spacing.s8),
+        ) {
+            OutlinedButton(onClick = onExportCsv) {
+                Icon(Icons.Filled.Share, null, Modifier.size(Spacing.s14))
+                Spacer(Modifier.width(Spacing.s4))
+                Text(stringResource(R.string.reports_export_csv), style = MaterialTheme.typography.labelMedium)
+            }
+            OutlinedButton(onClick = onExportPdf) {
+                Icon(Icons.Filled.PictureAsPdf, null, Modifier.size(Spacing.s14))
+                Spacer(Modifier.width(Spacing.s4))
+                Text(stringResource(R.string.reports_export_pdf), style = MaterialTheme.typography.labelMedium)
+            }
+        }
     }
 }
 
@@ -576,8 +845,6 @@ private fun TabletHoursReportTop(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     canGoNext: Boolean,
-    onExportCsv: () -> Unit,
-    onExportPdf: () -> Unit,
 ) {
     val totalPct = report.totalMinutes.takeIf { it > 0 }
     val navShape = RoundedCornerShape(CornerRadius.Large)
@@ -596,8 +863,8 @@ private fun TabletHoursReportTop(
     Spacer(Modifier.height(12.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         ElmStatCard(
-            label = stringResource(R.string.dashboard_stat_total),
-            value = stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.totalMinutes, appLocale())),
+            label = stringResource(R.string.paid_time_worked),
+            value = stringResource(R.string.reports_hours_value, HoursFormatter.decimal(report.workedMinutes, appLocale())),
             sub = stringResource(R.string.reports_all_hours_month),
             variant = ElmStatVariant.PRIMARY,
             modifier = Modifier.weight(1f),
@@ -624,43 +891,27 @@ private fun TabletHoursReportTop(
         )
     }
 
-    Spacer(Modifier.height(16.dp))
+    ReportOverviewNotes(state)
+
+    Spacer(Modifier.height(Spacing.s16))
 
     Row(
         Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.s16),
         verticalAlignment = Alignment.Top,
     ) {
         val paid = state.paySummary?.paidByCurrency.orEmpty()
         if (paid.isNotEmpty()) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.s12)) {
-                paid.forEach { totals -> GrossPayCard(totals, showCurrencyCode = paid.size > 1) }
+                paid.forEach { totals -> PayBreakdownCard(totals, showCurrencyCode = paid.size > 1) }
             }
         } else {
             Spacer(Modifier.weight(1f))
         }
 
         ReportCard(Modifier.weight(1f)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
-            ) {
-                DistributionHeader(report, Modifier.weight(1f))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onExportCsv) {
-                        Icon(Icons.Filled.Share, null, Modifier.size(14.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("CSV", style = MaterialTheme.typography.labelMedium)
-                    }
-                    OutlinedButton(onClick = onExportPdf) {
-                        Icon(Icons.Filled.PictureAsPdf, null, Modifier.size(14.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("PDF", style = MaterialTheme.typography.labelMedium)
-                    }
-                }
-            }
-            Spacer(Modifier.height(14.dp))
+            DistributionHeader(report)
+            Spacer(Modifier.height(Spacing.s14))
             ElmDistributionBar(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
             Spacer(Modifier.height(8.dp))
             ElmDistributionLegend(report.regularMinutes, report.overtimeMinutes, report.weekendMinutes)
@@ -675,7 +926,7 @@ private fun TabletHoursReportTop(
             verticalAlignment = Alignment.Top,
         ) {
             if (state.previousMonthMinutes > 0) {
-                val delta = report.totalMinutes - state.previousMonthMinutes
+                val delta = report.workedMinutes - state.previousMonthMinutes
                 val pctChange = if (state.previousMonthMinutes > 0) {
                     (delta * 100 / state.previousMonthMinutes)
                 } else 0
@@ -749,24 +1000,40 @@ internal fun HoursReport(
             onPreviousMonth = onPreviousMonth,
             onNextMonth = onNextMonth,
             canGoNext = canGoNext,
-            onExportCsv = onExportCsv,
-            onExportPdf = onExportPdf,
         )
     } else {
         PhoneHoursReportTop(
-            report = report,
-            year = state.year,
-            month = state.month,
+            state = state,
             onPreviousMonth = onPreviousMonth,
             onNextMonth = onNextMonth,
             canGoNext = canGoNext,
-            onExportCsv = onExportCsv,
-            onExportPdf = onExportPdf,
         )
     }
 
+    // ── How the pay was estimated (phone only — tablet shows it in its top row) ──
+    if (!isTablet) {
+        val paid = state.paySummary?.paidByCurrency.orEmpty()
+        paid.forEach { totals ->
+            Spacer(Modifier.height(Spacing.s14))
+            PayBreakdownCard(totals, showCurrencyCode = paid.size > 1)
+        }
+    }
+
+    if (report.payableDiffersFromWorked) {
+        Spacer(Modifier.height(Spacing.s14))
+        PaidTimeCard(report)
+    }
+
+    if (state.leaveEntries.isNotEmpty()) {
+        Spacer(Modifier.height(Spacing.s14))
+        LeaveReportSection(state)
+    }
+
+    Spacer(Modifier.height(Spacing.s14))
+    ExportCard(state, onExportCsv = onExportCsv, onExportPdf = onExportPdf)
+
     if (!isTablet && state.previousMonthMinutes > 0) {
-        val delta = report.totalMinutes - state.previousMonthMinutes
+        val delta = report.workedMinutes - state.previousMonthMinutes
         val deltaColor = when {
             delta > 0 -> auroraSemantics.successInk
             delta < 0 -> Color(0xFFF43F5E)
@@ -791,7 +1058,7 @@ internal fun HoursReport(
                 // yielding. Not reproducible in the JVM harness — see the note on
                 // SettingsInfoRow.
                 Text(
-                    stringResource(R.string.reports_hours_this_month, HoursFormatter.decimal(report.totalMinutes, appLocale())),
+                    stringResource(R.string.reports_hours_this_month, HoursFormatter.decimal(report.workedMinutes, appLocale())),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f, fill = false),
@@ -834,7 +1101,7 @@ internal fun HoursReport(
                 // yielding. Not reproducible in the JVM harness — see the note on
                 // SettingsInfoRow.
                 Text(
-                    stringResource(R.string.reports_hours_this_month, HoursFormatter.decimal(report.totalMinutes, appLocale())),
+                    stringResource(R.string.reports_hours_this_month, HoursFormatter.decimal(report.workedMinutes, appLocale())),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f, fill = false),
@@ -849,20 +1116,6 @@ internal fun HoursReport(
                 )
             }
         }
-    }
-
-    if (state.leaveEntries.isNotEmpty()) {
-        Spacer(Modifier.height(Spacing.s14))
-        LeaveReportSection(state)
-    }
-
-    // ── Gross pay (phone only — shown in tablet top row) ─────────────────────
-    if (!isTablet) {
-    val paid = state.paySummary?.paidByCurrency.orEmpty()
-    paid.forEach { totals ->
-        Spacer(Modifier.height(14.dp))
-        GrossPayCard(totals, showCurrencyCode = paid.size > 1)
-    }
     }
 
     // ── Daily Insights carousel (web: features_insights) ──────────────────────
@@ -1503,13 +1756,14 @@ private fun ShiftReportRow(
     // month's payroll to a computation dispatcher for exactly this cost, and these
     // per-row calls sat outside that.
     val rowPay = remember(shift, settings, profiles, allShifts, premiumProfiles, zone) {
+        // `allShifts` here is the pay-week window the screen was built with, the
+        // same one the row's pay is priced against below — so the row's hours
+        // and its money describe the same week.
+        val breakdown = MonthlyReportBuilder.buildShiftBreakdown(
+            shift, settings, profiles, premiumProfiles, allShifts,
+        )
         ShiftReportRowPay(
-            // `allShifts` here is the pay-week window the screen was built with, the
-            // same one the row's pay is priced against below — so the row's hours
-            // and its money describe the same week.
-            breakdown = MonthlyReportBuilder.buildShiftBreakdown(
-                shift, settings, profiles, premiumProfiles, allShifts,
-            ),
+            breakdown = breakdown,
             weekend = CompensationResolver.isWeekendShift(shift, settings, profiles),
             overnight = OvernightShiftDetector.isOvernight(shift, zone),
             pay = PayrollCalculator.calculateShiftPayInContext(
@@ -1519,12 +1773,11 @@ private fun ShiftReportRow(
                 profiles,
                 premiumProfiles,
             ),
-            otMinutes = maxOf(
-                0,
-                (ShiftDurationCalculator.netMinutes(shift) ?: 0) -
-                    CompensationResolver.resolveShiftCompensation(shift, settings, profiles)
-                        .rules.dailyStandardMinutes,
-            ),
+            // The classifier's overtime — the minutes the pay engine actually paid at
+            // an overtime rate. This used to be clock time less breaks minus the raw
+            // daily standard: a third overtime rule, blind to the shorter standard on
+            // a night shift or before rest, to weekly overtime, and to rounding.
+            otMinutes = breakdown.overtimeMinutes,
         )
     }
     val breakdown = rowPay.breakdown
@@ -1588,8 +1841,17 @@ private fun ShiftReportRow(
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(durationText(breakdown.totalMinutes), fontWeight = FontWeight.Bold)
-                    if (otMins > 0 && !shift.isSpecialDay && !weekend) {
+                    // Worked time first; paid time beneath it only where the rules
+                    // changed it, so rounded time is never shown as time worked.
+                    Text(durationText(breakdown.workedMinutes), fontWeight = FontWeight.Bold)
+                    if (breakdown.totalMinutes != breakdown.workedMinutes) {
+                        Text(
+                            stringResource(R.string.shifts_time_fact, stringResource(R.string.paid_time_paid), durationText(breakdown.totalMinutes)),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (otMins > 0) {
                         Text(
                             stringResource(R.string.reports_plus_ot, durationText(otMins)),
                             style = MaterialTheme.typography.labelSmall,
@@ -1999,11 +2261,14 @@ private fun ShiftTagPill(label: String, weekendStyle: Boolean) {
 
 @Composable
 private fun DistributionHeader(report: com.elmtrackr.app.domain.model.MonthlyReport, modifier: Modifier = Modifier) {
+    // Paid hours by category: what the bar beneath it divides. Worked hours are the
+    // headline figure elsewhere, so this one is labelled as paid time.
     Column(modifier) {
         SectionLabel(stringResource(R.string.reports_hours_distribution))
         Text(
-            stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(report.totalMinutes, appLocale())),
-            style = MaterialTheme.typography.headlineMedium,
+            stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(report.totalMinutes, appLocale())) +
+                " · " + stringResource(R.string.paid_time_paid),
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.ExtraBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -2062,65 +2327,6 @@ private fun StatPill(label: String, value: String, background: Color, color: Col
             label.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color = color,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-/**
- * Gross pay for one currency: the headline figure and its regular / overtime / holiday
- * split, every figure in [totals]' own currency.
- *
- * Shown once per currency the month was paid in. With one currency this is the card the
- * report has always had. With two, each card names its currency and neither is a sum of
- * both — there are no exchange rates in the app to make one honest.
- */
-@Composable
-private fun GrossPayCard(
-    totals: PayrollCalculator.CurrencyPayTotals,
-    showCurrencyCode: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val currency = totals.currencyCode
-    ReportCard(modifier) {
-        val label = stringResource(R.string.reports_gross_pay_before_tax)
-        SectionLabel(if (showCurrencyCode) labelWithCode(label, currency) else label)
-        Text(
-            MoneyFormatter.format(totals.totalGross, currency, appLocale()),
-            style = TextStyle(
-                fontSize = MaterialTheme.typography.headlineMedium.fontSize,
-                fontWeight = FontWeight.ExtraBold,
-                brush = Brush.linearGradient(listOf(AuroraIndigo, AuroraPlum, AuroraAqua)),
-            ),
-        )
-        Spacer(Modifier.height(Spacing.s10))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.s8)) {
-            PayCell(stringResource(R.string.dashboard_stat_regular), totals.regularGross, currency, AuroraIndigo,
-                MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
-            // auroraOvertimeInk(), not the accent: this is a money figure on
-            // the overtime container, the same text-on-tint pair as the
-            // dashboard's overtime stat.
-            PayCell(stringResource(R.string.dashboard_stat_overtime), totals.overtimeGross, currency, auroraOvertimeInk(),
-                auroraOvertimeBackground(), Modifier.weight(1f))
-            PayCell(stringResource(R.string.dashboard_pay_holiday), totals.specialGross, currency, AuroraPlum,
-                auroraWeekendBackground(), Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-private fun PayCell(label: String, amount: Double, currency: String, textColor: Color, bgColor: Color, modifier: Modifier) {
-    Column(
-        modifier.background(bgColor, RoundedCornerShape(CornerRadius.Medium)).padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
-            MoneyFormatter.format(amount, currency, appLocale()),
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold,
-            color = textColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

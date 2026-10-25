@@ -37,9 +37,19 @@ interface ShiftsRepository {
     ): Shift
 
     /** Sets end time on an active shift (clock-out). */
+    /**
+     * Ends the shift. [breakMinutes] and [notes] replace the stored values only when
+     * given; null keeps whatever the running shift already holds.
+     *
+     * They used to default to `0` and `null` and be written unconditionally, and no
+     * caller ever passed them — so every clock-out, from the dashboard, the
+     * notification, a shortcut, the widget or the watch, erased a break or a note
+     * the user had recorded on the running shift, including the note Paid Projects
+     * saves at clock-in.
+     */
     suspend fun clockOut(
         localId: String,
-        breakMinutes: Int = 0,
+        breakMinutes: Int? = null,
         notes: String? = null,
         compensationSnapshot: CompensationSnapshot? = null,
         endTimeMillis: Long? = null,

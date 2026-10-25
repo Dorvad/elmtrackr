@@ -77,6 +77,17 @@ class LocalShiftsRepository @Inject constructor(
         val startTime = startTimeMillis
             ?.takeIf { it in 1L..now }
             ?: now
+        // A punch carrying its own start time can be a replay — the watch drains its
+        // offline queue again after an interrupted hand-off. The check above only
+        // looks for an *active* shift, so a replayed clock-in matching a shift that
+        // has since been clocked out reached the insert below, whose REPLACE on the
+        // unique (userId, startTime) index deleted the completed row — end time,
+        // break, notes and remote link — and put an open shift in its place, which
+        // sync then pushed over the server copy. The punch is already recorded;
+        // answer with that shift, as createManualShift does.
+        if (startTimeMillis != null) {
+            shiftDao.getShiftByStartTime(userId, startTime)?.let { return it.toDomain() }
+        }
         val entity = ShiftEntity(
             localId = UUID.randomUUID().toString(),
             remoteId = null,
@@ -120,7 +131,7 @@ class LocalShiftsRepository @Inject constructor(
 
     override suspend fun clockOut(
         localId: String,
-        breakMinutes: Int,
+        breakMinutes: Int?,
         notes: String?,
         compensationSnapshot: CompensationSnapshot?,
         endTimeMillis: Long?,
@@ -131,8 +142,8 @@ class LocalShiftsRepository @Inject constructor(
         val endTime = (endTimeMillis ?: now).coerceIn(existing.startTime, now.coerceAtLeast(existing.startTime))
         val updated = existing.copy(
             endTime = endTime,
-            breakMinutes = breakMinutes,
-            notes = notes,
+            breakMinutes = breakMinutes ?: existing.breakMinutes,
+            notes = notes ?: existing.notes,
             compensationSnapshotJson = compensationSnapshot?.let { CompensationRulesCodec.encodeSnapshot(it) },
             updatedAt = now,
             syncStatus = syncStatusForMutation(existing),

@@ -72,7 +72,7 @@ class PremiumProfilesViewModel @Inject constructor(
                 editor = PremiumProfileEditorState(
                     profileId = profile.id,
                     name = profile.name,
-                    multiplierText = profile.multiplier.toString(),
+                    multiplierText = com.elmtrackr.app.ui.common.DecimalInput.format(profile.multiplier),
                     premiumType = profile.premiumType,
                     isDefault = profile.isDefault,
                 ),
@@ -86,10 +86,9 @@ class PremiumProfilesViewModel @Inject constructor(
 
     fun updateName(value: String) = updateEditor { it.copy(name = value) }
 
+    /** Accepts a comma or Arabic separator as the decimal point; see DecimalInput. */
     fun updateMultiplier(value: String) {
-        if (value.count { it == '.' } <= 1 && value.all { it.isDigit() || it == '.' }) {
-            updateEditor { it.copy(multiplierText = value) }
-        }
+        updateEditor { it.copy(multiplierText = com.elmtrackr.app.ui.common.DecimalInput.sanitize(value)) }
     }
 
     fun updatePremiumType(type: PremiumType) = updateEditor { it.copy(premiumType = type) }
@@ -97,7 +96,7 @@ class PremiumProfilesViewModel @Inject constructor(
     fun saveEditor() {
         val ready = _uiState.value as? PremiumProfilesUiState.Ready ?: return
         val editor = ready.editor ?: return
-        val multiplier = editor.multiplierText.toDoubleOrNull()
+        val multiplier = com.elmtrackr.app.ui.common.DecimalInput.parse(editor.multiplierText)
         if (editor.name.isBlank()) {
             updateReady { it.copy(saveMessage = UiText.Res(R.string.settings_premium_error_name)) }
             return
@@ -118,7 +117,11 @@ class PremiumProfilesViewModel @Inject constructor(
                     name = editor.name.trim(),
                     multiplier = multiplier,
                     premiumType = editor.premiumType,
-                    isDefault = editor.isDefault || editor.profileId == null,
+                    // A new profile is the default only when there is none yet. Every
+                    // new profile used to claim it, which demoted the existing default
+                    // (lifting its delete protection) and locked the new one in place.
+                    isDefault = editor.isDefault ||
+                        (editor.profileId == null && ready.profiles.none { it.isDefault }),
                     createdAt = now,
                     updatedAt = now,
                 )

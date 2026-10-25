@@ -22,4 +22,36 @@
     <string name="a11y_collapsed">מכווץ</string>
     <string name="a11y_expand">הרחבה</string>
     <string name="a11y_collapse">כיווץ</string>
+
+    <!-- Worked vs paid time, and pay components (Wave 2). Shared by Dashboard, the clock-out recap, Reports and the shift form. -->
+    <string name="paid_time_worked">עבודה בפועל</string>
+    <string name="paid_time_paid">זמן לתשלום</string>
+    <string name="paid_time_elapsed">משך המשמרת</string>
+    <string name="paid_time_unpaid_break">הפסקה לא בתשלום</string>
+    <string name="paid_time_paid_break">הפסקה בתשלום</string>
+    <string name="paid_time_rounding">עיגול</string>
+    <string name="paid_time_minimum">השלמה למינימום משמרת</string>
+    <string name="paid_time_reason_rounding">%1$s בתשלום לאחר עיגול</string>
+    <string name="paid_time_reason_minimum">%1$s בתשלום, כולל מינימום משמרת מובטח</string>
+    <string name="paid_time_reason_paid_breaks">%1$s בתשלום, כולל הפסקות בתשלום</string>
+    <string name="paid_time_reason_mixed">%1$s בתשלום לפי כללי הזמן של פרופיל העבודה</string>
+    <string name="pay_component_regular">שכר רגיל</string>
+    <string name="pay_component_overtime">שעות נוספות</string>
+    <string name="pay_component_weekend">סוף שבוע / יום מנוחה</string>
+    <string name="pay_component_holiday">חגים ותוספות</string>
+    <string name="pay_component_night">תוספת לילה</string>
+    <string name="pay_component_total">ברוטו משוער</string>
+    <string name="pay_component_deductions">ניכויים שהגדרתם</string>
+    <string name="pay_component_after_deductions">לאחר ניכויים אלה</string>
+    <string name="pay_estimate_disclaimer">הערכה לפי הכללים בפרופיל העבודה. הסכום הסופי מופיע בתלוש השכר.</string>
+    <string name="pay_bracket_regular">רגיל</string>
+    <string name="pay_bracket_overtime">שעות נוספות</string>
+    <string name="pay_bracket_seventh_day">יום שביעי ברצף</string>
+    <string name="pay_bracket_weekend">סוף שבוע</string>
+    <string name="pay_bracket_weekly_rest">מנוחה שבועית</string>
+    <string name="pay_bracket_weekly_rest_overtime">שעות נוספות במנוחה</string>
+    <string name="pay_bracket_holiday">חג</string>
+    <string name="pay_bracket_holiday_overtime">שעות נוספות בחג</string>
+    <string name="pay_bracket_premium">תוספת</string>
+    <string name="pay_bracket_label">%1$s %2$s</string>
 </resources>

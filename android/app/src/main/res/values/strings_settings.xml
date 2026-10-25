@@ -180,8 +180,8 @@
     <string name="settings_comp_profiles_hint">One profile per job: its rate, overtime, premiums, sick pay and colour. Pick one to edit, or add another for a second job \u2014 you can then switch between them above the clock.</string>
     <string name="settings_region_preset">Region preset</string>
     <string name="settings_section_work_week">Work week</string>
-    <string name="settings_daily_standard_hours">Daily standard (hours)</string>
-    <string name="settings_weekly_standard_hours">Weekly standard (hours)</string>
+    <string name="settings_daily_standard_hours">Overtime starts after (hours a day)</string>
+    <string name="settings_weekly_standard_hours">Overtime starts after (hours a week)</string>
     <string name="settings_week_starts_on">Week starts on</string>
     <string name="settings_week_starts_hint">Weekly overtime counts hours from this day. Israel and most US workweeks start Sunday.</string>
     <string name="settings_rest_boundary_hint">Weekly rest can start part-way through its first day. The shortened standard applies only before that time, on whichever day your weekend starts — not only Friday.</string>
@@ -207,17 +207,17 @@
     <string name="settings_night_ends">Night ends</string>
     <string name="settings_section_time_breaks">Time &amp; breaks</string>
     <string name="settings_breaks_paid">Breaks are paid</string>
-    <string name="settings_auto_deduct_break">Auto-deduct break (minutes)</string>
+    <string name="settings_auto_deduct_break">Automatic unpaid break (minutes)</string>
     <string name="settings_auto_deduct_hint">Deducted automatically when a shift has no recorded break.</string>
-    <string name="settings_min_shift_pay">Minimum shift pay (minutes)</string>
-    <string name="settings_min_shift_hint">Shorter shifts are paid as if they lasted this long (minimum-call / reporting-time pay).</string>
-    <string name="settings_round_shift_length">Round shift length</string>
-    <string name="settings_rounding_increment">Rounding increment (minutes)</string>
+    <string name="settings_min_shift_pay">Minimum paid time per shift (minutes)</string>
+    <string name="settings_min_shift_hint">Shorter shifts are paid as if they lasted this long. Some contracts call this minimum-call or reporting-time pay.</string>
+    <string name="settings_round_shift_length">Round paid time</string>
+    <string name="settings_rounding_increment">Round in steps of (minutes)</string>
     <string name="settings_rounding_nearest">Nearest</string>
     <string name="settings_rounding_up">Up</string>
     <string name="settings_rounding_down">Down</string>
     <string name="settings_section_deductions">Deductions</string>
-    <string name="settings_deduct_gross">Deduct from gross estimate</string>
+    <string name="settings_deduct_gross">Show an estimate after deductions</string>
     <string name="settings_deduction_percent" formatted="false">Deduction (%)</string>
     <string name="settings_deduction_fixed">Deduction (%1$s per shift)</string>
     <string name="settings_deduction_hint">A rough take-home adjustment (e.g. tax or pension estimate) — not a payroll-grade net calculation.</string>
@@ -227,13 +227,13 @@
     <string name="settings_ladder_summary">Current ladder — %1$s. Pick a region preset to change tiers.</string>
     <string name="settings_add_profile">Add job</string>
     <string name="settings_base_hourly_rate">Base hourly rate (%1$s)</string>
-    <string name="settings_rounding_direction">Rounding direction</string>
+    <string name="settings_rounding_direction">Which way to round</string>
     <string name="settings_percentage">Percentage</string>
-    <string name="settings_fixed_per_shift">Fixed per shift</string>
+    <string name="settings_fixed_per_shift">Fixed amount per month</string>
     <string name="settings_new_comp_profile">New work profile</string>
     <string name="settings_comp_profile_name_placeholder">e.g. Second job, Weekend gig</string>
     <string name="settings_create">Create</string>
-    <string name="settings_premium_stacking">Premium stacking</string>
+    <string name="settings_premium_stacking">When several premiums apply</string>
     <string name="settings_use_hhmm">Use HH:MM, e.g. 22:00</string>
 
     <!-- Timezone picker -->
@@ -460,7 +460,7 @@
     <string name="settings_backup_share_subject">ElmTrackr local backup</string>
     <string name="settings_backup_share_chooser">Export local backup</string>
     <string name="settings_sync_synced_with_warnings">Synced with warnings: %1$s</string>
-    <string name="settings_sync_synced_unsent">Synced. Changes not uploaded: %1$d</string>
+    <string name="settings_sync_synced_unsent">Changes not uploaded yet: %1$d. They’re saved on this device and will be retried.</string>
 
     <!-- Sick leave arrangement, per compensation profile -->
     <string name="settings_section_sick_leave">Sick leave</string>
@@ -522,4 +522,13 @@
     <string name="settings_face_ember">A flame sprite that grows horns and a crown</string>
     <string name="settings_face_droplet">A water sprite that fins out and swims</string>
     <string name="settings_face_spark">A static sprite that crackles into a storm</string>
+
+    <!-- Work profile form: progressive disclosure and plain-language labels (Wave 2) -->
+    <string name="settings_advanced_title">Overtime, breaks and other pay rules</string>
+    <string name="settings_advanced_summary">Filled in from your region. Change them only where your contract differs.</string>
+    <string name="settings_currency_change_hint">Past shifts at this job will also show in %1$s. Amounts are not converted.</string>
+    <string name="settings_time_breaks_intro">How clock time becomes paid time. Most jobs leave rounding and minimum pay off.</string>
+
+    <!-- Sync status: changes held for retry (Wave 2) -->
+    <string name="sync_waiting_count">Saved on this device. Changes waiting to upload: %1$d.</string>
 </resources>

@@ -446,11 +446,18 @@ class SyncRepositoryImpl @Inject constructor(
                     // step, so they never reach `issues` — which meant a sync
                     // where every pending row failed still reported a clean
                     // "Synced <time>". Check the rows themselves before saying so.
-                    val failed = pendingSnapshot(userId).failedCount
-                    lastSyncStatus.value = if (failed > 0) {
-                        "$UNSENT_STATUS_PREFIX $failed"
-                    } else {
-                        "Synced ${Instant.now()}"
+                    //
+                    // Rows held back rather than failed — a timeout, a 5xx, a parent
+                    // not yet uploaded — stay pending and are retried, and they are
+                    // not synced either. Counting only FAILED rows reported "Synced
+                    // just now" over changes that had not left the device.
+                    val snapshot = pendingSnapshot(userId)
+                    val failed = snapshot.failedCount
+                    val waiting = snapshot.pendingCount - failed
+                    lastSyncStatus.value = when {
+                        failed > 0 -> "$UNSENT_STATUS_PREFIX $failed"
+                        waiting > 0 -> "$WAITING_STATUS_PREFIX $waiting"
+                        else -> "Synced ${Instant.now()}"
                     }
                     SyncResult.Success
                 }
@@ -2659,6 +2666,13 @@ class SyncRepositoryImpl @Inject constructor(
          * an English status line. Keep in step with SyncStatusText.UNSENT_PREFIX.
          */
         const val UNSENT_STATUS_PREFIX = "SyncedUnsent:"
+
+        /**
+         * Machine marker followed by a count: changes saved on this device that a
+         * finished run did not upload and will retry. Not a failure, and not
+         * synced. Keep in step with SyncStatusText.WAITING_PREFIX.
+         */
+        const val WAITING_STATUS_PREFIX = "SyncWaiting:"
         const val REMOTES_NOT_CONFIGURED =
             "Sync pipeline invoked without configured remote data sources; syncAll must gate on configuration first."
     }
