@@ -381,16 +381,24 @@ class SyncRepositoryImpl @Inject constructor(
             foreignRowsThisRun = 0
 
             runSyncStep("reconcile", issues) { reconcileNeverSynced(userId) }
-            runSyncStep("push tasks", issues) { pushTasks(userId, warnings) }
+            // Parents before children, on the way out as on the way in. A work
+            // profile carries a workplace_id and a task carries a
+            // compensation_profile_id. Neither link is enforced by the server when
+            // it is null, so a child pushed before its parent had a remote id did
+            // not fail: it was sent detached, marked synced, and the link never
+            // travelled again. A profile created together with its workplace
+            // reached other devices as a job with no leave entitlement, and a task
+            // scoped to a new profile arrived unscoped.
+            //
+            // Workplaces also go before their policies, balances and allocations,
+            // whose workplace_id the server does enforce as a real foreign key.
+            runSyncStep("push workplaces", issues) { pushWorkplaces(userId) }
             runSyncStep("push compensation profiles", issues) { pushCompensationProfiles(userId) }
+            runSyncStep("push tasks", issues) { pushTasks(userId, warnings) }
             runSyncStep("push premium profiles", issues) { pushPremiumProfiles(userId) }
             runSyncStep("push projects", issues) { pushProjects(userId) }
             runSyncStep("push project billing records", issues) { pushBillingRecords(userId) }
             runSyncStep("push project payments", issues) { pushProjectPayments(userId) }
-            // Workplaces before their policies, balances and allocations: every one
-            // of those carries a workplace_id the server enforces as a real foreign
-            // key, so the parent has to own a remote id first.
-            runSyncStep("push workplaces", issues) { pushWorkplaces(userId) }
             runSyncStep("push leave policies", issues) { pushLeavePolicies(userId) }
             runSyncStep("push leave balances", issues) { pushLeaveBalances(userId) }
             // And events before allocations, for the same reason.
@@ -402,6 +410,12 @@ class SyncRepositoryImpl @Inject constructor(
             runSyncStep("push user settings", issues) { pushUserSettings(userId) }
             runSyncStep("push profiles", issues) { pushProfiles(userId) }
             runSyncStep("pull profiles", issues) { pullProfiles(userId) }
+            // Workplaces before compensation profiles, and before shifts: a pulled
+            // profile or shift resolves its workplace_id against the local
+            // workplaces table, and a link that cannot be resolved is stored as
+            // null. Profiles used to be pulled first, so every fresh install
+            // materialised each profile detached from its job.
+            runSyncStep("pull workplaces", issues) { pullWorkplaces(userId) }
             runSyncStep("pull compensation profiles", issues) { pullCompensationProfiles(userId) }
             runSyncStep("pull premium profiles", issues) { pullPremiumProfiles(userId) }
             runSyncStep("pull user settings", issues) { pullUserSettings(userId) }
@@ -412,9 +426,6 @@ class SyncRepositoryImpl @Inject constructor(
             runSyncStep("pull projects", issues) { pullProjects(userId) }
             runSyncStep("pull project billing records", issues) { pullBillingRecords(userId) }
             runSyncStep("pull project payments", issues) { pullProjectPayments(userId) }
-            // Same order on the way in, and before shifts: a pulled shift resolves
-            // its workplace_id against the local workplaces table.
-            runSyncStep("pull workplaces", issues) { pullWorkplaces(userId) }
             runSyncStep("pull leave policies", issues) { pullLeavePolicies(userId) }
             runSyncStep("pull leave balances", issues) { pullLeaveBalances(userId) }
             runSyncStep("pull absence events", issues) { pullAbsenceEvents(userId) }
@@ -727,12 +738,13 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pushTaskCreate(task: TaskEntity, syncedAt: Long) {
+        val profileRemoteId = when (val link = profileLinkForPush(task.compensationProfileId)) {
+            ParentLink.NotYetPushed -> return
+            is ParentLink.Ready -> link.remoteId
+        }
         val remoteId = try {
             tasksRemote.insert(
-                task.toRemoteInsert(
-                    compensationProfileRemoteId =
-                        idMapper.profileLocalToRemote(task.compensationProfileId),
-                ),
+                task.toRemoteInsert(compensationProfileRemoteId = profileRemoteId),
             ).id
         } catch (e: Exception) {
             // The insert carries the client-generated id; a retry after a lost
@@ -744,9 +756,11 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushTaskUpdate(task: TaskEntity, syncedAt: Long) {
         val remoteId = task.remoteId ?: error("Missing remoteId for task ${task.localId}")
-        val update = task.toRemoteUpdate(
-            compensationProfileRemoteId = idMapper.profileLocalToRemote(task.compensationProfileId),
-        )
+        val profileRemoteId = when (val link = profileLinkForPush(task.compensationProfileId)) {
+            ParentLink.NotYetPushed -> return
+            is ParentLink.Ready -> link.remoteId
+        }
+        val update = task.toRemoteUpdate(compensationProfileRemoteId = profileRemoteId)
         if (tasksRemote.update(remoteId, update) == null) {
             adoptNewerRemoteTask(task, remoteId, syncedAt)
             return
@@ -1032,6 +1046,39 @@ class SyncRepositoryImpl @Inject constructor(
         RemoteSyncErrors.isForeignKeyViolation(error) ||
             RemoteSyncErrors.isTransient(error) ||
             RemoteSyncErrors.isAuthExpired(error)
+
+    /**
+     * How a row's link to its parent travels in a push.
+     *
+     * [NotYetPushed] is a hold, not a failure: the parent exists locally and is
+     * waiting for its own push, so the child waits too and goes on the next run,
+     * once the parent has a remote id. Sending the link as null instead is not
+     * "no parent": the server stores the child detached, the row is marked
+     * synced, and nothing ever sends the link again. The leave rows already
+     * follow this rule because the server's foreign key forces it; the workplace
+     * and profile links are nullable, so nothing forced it here and the links
+     * were quietly lost.
+     *
+     * A link to a parent this device holds no row for at all is [Ready] with a
+     * null id. There is nothing to wait for, and holding would leave the row
+     * pending forever.
+     */
+    private sealed interface ParentLink {
+        data class Ready(val remoteId: String?) : ParentLink
+        data object NotYetPushed : ParentLink
+    }
+
+    private suspend fun workplaceLinkForPush(workplaceLocalId: String?): ParentLink {
+        val localId = workplaceLocalId ?: return ParentLink.Ready(null)
+        val workplace = workplaceDao.getByLocalId(localId) ?: return ParentLink.Ready(null)
+        return workplace.remoteId?.let { ParentLink.Ready(it) } ?: ParentLink.NotYetPushed
+    }
+
+    private suspend fun profileLinkForPush(profileLocalId: String?): ParentLink {
+        val localId = profileLocalId ?: return ParentLink.Ready(null)
+        val profile = compensationProfileDao.getByLocalId(localId) ?: return ParentLink.Ready(null)
+        return profile.remoteId?.let { ParentLink.Ready(it) } ?: ParentLink.NotYetPushed
+    }
 
     private suspend fun markShiftFailed(shift: ShiftEntity, error: Throwable) {
         shiftDao.updateSyncState(
@@ -1720,8 +1767,12 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pushCompensationProfileCreate(profile: CompensationProfileEntity, syncedAt: Long) {
+        val workplaceRemoteId = when (val link = workplaceLinkForPush(profile.workplaceId)) {
+            ParentLink.NotYetPushed -> return
+            is ParentLink.Ready -> link.remoteId
+        }
         val remoteId = try {
-            compensationRemote.insert(profile.toRemoteInsert(idMapper.workplaceLocalToRemote(profile.workplaceId))).id
+            compensationRemote.insert(profile.toRemoteInsert(workplaceRemoteId)).id
         } catch (e: Exception) {
             // The insert carries the client-generated id, so a retry after a lost
             // response collides with the row it already created — adopt that row
@@ -1737,7 +1788,11 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pushCompensationProfileUpdate(profile: CompensationProfileEntity, syncedAt: Long) {
         val remoteId = profile.remoteId ?: error("Missing remoteId for profile ${profile.localId}")
-        if (compensationRemote.update(remoteId, profile.toRemoteUpdate(idMapper.workplaceLocalToRemote(profile.workplaceId))) == null) {
+        val workplaceRemoteId = when (val link = workplaceLinkForPush(profile.workplaceId)) {
+            ParentLink.NotYetPushed -> return
+            is ParentLink.Ready -> link.remoteId
+        }
+        if (compensationRemote.update(remoteId, profile.toRemoteUpdate(workplaceRemoteId)) == null) {
             adoptNewerRemoteCompensationProfile(profile, remoteId, syncedAt)
             return
         }
@@ -1794,6 +1849,7 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun pullCompensationProfiles(userId: String) {
+        scheduleWorkplaceLinkRepairIfDue(userId)
         val outcome = pullIncremental(
             userId = userId,
             entity = ENTITY_COMPENSATION_PROFILES,
@@ -1821,6 +1877,11 @@ class SyncRepositoryImpl @Inject constructor(
                             preserveLocal = existing,
                         ),
                     )
+                // Heal a link dropped by the old pull order, which materialised
+                // profiles before their workplaces existed locally. The server
+                // already holds the link, so the row stays SYNCED.
+                existing.deletedAt == null && existing.workplaceId == null && workplaceLocalId != null ->
+                    compensationProfileDao.upsert(existing.copy(workplaceId = workplaceLocalId))
             }
             true
         }
@@ -1836,6 +1897,41 @@ class SyncRepositoryImpl @Inject constructor(
                     )
                 }
         }
+    }
+
+    /**
+     * Arranges a one-off re-pull of every profile when this device holds a synced
+     * profile with no workplace while it does hold synced workplaces.
+     *
+     * Those are the profiles the old pull order detached: they were materialised
+     * before their workplace existed locally, and an incremental pull only brings
+     * a row back when it changes on the server, which may be never. Left alone,
+     * the profile reads as having no job and no leave entitlement here, and the
+     * first edit made on this device pushes the null link over the real one the
+     * server holds. Resetting the cursor to epoch 0 fetches the table again (a
+     * handful of rows) so the heal branch in [pullCompensationProfiles] can run;
+     * it is not a full sync, so no tombstone sweep follows.
+     *
+     * A profile that is also detached on the server stays detached, so the check
+     * is rate-limited: a user whose profiles genuinely predate workplaces should
+     * not pay an extra request on every run.
+     */
+    private suspend fun scheduleWorkplaceLinkRepairIfDue(userId: String) {
+        // A first pull fetches everything anyway.
+        if (syncCursorStore.lastPulledAt(userId, ENTITY_COMPENSATION_PROFILES) == null) return
+        val detached = compensationProfileDao.getAllProfilesForUser(userId).any {
+            it.remoteId != null && it.syncStatus == SyncStatus.SYNCED && it.workplaceId == null
+        }
+        if (!detached) return
+        val hasSyncedWorkplace = workplaceDao.getAllForUser(userId).any {
+            it.remoteId != null && it.deletedAt == null
+        }
+        if (!hasSyncedWorkplace) return
+        val now = Instant.now().toEpochMilli()
+        val lastAttempt = syncCursorStore.lastPulledAt(userId, ENTITY_COMPENSATION_PROFILES_LINK_REPAIR)
+        if (lastAttempt != null && now - lastAttempt < WORKPLACE_LINK_REPAIR_INTERVAL_MILLIS) return
+        syncCursorStore.setLastPulledAt(userId, ENTITY_COMPENSATION_PROFILES_LINK_REPAIR, now)
+        syncCursorStore.setLastPulledAt(userId, ENTITY_COMPENSATION_PROFILES, 0L)
     }
 
     // ── Premium profiles ────────────────────────────────────────────────────
@@ -2642,6 +2738,13 @@ class SyncRepositoryImpl @Inject constructor(
         const val ENTITY_SHIFTS = "shifts"
         const val ENTITY_REFUND_CLAIMS = "refund_claims"
         const val ENTITY_COMPENSATION_PROFILES = "compensation_profiles"
+
+        /**
+         * Not a table. A cursor-store key recording when the workplace-link repair
+         * in [scheduleWorkplaceLinkRepairIfDue] last re-pulled the profiles.
+         */
+        const val ENTITY_COMPENSATION_PROFILES_LINK_REPAIR = "compensation_profiles_workplace_link_repair"
+        const val WORKPLACE_LINK_REPAIR_INTERVAL_MILLIS = 24L * 60 * 60 * 1000
         const val ENTITY_PREMIUM_PROFILES = "premium_profiles"
         const val ENTITY_WORKPLACES = "workplaces"
         const val ENTITY_LEAVE_POLICIES = "leave_policies"
