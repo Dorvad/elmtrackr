@@ -398,21 +398,35 @@ Shifts may reference `task_id` (nullable FK). Clock-in stores `task_*_snapshot` 
 
 ## Sync order (Android)
 
-Push and pull phases run in order:
+Push and pull phases run parents before children, in both directions:
 
-0. **workplaces → leave policies / balance snapshots → absence events → absence
-   allocations** (real foreign keys; workplaces also before shifts and
-   compensation profiles, which carry a workplace link).
-1. **tasks** (before shifts — shifts may reference task IDs)  
-2. **projects → project billing records → project payments** (real foreign keys;
+0. **workplaces** (before compensation profiles and shifts, which carry a
+   workplace link, and before the leave tables, whose link is a real foreign key)
+1. **compensation profiles** (before tasks, which carry a
+   `compensation_profile_id`, and before shifts)
+2. **tasks** (before shifts — shifts may reference task IDs)  
+3. premium profiles  
+4. **projects → project billing records → project payments** (real foreign keys;
    also before shifts, which carry a project link)  
-3. shifts  
-4. refund claims  
-5. user settings  
-6. **profiles** (display name / `full_name`)  
-7. compensation profiles  
+5. **leave policies / balance snapshots → absence events → absence allocations**  
+6. shifts  
+7. refund claims  
+8. user settings  
+9. **profiles** (display name / `full_name`)  
 
-Pull runs profiles before compensation profiles and user settings so the display name is available early.
+Pull runs profiles (display name) first so the name is available early, then the
+same parent-before-child order as above.
+
+**Nullable links are held, not nulled.** `compensation_profiles.workplace_id` and
+`tasks.compensation_profile_id` are nullable, so the server accepts a child whose
+parent has not been pushed yet — it simply stores the link as null. A push that
+did that marked the row synced and the link never travelled again: a profile
+created together with its workplace reached other devices as a job with no leave
+entitlement, and a task scoped to a new profile arrived unscoped. A child whose
+parent exists locally without a remote id now stays pending until the parent has
+been pushed, the same rule the leave tables already follow. A profile pulled
+detached by the old order is relinked by a one-off re-pull once the device holds
+synced workplaces (`SyncRepositoryImpl.scheduleWorkplaceLinkRepairIfDue`).
 
 Incremental pull uses `updated_at >= lastPulledAt` per entity (see `SyncCursorStore`).
 

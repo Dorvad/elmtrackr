@@ -1285,6 +1285,293 @@ class SyncRepositoryImplTest {
         assertEquals(250, onlyDevice.liveShifts.size)
     }
 
+    // ── Work profiles and the workplace they own ─────────────────────────────
+    //
+    // A work profile's workplace_id is nullable on the server, so nothing rejects
+    // a profile pushed before its workplace has a remote id — the link is simply
+    // stored as null, and the row is then marked synced. These pin the order and
+    // the hold that keep the link intact, and the repair for devices that already
+    // lost it.
+
+    private fun compensationProfileEntity(
+        localId: String,
+        syncStatus: SyncStatus,
+        workplaceId: String?,
+        remoteId: String? = null,
+        updatedAt: Long = 1_000L,
+        lastSyncedAt: Long? = null,
+    ) = CompensationProfileEntity(
+        localId = localId,
+        remoteId = remoteId,
+        userId = USER,
+        name = "Clinic",
+        regionCode = "IL",
+        currencyCode = "ILS",
+        timezone = "Asia/Jerusalem",
+        baseHourlyRate = 60.0,
+        rulesJson = "{}",
+        stackingPolicy = "HIGHEST_ONLY",
+        effectiveFrom = updatedAt,
+        effectiveUntil = null,
+        isDefault = true,
+        isArchived = false,
+        color = null,
+        icon = null,
+        workplaceId = workplaceId,
+        createdAt = updatedAt,
+        updatedAt = updatedAt,
+        deletedAt = null,
+        syncStatus = syncStatus,
+        lastSyncError = null,
+        lastSyncedAt = lastSyncedAt,
+    )
+
+    private fun remoteCompensationProfileRow(
+        id: String,
+        workplaceId: String?,
+        updatedAt: String = REMOTE_STAMP,
+    ) = RemoteCompensationProfileRow(
+        id = id,
+        userId = USER,
+        name = "Clinic",
+        regionCode = "il",
+        currencyCode = "ILS",
+        timezone = "Asia/Jerusalem",
+        baseHourlyRate = 60.0,
+        rulesJson = kotlinx.serialization.json.JsonObject(emptyMap()),
+        stackingPolicy = "highest_only",
+        effectiveFrom = updatedAt,
+        effectiveUntil = null,
+        isDefault = true,
+        isArchived = false,
+        workplaceId = workplaceId,
+        createdAt = updatedAt,
+        updatedAt = updatedAt,
+        deletedAt = null,
+        clientUpdatedAt = updatedAt,
+    )
+
+    private fun remoteWorkplaceRow(id: String, updatedAt: String = REMOTE_STAMP) =
+        com.elmtrackr.app.data.remote.RemoteWorkplaceRow(
+            id = id, userId = USER, name = "Clinic", regionCode = "IL",
+            currencyCode = "ILS", timezone = "Asia/Jerusalem", isDefault = true,
+            isArchived = false, createdAt = updatedAt, updatedAt = updatedAt,
+        )
+
+    @Test
+    fun `a new work profile and its workplace reach the server linked`() = runTest {
+        val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+        val profileDao = com.elmtrackr.app.fake.FakeCompensationProfileDao()
+        val workplacesRemote = com.elmtrackr.app.fake.FakeWorkplaceRemote()
+        val profilesRemote = FakeRemoteCompensationProfileDataSource()
+        // Both created in one offline session, the way adding a job does it.
+        workplaceDao.seed(workplaceEntity("wp-1", SyncStatus.PENDING_CREATE))
+        profileDao.insert(compensationProfileEntity("p-1", SyncStatus.PENDING_CREATE, workplaceId = "wp-1"))
+        val repository = createRepository(
+            workplaceDao = workplaceDao,
+            remoteWorkplaces = workplacesRemote,
+            compensationProfileDao = profileDao,
+            remoteCompensationProfiles = profilesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        assertEquals(1, workplacesRemote.rows.size)
+        assertEquals(1, profilesRemote.rows.size)
+        // The server row carries the workplace's *remote* id, not null.
+        assertEquals(workplacesRemote.rows.single().id, profilesRemote.rows.single().workplaceId)
+        assertEquals(SyncStatus.SYNCED, workplaceDao.rows().single().syncStatus)
+        assertEquals(SyncStatus.SYNCED, profileDao.getByLocalId("p-1")!!.syncStatus)
+    }
+
+    @Test
+    fun `a work profile whose workplace has not been pushed stays pending`() = runTest {
+        val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+        val profileDao = com.elmtrackr.app.fake.FakeCompensationProfileDao()
+        val workplacesRemote = com.elmtrackr.app.fake.FakeWorkplaceRemote()
+        val profilesRemote = FakeRemoteCompensationProfileDataSource()
+        // The workplace push is held by a dropped connection, so it has no remote
+        // id when the profile's turn comes.
+        workplacesRemote.insertFailure = { throw java.io.IOException("Connection reset") }
+        workplaceDao.seed(workplaceEntity("wp-1", SyncStatus.PENDING_CREATE))
+        profileDao.insert(compensationProfileEntity("p-1", SyncStatus.PENDING_CREATE, workplaceId = "wp-1"))
+        val repository = createRepository(
+            workplaceDao = workplaceDao,
+            remoteWorkplaces = workplacesRemote,
+            compensationProfileDao = profileDao,
+            remoteCompensationProfiles = profilesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        // Not sent detached. Pending, not FAILED: nothing is wrong with the row.
+        assertTrue("nothing was sent", profilesRemote.rows.isEmpty())
+        assertEquals(SyncStatus.PENDING_CREATE, profileDao.getByLocalId("p-1")!!.syncStatus)
+        assertNull(profileDao.getByLocalId("p-1")!!.lastSyncError)
+    }
+
+    @Test
+    fun `a work profile linked to a workplace this device never held is still pushed`() = runTest {
+        val profileDao = com.elmtrackr.app.fake.FakeCompensationProfileDao()
+        val profilesRemote = FakeRemoteCompensationProfileDataSource()
+        // No workplace row at all, so there is nothing to wait for.
+        profileDao.insert(compensationProfileEntity("p-1", SyncStatus.PENDING_CREATE, workplaceId = "gone"))
+        val repository = createRepository(
+            compensationProfileDao = profileDao,
+            remoteCompensationProfiles = profilesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        assertEquals(1, profilesRemote.rows.size)
+        assertNull(profilesRemote.rows.single().workplaceId)
+        assertEquals(SyncStatus.SYNCED, profileDao.getByLocalId("p-1")!!.syncStatus)
+    }
+
+    @Test
+    fun `a remote work profile arrives with its workplace resolved on a fresh device`() = runTest {
+        val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+        val profileDao = com.elmtrackr.app.fake.FakeCompensationProfileDao()
+        val workplacesRemote = com.elmtrackr.app.fake.FakeWorkplaceRemote()
+        val profilesRemote = FakeRemoteCompensationProfileDataSource()
+        workplacesRemote.rows += remoteWorkplaceRow("wp-remote")
+        profilesRemote.rows += remoteCompensationProfileRow("p-remote", workplaceId = "wp-remote")
+        val repository = createRepository(
+            workplaceDao = workplaceDao,
+            remoteWorkplaces = workplacesRemote,
+            compensationProfileDao = profileDao,
+            remoteCompensationProfiles = profilesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        val workplace = workplaceDao.rows().single()
+        val profile = profileDao.getByRemoteId("p-remote")
+        assertNotNull(profile)
+        // The profile points at the workplace's *local* id. Before workplaces
+        // were pulled first, this was null on every reinstall.
+        assertEquals(workplace.localId, profile!!.workplaceId)
+    }
+
+    @Test
+    fun `a work profile detached by the old pull order is relinked`() = runTest {
+        val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+        val profileDao = com.elmtrackr.app.fake.FakeCompensationProfileDao()
+        val workplacesRemote = com.elmtrackr.app.fake.FakeWorkplaceRemote()
+        val profilesRemote = FakeRemoteCompensationProfileDataSource()
+        val cursors = InMemorySyncCursorStore()
+        // The device already pulled both tables. The profile landed before its
+        // workplace existed locally, so it is synced with no job; the server has
+        // the link.
+        workplaceDao.seed(workplaceEntity("wp-1", SyncStatus.SYNCED, remoteId = "wp-remote"))
+        profileDao.insert(
+            compensationProfileEntity(
+                "p-1", SyncStatus.SYNCED, workplaceId = null, remoteId = "p-remote",
+                updatedAt = REMOTE_STAMP_EPOCH, lastSyncedAt = REMOTE_STAMP_EPOCH,
+            ),
+        )
+        workplacesRemote.rows += remoteWorkplaceRow("wp-remote")
+        profilesRemote.rows += remoteCompensationProfileRow("p-remote", workplaceId = "wp-remote")
+        // Cursors past the rows: an ordinary incremental pull brings nothing back.
+        cursors.setLastPulledAt(USER, "workplaces", REMOTE_STAMP_EPOCH + 1)
+        cursors.setLastPulledAt(USER, "compensation_profiles", REMOTE_STAMP_EPOCH + 1)
+        val repository = createRepository(
+            syncCursorStore = cursors,
+            workplaceDao = workplaceDao,
+            remoteWorkplaces = workplacesRemote,
+            compensationProfileDao = profileDao,
+            remoteCompensationProfiles = profilesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        val profile = profileDao.getByLocalId("p-1")!!
+        assertEquals("wp-1", profile.workplaceId)
+        // Healed, not edited: the server already holds the link.
+        assertEquals(SyncStatus.SYNCED, profile.syncStatus)
+        assertEquals(REMOTE_STAMP_EPOCH, profile.updatedAt)
+    }
+
+    @Test
+    fun `a work profile detached on the server too is not re-pulled on every run`() = runTest {
+        val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+        val profileDao = com.elmtrackr.app.fake.FakeCompensationProfileDao()
+        val workplacesRemote = com.elmtrackr.app.fake.FakeWorkplaceRemote()
+        val profilesRemote = FakeRemoteCompensationProfileDataSource()
+        val cursors = InMemorySyncCursorStore()
+        workplaceDao.seed(workplaceEntity("wp-1", SyncStatus.SYNCED, remoteId = "wp-remote"))
+        profileDao.insert(
+            compensationProfileEntity(
+                "p-1", SyncStatus.SYNCED, workplaceId = null, remoteId = "p-remote",
+                updatedAt = REMOTE_STAMP_EPOCH, lastSyncedAt = REMOTE_STAMP_EPOCH,
+            ),
+        )
+        workplacesRemote.rows += remoteWorkplaceRow("wp-remote")
+        // Genuinely detached: a profile from before workplaces existed.
+        profilesRemote.rows += remoteCompensationProfileRow("p-remote", workplaceId = null)
+        cursors.setLastPulledAt(USER, "workplaces", REMOTE_STAMP_EPOCH + 1)
+        cursors.setLastPulledAt(USER, "compensation_profiles", REMOTE_STAMP_EPOCH + 1)
+        val repository = createRepository(
+            syncCursorStore = cursors,
+            workplaceDao = workplaceDao,
+            remoteWorkplaces = workplacesRemote,
+            compensationProfileDao = profileDao,
+            remoteCompensationProfiles = profilesRemote,
+        )
+
+        repository.syncAll(USER)
+        // The repair re-pulled from the beginning of time once...
+        assertEquals("1970-01-01T00:00:00Z", profilesRemote.lastSinceIso)
+        assertNull(profileDao.getByLocalId("p-1")!!.workplaceId)
+
+        repository.syncAll(USER)
+        // ...and the next run is an ordinary incremental pull again.
+        assertEquals(REMOTE_STAMP, profilesRemote.lastSinceIso)
+    }
+
+    @Test
+    fun `a task scoped to a work profile that has not been pushed stays pending`() = runTest {
+        val taskDao = InMemoryTaskDao()
+        val profileDao = com.elmtrackr.app.fake.FakeCompensationProfileDao()
+        val profilesRemote = FakeRemoteCompensationProfileDataSource()
+        // The profile push is held, so it has no remote id when the task's turn comes.
+        profilesRemote.insertFailure = { throw java.io.IOException("Connection reset") }
+        profileDao.insert(compensationProfileEntity("p-1", SyncStatus.PENDING_CREATE, workplaceId = null))
+        taskDao.upsert(
+            TaskEntity(
+                localId = "task-1",
+                remoteId = null,
+                userId = USER,
+                name = "Deliveries",
+                icon = "🚚",
+                color = null,
+                hourlyRate = 55.0,
+                isArchived = false,
+                lastUsedAt = null,
+                compensationProfileId = "p-1",
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                deletedAt = null,
+                syncStatus = SyncStatus.PENDING_CREATE,
+                lastSyncError = null,
+                lastSyncedAt = null,
+            ),
+        )
+        val repository = createRepository(
+            taskDao = taskDao,
+            // Its insert throws, so a task that was sent would end up FAILED.
+            remoteTasks = RecordingRemoteTaskDataSource(),
+            compensationProfileDao = profileDao,
+            remoteCompensationProfiles = profilesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        val task = taskDao.getByLocalId("task-1")!!
+        assertEquals(SyncStatus.PENDING_CREATE, task.syncStatus)
+        assertNull(task.lastSyncError)
+    }
+
     // ── Workplaces and leave ──────────────────────────────────────────────────
 
     private fun workplaceEntity(
@@ -1540,11 +1827,14 @@ class SyncRepositoryImplTest {
             com.elmtrackr.app.fake.FakeAbsenceAllocationRemote(),
         remoteLeaveBalances: com.elmtrackr.app.data.remote.RemoteLeaveBalanceSnapshotDataSource =
             com.elmtrackr.app.fake.FakeLeaveBalanceSnapshotRemote(),
+        compensationProfileDao: CompensationProfileDao = EmptyCompensationProfileDao(),
+        remoteCompensationProfiles: RemoteCompensationProfileDataSource =
+            EmptyRemoteCompensationProfileDataSource(),
     ) = SyncRepositoryImpl(
         shiftDao = shiftDao,
         refundClaimDao = refundClaimDao,
         settingsDao = EmptySettingsDao(),
-        compensationProfileDao = EmptyCompensationProfileDao(),
+        compensationProfileDao = compensationProfileDao,
         premiumProfileDao = EmptyPremiumProfileDao(),
         receiptDao = receiptDao,
         projectDao = projectDao,
@@ -1558,7 +1848,7 @@ class SyncRepositoryImplTest {
         remoteShifts = remoteShifts,
         remoteRefundClaims = EmptyRemoteRefundClaimDataSource(),
         remoteSettings = EmptyRemoteUserSettingsDataSource(),
-        remoteCompensationProfiles = EmptyRemoteCompensationProfileDataSource(),
+        remoteCompensationProfiles = remoteCompensationProfiles,
         remotePremiumProfiles = EmptyRemotePremiumProfileDataSource(),
         remoteProfiles = remoteProfiles,
         refundReceiptStorage = refundReceiptStorage,
@@ -1580,6 +1870,10 @@ class SyncRepositoryImplTest {
 
     private companion object {
         const val USER = "user-1"
+
+        /** A remote row stamp, and the same instant as epoch millis. */
+        const val REMOTE_STAMP = "2026-01-01T00:00:00Z"
+        const val REMOTE_STAMP_EPOCH = 1_767_225_600_000L
 
         /** 2024-06-01T09:00:00Z and five minutes later, as epoch millis. */
         const val CLOCK_IN_0900 = 1_717_232_400_000L
@@ -2124,6 +2418,83 @@ class SyncRepositoryImplTest {
             remoteId: String,
             settings: RemoteUserSettingsUpdate,
         ): RemoteUserSettingsRow? = null
+    }
+
+    private class FakeRemoteCompensationProfileDataSource : RemoteCompensationProfileDataSource {
+        val rows = mutableListOf<RemoteCompensationProfileRow>()
+        var insertFailure: (() -> Nothing)? = null
+        /** The `since` of the most recent page fetch; null means a first, unbounded pull. */
+        var lastSinceIso: String? = null
+
+        override suspend fun fetchUpdatedSince(
+            sinceIso: String?,
+            limit: Int,
+            offset: Int,
+        ): List<RemoteCompensationProfileRow> {
+            lastSinceIso = sinceIso
+            return rows
+                .sortedWith(compareBy({ it.updatedAt }, { it.id }))
+                .filter { sinceIso == null || it.updatedAt >= sinceIso }
+                .drop(offset)
+                .take(limit)
+        }
+
+        override suspend fun findById(remoteId: String): RemoteCompensationProfileRow? =
+            rows.firstOrNull { it.id == remoteId }
+
+        override suspend fun insert(profile: RemoteCompensationProfileInsert): RemoteCompensationProfileRow {
+            insertFailure?.invoke()
+            val stored = RemoteCompensationProfileRow(
+                id = profile.id,
+                userId = profile.userId,
+                name = profile.name,
+                regionCode = profile.regionCode,
+                currencyCode = profile.currencyCode,
+                timezone = profile.timezone,
+                baseHourlyRate = profile.baseHourlyRate,
+                rulesJson = profile.rulesJson,
+                stackingPolicy = profile.stackingPolicy,
+                effectiveFrom = profile.effectiveFrom,
+                effectiveUntil = profile.effectiveUntil,
+                isDefault = profile.isDefault,
+                isArchived = profile.isArchived,
+                workplaceId = profile.workplaceId,
+                color = profile.color,
+                icon = profile.icon,
+                createdAt = profile.clientUpdatedAt,
+                updatedAt = profile.clientUpdatedAt,
+                deletedAt = null,
+                clientUpdatedAt = profile.clientUpdatedAt,
+            )
+            rows += stored
+            return stored
+        }
+
+        override suspend fun update(
+            remoteId: String,
+            profile: RemoteCompensationProfileUpdate,
+        ): RemoteCompensationProfileRow? {
+            val index = rows.indexOfFirst { it.id == remoteId }
+            if (index < 0) return null
+            val existing = rows[index]
+            // The client_updated_at guard: an older write loses.
+            val storedGuard = existing.clientUpdatedAt
+            if (storedGuard != null && storedGuard > profile.clientUpdatedAt) return null
+            val updated = existing.copy(
+                name = profile.name,
+                baseHourlyRate = profile.baseHourlyRate,
+                isDefault = profile.isDefault,
+                isArchived = profile.isArchived,
+                workplaceId = profile.workplaceId,
+                color = profile.color,
+                icon = profile.icon,
+                deletedAt = profile.deletedAt,
+                updatedAt = profile.clientUpdatedAt,
+                clientUpdatedAt = profile.clientUpdatedAt,
+            )
+            rows[index] = updated
+            return updated
+        }
     }
 
     private class EmptyRemoteCompensationProfileDataSource : RemoteCompensationProfileDataSource {
