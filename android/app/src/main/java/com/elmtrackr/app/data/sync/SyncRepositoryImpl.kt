@@ -138,56 +138,48 @@ class SyncRepositoryImpl @Inject constructor(
      */
     private var foreignRowsThisRun = 0
 
+    /**
+     * Counts of unsynced rows across every table the pipeline pushes.
+     *
+     * Workplaces, leave rows and paid-project tables used to be omitted here
+     * even though [hasPendingWork] and the push steps covered them. That meant
+     * a work profile whose workplace was still waiting out a timeout reported
+     * "Synced just now", and [hasRetryablePendingWork] refused to schedule the
+     * follow-up that would have finished the push — so the job never left the
+     * device until the 15-minute periodic sync happened to run.
+     */
     private data class PendingSyncSnapshot(
-        val shifts: List<ShiftEntity>,
-        val claims: List<RefundClaimEntity>,
-        val settings: List<UserSettingsEntity>,
-        val profiles: List<CompensationProfileEntity>,
-        val premiumProfiles: List<PremiumProfileEntity>,
-        val tasks: List<TaskEntity>,
-        val userProfiles: List<ProfileEntity>,
-    ) {
-        val pendingCount: Int
-            get() = shifts.size + claims.size + settings.size + profiles.size + premiumProfiles.size +
-                tasks.size +
-                userProfiles.size
+        val pendingCount: Int,
+        val failedCount: Int,
+    )
 
-        val failedCount: Int
-            get() = shifts.count { it.syncStatus == SyncStatus.FAILED } +
-                claims.count { it.syncStatus == SyncStatus.FAILED } +
-                settings.count { it.syncStatus == SyncStatus.FAILED } +
-                profiles.count { it.syncStatus == SyncStatus.FAILED } +
-                premiumProfiles.count { it.syncStatus == SyncStatus.FAILED } +
-                tasks.count { it.syncStatus == SyncStatus.FAILED } +
-                userProfiles.count { it.syncStatus == SyncStatus.FAILED }
-    }
+    private fun statusesToSnapshot(statuses: List<SyncStatus>): PendingSyncSnapshot =
+        PendingSyncSnapshot(
+            pendingCount = statuses.size,
+            failedCount = statuses.count { it == SyncStatus.FAILED },
+        )
 
     private fun observePendingSnapshot(userId: String): Flow<PendingSyncSnapshot> =
         combine(
-            combine(
-                shiftDao.observePendingSyncShifts(userId),
-                refundClaimDao.observePendingSyncClaims(userId),
-                settingsDao.observePendingSyncSettings(userId),
-                compensationProfileDao.observePendingSyncProfiles(userId),
-                combine(
-                    premiumProfileDao.observePendingSyncProfiles(userId),
-                    taskDao.observePendingSyncTasks(userId),
-                ) { premiumProfiles, tasks -> premiumProfiles to tasks },
-            ) { shifts, claims, settings, profiles, premiumAndTasks ->
-                val (premiumProfiles, tasks) = premiumAndTasks
-                PendingSyncSnapshot(
-                    shifts = shifts,
-                    claims = claims,
-                    settings = settings,
-                    profiles = profiles,
-                    premiumProfiles = premiumProfiles,
-                    tasks = tasks,
-                    userProfiles = emptyList(),
-                )
-            },
-            profileDao.observePendingSyncProfiles(userId),
-        ) { snapshot, userProfiles ->
-            snapshot.copy(userProfiles = userProfiles)
+            listOf(
+                shiftDao.observePendingSyncShifts(userId).map { rows -> rows.map { it.syncStatus } },
+                refundClaimDao.observePendingSyncClaims(userId).map { rows -> rows.map { it.syncStatus } },
+                settingsDao.observePendingSyncSettings(userId).map { rows -> rows.map { it.syncStatus } },
+                compensationProfileDao.observePendingSyncProfiles(userId).map { rows -> rows.map { it.syncStatus } },
+                premiumProfileDao.observePendingSyncProfiles(userId).map { rows -> rows.map { it.syncStatus } },
+                taskDao.observePendingSyncTasks(userId).map { rows -> rows.map { it.syncStatus } },
+                profileDao.observePendingSyncProfiles(userId).map { rows -> rows.map { it.syncStatus } },
+                workplaceDao.observePendingSyncWorkplaces(userId).map { rows -> rows.map { it.syncStatus } },
+                leavePolicyDao.observePendingSyncPolicies(userId).map { rows -> rows.map { it.syncStatus } },
+                absenceEventDao.observePendingSyncEvents(userId).map { rows -> rows.map { it.syncStatus } },
+                absenceAllocationDao.observePendingSyncAllocations(userId).map { rows -> rows.map { it.syncStatus } },
+                leaveBalanceSnapshotDao.observePendingSyncSnapshots(userId).map { rows -> rows.map { it.syncStatus } },
+                projectDao.observePendingSyncProjects(userId).map { rows -> rows.map { it.syncStatus } },
+                projectBillingRecordDao.observePendingSyncRecords(userId).map { rows -> rows.map { it.syncStatus } },
+                projectPaymentDao.observePendingSyncPayments(userId).map { rows -> rows.map { it.syncStatus } },
+            ),
+        ) { arrays ->
+            statusesToSnapshot(arrays.flatMap { it })
         }
 
     override fun observePendingCount(userId: String): Flow<Int> =
@@ -215,16 +207,82 @@ class SyncRepositoryImpl @Inject constructor(
                 compensationProfileDao.observeProfiles(userId),
                 lastSyncStatus,
             ) { settings, profiles, status -> Triple(settings, profiles, status) },
-        ) { pending, meta ->
+            combine(
+                workplaceDao.observeAllIncludingArchived(userId)
+                    .mergedWith(workplaceDao.observePendingSyncWorkplaces(userId)) { it.localId },
+                leavePolicyDao.observePolicies(userId)
+                    .mergedWith(leavePolicyDao.observePendingSyncPolicies(userId)) { it.localId },
+                absenceEventDao.observeEvents(userId)
+                    .mergedWith(absenceEventDao.observePendingSyncEvents(userId)) { it.localId },
+                absenceAllocationDao.observeAllocations(userId)
+                    .mergedWith(absenceAllocationDao.observePendingSyncAllocations(userId)) { it.localId },
+                leaveBalanceSnapshotDao.observeSnapshots(userId)
+                    .mergedWith(leaveBalanceSnapshotDao.observePendingSyncSnapshots(userId)) { it.localId },
+            ) { workplaces, policies, events, allocations, balances ->
+                WorkProfileSyncRows(workplaces, policies, events, allocations, balances)
+            },
+            combine(
+                premiumProfileDao.observeProfiles(userId)
+                    .mergedWith(premiumProfileDao.observePendingSyncProfiles(userId)) { it.localId },
+                projectDao.observeProjects(userId)
+                    .mergedWith(projectDao.observePendingSyncProjects(userId)) { it.localId },
+                projectBillingRecordDao.observeForUser(userId)
+                    .mergedWith(projectBillingRecordDao.observePendingSyncRecords(userId)) { it.localId },
+                projectPaymentDao.observeForUser(userId)
+                    .mergedWith(projectPaymentDao.observePendingSyncPayments(userId)) { it.localId },
+            ) { premium, projects, billing, payments ->
+                ProjectSyncRows(premium, projects, billing, payments)
+            },
+        ) { core, meta, workProfile, projects ->
             SyncDetailsBuilder.build(
-                tasks = pending.first,
-                shifts = pending.second,
-                claims = pending.third,
+                tasks = core.first,
+                shifts = core.second,
+                claims = core.third,
                 settings = meta.first,
                 profiles = meta.second,
                 lastSyncStatus = meta.third,
+                workplaces = workProfile.workplaces,
+                leavePolicies = workProfile.policies,
+                absenceEvents = workProfile.events,
+                absenceAllocations = workProfile.allocations,
+                leaveBalances = workProfile.balances,
+                premiumProfiles = projects.premium,
+                projects = projects.projects,
+                billingRecords = projects.billing,
+                projectPayments = projects.payments,
             )
         }
+
+    /**
+     * Live observers omit soft-deleted rows (`deletedAt IS NULL`). Pending
+     * tombstones and failed deletes still need to appear in Sync Details, so
+     * merge each live list with its pending-sync observer and let the pending
+     * copy win on local-id collisions.
+     */
+    private fun <T> Flow<List<T>>.mergedWith(
+        pending: Flow<List<T>>,
+        idOf: (T) -> String,
+    ): Flow<List<T>> = combine(this, pending) { live, pend ->
+        val byId = LinkedHashMap<String, T>()
+        for (row in live) byId[idOf(row)] = row
+        for (row in pend) byId[idOf(row)] = row
+        byId.values.toList()
+    }
+
+    private data class WorkProfileSyncRows(
+        val workplaces: List<com.elmtrackr.app.data.local.entity.WorkplaceEntity>,
+        val policies: List<com.elmtrackr.app.data.local.entity.LeavePolicyEntity>,
+        val events: List<com.elmtrackr.app.data.local.entity.AbsenceEventEntity>,
+        val allocations: List<com.elmtrackr.app.data.local.entity.AbsenceAllocationEntity>,
+        val balances: List<com.elmtrackr.app.data.local.entity.LeaveBalanceSnapshotEntity>,
+    )
+
+    private data class ProjectSyncRows(
+        val premium: List<PremiumProfileEntity>,
+        val projects: List<ProjectEntity>,
+        val billing: List<ProjectBillingRecordEntity>,
+        val payments: List<ProjectPaymentEntity>,
+    )
 
     // Both backup paths declare their own dispatcher rather than trusting the
     // caller: the ViewModel invokes them from viewModelScope (Main.immediate),
@@ -293,14 +351,24 @@ class SyncRepositoryImpl @Inject constructor(
      * phase uses.
      */
     private suspend fun pendingSnapshot(userId: String): PendingSyncSnapshot =
-        PendingSyncSnapshot(
-            shifts = shiftDao.getPendingSyncShifts(userId),
-            claims = refundClaimDao.getPendingSyncClaims(userId),
-            settings = settingsDao.getPendingSyncSettings(userId),
-            profiles = compensationProfileDao.getPendingSyncProfiles(userId),
-            premiumProfiles = premiumProfileDao.getPendingSyncProfiles(userId),
-            tasks = taskDao.getPendingSyncTasks(userId),
-            userProfiles = profileDao.getPendingSyncProfiles(userId),
+        statusesToSnapshot(
+            buildList {
+                addAll(shiftDao.getPendingSyncShifts(userId).map { it.syncStatus })
+                addAll(refundClaimDao.getPendingSyncClaims(userId).map { it.syncStatus })
+                addAll(settingsDao.getPendingSyncSettings(userId).map { it.syncStatus })
+                addAll(compensationProfileDao.getPendingSyncProfiles(userId).map { it.syncStatus })
+                addAll(premiumProfileDao.getPendingSyncProfiles(userId).map { it.syncStatus })
+                addAll(taskDao.getPendingSyncTasks(userId).map { it.syncStatus })
+                addAll(profileDao.getPendingSyncProfiles(userId).map { it.syncStatus })
+                addAll(workplaceDao.getPendingSyncWorkplaces(userId).map { it.syncStatus })
+                addAll(leavePolicyDao.getPendingSyncPolicies(userId).map { it.syncStatus })
+                addAll(absenceEventDao.getPendingSyncEvents(userId).map { it.syncStatus })
+                addAll(absenceAllocationDao.getPendingSyncAllocations(userId).map { it.syncStatus })
+                addAll(leaveBalanceSnapshotDao.getPendingSyncSnapshots(userId).map { it.syncStatus })
+                addAll(projectDao.getPendingSyncProjects(userId).map { it.syncStatus })
+                addAll(projectBillingRecordDao.getPendingSyncRecords(userId).map { it.syncStatus })
+                addAll(projectPaymentDao.getPendingSyncPayments(userId).map { it.syncStatus })
+            },
         )
 
     /**
@@ -319,9 +387,148 @@ class SyncRepositoryImpl @Inject constructor(
      * periodic sync instead, which is the right cadence for something that needs
      * a server-side or user-side change first.
      */
-    override suspend fun hasRetryablePendingWork(userId: String): Boolean {
-        val snapshot = pendingSnapshot(userId)
-        return snapshot.pendingCount > snapshot.failedCount
+    override suspend fun hasRetryablePendingWork(userId: String): Boolean =
+        countRetryablePending(userId) > 0
+
+    /**
+     * Rows that justify an immediate follow-up sync.
+     *
+     * Excludes `FAILED` rows (periodic sync only) and children whose required
+     * parent is permanently stuck — a `FAILED` parent with no remote id, or a
+     * missing parent on tables that refuse to push without one. Counting those
+     * children as retryable made SyncWorker reschedule every minute forever:
+     * the child stays pending, the parent stays failed, and nothing progresses
+     * until the 15-minute periodic run retries the parent.
+     */
+    private suspend fun countRetryablePending(userId: String): Int {
+        var count = 0
+        fun countStandalone(statuses: List<SyncStatus>) {
+            count += statuses.count { it != SyncStatus.FAILED }
+        }
+        countStandalone(shiftDao.getPendingSyncShifts(userId).map { it.syncStatus })
+        countStandalone(refundClaimDao.getPendingSyncClaims(userId).map { it.syncStatus })
+        countStandalone(settingsDao.getPendingSyncSettings(userId).map { it.syncStatus })
+        countStandalone(premiumProfileDao.getPendingSyncProfiles(userId).map { it.syncStatus })
+        countStandalone(profileDao.getPendingSyncProfiles(userId).map { it.syncStatus })
+        countStandalone(workplaceDao.getPendingSyncWorkplaces(userId).map { it.syncStatus })
+        countStandalone(absenceEventDao.getPendingSyncEvents(userId).map { it.syncStatus })
+        countStandalone(projectDao.getPendingSyncProjects(userId).map { it.syncStatus })
+
+        // Optional parents: a missing workplace/profile is Ready(null) and still
+        // pushes; only a local parent that exists without a remote id and is
+        // FAILED blocks the child the same way NotYetPushed does.
+        for (profile in compensationProfileDao.getPendingSyncProfiles(userId)) {
+            if (profile.syncStatus == SyncStatus.FAILED) continue
+            if (failedOptionalParentBlocks(profile.workplaceId) { id ->
+                    workplaceDao.getByLocalId(id)?.let { ParentSyncInfo(it.remoteId, it.syncStatus) }
+                }
+            ) {
+                continue
+            }
+            count++
+        }
+        for (task in taskDao.getPendingSyncTasks(userId)) {
+            if (task.syncStatus == SyncStatus.FAILED) continue
+            if (failedOptionalParentBlocks(task.compensationProfileId) { id ->
+                    compensationProfileDao.getByLocalId(id)?.let {
+                        ParentSyncInfo(it.remoteId, it.syncStatus)
+                    }
+                }
+            ) {
+                continue
+            }
+            count++
+        }
+
+        // Required parents: push returns early when the parent has no remote id,
+        // including when the parent row is gone.
+        for (row in leavePolicyDao.getPendingSyncPolicies(userId)) {
+            if (row.syncStatus == SyncStatus.FAILED) continue
+            if (failedRequiredParentBlocks(row.workplaceLocalId) { id ->
+                    workplaceDao.getByLocalId(id)?.let { ParentSyncInfo(it.remoteId, it.syncStatus) }
+                }
+            ) {
+                continue
+            }
+            count++
+        }
+        for (row in leaveBalanceSnapshotDao.getPendingSyncSnapshots(userId)) {
+            if (row.syncStatus == SyncStatus.FAILED) continue
+            if (failedRequiredParentBlocks(row.workplaceLocalId) { id ->
+                    workplaceDao.getByLocalId(id)?.let { ParentSyncInfo(it.remoteId, it.syncStatus) }
+                }
+            ) {
+                continue
+            }
+            count++
+        }
+        for (row in absenceAllocationDao.getPendingSyncAllocations(userId)) {
+            if (row.syncStatus == SyncStatus.FAILED) continue
+            if (failedRequiredParentBlocks(row.absenceEventLocalId) { id ->
+                    absenceEventDao.getByLocalId(id)?.let { ParentSyncInfo(it.remoteId, it.syncStatus) }
+                }
+            ) {
+                continue
+            }
+            if (failedRequiredParentBlocks(row.workplaceLocalId) { id ->
+                    workplaceDao.getByLocalId(id)?.let { ParentSyncInfo(it.remoteId, it.syncStatus) }
+                }
+            ) {
+                continue
+            }
+            count++
+        }
+        for (row in projectBillingRecordDao.getPendingSyncRecords(userId)) {
+            if (row.syncStatus == SyncStatus.FAILED) continue
+            if (failedRequiredParentBlocks(row.projectLocalId) { id ->
+                    projectDao.getByLocalId(id)?.let { ParentSyncInfo(it.remoteId, it.syncStatus) }
+                }
+            ) {
+                continue
+            }
+            count++
+        }
+        for (row in projectPaymentDao.getPendingSyncPayments(userId)) {
+            if (row.syncStatus == SyncStatus.FAILED) continue
+            if (failedRequiredParentBlocks(row.projectLocalId) { id ->
+                    projectDao.getByLocalId(id)?.let { ParentSyncInfo(it.remoteId, it.syncStatus) }
+                }
+            ) {
+                continue
+            }
+            if (failedRequiredParentBlocks(row.billingRecordLocalId) { id ->
+                    projectBillingRecordDao.getByLocalId(id)?.let {
+                        ParentSyncInfo(it.remoteId, it.syncStatus)
+                    }
+                }
+            ) {
+                continue
+            }
+            count++
+        }
+        return count
+    }
+
+    private data class ParentSyncInfo(val remoteId: String?, val syncStatus: SyncStatus)
+
+    /** Parent link is optional on the wire — missing parent does not hold the child. */
+    private suspend fun failedOptionalParentBlocks(
+        parentLocalId: String?,
+        load: suspend (String) -> ParentSyncInfo?,
+    ): Boolean {
+        if (parentLocalId == null) return false
+        val parent = load(parentLocalId) ?: return false
+        return parent.remoteId == null && parent.syncStatus == SyncStatus.FAILED
+    }
+
+    /** Parent link is required — missing parent or failed unpublished parent holds the child. */
+    private suspend fun failedRequiredParentBlocks(
+        parentLocalId: String?,
+        load: suspend (String) -> ParentSyncInfo?,
+    ): Boolean {
+        if (parentLocalId == null) return true
+        val parent = load(parentLocalId) ?: return true
+        return parent.remoteId == null && parent.syncStatus == SyncStatus.FAILED
     }
 
     override suspend fun hasPendingWork(userId: String): Boolean =

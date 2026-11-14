@@ -84,6 +84,15 @@
     <string name="sync_entity_refund_claims">Refund claims</string>
     <string name="sync_entity_settings">Settings</string>
     <string name="sync_entity_pay_profiles">Work profiles</string>
+    <string name="sync_entity_work_profile_leave">Work profile leave</string>
+    <string name="sync_entity_leave_policies">Leave policies</string>
+    <string name="sync_entity_absences">Absences</string>
+    <string name="sync_entity_absence_days">Absence days</string>
+    <string name="sync_entity_leave_balances">Leave balances</string>
+    <string name="sync_entity_premium_profiles">Premium profiles</string>
+    <string name="sync_entity_projects">Projects</string>
+    <string name="sync_entity_project_billing">Project billing</string>
+    <string name="sync_entity_project_payments">Project payments</string>
     <string name="clock_style_readout">Readout</string>
     <string name="clock_style_sparkline">Sparkline</string>
     <string name="clock_style_gauge">Gauge</string>

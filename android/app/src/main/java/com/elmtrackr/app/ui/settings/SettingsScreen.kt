@@ -529,6 +529,7 @@ private fun SettingsFormHost(
                 onBack = onNavigateBack,
                 onResetPassword = onResetPassword,
                 onDeleteAccount = onDeleteAccount,
+                onSignOut = onSignOut,
             )
             SettingsDestination.PAY -> PayDetailScreen(
                 state = state,

@@ -17,15 +17,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.BeachAccess
 import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.RequestQuote
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -493,6 +500,15 @@ private fun syncEntityTypeIcon(type: SyncEntityType): ImageVector = when (type) 
     SyncEntityType.REFUND_CLAIMS -> Icons.AutoMirrored.Outlined.ReceiptLong
     SyncEntityType.USER_SETTINGS -> Icons.Outlined.Tune
     SyncEntityType.COMPENSATION_PROFILES -> Icons.Outlined.CreditCard
+    SyncEntityType.WORKPLACES -> Icons.Outlined.WorkOutline
+    SyncEntityType.LEAVE_POLICIES -> Icons.Outlined.BeachAccess
+    SyncEntityType.ABSENCE_EVENTS -> Icons.Outlined.EventBusy
+    SyncEntityType.ABSENCE_ALLOCATIONS -> Icons.Outlined.EventBusy
+    SyncEntityType.LEAVE_BALANCES -> Icons.Outlined.BeachAccess
+    SyncEntityType.PREMIUM_PROFILES -> Icons.Outlined.StarOutline
+    SyncEntityType.PROJECTS -> Icons.Outlined.Folder
+    SyncEntityType.PROJECT_BILLING -> Icons.Outlined.RequestQuote
+    SyncEntityType.PROJECT_PAYMENTS -> Icons.Outlined.Payments
 }
 
 @Composable
@@ -503,5 +519,14 @@ private fun syncEntityTypeLabel(type: SyncEntityType): String = stringResource(
         SyncEntityType.REFUND_CLAIMS -> R.string.sync_entity_refund_claims
         SyncEntityType.USER_SETTINGS -> R.string.sync_entity_settings
         SyncEntityType.COMPENSATION_PROFILES -> R.string.sync_entity_pay_profiles
+        SyncEntityType.WORKPLACES -> R.string.sync_entity_work_profile_leave
+        SyncEntityType.LEAVE_POLICIES -> R.string.sync_entity_leave_policies
+        SyncEntityType.ABSENCE_EVENTS -> R.string.sync_entity_absences
+        SyncEntityType.ABSENCE_ALLOCATIONS -> R.string.sync_entity_absence_days
+        SyncEntityType.LEAVE_BALANCES -> R.string.sync_entity_leave_balances
+        SyncEntityType.PREMIUM_PROFILES -> R.string.sync_entity_premium_profiles
+        SyncEntityType.PROJECTS -> R.string.sync_entity_projects
+        SyncEntityType.PROJECT_BILLING -> R.string.sync_entity_project_billing
+        SyncEntityType.PROJECT_PAYMENTS -> R.string.sync_entity_project_payments
     },
 )

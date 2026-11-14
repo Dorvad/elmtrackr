@@ -52,6 +52,9 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
     suspend fun getPendingSyncProjects(userId: String): List<ProjectEntity>
 
+    @Query("SELECT * FROM projects WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
+    fun observePendingSyncProjects(userId: String): Flow<List<ProjectEntity>>
+
     @Query(
         "SELECT EXISTS(SELECT 1 FROM projects WHERE userId = :userId " +
             "AND syncStatus IN $PENDING_STATUSES LIMIT 1)",
@@ -134,6 +137,12 @@ interface ProjectBillingRecordDao {
             "AND syncStatus IN $PENDING_STATUSES",
     )
     suspend fun getPendingSyncRecords(userId: String): List<ProjectBillingRecordEntity>
+
+    @Query(
+        "SELECT * FROM project_billing_records WHERE userId = :userId " +
+            "AND syncStatus IN $PENDING_STATUSES",
+    )
+    fun observePendingSyncRecords(userId: String): Flow<List<ProjectBillingRecordEntity>>
 
     @Query(
         "SELECT EXISTS(SELECT 1 FROM project_billing_records WHERE userId = :userId " +
@@ -240,6 +249,9 @@ interface ProjectPaymentDao {
 
     @Query("SELECT * FROM project_payments WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
     suspend fun getPendingSyncPayments(userId: String): List<ProjectPaymentEntity>
+
+    @Query("SELECT * FROM project_payments WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
+    fun observePendingSyncPayments(userId: String): Flow<List<ProjectPaymentEntity>>
 
     @Query(
         "SELECT EXISTS(SELECT 1 FROM project_payments WHERE userId = :userId " +

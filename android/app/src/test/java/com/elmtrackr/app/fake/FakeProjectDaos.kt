@@ -57,6 +57,9 @@ class FakeProjectDao : ProjectDao {
     override suspend fun getPendingSyncProjects(userId: String): List<ProjectEntity> =
         store.values.filter { it.userId == userId && it.syncStatus in PENDING }
 
+    override fun observePendingSyncProjects(userId: String): Flow<List<ProjectEntity>> =
+        flow.map { list -> list.filter { it.userId == userId && it.syncStatus in PENDING } }
+
     override suspend fun hasPendingSyncProjects(userId: String): Boolean =
         getPendingSyncProjects(userId).isNotEmpty()
 
@@ -153,6 +156,9 @@ class FakeProjectBillingRecordDao : ProjectBillingRecordDao {
 
     override suspend fun getPendingSyncRecords(userId: String): List<ProjectBillingRecordEntity> =
         store.values.filter { it.userId == userId && it.syncStatus in PENDING }
+
+    override fun observePendingSyncRecords(userId: String): Flow<List<ProjectBillingRecordEntity>> =
+        flow.map { list -> list.filter { it.userId == userId && it.syncStatus in PENDING } }
 
     override suspend fun setCancelled(
         localId: String,
@@ -267,6 +273,9 @@ class FakeProjectPaymentDao : ProjectPaymentDao {
 
     override suspend fun getPendingSyncPayments(userId: String): List<ProjectPaymentEntity> =
         store.values.filter { it.userId == userId && it.syncStatus in PENDING }
+
+    override fun observePendingSyncPayments(userId: String): Flow<List<ProjectPaymentEntity>> =
+        flow.map { list -> list.filter { it.userId == userId && it.syncStatus in PENDING } }
 
     override suspend fun softDelete(
         localId: String,

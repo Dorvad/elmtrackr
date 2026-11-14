@@ -5,11 +5,20 @@ import com.elmtrackr.app.data.local.dao.RefundClaimDao
 import com.elmtrackr.app.data.local.dao.SettingsDao
 import com.elmtrackr.app.data.local.dao.ShiftDao
 import com.elmtrackr.app.data.local.dao.TaskDao
+import com.elmtrackr.app.data.local.entity.AbsenceAllocationEntity
+import com.elmtrackr.app.data.local.entity.AbsenceEventEntity
 import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
+import com.elmtrackr.app.data.local.entity.LeaveBalanceSnapshotEntity
+import com.elmtrackr.app.data.local.entity.LeavePolicyEntity
+import com.elmtrackr.app.data.local.entity.PremiumProfileEntity
+import com.elmtrackr.app.data.local.entity.ProjectBillingRecordEntity
+import com.elmtrackr.app.data.local.entity.ProjectEntity
+import com.elmtrackr.app.data.local.entity.ProjectPaymentEntity
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.ShiftEntity
 import com.elmtrackr.app.data.local.entity.TaskEntity
 import com.elmtrackr.app.data.local.entity.UserSettingsEntity
+import com.elmtrackr.app.data.local.entity.WorkplaceEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -88,12 +97,33 @@ object SyncDetailsBuilder {
         settings: UserSettingsEntity?,
         profiles: List<CompensationProfileEntity>,
         lastSyncStatus: String?,
+        workplaces: List<WorkplaceEntity> = emptyList(),
+        leavePolicies: List<LeavePolicyEntity> = emptyList(),
+        absenceEvents: List<AbsenceEventEntity> = emptyList(),
+        absenceAllocations: List<AbsenceAllocationEntity> = emptyList(),
+        leaveBalances: List<LeaveBalanceSnapshotEntity> = emptyList(),
+        premiumProfiles: List<PremiumProfileEntity> = emptyList(),
+        projects: List<ProjectEntity> = emptyList(),
+        billingRecords: List<ProjectBillingRecordEntity> = emptyList(),
+        projectPayments: List<ProjectPaymentEntity> = emptyList(),
     ): SyncDetails {
         val activeTasks = tasks.filter { it.deletedAt == null }
         val activeShifts = shifts.filter { it.deletedAt == null }
         val activeClaims = claims.filter { it.deletedAt == null }
         val activeProfiles = profiles.filter { it.deletedAt == null }
         val settingsList = settings?.let { listOf(it) }.orEmpty().filter { it.deletedAt == null }
+        // Workplaces and leave rows that are soft-deleted still need to sync their
+        // tombstones, so pending/failed counts include them. Synced counts stay
+        // about live rows only — a tombstone is not "on the device" anymore.
+        val liveWorkplaces = workplaces.filter { it.deletedAt == null }
+        val livePolicies = leavePolicies.filter { it.deletedAt == null }
+        val liveEvents = absenceEvents.filter { it.deletedAt == null }
+        val liveAllocations = absenceAllocations.filter { it.deletedAt == null }
+        val liveBalances = leaveBalances.filter { it.deletedAt == null }
+        val livePremium = premiumProfiles.filter { it.deletedAt == null }
+        val liveProjects = projects.filter { it.deletedAt == null }
+        val liveBilling = billingRecords.filter { it.deletedAt == null }
+        val livePayments = projectPayments.filter { it.deletedAt == null }
 
         val pendingByType = listOf(
             summaryFor(SyncEntityType.TASKS, activeTasks) { it.syncStatus },
@@ -101,23 +131,69 @@ object SyncDetailsBuilder {
             summaryFor(SyncEntityType.REFUND_CLAIMS, activeClaims) { it.syncStatus },
             summaryFor(SyncEntityType.USER_SETTINGS, settingsList) { it.syncStatus },
             summaryFor(SyncEntityType.COMPENSATION_PROFILES, activeProfiles) { it.syncStatus },
-        )
+            summaryFor(SyncEntityType.WORKPLACES, workplaces) { it.syncStatus },
+            summaryFor(SyncEntityType.LEAVE_POLICIES, leavePolicies) { it.syncStatus },
+            summaryFor(SyncEntityType.ABSENCE_EVENTS, absenceEvents) { it.syncStatus },
+            summaryFor(SyncEntityType.ABSENCE_ALLOCATIONS, absenceAllocations) { it.syncStatus },
+            summaryFor(SyncEntityType.LEAVE_BALANCES, leaveBalances) { it.syncStatus },
+            summaryFor(SyncEntityType.PREMIUM_PROFILES, livePremium) { it.syncStatus },
+            summaryFor(SyncEntityType.PROJECTS, liveProjects) { it.syncStatus },
+            summaryFor(SyncEntityType.PROJECT_BILLING, liveBilling) { it.syncStatus },
+            summaryFor(SyncEntityType.PROJECT_PAYMENTS, livePayments) { it.syncStatus },
+        ).map { row ->
+            // Synced counts for work-profile tables should reflect live rows.
+            when (row.entityType) {
+                SyncEntityType.WORKPLACES -> row.copy(syncedCount = liveWorkplaces.count { it.syncStatus == SyncStatus.SYNCED })
+                SyncEntityType.LEAVE_POLICIES -> row.copy(syncedCount = livePolicies.count { it.syncStatus == SyncStatus.SYNCED })
+                SyncEntityType.ABSENCE_EVENTS -> row.copy(syncedCount = liveEvents.count { it.syncStatus == SyncStatus.SYNCED })
+                SyncEntityType.ABSENCE_ALLOCATIONS -> row.copy(syncedCount = liveAllocations.count { it.syncStatus == SyncStatus.SYNCED })
+                SyncEntityType.LEAVE_BALANCES -> row.copy(syncedCount = liveBalances.count { it.syncStatus == SyncStatus.SYNCED })
+                else -> row
+            }
+        }
 
         val failedRows = buildList {
             activeTasks.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
-                add(it.toFailedRow(SyncEntityType.TASKS, it.name))
+                add(failedRow(SyncEntityType.TASKS, it.localId, it.name, it.syncStatus, it.lastSyncError))
             }
             activeShifts.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
-                add(it.toFailedRow(SyncEntityType.SHIFTS, "Shift ${formatShiftLabel(it.startTime)}"))
+                add(failedRow(SyncEntityType.SHIFTS, it.localId, "Shift ${formatShiftLabel(it.startTime)}", it.syncStatus, it.lastSyncError))
             }
             activeClaims.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
-                add(it.toFailedRow(SyncEntityType.REFUND_CLAIMS, "${it.direction} refund"))
+                add(failedRow(SyncEntityType.REFUND_CLAIMS, it.localId, "${it.direction} refund", it.syncStatus, it.lastSyncError))
             }
             settingsList.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
-                add(it.toFailedRow(SyncEntityType.USER_SETTINGS, "User settings"))
+                add(failedRow(SyncEntityType.USER_SETTINGS, it.localId, "User settings", it.syncStatus, it.lastSyncError))
             }
             activeProfiles.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
-                add(it.toFailedRow(SyncEntityType.COMPENSATION_PROFILES, it.name))
+                add(failedRow(SyncEntityType.COMPENSATION_PROFILES, it.localId, it.name, it.syncStatus, it.lastSyncError))
+            }
+            workplaces.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
+                add(failedRow(SyncEntityType.WORKPLACES, it.localId, it.name, it.syncStatus, it.lastSyncError))
+            }
+            leavePolicies.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
+                add(failedRow(SyncEntityType.LEAVE_POLICIES, it.localId, "Leave policy", it.syncStatus, it.lastSyncError))
+            }
+            absenceEvents.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
+                add(failedRow(SyncEntityType.ABSENCE_EVENTS, it.localId, it.type, it.syncStatus, it.lastSyncError))
+            }
+            absenceAllocations.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
+                add(failedRow(SyncEntityType.ABSENCE_ALLOCATIONS, it.localId, "Absence day", it.syncStatus, it.lastSyncError))
+            }
+            leaveBalances.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
+                add(failedRow(SyncEntityType.LEAVE_BALANCES, it.localId, "Leave balance", it.syncStatus, it.lastSyncError))
+            }
+            livePremium.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
+                add(failedRow(SyncEntityType.PREMIUM_PROFILES, it.localId, it.name, it.syncStatus, it.lastSyncError))
+            }
+            liveProjects.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
+                add(failedRow(SyncEntityType.PROJECTS, it.localId, it.name, it.syncStatus, it.lastSyncError))
+            }
+            liveBilling.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
+                add(failedRow(SyncEntityType.PROJECT_BILLING, it.localId, "Billing record", it.syncStatus, it.lastSyncError))
+            }
+            livePayments.filter { it.syncStatus == SyncStatus.FAILED }.forEach {
+                add(failedRow(SyncEntityType.PROJECT_PAYMENTS, it.localId, "Payment", it.syncStatus, it.lastSyncError))
             }
         }
 
@@ -127,15 +203,28 @@ object SyncDetailsBuilder {
             activeClaims.mapNotNull { it.lastSyncedAt },
             settingsList.mapNotNull { it.lastSyncedAt },
             activeProfiles.mapNotNull { it.lastSyncedAt },
+            liveWorkplaces.mapNotNull { it.lastSyncedAt },
+            livePolicies.mapNotNull { it.lastSyncedAt },
+            liveEvents.mapNotNull { it.lastSyncedAt },
+            liveAllocations.mapNotNull { it.lastSyncedAt },
+            liveBalances.mapNotNull { it.lastSyncedAt },
+            livePremium.mapNotNull { it.lastSyncedAt },
+            liveProjects.mapNotNull { it.lastSyncedAt },
+            liveBilling.mapNotNull { it.lastSyncedAt },
+            livePayments.mapNotNull { it.lastSyncedAt },
         ).flatten().maxOrNull()?.let(Instant::ofEpochMilli)
             ?: parseSuccessfulSyncInstant(lastSyncStatus)
+
+        // Hide entity types the user has never used — a Sync Details screen
+        // full of empty "Leave balances / Project payments" rows is noise.
+        val visiblePendingByType = pendingByType.filter { it.pendingCount > 0 || it.syncedCount > 0 }
 
         return SyncDetails(
             lastSuccessfulSyncAt = lastSuccessfulSyncAt,
             lastSyncStatus = lastSyncStatus,
-            pendingByType = pendingByType,
+            pendingByType = visiblePendingByType,
             failedRows = failedRows,
-            totalPending = pendingByType.sumOf { it.pendingCount },
+            totalPending = visiblePendingByType.sumOf { it.pendingCount },
             totalFailed = failedRows.size,
         )
     }
@@ -150,44 +239,18 @@ object SyncDetailsBuilder {
         return SyncPendingByType(type, pending, synced)
     }
 
-    private fun TaskEntity.toFailedRow(type: SyncEntityType, label: String) = SyncFailedRow(
+    private fun failedRow(
+        type: SyncEntityType,
+        localId: String,
+        label: String,
+        syncStatus: SyncStatus,
+        errorMessage: String?,
+    ) = SyncFailedRow(
         entityType = type,
         localId = localId,
         label = label,
         syncStatus = syncStatus,
-        errorMessage = lastSyncError,
-    )
-
-    private fun ShiftEntity.toFailedRow(type: SyncEntityType, label: String) = SyncFailedRow(
-        entityType = type,
-        localId = localId,
-        label = label,
-        syncStatus = syncStatus,
-        errorMessage = lastSyncError,
-    )
-
-    private fun RefundClaimEntity.toFailedRow(type: SyncEntityType, label: String) = SyncFailedRow(
-        entityType = type,
-        localId = localId,
-        label = label,
-        syncStatus = syncStatus,
-        errorMessage = lastSyncError,
-    )
-
-    private fun UserSettingsEntity.toFailedRow(type: SyncEntityType, label: String) = SyncFailedRow(
-        entityType = type,
-        localId = localId,
-        label = label,
-        syncStatus = syncStatus,
-        errorMessage = lastSyncError,
-    )
-
-    private fun CompensationProfileEntity.toFailedRow(type: SyncEntityType, label: String) = SyncFailedRow(
-        entityType = type,
-        localId = localId,
-        label = label,
-        syncStatus = syncStatus,
-        errorMessage = lastSyncError,
+        errorMessage = errorMessage,
     )
 
     private fun formatShiftLabel(startMillis: Long): String =

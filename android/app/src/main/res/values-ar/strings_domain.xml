@@ -84,6 +84,15 @@
     <string name="sync_entity_refund_claims">مطالبات الاسترداد</string>
     <string name="sync_entity_settings">الإعدادات</string>
     <string name="sync_entity_pay_profiles">ملفات العمل</string>
+    <string name="sync_entity_work_profile_leave">إجازة ملف العمل</string>
+    <string name="sync_entity_leave_policies">سياسات الإجازة</string>
+    <string name="sync_entity_absences">الغيابات</string>
+    <string name="sync_entity_absence_days">أيام الغياب</string>
+    <string name="sync_entity_leave_balances">أرصدة الإجازة</string>
+    <string name="sync_entity_premium_profiles">ملفات العلاوات</string>
+    <string name="sync_entity_projects">المشاريع</string>
+    <string name="sync_entity_project_billing">فوترة المشاريع</string>
+    <string name="sync_entity_project_payments">مدفوعات المشاريع</string>
     <string name="clock_style_readout">قراءة</string>
     <string name="clock_style_sparkline">مخطط</string>
     <string name="clock_style_gauge">مؤشر</string>
