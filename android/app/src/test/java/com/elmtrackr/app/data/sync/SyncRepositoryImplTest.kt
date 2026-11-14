@@ -865,6 +865,65 @@ class SyncRepositoryImplTest {
         assertEquals("SyncWaiting: 1", repository.observeLastSyncStatus().first())
     }
 
+    /**
+     * A permanently rejected parent must not keep its children on the immediate
+     * retry path. Billing records stay PENDING when the project has no remote id;
+     * counting them as retryable scheduled SyncWorker forever.
+     */
+    @Test
+    fun `children blocked by a failed project do not keep the follow-up chain alive`() = runTest {
+        val projectDao = com.elmtrackr.app.fake.FakeProjectDao()
+        val billingDao = com.elmtrackr.app.fake.FakeProjectBillingRecordDao()
+        val remote = object : EmptyRemoteProjectDataSource() {
+            override suspend fun insert(
+                project: com.elmtrackr.app.data.remote.RemoteProjectInsert,
+            ): com.elmtrackr.app.data.remote.RemoteProjectRow =
+                throw IllegalStateException(
+                    "new row violates row-level security policy for table \"projects\"",
+                )
+        }
+        val repository = createRepository(
+            projectDao = projectDao,
+            projectBillingRecordDao = billingDao,
+            remoteProjects = remote,
+        )
+
+        projectDao.upsert(projectEntity("p-1"))
+        billingDao.upsert(
+            com.elmtrackr.app.data.local.entity.ProjectBillingRecordEntity(
+                localId = "b-1",
+                remoteId = null,
+                userId = "user-1",
+                projectLocalId = "p-1",
+                baseAmount = java.math.BigDecimal("100.00"),
+                taxLabel = null,
+                taxRatePercent = java.math.BigDecimal.ZERO,
+                taxMode = "NONE",
+                taxAmount = java.math.BigDecimal.ZERO,
+                totalAmount = java.math.BigDecimal("100.00"),
+                currencyCode = "USD",
+                externalReference = null,
+                notes = null,
+                billedOn = 1L,
+                dueOn = null,
+                cancelledAt = null,
+                createdAt = 0L,
+                updatedAt = 0L,
+                deletedAt = null,
+                syncStatus = SyncStatus.PENDING_CREATE,
+                lastSyncError = null,
+                lastSyncedAt = null,
+            ),
+        )
+
+        repository.syncAll("user-1")
+
+        assertEquals(SyncStatus.FAILED, projectDao.getByLocalId("p-1")!!.syncStatus)
+        assertEquals(SyncStatus.PENDING_CREATE, billingDao.getByLocalId("b-1")!!.syncStatus)
+        assertTrue(repository.hasPendingWork("user-1"))
+        assertFalse(repository.hasRetryablePendingWork("user-1"))
+    }
+
     private fun projectEntity(localId: String) = com.elmtrackr.app.data.local.entity.ProjectEntity(
         localId = localId,
         remoteId = null,
@@ -1828,6 +1887,8 @@ class SyncRepositoryImplTest {
         receiptFileReader: com.elmtrackr.app.domain.repository.ReceiptFileReader? = null,
         projectDao: com.elmtrackr.app.data.local.dao.ProjectDao =
             com.elmtrackr.app.fake.FakeProjectDao(),
+        projectBillingRecordDao: com.elmtrackr.app.data.local.dao.ProjectBillingRecordDao =
+            com.elmtrackr.app.fake.FakeProjectBillingRecordDao(),
         remoteProjects: com.elmtrackr.app.data.remote.RemoteProjectDataSource =
             EmptyRemoteProjectDataSource(),
         remoteBillingRecords: com.elmtrackr.app.data.remote.RemoteProjectBillingRecordDataSource =
@@ -1867,7 +1928,7 @@ class SyncRepositoryImplTest {
         premiumProfileDao = EmptyPremiumProfileDao(),
         receiptDao = receiptDao,
         projectDao = projectDao,
-        projectBillingRecordDao = com.elmtrackr.app.fake.FakeProjectBillingRecordDao(),
+        projectBillingRecordDao = projectBillingRecordDao,
         projectPaymentDao = com.elmtrackr.app.fake.FakeProjectPaymentDao(),
         taskDao = taskDao,
         profileDao = profileDao,

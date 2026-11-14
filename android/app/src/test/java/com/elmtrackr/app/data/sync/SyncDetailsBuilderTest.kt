@@ -87,4 +87,41 @@ class SyncDetailsBuilderTest {
             details.pendingByType.first { it.entityType == SyncEntityType.WORKPLACES }.pendingCount,
         )
     }
+
+    @Test
+    fun `surfaces a failed workplace tombstone that live observers would omit`() {
+        val tombstone = WorkplaceEntity(
+            localId = "wp-gone",
+            remoteId = "wp-remote",
+            userId = "u1",
+            name = "Old clinic",
+            regionCode = "IL",
+            currencyCode = "ILS",
+            timezone = "Asia/Jerusalem",
+            employmentStartDate = null,
+            isDefault = false,
+            isArchived = true,
+            createdAt = 1L,
+            updatedAt = 2L,
+            deletedAt = 3L,
+            syncStatus = SyncStatus.FAILED,
+            lastSyncError = "JWT expired",
+            lastSyncedAt = 1L,
+        )
+
+        val details = SyncDetailsBuilder.build(
+            tasks = emptyList(),
+            shifts = emptyList(),
+            claims = emptyList(),
+            settings = null,
+            profiles = emptyList(),
+            workplaces = listOf(tombstone),
+            lastSyncStatus = null,
+        )
+
+        assertEquals(1, details.totalPending)
+        assertEquals(1, details.totalFailed)
+        assertEquals("JWT expired", details.failedRows.single().errorMessage)
+        assertEquals(SyncEntityType.WORKPLACES, details.failedRows.single().entityType)
+    }
 }
