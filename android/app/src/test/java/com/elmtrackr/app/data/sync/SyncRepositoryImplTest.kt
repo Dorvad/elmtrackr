@@ -858,6 +858,11 @@ class SyncRepositoryImplTest {
         repository.syncAll("user-1")
 
         assertEquals(SyncStatus.PENDING_CREATE, projectDao.getByLocalId("p-1")!!.syncStatus)
+        // Pending work outside the old shift/task snapshot must still trigger an
+        // immediate follow-up — otherwise a dropped connection parked the row
+        // until the 15-minute periodic sync.
+        assertTrue(repository.hasRetryablePendingWork("user-1"))
+        assertEquals("SyncWaiting: 1", repository.observeLastSyncStatus().first())
     }
 
     private fun projectEntity(localId: String) = com.elmtrackr.app.data.local.entity.ProjectEntity(
@@ -1408,6 +1413,30 @@ class SyncRepositoryImplTest {
         assertTrue("nothing was sent", profilesRemote.rows.isEmpty())
         assertEquals(SyncStatus.PENDING_CREATE, profileDao.getByLocalId("p-1")!!.syncStatus)
         assertNull(profileDao.getByLocalId("p-1")!!.lastSyncError)
+        // Workplace + profile are both waiting; the status and the retry gate
+        // used to ignore workplaces and call this "Synced".
+        assertTrue(repository.hasRetryablePendingWork(USER))
+        val status = repository.observeLastSyncStatus().first()
+        assertTrue(status!!.startsWith("SyncWaiting:"))
+        assertFalse(status.startsWith("Synced "))
+    }
+
+    @Test
+    fun `a workplace held back alone is still reported as waiting`() = runTest {
+        val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+        val workplacesRemote = com.elmtrackr.app.fake.FakeWorkplaceRemote()
+        workplacesRemote.insertFailure = { throw java.net.SocketTimeoutException("timeout") }
+        workplaceDao.seed(workplaceEntity("wp-1", SyncStatus.PENDING_CREATE))
+        val repository = createRepository(
+            workplaceDao = workplaceDao,
+            remoteWorkplaces = workplacesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        assertEquals(SyncStatus.PENDING_CREATE, workplaceDao.rows().single().syncStatus)
+        assertTrue(repository.hasRetryablePendingWork(USER))
+        assertEquals("SyncWaiting: 1", repository.observeLastSyncStatus().first())
     }
 
     @Test

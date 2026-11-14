@@ -61,6 +61,9 @@ class FakeWorkplaceDao : com.elmtrackr.app.data.local.dao.WorkplaceDao {
     override suspend fun getPendingSyncWorkplaces(userId: String): List<WorkplaceEntity> =
         store.values.filter { it.userId == userId && it.syncStatus in PENDING }
 
+    override fun observePendingSyncWorkplaces(userId: String): Flow<List<WorkplaceEntity>> =
+        flow.map { list -> list.filter { it.userId == userId && it.syncStatus in PENDING } }
+
     override suspend fun hasPendingSyncWorkplaces(userId: String): Boolean =
         store.values.any { it.userId == userId && it.syncStatus in PENDING }
 
@@ -200,6 +203,9 @@ class FakeLeavePolicyDao : com.elmtrackr.app.data.local.dao.LeavePolicyDao {
     override suspend fun getPendingSyncPolicies(userId: String): List<LeavePolicyEntity> =
         store.values.filter { it.userId == userId && it.syncStatus in PENDING }
 
+    override fun observePendingSyncPolicies(userId: String): Flow<List<LeavePolicyEntity>> =
+        flow.map { list -> list.filter { it.userId == userId && it.syncStatus in PENDING } }
+
     override suspend fun hasPendingSyncPolicies(userId: String): Boolean =
         store.values.any { it.userId == userId && it.syncStatus in PENDING }
 
@@ -322,6 +328,9 @@ class FakeAbsenceEventDao : com.elmtrackr.app.data.local.dao.AbsenceEventDao {
     override suspend fun getPendingSyncEvents(userId: String): List<AbsenceEventEntity> =
         store.values.filter { it.userId == userId && it.syncStatus in PENDING }
 
+    override fun observePendingSyncEvents(userId: String): Flow<List<AbsenceEventEntity>> =
+        flow.map { list -> list.filter { it.userId == userId && it.syncStatus in PENDING } }
+
     override suspend fun hasPendingSyncEvents(userId: String): Boolean =
         store.values.any { it.userId == userId && it.syncStatus in PENDING }
 
@@ -439,6 +448,9 @@ class FakeAbsenceAllocationDao : com.elmtrackr.app.data.local.dao.AbsenceAllocat
 
     override suspend fun getPendingSyncAllocations(userId: String): List<AbsenceAllocationEntity> =
         store.values.filter { it.userId == userId && it.syncStatus in PENDING }
+
+    override fun observePendingSyncAllocations(userId: String): Flow<List<AbsenceAllocationEntity>> =
+        flow.map { list -> list.filter { it.userId == userId && it.syncStatus in PENDING } }
 
     override suspend fun hasPendingSyncAllocations(userId: String): Boolean =
         store.values.any { it.userId == userId && it.syncStatus in PENDING }
@@ -611,6 +623,9 @@ class FakeLeaveBalanceSnapshotDao : com.elmtrackr.app.data.local.dao.LeaveBalanc
 
     override suspend fun getPendingSyncSnapshots(userId: String): List<LeaveBalanceSnapshotEntity> =
         store.values.filter { it.userId == userId && it.syncStatus in PENDING }
+
+    override fun observePendingSyncSnapshots(userId: String): Flow<List<LeaveBalanceSnapshotEntity>> =
+        flow.map { list -> list.filter { it.userId == userId && it.syncStatus in PENDING } }
 
     override suspend fun hasPendingSyncSnapshots(userId: String): Boolean =
         store.values.any { it.userId == userId && it.syncStatus in PENDING }

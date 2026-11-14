@@ -8,7 +8,18 @@ enum class SyncEntityType(val label: String) {
     SHIFTS("Shifts"),
     REFUND_CLAIMS("Refund claims"),
     USER_SETTINGS("Settings"),
-    COMPENSATION_PROFILES("Pay profiles"),
+    /** User-facing name for compensation_profiles (+ the workplace each owns). */
+    COMPENSATION_PROFILES("Work profiles"),
+    /** Leave-owning half of a work profile; never called a "workplace" in the UI. */
+    WORKPLACES("Work profile leave"),
+    LEAVE_POLICIES("Leave policies"),
+    ABSENCE_EVENTS("Absences"),
+    ABSENCE_ALLOCATIONS("Absence days"),
+    LEAVE_BALANCES("Leave balances"),
+    PREMIUM_PROFILES("Premium profiles"),
+    PROJECTS("Projects"),
+    PROJECT_BILLING("Project billing"),
+    PROJECT_PAYMENTS("Project payments"),
 }
 
 data class SyncPendingByType(

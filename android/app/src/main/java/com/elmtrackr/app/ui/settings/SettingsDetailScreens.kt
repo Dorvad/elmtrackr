@@ -227,6 +227,7 @@ internal fun ProfileDetailScreen(
     onBack: () -> Unit,
     onResetPassword: () -> Unit,
     onDeleteAccount: () -> Unit,
+    onSignOut: () -> Unit = {},
 ) {
     var showDeleteSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -402,6 +403,34 @@ internal fun ProfileDetailScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+        // Account exit belongs with the rest of the account controls. The hub
+        // still has a Sign out control, but users who open Profile (the natural
+        // place for "my account") were only offered Delete — and reported that
+        // Sign out did not exist.
+        if (authState is AuthUiState.SignedIn) {
+            item {
+                TextButton(
+                    onClick = onSignOut,
+                    enabled = !authState.isLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        stringResource(
+                            if (authState.isLoading) R.string.settings_signing_out
+                            else R.string.settings_sign_out,
+                        ),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
         // Deleting the user must be reachable in every mode: cloud accounts

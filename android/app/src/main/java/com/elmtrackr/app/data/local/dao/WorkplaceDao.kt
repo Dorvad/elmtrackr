@@ -100,6 +100,12 @@ interface WorkplaceDao {
     suspend fun getPendingSyncWorkplaces(userId: String): List<WorkplaceEntity>
 
     @Query(
+        "SELECT * FROM workplaces WHERE userId = :userId AND syncStatus IN " +
+            "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED')",
+    )
+    fun observePendingSyncWorkplaces(userId: String): Flow<List<WorkplaceEntity>>
+
+    @Query(
         "SELECT EXISTS(SELECT 1 FROM workplaces WHERE userId = :userId AND syncStatus IN " +
             "('PENDING_CREATE', 'PENDING_UPDATE', 'PENDING_DELETE', 'FAILED') LIMIT 1)",
     )

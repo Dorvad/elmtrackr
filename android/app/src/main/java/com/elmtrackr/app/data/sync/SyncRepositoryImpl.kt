@@ -138,56 +138,48 @@ class SyncRepositoryImpl @Inject constructor(
      */
     private var foreignRowsThisRun = 0
 
+    /**
+     * Counts of unsynced rows across every table the pipeline pushes.
+     *
+     * Workplaces, leave rows and paid-project tables used to be omitted here
+     * even though [hasPendingWork] and the push steps covered them. That meant
+     * a work profile whose workplace was still waiting out a timeout reported
+     * "Synced just now", and [hasRetryablePendingWork] refused to schedule the
+     * follow-up that would have finished the push — so the job never left the
+     * device until the 15-minute periodic sync happened to run.
+     */
     private data class PendingSyncSnapshot(
-        val shifts: List<ShiftEntity>,
-        val claims: List<RefundClaimEntity>,
-        val settings: List<UserSettingsEntity>,
-        val profiles: List<CompensationProfileEntity>,
-        val premiumProfiles: List<PremiumProfileEntity>,
-        val tasks: List<TaskEntity>,
-        val userProfiles: List<ProfileEntity>,
-    ) {
-        val pendingCount: Int
-            get() = shifts.size + claims.size + settings.size + profiles.size + premiumProfiles.size +
-                tasks.size +
-                userProfiles.size
+        val pendingCount: Int,
+        val failedCount: Int,
+    )
 
-        val failedCount: Int
-            get() = shifts.count { it.syncStatus == SyncStatus.FAILED } +
-                claims.count { it.syncStatus == SyncStatus.FAILED } +
-                settings.count { it.syncStatus == SyncStatus.FAILED } +
-                profiles.count { it.syncStatus == SyncStatus.FAILED } +
-                premiumProfiles.count { it.syncStatus == SyncStatus.FAILED } +
-                tasks.count { it.syncStatus == SyncStatus.FAILED } +
-                userProfiles.count { it.syncStatus == SyncStatus.FAILED }
-    }
+    private fun statusesToSnapshot(statuses: List<SyncStatus>): PendingSyncSnapshot =
+        PendingSyncSnapshot(
+            pendingCount = statuses.size,
+            failedCount = statuses.count { it == SyncStatus.FAILED },
+        )
 
     private fun observePendingSnapshot(userId: String): Flow<PendingSyncSnapshot> =
         combine(
-            combine(
-                shiftDao.observePendingSyncShifts(userId),
-                refundClaimDao.observePendingSyncClaims(userId),
-                settingsDao.observePendingSyncSettings(userId),
-                compensationProfileDao.observePendingSyncProfiles(userId),
-                combine(
-                    premiumProfileDao.observePendingSyncProfiles(userId),
-                    taskDao.observePendingSyncTasks(userId),
-                ) { premiumProfiles, tasks -> premiumProfiles to tasks },
-            ) { shifts, claims, settings, profiles, premiumAndTasks ->
-                val (premiumProfiles, tasks) = premiumAndTasks
-                PendingSyncSnapshot(
-                    shifts = shifts,
-                    claims = claims,
-                    settings = settings,
-                    profiles = profiles,
-                    premiumProfiles = premiumProfiles,
-                    tasks = tasks,
-                    userProfiles = emptyList(),
-                )
-            },
-            profileDao.observePendingSyncProfiles(userId),
-        ) { snapshot, userProfiles ->
-            snapshot.copy(userProfiles = userProfiles)
+            listOf(
+                shiftDao.observePendingSyncShifts(userId).map { rows -> rows.map { it.syncStatus } },
+                refundClaimDao.observePendingSyncClaims(userId).map { rows -> rows.map { it.syncStatus } },
+                settingsDao.observePendingSyncSettings(userId).map { rows -> rows.map { it.syncStatus } },
+                compensationProfileDao.observePendingSyncProfiles(userId).map { rows -> rows.map { it.syncStatus } },
+                premiumProfileDao.observePendingSyncProfiles(userId).map { rows -> rows.map { it.syncStatus } },
+                taskDao.observePendingSyncTasks(userId).map { rows -> rows.map { it.syncStatus } },
+                profileDao.observePendingSyncProfiles(userId).map { rows -> rows.map { it.syncStatus } },
+                workplaceDao.observePendingSyncWorkplaces(userId).map { rows -> rows.map { it.syncStatus } },
+                leavePolicyDao.observePendingSyncPolicies(userId).map { rows -> rows.map { it.syncStatus } },
+                absenceEventDao.observePendingSyncEvents(userId).map { rows -> rows.map { it.syncStatus } },
+                absenceAllocationDao.observePendingSyncAllocations(userId).map { rows -> rows.map { it.syncStatus } },
+                leaveBalanceSnapshotDao.observePendingSyncSnapshots(userId).map { rows -> rows.map { it.syncStatus } },
+                projectDao.observePendingSyncProjects(userId).map { rows -> rows.map { it.syncStatus } },
+                projectBillingRecordDao.observePendingSyncRecords(userId).map { rows -> rows.map { it.syncStatus } },
+                projectPaymentDao.observePendingSyncPayments(userId).map { rows -> rows.map { it.syncStatus } },
+            ),
+        ) { arrays ->
+            statusesToSnapshot(arrays.flatMap { it })
         }
 
     override fun observePendingCount(userId: String): Flow<Int> =
@@ -215,16 +207,57 @@ class SyncRepositoryImpl @Inject constructor(
                 compensationProfileDao.observeProfiles(userId),
                 lastSyncStatus,
             ) { settings, profiles, status -> Triple(settings, profiles, status) },
-        ) { pending, meta ->
+            combine(
+                workplaceDao.observeAllIncludingArchived(userId),
+                leavePolicyDao.observePolicies(userId),
+                absenceEventDao.observeEvents(userId),
+                absenceAllocationDao.observeAllocations(userId),
+                leaveBalanceSnapshotDao.observeSnapshots(userId),
+            ) { workplaces, policies, events, allocations, balances ->
+                WorkProfileSyncRows(workplaces, policies, events, allocations, balances)
+            },
+            combine(
+                premiumProfileDao.observeProfiles(userId),
+                projectDao.observeProjects(userId),
+                projectBillingRecordDao.observeForUser(userId),
+                projectPaymentDao.observeForUser(userId),
+            ) { premium, projects, billing, payments ->
+                ProjectSyncRows(premium, projects, billing, payments)
+            },
+        ) { core, meta, workProfile, projects ->
             SyncDetailsBuilder.build(
-                tasks = pending.first,
-                shifts = pending.second,
-                claims = pending.third,
+                tasks = core.first,
+                shifts = core.second,
+                claims = core.third,
                 settings = meta.first,
                 profiles = meta.second,
                 lastSyncStatus = meta.third,
+                workplaces = workProfile.workplaces,
+                leavePolicies = workProfile.policies,
+                absenceEvents = workProfile.events,
+                absenceAllocations = workProfile.allocations,
+                leaveBalances = workProfile.balances,
+                premiumProfiles = projects.premium,
+                projects = projects.projects,
+                billingRecords = projects.billing,
+                projectPayments = projects.payments,
             )
         }
+
+    private data class WorkProfileSyncRows(
+        val workplaces: List<com.elmtrackr.app.data.local.entity.WorkplaceEntity>,
+        val policies: List<com.elmtrackr.app.data.local.entity.LeavePolicyEntity>,
+        val events: List<com.elmtrackr.app.data.local.entity.AbsenceEventEntity>,
+        val allocations: List<com.elmtrackr.app.data.local.entity.AbsenceAllocationEntity>,
+        val balances: List<com.elmtrackr.app.data.local.entity.LeaveBalanceSnapshotEntity>,
+    )
+
+    private data class ProjectSyncRows(
+        val premium: List<PremiumProfileEntity>,
+        val projects: List<ProjectEntity>,
+        val billing: List<ProjectBillingRecordEntity>,
+        val payments: List<ProjectPaymentEntity>,
+    )
 
     // Both backup paths declare their own dispatcher rather than trusting the
     // caller: the ViewModel invokes them from viewModelScope (Main.immediate),
@@ -293,14 +326,24 @@ class SyncRepositoryImpl @Inject constructor(
      * phase uses.
      */
     private suspend fun pendingSnapshot(userId: String): PendingSyncSnapshot =
-        PendingSyncSnapshot(
-            shifts = shiftDao.getPendingSyncShifts(userId),
-            claims = refundClaimDao.getPendingSyncClaims(userId),
-            settings = settingsDao.getPendingSyncSettings(userId),
-            profiles = compensationProfileDao.getPendingSyncProfiles(userId),
-            premiumProfiles = premiumProfileDao.getPendingSyncProfiles(userId),
-            tasks = taskDao.getPendingSyncTasks(userId),
-            userProfiles = profileDao.getPendingSyncProfiles(userId),
+        statusesToSnapshot(
+            buildList {
+                addAll(shiftDao.getPendingSyncShifts(userId).map { it.syncStatus })
+                addAll(refundClaimDao.getPendingSyncClaims(userId).map { it.syncStatus })
+                addAll(settingsDao.getPendingSyncSettings(userId).map { it.syncStatus })
+                addAll(compensationProfileDao.getPendingSyncProfiles(userId).map { it.syncStatus })
+                addAll(premiumProfileDao.getPendingSyncProfiles(userId).map { it.syncStatus })
+                addAll(taskDao.getPendingSyncTasks(userId).map { it.syncStatus })
+                addAll(profileDao.getPendingSyncProfiles(userId).map { it.syncStatus })
+                addAll(workplaceDao.getPendingSyncWorkplaces(userId).map { it.syncStatus })
+                addAll(leavePolicyDao.getPendingSyncPolicies(userId).map { it.syncStatus })
+                addAll(absenceEventDao.getPendingSyncEvents(userId).map { it.syncStatus })
+                addAll(absenceAllocationDao.getPendingSyncAllocations(userId).map { it.syncStatus })
+                addAll(leaveBalanceSnapshotDao.getPendingSyncSnapshots(userId).map { it.syncStatus })
+                addAll(projectDao.getPendingSyncProjects(userId).map { it.syncStatus })
+                addAll(projectBillingRecordDao.getPendingSyncRecords(userId).map { it.syncStatus })
+                addAll(projectPaymentDao.getPendingSyncPayments(userId).map { it.syncStatus })
+            },
         )
 
     /**

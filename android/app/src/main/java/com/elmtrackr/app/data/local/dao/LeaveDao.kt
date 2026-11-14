@@ -66,6 +66,9 @@ interface LeavePolicyDao {
     @Query("SELECT * FROM leave_policies WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
     suspend fun getPendingSyncPolicies(userId: String): List<LeavePolicyEntity>
 
+    @Query("SELECT * FROM leave_policies WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
+    fun observePendingSyncPolicies(userId: String): Flow<List<LeavePolicyEntity>>
+
     @Query(
         "SELECT EXISTS(SELECT 1 FROM leave_policies WHERE userId = :userId AND syncStatus IN " +
             "$PENDING_STATUSES LIMIT 1)",
@@ -157,6 +160,9 @@ interface AbsenceEventDao {
 
     @Query("SELECT * FROM absence_events WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
     suspend fun getPendingSyncEvents(userId: String): List<AbsenceEventEntity>
+
+    @Query("SELECT * FROM absence_events WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
+    fun observePendingSyncEvents(userId: String): Flow<List<AbsenceEventEntity>>
 
     @Query(
         "SELECT EXISTS(SELECT 1 FROM absence_events WHERE userId = :userId AND syncStatus IN " +
@@ -296,6 +302,9 @@ interface AbsenceAllocationDao {
     @Query("SELECT * FROM absence_allocations WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
     suspend fun getPendingSyncAllocations(userId: String): List<AbsenceAllocationEntity>
 
+    @Query("SELECT * FROM absence_allocations WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
+    fun observePendingSyncAllocations(userId: String): Flow<List<AbsenceAllocationEntity>>
+
     @Query(
         "SELECT EXISTS(SELECT 1 FROM absence_allocations WHERE userId = :userId AND syncStatus IN " +
             "$PENDING_STATUSES LIMIT 1)",
@@ -407,6 +416,9 @@ interface LeaveBalanceSnapshotDao {
 
     @Query("SELECT * FROM leave_balance_snapshots WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
     suspend fun getPendingSyncSnapshots(userId: String): List<LeaveBalanceSnapshotEntity>
+
+    @Query("SELECT * FROM leave_balance_snapshots WHERE userId = :userId AND syncStatus IN $PENDING_STATUSES")
+    fun observePendingSyncSnapshots(userId: String): Flow<List<LeaveBalanceSnapshotEntity>>
 
     @Query(
         "SELECT EXISTS(SELECT 1 FROM leave_balance_snapshots WHERE userId = :userId AND syncStatus IN " +

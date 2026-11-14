@@ -83,7 +83,16 @@
     <string name="sync_entity_shifts">Смены</string>
     <string name="sync_entity_refund_claims">Заявки на компенсацию</string>
     <string name="sync_entity_settings">Настройки</string>
-    <string name="sync_entity_pay_profiles">Профили оплаты</string>
+    <string name="sync_entity_pay_profiles">Рабочие профили</string>
+    <string name="sync_entity_work_profile_leave">Отпуск рабочего профиля</string>
+    <string name="sync_entity_leave_policies">Правила отпуска</string>
+    <string name="sync_entity_absences">Отсутствия</string>
+    <string name="sync_entity_absence_days">Дни отсутствия</string>
+    <string name="sync_entity_leave_balances">Баланс отпуска</string>
+    <string name="sync_entity_premium_profiles">Премиальные профили</string>
+    <string name="sync_entity_projects">Проекты</string>
+    <string name="sync_entity_project_billing">Выставление счетов</string>
+    <string name="sync_entity_project_payments">Платежи по проектам</string>
     <string name="clock_style_readout">Сводка</string>
     <string name="clock_style_sparkline">График</string>
     <string name="clock_style_gauge">Циферблат</string>
