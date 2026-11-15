@@ -774,6 +774,35 @@ class SyncRepositoryImpl @Inject constructor(
         existingUpdatedAt: Long,
     ): Boolean = isoToEpoch(remoteUpdatedAtIso) > (existingLastSyncedAt ?: existingUpdatedAt)
 
+    /**
+     * The sync status a local row takes once a pull shows that its create already
+     * reached the server.
+     *
+     * Creates send the client-generated local id as the primary key, so a server row
+     * whose id is a local row's `localId` is that row. When the insert lands but its
+     * response is lost — a read timeout, a reset connection, a 5xx from a proxy after
+     * the commit — the push holds the row for retry with no remote id. The pull in
+     * the same run then fetched the row back, found nothing under that remote id and
+     * materialised it a second time under a fresh local id. For a work profile that
+     * meant the job, its workplace and its leave policy each appeared twice on the
+     * device that created them. Both copies carry the same remote id, so deleting
+     * the extra one tombstoned the single server row and removed the job from
+     * every other device.
+     *
+     * The row is linked rather than copied. It stays pending, because the server
+     * holds only what the lost insert carried and any edit made since has not been
+     * sent; with a remote id, the next push goes as a guarded update, so a newer
+     * edit from another device still wins. A row already marked pending for an
+     * update or a delete keeps that status. A FAILED row becomes an update too: the
+     * create it failed on had in fact landed. So does a SYNCED tombstone — a row
+     * deleted before its create was acknowledged, whose delete was marked done
+     * without being sent because it had no remote id to send it to.
+     */
+    private fun statusAfterUnacknowledgedCreate(status: SyncStatus): SyncStatus = when (status) {
+        SyncStatus.PENDING_UPDATE, SyncStatus.PENDING_DELETE -> status
+        SyncStatus.PENDING_CREATE, SyncStatus.FAILED, SyncStatus.SYNCED -> SyncStatus.PENDING_UPDATE
+    }
+
     private data class PullOutcome(
         val seenRemoteIds: Set<String>,
         val isFullSync: Boolean,
@@ -2066,6 +2095,9 @@ class SyncRepositoryImpl @Inject constructor(
             ownerOf = { it.userId },
         ) { remote ->
             val existing = compensationProfileDao.getByRemoteId(remote.id)
+            if (existing == null && claimUnacknowledgedProfileCreate(userId, remote)) {
+                return@pullIncremental true
+            }
             val workplaceLocalId = idMapper.workplaceRemoteToLocal(remote.workplaceId)
             when {
                 existing == null && remote.deletedAt != null -> Unit
@@ -2104,6 +2136,30 @@ class SyncRepositoryImpl @Inject constructor(
                     )
                 }
         }
+    }
+
+    /**
+     * Links [remote] to the local profile whose create it is, when that create's
+     * response never arrived. See [statusAfterUnacknowledgedCreate].
+     *
+     * Returns false, leaving the ordinary pull to handle the row, when no local
+     * profile has this id, or the one that does already carries a remote id.
+     */
+    private suspend fun claimUnacknowledgedProfileCreate(
+        userId: String,
+        remote: com.elmtrackr.app.data.remote.RemoteCompensationProfileRow,
+    ): Boolean {
+        val local = compensationProfileDao.getByLocalId(remote.id)
+            ?.takeIf { it.userId == userId && it.remoteId == null }
+            ?: return false
+        compensationProfileDao.updateSyncState(
+            local.localId,
+            statusAfterUnacknowledgedCreate(local.syncStatus),
+            remote.id,
+            isoToEpoch(remote.updatedAt),
+            null,
+        )
+        return true
     }
 
     /**
@@ -2339,6 +2395,9 @@ class SyncRepositoryImpl @Inject constructor(
             ownerOf = { it.userId },
         ) { remote ->
             val existing = workplaceDao.getByRemoteId(remote.id)
+            if (existing == null && claimUnacknowledgedWorkplaceCreate(userId, remote)) {
+                return@pullIncremental true
+            }
             when {
                 existing == null && remote.deletedAt != null -> Unit
                 existing == null -> workplaceDao.upsert(remote.toLocalEntity())
@@ -2351,6 +2410,30 @@ class SyncRepositoryImpl @Inject constructor(
         // No tombstone sweep here, unlike premium profiles. A workplace the server
         // has never heard of is one created offline and not yet pushed; sweeping on
         // absence would delete it before its first push.
+    }
+
+    /**
+     * Links [remote] to the local workplace whose create it is, when that create's
+     * response never arrived. See [statusAfterUnacknowledgedCreate].
+     *
+     * Runs before compensation profiles and leave policies are pulled, so their
+     * `workplace_id` resolves to this row rather than to nothing.
+     */
+    private suspend fun claimUnacknowledgedWorkplaceCreate(
+        userId: String,
+        remote: com.elmtrackr.app.data.remote.RemoteWorkplaceRow,
+    ): Boolean {
+        val local = workplaceDao.getByLocalId(remote.id)
+            ?.takeIf { it.userId == userId && it.remoteId == null }
+            ?: return false
+        workplaceDao.updateSyncState(
+            local.localId,
+            statusAfterUnacknowledgedCreate(local.syncStatus),
+            remote.id,
+            isoToEpoch(remote.updatedAt),
+            null,
+        )
+        return true
     }
 
     private suspend fun pushLeavePolicies(userId: String) {
@@ -2428,11 +2511,16 @@ class SyncRepositoryImpl @Inject constructor(
             remoteIdOf = { it.id },
             ownerOf = { it.userId },
         ) { remote ->
+            val existing = leavePolicyDao.getByRemoteId(remote.id)
+            // Before the parent check: this device's own policy already points at
+            // its local workplace, so it needs no resolving.
+            if (existing == null && claimUnacknowledgedPolicyCreate(userId, remote)) {
+                return@pullIncremental true
+            }
             // Its workplace has to be local already. Returning false leaves the
             // cursor behind this page so the row is retried once it is.
             val workplaceLocalId = idMapper.workplaceRemoteToLocal(remote.workplaceId)
                 ?: return@pullIncremental false
-            val existing = leavePolicyDao.getByRemoteId(remote.id)
             when {
                 existing == null && remote.deletedAt != null -> Unit
                 existing == null -> leavePolicyDao.upsert(remote.toLocalEntity(workplaceLocalId))
@@ -2444,6 +2532,31 @@ class SyncRepositoryImpl @Inject constructor(
             }
             true
         }
+    }
+
+    /**
+     * Links [remote] to the local leave policy whose create it is, when that
+     * create's response never arrived. See [statusAfterUnacknowledgedCreate].
+     *
+     * A duplicate here is quieter than a duplicate job but not harmless: changing
+     * the sick-pay arrangement closes only the policy `resolvePolicy` returns, so the
+     * copy stayed active beside its replacement.
+     */
+    private suspend fun claimUnacknowledgedPolicyCreate(
+        userId: String,
+        remote: com.elmtrackr.app.data.remote.RemoteLeavePolicyRow,
+    ): Boolean {
+        val local = leavePolicyDao.getByLocalId(remote.id)
+            ?.takeIf { it.userId == userId && it.remoteId == null }
+            ?: return false
+        leavePolicyDao.updateSyncState(
+            local.localId,
+            statusAfterUnacknowledgedCreate(local.syncStatus),
+            remote.id,
+            isoToEpoch(remote.updatedAt),
+            null,
+        )
+        return true
     }
 
     private suspend fun pushLeaveBalances(userId: String) {
