@@ -244,4 +244,73 @@ class AuthViewModelTest {
         assertTrue(states.last() is AuthUiState.SignedIn)
         job.cancel()
     }
+
+    /**
+     * The forgotten-password journey as a user takes it: ask for the email on the
+     * sign-in screen, open the link instead of tapping Back, set a new password.
+     * The reset flag used to outrank the profile, so the user landed in the app
+     * as PasswordResetSent, and Settings and Profile hid Sign out.
+     */
+    @Test
+    fun `a password reset through the email link ends signed in`() = runTest {
+        val vm = buildVm()
+        val states = mutableListOf<AuthUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        vm.resetPassword("test@example.com")
+        advanceUntilIdle()
+        assertTrue(states.last() is AuthUiState.PasswordResetSent)
+
+        // The link opens a recovery session.
+        repo.setProfile(Profile("user-1", "test@example.com", null, Instant.EPOCH, Instant.EPOCH))
+        repo.setPasswordRecoveryRequired(true)
+        advanceUntilIdle()
+        assertTrue(states.last() is AuthUiState.PasswordRecovery)
+
+        vm.updatePassword("newpassword123")
+        advanceUntilIdle()
+
+        assertTrue(states.last() is AuthUiState.SignedIn)
+        job.cancel()
+    }
+
+    @Test
+    fun `signing out after a reset email returns to the sign-in form`() = runTest {
+        val vm = buildVm()
+        val states = mutableListOf<AuthUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        vm.resetPassword("test@example.com")
+        advanceUntilIdle()
+        // Signed in some other way, without tapping Back on "check your email".
+        repo.setProfile(Profile("user-1", "test@example.com", null, Instant.EPOCH, Instant.EPOCH))
+        advanceUntilIdle()
+        assertTrue(states.last() is AuthUiState.SignedIn)
+
+        vm.signOut()
+        advanceUntilIdle()
+
+        assertTrue(states.last() is AuthUiState.SignedOut)
+        job.cancel()
+    }
+
+    @Test
+    fun `signing out after a sign-up returns to the sign-in form`() = runTest {
+        val vm = buildVm()
+        val states = mutableListOf<AuthUiState>()
+        val job = launch { vm.uiState.collect { states.add(it) } }
+
+        vm.signUp("new@example.com", "password123")
+        advanceUntilIdle()
+        assertTrue(states.last() is AuthUiState.SignedIn)
+
+        vm.signOut()
+        advanceUntilIdle()
+
+        assertTrue(states.last() is AuthUiState.SignedOut)
+        // Never passed through a "check your email" screen on the way out.
+        val afterSignUp = states.dropWhile { it !is AuthUiState.SignedIn }
+        assertTrue(afterSignUp.none { it is AuthUiState.SignUpConfirmation })
+        job.cancel()
+    }
 }
