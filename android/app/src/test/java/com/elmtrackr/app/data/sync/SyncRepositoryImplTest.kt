@@ -1660,6 +1660,137 @@ class SyncRepositoryImplTest {
         assertNull(task.lastSyncError)
     }
 
+    /**
+     * The insert lands on the server and its response is lost. Creates carry the
+     * local id as the primary key, so the row the pull brings back in the same run
+     * is this device's own; it used to be materialised a second time under a fresh
+     * local id, and the job showed twice.
+     */
+    @Test
+    fun `a work profile whose create response was lost is not duplicated by the pull`() = runTest {
+        val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+        val policyDao = com.elmtrackr.app.fake.FakeLeavePolicyDao()
+        val profileDao = com.elmtrackr.app.fake.FakeCompensationProfileDao()
+        val workplacesRemote = com.elmtrackr.app.fake.FakeWorkplaceRemote()
+        val policiesRemote = com.elmtrackr.app.fake.FakeLeavePolicyRemote()
+        val profilesRemote = FakeRemoteCompensationProfileDataSource()
+        // The job's workplace is already on the server; its pay profile and its
+        // sick-pay policy are new.
+        workplaceDao.seed(workplaceEntity("wp-1", SyncStatus.SYNCED, remoteId = "wp-1"))
+        workplacesRemote.rows += remoteWorkplaceRow("wp-1")
+        profileDao.insert(compensationProfileEntity("p-1", SyncStatus.PENDING_CREATE, workplaceId = "wp-1"))
+        policyDao.seed(policyEntity("pol-1", "wp-1", SyncStatus.PENDING_CREATE))
+        profilesRemote.loseInsertResponse = true
+        policiesRemote.loseInsertResponse = true
+        val repository = createRepository(
+            workplaceDao = workplaceDao,
+            leavePolicyDao = policyDao,
+            compensationProfileDao = profileDao,
+            remoteWorkplaces = workplacesRemote,
+            remoteLeavePolicies = policiesRemote,
+            remoteCompensationProfiles = profilesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        // Each reached the server once and exists here once, linked to it.
+        assertEquals(1, profilesRemote.rows.size)
+        assertEquals(1, policiesRemote.rows.size)
+        val profile = profileDao.getAllProfilesForUser(USER).single()
+        assertEquals("p-1", profile.localId)
+        assertEquals("p-1", profile.remoteId)
+        // Still pending: the next push confirms it as a guarded update.
+        assertEquals(SyncStatus.PENDING_UPDATE, profile.syncStatus)
+        val policy = policyDao.rows().single()
+        assertEquals("pol-1", policy.remoteId)
+        assertEquals(SyncStatus.PENDING_UPDATE, policy.syncStatus)
+        assertTrue(repository.hasRetryablePendingWork(USER))
+        assertTrue(repository.observeLastSyncStatus().first()!!.startsWith("SyncWaiting:"))
+
+        profilesRemote.loseInsertResponse = false
+        policiesRemote.loseInsertResponse = false
+        repository.syncAll(USER)
+
+        assertEquals(1, profilesRemote.rows.size)
+        assertEquals(1, policiesRemote.rows.size)
+        assertEquals("wp-1", profilesRemote.rows.single().workplaceId)
+        assertEquals(SyncStatus.SYNCED, profileDao.getAllProfilesForUser(USER).single().syncStatus)
+        assertEquals(SyncStatus.SYNCED, policyDao.rows().single().syncStatus)
+        assertTrue(repository.observeLastSyncStatus().first()!!.startsWith("Synced "))
+    }
+
+    @Test
+    fun `a workplace whose create response was lost is not duplicated by the pull`() = runTest {
+        val workplaceDao = com.elmtrackr.app.fake.FakeWorkplaceDao()
+        val profileDao = com.elmtrackr.app.fake.FakeCompensationProfileDao()
+        val workplacesRemote = com.elmtrackr.app.fake.FakeWorkplaceRemote()
+        val profilesRemote = FakeRemoteCompensationProfileDataSource()
+        // A new job: workplace and pay profile created together, the way adding one does.
+        workplaceDao.seed(workplaceEntity("wp-1", SyncStatus.PENDING_CREATE))
+        profileDao.insert(compensationProfileEntity("p-1", SyncStatus.PENDING_CREATE, workplaceId = "wp-1"))
+        workplacesRemote.loseInsertResponse = true
+        val repository = createRepository(
+            workplaceDao = workplaceDao,
+            compensationProfileDao = profileDao,
+            remoteWorkplaces = workplacesRemote,
+            remoteCompensationProfiles = profilesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        assertEquals(1, workplacesRemote.rows.size)
+        val workplace = workplaceDao.rows().single()
+        assertEquals("wp-1", workplace.remoteId)
+        assertEquals(SyncStatus.PENDING_UPDATE, workplace.syncStatus)
+        // The profile waited for its workplace rather than going detached.
+        assertTrue(profilesRemote.rows.isEmpty())
+
+        workplacesRemote.loseInsertResponse = false
+        repository.syncAll(USER)
+
+        assertEquals(1, workplacesRemote.rows.size)
+        assertEquals(SyncStatus.SYNCED, workplaceDao.rows().single().syncStatus)
+        assertEquals("wp-1", profilesRemote.rows.single().workplaceId)
+        val profile = profileDao.getAllProfilesForUser(USER).single()
+        assertEquals("wp-1", profile.workplaceId)
+        assertEquals(SyncStatus.SYNCED, profile.syncStatus)
+    }
+
+    /**
+     * Deleted after a lost create response and before any pull linked it, the
+     * profile had no remote id, so its delete was marked done without being sent.
+     * The pull then brought the live server row back as a new profile.
+     */
+    @Test
+    fun `a work profile deleted before its create was acknowledged is deleted on the server`() = runTest {
+        val profileDao = com.elmtrackr.app.fake.FakeCompensationProfileDao()
+        val profilesRemote = FakeRemoteCompensationProfileDataSource()
+        profilesRemote.rows += remoteCompensationProfileRow(
+            "p-1", workplaceId = null, updatedAt = "1970-01-01T00:00:01Z",
+        )
+        profileDao.insert(
+            compensationProfileEntity("p-1", SyncStatus.PENDING_UPDATE, workplaceId = null, updatedAt = 2_000L)
+                .copy(isArchived = true, deletedAt = 2_000L),
+        )
+        val repository = createRepository(
+            compensationProfileDao = profileDao,
+            remoteCompensationProfiles = profilesRemote,
+        )
+
+        repository.syncAll(USER)
+
+        // Not brought back as a live copy, and now linked to the server row.
+        assertTrue(profileDao.getByUser(USER).isEmpty())
+        assertEquals("p-1", profileDao.getByLocalId("p-1")!!.remoteId)
+        assertEquals(SyncStatus.PENDING_UPDATE, profileDao.getByLocalId("p-1")!!.syncStatus)
+
+        repository.syncAll(USER)
+
+        assertNotNull(profilesRemote.rows.single().deletedAt)
+        assertTrue(profileDao.getByUser(USER).isEmpty())
+        assertEquals(SyncStatus.SYNCED, profileDao.getByLocalId("p-1")!!.syncStatus)
+    }
+
     // ── Workplaces and leave ──────────────────────────────────────────────────
 
     private fun workplaceEntity(
@@ -2513,6 +2644,11 @@ class SyncRepositoryImplTest {
     private class FakeRemoteCompensationProfileDataSource : RemoteCompensationProfileDataSource {
         val rows = mutableListOf<RemoteCompensationProfileRow>()
         var insertFailure: (() -> Nothing)? = null
+        /**
+         * The insert reaches the server and its response does not reach the client:
+         * the row is stored, then the call fails the way a read timeout does.
+         */
+        var loseInsertResponse = false
         /** The `since` of the most recent page fetch; null means a first, unbounded pull. */
         var lastSinceIso: String? = null
 
@@ -2557,6 +2693,7 @@ class SyncRepositoryImplTest {
                 clientUpdatedAt = profile.clientUpdatedAt,
             )
             rows += stored
+            if (loseInsertResponse) throw java.net.SocketTimeoutException("Read timed out")
             return stored
         }
 

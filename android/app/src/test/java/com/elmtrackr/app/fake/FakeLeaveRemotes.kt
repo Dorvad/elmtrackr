@@ -37,6 +37,11 @@ import com.elmtrackr.app.data.remote.RemoteWorkplaceUpdate
 class FakeWorkplaceRemote : RemoteWorkplaceDataSource {
     val rows = mutableListOf<RemoteWorkplaceRow>()
     var insertFailure: (() -> Nothing)? = null
+    /**
+     * The insert reaches the server and its response does not reach the client:
+     * the row is stored, then the call fails the way a read timeout does.
+     */
+    var loseInsertResponse = false
 
     override suspend fun fetchUpdatedSince(
         sinceIso: String?,
@@ -54,6 +59,7 @@ class FakeWorkplaceRemote : RemoteWorkplaceDataSource {
         insertFailure?.invoke()
         val stored = row.toRow()
         rows += stored
+        if (loseInsertResponse) throw java.net.SocketTimeoutException("Read timed out")
         return stored
     }
 
@@ -73,6 +79,11 @@ class FakeWorkplaceRemote : RemoteWorkplaceDataSource {
 class FakeLeavePolicyRemote : RemoteLeavePolicyDataSource {
     val rows = mutableListOf<RemoteLeavePolicyRow>()
     var insertFailure: (() -> Nothing)? = null
+    /**
+     * The insert reaches the server and its response does not reach the client:
+     * the row is stored, then the call fails the way a read timeout does.
+     */
+    var loseInsertResponse = false
 
     override suspend fun fetchUpdatedSince(
         sinceIso: String?,
@@ -90,6 +101,7 @@ class FakeLeavePolicyRemote : RemoteLeavePolicyDataSource {
         insertFailure?.invoke()
         val stored = row.toRow()
         rows += stored
+        if (loseInsertResponse) throw java.net.SocketTimeoutException("Read timed out")
         return stored
     }
 

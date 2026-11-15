@@ -428,6 +428,19 @@ been pushed, the same rule the leave tables already follow. A profile pulled
 detached by the old order is relinked by a one-off re-pull once the device holds
 synced workplaces (`SyncRepositoryImpl.scheduleWorkplaceLinkRepairIfDue`).
 
+**A pulled row whose id is a pending local row's id is that row.** Creates send the
+client-generated local id as the primary key. When an insert lands but its response
+is lost (a read timeout, a reset connection), the row stays pending with no remote
+id, and the pull in the same run used to find nothing under that remote id and
+materialise the row a second time: a new work profile, its workplace and its leave
+policy each appeared twice on the device that created them, and deleting the copy
+tombstoned the one server row both copies pointed at. For `workplaces`,
+`compensation_profiles` and `leave_policies` the pull now links such a row to the
+local one and leaves it pending, so the next push confirms it as a guarded update
+(`SyncRepositoryImpl.statusAfterUnacknowledgedCreate`). The other tables that
+send client-generated ids still match on remote id only; shifts are covered
+separately by their start-time match.
+
 Incremental pull uses `updated_at >= lastPulledAt` per entity (see `SyncCursorStore`).
 
 Local `PENDING_*` rows always win over remote until pushed.
