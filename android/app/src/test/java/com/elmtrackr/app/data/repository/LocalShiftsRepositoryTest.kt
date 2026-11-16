@@ -302,6 +302,9 @@ class LocalShiftsRepositoryTest {
         override suspend fun getShiftByStartTime(userId: String, startTime: Long): ShiftEntity? =
             shifts.value.firstOrNull { it.userId == userId && it.startTime == startTime && it.deletedAt == null }
 
+        override suspend fun getShiftByStartTimeIncludingDeleted(userId: String, startTime: Long): ShiftEntity? =
+            shifts.value.firstOrNull { it.userId == userId && it.startTime == startTime }
+
         // REPLACE, as Room does: a clash on the primary key *or* on the unique
         // (userId, startTime) index deletes the existing row first.
         override suspend fun insertShift(shift: ShiftEntity) {

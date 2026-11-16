@@ -2968,6 +2968,9 @@ class SyncRepositoryImplTest {
                 it.userId == userId && it.startTime == startTime && it.deletedAt == null
             }
 
+        override suspend fun getShiftByStartTimeIncludingDeleted(userId: String, startTime: Long): ShiftEntity? =
+            shifts.value.firstOrNull { it.userId == userId && it.startTime == startTime }
+
         override fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<ShiftEntity>> =
             shifts.map { list ->
                 list.filter { it.userId == userId && it.endTime != null && it.deletedAt == null }

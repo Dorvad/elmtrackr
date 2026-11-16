@@ -37,6 +37,9 @@ class FakeShiftDao : ShiftDao {
     override suspend fun getShiftByStartTime(userId: String, startTime: Long): ShiftEntity? =
         store.values.firstOrNull { it.userId == userId && it.startTime == startTime && it.deletedAt == null }
 
+    override suspend fun getShiftByStartTimeIncludingDeleted(userId: String, startTime: Long): ShiftEntity? =
+        store.values.firstOrNull { it.userId == userId && it.startTime == startTime }
+
     override suspend fun insertShift(shift: ShiftEntity) { store[shift.localId] = shift; refresh() }
 
     override suspend fun updateShift(shift: ShiftEntity) { store[shift.localId] = shift; refresh() }

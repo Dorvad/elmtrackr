@@ -160,6 +160,17 @@ interface ShiftDao {
     )
     suspend fun getShiftByStartTime(userId: String, startTime: Long): ShiftEntity?
 
+    /**
+     * The row holding this start time, deleted or not.
+     *
+     * The unique `(userId, startTime)` index covers tombstones too — unlike the
+     * server's, which is partial on `deleted_at is null`. So a deleted shift still
+     * occupies its start time locally, and an insert there REPLACEs the tombstone.
+     * [getShiftByStartTime] cannot see that row; this can.
+     */
+    @Query("SELECT * FROM shifts WHERE userId = :userId AND startTime = :startTime LIMIT 1")
+    suspend fun getShiftByStartTimeIncludingDeleted(userId: String, startTime: Long): ShiftEntity?
+
     @Query(
         "SELECT * FROM shifts WHERE userId = :userId " +
             "AND endTime IS NOT NULL AND deletedAt IS NULL " +

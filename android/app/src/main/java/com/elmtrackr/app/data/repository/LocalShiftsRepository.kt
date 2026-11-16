@@ -85,8 +85,15 @@ class LocalShiftsRepository @Inject constructor(
         // break, notes and remote link — and put an open shift in its place, which
         // sync then pushed over the server copy. The punch is already recorded;
         // answer with that shift, as createManualShift does.
+        //
+        // Deleted rows are included on purpose. A tombstone still holds its start
+        // time in that index, so a replay of a punch whose shift the user has
+        // since deleted would REPLACE the tombstone with an open shift — undoing
+        // the delete and dropping the pending delete with it. The watch is told
+        // the punch is recorded either way; nothing is re-created.
         if (startTimeMillis != null) {
-            shiftDao.getShiftByStartTime(userId, startTime)?.let { return it.toDomain() }
+            shiftDao.getShiftByStartTimeIncludingDeleted(userId, startTime)
+                ?.let { return it.toDomain() }
         }
         val entity = ShiftEntity(
             localId = UUID.randomUUID().toString(),
