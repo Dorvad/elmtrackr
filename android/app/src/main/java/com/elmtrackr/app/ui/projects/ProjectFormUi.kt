@@ -48,6 +48,7 @@ import com.elmtrackr.app.domain.projects.ProjectFormField
 import com.elmtrackr.app.domain.projects.ProjectFormInput
 import com.elmtrackr.app.domain.projects.ProjectFormValidator
 import com.elmtrackr.app.domain.text.BidiText
+import com.elmtrackr.app.ui.common.DecimalInput
 import com.elmtrackr.app.ui.common.rememberDiscardGuard
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
@@ -504,16 +505,10 @@ internal fun CurrencyPickerDialog(
     )
 }
 
-/** Keeps only digits and a single decimal point, matching the onboarding inputs. */
-internal fun String.decimalOnly(): String = buildString {
-    var hasDecimal = false
-    this@decimalOnly.forEach { char ->
-        when {
-            char.isDigit() -> append(char)
-            (char == '.' || char == ',') && !hasDecimal && isNotEmpty() -> {
-                append('.')
-                hasDecimal = true
-            }
-        }
-    }
-}
+/**
+ * Keeps a project number field parseable. Delegates to [DecimalInput] so a project
+ * amount reads a decimal comma, the Arabic separator and Arabic-Indic digits the same
+ * way every pay field does; this used to be a second filter that accepted the comma
+ * but passed Arabic-Indic digits through unconverted, where they then failed to parse.
+ */
+internal fun String.decimalOnly(): String = DecimalInput.sanitize(this)
