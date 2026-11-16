@@ -204,6 +204,13 @@ class FakeRefundClaimDao : RefundClaimDao {
 
     override suspend fun upsertClaim(claim: RefundClaimEntity) { store[claim.localId] = claim; refresh() }
 
+    override suspend fun insertClaimIfAbsent(claim: RefundClaimEntity): Long {
+        if (claim.localId in store) return -1L
+        store[claim.localId] = claim
+        refresh()
+        return store.size.toLong()
+    }
+
     override suspend fun softDeleteClaim(localId: String, deletedAt: Long, syncStatus: SyncStatus, updatedAt: Long) {
         store[localId]?.let { store[localId] = it.copy(deletedAt = deletedAt, syncStatus = syncStatus, updatedAt = updatedAt) }
         refresh()

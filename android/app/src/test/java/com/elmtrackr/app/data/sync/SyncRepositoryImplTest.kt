@@ -2312,6 +2312,7 @@ class SyncRepositoryImplTest {
         override suspend fun insertClaim(claim: RefundClaimEntity) = Unit
         override suspend fun updateClaim(claim: RefundClaimEntity) = Unit
         override suspend fun upsertClaim(claim: RefundClaimEntity) = Unit
+        override suspend fun insertClaimIfAbsent(claim: RefundClaimEntity): Long = -1L
         override suspend fun softDeleteClaim(localId: String, deletedAt: Long, syncStatus: SyncStatus, updatedAt: Long) = Unit
         override suspend fun softDeleteClaimsForShift(
             shiftLocalId: String,
