@@ -1,5 +1,6 @@
 package com.elmtrackr.app.data.sync
 
+import com.elmtrackr.app.data.runCatchingCancellable
 import com.elmtrackr.app.data.local.dao.CompensationProfileDao
 import com.elmtrackr.app.data.local.dao.ProfileDao
 import com.elmtrackr.app.data.local.dao.RefundClaimDao
@@ -582,7 +583,7 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun runSyncPipeline(userId: String): SyncResult {
-        return runCatching {
+        return runCatchingCancellable {
             val issues = PipelineIssues()
             val warnings = issues.warnings
             foreignRowsThisRun = 0
@@ -696,7 +697,7 @@ class SyncRepositoryImpl @Inject constructor(
         issues: PipelineIssues,
         block: suspend () -> Unit,
     ) {
-        runCatching { block() }.onFailure { error ->
+        runCatchingCancellable { block() }.onFailure { error ->
             issues.recordFailure(label, error)
         }
     }
@@ -953,7 +954,7 @@ class SyncRepositoryImpl @Inject constructor(
         if (!tasksRemoteEnabled) return
         val now = Instant.now().toEpochMilli()
         for (task in taskDao.getPendingSyncTasks(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 // The operation derives from row state, not the status enum, so a FAILED
                 // row keeps its original intent (a failed delete must stay a delete —
                 // pushing it as an update would resurrect the row remotely).
@@ -1061,7 +1062,7 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun pullTasks(userId: String, warnings: MutableList<String>) {
         if (!tasksRemoteEnabled) return
-        runCatching {
+        runCatchingCancellable {
             val outcome = pullIncremental(
                 userId = userId,
                 entity = ENTITY_TASKS,
@@ -1121,7 +1122,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushShifts(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (shift in shiftDao.getPendingSyncShifts(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when {
                     shift.syncStatus == SyncStatus.SYNCED -> Unit
                     shift.deletedAt != null -> pushShiftDelete(shift, now)
@@ -1143,7 +1144,7 @@ class SyncRepositoryImpl @Inject constructor(
             return
         }
 
-        runCatching {
+        runCatchingCancellable {
             val remote = shiftsRemote.insert(
                 shift.toRemoteInsert(
                     compensationProfileRemoteId = idMapper.profileLocalToRemote(shift.compensationProfileId),
@@ -1504,7 +1505,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushProjects(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (project in projectDao.getPendingSyncProjects(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when {
                     project.syncStatus == SyncStatus.SYNCED -> Unit
                     project.deletedAt != null -> pushProjectDelete(project, now)
@@ -1581,7 +1582,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushBillingRecords(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (record in projectBillingRecordDao.getPendingSyncRecords(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when {
                     record.syncStatus == SyncStatus.SYNCED -> Unit
                     record.deletedAt != null -> pushBillingRecordDelete(record, now)
@@ -1589,7 +1590,7 @@ class SyncRepositoryImpl @Inject constructor(
                         // Parent project not pushed yet: leave the record pending
                         // rather than sending a project_id the server will reject.
                         val projectRemoteId = idMapper.projectLocalToRemote(record.projectLocalId)
-                            ?: return@runCatching
+                            ?: return@runCatchingCancellable
                         pushBillingRecordCreate(record, projectRemoteId, now)
                     }
                     else -> pushBillingRecordUpdate(record, now)
@@ -1691,15 +1692,15 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushProjectPayments(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (payment in projectPaymentDao.getPendingSyncPayments(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when {
                     payment.syncStatus == SyncStatus.SYNCED -> Unit
                     payment.deletedAt != null -> pushProjectPaymentDelete(payment, now)
                     payment.remoteId == null -> {
                         val projectRemoteId = idMapper.projectLocalToRemote(payment.projectLocalId)
-                            ?: return@runCatching
+                            ?: return@runCatchingCancellable
                         val recordRemoteId = idMapper.billingRecordLocalToRemote(payment.billingRecordLocalId)
-                            ?: return@runCatching
+                            ?: return@runCatchingCancellable
                         pushProjectPaymentCreate(payment, projectRemoteId, recordRemoteId, now)
                     }
                     else -> pushProjectPaymentUpdate(payment, now)
@@ -1811,14 +1812,14 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushRefundClaims(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (claim in refundClaimDao.getPendingSyncClaims(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when {
                     claim.syncStatus == SyncStatus.SYNCED -> Unit
                     claim.deletedAt != null -> pushRefundClaimDelete(claim, now)
                     claim.remoteId == null -> {
                         // Parent shift not pushed yet: leave the claim pending for a later sync.
                         val shiftRemoteId = idMapper.shiftLocalToRemote(claim.shiftLocalId)
-                            ?: return@runCatching
+                            ?: return@runCatchingCancellable
                         pushRefundClaimCreate(claim, shiftRemoteId, now)
                     }
                     else -> pushRefundClaimUpdate(claim, now)
@@ -1920,7 +1921,7 @@ class SyncRepositoryImpl @Inject constructor(
         for (claim in refundClaimDao.getClaimsAwaitingReceiptUpload(userId)) {
             val receipt = receiptDao.getByRefundClaimId(claim.localId) ?: continue
             val upload = reader.toReceiptUpload(receipt.localImageUri) ?: continue
-            runCatching {
+            runCatchingCancellable {
                 val path = storage.upload(
                     userId,
                     claim.shiftLocalId,
@@ -1991,7 +1992,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushCompensationProfiles(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (profile in compensationProfileDao.getPendingSyncProfiles(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when {
                     profile.syncStatus == SyncStatus.SYNCED -> Unit
                     profile.deletedAt != null -> pushCompensationProfileDelete(profile, now)
@@ -2202,7 +2203,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushPremiumProfiles(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (profile in premiumProfileDao.getPendingSyncProfiles(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when {
                     profile.syncStatus == SyncStatus.SYNCED -> Unit
                     profile.deletedAt != null -> pushPremiumProfileDelete(profile, now)
@@ -2328,7 +2329,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushWorkplaces(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (row in workplaceDao.getPendingSyncWorkplaces(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when {
                     row.syncStatus == SyncStatus.SYNCED -> Unit
                     row.deletedAt != null -> {
@@ -2439,7 +2440,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushLeavePolicies(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (row in leavePolicyDao.getPendingSyncPolicies(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when {
                     row.syncStatus == SyncStatus.SYNCED -> Unit
                     row.deletedAt != null -> {
@@ -2454,7 +2455,7 @@ class SyncRepositoryImpl @Inject constructor(
                         // Parent workplace not pushed yet: stay pending rather than
                         // send a workplace_id the server will reject.
                         val workplaceRemoteId = idMapper.workplaceLocalToRemote(row.workplaceLocalId)
-                            ?: return@runCatching
+                            ?: return@runCatchingCancellable
                         val remoteId = try {
                             policiesRemote.insert(row.toRemoteInsert(workplaceRemoteId)).id
                         } catch (e: Exception) {
@@ -2562,7 +2563,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushLeaveBalances(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (row in leaveBalanceSnapshotDao.getPendingSyncSnapshots(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when {
                     row.syncStatus == SyncStatus.SYNCED -> Unit
                     row.deletedAt != null -> {
@@ -2575,7 +2576,7 @@ class SyncRepositoryImpl @Inject constructor(
                     }
                     row.remoteId == null -> {
                         val workplaceRemoteId = idMapper.workplaceLocalToRemote(row.workplaceLocalId)
-                            ?: return@runCatching
+                            ?: return@runCatchingCancellable
                         val remoteId = try {
                             balancesRemote.insert(row.toRemoteInsert(workplaceRemoteId)).id
                         } catch (e: Exception) {
@@ -2651,7 +2652,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushAbsenceEvents(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (row in absenceEventDao.getPendingSyncEvents(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when {
                     row.syncStatus == SyncStatus.SYNCED -> Unit
                     row.deletedAt != null -> {
@@ -2732,7 +2733,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushAbsenceAllocations(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (row in absenceAllocationDao.getPendingSyncAllocations(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when {
                     row.syncStatus == SyncStatus.SYNCED -> Unit
                     row.deletedAt != null -> {
@@ -2746,9 +2747,9 @@ class SyncRepositoryImpl @Inject constructor(
                     row.remoteId == null -> {
                         // Two parents, both real foreign keys on the server.
                         val eventRemoteId = idMapper.absenceEventLocalToRemote(row.absenceEventLocalId)
-                            ?: return@runCatching
+                            ?: return@runCatchingCancellable
                         val workplaceRemoteId = idMapper.workplaceLocalToRemote(row.workplaceLocalId)
-                            ?: return@runCatching
+                            ?: return@runCatchingCancellable
                         val remoteId = try {
                             allocationsRemote.insert(row.toRemoteInsert(eventRemoteId, workplaceRemoteId)).id
                         } catch (e: Exception) {
@@ -2838,7 +2839,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushUserSettings(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (settings in settingsDao.getPendingSyncSettings(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 val profileRemoteId = idMapper.profileLocalToRemote(settings.defaultCompensationProfileId)
                 when {
                     settings.syncStatus == SyncStatus.SYNCED -> Unit
@@ -2962,7 +2963,7 @@ class SyncRepositoryImpl @Inject constructor(
     private suspend fun pushProfiles(userId: String) {
         val now = Instant.now().toEpochMilli()
         for (profile in profileDao.getPendingSyncProfiles(userId)) {
-            runCatching {
+            runCatchingCancellable {
                 when (profile.syncStatus) {
                     SyncStatus.SYNCED -> Unit
                     SyncStatus.PENDING_DELETE -> Unit
