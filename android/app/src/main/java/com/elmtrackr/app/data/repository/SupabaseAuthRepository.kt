@@ -346,10 +346,9 @@ class SupabaseAuthRepository @Inject constructor(
                     c.auth.exchangeCodeForSession(payload.value)
                     _passwordRecoveryRequired.value = payload.isRecovery
                 }
-                is AuthCallbackPayload.Tokens -> {
-                    c.auth.importAuthToken(payload.accessToken, payload.refreshToken)
-                    _passwordRecoveryRequired.value = payload.isRecovery
-                }
+            // Codes only. The parser refuses a callback that carries a ready-made
+            // session, so nothing here can be signed in by a link it did not start;
+            // the exchange below needs the verifier this device generated.
             }
         } catch (e: Exception) {
             _passwordRecoveryRequired.value = false
