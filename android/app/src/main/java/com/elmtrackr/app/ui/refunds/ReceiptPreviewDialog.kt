@@ -1,6 +1,5 @@
 package com.elmtrackr.app.ui.refunds
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +26,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.elmtrackr.app.data.receipt.ReceiptBitmapDecoder
 import com.elmtrackr.app.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -99,7 +99,9 @@ fun ReceiptPreviewDialog(
 private fun loadLocalBitmap(path: String): ImageBitmap? {
     val file = File(path)
     if (!file.exists() || !file.isFile || file.length() <= 0) return null
-    return BitmapFactory.decodeFile(path)?.asImageBitmap()
+    // Bounded: this is a full-screen preview, so it gets the OCR-sized cap rather
+    // than the thumbnail one, but never the file's native resolution.
+    return ReceiptBitmapDecoder.decodeDownscaled(path)?.asImageBitmap()
 }
 
 private fun loadRemoteBitmap(receiptUrl: String): ImageBitmap? = runCatching {
@@ -123,9 +125,11 @@ private fun loadRemoteBitmap(receiptUrl: String): ImageBitmap? = runCatching {
         }
         redirects++
     }
-    connection.inputStream.use { input ->
-        BitmapFactory.decodeStream(input)?.asImageBitmap()
-    }
+    // Read, then decode in two passes. decodeStream cannot be asked for the
+    // image's size first, so it has no way to subsample — a large receipt was
+    // decoded at full resolution here even though the local path was bounded.
+    val bytes = connection.inputStream.use { input -> input.readBytes() }
+    ReceiptBitmapDecoder.decodeDownscaled(bytes)?.asImageBitmap()
 }.getOrNull()
 
 @Composable
