@@ -379,7 +379,7 @@ private fun ShopTab(
                 Text(
                     stringResource(R.string.settings_face_store_everything_owned),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = Spacing.s24),
@@ -449,7 +449,7 @@ private fun StoreHeader(
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = MaterialTheme.typography.labelSmall.fontSize * EYEBROW_TRACKING,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -473,7 +473,7 @@ private fun StoreHeader(
                 )
             },
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.outline,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = Spacing.s4, bottom = Spacing.s12),
         )
     }
@@ -514,7 +514,7 @@ private fun OwnedPackSection(
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = MaterialTheme.typography.labelSmall.fontSize * EYEBROW_TRACKING,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .weight(1f)
                     .auroraHeading(),

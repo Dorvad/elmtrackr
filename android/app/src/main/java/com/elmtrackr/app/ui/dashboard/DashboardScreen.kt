@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.elmtrackr.app.ui.theme.auroraOvertimeInk
 import com.elmtrackr.app.ui.theme.CornerRadius
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.AnimatedContent
@@ -1146,7 +1147,9 @@ private fun ClassicClockCard(
                             Text(
                                 text  = stringResource(R.string.dashboard_overtime_label),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = AuroraPeach,
+                                // The readable end of the peach ramp; AuroraPeach itself is a graphic
+                                // accent, 2.0:1 as text on a light card.
+                                color = auroraOvertimeInk(),
                             )
                         }
                     }

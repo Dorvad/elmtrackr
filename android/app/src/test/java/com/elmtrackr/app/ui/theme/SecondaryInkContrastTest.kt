@@ -144,6 +144,68 @@ class SecondaryInkContrastTest {
         )
     }
 
+    /**
+     * The inks that small coloured text is drawn in, against the surfaces it sits on.
+     *
+     * Three brand accents were being used directly as text colours on the Dashboard
+     * and in Reports, and each fails as text even though it is right as a graphic:
+     *
+     * - `AuroraPeach` for the overtime labels — 2.0:1 on a white card.
+     * - `AuroraIndigo` for money and counts — fine in light, where it *is* the
+     *   theme's primary, but 3.0:1 on the dark surface because it has no dark arm.
+     * - `#F43F5E` for a month-over-month decrease — 3.7:1 on white.
+     *
+     * Those sites now take the inks measured here. The accents themselves are
+     * untouched: they still colour bars, dots, rings and fills, where 3:1 is the
+     * bar and they clear it. The second half of this test keeps the reason on
+     * record, so nobody "simplifies" an ink back to the accent it came from.
+     */
+    @Test
+    fun `coloured body text uses inks that clear AA, in both themes`() {
+        // Overtime labels: auroraOvertimeInk().
+        assertContrast("light overtime ink on a card", AuroraOvertimeInk, ElmTrackrLightColorScheme.surface, 4.5)
+        assertContrast("light overtime ink on the overtime tint", AuroraOvertimeInk, AuroraOvertimeBg, 4.5)
+        assertContrast("dark overtime ink on a card", AuroraDarkOvertimeInk, ElmTrackrDarkColorScheme.surface, 4.5)
+
+        // Money and counts: colorScheme.primary.
+        assertContrast(
+            "light primary on a card",
+            ElmTrackrLightColorScheme.primary,
+            ElmTrackrLightColorScheme.surface,
+            4.5,
+        )
+        assertContrast(
+            "dark primary on a card",
+            ElmTrackrDarkColorScheme.primary,
+            ElmTrackrDarkColorScheme.surface,
+            4.5,
+        )
+
+        // A decrease: colorScheme.error.
+        assertContrast(
+            "light error on a card",
+            ElmTrackrLightColorScheme.error,
+            ElmTrackrLightColorScheme.surface,
+            4.5,
+        )
+        assertContrast(
+            "dark error on a card",
+            ElmTrackrDarkColorScheme.error,
+            ElmTrackrDarkColorScheme.surface,
+            4.5,
+        )
+    }
+
+    @Test
+    fun `the graphic accents those inks replaced do not clear AA as text`() {
+        assertTrue(contrastRatio(AuroraPeach, ElmTrackrLightColorScheme.surface) < 4.5)
+        assertTrue(contrastRatio(AuroraIndigo, ElmTrackrDarkColorScheme.surface) < 4.5)
+        assertTrue(contrastRatio(AuroraRose, ElmTrackrLightColorScheme.surface) < 4.5)
+        // And they are fine as what they are — a graphic element needs 3:1.
+        assertTrue(contrastRatio(AuroraIndigo, ElmTrackrDarkColorScheme.surface) >= 3.0)
+        assertTrue(contrastRatio(AuroraRose, ElmTrackrLightColorScheme.surface) >= 3.0)
+    }
+
     private fun assertContrast(name: String, foreground: Color, background: Color, minimum: Double) {
         val ratio = contrastRatio(foreground, background)
         assertTrue(

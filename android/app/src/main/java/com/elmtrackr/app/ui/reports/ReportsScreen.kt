@@ -1036,7 +1036,7 @@ internal fun HoursReport(
         val delta = report.workedMinutes - state.previousMonthMinutes
         val deltaColor = when {
             delta > 0 -> auroraSemantics.successInk
-            delta < 0 -> Color(0xFFF43F5E)
+            delta < 0 -> MaterialTheme.colorScheme.error
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
         val arrow = when {
@@ -1079,7 +1079,7 @@ internal fun HoursReport(
         val delta = report.totalMinutes - state.previousMonthMinutes
         val deltaColor = when {
             delta > 0 -> auroraSemantics.successInk
-            delta < 0 -> Color(0xFFF43F5E)
+            delta < 0 -> MaterialTheme.colorScheme.error
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
         val arrow = when {
@@ -1653,7 +1653,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                 if (showDelta) {
                     val deltaColor = when {
                         delta > 0 -> auroraSemantics.successInk
-                        delta < 0 -> Color(0xFFF43F5E)
+                        delta < 0 -> MaterialTheme.colorScheme.error
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
                     val arrow = when {
@@ -1708,7 +1708,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                     Text(
                         stringResource(R.string.reports_ot_suffix, durationText(week.overtimeMinutes)),
                         style = MaterialTheme.typography.labelSmall,
-                        color = AuroraPeach,
+                        color = auroraOvertimeInk(),
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
@@ -1720,7 +1720,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                         pay.formattedEach(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = AuroraIndigo,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
@@ -1855,7 +1855,7 @@ private fun ShiftReportRow(
                         Text(
                             stringResource(R.string.reports_plus_ot, durationText(otMins)),
                             style = MaterialTheme.typography.labelSmall,
-                            color = AuroraPeach,
+                            color = auroraOvertimeInk(),
                         )
                     }
                     pay?.let {
@@ -1863,7 +1863,7 @@ private fun ShiftReportRow(
                             MoneyFormatter.format(it.totalGross, it.currencyCode, appLocale()),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = AuroraIndigo,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
@@ -2515,7 +2515,13 @@ private fun SectionLabel(text: String) = Text(
 )
 
 @Composable
-private fun ReportRow(label: String, value: String, valueColor: Color = AuroraIndigo) {
+private fun ReportRow(
+    label: String,
+    value: String,
+    // The theme's primary, not AuroraIndigo: the same colour in light, and indigo on
+    // the dark surface is 3.0:1 — below the 4.5:1 that body text needs.
+    valueColor: Color = MaterialTheme.colorScheme.primary,
+) {
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         // Same measurement order problem as SettingsInfoRow: the label yields so
         // the value is measured first, and the padding keeps a gap regardless.
