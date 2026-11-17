@@ -1,0 +1,107 @@
+# Records the Paparazzi golden images on the same kind of machine that checks them,
+# and hands them back as a downloadable artifact.
+#
+# Why this exists
+# ---------------
+# The goldens under android/app/src/test/snapshots/images/ were recorded on a
+# developer machine. Paparazzi renders through layoutlib, and text rasterisation
+# differs with the host JDK and font stack, so every one of them fails on any other
+# machine — including against an unmodified checkout. `Verify Paparazzi goldens` in
+# android.yml is therefore `continue-on-error`, and the suite has not been able to
+# catch a visual regression since it was added. android/docs/declined-findings.md
+# names the way out: "record the images inside the CI container, so the same
+# environment that checks them produces them." This is that.
+#
+# How to use it
+# -------------
+# 1. Actions → "Record Paparazzi goldens" → Run workflow, on the branch whose UI
+#    you want recorded.
+# 2. Download the `paparazzi-goldens` artifact and unzip it over
+#    android/app/src/test/snapshots/images/.
+# 3. Review the diff. `git status` must list only the screens the change was meant
+#    to touch — an unexpected file means a shared primitive moved. That review is
+#    the point of the exercise; do not commit the images unread.
+# 4. Commit them.
+#
+# Nothing is committed or pushed from here, on purpose: the job needs no write
+# permission, and a person looks at the images before they become the reference.
+#
+# Once goldens recorded this way are in the repository, `Verify Paparazzi goldens`
+# in android.yml can drop `continue-on-error` — and should be moved to the runner
+# image pinned below at the same time. `ubuntu-latest` is a moving target; a new
+# image with a different font stack would turn every golden red again.
+
+name: Record Paparazzi goldens
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    name: Record goldens on the CI image
+    # Pinned, unlike the build job. See the note above.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Xmx4g -Dfile.encoding=UTF-8"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Same JDK as the build job, for the reason recorded there: the Paparazzi
+      # Gradle plugin publishes only a JVM 21 variant. It also has to match the
+      # job that verifies, since the JDK is one of the things rasterisation
+      # depends on.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Accept Android SDK licences & install platform 36
+        run: |
+          SDK_MGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDK_MGR" --licenses >/dev/null 2>&1 || true
+          "$SDK_MGR" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      # The committed images are moved aside first, so what is uploaded is exactly
+      # what the screenshot tests produce — nothing carried over from the checkout.
+      - name: Record goldens
+        working-directory: android
+        run: |
+          IMAGES=app/src/test/snapshots/images
+          mkdir -p /tmp/previous-goldens
+          if [ -d "$IMAGES" ]; then mv "$IMAGES"/* /tmp/previous-goldens/ 2>/dev/null || true; fi
+          ./gradlew :app:recordPaparazziDebug --no-daemon
+
+      # A golden no test produces is dead weight that looks like coverage. Listed
+      # rather than removed: unzipping the artifact over the directory leaves such
+      # a file where it is, and deleting it stays a decision someone makes.
+      - name: List committed goldens that no test produces
+        working-directory: android
+        run: |
+          IMAGES=app/src/test/snapshots/images
+          ls /tmp/previous-goldens | sort > /tmp/previous.txt
+          ls "$IMAGES" | sort > /tmp/recorded.txt
+          echo "Recorded: $(wc -l < /tmp/recorded.txt) images."
+          echo "Committed goldens with no screenshot test behind them:"
+          comm -23 /tmp/previous.txt /tmp/recorded.txt | sed 's/^/  /'
+          echo "Screenshot tests that had no committed golden:"
+          comm -13 /tmp/previous.txt /tmp/recorded.txt | sed 's/^/  /'
+
+      - name: Upload goldens
+        uses: actions/upload-artifact@v4
+        with:
+          name: paparazzi-goldens
+          path: android/app/src/test/snapshots/images/
+          if-no-files-found: error
+          retention-days: 14
