@@ -132,6 +132,11 @@ engines anchor weeks on `rules.weekStartDay`. Currently harmless because
 not honour, which is a trap for the next person to wire it in. Rename rather than
 re-implement.
 
+**Closed, November 2026.** The helper no longer exists: `sumMonthlyPay` sorts once
+and does not group by week, so there is nothing left to rename. Kept here so the
+entry is not re-raised from an older audit; see
+`optimization-debug-visual-audit-2026-11.md`.
+
 ---
 
 ## The IL `breakRatio` classification edge case
@@ -509,6 +514,14 @@ Not fixed here, because every available fix is a design decision:
 The test asserts 3:1 in both themes, so a value that is unreadable at *any* size would
 fail, and its KDoc explains why it stops short of 4.5:1: asserting the bar the code
 cannot meet would just leave a red build with no decision attached.
+
+**Partly acted on, November 2026.** Option 3 was taken for the nine caption sites in
+the clock-face store, which now use `onSurfaceVariant`; the palette and `outline`
+itself are unchanged. On re-count there were 34 references to `outline`, about 21 of
+them icon tints, and `auroraFaintText()` has no callers. The Dashboard's idle timer
+(display-size text, which passes the 3:1 large-text bar) and one placeholder value
+still use it. Recorded as a decision to confirm or reverse in
+`optimization-debug-visual-audit-2026-11.md`.
 
 ## Wave G: four items deferred, with reasons
 

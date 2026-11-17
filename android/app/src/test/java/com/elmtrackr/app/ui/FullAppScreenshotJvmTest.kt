@@ -93,9 +93,7 @@ import java.time.Instant
 class FullAppScreenshotJvmTest {
     @get:Rule
     val paparazzi = Paparazzi(
-        // 360×800 dp content at density 2 → 720×1600 px canvas. Keeping the
-        // canvas at 360×800 px cropped every capture to the top-left quarter.
-        deviceConfig = DeviceConfig.PIXEL_5.copy(screenWidth = 720, screenHeight = 1600),
+        deviceConfig = BASE_DEVICE,
     )
 
     @Before
@@ -278,42 +276,7 @@ class FullAppScreenshotJvmTest {
         }
     }
 
-    @Test fun shiftEdit() = capture("11-shift-edit") {
-        val settings = sampleSettings()
-        val shift = sampleShifts()[0]
-        ShiftEditFormContent(
-            navState = ShiftFormNavState.Edit(shift),
-            settings = settings,
-            errors = emptyMap(),
-            featuresTravelRefunds = true,
-            onSave = {},
-            onDelete = {},
-            onClose = {},
-            onPickStartDate = {},
-            onPickStartTime = {},
-            onPickEndDate = {},
-            onPickEndTime = {},
-            startMillis = shift.startTime.toEpochMilli(),
-            endMillis = shift.endTime!!.toEpochMilli(),
-            hasEndTime = true,
-            onHasEndTimeChange = {},
-            breakMinutes = shift.breakMinutes,
-            onBreakMinutesChange = {},
-            notesText = shift.notes.orEmpty(),
-            onNotesChange = {},
-            premiumProfileId = shift.premiumProfileId,
-            onPremiumProfileIdChange = {},
-            premiumProfiles = emptyList(),
-            profiles = emptyList(),
-            compensationProfileId = null,
-            onCompensationProfileIdChange = {},
-            tasks = sampleTasks(),
-            taskId = null,
-            onTaskIdChange = {},
-            showRefundSection = true,
-            initialShift = shift,
-        )
-    }
+    @Test fun shiftEdit() = capture("11-shift-edit") { ShiftEditSample() }
 
     @Test fun reportsHours() = capture("12-reports-hours") { ReportsColumn(insights = true) }
     @Test fun reportsInsightsDisabled() = capture("13-reports-no-insights") { ReportsColumn(insights = false) }
@@ -330,7 +293,7 @@ class FullAppScreenshotJvmTest {
      * below the fold collapsed, the bundle last. The owner state shows every
      * pack as a picker with the success strip a fresh purchase leaves.
      */
-    @Test fun settingsFaceStore() = capture("38-settings-face-store") {
+    @Test fun settingsFaceStore() = capture("48-settings-face-store") {
         ClockFaceStoreScreen(
             selected = ClockStyle.MINIMAL,
             availablePacks = setOf(com.elmtrackr.app.ui.settings.ClockFaceGroup.ESSENTIALS),
@@ -347,7 +310,7 @@ class FullAppScreenshotJvmTest {
         )
     }
 
-    @Test fun settingsFaceStoreUnlocked() = capture("39-settings-face-store-unlocked") {
+    @Test fun settingsFaceStoreUnlocked() = capture("49-settings-face-store-unlocked") {
         ClockFaceStoreScreen(
             selected = ClockStyle.MINIMAL,
             availablePacks = setOf(
@@ -402,56 +365,10 @@ class FullAppScreenshotJvmTest {
     }
 
     @Test fun settingsCompensationDark() = capture("27-settings-compensation-dark", darkTheme = true) {
-        val preset = RegionPresets.forRegion(RegionCode.IL)
-        val profile = CompensationProfile(
-            "cp1", "user", "Israel default", RegionCode.IL, "ILS", "Asia/Jerusalem",
-            50.0, preset.rules, preset.stackingPolicy, isDefault = true,
-        )
-        CompensationSettingsContent(
-            state = CompensationSettingsUiState.Ready(
-                profiles = listOf(profile),
-                profile = profile,
-                settings = sampleSettings(),
-                presets = RegionPresets.all,
-                currencyOptions = listOf("ILS" to "₪ Israeli shekel", "USD" to "$ US dollar"),
-                timezoneOptions = listOf("Asia/Jerusalem", "UTC"),
-                isSaving = false,
-                saveMessage = null,
-            ),
-            onBack = {},
-            onSelectProfile = {},
-            onCreateProfile = {},
-            onDeleteProfile = {},
-            onSave = {},
-            onDismissMessage = {},
-        )
+        CompensationSample()
     }
 
-    @Test fun settingsCompensation() = capture("22-settings-compensation") {
-        val preset = RegionPresets.forRegion(RegionCode.IL)
-        val profile = CompensationProfile(
-            "cp1", "user", "Israel default", RegionCode.IL, "ILS", "Asia/Jerusalem",
-            50.0, preset.rules, preset.stackingPolicy, isDefault = true,
-        )
-        CompensationSettingsContent(
-            state = CompensationSettingsUiState.Ready(
-                profiles = listOf(profile),
-                profile = profile,
-                settings = sampleSettings(),
-                presets = RegionPresets.all,
-                currencyOptions = listOf("ILS" to "₪ Israeli shekel", "USD" to "$ US dollar"),
-                timezoneOptions = listOf("Asia/Jerusalem", "UTC"),
-                isSaving = false,
-                saveMessage = null,
-            ),
-            onBack = {},
-            onSelectProfile = {},
-            onCreateProfile = {},
-            onDeleteProfile = {},
-            onSave = {},
-            onDismissMessage = {},
-        )
-    }
+    @Test fun settingsCompensation() = capture("22-settings-compensation") { CompensationSample() }
 
     @Test fun settingsTasks() = capture("23-settings-tasks") {
         TaskManagementContent(
@@ -548,11 +465,128 @@ class FullAppScreenshotJvmTest {
 
 
 
-    private fun capture(name: String, darkTheme: Boolean = false, content: @Composable () -> Unit) {
+    // ── Real locales, dark theme and large fonts ─────────────────────────────
+    //
+    // The screens people open every day, in the three other languages the app
+    // ships and at the font sizes Android lets a user choose. Until these were
+    // added, no screenshot in the project rendered a single translated string.
+
+    @Test fun dashboardHebrew() = capture("50-dashboard-he", locale = "iw") {
+        DashboardReadyPreview(state = sampleDashboardState())
+    }
+
+    @Test fun dashboardArabic() = capture("51-dashboard-ar", locale = "ar") {
+        DashboardReadyPreview(state = sampleDashboardState())
+    }
+
+    @Test fun dashboardRussian() = capture("52-dashboard-ru", locale = "ru") {
+        DashboardReadyPreview(state = sampleDashboardState())
+    }
+
+    @Test fun dashboardHebrewDark() = capture("53-dashboard-he-dark", darkTheme = true, locale = "iw") {
+        DashboardReadyPreview(state = sampleDashboardState())
+    }
+
+    @Test fun dashboardLargeFont() = capture("54-dashboard-font-130", fontScale = 1.3f) {
+        DashboardReadyPreview(state = sampleDashboardState())
+    }
+
+    @Test fun dashboardLargestFont() = capture("55-dashboard-font-200", fontScale = 2f) {
+        DashboardReadyPreview(state = sampleDashboardState())
+    }
+
+    @Test fun reportsHebrew() = capture("56-reports-he", locale = "iw") { ReportsColumn(insights = true) }
+    @Test fun reportsArabic() = capture("57-reports-ar", locale = "ar") { ReportsColumn(insights = true) }
+    @Test fun reportsRussian() = capture("58-reports-ru", locale = "ru") { ReportsColumn(insights = true) }
+    @Test fun reportsDark() = capture("59-reports-dark", darkTheme = true) { ReportsColumn(insights = true) }
+    @Test fun reportsLargestFont() = capture("60-reports-font-200", fontScale = 2f) { ReportsColumn(insights = true) }
+
+    @Test fun shiftEditHebrew() = capture("61-shift-edit-he", locale = "iw") { ShiftEditSample() }
+    @Test fun shiftEditArabic() = capture("62-shift-edit-ar", locale = "ar") { ShiftEditSample() }
+    @Test fun shiftEditRussian() = capture("63-shift-edit-ru", locale = "ru") { ShiftEditSample() }
+    @Test fun shiftEditDark() = capture("64-shift-edit-dark", darkTheme = true) { ShiftEditSample() }
+    @Test fun shiftEditLargeFont() = capture("65-shift-edit-font-130", fontScale = 1.3f) { ShiftEditSample() }
+
+    @Test fun settingsHubHebrew() = capture("66-settings-hub-he", locale = "iw") {
+        SettingsHubScreen(SettingsDestination.HUB)
+    }
+
+    @Test fun settingsHubArabic() = capture("67-settings-hub-ar", locale = "ar") {
+        SettingsHubScreen(SettingsDestination.HUB)
+    }
+
+    @Test fun settingsHubRussian() = capture("68-settings-hub-ru", locale = "ru") {
+        SettingsHubScreen(SettingsDestination.HUB)
+    }
+
+    @Test fun settingsHubLargestFont() = capture("69-settings-hub-font-200", fontScale = 2f) {
+        SettingsHubScreen(SettingsDestination.HUB)
+    }
+
+    @Test fun settingsCompensationHebrew() = capture("70-settings-compensation-he", locale = "iw") {
+        CompensationSample()
+    }
+
+    @Test fun settingsCompensationRussian() = capture("71-settings-compensation-ru", locale = "ru") {
+        CompensationSample()
+    }
+
+    @Test fun onboardingPayRussian() = capture("72-onboarding-pay-ru", locale = "ru") {
+        OnboardingColumn(STEP_PAY) { PaySetupStep("50", CurrencyCode.ILS, {}, {}, true, {}, {}) }
+    }
+
+    @Test fun onboardingReviewHebrew() = capture("73-onboarding-review-he", locale = "iw") {
+        OnboardingColumn(STEP_REVIEW) {
+            ReviewStep("Dor", 50.0, CurrencyCode.ILS, "Israel", listOf(5, 6), 2, null, {}, {})
+        }
+    }
+
+    @Test fun settingsTasksHebrew() = capture("74-settings-tasks-he", locale = "iw") {
+        TaskManagementContent(
+            state = TaskManagementUiState.Ready(sampleTasks(), emptyList()),
+            onBack = {},
+            onSave = { _, _, _, _, _ -> },
+            onArchive = {},
+            onDismissMessage = {},
+        )
+    }
+
+    /**
+     * [locale] renders with that language's real strings and, for Hebrew and Arabic,
+     * a right-to-left layout — unlike the `…Rtl` cases above, which only flip the
+     * layout direction and so show English text mirrored. Those catch a chevron
+     * pointing the wrong way; they cannot catch a Hebrew label that does not fit,
+     * a Russian sentence that wraps where the English one did not, or a number
+     * that lands on the wrong side of its unit.
+     *
+     * [fontScale] is the system font-size setting. 1.3 is "large" on most phones
+     * and 2.0 is the largest Android offers.
+     */
+    private fun capture(
+        name: String,
+        darkTheme: Boolean = false,
+        locale: String? = null,
+        fontScale: Float = 1f,
+        content: @Composable () -> Unit,
+    ) {
+        val rtl = locale in RTL_LOCALES
+        if (locale != null) {
+            paparazzi.unsafeUpdateConfig(
+                deviceConfig = BASE_DEVICE.copy(
+                    locale = locale,
+                    layoutDirection = if (rtl) {
+                        com.android.resources.LayoutDirection.RTL
+                    } else {
+                        com.android.resources.LayoutDirection.LTR
+                    },
+                ),
+            )
+        }
         paparazzi.snapshot(name = name) {
             CompositionLocalProvider(
-                LocalDensity provides Density(2f, 1f),
+                LocalDensity provides Density(2f, fontScale),
                 LocalReduceMotion provides true,
+                LocalLayoutDirection provides if (rtl) LayoutDirection.Rtl else LocalLayoutDirection.current,
             ) {
                 ElmTrackrTheme(darkTheme = darkTheme) {
                     // Match AuroraListScreen: a Surface derives the content color,
@@ -567,6 +601,71 @@ class FullAppScreenshotJvmTest {
                 }
             }
         }
+    }
+
+    @Composable
+    private fun ShiftEditSample() {
+        val settings = sampleSettings()
+        val shift = sampleShifts()[0]
+        ShiftEditFormContent(
+            navState = ShiftFormNavState.Edit(shift),
+            settings = settings,
+            errors = emptyMap(),
+            featuresTravelRefunds = true,
+            onSave = {},
+            onDelete = {},
+            onClose = {},
+            onPickStartDate = {},
+            onPickStartTime = {},
+            onPickEndDate = {},
+            onPickEndTime = {},
+            startMillis = shift.startTime.toEpochMilli(),
+            endMillis = shift.endTime!!.toEpochMilli(),
+            hasEndTime = true,
+            onHasEndTimeChange = {},
+            breakMinutes = shift.breakMinutes,
+            onBreakMinutesChange = {},
+            notesText = shift.notes.orEmpty(),
+            onNotesChange = {},
+            premiumProfileId = shift.premiumProfileId,
+            onPremiumProfileIdChange = {},
+            premiumProfiles = emptyList(),
+            profiles = emptyList(),
+            compensationProfileId = null,
+            onCompensationProfileIdChange = {},
+            tasks = sampleTasks(),
+            taskId = null,
+            onTaskIdChange = {},
+            showRefundSection = true,
+            initialShift = shift,
+        )
+    }
+
+    @Composable
+    private fun CompensationSample() {
+        val preset = RegionPresets.forRegion(RegionCode.IL)
+        val profile = CompensationProfile(
+            "cp1", "user", "Israel default", RegionCode.IL, "ILS", "Asia/Jerusalem",
+            50.0, preset.rules, preset.stackingPolicy, isDefault = true,
+        )
+        CompensationSettingsContent(
+            state = CompensationSettingsUiState.Ready(
+                profiles = listOf(profile),
+                profile = profile,
+                settings = sampleSettings(),
+                presets = RegionPresets.all,
+                currencyOptions = listOf("ILS" to "₪ Israeli shekel", "USD" to "$ US dollar"),
+                timezoneOptions = listOf("Asia/Jerusalem", "UTC"),
+                isSaving = false,
+                saveMessage = null,
+            ),
+            onBack = {},
+            onSelectProfile = {},
+            onCreateProfile = {},
+            onDeleteProfile = {},
+            onSave = {},
+            onDismissMessage = {},
+        )
     }
 
     @Composable
@@ -703,4 +802,13 @@ class FullAppScreenshotJvmTest {
         PremiumProfile("p2", "user", "Shabbat", 1.5, PremiumType.HIGHEST_ONLY, isDefault = true),
         PremiumProfile("p3", "user", "Night shift", 1.25, PremiumType.ADDITIVE),
     )
+
+    private companion object {
+        // 360×800 dp content at density 2 → 720×1600 px canvas. Keeping the
+        // canvas at 360×800 px cropped every capture to the top-left quarter.
+        val BASE_DEVICE = DeviceConfig.PIXEL_5.copy(screenWidth = 720, screenHeight = 1600)
+
+        /** `iw` is the resource qualifier Android uses for Hebrew. */
+        val RTL_LOCALES = setOf("iw", "ar")
+    }
 }

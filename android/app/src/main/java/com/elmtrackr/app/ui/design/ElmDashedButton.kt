@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.auroraSurfaceSub
 import com.elmtrackr.app.ui.theme.CornerRadius
 
@@ -55,14 +54,14 @@ fun ElmDashedButton(
                 .background(auroraSurfaceSub(), RoundedCornerShape(CornerRadius.Small)),
             contentAlignment = Alignment.Center,
         ) {
-            Text("+", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = AuroraIndigo)
+            Text("+", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         }
         Text(
             label,
             modifier = Modifier.padding(start = 8.dp),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = AuroraIndigo,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }

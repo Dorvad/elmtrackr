@@ -466,7 +466,7 @@ private fun SentenceChip(
             text,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = AuroraIndigo,
+            color = MaterialTheme.colorScheme.primary,
         )
         Icon(
             Icons.Filled.ArrowDropDown,

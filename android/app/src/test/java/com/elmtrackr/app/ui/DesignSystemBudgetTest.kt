@@ -28,7 +28,7 @@ class DesignSystemBudgetTest {
     // Dropped from 115 when the illustration files came out of this count. What
     // remains is genuine theme drift on real screens, which is what the ratchet
     // is for; the brand and dial pigments it used to carry could never go down.
-    private val maxRawColor = 27
+    private val maxRawColor = 24
     private val maxRawTextField = 37
     private val maxRawCard = 38
     /**

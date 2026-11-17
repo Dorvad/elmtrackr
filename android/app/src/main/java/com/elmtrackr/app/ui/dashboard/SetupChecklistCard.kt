@@ -212,7 +212,7 @@ private fun ChecklistProgressRing(completed: Int, total: Int) {
             text = "$completed/$total",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = AuroraIndigo,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }

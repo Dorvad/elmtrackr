@@ -60,6 +60,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.Task
 import com.elmtrackr.app.domain.tasks.TaskDefaultRule
+import com.elmtrackr.app.ui.common.DecimalInput
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.common.resolve
 import com.elmtrackr.app.ui.components.states.ErrorState
@@ -496,7 +497,9 @@ private fun TaskEditorSheet(
     var name by remember(task?.id) { mutableStateOf(task?.name.orEmpty()) }
     var icon by remember(task?.id) { mutableStateOf(task?.icon ?: TASK_EMOJI_OPTIONS.first()) }
     var color by remember(task?.id) { mutableStateOf(task?.color ?: TASK_COLOR_OPTIONS.first()) }
-    var rateText by remember(task?.id) { mutableStateOf(task?.hourlyRate?.toString().orEmpty()) }
+    var rateText by remember(task?.id) {
+        mutableStateOf(task?.hourlyRate?.let(DecimalInput::format).orEmpty())
+    }
     var error by remember { mutableStateOf<String?>(null) }
     val errorNameRequired = stringResource(R.string.tasks_error_name_required)
     val errorNameExists = stringResource(R.string.tasks_error_name_exists)
@@ -555,7 +558,10 @@ private fun TaskEditorSheet(
             Spacer(Modifier.height(Spacing.s12))
             OutlinedTextField(
                 value = rateText,
-                onValueChange = { rateText = it.filter { ch -> ch.isDigit() || ch == '.' }; error = null },
+                // Through DecimalInput, like every other pay field. The filter this
+                // replaces kept digits and '.' only, so a decimal comma was dropped
+                // and "62,5" was saved as 625.
+                onValueChange = { rateText = DecimalInput.sanitize(it); error = null },
                 label = { Text(stringResource(R.string.tasks_hourly_rate_label)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -569,7 +575,7 @@ private fun TaskEditorSheet(
             ElmGradientButton(
                 onClick = {
                     val trimmed = name.trim()
-                    val rate = rateText.toDoubleOrNull()
+                    val rate = DecimalInput.parse(rateText)
                     when {
                         trimmed.isEmpty() -> error = errorNameRequired
                         existingNames.any { it.equals(trimmed, ignoreCase = true) } ->

@@ -1,6 +1,5 @@
 package com.elmtrackr.app.ui.refunds
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -24,10 +23,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -76,10 +74,9 @@ fun ReceiptReviewDialog(
 
                 ConfidenceBanner(review)
 
-                val bitmap = remember(review.localImagePath) {
-                    runCatching { BitmapFactory.decodeFile(review.localImagePath)?.asImageBitmap() }.getOrNull()
-                }
-                bitmap?.let {
+                // Decoded off the main thread and at preview size; see rememberReceiptImage.
+                val receiptImage by rememberReceiptImage(review.localImagePath)
+                (receiptImage as? ReceiptImageState.Ready)?.image?.let {
                     Image(
                         bitmap = it,
                         contentDescription = stringResource(R.string.refunds_scanned_receipt_preview),

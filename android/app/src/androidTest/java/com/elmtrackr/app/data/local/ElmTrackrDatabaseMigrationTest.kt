@@ -631,6 +631,58 @@ class ElmTrackrDatabaseMigrationTest {
         }
     }
 
+    /**
+     * Work-profile identity and task scope arrive as three nullable columns, and
+     * nothing recorded before the upgrade is restated.
+     *
+     * 19 to 20 is the step every install on the previous release takes. It had no
+     * test: `CURRENT_VERSION` in this file was still 19 and the migration was
+     * missing from `ALL_MIGRATIONS`, so neither this step nor a start at 19 was
+     * ever exercised, and a mistake in it would have surfaced as a crash on
+     * upgrade rather than as a red build.
+     *
+     * The negative assertion carries the weight again. A task that existed before
+     * the upgrade keeps its name and rate and comes out attached to no profile —
+     * `MIGRATION_19_20`'s own comment explains why assigning one would be wrong.
+     */
+    @Test
+    fun migration19To20AddsProfileIdentityWithoutScopingExistingTasks() {
+        helper.createDatabase(TEST_DB_PROFILE_IDENTITY, 19).apply {
+            execSQL(
+                """
+                INSERT INTO tasks (
+                    localId, userId, name, icon, hourlyRate, isArchived,
+                    createdAt, updatedAt, syncStatus
+                ) VALUES (
+                    't1', 'user', 'Driving', '🚗', 62.5, 0, 0, 0, 'SYNCED'
+                )
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB_PROFILE_IDENTITY, 20, true, ElmTrackrDatabase.MIGRATION_19_20,
+        ).use { db ->
+            db.query(
+                "SELECT name, hourlyRate, compensationProfileId FROM tasks WHERE localId = 't1'",
+            ).use { cursor ->
+                assertEquals(true, cursor.moveToFirst())
+                assertEquals("Driving", cursor.getString(0))
+                assertEquals(62.5, cursor.getDouble(1), 0.0)
+                assertEquals(true, cursor.isNull(2))
+            }
+
+            db.query("PRAGMA table_info(`compensation_profiles`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndexOrThrow("name")
+                val columns = mutableSetOf<String>()
+                while (cursor.moveToNext()) columns += cursor.getString(nameIndex)
+                assertEquals(true, "color" in columns)
+                assertEquals(true, "icon" in columns)
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "currency-migration-test"
         const val TEST_DB_CHAIN = "full-chain-migration-test"
@@ -642,8 +694,10 @@ class ElmTrackrDatabaseMigrationTest {
         const val TEST_DB_COMP_SOURCE = "compensation-source-migration-test"
         const val TEST_DB_BILLING_NOTES = "billing-notes-migration-test"
         const val TEST_DB_LEAVE = "workplaces-and-leave-migration-test"
+        const val TEST_DB_PROFILE_IDENTITY = "profile-identity-migration-test"
 
-        const val CURRENT_VERSION = 19
+        /** Must equal `@Database(version = …)` on [ElmTrackrDatabase]. */
+        const val CURRENT_VERSION = 20
 
         /**
          * Schema versions a production database can currently be at. 9 is
@@ -651,7 +705,7 @@ class ElmTrackrDatabaseMigrationTest {
          * everySupportedStartVersionMigratesToCurrent.
          */
         val SUPPORTED_START_VERSIONS =
-            listOf(1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18)
+            listOf(1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19)
 
         val ALL_MIGRATIONS = arrayOf(
             ElmTrackrDatabase.MIGRATION_1_2,
@@ -672,6 +726,7 @@ class ElmTrackrDatabaseMigrationTest {
             ElmTrackrDatabase.MIGRATION_16_17,
             ElmTrackrDatabase.MIGRATION_17_18,
             ElmTrackrDatabase.MIGRATION_18_19,
+            ElmTrackrDatabase.MIGRATION_19_20,
         )
     }
 }

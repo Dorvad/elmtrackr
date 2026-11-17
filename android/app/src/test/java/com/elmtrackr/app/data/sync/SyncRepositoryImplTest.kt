@@ -48,6 +48,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -678,6 +679,59 @@ class SyncRepositoryImplTest {
         val result = repository.syncAll("user-1")
 
         assertTrue(result is SyncResult.Error)
+    }
+
+    /**
+     * WorkManager stops a sync by cancelling it — the network constraint is lost,
+     * the app is force-stopped, a newer request replaces this one. That is not a
+     * failure and must not be written down as one.
+     *
+     * Each step used to run inside a bare `runCatching`, which catches the
+     * `CancellationException` along with everything else. The cancelled step was
+     * recorded as a failed one, the pipeline carried on through every remaining
+     * step, and the run finished by publishing "Failed: … was cancelled" as the
+     * sync status.
+     */
+    @Test
+    fun `a cancelled sync stops where it is and is not recorded as a failure`() = runTest {
+        val reachedTheRemote = kotlinx.coroutines.CompletableDeferred<Unit>()
+        // "pull tasks" runs before "pull shifts": the first hangs until cancelled,
+        // the second counts whether the pipeline kept going afterwards.
+        val hangingTasks = object : RemoteTaskDataSource by EmptyRemoteTaskDataSource() {
+            override suspend fun fetchUpdatedSince(
+                sinceIso: String?,
+                limit: Int,
+                offset: Int,
+            ): List<RemoteTaskRow> {
+                reachedTheRemote.complete(Unit)
+                kotlinx.coroutines.awaitCancellation()
+            }
+        }
+        var shiftPulls = 0
+        val countingShifts = object : RemoteShiftDataSource by FakeRemoteShiftDataSource() {
+            override suspend fun fetchUpdatedSince(
+                sinceIso: String?,
+                limit: Int,
+                offset: Int,
+            ): List<RemoteShiftRow> {
+                shiftPulls++
+                return emptyList()
+            }
+        }
+        val repository = createRepository(remoteTasks = hangingTasks, remoteShifts = countingShifts)
+
+        val sync = launch { repository.syncAll(USER) }
+        reachedTheRemote.await()
+        sync.cancel()
+        sync.join()
+
+        assertTrue(sync.isCancelled)
+        assertEquals("steps ran after the sync was cancelled", 0, shiftPulls)
+        val status = repository.observeLastSyncStatus().first()
+        assertTrue(
+            "a cancelled sync was published as \"$status\"",
+            status == null || !status.startsWith("Failed"),
+        )
     }
 
     /**
@@ -2312,6 +2366,7 @@ class SyncRepositoryImplTest {
         override suspend fun insertClaim(claim: RefundClaimEntity) = Unit
         override suspend fun updateClaim(claim: RefundClaimEntity) = Unit
         override suspend fun upsertClaim(claim: RefundClaimEntity) = Unit
+        override suspend fun insertClaimIfAbsent(claim: RefundClaimEntity): Long = -1L
         override suspend fun softDeleteClaim(localId: String, deletedAt: Long, syncStatus: SyncStatus, updatedAt: Long) = Unit
         override suspend fun softDeleteClaimsForShift(
             shiftLocalId: String,
@@ -2966,6 +3021,9 @@ class SyncRepositoryImplTest {
             shifts.value.firstOrNull {
                 it.userId == userId && it.startTime == startTime && it.deletedAt == null
             }
+
+        override suspend fun getShiftByStartTimeIncludingDeleted(userId: String, startTime: Long): ShiftEntity? =
+            shifts.value.firstOrNull { it.userId == userId && it.startTime == startTime }
 
         override fun observeRecentCompletedShifts(userId: String, limit: Int): Flow<List<ShiftEntity>> =
             shifts.map { list ->

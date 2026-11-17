@@ -47,6 +47,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.selection.selectableGroup
 import java.time.LocalDate
 import com.elmtrackr.app.ui.common.durationText
+import com.elmtrackr.app.ui.design.AuroraFigurePair
 import com.elmtrackr.app.ui.design.mirrorInRtl
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -562,54 +563,60 @@ private fun ReportOverviewFigures(state: ReportsUiState.Ready) {
     val report = state.report
     val locale = appLocale()
     val paid = state.paySummary?.paidByCurrency.orEmpty()
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+    // Side by side when both fit, stacked when they do not — see AuroraFigurePair
+    // for what a weighted Row did to the hours at large font sizes.
+    AuroraFigurePair(
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
-    ) {
-        Column(Modifier.weight(1f)) {
-            SectionLabel(stringResource(R.string.paid_time_worked))
-            Text(
-                stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(report.workedMinutes, locale)),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                listOfNotNull(
-                    stringResource(
-                        if (report.shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other,
-                        report.shiftCount,
-                    ),
-                    state.scopedJobName?.let { BidiText.isolate(it) }
-                        ?: stringResource(R.string.reports_scope_all_jobs).takeIf { state.canChooseJob },
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (paid.isNotEmpty()) {
-            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.s8)) {
-                SectionLabel(stringResource(R.string.reports_gross_pay_before_tax))
-                // One figure per currency, each with its own code when there is more
-                // than one. There are no exchange rates here to make a sum honest.
-                paid.forEach { totals ->
-                    Text(
-                        if (paid.size == 1) {
-                            MoneyFormatter.format(totals.totalGross, totals.currencyCode, locale)
-                        } else {
-                            com.elmtrackr.app.ui.common.moneyWithCode(totals.totalGross, totals.currencyCode)
-                        },
-                        style = if (paid.size == 1) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                    )
+        start = {
+            Column {
+                SectionLabel(stringResource(R.string.paid_time_worked))
+                Text(
+                    stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(report.workedMinutes, locale)),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    listOfNotNull(
+                        stringResource(
+                            if (report.shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other,
+                            report.shiftCount,
+                        ),
+                        state.scopedJobName?.let { BidiText.isolate(it) }
+                            ?: stringResource(R.string.reports_scope_all_jobs).takeIf { state.canChooseJob },
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        end = if (paid.isEmpty()) {
+            null
+        } else {
+            {
+                Column(horizontalAlignment = Alignment.End) {
+                    SectionLabel(stringResource(R.string.reports_gross_pay_before_tax))
+                    // One figure per currency, each with its own code when there is more
+                    // than one. There are no exchange rates here to make a sum honest.
+                    paid.forEach { totals ->
+                        Text(
+                            if (paid.size == 1) {
+                                MoneyFormatter.format(totals.totalGross, totals.currencyCode, locale)
+                            } else {
+                                com.elmtrackr.app.ui.common.moneyWithCode(totals.totalGross, totals.currencyCode)
+                            },
+                            style = if (paid.size == 1) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
-        }
-    }
+        },
+    )
 
     ReportOverviewNotes(state)
 }
@@ -1036,7 +1043,7 @@ internal fun HoursReport(
         val delta = report.workedMinutes - state.previousMonthMinutes
         val deltaColor = when {
             delta > 0 -> auroraSemantics.successInk
-            delta < 0 -> Color(0xFFF43F5E)
+            delta < 0 -> MaterialTheme.colorScheme.error
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
         val arrow = when {
@@ -1079,7 +1086,7 @@ internal fun HoursReport(
         val delta = report.totalMinutes - state.previousMonthMinutes
         val deltaColor = when {
             delta > 0 -> auroraSemantics.successInk
-            delta < 0 -> Color(0xFFF43F5E)
+            delta < 0 -> MaterialTheme.colorScheme.error
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
         val arrow = when {
@@ -1653,7 +1660,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                 if (showDelta) {
                     val deltaColor = when {
                         delta > 0 -> auroraSemantics.successInk
-                        delta < 0 -> Color(0xFFF43F5E)
+                        delta < 0 -> MaterialTheme.colorScheme.error
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
                     val arrow = when {
@@ -1708,7 +1715,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                     Text(
                         stringResource(R.string.reports_ot_suffix, durationText(week.overtimeMinutes)),
                         style = MaterialTheme.typography.labelSmall,
-                        color = AuroraPeach,
+                        color = auroraOvertimeInk(),
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
@@ -1720,7 +1727,7 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
                         pay.formattedEach(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = AuroraIndigo,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
@@ -1855,7 +1862,7 @@ private fun ShiftReportRow(
                         Text(
                             stringResource(R.string.reports_plus_ot, durationText(otMins)),
                             style = MaterialTheme.typography.labelSmall,
-                            color = AuroraPeach,
+                            color = auroraOvertimeInk(),
                         )
                     }
                     pay?.let {
@@ -1863,7 +1870,7 @@ private fun ShiftReportRow(
                             MoneyFormatter.format(it.totalGross, it.currencyCode, appLocale()),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = AuroraIndigo,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
@@ -2515,7 +2522,13 @@ private fun SectionLabel(text: String) = Text(
 )
 
 @Composable
-private fun ReportRow(label: String, value: String, valueColor: Color = AuroraIndigo) {
+private fun ReportRow(
+    label: String,
+    value: String,
+    // The theme's primary, not AuroraIndigo: the same colour in light, and indigo on
+    // the dark surface is 3.0:1 — below the 4.5:1 that body text needs.
+    valueColor: Color = MaterialTheme.colorScheme.primary,
+) {
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         // Same measurement order problem as SettingsInfoRow: the label yields so
         // the value is measured first, and the padding keeps a gap regardless.

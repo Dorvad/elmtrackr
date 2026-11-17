@@ -181,7 +181,7 @@ internal fun ClockFaceShopCard(
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = MaterialTheme.typography.labelSmall.fontSize * EYEBROW_TRACKING,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (locked && lockedPacks.any { it.isNewIn(appVersion) }) {
                         PackBadge(

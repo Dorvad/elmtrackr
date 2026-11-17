@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.DecimalInput
 import com.elmtrackr.app.ui.theme.Spacing
 import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
 import com.elmtrackr.app.domain.model.ClockStyle
@@ -375,12 +376,16 @@ internal fun watchFaceDescription(style: ClockStyle): String = stringResource(
  * is normalised rather than rejected because that is the separator key on many keyboards.
  */
 internal fun sanitizeDecimalInput(raw: String, current: String): String {
-    val normalized = raw.replace(',', '.')
-    if (normalized.isEmpty()) return normalized
-    if (!normalized.all { it.isDigit() || it == '.' }) return current
-    if (normalized.count { it == '.' } > 1) return current
-    return normalized
+    if (raw.isEmpty()) return raw
+    // The Arabic decimal separator counts as one, alongside '.' and ','.
+    if (!raw.all { it.isDigit() || it in DECIMAL_SEPARATORS }) return current
+    if (raw.count { it in DECIMAL_SEPARATORS } > 1) return current
+    // Arabic-Indic digits pass isDigit() but not toDoubleOrNull(); DecimalInput
+    // rewrites them, and the separator, to the ASCII form the parser reads.
+    return DecimalInput.sanitize(raw)
 }
+
+private val DECIMAL_SEPARATORS = setOf('.', ',', '٫')
 
 @Composable
 internal fun HoursField(

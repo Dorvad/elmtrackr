@@ -146,7 +146,7 @@ internal fun ClockFaceLookScreen(
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = MaterialTheme.typography.labelSmall.fontSize * EYEBROW_TRACKING,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
                     )
                     IconButton(onClick = { onClose(pagerState.settledPage) }) {
@@ -209,7 +209,7 @@ internal fun ClockFaceLookScreen(
                         Text(
                             watchFaceDescription(face),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .padding(top = Spacing.s10)
@@ -237,7 +237,7 @@ internal fun ClockFaceLookScreen(
                 Text(
                     stringResource(R.string.settings_pack_unlock_note, group.faces.size),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()

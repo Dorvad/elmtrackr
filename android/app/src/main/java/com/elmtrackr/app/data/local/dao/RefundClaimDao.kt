@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.elmtrackr.app.data.local.entity.RefundClaimEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
@@ -30,14 +31,43 @@ interface RefundClaimDao {
     @Query("SELECT * FROM refund_claims WHERE localId = :localId")
     suspend fun getClaimById(localId: String): RefundClaimEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertClaim(claim: RefundClaimEntity)
+    /**
+     * Writes a claim whether or not it already exists. See [upsertClaim], which
+     * this is — the two names survive because callers read better with the one
+     * that says what they expect to happen.
+     */
+    suspend fun insertClaim(claim: RefundClaimEntity) = upsertClaim(claim)
 
     @Update
     suspend fun updateClaim(claim: RefundClaimEntity)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertClaim(claim: RefundClaimEntity)
+    /**
+     * Insert, or update in place — never delete.
+     *
+     * This used to be `@Insert(onConflict = REPLACE)`, and REPLACE is not an
+     * update: SQLite resolves the conflict by deleting the existing row and
+     * inserting the new one. `receipts.refundClaimId` references this table with
+     * `ON DELETE SET NULL`, so that delete cleared the link on the claim's scanned
+     * receipt. Every rewrite of an existing claim did it — an edit, a sync pull,
+     * adopting the server's copy — and the receipt image is found through that
+     * link alone: viewing it from the claim, restoring it into the form, and
+     * retrying an upload that had not reached cloud storage yet.
+     *
+     * Insert-or-ignore then update is spelled out rather than left to `@Upsert`,
+     * whose fallback decides it hit a conflict by reading the exception message.
+     * The database here is SQLCipher, not the framework's SQLite, and a write
+     * path whose correctness depends on another library's error text is not one
+     * to take on for a refund claim. The primary key is this table's only unique
+     * constraint, so "ignored" can only mean "this id already exists".
+     */
+    @Transaction
+    suspend fun upsertClaim(claim: RefundClaimEntity) {
+        if (insertClaimIfAbsent(claim) == ROW_NOT_INSERTED) updateClaim(claim)
+    }
+
+    /** Returns the new row id, or [ROW_NOT_INSERTED] when the id already exists. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertClaimIfAbsent(claim: RefundClaimEntity): Long
 
     @Query(
         "UPDATE refund_claims SET deletedAt = :deletedAt, syncStatus = :syncStatus, " +
@@ -141,3 +171,6 @@ interface RefundClaimDao {
     )
     suspend fun getClaimsAwaitingReceiptUpload(userId: String): List<RefundClaimEntity>
 }
+
+/** What Room returns from an `IGNORE` insert that did not insert. */
+private const val ROW_NOT_INSERTED = -1L

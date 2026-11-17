@@ -12,6 +12,8 @@ import com.elmtrackr.app.data.local.entity.CompensationProfileEntity
 import com.elmtrackr.app.data.local.entity.SyncStatus
 import com.elmtrackr.app.data.sync.SyncTrigger
 import com.elmtrackr.app.domain.repository.SettingsRepository
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
@@ -103,6 +105,7 @@ class LocalCompensationProfilesRepository @Inject constructor(
                 settingsRepository.saveSettings(updated)
                 saved
             } catch (e: Exception) {
+                currentCoroutineContext().ensureActive()
                 Log.w(TAG, "Compensation profile migration failed", e)
                 null
             }

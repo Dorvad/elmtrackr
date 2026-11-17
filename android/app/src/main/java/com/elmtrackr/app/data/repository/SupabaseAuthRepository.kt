@@ -31,6 +31,8 @@ import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.IDToken
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -233,6 +235,7 @@ class SupabaseAuthRepository @Inject constructor(
             _passwordRecoveryRequired.value = false
             AuthResult.Success
         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.SIGN_IN)))
         }
     }
@@ -246,6 +249,7 @@ class SupabaseAuthRepository @Inject constructor(
             }
             AuthResult.Success
         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.SIGN_UP)))
         }
     }
@@ -263,6 +267,7 @@ class SupabaseAuthRepository @Inject constructor(
             _passwordRecoveryRequired.value = false
             AuthResult.Success
         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.GOOGLE_SIGN_IN)))
         }
     }
@@ -276,6 +281,7 @@ class SupabaseAuthRepository @Inject constructor(
             c.auth.signInWith(Google, redirectUrl = AUTH_CALLBACK)
             AuthResult.Success
         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.GOOGLE_SIGN_IN)))
         }
     }
@@ -307,6 +313,7 @@ class SupabaseAuthRepository @Inject constructor(
             signOut()
             AuthResult.Success
         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.DELETE_ACCOUNT)))
         }
     }
@@ -317,6 +324,7 @@ class SupabaseAuthRepository @Inject constructor(
             c.auth.resetPasswordForEmail(email, redirectUrl = AUTH_RESET_CALLBACK)
             AuthResult.Success
         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.PASSWORD_RESET)))
         }
     }
@@ -330,6 +338,7 @@ class SupabaseAuthRepository @Inject constructor(
             _passwordRecoveryRequired.value = false
             AuthResult.Success
         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             AuthResult.Error(UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.UPDATE_PASSWORD)))
         }
     }
@@ -341,17 +350,17 @@ class SupabaseAuthRepository @Inject constructor(
     override suspend fun handleDeepLink(uriString: String) {
         val c = client ?: return
         try {
+            // Codes only. The parser refuses a callback that carries a ready-made
+            // session, so nothing here can be signed in by a link it did not start;
+            // the exchange below needs the verifier this device generated.
             when (val payload = AuthCallbackParser.parse(uriString)) {
                 is AuthCallbackPayload.Code -> {
                     c.auth.exchangeCodeForSession(payload.value)
                     _passwordRecoveryRequired.value = payload.isRecovery
                 }
-                is AuthCallbackPayload.Tokens -> {
-                    c.auth.importAuthToken(payload.accessToken, payload.refreshToken)
-                    _passwordRecoveryRequired.value = payload.isRecovery
-                }
             }
         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             _passwordRecoveryRequired.value = false
             _deepLinkErrors.emit(
                 UiText.Res(AuthErrorMapper.messageResFor(e, AuthOperation.PASSWORD_RECOVERY)),

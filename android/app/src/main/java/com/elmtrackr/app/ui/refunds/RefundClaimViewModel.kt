@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elmtrackr.app.ui.common.DecimalInput
 import com.elmtrackr.app.ui.common.UserFacingError
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.UiText
@@ -142,9 +143,10 @@ class RefundClaimViewModel @Inject constructor(
     }
 
     fun updateAmount(value: String) {
-        if (value.count { it == '.' } <= 1 && value.all { it.isDigit() || it == '.' }) {
-            updateForm { it.copy(amountText = value) }
-        }
+        // Normalised, not rejected. The check this replaces refused any input
+        // containing a comma, so on a keyboard whose decimal key is a comma the
+        // field simply stopped accepting the amount.
+        updateForm { it.copy(amountText = DecimalInput.sanitize(value)) }
     }
 
     fun updateRideAt(millis: Long) {
