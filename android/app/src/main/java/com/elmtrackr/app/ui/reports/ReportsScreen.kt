@@ -47,6 +47,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.selection.selectableGroup
 import java.time.LocalDate
 import com.elmtrackr.app.ui.common.durationText
+import com.elmtrackr.app.ui.design.AuroraFigurePair
 import com.elmtrackr.app.ui.design.mirrorInRtl
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -562,54 +563,60 @@ private fun ReportOverviewFigures(state: ReportsUiState.Ready) {
     val report = state.report
     val locale = appLocale()
     val paid = state.paySummary?.paidByCurrency.orEmpty()
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+    // Side by side when both fit, stacked when they do not — see AuroraFigurePair
+    // for what a weighted Row did to the hours at large font sizes.
+    AuroraFigurePair(
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
-    ) {
-        Column(Modifier.weight(1f)) {
-            SectionLabel(stringResource(R.string.paid_time_worked))
-            Text(
-                stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(report.workedMinutes, locale)),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                listOfNotNull(
-                    stringResource(
-                        if (report.shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other,
-                        report.shiftCount,
-                    ),
-                    state.scopedJobName?.let { BidiText.isolate(it) }
-                        ?: stringResource(R.string.reports_scope_all_jobs).takeIf { state.canChooseJob },
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (paid.isNotEmpty()) {
-            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.s8)) {
-                SectionLabel(stringResource(R.string.reports_gross_pay_before_tax))
-                // One figure per currency, each with its own code when there is more
-                // than one. There are no exchange rates here to make a sum honest.
-                paid.forEach { totals ->
-                    Text(
-                        if (paid.size == 1) {
-                            MoneyFormatter.format(totals.totalGross, totals.currencyCode, locale)
-                        } else {
-                            com.elmtrackr.app.ui.common.moneyWithCode(totals.totalGross, totals.currencyCode)
-                        },
-                        style = if (paid.size == 1) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                    )
+        start = {
+            Column {
+                SectionLabel(stringResource(R.string.paid_time_worked))
+                Text(
+                    stringResource(R.string.shifts_hours_value_spaced, HoursFormatter.decimal(report.workedMinutes, locale)),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    listOfNotNull(
+                        stringResource(
+                            if (report.shiftCount == 1) R.string.dashboard_shift_count_one else R.string.dashboard_shift_count_other,
+                            report.shiftCount,
+                        ),
+                        state.scopedJobName?.let { BidiText.isolate(it) }
+                            ?: stringResource(R.string.reports_scope_all_jobs).takeIf { state.canChooseJob },
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        end = if (paid.isEmpty()) {
+            null
+        } else {
+            {
+                Column(horizontalAlignment = Alignment.End) {
+                    SectionLabel(stringResource(R.string.reports_gross_pay_before_tax))
+                    // One figure per currency, each with its own code when there is more
+                    // than one. There are no exchange rates here to make a sum honest.
+                    paid.forEach { totals ->
+                        Text(
+                            if (paid.size == 1) {
+                                MoneyFormatter.format(totals.totalGross, totals.currencyCode, locale)
+                            } else {
+                                com.elmtrackr.app.ui.common.moneyWithCode(totals.totalGross, totals.currencyCode)
+                            },
+                            style = if (paid.size == 1) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
-        }
-    }
+        },
+    )
 
     ReportOverviewNotes(state)
 }

@@ -99,6 +99,7 @@ import androidx.compose.foundation.clickable
 import com.elmtrackr.app.ui.common.appLocale
 import com.elmtrackr.app.ui.common.moneyWithCode
 import com.elmtrackr.app.ui.common.paidTimeNote
+import com.elmtrackr.app.ui.design.AuroraFigurePair
 import com.elmtrackr.app.ui.design.ElmDistributionBar
 import com.elmtrackr.app.ui.design.ElmDistributionLegend
 import com.elmtrackr.app.ui.design.mirrorInRtl
@@ -1696,60 +1697,65 @@ internal fun MonthSummaryCard(
         // under the label "Total", so a profile that rounds or guarantees a minimum
         // shift showed time nobody physically worked. Paid time now appears only
         // where it differs, on its own line, with the rule that made it differ.
-        Row(
+        // One figure per currency the month was paid in. Each comes with its own
+        // currency, so a month at a dollar job is never shown under the account's
+        // shekel sign, and two jobs in two currencies are two lines, never a sum.
+        val paid = paySummary?.paidByCurrency.orEmpty()
+        // Side by side when both fit, stacked when they do not — see
+        // AuroraFigurePair for what a weighted Row did to the hours at large fonts.
+        AuroraFigurePair(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(
-                        R.string.dashboard_hours_value,
-                        HoursFormatter.decimal(report?.workedMinutes ?: 0, locale),
-                    ),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    maxLines = 1,
-                )
-                Text(
-                    text = stringResource(R.string.dashboard_stat_worked),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            // One figure per currency the month was paid in. Each comes with its own
-            // currency, so a month at a dollar job is never shown under the account's
-            // shekel sign, and two jobs in two currencies are two lines, never a sum.
-            val paid = paySummary?.paidByCurrency.orEmpty()
-            if (paid.isNotEmpty()) {
-                Column(horizontalAlignment = Alignment.End) {
-                    paid.forEach { totals ->
-                        Text(
-                            text = if (paid.size == 1) {
-                                MoneyFormatter.format(totals.totalGross, totals.currencyCode, locale)
-                            } else {
-                                moneyWithCode(totals.totalGross, totals.currencyCode)
-                            },
-                            style = if (paid.size == 1) {
-                                MaterialTheme.typography.headlineSmall
-                            } else {
-                                MaterialTheme.typography.titleMedium
-                            },
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                        )
-                    }
+            start = {
+                Column {
                     Text(
-                        text = stringResource(R.string.dashboard_gross_before_tax),
+                        text = stringResource(
+                            R.string.dashboard_hours_value,
+                            HoursFormatter.decimal(report?.workedMinutes ?: 0, locale),
+                        ),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = stringResource(R.string.dashboard_stat_worked),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold,
                     )
                 }
-            }
-        }
+            },
+            end = if (paid.isEmpty()) {
+                null
+            } else {
+                {
+                    Column(horizontalAlignment = Alignment.End) {
+                        paid.forEach { totals ->
+                            Text(
+                                text = if (paid.size == 1) {
+                                    MoneyFormatter.format(totals.totalGross, totals.currencyCode, locale)
+                                } else {
+                                    moneyWithCode(totals.totalGross, totals.currencyCode)
+                                },
+                                style = if (paid.size == 1) {
+                                    MaterialTheme.typography.headlineSmall
+                                } else {
+                                    MaterialTheme.typography.titleMedium
+                                },
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                            )
+                        }
+                        Text(
+                            text = stringResource(R.string.dashboard_gross_before_tax),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+            },
+        )
 
         report?.takeIf { it.payableDiffersFromWorked }?.let { r ->
             paidTimeNote(
