@@ -398,17 +398,36 @@ Run on the final commit, JDK 21, Android SDK platform 36 / build-tools 36.0.0, L
 ./gradlew testDebugUnitTest :wear-sync:test :app:lintDebug :app:assembleDebug
 ```
 
-**Full run on the final commit: in progress when this document was first committed.**
-The figures will be recorded here when it finishes. What had been run by then:
+`BUILD SUCCESSFUL`, on the code at `597a5b8` (the two commits after it change
+documentation only).
 
-- Each fix's own tests, failing before the change and passing after (fixes 1, 3, 5
-  and 10; the before-and-after for fix 7 is in renders, for the reason given there).
-- The suites around every change — sync, repositories, auth, refunds, receipts,
-  projects, settings, tasks, the month card, the report overview, contrast and the
-  design-system budget: 916 tests in the first batch and the layout, contrast and
-  budget suites in the second, all passing.
-- `:app:recordPaparazziDebug` over all 71 screenshot cases, which compiles and
-  renders every one of them.
+| Suite | Baseline (`Main` `e3acc16`) | This branch |
+|---|---|---|
+| `:app:testDebugUnitTest` | 2 254 tests, 0 failures | **2 308 tests, 0 failures, 0 skipped** (+54) |
+| `:wear-sync:test` | 51 tests, 0 failures | 51 tests, 0 failures |
+| `:wear:testDebugUnitTest` | 36 tests, 3 failures¹ | 36 tests, 0 failures |
+| `:app:lintDebug` | not run | 0 errors, 385 warnings, 7 hints |
+| `:app:assembleDebug` | — | built |
+
+¹ Environmental, not a defect: Robolectric fetches its Android runtime from Maven
+Central at test time, and that host rate-limited this machine (HTTP 429). With the
+artifact placed in the local Maven repository the three pass. `wave2-ux-2026-10.md`
+records the same thing. Nothing in the repository was changed for it.
+
+**Lint.** No baseline was taken, so the warning total cannot be compared directly;
+the August audit recorded 371 warnings on a smaller codebase. What was checked
+instead: of the 27 main-source files this branch touches, lint reports one finding,
+at `ReportsScreen.kt:1328` — a scroll value read during composition, on a line last
+changed on 4 August and not part of this work. It is the carousel item in the
+optimisation table above.
+
+The 54 new tests: the receipt link (4), the deleted-shift replay (2), the auth
+callback (4, replacing 1), sync cancellation (1), the migration tripwire (3), the
+task rate (2), receipt down-sampling (5), the figure-pair layout (7), contrast (2),
+and the 25 new screenshot cases, which run as tests under `testDebugUnitTest`.
+
+Each data-safety test was run against the unfixed code first and failed: fixes 1, 3,
+5 and 10. For fix 7 the before-and-after is in renders, for the reason given there.
 
 **Not run, and stated as such:**
 
