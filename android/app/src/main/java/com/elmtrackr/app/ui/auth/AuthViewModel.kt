@@ -60,7 +60,20 @@ class AuthViewModel @Inject constructor(
     val uiState: StateFlow<AuthUiState> = combine(
         combine(
             authRepository.observePasswordRecoveryRequired(),
-            authRepository.observeCurrentProfile(),
+            // "Check your email" after a reset or a sign-up is a signed-out
+            // screen. A session ends it whichever way the session arrived: the
+            // reset link, Google, or a plain sign-in. Left set, the reset flag
+            // outranked the profile below, so a user who reset a forgotten
+            // password landed in the app as PasswordResetSent rather than
+            // SignedIn. Settings and Profile show Sign out only for SignedIn,
+            // so it vanished until the app was restarted. Clearing both here
+            // also stops either screen reappearing at the next sign-out.
+            authRepository.observeCurrentProfile().onEach { profile ->
+                if (profile != null) {
+                    _passwordResetSent.value = false
+                    _signUpEmail.value = null
+                }
+            },
             _isLoading,
             _googleLoading,
         ) { recovery, profile, loading, googleLoading ->
@@ -76,8 +89,10 @@ class AuthViewModel @Inject constructor(
                 isLoading = isLoading,
                 errorMessage = recoveryError,
             )
-            resetSent -> AuthUiState.PasswordResetSent
+            // A session outranks the signed-out "check your email" screens; see
+            // observeCurrentProfile above.
             profile != null -> AuthUiState.SignedIn(profile = profile, isLoading = isLoading)
+            resetSent -> AuthUiState.PasswordResetSent
             signupEmail != null -> AuthUiState.SignUpConfirmation(signupEmail)
             else -> AuthUiState.SignedOut(
                 isLoading = isLoading,
@@ -187,6 +202,13 @@ class AuthViewModel @Inject constructor(
     fun signOut() {
         viewModelScope.launch {
             _isLoading.value = true
+            // Back to the sign-in form, not a "check your email" screen from
+            // before this session. A sign-up that signs in at once records its
+            // email after the profile has arrived, so the clearing in uiState
+            // cannot catch it. Cleared before the session ends: while signed in
+            // these flags are not shown, so the screen cannot flash on the way out.
+            _passwordResetSent.value = false
+            _signUpEmail.value = null
             authRepository.signOut()
             _error.value = null
             _isLoading.value = false
