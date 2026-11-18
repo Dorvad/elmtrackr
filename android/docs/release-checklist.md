@@ -115,6 +115,28 @@ cd android
 adb install app/build/outputs/apk/release/app-release.apk
 ```
 
+**Check what hardware the build claims to need.** Play hides an app from every
+device that lacks a feature the app requires, and "requires" includes features
+nobody declared: Android infers them — from a permission, or from a single
+activity locked to one orientation — and a dependency's manifest counts as much
+as this one. In November 2026 Play refused to send a release for review over
+`android.hardware.screen.portrait`, inferred from an activity inside the ML Kit
+document scanner.
+
+```bash
+"$ANDROID_HOME"/build-tools/36.0.0/aapt2 dump badging \
+  app/build/outputs/apk/release/app-release.apk | grep -E "uses-(implied-)?feature"
+```
+
+Expected: every camera and screen feature as `uses-feature-not-required`, and
+`android.hardware.faketouch` as the only `uses-implied-feature` (it is the
+default for all apps and every device has it). Anything else implied needs a
+`<uses-feature … android:required="false" />` in `app/src/main/AndroidManifest.xml`
+— or a decision that the app really cannot run without it.
+`ManifestHardwareFeaturesTest` catches orientation locks and the camera
+permission in the unit-test run; this command is the final word, because it is
+`aapt`'s own list that Play reads.
+
 > **Watch app delivery.** The watch app is a separate artifact under the same
 > application id (`com.elmlaunch.myapp`), not an APK embedded in the phone build.
 > Upload **both** `.aab`s to the same Play Console app: the phone bundle and

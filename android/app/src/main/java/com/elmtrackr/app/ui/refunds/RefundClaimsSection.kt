@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.refunds
 
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -615,6 +616,10 @@ fun ReceiptPhotoArea(
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) onPickPhoto(uri)
     }
+    val context = LocalContext.current
+    val hasCamera = remember(context) {
+        context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+    }
     // Decoded off the main thread and at preview size; see rememberReceiptImage.
     val receiptImage by rememberReceiptImage(pendingPhotoPath)
     val bitmap = (receiptImage as? ReceiptImageState.Ready)?.image
@@ -704,10 +709,16 @@ fun ReceiptPhotoArea(
                 }
             }
 
-            OutlinedButton(onClick = onTakePhoto, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(if (pendingPhotoPath == null) R.string.refunds_use_device_camera else R.string.refunds_retake_with_camera))
+            // Offered only where there is a camera to open. The manifest marks the
+            // camera optional so that devices without one can install the app; on
+            // those this button led to a preview with nothing behind it. Attaching
+            // a file, above, needs no camera and stays.
+            if (hasCamera) {
+                OutlinedButton(onClick = onTakePhoto, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(if (pendingPhotoPath == null) R.string.refunds_use_device_camera else R.string.refunds_retake_with_camera))
+                }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

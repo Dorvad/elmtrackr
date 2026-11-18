@@ -18,8 +18,35 @@
     -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
+    <!--
+      Hardware the app uses but does not need. Each line answers a requirement
+      that Android would otherwise infer, and that Google Play applies as a
+      filter: a device lacking an inferred feature cannot install the app.
+
+      camera / camera.any — the CAMERA permission implies android.hardware.camera
+      (the rear camera) as required. Marking camera.any optional does not cancel
+      that; both have to be stated. The camera is only used to photograph a
+      receipt, and a claim can be saved with a picked file or with none.
+
+      screen.portrait — nothing in this manifest sets an orientation. The lock
+      comes from a dependency: the ML Kit document scanner
+      (play-services-mlkit-document-scanner) ships an invisible delegate activity
+      with screenOrientation="portrait", and any portrait-locked activity implies
+      a portrait screen. Play blocked a release over it in November 2026
+      ("android.hardware.screen.portrait affects Phone, Tablet, Desktop, and
+      Android XR users"). The library's activity is left as it is.
+
+      ManifestHardwareFeaturesTest reads the merged manifest and fails if a
+      dependency adds another inferred requirement that is not answered here.
+    -->
     <uses-feature
         android:name="android.hardware.camera.any"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.screen.portrait"
         android:required="false" />
 
     <!--

@@ -63,7 +63,11 @@ android {
         // counterpart — the two share :wear-sync, so a watch built from a
         // different tree than the phone it talks to is a wire mismatch waiting
         // to happen.
-        versionCode = 10057
+        //
+        // 10058 follows the phone's 58 (see app/build.gradle.kts). The watch
+        // artifact itself is unchanged by that fix; it moves only to keep the
+        // 10000 + phone invariant.
+        versionCode = 10058
         versionName = "1.3.4"
 
         buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
