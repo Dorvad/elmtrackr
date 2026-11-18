@@ -39,7 +39,14 @@ android {
         // is wear == 10000 + this number. 10055 and 10056 are burned by the
         // September 2026 rejections (10056: large-font text overlap and no
         // ongoing activity on the watch), so both artifacts move to 57 / 10057.
-        versionCode = 57
+        //
+        // 58 / 10058: the 57 upload could not be sent for review — Play read a
+        // required android.hardware.screen.portrait out of a dependency's
+        // manifest (November 2026, fixed in AndroidManifest.xml). A corrected
+        // bundle needs a code Play has not seen. If Play's highest code is above
+        // 57 by the time this is built, use the next free one and keep wear at
+        // 10000 + it.
+        versionCode = 58
         versionName = "1.3.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

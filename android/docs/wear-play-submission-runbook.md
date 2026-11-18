@@ -14,6 +14,13 @@ notice — re-read both pages before a submission rather than trusting this file
 
 ## 0. Check this first. It may be the entire problem.
 
+> **18 November 2026:** the phone's 57 upload could not be sent for review —
+> Play read a required `android.hardware.screen.portrait` out of a
+> dependency's manifest. Fixed in `app/src/main/AndroidManifest.xml`; the
+> pre-upload check is in [release-checklist.md](release-checklist.md) §2.
+> The next pair is **58 / 10058**. The watch artifact is unchanged by that fix
+> and moves only to keep the pairing.
+
 > **22 September 2026:** wear 10056 was rejected for text overlap at large
 > font sizes and for having no ongoing activity while a shift runs. Both are
 > fixed in code; see
