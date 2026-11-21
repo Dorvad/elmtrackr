@@ -310,18 +310,30 @@ internal fun CompensationSettingsContent(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (state.profiles.size > 1) {
-                    Spacer(Modifier.height(4.dp))
-                    TextButton(
-                        onClick = { showDeleteDialog = true },
-                        enabled = !state.isSaving,
-                        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
-                    ) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = null, Modifier.padding(end = 6.dp))
-                        Text(stringResource(R.string.settings_delete_profile))
-                    }
+                // Always shown. It used to appear only with two or more jobs, so a
+                // user with one job found no way to delete it and no reason why. The
+                // last job cannot go: every pay figure resolves through a profile, and
+                // with none left `ensureMigrated` builds a fresh one from the legacy
+                // settings, so "delete" would quietly undo itself.
+                // Disabled with the way forward spelled out instead.
+                val canDelete = state.profiles.size > 1
+                Spacer(Modifier.height(4.dp))
+                TextButton(
+                    onClick = { showDeleteDialog = true },
+                    enabled = canDelete && !state.isSaving,
+                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Icon(Icons.Default.DeleteOutline, contentDescription = null, Modifier.padding(end = 6.dp))
+                    Text(stringResource(R.string.settings_delete_profile))
+                }
+                if (!canDelete) {
+                    Text(
+                        stringResource(R.string.settings_delete_only_profile_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }

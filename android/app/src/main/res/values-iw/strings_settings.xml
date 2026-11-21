@@ -442,6 +442,7 @@
     <string name="settings_edit_profile">עריכת פרופיל</string>
     <string name="settings_default">ברירת מחדל</string>
     <string name="settings_delete_profile">מחיקת העבודה הזאת</string>
+    <string name="settings_delete_only_profile_hint">זו העבודה היחידה שלך, ולכן אי אפשר למחוק אותה. כדי להחליף אותה, הוסיפו קודם את העבודה החדשה ואז מחקו את זו.</string>
     <string name="settings_remove_this_rate">הסרת התעריף הזה</string>
     <string name="settings_delete_comp_profile_title">למחוק את ״%1$s״?</string>
     <string name="settings_delete_comp_profile_body">משמרות שכבר נרשמו שומרות על השכר שחושב עבורן. הפרופיל יוסר גם מהמכשירים המסונכרנים שלך. אי אפשר לבטל את הפעולה.</string>

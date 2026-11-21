@@ -435,6 +435,7 @@
     <string name="settings_edit_profile">Edit profile</string>
     <string name="settings_default">Default</string>
     <string name="settings_delete_profile">Delete this job</string>
+    <string name="settings_delete_only_profile_hint">This is your only job, so it can’t be deleted. To replace it, add the new job first, then delete this one.</string>
     <string name="settings_remove_this_rate">Remove this rate</string>
     <string name="settings_delete_comp_profile_title">Delete “%1$s”?</string>
     <string name="settings_delete_comp_profile_body">Shifts you\'ve already logged keep the pay that was calculated for them. The profile is removed from your synced devices too. This cannot be undone.</string>

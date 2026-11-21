@@ -462,6 +462,7 @@
     <string name="settings_edit_profile">تعديل الملف</string>
     <string name="settings_default">افتراضي</string>
     <string name="settings_delete_profile">حذف هذا العمل</string>
+    <string name="settings_delete_only_profile_hint">هذا عملك الوحيد، لذا لا يمكن حذفه. لاستبداله، أضف العمل الجديد أولاً ثم احذف هذا العمل.</string>
     <string name="settings_remove_this_rate">إزالة هذا المعدل</string>
     <string name="settings_delete_comp_profile_title">حذف “%1$s”؟</string>
     <string name="settings_delete_comp_profile_body">تحتفظ المناوبات التي سجّلتها بالأجر الذي حُسب لها. ويُزال الملف من أجهزتك المتزامنة أيضًا. ولا يمكن التراجع عن هذا.</string>
