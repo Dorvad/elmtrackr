@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.shifts
 
+import com.elmtrackr.app.ui.theme.AuroraLegibleGradient
 import androidx.compose.foundation.layout.width
 import java.time.ZonedDateTime
 import androidx.compose.ui.unit.sp
@@ -128,13 +129,9 @@ private fun dateBoxFmt(withYear: Boolean): DateTimeFormatter =
 private fun ZonedDateTime.formatBoxDate(withYear: DateTimeFormatter, withoutYear: DateTimeFormatter): String =
     format(if (year != ZonedDateTime.now(zone).year) withYear else withoutYear)
 
-private val payGradient = Brush.linearGradient(
-    colorStops = arrayOf(
-        0.0f to AuroraIndigo,
-        0.5f to AuroraPlum,
-        1.0f to AuroraAqua,
-    ),
-)
+// White and 85–90% white text sit on this card; the decorative stops dropped them
+// to 2–4:1 on the right half. See AuroraGradients.kt.
+private val payGradient = AuroraLegibleGradient
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable

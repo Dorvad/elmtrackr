@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.settings
 
+import com.elmtrackr.app.ui.theme.AuroraLegibleGradient
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -268,10 +269,8 @@ private fun ShopCallToAction(label: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** The brand gradient the primary button wears. */
-private val ShopButtonGradient = Brush.linearGradient(
-    colorStops = arrayOf(0f to AuroraIndigo, 0.42f to AuroraPlum, 1f to AuroraAqua),
-)
+/** The brand gradient the primary button wears — the legible sweep, as it carries a white label. */
+private val ShopButtonGradient = AuroraLegibleGradient
 
 /** The store's own glow, scaled to a card — the window is lit from inside. */
 @Composable

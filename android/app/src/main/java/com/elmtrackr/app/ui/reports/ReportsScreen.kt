@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.reports
 
+import com.elmtrackr.app.ui.theme.AuroraLegibleGradient
 import androidx.compose.ui.graphics.compositeOver
 import com.elmtrackr.app.ui.theme.readableInk
 import androidx.compose.animation.animateContentSize
@@ -419,7 +420,8 @@ private fun ReportTabs(
 private fun TabButton(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val backgroundBrush = if (selected) {
-        Brush.linearGradient(listOf(AuroraIndigo, AuroraPlum, AuroraAqua))
+        // The legible sweep: the selected tab's label is white.
+        AuroraLegibleGradient
     } else {
         Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
     }
