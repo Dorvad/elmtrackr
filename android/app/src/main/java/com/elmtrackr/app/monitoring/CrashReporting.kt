@@ -4,7 +4,9 @@ import android.content.Context
 import com.elmtrackr.app.BuildConfig
 import com.elmtrackr.wear.sync.CrashReportScrubber
 import io.sentry.Sentry
+import io.sentry.SentryEvent
 import io.sentry.android.core.SentryAndroid
+import io.sentry.exception.SentryHttpClientException
 
 /**
  * Crash reporting (Sentry), gated on two things: a DSN compiled into the build
@@ -90,9 +92,39 @@ object CrashReporting {
             // happens inside the SDK's own send path: losing a report is a bad
             // outcome, losing the process while reporting a crash is a worse one.
             options.setBeforeSend { event, _ ->
+                if (isFailedHttpResponse(event)) return@setBeforeSend null
                 runCatching { CrashReportScrubber.scrub(event) }
                 event
             }
         }
     }
+
+    /**
+     * True for the event Sentry's OkHttp interceptor raises by itself whenever a
+     * response comes back 5xx ("HTTP Client Error with status code: 504").
+     *
+     * The Gradle plugin auto-installs `sentry-okhttp` because okhttp arrives under
+     * Ktor, and the interceptor it wires in is built with its defaults: capture failed
+     * requests, statuses 500–599, every host. In 8.50.1 that switch is a constructor
+     * argument of `SentryOkHttpInterceptor`, not a field of `SentryOptions`, so an app
+     * that never constructs the interceptor cannot turn it off. This is where it is
+     * turned off instead.
+     *
+     * Dropped because none of these events describe a defect in this app:
+     *
+     * - A 5xx from Supabase is the server or the network path asking for later. Sync
+     *   already treats it that way (`RemoteSyncErrors.isTransient`), keeps the cursor
+     *   where it was and retries with backoff. The event says which request failed,
+     *   not which line of this app is wrong, so there is nothing in it to fix.
+     * - During a backend incident every active install reports one per failed
+     *   request, which buries real crashes and spends the event quota on noise.
+     * - It is a transmission without a crash. The comment on session tracking above,
+     *   and `docs/play-data-safety.md`, say sessions are the only thing that leaves
+     *   without one; this keeps that true.
+     *
+     * HTTP breadcrumbs are not affected. They still ride along, scrubbed, on any real
+     * crash, so the requests that preceded it remain visible.
+     */
+    internal fun isFailedHttpResponse(event: SentryEvent): Boolean =
+        event.throwable is SentryHttpClientException
 }

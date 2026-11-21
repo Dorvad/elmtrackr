@@ -155,7 +155,7 @@ What travels, per event:
 | What | Note |
 |---|---|
 | Stack trace, exception type and message | scrubbed — `SensitiveTextScrubber` |
-| Breadcrumb trail | screen and lifecycle transitions, plus this app's own update/review funnel counters (`UpdateDiagnostics`, `ReviewDiagnostics`) |
+| Breadcrumb trail | screen and lifecycle transitions; this app's own update/review funnel counters (`UpdateDiagnostics`, `ReviewDiagnostics`); HTTP requests (method, host, path, status, sizes and timings, with the query string removed on device); system events (battery level and charging, network type, bandwidth estimate, whether a VPN is up); and error-level Logcat lines (tag and scrubbed message). The last three are recorded from a production event read on 21 November 2026, not inferred |
 | App version, build, release, environment | `com.elmtrackr.app@1.3.1+52` / `com.elmtrackr.wear@…` |
 | Device model, manufacturer, OS version, locale, memory, storage, orientation, battery | the SDK's device context |
 | **A per-install identifier** | `io.sentry.android.core.Installation` — a uuid in `getFilesDir()/INSTALLATION`, sent as the event's user id. Survives restarts and updates; cleared by uninstall or "clear data" |
@@ -167,22 +167,25 @@ no view hierarchy, no session replay ([§5](#5-what-changed-in-code-with-this-do
 pins all three off explicitly); `tracesSampleRate` is `0.0`, so no performance
 spans and no SQL; and nothing in this app ever calls `Sentry.setUser`.
 
-**A caveat that needs a live check.** Sentry's own documentation says the full
-request URL and query string of outgoing HTTP calls are *always* sent when its HTTP
-integration is active — not gated on `isSendDefaultPii`. `sentry-okhttp` **is** on
-the phone's classpath, as the list above shows, because okhttp arrives under Ktor.
-What is not established is whether it is wired in: the interceptor is added by
-bytecode instrumentation of code that *builds* an `OkHttpClient`, this app never
-builds one, Ktor's engine builds it inside a dependency, and the plugin's
-`forceInstrumentDependencies` is off by default. So Supabase URLs — which carry
-`user_id=eq.<uuid>` and the filters of every query — are *believed* not to reach
-Sentry today.
+**The HTTP integration is wired in. This was measured, not inferred.** Sentry's own
+documentation says the full request URL and query string of outgoing HTTP calls are
+*always* sent when its HTTP integration is active, regardless of `isSendDefaultPii`.
+This section previously argued from the build configuration that `sentry-okhttp`,
+present on the classpath because okhttp arrives under Ktor, was probably not wired
+in. A production event read on 21 November 2026 settled it the other way. From
+phone build 30 it carried an HTTP breadcrumb for every Supabase call, including
+`PATCH /rest/v1/profiles` with the query `id=eq.<the user's Supabase uuid>`, and a
+`504` from `/rest/v1/shifts` arrived as an event of its own
+(`SentryHttpClientException`, raised by `SentryOkHttpInterceptor`). Build 30 is older
+than the scrubber, which is why its query strings were intact. The `[Filtered]`
+values in that event came from Sentry's server-side scrubbing, not from the app,
+whose own marker is `[redacted]`.
 
-That is a build-configuration argument, not a measurement, and it is one dependency
-bump away from changing. Treat it as a standing risk, verify it the way §6 says, and
-note that [§5](#5-what-changed-in-code-with-this-document) makes the answer
-irrelevant: URLs lose their query string, and headers, cookies and bodies are
-dropped, before any event leaves the device.
+Current builds close both routes on the device, as
+[§5](#5-what-changed-in-code-with-this-document) describes: URLs lose their query
+string, headers, cookies and bodies are dropped, and failed-response events are not
+sent at all. What remains is the method, host, path and status of each request in
+the breadcrumb trail. That is diagnostics, and it is declared as such.
 
 **Sharing?** No, on the same service-provider basis as Supabase — **provided a data
 processing agreement with Sentry is actually in place**. See §7; if it is not, the
@@ -350,6 +353,13 @@ true, and short enough to stay true.
    without a line of this app's code moving.
 4. **The consent string** now describes what is sent rather than calling it
    anonymous (four locales).
+5. **Failed-response events dropped** (November 2026). The `sentry-okhttp`
+   interceptor that the Gradle plugin auto-installs reports every 5xx response as an
+   event of its own, with no crash behind it. In 8.50.1 that behaviour is a
+   constructor argument of the interceptor rather than an SDK option, so
+   `CrashReporting.isFailedHttpResponse` drops those events in `beforeSend`. They
+   described the backend rather than the app, and they were the only thing other
+   than sessions that left the device without a crash.
 
 One consequence worth knowing before CI reports it: the Paparazzi golden
 `19-settings-help` renders the row whose description changed, so it will differ.
@@ -431,6 +441,13 @@ These need an owner's answer, not a developer's guess.
    per-install uuid the backend has never seen — so the position is defensible, but
    it is better written down now than improvised when a data-subject request
    arrives. Sentry's retention setting is where the exposure is bounded.
+
+   **Correction (21 November 2026):** this holds only for builds that carry the
+   scrubber (September 2026 onwards). Events from older builds that are still within
+   the retention period carry the user's Supabase id in breadcrumb query strings
+   (see §2.2), so until they expire, account data does exist in Sentry. Before
+   relying on the position above, the owner should either purge those events or
+   confirm the retention period and accept the exposure until it runs out.
 
 ---
 
