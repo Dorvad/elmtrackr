@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.shifts
 
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.Shift
 import com.elmtrackr.app.domain.model.UserSettings
 import java.time.YearMonth
@@ -38,5 +39,6 @@ sealed interface ShiftsUiState {
         val payFacts: ShiftsPayFacts? = null,
     ) : ShiftsUiState
 
-    data class Error(val message: String) : ShiftsUiState
+    /** Translated and classified by [com.elmtrackr.app.ui.common.UserFacingError] — never raw exception text. */
+    data class Error(val message: UiText) : ShiftsUiState
 }

@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.shifts
 
+import androidx.compose.ui.graphics.compositeOver
+import com.elmtrackr.app.ui.theme.readableInk
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +64,7 @@ import com.elmtrackr.app.ui.design.ElmDashedButton
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.design.auroraPressScale
+import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeach
@@ -110,6 +113,7 @@ internal fun ShiftsPageHeader(onAddShift: () -> Unit) {
             stringResource(R.string.shifts_title),
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
+            modifier = Modifier.auroraHeading(),
         )
         ElmGradientButton(onClick = onAddShift, compact = true) {
             Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -771,6 +775,11 @@ private fun ShiftTypeBadge(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
+    // The accent is the badge's identity, but on its own tint it was not legible:
+    // aqua project time measured 1.8:1 and the purple weekend badge 3.7:1. The ink is
+    // the accent deepened along its hue just far enough to reach AA on what the badge
+    // actually paints — its tint over the card.
+    val ink = readableInk(color, background.compositeOver(MaterialTheme.colorScheme.surface))
     Box(
         modifier
             .background(background, RoundedCornerShape(50))
@@ -779,7 +788,7 @@ private fun ShiftTypeBadge(
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
-            color = color,
+            color = ink,
             fontWeight = FontWeight.Bold,
         )
     }

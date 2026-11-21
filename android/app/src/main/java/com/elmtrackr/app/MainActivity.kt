@@ -5,14 +5,16 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import android.content.res.Configuration
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -100,7 +102,7 @@ class MainActivity : AppCompatActivity() {
             // Nullable initial value on purpose: AppLockGate must be able to tell
             // "app lock is off" from "the preference has not loaded yet".
             val storedPreferences by appPreferences.preferences
-                .collectAsState(initial = null)
+                .collectAsStateWithLifecycle(initialValue = null)
             val preferences = storedPreferences ?: AppPreferenceValues()
             val systemDark = (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
                 Configuration.UI_MODE_NIGHT_YES
@@ -108,6 +110,22 @@ class MainActivity : AppCompatActivity() {
                 "dark" -> true
                 "light" -> false
                 else -> systemDark
+            }
+            // The bare enableEdgeToEdge() above picks status- and navigation-bar icon
+            // colours from the phone's night mode. With Dark chosen in the app on a phone
+            // in light mode that meant dark clock and battery icons on the dark
+            // background, and a white scrim behind three-button navigation; Light on a
+            // dark phone did the reverse. Re-applied whenever the app's own theme
+            // resolves differently, with the library's default scrims.
+            DisposableEffect(darkTheme) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(
+                        android.graphics.Color.TRANSPARENT,
+                        android.graphics.Color.TRANSPARENT,
+                    ) { darkTheme },
+                    navigationBarStyle = SystemBarStyle.auto(LIGHT_NAV_SCRIM, DARK_NAV_SCRIM) { darkTheme },
+                )
+                onDispose {}
             }
             ElmTrackrTheme(darkTheme = darkTheme) {
                 CompositionLocalProvider(LocalReduceMotion provides preferences.reduceMotionEnabled) {
@@ -224,3 +242,7 @@ class MainActivity : AppCompatActivity() {
         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 }
+
+/** androidx.activity's own default scrims for three-button navigation (`EdgeToEdge.kt`). */
+private val LIGHT_NAV_SCRIM = android.graphics.Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
+private val DARK_NAV_SCRIM = android.graphics.Color.argb(0x80, 0x1b, 0x1b, 0x1b)

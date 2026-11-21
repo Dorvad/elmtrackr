@@ -29,7 +29,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,14 +73,14 @@ fun ShiftsScreen(
     onPendingEditConsumed: () -> Unit = {},
     onFormVisibilityChanged: (Boolean) -> Unit = {},
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val motionEnabled = auroraMotionEnabled()
-    val formTarget by viewModel.formTarget.collectAsState()
-    val formErrors by viewModel.formErrors.collectAsState()
-    val featuresTravelRefunds by viewModel.featuresTravelRefunds.collectAsState()
-    val formProjects by viewModel.formProjects.collectAsState()
-    val selectedMonth by viewModel.selectedMonth.collectAsState()
-    val userMessage by viewModel.userMessage.collectAsState()
+    val formTarget by viewModel.formTarget.collectAsStateWithLifecycle()
+    val formErrors by viewModel.formErrors.collectAsStateWithLifecycle()
+    val featuresTravelRefunds by viewModel.featuresTravelRefunds.collectAsStateWithLifecycle()
+    val formProjects by viewModel.formProjects.collectAsStateWithLifecycle()
+    val selectedMonth by viewModel.selectedMonth.collectAsStateWithLifecycle()
+    val userMessage by viewModel.userMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // The manual-add action now asks what kind of entry this is. Clock in is
@@ -224,7 +224,7 @@ fun ShiftsScreen(
                         )
 
                         is ShiftsUiState.Error -> ErrorState(
-                            message = state.message,
+                            message = state.message.asString(),
                             onRetry = viewModel::retry,
                         )
                     }

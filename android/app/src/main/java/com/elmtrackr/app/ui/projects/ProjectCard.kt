@@ -1,5 +1,11 @@
 package com.elmtrackr.app.ui.projects
 
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
+import com.elmtrackr.app.ui.design.AuroraMotion
+import com.elmtrackr.app.ui.design.auroraAnimationSpec
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -68,7 +74,8 @@ fun ProjectCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .animateContentSize()
+            // Resizes in one step with motion reduced, like the rest of the app.
+            .animateContentSize(animationSpec = auroraAnimationSpec(AuroraMotion.ContentCrossfadeMillis))
             .shadow(
                 elevation = 8.dp,
                 shape = shape,
@@ -136,7 +143,13 @@ fun ProjectCard(
                 )
             }
 
-            AnimatedVisibility(visible = expanded) {
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(auroraAnimationSpec(AuroraMotion.ContentCrossfadeMillis)) +
+                    fadeIn(auroraAnimationSpec(AuroraMotion.ContentCrossfadeMillis)),
+                exit = shrinkVertically(auroraAnimationSpec(AuroraMotion.ContentCrossfadeMillis)) +
+                    fadeOut(auroraAnimationSpec(AuroraMotion.ContentCrossfadeMillis)),
+            ) {
                 Column {
                     Box(
                         Modifier

@@ -1,5 +1,12 @@
 package com.elmtrackr.app.ui.shifts
 
+import androidx.compose.foundation.layout.width
+import java.time.ZonedDateTime
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
 import androidx.activity.compose.BackHandler
 
 import androidx.compose.foundation.background
@@ -110,9 +117,16 @@ private val timeBoxFmt = DateTimeFormatter.ofPattern("HH:mm")
 private fun dateSubtitleFmt(): DateTimeFormatter =
     DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", appLocale())
 
+/**
+ * The date in a half-width field. The year is left out when it is this year: with it,
+ * "8 Apr 2025" wrapped onto two lines in every language, beside a calendar icon.
+ */
 @Composable
-private fun dateBoxFmt(): DateTimeFormatter =
-    DateTimeFormatter.ofPattern("d MMM yyyy", appLocale())
+private fun dateBoxFmt(withYear: Boolean): DateTimeFormatter =
+    DateTimeFormatter.ofPattern(if (withYear) "d MMM yyyy" else "d MMM", appLocale())
+
+private fun ZonedDateTime.formatBoxDate(withYear: DateTimeFormatter, withoutYear: DateTimeFormatter): String =
+    format(if (year != ZonedDateTime.now(zone).year) withYear else withoutYear)
 
 private val payGradient = Brush.linearGradient(
     colorStops = arrayOf(
@@ -341,6 +355,8 @@ internal fun ShiftEditFormContent(
                     zone = zone,
                 )
 
+                val boxDateWithYear = dateBoxFmt(withYear = true)
+                val boxDateWithoutYear = dateBoxFmt(withYear = false)
                 FormSectionCard(title = stringResource(R.string.shifts_section_when)) {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         Row(
@@ -350,7 +366,7 @@ internal fun ShiftEditFormContent(
                         ) {
                             DateTimeFieldGroup(
                                 label = stringResource(R.string.shifts_start_label),
-                                date = Instant.ofEpochMilli(startMillis).atZone(zone).format(dateBoxFmt()),
+                                date = Instant.ofEpochMilli(startMillis).atZone(zone).formatBoxDate(boxDateWithYear, boxDateWithoutYear),
                                 time = Instant.ofEpochMilli(startMillis).atZone(zone).format(timeBoxFmt),
                                 onPickDate = onPickStartDate,
                                 onPickTime = onPickStartTime,
@@ -367,7 +383,7 @@ internal fun ShiftEditFormContent(
                             if (hasEndTime) {
                                 DateTimeFieldGroup(
                                     label = stringResource(R.string.shifts_end_label),
-                                    date = Instant.ofEpochMilli(endMillis).atZone(zone).format(dateBoxFmt()),
+                                    date = Instant.ofEpochMilli(endMillis).atZone(zone).formatBoxDate(boxDateWithYear, boxDateWithoutYear),
                                     time = Instant.ofEpochMilli(endMillis).atZone(zone).format(timeBoxFmt),
                                     onPickDate = onPickEndDate,
                                     onPickTime = onPickEndTime,
@@ -383,10 +399,17 @@ internal fun ShiftEditFormContent(
                     }
 
                     if (isEdit || hasEndTime) {
+                        // One toggle target with the label: the Switch on its own was
+                        // announced as "Off, switch" with nothing saying what it switched.
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = Spacing.sm),
+                                .padding(top = Spacing.sm)
+                                .toggleable(
+                                    value = !hasEndTime,
+                                    role = Role.Switch,
+                                    onValueChange = { active -> onHasEndTimeChange(!active) },
+                                ),
                             horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -397,7 +420,7 @@ internal fun ShiftEditFormContent(
                             )
                             Switch(
                                 checked = !hasEndTime,
-                                onCheckedChange = { active -> onHasEndTimeChange(!active) },
+                                onCheckedChange = null,
                                 modifier = Modifier.padding(start = 8.dp),
                             )
                         }
@@ -459,7 +482,8 @@ internal fun ShiftEditFormContent(
                         Spacer(Modifier.height(6.dp))
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            // No row spacing: FilterChip already pads its 32dp chip to a 48dp touch
+                            // target, so 8dp on top left rows three times further apart than chips.
                         ) {
                             FilterChip(
                                 selected = taskId == null,
@@ -523,7 +547,13 @@ internal fun ShiftEditFormContent(
                     }
                     val premiumOn = premiumMode == "on" || (premiumMode == "auto" && calendarWeekend)
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .toggleable(
+                                value = premiumOn,
+                                role = Role.Switch,
+                                onValueChange = { onPremiumModeChange(if (it) "on" else "off") },
+                            ),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
@@ -547,7 +577,7 @@ internal fun ShiftEditFormContent(
                         }
                         Switch(
                             checked = premiumOn,
-                            onCheckedChange = { onPremiumModeChange(if (it) "on" else "off") },
+                            onCheckedChange = null,
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
@@ -609,27 +639,42 @@ internal fun ShiftEditFormContent(
             }
         }
 
-        if (unsavedCount > 0) {
-            FloatingSaveBar(
-                unsavedCount = unsavedCount,
-                onSave = {
-                    AuroraHaptics.success(haptic)
-                    onSave(buildInput())
-                },
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.screenH, vertical = Spacing.md),
-            ) {
-                ElmGradientButton(onClick = {
-                    AuroraHaptics.success(haptic)
-                    onSave(buildInput())
-                }) {
-                    Text(stringResource(R.string.shifts_save), fontWeight = FontWeight.SemiBold)
+        // A fade from the screen background behind the pinned save affordance. Without
+        // it the button floated over the form, and the card scrolling underneath
+        // showed through above and below it.
+        val backdrop = MaterialTheme.colorScheme.background
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        0f to backdrop.copy(alpha = 0f),
+                        0.3f to backdrop.copy(alpha = 0.92f),
+                        1f to backdrop,
+                    ),
+                ),
+        ) {
+            if (unsavedCount > 0) {
+                FloatingSaveBar(
+                    unsavedCount = unsavedCount,
+                    onSave = {
+                        AuroraHaptics.success(haptic)
+                        onSave(buildInput())
+                    },
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.screenH, vertical = Spacing.md),
+                ) {
+                    ElmGradientButton(onClick = {
+                        AuroraHaptics.success(haptic)
+                        onSave(buildInput())
+                    }) {
+                        Text(stringResource(R.string.shifts_save), fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
@@ -969,6 +1014,11 @@ private fun DateTimePickerRow(
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(CornerRadius.Medium)
+    val textColor = MaterialTheme.colorScheme.onSurface
+    // One target. The row and a 48dp IconButton inside it both opened the picker, so
+    // each of the four fields was two TalkBack stops, and the button's width is what
+    // pushed the date onto a second line. The icon is now decoration; the row carries
+    // the action as its click label ("Pick start date").
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -976,22 +1026,30 @@ private fun DateTimePickerRow(
             .clip(shape)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
             .background(auroraSurfaceSub())
-            .clickable(onClick = onClick)
-            .padding(start = Spacing.md),
+            .clickable(onClick = onClick, onClickLabel = contentDescription, role = Role.Button)
+            .padding(horizontal = Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
+        // Shrinks rather than wraps or clips when a translation or a past year is
+        // longer than the half-width field.
+        BasicText(
             value,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = { textColor },
+            maxLines = 1,
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = 12.sp,
+                maxFontSize = MaterialTheme.typography.bodyLarge.fontSize,
+            ),
             modifier = Modifier.weight(1f),
         )
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier.size(48.dp),
-        ) {
-            Icon(icon, contentDescription = contentDescription, modifier = Modifier.size(20.dp))
-        }
+        Spacer(Modifier.width(Spacing.sm))
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 

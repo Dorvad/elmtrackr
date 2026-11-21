@@ -61,7 +61,8 @@ fun CompensationProfilePicker(
         Spacer(Modifier.height(6.dp))
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            // No row spacing: FilterChip already pads its 32dp chip to a 48dp touch
+            // target, so 8dp on top left rows three times further apart than chips.
         ) {
             profiles.forEach { profile ->
                 FilterChip(

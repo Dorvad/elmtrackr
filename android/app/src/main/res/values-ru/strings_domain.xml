@@ -6,7 +6,6 @@
     <string name="nav_reports">Отчёты</string>
     <string name="nav_projects">Проекты</string>
     <string name="nav_settings">Настройки</string>
-    <string name="nav_tab_selected">%1$s, выбрано</string>
 
     <!-- Region presets -->
     <string name="region_us_label">США (федеральный уровень / FLSA)</string>

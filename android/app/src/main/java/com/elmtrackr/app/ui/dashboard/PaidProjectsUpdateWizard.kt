@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.dashboard
 
+import com.elmtrackr.app.ui.design.auroraAnimationSpec
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
@@ -894,7 +895,7 @@ private fun WizardStepDots(current: Int, total: Int) {
             val active = index == current
             val dotWidth by animateDpAsState(
                 targetValue = if (active) 20.dp else 7.dp,
-                animationSpec = tween(AuroraMotion.ContentCrossfadeMillis, easing = AuroraEaseOut),
+                animationSpec = auroraAnimationSpec(AuroraMotion.ContentCrossfadeMillis, AuroraEaseOut),
                 label = "wizard-dot-width",
             )
             Box(

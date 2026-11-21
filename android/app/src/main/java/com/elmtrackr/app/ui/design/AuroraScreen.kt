@@ -112,7 +112,12 @@ fun AuroraListScreen(
             Box(
                 modifier = modifier
                     .fillMaxSize()
-                    .statusBarsPadding(),
+                    .statusBarsPadding()
+                    // As in AuroraScreen: the window is never resized for the keyboard
+                    // (edge-to-edge), so without this the Pay and Profile forms — lazy
+                    // lists hosted here — left their lower fields and the Save bar
+                    // behind it. Zero when no keyboard is up.
+                    .imePadding(),
                 contentAlignment = if (isTablet) Alignment.TopStart else Alignment.TopCenter,
                 content = {
                     Box(

@@ -64,7 +64,6 @@ import com.elmtrackr.app.ui.design.ElmSegmentedPillRow
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
-import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.ui.layout.PhoneContentMaxWidth
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
@@ -597,7 +596,7 @@ private fun ShopTeaserRow(
             Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(Spacing.s20).mirrorInRtl(),
+            modifier = Modifier.size(Spacing.s20),
         )
     }
 }
@@ -664,7 +663,7 @@ private fun PackUnlockedStrip(
             Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = auroraSemantics.successInk,
-            modifier = Modifier.size(Spacing.s20).mirrorInRtl(),
+            modifier = Modifier.size(Spacing.s20),
         )
     }
 }

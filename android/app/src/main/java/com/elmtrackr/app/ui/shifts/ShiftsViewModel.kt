@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.shifts
 
+import com.elmtrackr.app.ui.common.UserFacingError
 import androidx.lifecycle.ViewModel
 import com.elmtrackr.app.R
 import androidx.lifecycle.viewModelScope
@@ -212,7 +213,7 @@ class ShiftsViewModel @Inject constructor(
                     }
                 }
         }.catch { e ->
-            emit(ShiftsUiState.Error(e.message ?: "Unknown error"))
+            emit(ShiftsUiState.Error(UserFacingError.message(e, R.string.error_generic)))
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

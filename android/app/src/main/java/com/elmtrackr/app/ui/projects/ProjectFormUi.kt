@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.projects
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -261,13 +263,18 @@ fun ProjectFormScreen(
                 )
 
                 Spacer(Modifier.height(Spacing.xs))
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .toggleable(value = taxEnabled, role = Role.Switch, onValueChange = { taxEnabled = it }),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(
                         stringResource(R.string.project_form_tax_enabled),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
-                    Switch(checked = taxEnabled, onCheckedChange = { taxEnabled = it })
+                    Switch(checked = taxEnabled, onCheckedChange = null)
                 }
                 // With tax off there is nothing to configure, so the label and
                 // rate fields stay out of the way entirely.

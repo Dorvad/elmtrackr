@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.projects
 
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -105,7 +106,8 @@ fun ProjectBillingFormScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenH),
+        // imePadding: the keyboard otherwise covers the focused amount or date field.
+        modifier = Modifier.fillMaxWidth().imePadding().padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
     item {
@@ -250,7 +252,8 @@ fun ProjectPaymentFormScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenH),
+        // imePadding: the keyboard otherwise covers the focused amount or date field.
+        modifier = Modifier.fillMaxWidth().imePadding().padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
     item {
@@ -283,7 +286,8 @@ fun ProjectPaymentFormScreen(
         )
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            // No row spacing: FilterChip already pads its 32dp chip to a 48dp touch
+            // target, so 8dp on top left rows three times further apart than chips.
         ) {
             PaymentMethod.selectable.forEach { method ->
                 FilterChip(

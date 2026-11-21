@@ -38,8 +38,8 @@ import com.elmtrackr.app.domain.money.MoneyFormat
 import com.elmtrackr.app.domain.money.ProjectFee
 import com.elmtrackr.app.domain.projects.ProjectBillingStatus
 import com.elmtrackr.app.domain.text.BidiText
-import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.ui.design.ElmCard
+import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.theme.CornerRadius
 import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.Spacing
@@ -280,7 +280,7 @@ fun ProjectSectionCard(
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = Spacing.xs, start = 4.dp),
+            modifier = Modifier.padding(bottom = Spacing.xs, start = 4.dp).auroraHeading(),
         )
         ElmCard {
             Column(Modifier.padding(Spacing.md)) { content() }
@@ -356,7 +356,7 @@ fun ProjectPickerRow(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(Layout.inlineIcon).mirrorInRtl(),
+                modifier = Modifier.size(Layout.inlineIcon),
             )
         }
         error?.let {

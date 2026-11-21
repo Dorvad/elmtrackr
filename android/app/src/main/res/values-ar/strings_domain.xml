@@ -6,7 +6,6 @@
     <string name="nav_reports">التقارير</string>
     <string name="nav_projects">المشاريع</string>
     <string name="nav_settings">الإعدادات</string>
-    <string name="nav_tab_selected">%1$s، محدَّد</string>
 
     <!-- Region presets -->
     <string name="region_us_label">الولايات المتحدة (فيدرالي / FLSA)</string>

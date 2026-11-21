@@ -60,6 +60,7 @@ import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraPressScale
 import com.elmtrackr.app.ui.design.auroraRowClickable
+import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
@@ -79,7 +80,8 @@ internal fun SettingsPageHeader() {
         stringResource(R.string.settings_title),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = Spacing.lg, bottom = Spacing.sm),
+            .padding(top = Spacing.lg, bottom = Spacing.sm)
+            .auroraHeading(),
         style = MaterialTheme.typography.headlineLarge,
         fontWeight = FontWeight.Bold,
     )
@@ -166,7 +168,7 @@ internal fun SettingsGroupedSection(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp).auroraHeading(),
         )
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -255,7 +257,7 @@ internal fun SettingsDetailHeader(
             title,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 4.dp),
+            modifier = Modifier.padding(start = 4.dp).auroraHeading(),
         )
     }
 }
@@ -277,7 +279,7 @@ internal fun SettingsSectionCard(
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = Spacing.sm),
+                modifier = Modifier.padding(bottom = Spacing.sm).auroraHeading(),
             )
             content()
         }
@@ -637,6 +639,9 @@ internal fun SettingsFloatingSaveBar(
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // Weighted, as in SettingsInfoRow: unweighted in a SpaceBetween row a
+                // long translation measured first and squeezed the Save button.
+                modifier = Modifier.weight(1f, fill = false).padding(end = Spacing.sm),
             )
             ElmGradientButton(
                 onClick = {

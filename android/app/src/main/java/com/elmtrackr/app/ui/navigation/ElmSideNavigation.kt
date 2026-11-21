@@ -185,9 +185,10 @@ private fun SideNavItem(
     val contentColor = if (isSelected) Color.White else auroraNavUnselectedLabel()
     val iconColor = if (isSelected) Color.White else auroraNavUnselectedIcon()
 
+    // The label alone: `selected` is announced by TalkBack itself, so a ", selected"
+    // suffix in the description made it say so twice.
     val tabLabel = stringResource(item.labelRes)
-    val tabContentDescription =
-        if (isSelected) stringResource(R.string.nav_tab_selected, tabLabel) else tabLabel
+    val tabContentDescription = tabLabel
     Row(
         modifier = Modifier
             .fillMaxWidth()

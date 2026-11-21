@@ -673,10 +673,12 @@ class FullAppScreenshotJvmTest {
         Column(
             Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 24.dp).verticalScroll(rememberScrollState()),
         ) {
+            // The app's own count and step names. This used to pass 10 and "Review"
+            // for every step, so the goldens showed a header the app never draws.
             OnboardingProgress(
                 step = step,
-                totalSteps = 10,
-                titleRes = com.elmtrackr.app.R.string.onboarding_step_review,
+                totalSteps = com.elmtrackr.app.ui.onboarding.onboardingTotalSteps(),
+                titleRes = com.elmtrackr.app.ui.onboarding.stepTitleRes(step),
             )
             Spacer(Modifier.height(24.dp))
             content()

@@ -11,7 +11,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -117,10 +117,10 @@ class WearMainActivity : ComponentActivity() {
 
 @Composable
 private fun WearApp(viewModel: WearMainViewModel) {
-    val display by viewModel.displayState.collectAsState()
-    val confirmation by viewModel.confirmation.collectAsState()
-    val countdown by viewModel.punchCountdown.collectAsState()
-    val isLoading by viewModel.isPunchInProgress.collectAsState()
+    val display by viewModel.displayState.collectAsStateWithLifecycle()
+    val confirmation by viewModel.confirmation.collectAsStateWithLifecycle()
+    val countdown by viewModel.punchCountdown.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isPunchInProgress.collectAsStateWithLifecycle()
     val snapshot = display.snapshot
 
     Box(modifier = Modifier.fillMaxSize()) {

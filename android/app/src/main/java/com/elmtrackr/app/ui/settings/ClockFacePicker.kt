@@ -45,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.ui.design.auroraRowClickable
-import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraDarkBg
 import com.elmtrackr.app.ui.theme.AuroraDarkSurfaceRaised
@@ -261,10 +260,10 @@ private fun ShopCallToAction(label: String, modifier: Modifier = Modifier) {
             Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = Color.White,
+            // Auto-mirrored already; a second flip pointed it backwards in RTL.
             modifier = Modifier
                 .padding(start = Spacing.s4)
-                .size(Spacing.s20)
-                .mirrorInRtl(),
+                .size(Spacing.s20),
         )
     }
 }

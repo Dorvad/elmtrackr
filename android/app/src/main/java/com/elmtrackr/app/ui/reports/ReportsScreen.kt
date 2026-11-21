@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.reports
 
+import androidx.compose.ui.graphics.compositeOver
+import com.elmtrackr.app.ui.theme.readableInk
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -70,7 +72,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -137,6 +139,7 @@ import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.design.auroraPressScale
 import com.elmtrackr.app.ui.design.LocalAppSnackbarHostState
 import com.elmtrackr.app.ui.design.showAppMessage
+import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.refunds.ReceiptPreviewDialog
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraAquaDeep
@@ -174,9 +177,9 @@ fun ReportsScreen(
     onPendingLaunchConsumed: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val uiState by viewModel.uiState.collectAsState()
-    val selectedYearMonth by viewModel.selectedYearMonth.collectAsState()
-    val canGoNext by viewModel.canGoNext.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val selectedYearMonth by viewModel.selectedYearMonth.collectAsStateWithLifecycle()
+    val canGoNext by viewModel.canGoNext.collectAsStateWithLifecycle()
     val ready = uiState as? ReportsUiState.Ready
     var activeTab by rememberSaveable { mutableStateOf(ReportTab.HOURS) }
     val scope = rememberCoroutineScope()
@@ -232,7 +235,7 @@ fun ReportsScreen(
             stringResource(R.string.reports_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.auroraEnter(),
+            modifier = Modifier.auroraEnter().auroraHeading(),
         )
         if (isTablet) {
             Text(
@@ -283,7 +286,7 @@ fun ReportsScreen(
                 ReportsUiState.Loading -> ReportsSkeleton()
                 ReportsUiState.Empty -> ReportsEmptyContent()
                 is ReportsUiState.Error -> ErrorState(
-                    state.message,
+                    state.message.asString(),
                     onRetry = viewModel::retry,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1525,7 +1528,8 @@ private fun InsightStatCard(
                 value,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = accentColor,
+                // Indigo on its own 10% wash was 2.8:1 in dark theme.
+                color = readableInk(accentColor, bgColor.compositeOver(MaterialTheme.colorScheme.surface)),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -2085,15 +2089,17 @@ private fun RefundAnalytics(
             pay.singleOrNull()?.takeIf { (code, _) -> code == currency }?.second
         }
     }
+    // The lavender sub-labels measured 3.9:1 on indigo; lifted toward white to AA.
+    val refundCardSubInk = readableInk(Color(0xffd8d3ff), AuroraIndigo)
     Card(shape = RoundedCornerShape(CornerRadius.Large), colors = CardDefaults.cardColors(containerColor = AuroraIndigo)) {
         Column(Modifier.padding(18.dp)) {
-            Text(stringResource(R.string.reports_total_refunded), style = MaterialTheme.typography.labelSmall, color = Color(0xffd8d3ff), fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.reports_total_refunded), style = MaterialTheme.typography.labelSmall, color = refundCardSubInk, fontWeight = FontWeight.Bold)
             Text(MoneyFormatter.format(total, currency, appLocale()), style = MaterialTheme.typography.headlineLarge, color = Color.White, fontWeight = FontWeight.ExtraBold)
             val activeMonths = claims.map { YearMonth.from(it.rideAt.atZone(zone)) }.distinct().size
-            Text(stringResource(R.string.reports_rides_months, claims.size, activeMonths), color = Color(0xffd8d3ff), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.reports_rides_months, claims.size, activeMonths), color = refundCardSubInk, style = MaterialTheme.typography.bodySmall)
             if (salary != null && salary > 0) {
                 HorizontalDivider(Modifier.padding(vertical = 12.dp), color = Color.White.copy(alpha = .2f))
-                Text(stringResource(R.string.reports_total_compensation), style = MaterialTheme.typography.labelSmall, color = Color(0xffd8d3ff))
+                Text(stringResource(R.string.reports_total_compensation), style = MaterialTheme.typography.labelSmall, color = refundCardSubInk)
                 Text(MoneyFormatter.format(salary + total, currency, appLocale()), style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
@@ -2173,7 +2179,11 @@ private fun RefundMonthCard(
                     Text(
                         refundStatus(shift.refundAction),
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (shift.refundAction == RefundAction.SUBMITTED) AuroraAquaDeep else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (shift.refundAction == RefundAction.SUBMITTED) {
+                            readableInk(AuroraAquaDeep, MaterialTheme.colorScheme.surface)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
                     TextButton(onClick = { onNavigateToShift(shift.id) }) {
                         Text(stringResource(R.string.reports_view), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
@@ -2254,7 +2264,11 @@ private fun OtThresholdLine(prefix: String, value: String) {
 @Composable
 private fun ShiftTagPill(label: String, weekendStyle: Boolean) {
     val bg = if (weekendStyle) auroraWeekendBackground() else MaterialTheme.colorScheme.surfaceVariant
-    val fg = if (weekendStyle) AuroraPlum else AuroraIndigo
+    // Plum on the weekend tint was 3.7:1, indigo on surfaceVariant 2.6:1 in dark.
+    val fg = readableInk(
+        if (weekendStyle) AuroraPlum else AuroraIndigo,
+        bg.compositeOver(MaterialTheme.colorScheme.surface),
+    )
     Text(
         label,
         modifier = Modifier
@@ -2303,12 +2317,13 @@ private fun StatCard(label: String, value: String, color: Color, modifier: Modif
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(14.dp)) {
-            SectionLabel(label)
+            SectionLabel(label, heading = false)
             Text(
                 value,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = color,
+                // Peach measured 2:1 on the card. Deepened along its hue to AA.
+                color = readableInk(color, MaterialTheme.colorScheme.surface),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -2514,11 +2529,14 @@ private fun leaveAmountLabel(days: Double, hours: Double): String {
 }
 
 @Composable
-private fun SectionLabel(text: String) = Text(
+private fun SectionLabel(text: String, heading: Boolean = true) = Text(
     text.uppercase(),
     style = MaterialTheme.typography.labelSmall,
     fontWeight = FontWeight.Bold,
     color = MaterialTheme.colorScheme.onSurfaceVariant,
+    // A heading where it opens a section, so TalkBack can jump between them; not
+    // where it only names the figure under it inside a stat card.
+    modifier = if (heading) Modifier.auroraHeading() else Modifier,
 )
 
 @Composable

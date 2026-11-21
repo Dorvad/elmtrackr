@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.reports
 
+import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.UserFacingError
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.di.ComputationDispatcher
@@ -530,7 +532,7 @@ class ReportsViewModel @Inject constructor(
             // A broken report screen is exactly the wrong moment to ask for a
             // review; open the quiet period before surfacing the error.
             reviewPromptRecorder.noteDiscouragingEvent()
-            emit(ReportsUiState.Error(e.message ?: "Unknown error"))
+            emit(ReportsUiState.Error(UserFacingError.message(e, R.string.error_generic)))
         }
         // The transform above runs the full month's payroll: sumMonthlyPay, the daily
         // insights builder (which sums pay again) and the weekly breakdown, all of which

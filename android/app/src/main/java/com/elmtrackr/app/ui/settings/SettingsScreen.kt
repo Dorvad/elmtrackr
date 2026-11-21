@@ -2,6 +2,7 @@
 
 package com.elmtrackr.app.ui.settings
 
+import com.elmtrackr.app.ui.common.asString
 import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -23,7 +24,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -196,13 +197,13 @@ fun SettingsScreen(
         )
     }
 
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // Collected here rather than inside the store so a price arriving from Play
     // recomposes only the settings subtree, not the whole activity.
-    val packStorefront by viewModel.packStorefront.collectAsState()
-    val packPurchaseFeedback by viewModel.packPurchaseFeedback.collectAsState()
-    val justUnlockedPacks by viewModel.justUnlockedPacks.collectAsState()
-    val isRestoringPacks by viewModel.isRestoringPacks.collectAsState()
+    val packStorefront by viewModel.packStorefront.collectAsStateWithLifecycle()
+    val packPurchaseFeedback by viewModel.packPurchaseFeedback.collectAsStateWithLifecycle()
+    val justUnlockedPacks by viewModel.justUnlockedPacks.collectAsStateWithLifecycle()
+    val isRestoringPacks by viewModel.isRestoringPacks.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.ensureSettingsExist() }
 
     AnimatedContent(
@@ -295,7 +296,7 @@ fun SettingsScreen(
                             isRestoringPacks = isRestoringPacks,
                         )
                         is SettingsUiState.Error -> ErrorState(
-                            message = state.message,
+                            message = state.message.asString(),
                             onRetry = viewModel::ensureSettingsExist,
                         )
                     }
@@ -589,7 +590,7 @@ private fun SettingsFormHost(
             )
             SettingsDestination.FEATURES -> {
                 val reminderRulesViewModel: ReminderRulesViewModel = hiltViewModel()
-                val reminderRules by reminderRulesViewModel.rules.collectAsState()
+                val reminderRules by reminderRulesViewModel.rules.collectAsStateWithLifecycle()
                 FeaturesDetailScreen(
                     travelRefunds = travelRefunds,
                     onTravelRefundsChange = { travelRefunds = it },
@@ -640,18 +641,20 @@ private fun SettingsFormHost(
         } else {
             Modifier
         }
-        SnackbarHost(
-            hostState = snackbarHostState,
+        // One column, snackbar above the bar. Both used to be aligned to the bottom
+        // edge independently, and the bar was drawn second — so while there were
+        // unsaved changes it painted over every message, including "save failed".
+        Column(
             modifier = Modifier.align(Alignment.BottomCenter).then(bottomInset),
-        )
-
-        if (unsavedCount > 0) {
-            SettingsFloatingSaveBar(
-                unsavedCount = unsavedCount,
-                isSaving = state.isSaving,
-                onSave = saveAction,
-                modifier = Modifier.align(Alignment.BottomCenter).then(bottomInset),
-            )
+        ) {
+            SnackbarHost(hostState = snackbarHostState)
+            if (unsavedCount > 0) {
+                SettingsFloatingSaveBar(
+                    unsavedCount = unsavedCount,
+                    isSaving = state.isSaving,
+                    onSave = saveAction,
+                )
+            }
         }
     }
 }

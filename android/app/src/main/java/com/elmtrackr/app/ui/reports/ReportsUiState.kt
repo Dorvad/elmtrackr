@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.reports
 
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ReportScope
 import com.elmtrackr.app.domain.leave.AbsenceListEntry
@@ -99,5 +100,6 @@ sealed interface ReportsUiState {
                 .toSortedMap()
     }
 
-    data class Error(val message: String) : ReportsUiState
+    /** Translated and classified by [com.elmtrackr.app.ui.common.UserFacingError] — never raw exception text. */
+    data class Error(val message: UiText) : ReportsUiState
 }

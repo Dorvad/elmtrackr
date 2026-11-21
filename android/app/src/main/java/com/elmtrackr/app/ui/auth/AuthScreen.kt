@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.auth
 
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -38,7 +40,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -111,7 +113,7 @@ private fun authModeOrder(mode: AuthMode): Int = when (mode) {
 fun AuthScreen(
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val motionEnabled = auroraMotionEnabled()
     val activity = LocalContext.current.findActivity()
 
@@ -430,7 +432,11 @@ internal fun SignedOutContent(
                             text = it.asString(),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.fillMaxWidth(),
+                            // Announced as it appears: a failed sign-in otherwise left a TalkBack
+                            // user on the button with no word that anything had gone wrong.
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics { liveRegion = LiveRegionMode.Polite },
                         )
                     }
 
@@ -590,7 +596,11 @@ private fun PasswordRecoveryContent(
                     text = it.asString(),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.fillMaxWidth(),
+                    // Announced as it appears: a failed sign-in otherwise left a TalkBack
+                    // user on the button with no word that anything had gone wrong.
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { liveRegion = LiveRegionMode.Polite },
                 )
             }
 

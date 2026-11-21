@@ -8,7 +8,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -76,9 +77,14 @@ fun AuroraMeshBackground(
     // is a symmetric ±offset, so 0.5f is the composition the blobs spend most of
     // their time near. This is the app background — it was the single largest
     // animation still running with the reduce-motion setting on.
-    val drift = if (auroraMotionEnabled()) {
+    //
+    // Held as a State and read inside the Canvas, not through `by` up here. Reading
+    // it during composition recomposed this whole background on every frame for as
+    // long as any AuroraScreen was visible; read in the draw lambda, a frame only
+    // re-runs the drawing.
+    val driftState: State<Float> = if (auroraMotionEnabled()) {
         val transition = rememberInfiniteTransition(label = "aurora-mesh")
-        val animated by transition.animateFloat(
+        transition.animateFloat(
             initialValue = 0f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
@@ -87,12 +93,12 @@ fun AuroraMeshBackground(
             ),
             label = "aurora-drift",
         )
-        animated
     } else {
-        0.5f
+        remember { mutableFloatStateOf(0.5f) }
     }
 
     Canvas(modifier = modifier) {
+        val drift = driftState.value
         val w = size.width
         val h = size.height
         val driftX = (drift - 0.5f) * w * 0.06f

@@ -1,5 +1,13 @@
 package com.elmtrackr.app.ui.onboarding
 
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
@@ -56,7 +64,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -115,9 +123,9 @@ fun OnboardingScreen(
     onCompleted: () -> Unit = {},
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val initialSettings by viewModel.initialSettings.collectAsState()
-    val initialProfile by viewModel.initialProfile.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val initialSettings by viewModel.initialSettings.collectAsStateWithLifecycle()
+    val initialProfile by viewModel.initialProfile.collectAsStateWithLifecycle()
     var step by rememberSaveable { mutableIntStateOf(1) }
     var regionCode by rememberSaveable { mutableStateOf(ONBOARDING_DEFAULT_REGION) }
     var currencyCode by rememberSaveable { mutableStateOf("ILS") }
@@ -175,7 +183,7 @@ fun OnboardingScreen(
 
     val scrollState = rememberScrollState()
 
-    val initialAppLock by viewModel.initialAppLockEnabled.collectAsState()
+    val initialAppLock by viewModel.initialAppLockEnabled.collectAsStateWithLifecycle()
     LaunchedEffect(initialSettings?.id, initialProfile?.id, initialAppLock, replay) {
         val settings = initialSettings ?: return@LaunchedEffect
         val profile = initialProfile ?: return@LaunchedEffect
@@ -419,7 +427,7 @@ internal fun OnboardingProgress(
 }
 
 @StringRes
-private fun stepTitleRes(step: Int): Int = when (step) {
+internal fun stepTitleRes(step: Int): Int = when (step) {
     STEP_WELCOME -> R.string.onboarding_step_welcome
     STEP_REGION -> R.string.onboarding_step_region
     STEP_PAY -> R.string.onboarding_step_pay
@@ -452,7 +460,7 @@ private fun LanguageOptionCard(
     CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp).then(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp).radioOption(selected).then(
                 if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(CornerRadius.Medium)) else Modifier,
             ),
             shape = RoundedCornerShape(CornerRadius.Medium),
@@ -498,11 +506,12 @@ internal fun RegionStep(
         stringResource(R.string.onboarding_region_subtitle),
     )
     SetupCard {
+        Column(Modifier.selectableGroup()) {
         RegionPresets.all.forEach { preset ->
             val selected = preset.regionCode == regionCode
             Card(
                 onClick = { onSelectRegion(preset.regionCode) },
-                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp).radioOption(selected),
                 shape = RoundedCornerShape(CornerRadius.Medium),
                 colors = CardDefaults.cardColors(
                     containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer
@@ -519,6 +528,7 @@ internal fun RegionStep(
                     )
                 }
             }
+        }
         }
         Spacer(Modifier.height(8.dp))
         Text(
@@ -566,13 +576,16 @@ internal fun PaySetupStep(
         Spacer(Modifier.height(16.dp))
         Text(stringResource(R.string.onboarding_pay_currency_label), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
+        Column(Modifier.selectableGroup()) {
         CurrencyCode.entries.chunked(2).forEach { rowCurrencies ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // IntrinsicSize.Min with fillMaxHeight below: a name that needs a second
+            // line makes both cards in its row the same height, so the grid stays even.
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 rowCurrencies.forEach { option ->
                     val selected = option == currency
                     Card(
                         onClick = { onCurrencyChange(option) },
-                        modifier = Modifier.weight(1f).then(
+                        modifier = Modifier.weight(1f).fillMaxHeight().radioOption(selected).then(
                             if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(CornerRadius.Medium)) else Modifier,
                         ),
                         shape = RoundedCornerShape(CornerRadius.Medium),
@@ -585,13 +598,22 @@ internal fun PaySetupStep(
                             Spacer(Modifier.width(8.dp))
                             Column {
                                 Text(option.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                Text(currencyDisplayName(option), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                // Two lines, not one: maxLines = 1 with no ellipsis cut names
+                                // mid-word ("Israeli New", "Швейцарски").
+                                Text(
+                                    currencyDisplayName(option),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
                             }
                         }
                     }
                 }
             }
             Spacer(Modifier.height(8.dp))
+        }
         }
     }
     Spacer(Modifier.height(18.dp))
@@ -761,6 +783,7 @@ internal fun WelcomeStep(replay: Boolean, onNext: () -> Unit) {
         SetupCard {
             // Each option is written in its own language so it stays readable
             // whichever one is currently active.
+            Column(Modifier.selectableGroup()) {
             LanguageOptionCard(
                 title = "English",
                 subtitle = "Track your hours in English",
@@ -789,6 +812,7 @@ internal fun WelcomeStep(replay: Boolean, onNext: () -> Unit) {
                 layoutDirection = LayoutDirection.Ltr,
                 onClick = { AppLanguage.apply(context, AppLanguage.RUSSIAN) },
             )
+            }
         }
         Spacer(Modifier.height(16.dp))
         SetupCard {
@@ -911,3 +935,15 @@ private fun NavRow(onBack: () -> Unit, onNext: () -> Unit, nextEnabled: Boolean 
 private fun String.decimalInput(): String = com.elmtrackr.app.ui.common.DecimalInput.sanitize(this)
 
 private fun Double.toEditableHours(): String = if (this == toInt().toDouble()) toInt().toString() else toString()
+
+/**
+ * Single-choice semantics for an option card: role and selected state.
+ *
+ * Selection used to show only as colour, a border or an unlabelled check, so
+ * TalkBack read every language, region and currency card the same way and never
+ * said which one was chosen. Paired with `selectableGroup()` on the container.
+ */
+private fun Modifier.radioOption(selected: Boolean): Modifier = semantics {
+    role = Role.RadioButton
+    this.selected = selected
+}

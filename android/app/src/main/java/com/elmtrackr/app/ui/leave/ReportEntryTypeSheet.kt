@@ -33,7 +33,6 @@ import com.elmtrackr.app.domain.model.AbsenceType
 import com.elmtrackr.app.ui.design.ElmIconTile
 import com.elmtrackr.app.ui.design.ElmIconTileSize
 import com.elmtrackr.app.ui.design.auroraRowClickable
-import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.Spacing
@@ -134,9 +133,7 @@ private fun EntryTypeRow(
             Icons.AutoMirrored.Outlined.KeyboardArrowRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier
-                .size(Spacing.s20)
-                .mirrorInRtl(),
+            modifier = Modifier.size(Spacing.s20),
         )
     }
 }

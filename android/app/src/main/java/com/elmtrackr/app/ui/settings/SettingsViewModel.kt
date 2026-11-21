@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.settings
 
+import com.elmtrackr.app.ui.common.UserFacingError
 import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -309,7 +310,7 @@ class SettingsViewModel @Inject constructor(
                 ?.name,
         )
     }.catch { e ->
-        emit(SettingsUiState.Error(e.message ?: "Unknown error"))
+        emit(SettingsUiState.Error(UserFacingError.message(e, R.string.error_generic)))
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),

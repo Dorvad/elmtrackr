@@ -6,7 +6,6 @@
     <string name="nav_reports">Reports</string>
     <string name="nav_projects">Projects</string>
     <string name="nav_settings">Settings</string>
-    <string name="nav_tab_selected">%1$s, selected</string>
 
     <!-- Region presets -->
     <string name="region_us_label">United States (Federal / FLSA)</string>

@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.tasks
 
+import androidx.compose.ui.graphics.compositeOver
+import com.elmtrackr.app.ui.theme.readableInk
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -205,10 +207,14 @@ fun ActiveShiftTaskBadge(
 ) {
     if (name.isNullOrBlank()) return
     val tint = parseTaskColor(colorHex)
+    val fill = tint?.copy(alpha = 0.22f) ?: MaterialTheme.colorScheme.primaryContainer
+    // A task's own colour on a 22% wash of itself measured 1.6:1 for amber and 2:1
+    // for sky blue. Deepened along its hue until it reads on that wash.
+    val ink = tint?.let { readableInk(it, fill.compositeOver(MaterialTheme.colorScheme.surface)) }
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(CornerRadius.Small),
-        color = tint?.copy(alpha = 0.22f) ?: MaterialTheme.colorScheme.primaryContainer,
+        color = fill,
     ) {
         Text(
             if (rate != null) {
@@ -218,7 +224,7 @@ fun ActiveShiftTaskBadge(
             },
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelMedium,
-            color = tint ?: MaterialTheme.colorScheme.onPrimaryContainer,
+            color = ink ?: MaterialTheme.colorScheme.onPrimaryContainer,
         )
     }
 }

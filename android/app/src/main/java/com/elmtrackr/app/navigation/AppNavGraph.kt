@@ -8,7 +8,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,9 +44,9 @@ fun AppNavGraph() {
     val shellViewModel: AppShellViewModel = hiltViewModel()
     val authViewModel: AuthViewModel = hiltViewModel()
     val navController = rememberNavController()
-    val navState by shellViewModel.navState.collectAsState()
-    val paidProjectsEnabled by shellViewModel.paidProjectsEnabled.collectAsState()
-    val pendingDeepLink by shellViewModel.pendingDeepLink.collectAsState()
+    val navState by shellViewModel.navState.collectAsStateWithLifecycle()
+    val paidProjectsEnabled by shellViewModel.paidProjectsEnabled.collectAsStateWithLifecycle()
+    val pendingDeepLink by shellViewModel.pendingDeepLink.collectAsStateWithLifecycle()
     // Read once here: the transition factories below are plain functions that
     // run outside composition, so they cannot see LocalReduceMotion themselves.
     val motionEnabled = auroraMotionEnabled()
