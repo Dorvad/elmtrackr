@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.onboarding
 
+import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -602,7 +603,10 @@ internal fun PaySetupStep(
                                 // mid-word ("Israeli New", "Швейцарски").
                                 Text(
                                     currencyDisplayName(option),
-                                    style = MaterialTheme.typography.labelSmall,
+                                    // Hyphenated where the locale supports it: one Russian
+                                    // word ("Швейцарский") is wider than the column and
+                                    // otherwise breaks at an arbitrary letter.
+                                    style = MaterialTheme.typography.labelSmall.copy(hyphens = Hyphens.Auto),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
