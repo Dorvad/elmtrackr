@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.reports
 
+import com.elmtrackr.app.ui.common.refundProviderLabel
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -554,7 +555,7 @@ object ReportExporter {
             val direction = res.getString(if (row.claim.direction == RefundDirection.TO_WORK) R.string.reports_dir_to_work else R.string.reports_dir_from_work)
             canvas.drawText(direction, margin, y, body)
             canvas.drawText(dateFormat.format(row.claim.rideAt), 105f, y, body)
-            canvas.drawText(row.claim.provider.name.lowercase().replaceFirstChar(Char::uppercase), 280f, y, body)
+            canvas.drawText(refundProviderLabel(row.claim.provider, res), 280f, y, body)
             canvas.drawText(MoneyFormatter.format(row.claim.amount, currency, res.exportLocale()), 475f, y, body)
             y += 14f
             val detail = buildString {
@@ -582,7 +583,7 @@ object ReportExporter {
                 val receiptPage = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
                 val receiptCanvas = receiptPage.canvas
                 receiptCanvas.drawText(
-                    res.getString(R.string.export_receipt_n, receiptIndex.toString(), row.claim.provider.name, MoneyFormatter.format(row.claim.amount, currency, res.exportLocale())),
+                    res.getString(R.string.export_receipt_n, receiptIndex.toString(), refundProviderLabel(row.claim.provider, res), MoneyFormatter.format(row.claim.amount, currency, res.exportLocale())),
                     margin,
                     margin,
                     heading,

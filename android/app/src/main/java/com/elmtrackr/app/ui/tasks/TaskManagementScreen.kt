@@ -2,6 +2,7 @@
 
 package com.elmtrackr.app.ui.tasks
 
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -551,13 +552,14 @@ private fun TaskEditorSheet(
             Spacer(Modifier.height(Spacing.s6))
             // No extra arrangement spacing: each swatch now reserves a 48dp touch
             // target around its 28dp circle, which supplies the gap on its own.
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-                TASK_COLOR_OPTIONS.forEach { hex ->
+            // One radio group, each swatch numbered rather than all announced as "Color".
+            FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                TASK_COLOR_OPTIONS.forEachIndexed { index, hex ->
                     val swatch = parseTaskColor(hex) ?: Color.Gray
                     TaskColorDot(
                         color = swatch,
                         selected = color == hex,
-                        contentDescription = stringResource(R.string.tasks_color_label),
+                        contentDescription = stringResource(R.string.a11y_colour_swatch, index + 1, TASK_COLOR_OPTIONS.size),
                         onClick = { color = hex },
                     )
                 }

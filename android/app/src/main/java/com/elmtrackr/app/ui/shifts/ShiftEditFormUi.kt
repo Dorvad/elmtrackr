@@ -506,7 +506,11 @@ internal fun ShiftEditFormContent(
                                     R.string.shifts_saved_task,
                                     initialShift.taskIconSnapshot.orEmpty(),
                                     initialShift.taskNameSnapshot.toString(),
-                                    initialShift.taskHourlyRateSnapshot.toString(),
+                                    // As money, and never the word "null" when the
+                                    // snapshot has no rate.
+                                    initialShift.taskHourlyRateSnapshot
+                                        ?.let { MoneyFormatter.format(it, currency, appLocale()) }
+                                        ?: "—",
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.settings
 
+import com.elmtrackr.app.ui.design.AuroraScreenHeader
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -244,22 +245,17 @@ internal fun SettingsDetailHeader(
     title: String,
     onBack: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = Spacing.sm, bottom = Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
-        }
-        Text(
-            title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 4.dp).auroraHeading(),
-        )
-    }
+    // The shared sub-screen header. This used to be its own IconButton + titleLarge
+    // row — the improvised pattern AuroraScreenHeader exists to replace — so Settings
+    // showed three header styles side by side: this one on Pay, Profile, Appearance
+    // and the rest, the Aurora chip header on Sync details, Tasks and Premium
+    // profiles, and a third on Work profiles.
+    AuroraScreenHeader(
+        title = title,
+        onBack = onBack,
+        backContentDescription = stringResource(R.string.settings_back),
+        modifier = Modifier.padding(bottom = Spacing.sm),
+    )
 }
 
 @Composable

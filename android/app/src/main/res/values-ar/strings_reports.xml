@@ -82,7 +82,6 @@
     <string name="reports_rides_months">%1$d رحلة - %2$d أشهر</string>
     <string name="reports_total_compensation">إجمالي التعويض</string>
     <string name="reports_by_provider">حسب المزوّد</string>
-    <string name="reports_provider_rides">%1$s - %2$d رحلة</string>
     <string name="reports_avg_per_ride">المتوسط لكل رحلة</string>
     <string name="reports_largest_ride">أكبر رحلة</string>
     <string name="reports_submitted">مُقدَّمة</string>
@@ -217,4 +216,12 @@
     <string name="reports_job_empty_title">لا ورديات في %1$s خلال %2$s</string>
     <string name="reports_job_empty_body">توجد ورديات هذا الشهر في أعمالك الأخرى.</string>
     <string name="reports_job_empty_action">عرض كل الأعمال</string>
+    <plurals name="reports_provider_ride_count">
+        <item quantity="zero">%1$s - %2$d رحلة</item>
+        <item quantity="one">%1$s - رحلة واحدة</item>
+        <item quantity="two">%1$s - رحلتان</item>
+        <item quantity="few">%1$s - %2$d رحلات</item>
+        <item quantity="many">%1$s - %2$d رحلة</item>
+        <item quantity="other">%1$s - %2$d رحلة</item>
+    </plurals>
 </resources>

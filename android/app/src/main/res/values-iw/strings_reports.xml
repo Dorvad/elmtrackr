@@ -81,7 +81,6 @@
     <string name="reports_rides_months">%1$d נסיעות · %2$d חודשים</string>
     <string name="reports_total_compensation">סך הפיצוי</string>
     <string name="reports_by_provider">לפי ספק</string>
-    <string name="reports_provider_rides">%1$s · %2$d נסיעות</string>
     <string name="reports_avg_per_ride">ממוצע לנסיעה</string>
     <string name="reports_largest_ride">הנסיעה הגדולה ביותר</string>
     <string name="reports_submitted">הוגשו</string>
@@ -216,4 +215,10 @@
     <string name="reports_job_empty_title">אין משמרות ב־%1$s בחודש %2$s</string>
     <string name="reports_job_empty_body">בעבודות האחרות שלך יש משמרות החודש.</string>
     <string name="reports_job_empty_action">הצגת כל העבודות</string>
+    <plurals name="reports_provider_ride_count">
+        <item quantity="one">%1$s · נסיעה אחת</item>
+        <item quantity="two">%1$s · שתי נסיעות</item>
+        <item quantity="many">%1$s · %2$d נסיעות</item>
+        <item quantity="other">%1$s · %2$d נסיעות</item>
+    </plurals>
 </resources>

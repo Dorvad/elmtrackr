@@ -1,5 +1,9 @@
 package com.elmtrackr.app.ui.reports
 
+import com.elmtrackr.app.ui.design.AuroraMotion
+import com.elmtrackr.app.ui.design.auroraAnimationSpec
+import androidx.compose.ui.res.pluralStringResource
+import com.elmtrackr.app.ui.common.refundProviderLabel
 import com.elmtrackr.app.ui.theme.AuroraLegibleGradient
 import androidx.compose.ui.graphics.compositeOver
 import com.elmtrackr.app.ui.theme.readableInk
@@ -1380,10 +1384,17 @@ private fun InsightOfTheDay(insights: List<DailyInsight>) {
             // Pagination dots
             if (insights.size > 1) {
                 Spacer(Modifier.height(10.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                // A tab set, each dot named by its position ("2 of 5"): unlabelled, TalkBack
+                // read every one as "Tab" with nothing to tell them apart.
+                Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.Center) {
                     insights.forEachIndexed { i, _ ->
                         val isActive = i == activeIdx
-                        val dotWidth by animateFloatAsState(if (isActive) 20f else 6f, label = "dot-$i")
+                        val dotLabel = stringResource(R.string.reports_index_of, i + 1, insights.size)
+                        val dotWidth by animateFloatAsState(
+                            if (isActive) 20f else 6f,
+                            animationSpec = auroraAnimationSpec(AuroraMotion.ContentCrossfadeMillis),
+                            label = "dot-$i",
+                        )
                         // The 6dp dot is the visual; the tap target around it is
                         // the 48dp minimum. Previously the dot itself was the
                         // target, which is smaller than a fingertip.
@@ -1398,7 +1409,8 @@ private fun InsightOfTheDay(insights: List<DailyInsight>) {
                                         }
                                     },
                                 )
-                                .minimumInteractiveComponentSize(),
+                                .minimumInteractiveComponentSize()
+                                .semantics { contentDescription = dotLabel },
                             contentAlignment = Alignment.Center,
                         ) {
                             Box(
@@ -2074,7 +2086,7 @@ private fun RefundAnalytics(
         claims.groupBy { it.provider }.entries.sortedByDescending { it.value.sumOf(RefundClaim::amount) }.forEach { (provider, rows) ->
             val amount = rows.sumOf { it.amount }
             Spacer(Modifier.height(8.dp))
-            ReportRow(stringResource(R.string.reports_provider_rides, provider.name.lowercase().replaceFirstChar(Char::uppercase), rows.size), MoneyFormatter.format(amount, currency, appLocale()))
+            ReportRow(pluralStringResource(R.plurals.reports_provider_ride_count, rows.size, refundProviderLabel(provider), rows.size), MoneyFormatter.format(amount, currency, appLocale()))
             Box(Modifier.fillMaxWidth().height(6.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp))) {
                 Box(Modifier.fillMaxWidth((amount / total).toFloat().coerceIn(0f, 1f)).height(6.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp)))
             }
@@ -2126,7 +2138,7 @@ private fun RefundMonthCard(
                             stringResource(
                                 R.string.reports_claim_line,
                                 stringResource(if (claim.direction == com.elmtrackr.app.domain.model.RefundDirection.TO_WORK) R.string.reports_dir_to_work else R.string.reports_dir_from_work),
-                                claim.provider.name.lowercase(),
+                                refundProviderLabel(claim.provider),
                                 MoneyFormatter.format(claim.amount, currency, appLocale()),
                             ) + if (claim.receiptPath != null) stringResource(R.string.reports_receipt_suffix) else "",
                             style = MaterialTheme.typography.bodySmall,

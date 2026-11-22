@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.shifts
 
+import com.elmtrackr.app.ui.design.AuroraFigurePair
 import androidx.compose.ui.graphics.compositeOver
 import com.elmtrackr.app.ui.theme.readableInk
 import androidx.compose.foundation.background
@@ -257,42 +258,47 @@ internal fun ShiftsHeroSummaryCard(
                 )
                 Spacer(Modifier.height(Spacing.md))
             }
-            Row(
+            // AuroraFigurePair, as on the Dashboard month card and the Reports overview:
+            // side by side when both fit, stacked when they do not. A SpaceBetween row
+            // let the estimate's label crowd the hours out at large font sizes.
+            AuroraFigurePair(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column {
-                    Text(
-                        stringResource(R.string.shifts_hours_tracked_header),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    HeroHoursTracked(
-                        completedMinutes = summary.completedMinutes,
-                        activeShift = activeShift,
-                    )
-                }
-                summary.pay?.let {
-                    Column(horizontalAlignment = Alignment.End) {
+                start = {
+                    Column {
                         Text(
-                            stringResource(R.string.shifts_est_gross_header),
+                            stringResource(R.string.shifts_hours_tracked_header),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Bold,
                         )
-                        Text(
-                            it.formattedEachOrZero(currency.name),
-                            style = if (it.isMixed) {
-                                MaterialTheme.typography.titleMedium
-                            } else {
-                                MaterialTheme.typography.headlineMedium
-                            },
-                            fontWeight = FontWeight.ExtraBold,
+                        HeroHoursTracked(
+                            completedMinutes = summary.completedMinutes,
+                            activeShift = activeShift,
                         )
                     }
-                }
-            }
+                },
+                end = summary.pay?.let { pay ->
+                    {
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                stringResource(R.string.shifts_est_gross_header),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                pay.formattedEachOrZero(currency.name),
+                                style = if (pay.isMixed) {
+                                    MaterialTheme.typography.titleMedium
+                                } else {
+                                    MaterialTheme.typography.headlineMedium
+                                },
+                                fontWeight = FontWeight.ExtraBold,
+                            )
+                        }
+                    }
+                },
+            )
 
             if (summary.completedMinutes > 0 || activeShift != null) {
                 HeroHoursBreakdown(

@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.projects
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -357,18 +358,16 @@ fun correctionBlockedMessage(block: ProjectBillingCorrection.Block): String = wh
 @Composable
 fun dueStatusText(state: ProjectBillingState): String? {
     val days = state.daysOverdue
+    // Plurals, not a "== 1" pair: Arabic has a dual and a separate form from 11, and
+    // "Due in 1 days" was the English result of the old pair.
     if (days != null) {
-        return if (days == 1L) {
-            stringResource(R.string.project_billing_overdue_one_day)
-        } else {
-            stringResource(R.string.project_billing_overdue_days, days.toInt())
-        }
+        return pluralStringResource(R.plurals.project_billing_overdue, days.toInt(), days.toInt())
     }
     val until = state.daysUntilDue ?: return null
     if (!state.outstanding.isPositive) return null
     return when {
         until == 0L -> stringResource(R.string.project_billing_due_today)
-        until > 0L -> stringResource(R.string.project_billing_due_in_days, until.toInt())
+        until > 0L -> pluralStringResource(R.plurals.project_billing_due_in, until.toInt(), until.toInt())
         else -> null
     }
 }

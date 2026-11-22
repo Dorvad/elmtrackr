@@ -82,7 +82,6 @@
     <string name="reports_rides_months">%1$d rides - %2$d months</string>
     <string name="reports_total_compensation">Total compensation</string>
     <string name="reports_by_provider">By Provider</string>
-    <string name="reports_provider_rides">%1$s - %2$d rides</string>
     <string name="reports_avg_per_ride">Avg per Ride</string>
     <string name="reports_largest_ride">Largest Ride</string>
     <string name="reports_submitted">Submitted</string>
@@ -220,4 +219,8 @@
     <string name="reports_job_empty_title">No shifts at %1$s in %2$s</string>
     <string name="reports_job_empty_body">Your other jobs have shifts this month.</string>
     <string name="reports_job_empty_action">Show all jobs</string>
+    <plurals name="reports_provider_ride_count">
+        <item quantity="one">%1$s - %2$d ride</item>
+        <item quantity="other">%1$s - %2$d rides</item>
+    </plurals>
 </resources>

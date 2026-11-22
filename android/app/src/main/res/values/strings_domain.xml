@@ -102,4 +102,7 @@
     <string name="clock_style_ember">Ember</string>
     <string name="clock_style_droplet">Droplet</string>
     <string name="clock_style_spark">Spark</string>
+    <string name="refund_provider_taxi">Taxi</string>
+    <string name="refund_provider_other">Other</string>
+    <string name="a11y_colour_swatch">Colour %1$d of %2$d</string>
 </resources>

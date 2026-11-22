@@ -310,10 +310,7 @@
     <string name="project_payment_delete_keep">Keep</string>
 
     <!-- Overdue -->
-    <string name="project_billing_overdue_days">%1$d days overdue</string>
-    <string name="project_billing_overdue_one_day">1 day overdue</string>
     <string name="project_billing_due_today">Due today</string>
-    <string name="project_billing_due_in_days">Due in %1$d days</string>
 
     <!-- Billing reminders -->
     <string name="project_reminder_upcoming_title">%1$s is due soon</string>
@@ -471,4 +468,12 @@
     <string name="projects_guide_billing_body">When you invoice, mark the project as billed. That freezes what was billed, so editing the project later cannot restate an invoice you already sent. Record each payment and the outstanding balance follows.</string>
     <string name="projects_guide_billing_note">Past its due date a project is flagged overdue and can remind you. ElmTrackr does not issue invoices — record the reference you issued elsewhere.</string>
     <string name="projects_guide_billing_a11y">A billed amount locking in place, two payments arriving, the outstanding bar shrinking with each, then turning orange once the due date passes.</string>
+    <plurals name="project_billing_overdue">
+        <item quantity="one">%d day overdue</item>
+        <item quantity="other">%d days overdue</item>
+    </plurals>
+    <plurals name="project_billing_due_in">
+        <item quantity="one">Due in %d day</item>
+        <item quantity="other">Due in %d days</item>
+    </plurals>
 </resources>

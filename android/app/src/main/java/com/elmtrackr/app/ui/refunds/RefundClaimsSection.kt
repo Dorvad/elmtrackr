@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.refunds
 
+import com.elmtrackr.app.ui.common.refundProviderLabel
 import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.annotation.StringRes
@@ -392,7 +393,7 @@ private fun RefundClaimEntry(
         Text(
             stringResource(
                 R.string.refunds_claim_summary,
-                claim.provider.name.lowercase().replaceFirstChar { it.uppercase() },
+                refundProviderLabel(claim.provider),
                 MoneyFormatter.format(claim.amount, currency, appLocale()),
             ),
             style = MaterialTheme.typography.titleMedium,

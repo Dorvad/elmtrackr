@@ -314,10 +314,7 @@
     <string name="project_payment_delete_keep">إبقاء</string>
 
     <!-- Overdue -->
-    <string name="project_billing_overdue_days">متأخّر %1$d أيام</string>
-    <string name="project_billing_overdue_one_day">متأخّر يومًا واحدًا</string>
     <string name="project_billing_due_today">السداد اليوم</string>
-    <string name="project_billing_due_in_days">السداد بعد %1$d أيام</string>
 
     <!-- Billing reminders -->
     <string name="project_reminder_upcoming_title">موعد سداد %1$s يقترب</string>
@@ -475,4 +472,20 @@
     <string name="projects_guide_billing_body">عند إصدار الفاتورة، ضع المشروع كمُفوتَر. هذا يثبّت ما جرت فوترته، فلا يستطيع تعديل لاحق للمشروع أن يغيّر فاتورة أرسلتها. سجّل كل دفعة ويتبعها الرصيد المستحق تلقائيًا.</string>
     <string name="projects_guide_billing_note">بعد تاريخ الاستحقاق يوسم المشروع كمتأخر ويمكنه تذكيرك. لا يصدر ElmTrackr فواتير — سجّل المرجع الذي أصدرته في مكان آخر.</string>
     <string name="projects_guide_billing_a11y">مبلغ مفوتَر يثبت في مكانه، ودفعتان تصلان، وشريط المستحق ينكمش مع كل منهما، ثم يتحول إلى البرتقالي عند تجاوز تاريخ الاستحقاق.</string>
+    <plurals name="project_billing_overdue">
+        <item quantity="zero">متأخّر %d يوم</item>
+        <item quantity="one">متأخّر يومًا واحدًا</item>
+        <item quantity="two">متأخّر يومين</item>
+        <item quantity="few">متأخّر %d أيام</item>
+        <item quantity="many">متأخّر %d يومًا</item>
+        <item quantity="other">متأخّر %d يوم</item>
+    </plurals>
+    <plurals name="project_billing_due_in">
+        <item quantity="zero">السداد بعد %d يوم</item>
+        <item quantity="one">السداد بعد يوم واحد</item>
+        <item quantity="two">السداد بعد يومين</item>
+        <item quantity="few">السداد بعد %d أيام</item>
+        <item quantity="many">السداد بعد %d يومًا</item>
+        <item quantity="other">السداد بعد %d يوم</item>
+    </plurals>
 </resources>

@@ -108,6 +108,20 @@ fun ProjectsScreen(
             selectedProjectId = null
         }
     }
+    // The destination survives rotation, a theme or font-size change (rememberSaveable)
+    // but the drafts above deliberately do not. Restored onto a billing or payment form
+    // with no draft, the screen showed a spinner that never resolved and only Back got
+    // out. Return to the project instead, which re-reads its data, rather than restore
+    // a stale draft. Opening a form sets the draft before the destination, in the same
+    // coroutine, so this never fires on the way in.
+    LaunchedEffect(destination, billingInput, paymentInput) {
+        val draftMissing = when (destination) {
+            ProjectsDestination.BILLING -> billingInput == null
+            ProjectsDestination.PAYMENT -> paymentInput == null
+            else -> false
+        }
+        if (draftMissing) destination = ProjectsDestination.DETAIL
+    }
     LaunchedEffect(destination, showGuide) {
         onFormVisibilityChanged(showGuide || destination != ProjectsDestination.LIST)
     }

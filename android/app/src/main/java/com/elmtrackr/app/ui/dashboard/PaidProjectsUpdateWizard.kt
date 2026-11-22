@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.dashboard
 
+import androidx.activity.compose.BackHandler
 import com.elmtrackr.app.ui.design.auroraAnimationSpec
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
@@ -127,6 +128,14 @@ internal fun PaidProjectsUpdateWizard(
             dismissOnClickOutside = false,
         ),
     ) {
+        // System Back steps back a page, as the Back button does. Unhandled, it reached
+        // onDismissRequest, which retires the announcement for good — so Back on page
+        // three skipped the whole thing, against the "explicit choice" rule above. On
+        // the first page Back still dismisses.
+        BackHandler(enabled = page > 0) {
+            movingForward = -1
+            page -= 1
+        }
         Surface(
             shape = RoundedCornerShape(CornerRadius.Large),
             color = MaterialTheme.colorScheme.surface,

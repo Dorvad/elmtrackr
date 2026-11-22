@@ -312,10 +312,7 @@
     <string name="project_payment_delete_keep">להשאיר</string>
 
     <!-- Overdue -->
-    <string name="project_billing_overdue_days">בפיגור של %1$d ימים</string>
-    <string name="project_billing_overdue_one_day">בפיגור של יום</string>
     <string name="project_billing_due_today">לתשלום היום</string>
-    <string name="project_billing_due_in_days">לתשלום בעוד %1$d ימים</string>
 
     <!-- Billing reminders -->
     <string name="project_reminder_upcoming_title">%1$s לתשלום בקרוב</string>
@@ -463,4 +460,16 @@
     <string name="projects_guide_billing_body">כששולחים חשבונית, מסמנים את הפרויקט כמחויב. זה מקבע את מה שחויב, כך שעריכה מאוחרת של הפרויקט לא תשנה חשבונית שכבר נשלחה. רושמים כל תשלום והיתרה לתשלום מתעדכנת לבד.</string>
     <string name="projects_guide_billing_note">אחרי מועד התשלום הפרויקט מסומן כבפיגור ואפשר לקבל תזכורת. ElmTrackr אינו מפיק חשבוניות — אפשר לרשום אסמכתה שהופקה במקום אחר.</string>
     <string name="projects_guide_billing_a11y">סכום מחויב ננעל במקומו, שני תשלומים נכנסים, פס היתרה מתכווץ עם כל אחד, ואז הופך לכתום כשמועד התשלום חולף.</string>
+    <plurals name="project_billing_overdue">
+        <item quantity="one">בפיגור של יום</item>
+        <item quantity="two">בפיגור של יומיים</item>
+        <item quantity="many">בפיגור של %d ימים</item>
+        <item quantity="other">בפיגור של %d ימים</item>
+    </plurals>
+    <plurals name="project_billing_due_in">
+        <item quantity="one">לתשלום בעוד יום</item>
+        <item quantity="two">לתשלום בעוד יומיים</item>
+        <item quantity="many">לתשלום בעוד %d ימים</item>
+        <item quantity="other">לתשלום בעוד %d ימים</item>
+    </plurals>
 </resources>

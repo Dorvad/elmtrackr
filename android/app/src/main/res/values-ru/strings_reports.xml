@@ -82,7 +82,6 @@
     <string name="reports_rides_months">поездок: %1$d - месяцев: %2$d</string>
     <string name="reports_total_compensation">Общая компенсация</string>
     <string name="reports_by_provider">По перевозчикам</string>
-    <string name="reports_provider_rides">%1$s - поездок: %2$d</string>
     <string name="reports_avg_per_ride">В среднем за поездку</string>
     <string name="reports_largest_ride">Самая дорогая поездка</string>
     <string name="reports_submitted">Подано</string>
@@ -217,4 +216,10 @@
     <string name="reports_job_empty_title">Нет смен в «%1$s» за %2$s</string>
     <string name="reports_job_empty_body">В других ваших работах в этом месяце есть смены.</string>
     <string name="reports_job_empty_action">Показать все работы</string>
+    <plurals name="reports_provider_ride_count">
+        <item quantity="one">%1$s - поездок: %2$d</item>
+        <item quantity="few">%1$s - поездок: %2$d</item>
+        <item quantity="many">%1$s - поездок: %2$d</item>
+        <item quantity="other">%1$s - поездок: %2$d</item>
+    </plurals>
 </resources>

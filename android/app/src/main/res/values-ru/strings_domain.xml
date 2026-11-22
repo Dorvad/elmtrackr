@@ -102,4 +102,7 @@
     <string name="clock_style_ember">Уголёк</string>
     <string name="clock_style_droplet">Капелька</string>
     <string name="clock_style_spark">Искорка</string>
+    <string name="refund_provider_taxi">Такси</string>
+    <string name="refund_provider_other">Другое</string>
+    <string name="a11y_colour_swatch">Цвет %1$d из %2$d</string>
 </resources>
