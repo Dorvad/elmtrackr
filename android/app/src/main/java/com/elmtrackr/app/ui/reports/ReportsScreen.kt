@@ -454,7 +454,10 @@ private fun TabButton(label: String, selected: Boolean, modifier: Modifier, onCl
             label,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+            // White, not onPrimary: the selected tab sits on AuroraLegibleGradient in both
+            // themes, and dark theme's onPrimary (#21145F) measured 2.5–3.0:1 on it.
+            // White clears 5.2:1 (LegibleGradientContrastTest).
+            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             softWrap = false,

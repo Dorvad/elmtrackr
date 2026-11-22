@@ -1,5 +1,11 @@
 package com.elmtrackr.app.ui.design
 
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -33,6 +39,14 @@ import com.elmtrackr.app.ui.theme.auroraShadow
  *
  * Each segment is a radio-style selectable so a screen reader announces
  * "selected, one of two" the same way the Material segmented button did.
+ *
+ * Segments share the width equally, which only works while every label fits its
+ * share on one line. Four options at phone width leave under 50dp of text per
+ * segment, and "Multiplicative", "Base-plus-premium" or "Fixed amount per month"
+ * were cut off mid-word. So each label is measured first — at the current font
+ * scale, in the wider selected weight — and if any would not fit, the same
+ * segments are stacked one per line in the same track. Labels that fit keep the
+ * row exactly as before.
  */
 @Composable
 fun ElmSegmentedPillRow(
@@ -44,59 +58,110 @@ fun ElmSegmentedPillRow(
     enabledOptions: List<Boolean>? = null,
 ) {
     val haptic = LocalHapticFeedback.current
-    Row(
-        modifier = modifier
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(CornerRadius.Small))
-            .padding(3.dp)
-            .selectableGroup(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        options.forEachIndexed { index, label ->
-            val selected = index == selectedIndex
-            val enabled = enabledOptions?.getOrNull(index) ?: true
-            val shape = RoundedCornerShape(CornerRadius.SegmentPill)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .then(
-                        if (selected) {
-                            Modifier
-                                .auroraShadow(Elevation.Selector, shape)
-                                .background(MaterialTheme.colorScheme.surface, shape)
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .selectable(
-                        selected = selected,
-                        enabled = enabled,
-                        role = Role.RadioButton,
-                        onClick = {
-                            AuroraHaptics.toggle(haptic)
-                            onSelect(index)
-                        },
-                    )
-                    .defaultMinSize(minHeight = 48.dp)
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                val ink = if (selected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+    val labelStyle = MaterialTheme.typography.labelLarge
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    BoxWithConstraints(modifier) {
+        val boundedWidth = constraints.hasBoundedWidth
+        val stacked = remember(options, maxWidth, labelStyle, density, boundedWidth) {
+            if (!boundedWidth || options.isEmpty()) {
+                false
+            } else {
+                val textWidthPx = with(density) {
+                    ((maxWidth - SegmentTrackPadding * 2) / options.size - SegmentPaddingHorizontal * 2).toPx()
                 }
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (enabled) ink else ink.copy(alpha = 0.38f),
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                )
+                options.any { label ->
+                    measurer.measure(
+                        text = label,
+                        style = labelStyle.copy(fontWeight = FontWeight.SemiBold),
+                        maxLines = 1,
+                        softWrap = false,
+                    ).size.width > textWidthPx
+                }
+            }
+        }
+        val track = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(CornerRadius.Small))
+            .padding(SegmentTrackPadding)
+            .selectableGroup()
+        val segment: @Composable (Int, String, Modifier) -> Unit = { index, label, segmentModifier ->
+            PillSegment(
+                label = label,
+                selected = index == selectedIndex,
+                enabled = enabledOptions?.getOrNull(index) ?: true,
+                stacked = stacked,
+                onClick = {
+                    AuroraHaptics.toggle(haptic)
+                    onSelect(index)
+                },
+                modifier = segmentModifier,
+            )
+        }
+        if (stacked) {
+            Column(track, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                options.forEachIndexed { index, label -> segment(index, label, Modifier.fillMaxWidth()) }
+            }
+        } else {
+            Row(track, verticalAlignment = Alignment.CenterVertically) {
+                options.forEachIndexed { index, label -> segment(index, label, Modifier.weight(1f)) }
             }
         }
     }
 }
+
+@Composable
+private fun PillSegment(
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    stacked: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(CornerRadius.SegmentPill)
+    Box(
+        modifier = modifier
+            .then(
+                if (selected) {
+                    Modifier
+                        .auroraShadow(Elevation.Selector, shape)
+                        .background(MaterialTheme.colorScheme.surface, shape)
+                } else {
+                    Modifier
+                },
+            )
+            .selectable(
+                selected = selected,
+                enabled = enabled,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
+            .defaultMinSize(minHeight = 48.dp)
+            .padding(horizontal = SegmentPaddingHorizontal, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        val ink = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color = if (enabled) ink else ink.copy(alpha = 0.38f),
+            textAlign = TextAlign.Center,
+            // One line in the row, where the width was checked before choosing it;
+            // stacked, a full-width line can still wrap rather than clip.
+            maxLines = if (stacked) 2 else 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private val SegmentTrackPadding = 3.dp
+private val SegmentPaddingHorizontal = 12.dp
 
 /**
  * Aurora choice chip: hairline border, quiet at rest, primary-container tint
