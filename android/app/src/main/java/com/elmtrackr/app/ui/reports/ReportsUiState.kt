@@ -76,6 +76,14 @@ sealed interface ReportsUiState {
          * with nothing in it can say the other jobs have shifts and offer to show them.
          */
         val allJobsShiftCount: Int = 0,
+        /**
+         * The shift breakdown's rows, priced. Defaults to building them from the fields
+         * above, so the ViewModel — which constructs this on the computation dispatcher —
+         * pays for the payroll there, and `copy` carries the rows rather than redoing
+         * them. See [buildShiftReportRows].
+         */
+        val shiftRows: List<ShiftReportRowModel> =
+            buildShiftReportRows(rawShifts, settings, profiles, premiumProfiles, zone),
     ) : ReportsUiState {
         /** The scoped job's name, or null for all jobs. */
         val scopedJobName: String?

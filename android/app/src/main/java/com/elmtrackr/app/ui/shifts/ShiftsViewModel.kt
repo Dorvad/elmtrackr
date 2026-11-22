@@ -206,6 +206,14 @@ class ShiftsViewModel @Inject constructor(
                                             zone = zone,
                                             payContextShifts = contextShifts,
                                         ),
+                                        heroSummary = buildHeroSummary(
+                                            shifts = shifts,
+                                            settings = settings,
+                                            month = month,
+                                            profiles = profiles,
+                                            premiumProfiles = premiumProfiles,
+                                            payContextShifts = contextShifts,
+                                        ),
                                     )
                                 }
                             }.flowOn(computationDispatcher).collect { emit(it) }

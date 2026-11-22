@@ -313,6 +313,7 @@ private fun ShiftsListContent(
                 payContextShifts = state.payContextShifts,
                 onPreviousMonth = onPreviousMonth,
                 onNextMonth = onNextMonth,
+                precomputed = state.heroSummary,
             )
             Spacer(Modifier.height(Spacing.md))
         }

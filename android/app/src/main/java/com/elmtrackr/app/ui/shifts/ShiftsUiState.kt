@@ -37,6 +37,11 @@ sealed interface ShiftsUiState {
          * older tests do.
          */
         val payFacts: ShiftsPayFacts? = null,
+        /**
+         * The summary card's figures, built beside [payFacts] on the computation
+         * dispatcher. Null means the card works them out itself (previews, tests).
+         */
+        val heroSummary: HeroSummaryData? = null,
     ) : ShiftsUiState
 
     /** Translated and classified by [com.elmtrackr.app.ui.common.UserFacingError] — never raw exception text. */

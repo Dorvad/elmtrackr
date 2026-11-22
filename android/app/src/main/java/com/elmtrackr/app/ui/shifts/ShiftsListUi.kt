@@ -219,44 +219,19 @@ internal fun ShiftsHeroSummaryCard(
     payContextShifts: List<Shift> = emptyList(),
     onPreviousMonth: (() -> Unit)? = null,
     onNextMonth: (() -> Unit)? = null,
+    /** The figures, already computed off the main thread. See [buildHeroSummary]. */
+    precomputed: HeroSummaryData? = null,
 ) {
-    val completed = remember(shifts) { shifts.filter { it.isCompleted } }
     val currentMonthCap = remember(settings) {
         YearMonth.now(
             settings?.let { com.elmtrackr.app.domain.time.WorkTimezone.zoneFor(it) }
                 ?: java.time.ZoneId.systemDefault(),
         )
     }
-    val summary = remember(completed, settings, month, profiles, premiumProfiles, payContextShifts) {
-        val completedMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
-        val payContext = payContextShifts.filter { it.isCompleted }.ifEmpty { completed }
-        val report = settings?.let {
-            MonthlyReportBuilder.buildMonthlyReport(
-                month.year, month.monthValue, completed, it, profiles, premiumProfiles,
-                contextShifts = payContext,
-            )
-        }
-        val regularMin = report?.regularMinutes ?: 0
-        val overtimeMin = report?.overtimeMinutes ?: 0
-        val weekendMin = report?.weekendMinutes ?: 0
-        val pay = settings?.let { s ->
-            val hasRate = (s.hourlyRate ?: 0.0) > 0.0 ||
-                profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
-            if (hasRate) {
-                PayrollCalculator.sumMonthlyPay(
-                    completed, s, profiles, premiumProfiles, contextShifts = payContext,
-                ).grossPay
-            } else {
-                null
-            }
-        }
-        HeroSummaryData(
-            completedMinutes = completedMinutes,
-            regularMin = regularMin,
-            overtimeMin = overtimeMin,
-            weekendMin = weekendMin,
-            pay = pay,
-        )
+    // Precomputed on the computation dispatcher by ShiftsViewModel when it can be;
+    // worked out here only for the empty state, previews and older tests.
+    val summary = precomputed ?: remember(shifts, settings, month, profiles, premiumProfiles, payContextShifts) {
+        buildHeroSummary(shifts, settings, month, profiles, premiumProfiles, payContextShifts)
     }
 
     val currency = CurrencyCode.from(settings?.displayCurrencyCode())
@@ -378,7 +353,7 @@ private fun HeroHoursBreakdown(
     }
 }
 
-private data class HeroSummaryData(
+data class HeroSummaryData(
     val completedMinutes: Int,
     val regularMin: Int,
     val overtimeMin: Int,
@@ -386,6 +361,55 @@ private data class HeroSummaryData(
     /** Gross per currency; never one figure for a month at two jobs in two currencies. */
     val pay: PayByCurrency?,
 )
+
+
+/**
+ * The summary card's hours split and month pay.
+ *
+ * A full month report plus a month pay sum — measured on a desktop JVM at about 13 ms
+ * for a 28-shift month and 20 ms for 54 — so it is built by [ShiftsViewModel] on the
+ * computation dispatcher, beside [buildShiftsPayFacts], instead of in a `remember` on
+ * the main thread.
+ */
+internal fun buildHeroSummary(
+    shifts: List<Shift>,
+    settings: UserSettings?,
+    month: YearMonth,
+    profiles: List<CompensationProfile>,
+    premiumProfiles: List<PremiumProfile>,
+    payContextShifts: List<Shift>,
+): HeroSummaryData {
+    val completed = shifts.filter { it.isCompleted }
+    val completedMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
+    val payContext = payContextShifts.filter { it.isCompleted }.ifEmpty { completed }
+    val report = settings?.let {
+        MonthlyReportBuilder.buildMonthlyReport(
+            month.year, month.monthValue, completed, it, profiles, premiumProfiles,
+            contextShifts = payContext,
+        )
+    }
+    val regularMin = report?.regularMinutes ?: 0
+    val overtimeMin = report?.overtimeMinutes ?: 0
+    val weekendMin = report?.weekendMinutes ?: 0
+    val pay = settings?.let { s ->
+        val hasRate = (s.hourlyRate ?: 0.0) > 0.0 ||
+            profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
+        if (hasRate) {
+            PayrollCalculator.sumMonthlyPay(
+                completed, s, profiles, premiumProfiles, contextShifts = payContext,
+            ).grossPay
+        } else {
+            null
+        }
+    }
+    return HeroSummaryData(
+        completedMinutes = completedMinutes,
+        regularMin = regularMin,
+        overtimeMin = overtimeMin,
+        weekendMin = weekendMin,
+        pay = pay,
+    )
+}
 
 /** Kept for screenshot regression — delegates to [ShiftsHeroSummaryCard]. */
 @Composable

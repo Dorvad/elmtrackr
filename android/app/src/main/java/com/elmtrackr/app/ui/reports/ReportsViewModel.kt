@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.reports
 
+import kotlinx.coroutines.withContext
 import com.elmtrackr.app.R
 import com.elmtrackr.app.ui.common.UserFacingError
 import androidx.lifecycle.ViewModel
@@ -638,6 +639,14 @@ class ReportsViewModel @Inject constructor(
      * rows in a spreadsheet can differ from TOTAL by at most 0.005 h per row. The
      * minutes behind both are identical.
      */
+    /**
+     * [buildCsvContent] on the computation dispatcher. It prices every shift of the
+     * month — the same per-shift payroll the screen does — and the share sheet used to
+     * wait on it on the main thread, as an argument evaluated before the IO work began.
+     */
+    suspend fun buildCsvContentInBackground(build: ReportsViewModel.() -> String): String =
+        withContext(computationDispatcher) { build() }
+
     fun buildCsvContent(
         shifts: List<Shift>,
         settings: UserSettings?,

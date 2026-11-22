@@ -344,9 +344,8 @@ fun ReportsScreen(
                                 onExportCsv = {
                                     scope.launch {
                                         runExport(appSnackbar, exportFailed, viewModel::onReportExported) {
-                                        ReportExporter.shareCsv(
-                                            context,
-                                            viewModel.buildCsvContent(
+                                        val csv = viewModel.buildCsvContentInBackground {
+                                            buildCsvContent(
                                                 shifts = state.rawShifts,
                                                 settings = state.settings,
                                                 profiles = state.profiles,
@@ -360,7 +359,11 @@ fun ReportsScreen(
                                                 leaveEntries = state.leaveEntries,
                                                 premiumProfiles = state.premiumProfiles,
                                                 scopeJobName = state.scopedJobName,
-                                            ),
+                                            )
+                                        }
+                                        ReportExporter.shareCsv(
+                                            context,
+                                            csv,
                                             viewModel.csvFilename(state.year, state.month, state.scopedJobName),
                                         )
                                         }
@@ -1303,9 +1306,10 @@ internal fun HoursReport(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
-            state.rawShifts.sortedByDescending { it.startTime }.forEachIndexed { index, shift ->
+            // Sorted and priced in the ViewModel (ReportsUiState.Ready.shiftRows).
+            state.shiftRows.forEachIndexed { index, row ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                ShiftReportRow(shift, settings, state.profiles, state.rawShifts, state.premiumProfiles, state.zone)
+                ShiftReportRow(row.shift, row.pay, state.zone)
             }
         }
     }
@@ -1744,55 +1748,13 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
 // ── Shift report row with left stripe ────────────────────────────────────────
 
 /** The per-row figures [ShiftReportRow] derives from the pay engine, remembered as one unit. */
-private data class ShiftReportRowPay(
-    val breakdown: com.elmtrackr.app.domain.model.ShiftBreakdown,
-    val weekend: Boolean,
-    val overnight: Boolean,
-    val pay: com.elmtrackr.app.domain.model.ShiftPayBreakdown?,
-    val otMinutes: Int,
-)
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ShiftReportRow(
     shift: Shift,
-    settings: UserSettings,
-    profiles: List<CompensationProfile> = emptyList(),
-    allShifts: List<Shift> = emptyList(),
-    premiumProfiles: List<PremiumProfile> = emptyList(),
+    rowPay: ShiftReportRowPay,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
-    // Remembered because `calculateShiftPayInContext` is not a cheap read: it walks
-    // this shift's pay week, and in the Israeli engine it re-classifies every prior
-    // shift of that week minute by minute. Computed inline it ran again on every
-    // recomposition of every visible row, on the main thread — the ViewModel moved the
-    // month's payroll to a computation dispatcher for exactly this cost, and these
-    // per-row calls sat outside that.
-    val rowPay = remember(shift, settings, profiles, allShifts, premiumProfiles, zone) {
-        // `allShifts` here is the pay-week window the screen was built with, the
-        // same one the row's pay is priced against below — so the row's hours
-        // and its money describe the same week.
-        val breakdown = MonthlyReportBuilder.buildShiftBreakdown(
-            shift, settings, profiles, premiumProfiles, allShifts,
-        )
-        ShiftReportRowPay(
-            breakdown = breakdown,
-            weekend = CompensationResolver.isWeekendShift(shift, settings, profiles),
-            overnight = OvernightShiftDetector.isOvernight(shift, zone),
-            pay = PayrollCalculator.calculateShiftPayInContext(
-                shift,
-                allShifts.ifEmpty { listOf(shift) },
-                settings,
-                profiles,
-                premiumProfiles,
-            ),
-            // The classifier's overtime — the minutes the pay engine actually paid at
-            // an overtime rate. This used to be clock time less breaks minus the raw
-            // daily standard: a third overtime rule, blind to the shorter standard on
-            // a night shift or before rest, to weekly overtime, and to rounding.
-            otMinutes = breakdown.overtimeMinutes,
-        )
-    }
     val breakdown = rowPay.breakdown
     val date = shift.startTime.atZone(zone).toLocalDate()
     val weekend = rowPay.weekend
