@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.refunds
 
+import com.elmtrackr.app.ui.common.refundProviderLabel
 import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.annotation.StringRes
@@ -57,7 +58,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -109,7 +110,7 @@ fun RefundClaimsSection(
     viewModel: RefundClaimViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(shift) { viewModel.setShift(shift) }
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingDeleteClaimId by rememberSaveable { mutableStateOf<String?>(null) }
 
     pendingDeleteClaimId?.let { claimId ->
@@ -392,7 +393,7 @@ private fun RefundClaimEntry(
         Text(
             stringResource(
                 R.string.refunds_claim_summary,
-                claim.provider.name.lowercase().replaceFirstChar { it.uppercase() },
+                refundProviderLabel(claim.provider),
                 MoneyFormatter.format(claim.amount, currency, appLocale()),
             ),
             style = MaterialTheme.typography.titleMedium,

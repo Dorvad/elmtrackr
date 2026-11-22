@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.dashboard
 
+import com.elmtrackr.app.ui.design.auroraAnimationSpec
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -290,7 +291,7 @@ private fun SetupStepRow(
 
     val chevronRotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = tween(200, easing = AuroraSoftEase),
+        animationSpec = auroraAnimationSpec(200, AuroraSoftEase),
         label = "setup-step-chevron",
     )
     val doneDescription = stringResource(R.string.dashboard_setup_step_done)
@@ -347,8 +348,9 @@ private fun SetupStepRow(
 
         AnimatedVisibility(
             visible = isExpanded,
-            enter = expandVertically(tween(220, easing = AuroraSoftEase)) + fadeIn(tween(220)),
-            exit = shrinkVertically(tween(160, easing = AuroraSoftEase)) + fadeOut(tween(120)),
+            // auroraAnimationSpec: the step opens and closes instantly with motion reduced.
+            enter = expandVertically(auroraAnimationSpec(220, AuroraSoftEase)) + fadeIn(auroraAnimationSpec(220)),
+            exit = shrinkVertically(auroraAnimationSpec(160, AuroraSoftEase)) + fadeOut(auroraAnimationSpec(120)),
         ) {
             Column(Modifier.fillMaxWidth().padding(start = 52.dp, bottom = 12.dp)) {
                 Text(
@@ -410,7 +412,7 @@ private fun SetupStepIcon(step: SetupStep, isComplete: Boolean, emphasized: Bool
 
     val scale by animateFloatAsState(
         targetValue = if (emphasized) 1.06f else 1f,
-        animationSpec = tween(200, easing = AuroraSoftEase),
+        animationSpec = auroraAnimationSpec(200, AuroraSoftEase),
         label = "setup-step-icon-scale",
     )
     val trackColor = MaterialTheme.colorScheme.outlineVariant

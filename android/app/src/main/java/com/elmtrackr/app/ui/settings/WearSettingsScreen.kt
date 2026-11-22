@@ -15,7 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,8 +38,8 @@ internal fun WearSettingsScreen(
     onBack: () -> Unit,
     viewModel: WearSettingsViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val syncEnabled by viewModel.syncEnabled.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val syncEnabled by viewModel.syncEnabled.collectAsStateWithLifecycle()
     WearSettingsContent(
         uiState = uiState,
         syncEnabled = syncEnabled,

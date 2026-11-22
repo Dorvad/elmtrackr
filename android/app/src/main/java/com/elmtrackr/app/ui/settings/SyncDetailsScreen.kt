@@ -1,5 +1,10 @@
 package com.elmtrackr.app.ui.settings
 
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.platform.LocalAccessibilityManager
+import com.elmtrackr.app.ui.components.states.ErrorMessageKind
+import com.elmtrackr.app.ui.components.states.classifyErrorMessage
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -40,7 +45,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,7 +95,7 @@ fun SyncDetailsScreen(
     onBack: () -> Unit,
     viewModel: SyncDetailsViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     AuroraListScreen {
@@ -104,9 +109,15 @@ fun SyncDetailsScreen(
             }
             is SyncDetailsUiState.Error -> ErrorState(state.message, onRetry = viewModel::retryAll)
             is SyncDetailsUiState.Ready -> {
+                // Held for as long as the user's accessibility settings ask (2.5 s by
+                // default), so "import failed" is not gone before it can be read.
+                val accessibilityManager = LocalAccessibilityManager.current
                 LaunchedEffect(state.message) {
                     if (state.message != null) {
-                        kotlinx.coroutines.delay(2500)
+                        kotlinx.coroutines.delay(
+                            accessibilityManager?.calculateRecommendedTimeoutMillis(2500L, containsText = true)
+                                ?: 2500L,
+                        )
                         viewModel.clearMessage()
                     }
                 }
@@ -176,7 +187,13 @@ internal fun SyncDetailsContent(
         }
         message?.let {
             item {
-                Text(it.asString(), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    it.asString(),
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodySmall,
+                    // Announced: export and import results land at the top of the list.
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                )
             }
         }
         item {
@@ -374,8 +391,17 @@ private fun FailedRowCard(
                     .padding(horizontal = Spacing.s12),
             ) {
                 Text(row.label, fontWeight = FontWeight.SemiBold)
+                // Never the stored message itself: it is the server's or the HTTP
+                // client's English, and a PostgREST rejection can name columns — the
+                // rule SyncStatusText already follows. A network failure says so in the
+                // user's language; anything else names what kind of row failed, beside
+                // the Retry it needs.
                 Text(
-                    row.errorMessage ?: syncEntityTypeLabel(row.entityType),
+                    if (classifyErrorMessage(row.errorMessage) == ErrorMessageKind.NETWORK) {
+                        stringResource(R.string.error_network)
+                    } else {
+                        syncEntityTypeLabel(row.entityType)
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                 )

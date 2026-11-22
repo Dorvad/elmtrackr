@@ -6,7 +6,6 @@
     <string name="nav_reports">التقارير</string>
     <string name="nav_projects">المشاريع</string>
     <string name="nav_settings">الإعدادات</string>
-    <string name="nav_tab_selected">%1$s، محدَّد</string>
 
     <!-- Region presets -->
     <string name="region_us_label">الولايات المتحدة (فيدرالي / FLSA)</string>
@@ -103,4 +102,7 @@
     <string name="clock_style_ember">جمرة</string>
     <string name="clock_style_droplet">قطرة</string>
     <string name="clock_style_spark">شرارة</string>
+    <string name="refund_provider_taxi">تاكسي</string>
+    <string name="refund_provider_other">أخرى</string>
+    <string name="a11y_colour_swatch">اللون %1$d من %2$d</string>
 </resources>

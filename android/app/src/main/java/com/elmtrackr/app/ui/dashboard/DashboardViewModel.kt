@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.dashboard
 
+import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.UserFacingError
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.data.local.preferences.FeatureDiscoveryPreferences
@@ -496,7 +498,7 @@ class DashboardViewModel @Inject constructor(
             }
         }
         .catch { e ->
-        emit(DashboardUiState.Error(e.message ?: "Unknown error"))
+        emit(DashboardUiState.Error(UserFacingError.message(e, R.string.error_generic)))
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),

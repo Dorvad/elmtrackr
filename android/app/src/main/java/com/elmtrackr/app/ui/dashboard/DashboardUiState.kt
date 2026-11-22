@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.dashboard
 
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.model.CompensationSource
 import com.elmtrackr.app.domain.model.MonthlyReport
@@ -99,5 +100,6 @@ sealed interface DashboardUiState {
         val activeShiftIsProjectTime: Boolean get() = activeShift?.isProjectTime == true
     }
 
-    data class Error(val message: String) : DashboardUiState
+    /** Translated and classified by [com.elmtrackr.app.ui.common.UserFacingError] — never raw exception text. */
+    data class Error(val message: UiText) : DashboardUiState
 }

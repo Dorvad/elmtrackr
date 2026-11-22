@@ -89,9 +89,10 @@ class NavigationAccessibilityRenderTest {
     fun `each of the four tabs is announced by name`() {
         renderBar(paidProjects = false)
 
-        // The selected one carries its state in the description; the rest are
-        // announced by name alone.
-        composeRule.onNodeWithContentDescription("Home, selected").assertIsDisplayed()
+        // Every tab is announced by its name alone. The selected state is the
+        // `selected` semantics, which TalkBack speaks itself — it used to be
+        // appended to the description as well, so it was announced twice.
+        composeRule.onNodeWithContentDescription("Home").assertIsSelected()
         listOf("Shifts", "Reports", "Settings").forEach {
             composeRule.onNodeWithContentDescription(it).assertIsDisplayed()
         }
@@ -101,7 +102,7 @@ class NavigationAccessibilityRenderTest {
     fun `the selected tab carries the selected state, the others do not`() {
         renderBar(paidProjects = false)
 
-        composeRule.onNodeWithContentDescription("Home, selected").assertIsSelected()
+        composeRule.onNodeWithContentDescription("Home").assertIsSelected()
         composeRule.onNodeWithContentDescription("Reports").assertIsNotSelected()
     }
 
@@ -133,7 +134,7 @@ class NavigationAccessibilityRenderTest {
     fun `the Projects tab announces its selected state when it is current`() {
         renderBar(paidProjects = true, current = BottomNavItem.PROJECTS.route)
 
-        composeRule.onNodeWithContentDescription("Projects, selected").assertIsSelected()
+        composeRule.onNodeWithContentDescription("Projects").assertIsSelected()
         composeRule.onNodeWithContentDescription("Home").assertIsNotSelected()
     }
 
@@ -153,7 +154,7 @@ class NavigationAccessibilityRenderTest {
         renderBar(paidProjects = true, rtl = true, current = BottomNavItem.PROJECTS.route)
 
         assertEquals(5, tabCount())
-        composeRule.onNodeWithContentDescription("פרויקטים, נבחר").assertIsSelected()
+        composeRule.onNodeWithContentDescription("פרויקטים").assertIsSelected()
         composeRule.onNodeWithContentDescription("הגדרות").assertIsDisplayed()
     }
 
@@ -196,7 +197,7 @@ class NavigationAccessibilityRenderTest {
         // the accessible one, and only the first is given up.
         renderBar(paidProjects = true, fontScale = 1.6f, current = BottomNavItem.PROJECTS.route)
 
-        composeRule.onNodeWithContentDescription("Projects, selected").assertIsSelected()
+        composeRule.onNodeWithContentDescription("Projects").assertIsSelected()
         composeRule.onNodeWithContentDescription("Home").assertIsDisplayed()
     }
 
@@ -295,7 +296,7 @@ class NavigationAccessibilityRenderTest {
     fun `the rail announces each destination and its selected state`() {
         renderRail(paidProjects = true, current = BottomNavItem.PROJECTS.route)
 
-        composeRule.onNodeWithContentDescription("Projects, selected").assertIsSelected()
+        composeRule.onNodeWithContentDescription("Projects").assertIsSelected()
         composeRule.onNodeWithContentDescription("Reports").assertIsNotSelected()
     }
 
@@ -328,7 +329,7 @@ class NavigationAccessibilityRenderTest {
         renderRail(paidProjects = true, rtl = true, current = BottomNavItem.PROJECTS.route)
 
         assertEquals(5, tabCount())
-        composeRule.onNodeWithContentDescription("פרויקטים, נבחר").assertIsSelected()
+        composeRule.onNodeWithContentDescription("פרויקטים").assertIsSelected()
     }
 
     @Test

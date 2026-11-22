@@ -1,5 +1,12 @@
 package com.elmtrackr.app.ui.reports
 
+import com.elmtrackr.app.ui.design.AuroraMotion
+import com.elmtrackr.app.ui.design.auroraAnimationSpec
+import androidx.compose.ui.res.pluralStringResource
+import com.elmtrackr.app.ui.common.refundProviderLabel
+import com.elmtrackr.app.ui.theme.AuroraLegibleGradient
+import androidx.compose.ui.graphics.compositeOver
+import com.elmtrackr.app.ui.theme.readableInk
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -70,7 +77,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -137,6 +144,7 @@ import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.design.auroraPressScale
 import com.elmtrackr.app.ui.design.LocalAppSnackbarHostState
 import com.elmtrackr.app.ui.design.showAppMessage
+import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.refunds.ReceiptPreviewDialog
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraAquaDeep
@@ -174,9 +182,9 @@ fun ReportsScreen(
     onPendingLaunchConsumed: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val uiState by viewModel.uiState.collectAsState()
-    val selectedYearMonth by viewModel.selectedYearMonth.collectAsState()
-    val canGoNext by viewModel.canGoNext.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val selectedYearMonth by viewModel.selectedYearMonth.collectAsStateWithLifecycle()
+    val canGoNext by viewModel.canGoNext.collectAsStateWithLifecycle()
     val ready = uiState as? ReportsUiState.Ready
     var activeTab by rememberSaveable { mutableStateOf(ReportTab.HOURS) }
     val scope = rememberCoroutineScope()
@@ -232,7 +240,7 @@ fun ReportsScreen(
             stringResource(R.string.reports_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.auroraEnter(),
+            modifier = Modifier.auroraEnter().auroraHeading(),
         )
         if (isTablet) {
             Text(
@@ -283,7 +291,7 @@ fun ReportsScreen(
                 ReportsUiState.Loading -> ReportsSkeleton()
                 ReportsUiState.Empty -> ReportsEmptyContent()
                 is ReportsUiState.Error -> ErrorState(
-                    state.message,
+                    state.message.asString(),
                     onRetry = viewModel::retry,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -340,9 +348,8 @@ fun ReportsScreen(
                                 onExportCsv = {
                                     scope.launch {
                                         runExport(appSnackbar, exportFailed, viewModel::onReportExported) {
-                                        ReportExporter.shareCsv(
-                                            context,
-                                            viewModel.buildCsvContent(
+                                        val csv = viewModel.buildCsvContentInBackground {
+                                            buildCsvContent(
                                                 shifts = state.rawShifts,
                                                 settings = state.settings,
                                                 profiles = state.profiles,
@@ -356,7 +363,11 @@ fun ReportsScreen(
                                                 leaveEntries = state.leaveEntries,
                                                 premiumProfiles = state.premiumProfiles,
                                                 scopeJobName = state.scopedJobName,
-                                            ),
+                                            )
+                                        }
+                                        ReportExporter.shareCsv(
+                                            context,
+                                            csv,
                                             viewModel.csvFilename(state.year, state.month, state.scopedJobName),
                                         )
                                         }
@@ -416,7 +427,8 @@ private fun ReportTabs(
 private fun TabButton(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val backgroundBrush = if (selected) {
-        Brush.linearGradient(listOf(AuroraIndigo, AuroraPlum, AuroraAqua))
+        // The legible sweep: the selected tab's label is white.
+        AuroraLegibleGradient
     } else {
         Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
     }
@@ -442,7 +454,10 @@ private fun TabButton(label: String, selected: Boolean, modifier: Modifier, onCl
             label,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+            // White, not onPrimary: the selected tab sits on AuroraLegibleGradient in both
+            // themes, and dark theme's onPrimary (#21145F) measured 2.5–3.0:1 on it.
+            // White clears 5.2:1 (LegibleGradientContrastTest).
+            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             softWrap = false,
@@ -1298,9 +1313,10 @@ internal fun HoursReport(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
-            state.rawShifts.sortedByDescending { it.startTime }.forEachIndexed { index, shift ->
+            // Sorted and priced in the ViewModel (ReportsUiState.Ready.shiftRows).
+            state.shiftRows.forEachIndexed { index, row ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                ShiftReportRow(shift, settings, state.profiles, state.rawShifts, state.premiumProfiles, state.zone)
+                ShiftReportRow(row.shift, row.pay, state.zone)
             }
         }
     }
@@ -1371,10 +1387,17 @@ private fun InsightOfTheDay(insights: List<DailyInsight>) {
             // Pagination dots
             if (insights.size > 1) {
                 Spacer(Modifier.height(10.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                // A tab set, each dot named by its position ("2 of 5"): unlabelled, TalkBack
+                // read every one as "Tab" with nothing to tell them apart.
+                Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.Center) {
                     insights.forEachIndexed { i, _ ->
                         val isActive = i == activeIdx
-                        val dotWidth by animateFloatAsState(if (isActive) 20f else 6f, label = "dot-$i")
+                        val dotLabel = stringResource(R.string.reports_index_of, i + 1, insights.size)
+                        val dotWidth by animateFloatAsState(
+                            if (isActive) 20f else 6f,
+                            animationSpec = auroraAnimationSpec(AuroraMotion.ContentCrossfadeMillis),
+                            label = "dot-$i",
+                        )
                         // The 6dp dot is the visual; the tap target around it is
                         // the 48dp minimum. Previously the dot itself was the
                         // target, which is smaller than a fingertip.
@@ -1389,7 +1412,8 @@ private fun InsightOfTheDay(insights: List<DailyInsight>) {
                                         }
                                     },
                                 )
-                                .minimumInteractiveComponentSize(),
+                                .minimumInteractiveComponentSize()
+                                .semantics { contentDescription = dotLabel },
                             contentAlignment = Alignment.Center,
                         ) {
                             Box(
@@ -1525,7 +1549,8 @@ private fun InsightStatCard(
                 value,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = accentColor,
+                // Indigo on its own 10% wash was 2.8:1 in dark theme.
+                color = readableInk(accentColor, bgColor.compositeOver(MaterialTheme.colorScheme.surface)),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1738,55 +1763,13 @@ private fun WeekRow(week: WeeklyTotals, maxMinutes: Int, settings: UserSettings?
 // ── Shift report row with left stripe ────────────────────────────────────────
 
 /** The per-row figures [ShiftReportRow] derives from the pay engine, remembered as one unit. */
-private data class ShiftReportRowPay(
-    val breakdown: com.elmtrackr.app.domain.model.ShiftBreakdown,
-    val weekend: Boolean,
-    val overnight: Boolean,
-    val pay: com.elmtrackr.app.domain.model.ShiftPayBreakdown?,
-    val otMinutes: Int,
-)
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ShiftReportRow(
     shift: Shift,
-    settings: UserSettings,
-    profiles: List<CompensationProfile> = emptyList(),
-    allShifts: List<Shift> = emptyList(),
-    premiumProfiles: List<PremiumProfile> = emptyList(),
+    rowPay: ShiftReportRowPay,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
-    // Remembered because `calculateShiftPayInContext` is not a cheap read: it walks
-    // this shift's pay week, and in the Israeli engine it re-classifies every prior
-    // shift of that week minute by minute. Computed inline it ran again on every
-    // recomposition of every visible row, on the main thread — the ViewModel moved the
-    // month's payroll to a computation dispatcher for exactly this cost, and these
-    // per-row calls sat outside that.
-    val rowPay = remember(shift, settings, profiles, allShifts, premiumProfiles, zone) {
-        // `allShifts` here is the pay-week window the screen was built with, the
-        // same one the row's pay is priced against below — so the row's hours
-        // and its money describe the same week.
-        val breakdown = MonthlyReportBuilder.buildShiftBreakdown(
-            shift, settings, profiles, premiumProfiles, allShifts,
-        )
-        ShiftReportRowPay(
-            breakdown = breakdown,
-            weekend = CompensationResolver.isWeekendShift(shift, settings, profiles),
-            overnight = OvernightShiftDetector.isOvernight(shift, zone),
-            pay = PayrollCalculator.calculateShiftPayInContext(
-                shift,
-                allShifts.ifEmpty { listOf(shift) },
-                settings,
-                profiles,
-                premiumProfiles,
-            ),
-            // The classifier's overtime — the minutes the pay engine actually paid at
-            // an overtime rate. This used to be clock time less breaks minus the raw
-            // daily standard: a third overtime rule, blind to the shorter standard on
-            // a night shift or before rest, to weekly overtime, and to rounding.
-            otMinutes = breakdown.overtimeMinutes,
-        )
-    }
     val breakdown = rowPay.breakdown
     val date = shift.startTime.atZone(zone).toLocalDate()
     val weekend = rowPay.weekend
@@ -2085,15 +2068,17 @@ private fun RefundAnalytics(
             pay.singleOrNull()?.takeIf { (code, _) -> code == currency }?.second
         }
     }
+    // The lavender sub-labels measured 3.9:1 on indigo; lifted toward white to AA.
+    val refundCardSubInk = readableInk(Color(0xffd8d3ff), AuroraIndigo)
     Card(shape = RoundedCornerShape(CornerRadius.Large), colors = CardDefaults.cardColors(containerColor = AuroraIndigo)) {
         Column(Modifier.padding(18.dp)) {
-            Text(stringResource(R.string.reports_total_refunded), style = MaterialTheme.typography.labelSmall, color = Color(0xffd8d3ff), fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.reports_total_refunded), style = MaterialTheme.typography.labelSmall, color = refundCardSubInk, fontWeight = FontWeight.Bold)
             Text(MoneyFormatter.format(total, currency, appLocale()), style = MaterialTheme.typography.headlineLarge, color = Color.White, fontWeight = FontWeight.ExtraBold)
             val activeMonths = claims.map { YearMonth.from(it.rideAt.atZone(zone)) }.distinct().size
-            Text(stringResource(R.string.reports_rides_months, claims.size, activeMonths), color = Color(0xffd8d3ff), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.reports_rides_months, claims.size, activeMonths), color = refundCardSubInk, style = MaterialTheme.typography.bodySmall)
             if (salary != null && salary > 0) {
                 HorizontalDivider(Modifier.padding(vertical = 12.dp), color = Color.White.copy(alpha = .2f))
-                Text(stringResource(R.string.reports_total_compensation), style = MaterialTheme.typography.labelSmall, color = Color(0xffd8d3ff))
+                Text(stringResource(R.string.reports_total_compensation), style = MaterialTheme.typography.labelSmall, color = refundCardSubInk)
                 Text(MoneyFormatter.format(salary + total, currency, appLocale()), style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
@@ -2104,7 +2089,7 @@ private fun RefundAnalytics(
         claims.groupBy { it.provider }.entries.sortedByDescending { it.value.sumOf(RefundClaim::amount) }.forEach { (provider, rows) ->
             val amount = rows.sumOf { it.amount }
             Spacer(Modifier.height(8.dp))
-            ReportRow(stringResource(R.string.reports_provider_rides, provider.name.lowercase().replaceFirstChar(Char::uppercase), rows.size), MoneyFormatter.format(amount, currency, appLocale()))
+            ReportRow(pluralStringResource(R.plurals.reports_provider_ride_count, rows.size, refundProviderLabel(provider), rows.size), MoneyFormatter.format(amount, currency, appLocale()))
             Box(Modifier.fillMaxWidth().height(6.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp))) {
                 Box(Modifier.fillMaxWidth((amount / total).toFloat().coerceIn(0f, 1f)).height(6.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp)))
             }
@@ -2156,7 +2141,7 @@ private fun RefundMonthCard(
                             stringResource(
                                 R.string.reports_claim_line,
                                 stringResource(if (claim.direction == com.elmtrackr.app.domain.model.RefundDirection.TO_WORK) R.string.reports_dir_to_work else R.string.reports_dir_from_work),
-                                claim.provider.name.lowercase(),
+                                refundProviderLabel(claim.provider),
                                 MoneyFormatter.format(claim.amount, currency, appLocale()),
                             ) + if (claim.receiptPath != null) stringResource(R.string.reports_receipt_suffix) else "",
                             style = MaterialTheme.typography.bodySmall,
@@ -2173,7 +2158,11 @@ private fun RefundMonthCard(
                     Text(
                         refundStatus(shift.refundAction),
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (shift.refundAction == RefundAction.SUBMITTED) AuroraAquaDeep else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (shift.refundAction == RefundAction.SUBMITTED) {
+                            readableInk(AuroraAquaDeep, MaterialTheme.colorScheme.surface)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
                     TextButton(onClick = { onNavigateToShift(shift.id) }) {
                         Text(stringResource(R.string.reports_view), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
@@ -2254,7 +2243,11 @@ private fun OtThresholdLine(prefix: String, value: String) {
 @Composable
 private fun ShiftTagPill(label: String, weekendStyle: Boolean) {
     val bg = if (weekendStyle) auroraWeekendBackground() else MaterialTheme.colorScheme.surfaceVariant
-    val fg = if (weekendStyle) AuroraPlum else AuroraIndigo
+    // Plum on the weekend tint was 3.7:1, indigo on surfaceVariant 2.6:1 in dark.
+    val fg = readableInk(
+        if (weekendStyle) AuroraPlum else AuroraIndigo,
+        bg.compositeOver(MaterialTheme.colorScheme.surface),
+    )
     Text(
         label,
         modifier = Modifier
@@ -2303,12 +2296,13 @@ private fun StatCard(label: String, value: String, color: Color, modifier: Modif
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(14.dp)) {
-            SectionLabel(label)
+            SectionLabel(label, heading = false)
             Text(
                 value,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = color,
+                // Peach measured 2:1 on the card. Deepened along its hue to AA.
+                color = readableInk(color, MaterialTheme.colorScheme.surface),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -2514,11 +2508,14 @@ private fun leaveAmountLabel(days: Double, hours: Double): String {
 }
 
 @Composable
-private fun SectionLabel(text: String) = Text(
+private fun SectionLabel(text: String, heading: Boolean = true) = Text(
     text.uppercase(),
     style = MaterialTheme.typography.labelSmall,
     fontWeight = FontWeight.Bold,
     color = MaterialTheme.colorScheme.onSurfaceVariant,
+    // A heading where it opens a section, so TalkBack can jump between them; not
+    // where it only names the figure under it inside a stat card.
+    modifier = if (heading) Modifier.auroraHeading() else Modifier,
 )
 
 @Composable

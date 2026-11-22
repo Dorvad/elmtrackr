@@ -449,6 +449,7 @@
     <string name="settings_edit_profile">Изменить профиль</string>
     <string name="settings_default">По умолчанию</string>
     <string name="settings_delete_profile">Удалить профиль</string>
+    <string name="settings_delete_only_profile_hint">Это ваш единственный профиль, поэтому его нельзя удалить. Чтобы заменить его, сначала добавьте новый профиль, а затем удалите этот.</string>
     <string name="settings_remove_this_rate">Убрать эту ставку</string>
     <string name="settings_delete_comp_profile_title">Удалить «%1$s»?</string>
     <string name="settings_delete_comp_profile_body">Уже записанные смены сохранят рассчитанную для них оплату. Профиль будет удалён и с синхронизированных устройств. Отменить это будет нельзя.</string>

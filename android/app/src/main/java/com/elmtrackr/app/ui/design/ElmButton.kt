@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.design
 
+import com.elmtrackr.app.ui.theme.AuroraLegibleGradient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,17 +22,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
-import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.Elevation
 import com.elmtrackr.app.ui.theme.auroraShadow
 
-private val auroraGradient = Brush.linearGradient(
-    colorStops = arrayOf(
-        0.00f to AuroraIndigo,
-        0.42f to AuroraPlum,
-        1.00f to AuroraAqua,
-    ),
-)
+// The legible sweep: the decorative plum/aqua stops put the white label at
+// 3.7–4.3:1. See AuroraGradients.kt.
+private val auroraGradient = AuroraLegibleGradient
 
 private val buttonShape = RoundedCornerShape(CornerRadius.Button)
 

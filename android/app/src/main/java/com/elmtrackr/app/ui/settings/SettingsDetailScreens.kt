@@ -2,6 +2,9 @@
 
 package com.elmtrackr.app.ui.settings
 
+import com.elmtrackr.app.ui.design.auroraAnimationSpec
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -350,11 +353,17 @@ internal fun ProfileDetailScreen(
             SettingsSectionCardPlain {
                 SettingsSubsectionLabel(stringResource(R.string.settings_display_name))
                 Spacer(Modifier.height(8.dp))
+                val displayNameLabel = stringResource(R.string.settings_display_name)
                 OutlinedTextField(
                     value = displayName,
                     onValueChange = onDisplayNameChange,
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    // The visible label above is a separate Text, so the field itself
+                    // was announced as an unnamed "edit box". Named here for TalkBack
+                    // without repeating the label on screen.
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = displayNameLabel },
                     shape = RoundedCornerShape(CornerRadius.Medium),
                 )
                 Spacer(Modifier.height(6.dp))
@@ -662,11 +671,15 @@ internal fun AppearanceDetailScreen(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )
+                    // An instant swap when motion is reduced — this is the screen with
+                    // the switch that reduces it. Resolved outside transitionSpec, which
+                    // is not composable.
+                    val fadeInSpec = auroraAnimationSpec<Float>(220, AuroraEaseOut)
+                    val fadeOutSpec = auroraAnimationSpec<Float>(160, AuroraEaseOut)
                     AnimatedContent(
                         targetState = clockStyle,
                         transitionSpec = {
-                            fadeIn(tween(220, easing = AuroraEaseOut)) togetherWith
-                                fadeOut(tween(160, easing = AuroraEaseOut))
+                            fadeIn(fadeInSpec) togetherWith fadeOut(fadeOutSpec)
                         },
                         label = "appearance-clock-hero",
                     ) { style ->

@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.reports
 
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.PayrollCalculator
 import com.elmtrackr.app.domain.ReportScope
 import com.elmtrackr.app.domain.leave.AbsenceListEntry
@@ -75,6 +76,14 @@ sealed interface ReportsUiState {
          * with nothing in it can say the other jobs have shifts and offer to show them.
          */
         val allJobsShiftCount: Int = 0,
+        /**
+         * The shift breakdown's rows, priced. Defaults to building them from the fields
+         * above, so the ViewModel — which constructs this on the computation dispatcher —
+         * pays for the payroll there, and `copy` carries the rows rather than redoing
+         * them. See [buildShiftReportRows].
+         */
+        val shiftRows: List<ShiftReportRowModel> =
+            buildShiftReportRows(rawShifts, settings, profiles, premiumProfiles, zone),
     ) : ReportsUiState {
         /** The scoped job's name, or null for all jobs. */
         val scopedJobName: String?
@@ -99,5 +108,6 @@ sealed interface ReportsUiState {
                 .toSortedMap()
     }
 
-    data class Error(val message: String) : ReportsUiState
+    /** Translated and classified by [com.elmtrackr.app.ui.common.UserFacingError] — never raw exception text. */
+    data class Error(val message: UiText) : ReportsUiState
 }

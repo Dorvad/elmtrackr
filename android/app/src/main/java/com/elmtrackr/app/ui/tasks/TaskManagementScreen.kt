@@ -2,6 +2,7 @@
 
 package com.elmtrackr.app.ui.tasks
 
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,7 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,6 +76,8 @@ import com.elmtrackr.app.ui.design.ElmIconTile
 import com.elmtrackr.app.ui.design.ElmIconTileSize
 import com.elmtrackr.app.ui.design.ElmSectionHeader
 import com.elmtrackr.app.ui.design.auroraRowClickable
+import com.elmtrackr.app.ui.design.auroraExpandable
+import com.elmtrackr.app.ui.design.auroraExpandActionLabel
 import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.ui.projects.StatusPill
 import com.elmtrackr.app.ui.theme.AuroraIndigo
@@ -95,7 +98,7 @@ fun TaskManagementScreen(
     onBack: () -> Unit,
     viewModel: TaskManagementViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -369,7 +372,12 @@ private fun ArchivedTasksCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .auroraRowClickable(onClick = { onExpandedChange(!expanded) })
+                .auroraRowClickable(
+                    onClick = { onExpandedChange(!expanded) },
+                    onClickLabel = auroraExpandActionLabel(expanded),
+                )
+                // The open/closed state, which the chevron alone never told TalkBack.
+                .auroraExpandable(expanded)
                 .padding(horizontal = Spacing.s16, vertical = Spacing.s14),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.s8),
@@ -544,13 +552,14 @@ private fun TaskEditorSheet(
             Spacer(Modifier.height(Spacing.s6))
             // No extra arrangement spacing: each swatch now reserves a 48dp touch
             // target around its 28dp circle, which supplies the gap on its own.
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-                TASK_COLOR_OPTIONS.forEach { hex ->
+            // One radio group, each swatch numbered rather than all announced as "Color".
+            FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                TASK_COLOR_OPTIONS.forEachIndexed { index, hex ->
                     val swatch = parseTaskColor(hex) ?: Color.Gray
                     TaskColorDot(
                         color = swatch,
                         selected = color == hex,
-                        contentDescription = stringResource(R.string.tasks_color_label),
+                        contentDescription = stringResource(R.string.a11y_colour_swatch, index + 1, TASK_COLOR_OPTIONS.size),
                         onClick = { color = hex },
                     )
                 }

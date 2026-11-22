@@ -1,5 +1,12 @@
 package com.elmtrackr.app.ui.dashboard
 
+import com.elmtrackr.app.ui.design.auroraAnimationSpec
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.EnterTransition
+import com.elmtrackr.app.ui.common.asString
+import androidx.compose.ui.graphics.compositeOver
+import com.elmtrackr.app.ui.theme.labelOnFill
+import com.elmtrackr.app.ui.theme.readableInk
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.activity.compose.BackHandler
@@ -65,7 +72,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.DisposableEffect
@@ -194,13 +201,13 @@ fun DashboardScreen(
     /** Opens one shift's form in the Shifts tab — the recap's "Review or edit". */
     onOpenShift: (String) -> Unit = {},
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val shiftRecap by viewModel.shiftRecap.collectAsState()
-    val syncAttention by viewModel.syncAttention.collectAsState()
-    val showCelebration by viewModel.showFirstClockInCelebration.collectAsState()
-    val projectShiftSummary by viewModel.projectShiftSummary.collectAsState()
-    val setupChecklist by viewModel.setupChecklist.collectAsState()
-    val todayEarnings by viewModel.todayEarnings.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val shiftRecap by viewModel.shiftRecap.collectAsStateWithLifecycle()
+    val syncAttention by viewModel.syncAttention.collectAsStateWithLifecycle()
+    val showCelebration by viewModel.showFirstClockInCelebration.collectAsStateWithLifecycle()
+    val projectShiftSummary by viewModel.projectShiftSummary.collectAsStateWithLifecycle()
+    val setupChecklist by viewModel.setupChecklist.collectAsStateWithLifecycle()
+    val todayEarnings by viewModel.todayEarnings.collectAsStateWithLifecycle()
     // Plain remember: restoring the overlay after a tab switch stranded users
     // inside task management when they came back to the dashboard.
     var showTasks by remember { mutableStateOf(false) }
@@ -301,7 +308,7 @@ fun DashboardScreen(
                             onSetupChecklistCelebrated = viewModel::markSetupChecklistCelebrated,
                         )
                         is DashboardUiState.Error -> ErrorState(
-                            message = state.message,
+                            message = state.message.asString(),
                             onRetry = viewModel::retry,
                         )
                     }
@@ -1001,12 +1008,19 @@ private fun DashboardClockSection(
         )
     }
 
+    // Read here because transitionSpec is not composable: with motion reduced the
+    // face swaps in place instead of fading and scaling.
+    val faceChangeMotion = auroraMotionEnabled()
     Box(modifier = Modifier.fillMaxWidth().auroraEnter(index = 1)) {
         AnimatedContent(
             targetState = clockStyle,
             transitionSpec = {
-                (fadeIn(tween(300)) + scaleIn(tween(350), initialScale = .96f)) togetherWith
-                    (fadeOut(tween(160)) + scaleOut(tween(160), targetScale = .98f))
+                if (faceChangeMotion) {
+                    (fadeIn(tween(300)) + scaleIn(tween(350), initialScale = .96f)) togetherWith
+                        (fadeOut(tween(160)) + scaleOut(tween(160), targetScale = .98f))
+                } else {
+                    EnterTransition.None togetherWith ExitTransition.None
+                }
             },
             label = "watch-face-change",
         ) { renderStyle ->
@@ -1414,7 +1428,7 @@ private fun ExpressiveClockCard(
     // the day total jumps (clock-in after a break, edited start time).
     val vinylProgress by animateFloatAsState(
         targetValue = dayProgress,
-        animationSpec = tween(900, easing = AuroraEaseOut),
+        animationSpec = auroraAnimationSpec(900, AuroraEaseOut),
         label = "vinyl-needle-drop",
     )
     ExpressiveClockPulse(running = running) { pulse ->
@@ -1423,6 +1437,21 @@ private fun ExpressiveClockCard(
     val foreground = if (dark) Color.White else MaterialTheme.colorScheme.onSurface
     val faceTrack = MaterialTheme.colorScheme.surfaceVariant
     val accent = clockFaceAccent(style, overtime)
+    // Worked out per face rather than fixed. White on the raw accent measured 1.5:1 on
+    // gold and about 2:1 on aqua and peach — half the faces — and while a shift ran the
+    // accent label on a 12% tint of itself fell to 1.9:1. The fill is what the button
+    // actually paints over this plate, so the label is checked against that.
+    val runningFill = accent.copy(alpha = if (dark) .25f else .12f)
+    val buttonLabel = if (running) {
+        readableInk(accent, runningFill.compositeOver(background))
+    } else {
+        labelOnFill(accent)
+    }
+    val captionInk = if (running) {
+        readableInk(accent, background)
+    } else {
+        readableInk(foreground.copy(alpha = .55f).compositeOver(background), background)
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1463,7 +1492,7 @@ private fun ExpressiveClockCard(
                 },
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = if (running) accent else foreground.copy(alpha = .55f),
+                color = captionInk,
             )
             Spacer(Modifier.height(8.dp))
             Box(Modifier.fillMaxWidth().height(Layout.clockFaceBoxHeight), contentAlignment = Alignment.Center) {
@@ -1492,9 +1521,22 @@ private fun ExpressiveClockCard(
                     )
                 }
                 if (style.drawsOwnReading()) {
-                    // Nothing: this face printed its own figures inside the canvas.
-                    // Compositing the shared display over it would draw the elapsed
-                    // time twice, in two type scales, overlapping.
+                    // Nothing drawn: this face printed its own figures inside the
+                    // canvas. Compositing the shared display over it would draw the
+                    // elapsed time twice, in two type scales, overlapping.
+                    //
+                    // But a Canvas says nothing to TalkBack, so on these four faces the
+                    // reading every other face exposes as text was simply absent. The
+                    // same reading, as semantics only — read on focus, like the shared
+                    // display, and deliberately not a live region (see LiveClockTimer).
+                    val reading = if (running) {
+                        elapsedReadingText(elapsedSeconds)
+                    } else {
+                        rememberCurrentInstant(MINUTE_MILLIS)
+                            .atZone(LocalWorkZone.current)
+                            .format(rememberWallTimeFormatter())
+                    }
+                    Box(Modifier.matchParentSize().semantics { contentDescription = reading })
                 } else if (style == SupportedClockStyle.RETRO) {
                     // The split-flap board is this face's readout, in both
                     // states the text branches below cover: elapsed time on a
@@ -1571,8 +1613,8 @@ private fun ExpressiveClockCard(
                     },
                 shape = RoundedCornerShape(CornerRadius.Medium),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (running) accent.copy(alpha = if (dark) .25f else .12f) else accent,
-                    contentColor = if (running) accent else Color.White,
+                    containerColor = if (running) runningFill else accent,
+                    contentColor = buttonLabel,
                 ),
             ) { Text(stringResource(if (running) R.string.dashboard_clock_out else R.string.dashboard_clock_in), fontWeight = FontWeight.Bold) }
         }
@@ -2047,3 +2089,9 @@ private fun DashboardError(message: String) {
  * instrument rather than an eight-hour one.
  */
 private const val DEFAULT_FACE_GOAL_MINUTES = 480
+
+/** "HH:MM:SS", the format the shared elapsed display shows. */
+private fun elapsedReadingText(elapsedSeconds: Long): String {
+    val seconds = elapsedSeconds.coerceAtLeast(0)
+    return "%02d:%02d:%02d".format(java.util.Locale.ROOT, seconds / 3600, (seconds / 60) % 60, seconds % 60)
+}

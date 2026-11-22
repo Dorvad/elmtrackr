@@ -2,6 +2,13 @@
 
 package com.elmtrackr.app.ui.settings
 
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.platform.LocalAccessibilityManager
+import com.elmtrackr.app.ui.design.AuroraScreenHeader
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -32,7 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -90,7 +97,7 @@ fun CompensationSettingsScreen(
     onBack: () -> Unit,
     viewModel: CompensationSettingsViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.ensureLoaded() }
 
     AuroraListScreen {
@@ -218,11 +225,18 @@ internal fun CompensationSettingsContent(
     // left with them unsaved.
     BackHandler(enabled = isDirty) { showBackDiscard = true }
 
+    // A confirmation clears itself after the time the user's accessibility settings
+    // ask for (2.5 s by default). An error stays until the next action replaces it:
+    // gone in 2.5 s, "Couldn't delete the profile" was easy to miss entirely.
+    val accessibilityManager = LocalAccessibilityManager.current
     LaunchedEffect(state.saveMessage) {
-        if (state.saveMessage != null) {
-            kotlinx.coroutines.delay(2500)
-            onDismissMessage()
-        }
+        val message = state.saveMessage ?: return@LaunchedEffect
+        if (message.isError) return@LaunchedEffect
+        kotlinx.coroutines.delay(
+            accessibilityManager?.calculateRecommendedTimeoutMillis(MESSAGE_TIMEOUT_MILLIS, containsText = true)
+                ?: MESSAGE_TIMEOUT_MILLIS,
+        )
+        onDismissMessage()
     }
 
     LazyColumn(
@@ -234,17 +248,14 @@ internal fun CompensationSettingsContent(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         item {
-            Spacer(Modifier.height(Spacing.lg))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { if (isDirty) showBackDiscard = true else onBack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
-                }
-                Text(
-                    stringResource(R.string.settings_comp_rules_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
+            Spacer(Modifier.height(Spacing.sm))
+            // The shared sub-screen header, as on every other Settings screen. Back still
+            // goes through the unsaved-changes guard.
+            AuroraScreenHeader(
+                title = stringResource(R.string.settings_comp_rules_title),
+                onBack = { if (isDirty) showBackDiscard = true else onBack() },
+                backContentDescription = stringResource(R.string.settings_back),
+            )
         }
 
         item {
@@ -310,18 +321,30 @@ internal fun CompensationSettingsContent(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (state.profiles.size > 1) {
-                    Spacer(Modifier.height(4.dp))
-                    TextButton(
-                        onClick = { showDeleteDialog = true },
-                        enabled = !state.isSaving,
-                        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
-                    ) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = null, Modifier.padding(end = 6.dp))
-                        Text(stringResource(R.string.settings_delete_profile))
-                    }
+                // Always shown. It used to appear only with two or more jobs, so a
+                // user with one job found no way to delete it and no reason why. The
+                // last job cannot go: every pay figure resolves through a profile, and
+                // with none left `ensureMigrated` builds a fresh one from the legacy
+                // settings, so "delete" would quietly undo itself.
+                // Disabled with the way forward spelled out instead.
+                val canDelete = state.profiles.size > 1
+                Spacer(Modifier.height(4.dp))
+                TextButton(
+                    onClick = { showDeleteDialog = true },
+                    enabled = canDelete && !state.isSaving,
+                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Icon(Icons.Default.DeleteOutline, contentDescription = null, Modifier.padding(end = 6.dp))
+                    Text(stringResource(R.string.settings_delete_profile))
+                }
+                if (!canDelete) {
+                    Text(
+                        stringResource(R.string.settings_delete_only_profile_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -672,19 +695,21 @@ internal fun CompensationSettingsContent(
                     Spacer(Modifier.height(8.dp))
                     Text(stringResource(R.string.settings_rounding_direction), style = MaterialTheme.typography.labelMedium)
                     Spacer(Modifier.height(4.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(
-                            "nearest" to stringResource(R.string.settings_rounding_nearest),
-                            "up" to stringResource(R.string.settings_rounding_up),
-                            "down" to stringResource(R.string.settings_rounding_down),
-                        ).forEach { (value, label) ->
-                            FilterChip(
-                                selected = rules.rounding.direction == value,
-                                onClick = { rules = rules.copy(rounding = rules.rounding.copy(direction = value)) },
-                                label = { Text(label) },
-                            )
-                        }
-                    }
+                    // One choice of three: the segmented control, which announces a single
+                    // selection. Filter chips are multi-select and read as checkboxes.
+                    val roundingOptions = listOf(
+                        "nearest" to stringResource(R.string.settings_rounding_nearest),
+                        "up" to stringResource(R.string.settings_rounding_up),
+                        "down" to stringResource(R.string.settings_rounding_down),
+                    )
+                    ElmSegmentedPillRow(
+                        options = roundingOptions.map { it.second },
+                        selectedIndex = roundingOptions.indexOfFirst { it.first == rules.rounding.direction },
+                        onSelect = { index ->
+                            rules = rules.copy(rounding = rules.rounding.copy(direction = roundingOptions[index].first))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -713,18 +738,17 @@ internal fun CompensationSettingsContent(
                     )
                 }
                 if (rules.deductionsEnabled) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = rules.deductionsMode == "percentage",
-                            onClick = { rules = rules.copy(deductionsMode = "percentage") },
-                            label = { Text(stringResource(R.string.settings_percentage)) },
-                        )
-                        FilterChip(
-                            selected = rules.deductionsMode == "fixed",
-                            onClick = { rules = rules.copy(deductionsMode = "fixed") },
-                            label = { Text(stringResource(R.string.settings_fixed_per_shift)) },
-                        )
-                    }
+                    // Percentage or fixed: one choice, so the segmented control.
+                    val deductionModes = listOf("percentage", "fixed")
+                    ElmSegmentedPillRow(
+                        options = listOf(
+                            stringResource(R.string.settings_percentage),
+                            stringResource(R.string.settings_fixed_per_shift),
+                        ),
+                        selectedIndex = deductionModes.indexOf(rules.deductionsMode),
+                        onSelect = { index -> rules = rules.copy(deductionsMode = deductionModes[index]) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                     if (rules.deductionsMode == "percentage") {
                         MultiplierField(stringResource(R.string.settings_deduction_percent), rules.deductionsPercentage) {
                             rules = rules.copy(deductionsPercentage = it)
@@ -768,6 +792,8 @@ internal fun CompensationSettingsContent(
                     color = if (message.isError) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodySmall,
+                    // Announced: the message appears far from where the user tapped.
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 )
             }
             val rateUnparseable = hourlyRateText.isNotBlank() && hourlyRateText.toDoubleOrNull() == null
@@ -961,18 +987,15 @@ private fun StringDropdown(
 private fun StackingPolicyRow(selected: StackingPolicy, onSelect: (StackingPolicy) -> Unit) {
     Text(stringResource(R.string.settings_premium_stacking), style = MaterialTheme.typography.labelMedium)
     Spacer(Modifier.height(8.dp))
-    // Same options and wording as custom premium profiles, so both stacking
-    // pickers in the app stay aligned.
+    // One policy applies, so the segmented control rather than filter chips, which
+    // are multi-select and read as checkboxes.
     val options = (StackingPolicy.selectable + selected).distinct()
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        options.forEach { policy ->
-            FilterChip(
-                selected = selected == policy,
-                onClick = { onSelect(policy) },
-                label = { Text(stringResource(StackingPolicyLabels.titleRes(policy))) },
-            )
-        }
-    }
+    ElmSegmentedPillRow(
+        options = options.map { stringResource(StackingPolicyLabels.titleRes(it)) },
+        selectedIndex = options.indexOf(selected),
+        onSelect = { index -> onSelect(options[index]) },
+        modifier = Modifier.fillMaxWidth(),
+    )
     Spacer(Modifier.height(8.dp))
     Text(
         stringResource(StackingPolicyLabels.helperRes(selected)),
@@ -989,11 +1012,14 @@ private fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Un
         Modifier
             .fillMaxWidth()
             .toggleable(value = checked, role = Role.Switch, onValueChange = onChange)
+            // A Switch with a null handler reserves no minimum size, so the row was
+            // 40dp tall. Held to the 48dp target, the same as SettingsToggleRow.
+            .heightIn(min = 48.dp)
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(end = 8.dp))
         Switch(checked = checked, onCheckedChange = null)
     }
 }
@@ -1286,12 +1312,15 @@ private fun WorkProfileIdentityPicker(
     Spacer(Modifier.height(Spacing.s4))
     // No arrangement spacing: each swatch reserves a 48dp target around its 28dp
     // circle, which supplies the gap on its own. Same as the task editor.
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-        WorkProfileIdentity.COLOR_OPTIONS.forEach { hex ->
+    // One radio group, each swatch numbered: every one used to be announced as just
+    // "Colour", so there was no telling them apart or knowing how many there were.
+    FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+        val colorOptions = WorkProfileIdentity.COLOR_OPTIONS
+        colorOptions.forEachIndexed { index, hex ->
             TaskColorDot(
                 color = parseIdentityColor(hex) ?: MaterialTheme.colorScheme.primary,
                 selected = color == hex,
-                contentDescription = stringResource(R.string.settings_profile_color),
+                contentDescription = stringResource(R.string.a11y_colour_swatch, index + 1, colorOptions.size),
                 onClick = { onColor(hex) },
             )
         }
@@ -1321,3 +1350,5 @@ private fun DiscardChangesDialog(onDiscard: () -> Unit, onKeep: () -> Unit) {
         },
     )
 }
+
+private const val MESSAGE_TIMEOUT_MILLIS = 2500L

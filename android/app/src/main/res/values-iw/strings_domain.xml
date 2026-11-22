@@ -6,7 +6,6 @@
     <string name="nav_reports">דוחות</string>
     <string name="nav_projects">פרויקטים</string>
     <string name="nav_settings">הגדרות</string>
-    <string name="nav_tab_selected">%1$s, נבחר</string>
 
     <!-- Region presets -->
     <string name="region_us_label">ארה״ב (פדרלי / FLSA)</string>
@@ -103,4 +102,7 @@
     <string name="clock_style_ember">גחל</string>
     <string name="clock_style_droplet">טיפה</string>
     <string name="clock_style_spark">ניצוץ</string>
+    <string name="refund_provider_taxi">מונית</string>
+    <string name="refund_provider_other">אחר</string>
+    <string name="a11y_colour_swatch">צבע %1$d מתוך %2$d</string>
 </resources>

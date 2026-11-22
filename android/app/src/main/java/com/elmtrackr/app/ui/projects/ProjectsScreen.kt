@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.projects
 
+import com.elmtrackr.app.ui.common.asString
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.horizontalScroll
@@ -28,7 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,6 +60,7 @@ import com.elmtrackr.app.ui.design.ElmDashedButton
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraMotionEnabled
 import com.elmtrackr.app.ui.design.auroraSubScreenTransition
+import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.theme.Layout
 import com.elmtrackr.app.ui.theme.Spacing
 
@@ -80,8 +82,8 @@ fun ProjectsScreen(
     viewModel: ProjectsViewModel = hiltViewModel(),
     onFormVisibilityChanged: (Boolean) -> Unit = {},
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val showGuide by viewModel.showGuide.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val showGuide by viewModel.showGuide.collectAsStateWithLifecycle()
     val motionEnabled = auroraMotionEnabled()
 
     var destination by rememberSaveable { mutableStateOf(ProjectsDestination.LIST) }
@@ -105,6 +107,20 @@ fun ProjectsScreen(
             destination = ProjectsDestination.LIST
             selectedProjectId = null
         }
+    }
+    // The destination survives rotation, a theme or font-size change (rememberSaveable)
+    // but the drafts above deliberately do not. Restored onto a billing or payment form
+    // with no draft, the screen showed a spinner that never resolved and only Back got
+    // out. Return to the project instead, which re-reads its data, rather than restore
+    // a stale draft. Opening a form sets the draft before the destination, in the same
+    // coroutine, so this never fires on the way in.
+    LaunchedEffect(destination, billingInput, paymentInput) {
+        val draftMissing = when (destination) {
+            ProjectsDestination.BILLING -> billingInput == null
+            ProjectsDestination.PAYMENT -> paymentInput == null
+            else -> false
+        }
+        if (draftMissing) destination = ProjectsDestination.DETAIL
     }
     LaunchedEffect(destination, showGuide) {
         onFormVisibilityChanged(showGuide || destination != ProjectsDestination.LIST)
@@ -149,7 +165,7 @@ fun ProjectsScreen(
                     subtitle = stringResource(R.string.settings_paid_projects_desc),
                 )
                 is ProjectsUiState.Error -> ErrorState(
-                    message = current.message,
+                    message = current.message.asString(),
                     onRetry = viewModel::retry,
                 )
                 is ProjectsUiState.Ready -> if (showGuide) {
@@ -194,10 +210,10 @@ fun ProjectsScreen(
                                 val projectId = summary.project.id
                                 val billingRecords by remember(projectId) {
                                     viewModel.billingRecordsFor(projectId)
-                                }.collectAsState(initial = emptyList())
+                                }.collectAsStateWithLifecycle(initialValue = emptyList())
                                 val payments by remember(projectId) {
                                     viewModel.paymentsFor(projectId)
-                                }.collectAsState(initial = emptyList())
+                                }.collectAsStateWithLifecycle(initialValue = emptyList())
                                 ProjectDetailScreen(
                                     summary = summary,
                                     billingRecords = billingRecords,
@@ -251,7 +267,7 @@ fun ProjectsScreen(
                             if (input == null) {
                                 LoadingState()
                             } else {
-                                val billingErrors by viewModel.billingError.collectAsState()
+                                val billingErrors by viewModel.billingError.collectAsStateWithLifecycle()
                                 ProjectBillingFormScreen(
                                     initialInput = input,
                                     errors = billingErrors,
@@ -272,16 +288,16 @@ fun ProjectsScreen(
                             val records by remember(projectId) {
                                 projectId?.let { viewModel.billingRecordsFor(it) }
                                     ?: kotlinx.coroutines.flow.flowOf(emptyList())
-                            }.collectAsState(initial = emptyList())
+                            }.collectAsStateWithLifecycle(initialValue = emptyList())
                             val payments by remember(projectId) {
                                 projectId?.let { viewModel.paymentsFor(it) }
                                     ?: kotlinx.coroutines.flow.flowOf(emptyList())
-                            }.collectAsState(initial = emptyList())
+                            }.collectAsStateWithLifecycle(initialValue = emptyList())
                             val record = input?.billingRecordId?.let { id -> records.firstOrNull { it.id == id } }
                             if (input == null || record == null) {
                                 LoadingState()
                             } else {
-                                val rejection by viewModel.paymentRejection.collectAsState()
+                                val rejection by viewModel.paymentRejection.collectAsStateWithLifecycle()
                                 ProjectPaymentFormScreen(
                                     initialInput = input,
                                     billingRecord = record,
@@ -354,6 +370,7 @@ internal fun ProjectsList(
                             text = stringResource(R.string.projects_title),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.ExtraBold,
+                            modifier = Modifier.auroraHeading(),
                         )
                         Text(
                             text = stringResource(R.string.projects_subtitle),

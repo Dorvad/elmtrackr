@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.projects
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -105,7 +107,8 @@ fun ProjectBillingFormScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenH),
+        // imePadding: the keyboard otherwise covers the focused amount or date field.
+        modifier = Modifier.fillMaxWidth().imePadding().padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
     item {
@@ -250,7 +253,8 @@ fun ProjectPaymentFormScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenH),
+        // imePadding: the keyboard otherwise covers the focused amount or date field.
+        modifier = Modifier.fillMaxWidth().imePadding().padding(horizontal = Spacing.screenH),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
     item {
@@ -283,7 +287,8 @@ fun ProjectPaymentFormScreen(
         )
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            // No row spacing: FilterChip already pads its 32dp chip to a 48dp touch
+            // target, so 8dp on top left rows three times further apart than chips.
         ) {
             PaymentMethod.selectable.forEach { method ->
                 FilterChip(
@@ -353,18 +358,16 @@ fun correctionBlockedMessage(block: ProjectBillingCorrection.Block): String = wh
 @Composable
 fun dueStatusText(state: ProjectBillingState): String? {
     val days = state.daysOverdue
+    // Plurals, not a "== 1" pair: Arabic has a dual and a separate form from 11, and
+    // "Due in 1 days" was the English result of the old pair.
     if (days != null) {
-        return if (days == 1L) {
-            stringResource(R.string.project_billing_overdue_one_day)
-        } else {
-            stringResource(R.string.project_billing_overdue_days, days.toInt())
-        }
+        return pluralStringResource(R.plurals.project_billing_overdue, days.toInt(), days.toInt())
     }
     val until = state.daysUntilDue ?: return null
     if (!state.outstanding.isPositive) return null
     return when {
         until == 0L -> stringResource(R.string.project_billing_due_today)
-        until > 0L -> stringResource(R.string.project_billing_due_in_days, until.toInt())
+        until > 0L -> pluralStringResource(R.plurals.project_billing_due_in, until.toInt(), until.toInt())
         else -> null
     }
 }

@@ -2,6 +2,8 @@
 
 package com.elmtrackr.app.ui.settings
 
+import com.elmtrackr.app.ui.common.appLocale
+import com.elmtrackr.app.domain.MoneyFormatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -155,8 +157,11 @@ internal fun payrollSummary(
     timezone: String,
 ): String {
     val labels = dayLabels()
+    val locale = appLocale()
+    // MoneyFormatter, not symbol + raw number: the bare Double printed "₪50.0/hr",
+    // always symbol-first and always in Latin digits whatever the language.
     val ratePart = hourlyRateText.toDoubleOrNull()
-        ?.let { stringResource(R.string.settings_summary_rate_per_hour, "${currency.symbol}$it") }
+        ?.let { stringResource(R.string.settings_summary_rate_per_hour, MoneyFormatter.format(it, currency, locale)) }
         ?: stringResource(R.string.settings_summary_no_rate)
     val otPart = stringResource(R.string.settings_summary_ot, dailyOtText, weeklyOtText)
     val weekendPart = weekendDays.sorted().joinToString(", ") { labels[it] }

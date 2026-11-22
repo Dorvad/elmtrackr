@@ -1,5 +1,8 @@
 package com.elmtrackr.app.ui.shifts
 
+import com.elmtrackr.app.ui.design.AuroraFigurePair
+import androidx.compose.ui.graphics.compositeOver
+import com.elmtrackr.app.ui.theme.readableInk
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +65,7 @@ import com.elmtrackr.app.ui.design.ElmDashedButton
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraEnter
 import com.elmtrackr.app.ui.design.auroraPressScale
+import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.theme.AuroraPlum
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPeach
@@ -110,6 +114,7 @@ internal fun ShiftsPageHeader(onAddShift: () -> Unit) {
             stringResource(R.string.shifts_title),
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
+            modifier = Modifier.auroraHeading(),
         )
         ElmGradientButton(onClick = onAddShift, compact = true) {
             Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -215,44 +220,19 @@ internal fun ShiftsHeroSummaryCard(
     payContextShifts: List<Shift> = emptyList(),
     onPreviousMonth: (() -> Unit)? = null,
     onNextMonth: (() -> Unit)? = null,
+    /** The figures, already computed off the main thread. See [buildHeroSummary]. */
+    precomputed: HeroSummaryData? = null,
 ) {
-    val completed = remember(shifts) { shifts.filter { it.isCompleted } }
     val currentMonthCap = remember(settings) {
         YearMonth.now(
             settings?.let { com.elmtrackr.app.domain.time.WorkTimezone.zoneFor(it) }
                 ?: java.time.ZoneId.systemDefault(),
         )
     }
-    val summary = remember(completed, settings, month, profiles, premiumProfiles, payContextShifts) {
-        val completedMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
-        val payContext = payContextShifts.filter { it.isCompleted }.ifEmpty { completed }
-        val report = settings?.let {
-            MonthlyReportBuilder.buildMonthlyReport(
-                month.year, month.monthValue, completed, it, profiles, premiumProfiles,
-                contextShifts = payContext,
-            )
-        }
-        val regularMin = report?.regularMinutes ?: 0
-        val overtimeMin = report?.overtimeMinutes ?: 0
-        val weekendMin = report?.weekendMinutes ?: 0
-        val pay = settings?.let { s ->
-            val hasRate = (s.hourlyRate ?: 0.0) > 0.0 ||
-                profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
-            if (hasRate) {
-                PayrollCalculator.sumMonthlyPay(
-                    completed, s, profiles, premiumProfiles, contextShifts = payContext,
-                ).grossPay
-            } else {
-                null
-            }
-        }
-        HeroSummaryData(
-            completedMinutes = completedMinutes,
-            regularMin = regularMin,
-            overtimeMin = overtimeMin,
-            weekendMin = weekendMin,
-            pay = pay,
-        )
+    // Precomputed on the computation dispatcher by ShiftsViewModel when it can be;
+    // worked out here only for the empty state, previews and older tests.
+    val summary = precomputed ?: remember(shifts, settings, month, profiles, premiumProfiles, payContextShifts) {
+        buildHeroSummary(shifts, settings, month, profiles, premiumProfiles, payContextShifts)
     }
 
     val currency = CurrencyCode.from(settings?.displayCurrencyCode())
@@ -278,42 +258,47 @@ internal fun ShiftsHeroSummaryCard(
                 )
                 Spacer(Modifier.height(Spacing.md))
             }
-            Row(
+            // AuroraFigurePair, as on the Dashboard month card and the Reports overview:
+            // side by side when both fit, stacked when they do not. A SpaceBetween row
+            // let the estimate's label crowd the hours out at large font sizes.
+            AuroraFigurePair(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column {
-                    Text(
-                        stringResource(R.string.shifts_hours_tracked_header),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    HeroHoursTracked(
-                        completedMinutes = summary.completedMinutes,
-                        activeShift = activeShift,
-                    )
-                }
-                summary.pay?.let {
-                    Column(horizontalAlignment = Alignment.End) {
+                start = {
+                    Column {
                         Text(
-                            stringResource(R.string.shifts_est_gross_header),
+                            stringResource(R.string.shifts_hours_tracked_header),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Bold,
                         )
-                        Text(
-                            it.formattedEachOrZero(currency.name),
-                            style = if (it.isMixed) {
-                                MaterialTheme.typography.titleMedium
-                            } else {
-                                MaterialTheme.typography.headlineMedium
-                            },
-                            fontWeight = FontWeight.ExtraBold,
+                        HeroHoursTracked(
+                            completedMinutes = summary.completedMinutes,
+                            activeShift = activeShift,
                         )
                     }
-                }
-            }
+                },
+                end = summary.pay?.let { pay ->
+                    {
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                stringResource(R.string.shifts_est_gross_header),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                pay.formattedEachOrZero(currency.name),
+                                style = if (pay.isMixed) {
+                                    MaterialTheme.typography.titleMedium
+                                } else {
+                                    MaterialTheme.typography.headlineMedium
+                                },
+                                fontWeight = FontWeight.ExtraBold,
+                            )
+                        }
+                    }
+                },
+            )
 
             if (summary.completedMinutes > 0 || activeShift != null) {
                 HeroHoursBreakdown(
@@ -374,7 +359,7 @@ private fun HeroHoursBreakdown(
     }
 }
 
-private data class HeroSummaryData(
+data class HeroSummaryData(
     val completedMinutes: Int,
     val regularMin: Int,
     val overtimeMin: Int,
@@ -382,6 +367,55 @@ private data class HeroSummaryData(
     /** Gross per currency; never one figure for a month at two jobs in two currencies. */
     val pay: PayByCurrency?,
 )
+
+
+/**
+ * The summary card's hours split and month pay.
+ *
+ * A full month report plus a month pay sum — measured on a desktop JVM at about 13 ms
+ * for a 28-shift month and 20 ms for 54 — so it is built by [ShiftsViewModel] on the
+ * computation dispatcher, beside [buildShiftsPayFacts], instead of in a `remember` on
+ * the main thread.
+ */
+internal fun buildHeroSummary(
+    shifts: List<Shift>,
+    settings: UserSettings?,
+    month: YearMonth,
+    profiles: List<CompensationProfile>,
+    premiumProfiles: List<PremiumProfile>,
+    payContextShifts: List<Shift>,
+): HeroSummaryData {
+    val completed = shifts.filter { it.isCompleted }
+    val completedMinutes = completed.sumOf { ShiftDurationCalculator.netMinutes(it) ?: 0 }
+    val payContext = payContextShifts.filter { it.isCompleted }.ifEmpty { completed }
+    val report = settings?.let {
+        MonthlyReportBuilder.buildMonthlyReport(
+            month.year, month.monthValue, completed, it, profiles, premiumProfiles,
+            contextShifts = payContext,
+        )
+    }
+    val regularMin = report?.regularMinutes ?: 0
+    val overtimeMin = report?.overtimeMinutes ?: 0
+    val weekendMin = report?.weekendMinutes ?: 0
+    val pay = settings?.let { s ->
+        val hasRate = (s.hourlyRate ?: 0.0) > 0.0 ||
+            profiles.any { (it.baseHourlyRate ?: 0.0) > 0.0 }
+        if (hasRate) {
+            PayrollCalculator.sumMonthlyPay(
+                completed, s, profiles, premiumProfiles, contextShifts = payContext,
+            ).grossPay
+        } else {
+            null
+        }
+    }
+    return HeroSummaryData(
+        completedMinutes = completedMinutes,
+        regularMin = regularMin,
+        overtimeMin = overtimeMin,
+        weekendMin = weekendMin,
+        pay = pay,
+    )
+}
 
 /** Kept for screenshot regression — delegates to [ShiftsHeroSummaryCard]. */
 @Composable
@@ -771,6 +805,11 @@ private fun ShiftTypeBadge(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
+    // The accent is the badge's identity, but on its own tint it was not legible:
+    // aqua project time measured 1.8:1 and the purple weekend badge 3.7:1. The ink is
+    // the accent deepened along its hue just far enough to reach AA on what the badge
+    // actually paints — its tint over the card.
+    val ink = readableInk(color, background.compositeOver(MaterialTheme.colorScheme.surface))
     Box(
         modifier
             .background(background, RoundedCornerShape(50))
@@ -779,7 +818,7 @@ private fun ShiftTypeBadge(
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
-            color = color,
+            color = ink,
             fontWeight = FontWeight.Bold,
         )
     }

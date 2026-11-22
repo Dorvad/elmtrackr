@@ -1,5 +1,8 @@
 package com.elmtrackr.wear.ui
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -456,7 +459,12 @@ fun ConfirmationOverlay(confirmation: WearConfirmation) {
     var visible by remember(message) { mutableStateOf(false) }
     LaunchedEffect(message) {
         visible = true
-        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        // Distinct patterns, so a punch that failed does not feel like one that
+        // landed: the result is gone in under two seconds, often before the user
+        // has looked at the watch.
+        haptics.performHapticFeedback(
+            if (confirmation.isSuccess) HapticFeedbackType.Confirm else HapticFeedbackType.Reject,
+        )
     }
     val scale by animateFloatAsState(
         targetValue = if (!wearMotionEnabled() || visible) 1f else 0.88f,
@@ -512,7 +520,11 @@ fun ConfirmationOverlay(confirmation: WearConfirmation) {
             textAlign = TextAlign.Center,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 10.dp, start = 12.dp, end = 12.dp),
+            // Announced when it appears. Without a live region TalkBack never spoke
+            // the result of a punch at all.
+            modifier = Modifier
+                .padding(top = 10.dp, start = 12.dp, end = 12.dp)
+                .semantics { liveRegion = LiveRegionMode.Polite },
         )
     }
 }

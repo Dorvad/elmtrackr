@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.settings
 
+import com.elmtrackr.app.ui.design.AuroraScreenHeader
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -60,6 +61,7 @@ import com.elmtrackr.app.ui.design.AuroraHaptics
 import com.elmtrackr.app.ui.design.ElmGradientButton
 import com.elmtrackr.app.ui.design.auroraPressScale
 import com.elmtrackr.app.ui.design.auroraRowClickable
+import com.elmtrackr.app.ui.design.auroraHeading
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraIndigo
 import com.elmtrackr.app.ui.theme.AuroraPlum
@@ -79,7 +81,8 @@ internal fun SettingsPageHeader() {
         stringResource(R.string.settings_title),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = Spacing.lg, bottom = Spacing.sm),
+            .padding(top = Spacing.lg, bottom = Spacing.sm)
+            .auroraHeading(),
         style = MaterialTheme.typography.headlineLarge,
         fontWeight = FontWeight.Bold,
     )
@@ -166,7 +169,7 @@ internal fun SettingsGroupedSection(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp).auroraHeading(),
         )
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -242,22 +245,17 @@ internal fun SettingsDetailHeader(
     title: String,
     onBack: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = Spacing.sm, bottom = Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
-        }
-        Text(
-            title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 4.dp),
-        )
-    }
+    // The shared sub-screen header. This used to be its own IconButton + titleLarge
+    // row — the improvised pattern AuroraScreenHeader exists to replace — so Settings
+    // showed three header styles side by side: this one on Pay, Profile, Appearance
+    // and the rest, the Aurora chip header on Sync details, Tasks and Premium
+    // profiles, and a third on Work profiles.
+    AuroraScreenHeader(
+        title = title,
+        onBack = onBack,
+        backContentDescription = stringResource(R.string.settings_back),
+        modifier = Modifier.padding(bottom = Spacing.sm),
+    )
 }
 
 @Composable
@@ -277,7 +275,7 @@ internal fun SettingsSectionCard(
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = Spacing.sm),
+                modifier = Modifier.padding(bottom = Spacing.sm).auroraHeading(),
             )
             content()
         }
@@ -637,6 +635,9 @@ internal fun SettingsFloatingSaveBar(
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // Weighted, as in SettingsInfoRow: unweighted in a SpaceBetween row a
+                // long translation measured first and squeezed the Save button.
+                modifier = Modifier.weight(1f, fill = false).padding(end = Spacing.sm),
             )
             ElmGradientButton(
                 onClick = {

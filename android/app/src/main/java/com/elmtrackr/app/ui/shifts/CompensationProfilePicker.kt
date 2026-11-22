@@ -2,6 +2,9 @@
 
 package com.elmtrackr.app.ui.shifts
 
+import com.elmtrackr.app.domain.compensation.RegionPresets
+import com.elmtrackr.app.ui.common.appLocale
+import com.elmtrackr.app.domain.MoneyFormatter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -61,13 +64,14 @@ fun CompensationProfilePicker(
         Spacer(Modifier.height(6.dp))
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            // No row spacing: FilterChip already pads its 32dp chip to a 48dp touch
+            // target, so 8dp on top left rows three times further apart than chips.
         ) {
             profiles.forEach { profile ->
                 FilterChip(
                     selected = selected?.id == profile.id,
                     onClick = { onSelect(profile.id) },
-                    label = { Text(profile.chipLabel, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    label = { Text(profileChipLabel(profile), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     // The same tile the clock-in selector shows, so moving a shift
                     // to another job here is recognisably the same choice made
                     // before the punch rather than a second, unrelated control.
@@ -98,11 +102,15 @@ fun CompensationProfilePicker(
         }
         selected?.let { profile ->
             Spacer(Modifier.height(4.dp))
+            // The region's name and the rate as money. This printed "IL · 62.5": the enum
+            // code and a bare Double, in every language.
+            val regionLabel = stringResource(RegionPresets.forRegion(profile.regionCode).labelRes)
+            val locale = appLocale()
             Text(
-                buildString {
-                    append(profile.regionCode.name)
-                    profile.baseHourlyRate?.let { append(" · ").append(it) }
-                },
+                listOfNotNull(
+                    regionLabel,
+                    profile.baseHourlyRate?.let { MoneyFormatter.format(it, profile.currencyCode, locale) },
+                ).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -159,8 +167,9 @@ fun CompensationProfilePicker(
     }
 }
 
-private val CompensationProfile.chipLabel: String
-    get() = buildString {
-        append(name)
-        baseHourlyRate?.let { append(" · ").append(it) }
-    }
+/** The job's name and, when it has one, its rate as money in its own currency. */
+@Composable
+private fun profileChipLabel(profile: CompensationProfile): String {
+    val rate = profile.baseHourlyRate ?: return profile.name
+    return "${profile.name} · ${MoneyFormatter.format(rate, profile.currencyCode, appLocale())}"
+}

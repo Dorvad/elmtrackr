@@ -41,5 +41,6 @@ sealed interface SettingsUiState {
         val storedClockFacePacks: Set<ClockFaceGroup> = emptySet(),
     ) : SettingsUiState
 
-    data class Error(val message: String) : SettingsUiState
+    /** Translated and classified by [com.elmtrackr.app.ui.common.UserFacingError] — never raw exception text. */
+    data class Error(val message: UiText) : SettingsUiState
 }

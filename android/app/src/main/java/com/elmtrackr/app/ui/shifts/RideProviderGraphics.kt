@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.shifts
 
+import com.elmtrackr.app.ui.common.refundProviderLabel
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -110,9 +111,9 @@ private fun RideProviderCard(
     }
     val palette = ridePalette(provider)
     val cardContentDescription = if (selected) {
-        stringResource(R.string.shifts_ride_provider_a11y_selected, provider.label)
+        stringResource(R.string.shifts_ride_provider_a11y_selected, refundProviderLabel(provider))
     } else {
-        stringResource(R.string.shifts_ride_provider_a11y, provider.label)
+        stringResource(R.string.shifts_ride_provider_a11y, refundProviderLabel(provider))
     }
 
     Card(
@@ -142,7 +143,7 @@ private fun RideProviderCard(
                         .padding(horizontal = 9.dp, vertical = 5.dp),
                 ) {
                     Text(
-                        provider.label,
+                        refundProviderLabel(provider),
                         color = providerLabelColor(provider),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.ExtraBold,
@@ -161,9 +162,6 @@ private fun RideProviderCard(
         }
     }
 }
-
-private val RefundProvider.label: String
-    get() = name.lowercase().replaceFirstChar(Char::uppercase)
 
 private fun ridePalette(provider: RefundProvider): RidePalette = when (provider) {
     RefundProvider.LIME -> RidePalette(

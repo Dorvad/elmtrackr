@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.projects
 
+import com.elmtrackr.app.R
+import com.elmtrackr.app.ui.common.UserFacingError
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elmtrackr.app.data.local.preferences.FeatureDiscoveryPreferences
@@ -138,7 +140,7 @@ class ProjectsViewModel @Inject constructor(
                 )
             }
         }
-            .catch { error -> emit(ProjectsUiState.Error(error.message ?: "Unknown error")) }
+            .catch { error -> emit(ProjectsUiState.Error(UserFacingError.message(error, R.string.error_generic))) }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),

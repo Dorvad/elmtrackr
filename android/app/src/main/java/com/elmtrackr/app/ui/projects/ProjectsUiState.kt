@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.projects
 
+import com.elmtrackr.app.domain.model.UiText
 import com.elmtrackr.app.domain.model.UserSettings
 import com.elmtrackr.app.domain.projects.ProjectStatusFilter
 import com.elmtrackr.app.domain.projects.ProjectSummary
@@ -35,5 +36,6 @@ sealed interface ProjectsUiState {
             allProjects.firstOrNull { it.project.id == projectId }
     }
 
-    data class Error(val message: String) : ProjectsUiState
+    /** Translated and classified by [com.elmtrackr.app.ui.common.UserFacingError] — never raw exception text. */
+    data class Error(val message: UiText) : ProjectsUiState
 }

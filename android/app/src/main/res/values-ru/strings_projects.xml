@@ -312,10 +312,7 @@
     <string name="project_payment_delete_keep">Оставить</string>
 
     <!-- Overdue -->
-    <string name="project_billing_overdue_days">просрочка %1$d дн.</string>
-    <string name="project_billing_overdue_one_day">просрочка 1 день</string>
     <string name="project_billing_due_today">Срок оплаты сегодня</string>
-    <string name="project_billing_due_in_days">Срок оплаты через %1$d дн.</string>
 
     <!-- Billing reminders -->
     <string name="project_reminder_upcoming_title">Скоро срок оплаты: %1$s</string>
@@ -473,4 +470,16 @@
     <string name="projects_guide_billing_body">Выставив счёт, отметьте проект как выставленный. Это фиксирует выставленную сумму, поэтому позднейшая правка проекта не изменит уже отправленный счёт. Записывайте каждый платёж — остаток пересчитается сам.</string>
     <string name="projects_guide_billing_note">После срока оплаты проект помечается как просроченный и может напомнить о себе. ElmTrackr не выпускает счета — запишите номер счёта, выставленного в другом месте.</string>
     <string name="projects_guide_billing_a11y">Выставленная сумма фиксируется, приходят два платежа, полоса остатка уменьшается с каждым, а затем становится оранжевой, когда проходит срок оплаты.</string>
+    <plurals name="project_billing_overdue">
+        <item quantity="one">просрочка %d день</item>
+        <item quantity="few">просрочка %d дня</item>
+        <item quantity="many">просрочка %d дней</item>
+        <item quantity="other">просрочка %d дня</item>
+    </plurals>
+    <plurals name="project_billing_due_in">
+        <item quantity="one">Срок оплаты через %d день</item>
+        <item quantity="few">Срок оплаты через %d дня</item>
+        <item quantity="many">Срок оплаты через %d дней</item>
+        <item quantity="other">Срок оплаты через %d дня</item>
+    </plurals>
 </resources>

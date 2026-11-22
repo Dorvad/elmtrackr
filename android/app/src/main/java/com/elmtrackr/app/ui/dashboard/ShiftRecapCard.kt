@@ -1,5 +1,7 @@
 package com.elmtrackr.app.ui.dashboard
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -51,6 +53,7 @@ import java.time.format.DateTimeFormatter
  * this appears; whether it has reached the server is the sync screen's question, and
  * "saved" here must not be read as "backed up".
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ShiftRecapCard(
     recap: DashboardViewModel.ShiftRecap,
@@ -167,7 +170,10 @@ internal fun ShiftRecapCard(
                 )
             }
 
-            Row(
+            // FlowRow: three text buttons do not fit one line in every language — the
+            // Russian labels need roughly 400dp against 288 — so they wrap to a second
+            // line, end-aligned, instead of squeezing or clipping.
+            FlowRow(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.s8, Alignment.End),
             ) {

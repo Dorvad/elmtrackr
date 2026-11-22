@@ -26,7 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,9 +87,9 @@ fun AbsenceFormScreen(
     editingEventId: String? = null,
     viewModel: AbsenceFormViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val closed by viewModel.closed.collectAsState()
-    val message by viewModel.userMessage.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val closed by viewModel.closed.collectAsStateWithLifecycle()
+    val message by viewModel.userMessage.collectAsStateWithLifecycle()
 
     LaunchedEffect(type, editingEventId) { viewModel.start(type, editingEventId) }
     // Every way out tells the view model, which outlives the form: the next time this

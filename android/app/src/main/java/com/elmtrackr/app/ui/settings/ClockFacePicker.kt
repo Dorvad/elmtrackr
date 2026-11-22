@@ -1,5 +1,6 @@
 package com.elmtrackr.app.ui.settings
 
+import com.elmtrackr.app.ui.theme.AuroraLegibleGradient
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import com.elmtrackr.app.R
 import com.elmtrackr.app.domain.model.ClockStyle
 import com.elmtrackr.app.ui.design.auroraRowClickable
-import com.elmtrackr.app.ui.design.mirrorInRtl
 import com.elmtrackr.app.ui.theme.AuroraAqua
 import com.elmtrackr.app.ui.theme.AuroraDarkBg
 import com.elmtrackr.app.ui.theme.AuroraDarkSurfaceRaised
@@ -261,18 +261,16 @@ private fun ShopCallToAction(label: String, modifier: Modifier = Modifier) {
             Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = Color.White,
+            // Auto-mirrored already; a second flip pointed it backwards in RTL.
             modifier = Modifier
                 .padding(start = Spacing.s4)
-                .size(Spacing.s20)
-                .mirrorInRtl(),
+                .size(Spacing.s20),
         )
     }
 }
 
-/** The brand gradient the primary button wears. */
-private val ShopButtonGradient = Brush.linearGradient(
-    colorStops = arrayOf(0f to AuroraIndigo, 0.42f to AuroraPlum, 1f to AuroraAqua),
-)
+/** The brand gradient the primary button wears — the legible sweep, as it carries a white label. */
+private val ShopButtonGradient = AuroraLegibleGradient
 
 /** The store's own glow, scaled to a card — the window is lit from inside. */
 @Composable

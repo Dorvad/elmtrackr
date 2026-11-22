@@ -1,5 +1,7 @@
 package com.elmtrackr.app.navigation
 
+import com.elmtrackr.app.ui.design.auroraAnimationSpec
+import androidx.compose.foundation.selection.selectableGroup
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.fadeIn
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,7 +37,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -128,7 +131,7 @@ fun MainScaffold(
     val navController     = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute      = navBackStackEntry?.destination?.route
-    val authState         by authViewModel.uiState.collectAsState()
+    val authState         by authViewModel.uiState.collectAsStateWithLifecycle()
     var hideNavChrome     by rememberSaveable { mutableStateOf(false) }
     // A destination drawn edge to edge — the face store — takes the whole
     // window: no bottom bar, no rail, and none of the Scaffold's inset padding,
@@ -284,7 +287,14 @@ fun MainScaffold(
         NavHost(
             navController    = navController,
             startDestination = BottomNavItem.DASHBOARD.route,
-            modifier         = if (immersive) Modifier else Modifier.padding(innerPadding),
+            // consumeWindowInsets, not padding alone: with no topBar the Scaffold's
+            // innerPadding already carries the status bar, and AuroraScreen /
+            // AuroraListScreen apply statusBarsPadding() again for the screens that
+            // run without this shell. Padding does not consume, so every tab got the
+            // status-bar gap twice, and imePadding() stacked the keyboard on top of
+            // the bottom bar's height. Consuming here makes both resolve to zero
+            // extra inside the shell.
+            modifier         = if (immersive) Modifier else Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
             enterTransition = {
                 val forward = routeIndex(targetState.destination.route) >= routeIndex(initialState.destination.route)
                 navEnterTransition(forward, motionEnabled)
@@ -486,31 +496,30 @@ internal fun ElmBottomNav(
           .widthIn(max = PhoneContentMaxWidth)
           .fillMaxWidth()
           .align(Alignment.CenterHorizontally)
-          .padding(horizontal = 8.dp),
+          .padding(horizontal = 8.dp)
+          // The tabs as one set, so TalkBack reads "tab 2 of 5".
+          .selectableGroup(),
         horizontalArrangement = Arrangement.SpaceEvenly,
       ) {
         items.forEach { item ->
           val isSelected = currentRoute == item.route
           val interactionSource = remember { MutableInteractionSource() }
+          // auroraAnimationSpec, as the side navigation already uses: the pill now
+          // snaps instead of fading and scaling when motion is reduced.
           val pillAlpha by animateFloatAsState(
             targetValue = if (isSelected) 1f else 0f,
-            animationSpec = tween(
-              durationMillis = if (isSelected) 250 else 150,
-              easing = AuroraEaseOut,
-            ),
+            animationSpec = auroraAnimationSpec(if (isSelected) 250 else 150, AuroraEaseOut),
             label = "bottom-nav-pill-alpha",
           )
           val pillScale by animateFloatAsState(
             targetValue = if (isSelected) 1f else 0.9f,
-            animationSpec = tween(
-              durationMillis = if (isSelected) 250 else 150,
-              easing = AuroraEaseOut,
-            ),
+            animationSpec = auroraAnimationSpec(if (isSelected) 250 else 150, AuroraEaseOut),
             label = "bottom-nav-pill-scale",
           )
+          // The label alone. `selected` below is what TalkBack announces as
+          // "selected"; appending it to the description as well made it say so twice.
           val tabLabel = stringResource(item.labelRes)
-          val tabContentDescription =
-            if (isSelected) stringResource(R.string.nav_tab_selected, tabLabel) else tabLabel
+          val tabContentDescription = tabLabel
           Column(
             modifier = Modifier
               .weight(1f)
